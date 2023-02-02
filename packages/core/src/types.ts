@@ -60,6 +60,7 @@ export interface BaseActionObject {
    * The type of action that is executed.
    */
   type: string;
+  [other: string]: any;
 }
 
 /**
@@ -1190,7 +1191,6 @@ export interface RaiseAction<TContext, TEvent extends EventObject>
 
 export interface RaiseActionObject<TContext, TEvent extends EventObject>
   extends RaiseAction<TContext, TEvent> {
-  type: ActionTypes.Raise;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -1250,6 +1250,7 @@ export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
 
 export interface LogAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Log;
   label: string | undefined;
   expr: string | LogExpr<TContext, TEvent>;
 }
@@ -1264,6 +1265,7 @@ export interface SendAction<
   TEvent extends EventObject,
   TSentEvent extends EventObject
 > extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Send;
   to:
     | string
     | number
@@ -1334,6 +1336,7 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
 
 export interface CancelAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Cancel;
   sendId: string | number;
 }
 
