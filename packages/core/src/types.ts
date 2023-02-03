@@ -130,7 +130,7 @@ export interface ChooseCondition<TContext, TEvent extends EventObject> {
 
 export type Action<TContext, TEvent extends EventObject> =
   | ActionType
-  | { type: ActionType; [key: string]: any }
+  | BaseActionObject
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 

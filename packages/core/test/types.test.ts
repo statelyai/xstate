@@ -773,6 +773,27 @@ describe('actions', () => {
     });
   });
 
+  it('context should get inferred for a builtin action within an array of transition actions', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      on: {
+        FOO: {
+          actions: [
+            'foo',
+            assign((ctx) => {
+              ((_accept: number) => {})(ctx.count);
+              // @ts-expect-error
+              ((_accept: "ain't any") => {})(ctx.count);
+              return {};
+            })
+          ]
+        }
+      }
+    });
+  });
+
   it('context should get inferred for a stop action used as an entry action', () => {
     const childMachine = createMachine({
       initial: 'idle',
