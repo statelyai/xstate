@@ -840,4 +840,32 @@ describe('actions', () => {
       )
     });
   });
+
+  it('context should get inferred for a stop actions within an array of entry actions', () => {
+    const childMachine = createMachine({});
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+          promiseRef: ActorRefFrom<Promise<string>>;
+        }
+      },
+      entry: [
+        stop((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return ctx.childRef;
+        }),
+        stop((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return ctx.promiseRef;
+        })
+      ]
+    });
+  });
 });
