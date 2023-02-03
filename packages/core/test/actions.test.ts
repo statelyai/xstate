@@ -1790,7 +1790,7 @@ describe('actions config', () => {
           initialState.context,
           { type: 'any' },
           {
-            action,
+            action: action as any,
             state: initialState,
             _event: initialState._event
           }
@@ -1810,7 +1810,7 @@ describe('actions config', () => {
           inactiveState.context,
           { type: 'EVENT' },
           {
-            action,
+            action: action as any,
             state: initialState,
             _event: initialState._event
           }
