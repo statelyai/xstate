@@ -118,7 +118,7 @@ export function toActionObject<TContext, TEvent extends EventObject>(
         type: actionType
       } as ActionObject<TContext, TEvent>;
     } else {
-      actionObject = action as ActionObject<TContext, TEvent>;
+      actionObject = action as any;
     }
   }
   return actionObject;
