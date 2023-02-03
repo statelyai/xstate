@@ -427,10 +427,7 @@ export function start<TContext, TEvent extends EventObject>(
  * @param actorRef The activity to stop.
  */
 export function stop<TContext, TEvent extends EventObject>(
-  actorRef:
-    | string
-    | ActivityDefinition<TContext, TEvent>
-    | Expr<TContext, TEvent, string | { id: string }>
+  actorRef: string | Expr<TContext, TEvent, string | { id: string }>
 ): StopAction<TContext, TEvent> {
   const activity = isFunction(actorRef)
     ? actorRef

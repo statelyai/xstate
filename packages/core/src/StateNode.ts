@@ -1103,7 +1103,7 @@ class StateNode<
       actions: toActionObjects(
         [
           ...stateNode.onExit,
-          ...stateNode.activities.map((activity) => stop(activity))
+          ...stateNode.activities.map((activity) => stop(activity as any))
         ],
         this.machine.options.actions as any
       )

@@ -8,7 +8,7 @@ import {
   spawn,
   ActorRefFrom
 } from '../src/index';
-import { raise } from '../src/actions';
+import { raise, stop } from '../src/actions';
 import { createModel } from '../src/model';
 
 function noop(_x: unknown) {
@@ -770,6 +770,74 @@ describe('actions', () => {
           return {};
         })
       ]
+    });
+  });
+
+  it('context should get inferred for a stop action used as an entry action', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+        }
+      },
+      entry: stop((ctx) => {
+        ((_accept: number) => {})(ctx.count);
+        // @ts-expect-error
+        ((_accept: "ain't any") => {})(ctx.count);
+        return ctx.childRef;
+      })
+    });
+  });
+
+  it('context should get inferred for a stop action used as a transition action', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+        }
+      },
+      on: {
+        FOO: {
+          actions: stop((ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: "ain't any") => {})(ctx.count);
+            return ctx.childRef;
+          })
+        }
+      }
+    });
+  });
+
+  it('should report an error when the stop action returns an invalid actor ref', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        }
+      },
+      entry: stop(
+        // @ts-expect-error
+        (ctx) => {
+          return ctx.count;
+        }
+      )
     });
   });
 });
