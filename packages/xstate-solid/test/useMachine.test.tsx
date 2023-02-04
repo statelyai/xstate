@@ -17,6 +17,7 @@ import { DoneEventObject } from 'xstate';
 import {
   createEffect,
   createSignal,
+  For,
   Match,
   mergeProps,
   on,
@@ -685,6 +686,65 @@ describe('useMachine hook', () => {
     render(() => <App />);
 
     expect(count).toEqual(1);
+  });
+
+  it('nextEvents should be defined and reactive', () => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TRANSITION: 'yellow'
+          }
+        },
+        yellow: {
+          on: {
+            TRANSITION: 'red',
+            BACK_TRANSITION: 'green'
+          }
+        },
+        red: {
+          on: {
+            TRANSITION: 'green'
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+
+      return (
+        <div>
+          <button
+            data-testid="transition-button"
+            onclick={() => send({ type: 'TRANSITION' })}
+          />
+          <ul>
+            <For each={state.nextEvents} fallback={<li>Empty / undefined</li>}>
+              {(event, i) => <li data-testid={`event-${i()}`}>{event}</li>}
+            </For>
+          </ul>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const transitionBtn = screen.getByTestId('transition-button');
+
+    // Green
+    expect(screen.getByTestId('event-0')).toBeTruthy();
+    expect(screen.queryByTestId('event-1')).not.toBeTruthy();
+    transitionBtn.click();
+
+    // Yellow
+    expect(screen.getByTestId('event-0')).toBeTruthy();
+    expect(screen.getByTestId('event-1')).toBeTruthy();
+    transitionBtn.click();
+
+    // Red
+    expect(screen.getByTestId('event-0')).toBeTruthy();
+    expect(screen.queryByTestId('event-1')).not.toBeTruthy();
   });
 
   it('should be reactive to toStrings method calls', () => {
