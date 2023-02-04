@@ -589,7 +589,7 @@ describe('communicating with spawned actors', () => {
           entry: assign({
             // No need to spawn an existing service:
             // existingRef: () => spawn(existingService)
-            existingRef: existingService.ref
+            existingRef: existingService
           }),
           on: {
             'EXISTING.DONE': 'success'

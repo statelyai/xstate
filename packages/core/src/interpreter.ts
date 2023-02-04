@@ -5,7 +5,8 @@ import type {
   ActorBehavior,
   EventFromBehavior,
   InterpreterFrom,
-  SnapshotFrom
+  SnapshotFrom,
+  System
 } from './types.js';
 import { stopSignalType } from './actors/index.js';
 import { devToolsAdapter } from './dev/index.js';
@@ -117,6 +118,8 @@ export class Interpreter<
   // TODO: remove
   public _forwardTo: Set<AnyActorRef> = new Set();
 
+  private system: System;
+
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
@@ -132,8 +135,20 @@ export class Interpreter<
     const { clock, logger, parent, id } = resolvedOptions;
     const self = this;
 
-    // TODO: this should come from a "system"
-    this.sessionId = registry.bookId();
+    this.system =
+      options?.system ??
+      ({
+        register: (actorRef) => {
+          const sessionId = registry.bookId();
+          registry.register(sessionId, actorRef);
+          return sessionId;
+        },
+        unregister: (actorRef) => {
+          registry.free(self.sessionId);
+        }
+      } as System);
+
+    this.sessionId = this.system.register(this);
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
@@ -391,7 +406,7 @@ export class Interpreter<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = ActorStatus.Stopped;
-    registry.free(this.sessionId);
+    this.system.unregister(this);
 
     return this;
   }
