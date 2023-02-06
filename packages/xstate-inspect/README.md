@@ -59,7 +59,7 @@ service.start();
 ## Configuration
 
 * `url` *(optional)* - The endpoint that the Inspector sends events to. Default: https://stately.ai/viz?inspect
-* `iframe` *(optional)* - The iframe that loads the provided URL. If iframe is set to `null`, then a new tab is opened instead.
+* `iframe` *(optional)* - The iframe that loads the provided URL. If iframe is set to `false` (or a non-null value), then a new tab is opened instead.
 * `devTools` *(optional)* - Allows custom implementation for lifecycle hooks.
 * `serialize` *(optional)* - A custom serializer for messages sent to the URL endpoint. Useful for sanitizing sensitive information, such as credentials, from leaving your application.
 * `targetWindow` *(optional)* - Provide a preferred `window.open` location that will be used instead. When using this option, you must still provide the `url` value due to security checks in browser APIs.
