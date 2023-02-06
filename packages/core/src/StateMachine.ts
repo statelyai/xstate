@@ -494,10 +494,10 @@ export class StateMachine<
             meta: undefined
           });
 
-          const actorRef = interpret(
-            behavior.at?.(persistedState) ?? behavior,
-            { id: key }
-          );
+          const actorRef = interpret(behavior, {
+            id: key,
+            state: persistedState
+          });
 
           state.actions.unshift(
             invoke({
@@ -541,11 +541,7 @@ export class StateMachine<
       State<TContext, TEvent, TResolvedTypesMeta>
     >
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const restoredState = isStateConfig(state)
-      ? this.resolveState(state as any)
-      : this.resolveState(State.from(state as any, this.context, this));
-
-    return restoredState;
+    return this.at(state).getInitialState(_actorCtx);
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

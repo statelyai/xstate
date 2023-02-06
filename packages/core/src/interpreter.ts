@@ -118,6 +118,8 @@ export class Interpreter<
   // TODO: remove
   public _forwardTo: Set<AnyActorRef> = new Set();
 
+  private _initialState: any;
+
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
@@ -131,8 +133,7 @@ export class Interpreter<
     };
 
     if (resolvedOptions.state) {
-      this.behavior =
-        this.behavior.at?.(resolvedOptions.state) ?? this.behavior;
+      this._initialState = resolvedOptions.state;
     }
 
     const { clock, logger, parent, id } = resolvedOptions;
@@ -166,6 +167,12 @@ export class Interpreter<
 
   private _getInitialState(): InternalStateFrom<TBehavior> {
     return memo(this, 'initial', () => {
+      if (this._initialState && this.behavior.restoreState) {
+        return this.behavior.restoreState(
+          this._initialState,
+          this._actorContext
+        );
+      }
       return this.behavior.getInitialState(
         this._actorContext,
         this.options.input

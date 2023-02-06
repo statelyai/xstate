@@ -10,29 +10,23 @@ export interface PromiseInternalState<T> {
 
 export function fromPromise<T>(
   lazyPromise: Lazy<PromiseLike<T>>
-): WithRequired<
-  ActorBehavior<{ type: string }, T | undefined, PromiseInternalState<T>>,
-  'at'
-> {
+): ActorBehavior<{ type: string }, T | undefined, PromiseInternalState<T>> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
 
   // TODO: add event types
-  const behavior: WithRequired<
-    ActorBehavior<
-      | { type: string }
-      | {
-          type: typeof resolveEventType;
-          data: T;
-        }
-      | {
-          type: typeof rejectEventType;
-          data: any;
-        },
-      T | undefined,
-      PromiseInternalState<T>
-    >,
-    'at'
+  const behavior: ActorBehavior<
+    | { type: string }
+    | {
+        type: typeof resolveEventType;
+        data: T;
+      }
+    | {
+        type: typeof rejectEventType;
+        data: any;
+      },
+    T | undefined,
+    PromiseInternalState<T>
   > = {
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
@@ -72,12 +66,6 @@ export function fromPromise<T>(
       );
 
       return state;
-    },
-    at: (persistedState) => {
-      return {
-        ...behavior,
-        getInitialState: () => persistedState
-      };
     },
     getInitialState: () => {
       return {

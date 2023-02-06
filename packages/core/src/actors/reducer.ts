@@ -21,11 +21,8 @@ export function fromReducer<TState extends {}, TEvent extends EventObject>(
     actorContext: ActorContext<TEvent, TState>
   ) => TState,
   initialState: TState
-): WithRequired<ActorBehavior<TEvent, TState, TState>, 'at'> {
-  const behavior: WithRequired<
-    ActorBehavior<TEvent, TState, TState, TState>,
-    'at'
-  > = {
+): ActorBehavior<TEvent, TState, TState> {
+  const behavior: ActorBehavior<TEvent, TState, TState, TState> = {
     transition: (state, event, actorCtx) => {
       // @ts-ignore TODO
       const resolvedEvent = isSCXMLEvent(event) ? event.data : event;
@@ -35,11 +32,7 @@ export function fromReducer<TState extends {}, TEvent extends EventObject>(
     getInitialState: () => initialState,
     getSnapshot: (state) => state,
     getPersistedState: (state) => state,
-    restoreState: (state) => state,
-    at: (state) => ({
-      ...behavior,
-      getInitialState: () => state
-    })
+    restoreState: (state) => state
   };
 
   return behavior;

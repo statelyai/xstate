@@ -1848,10 +1848,6 @@ export interface ActorBehavior<
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   /**
-   * Clones behavior that starts at specified state
-   */
-  at?: (state: TInternalState) => this;
-  /**
    * @returns Persisted state
    */
   getPersistedState?: (state: TInternalState) => TPersisted;

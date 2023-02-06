@@ -106,9 +106,9 @@ describe('promise behavior (fromPromise)', () => {
         })
       );
 
-      const restoredActor = interpret(
-        promiseBehavior.at?.(resolvedPersistedState!)
-      ).start();
+      const restoredActor = interpret(promiseBehavior, {
+        state: resolvedPersistedState
+      }).start();
       expect(restoredActor.getSnapshot()).toBe(42);
       done();
     }, 5);
@@ -163,7 +163,7 @@ describe('reducer behavior (fromReducer)', () => {
       status: 'active'
     });
 
-    const restoredActor = interpret(behavior.at?.(persistedState!));
+    const restoredActor = interpret(behavior, { state: persistedState });
 
     restoredActor.start();
 
