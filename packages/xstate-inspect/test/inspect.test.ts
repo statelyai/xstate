@@ -341,20 +341,21 @@ describe('@xstate/inspect', () => {
     ).toHaveLength(1);
   });
 
-  it('browser inspector should return the original targetWindow if provided', () => {
+  it('browser inspector should use targetWindow if provided', () => {
     const windowMock = jest.fn() as unknown as Window;
     const windowSpy = jest.spyOn(window, 'open');
     windowSpy.mockImplementation(() => windowMock);
 
     const localWindowMock = jest.fn() as unknown as Window;
     const devTools = createDevTools();
-    const inspector = inspect({
+
+    inspect({
       devTools,
       iframe: undefined,
       targetWindow: localWindowMock
     });
 
-    expect(inspector?.targetWindow).toEqual(localWindowMock);
+    expect(windowSpy).not.toHaveBeenCalled();
 
     windowSpy.mockRestore();
   });
