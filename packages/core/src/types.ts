@@ -1586,6 +1586,9 @@ export interface InterpreterOptions {
 
   sync?: boolean;
 
+  /**
+   * The input data to pass to the machine.
+   */
   input?: any;
 }
 

@@ -23,17 +23,6 @@ const isEqual = (prevState: AnyState, nextState: AnyState) => {
   return prevState === nextState || nextState.changed === false;
 };
 
-export interface UseMachineOptions<
-  TContext extends MachineContext,
-  _TEvent extends EventObject
-> {
-  /**
-   * If provided, will be merged with machine's `context`.
-   */
-  // TODO: deprecate & remove context as option
-  context?: Partial<TContext>;
-}
-
 type RestParams<
   TMachine extends AnyStateMachine
 > = AreAllImplementationsAssumedToBeProvided<
@@ -41,7 +30,6 @@ type RestParams<
 > extends false
   ? [
       options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
         InternalMachineImplementations<
           TMachine['__TContext'],
           TMachine['__TEvent'],
@@ -51,7 +39,6 @@ type RestParams<
     ]
   : [
       options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
         InternalMachineImplementations<
           TMachine['__TContext'],
           TMachine['__TEvent'],

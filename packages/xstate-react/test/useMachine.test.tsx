@@ -164,10 +164,10 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('should merge machine context with options.context', () => {
     const testMachine = createMachine<{ foo: string; test: boolean }>({
-      context: {
+      context: ({ input }) => ({
         foo: 'bar',
-        test: false
-      },
+        test: input.test ?? false
+      }),
       initial: 'idle',
       states: {
         idle: {}
@@ -176,7 +176,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     const Test = () => {
       const [state] = useMachine(testMachine, {
-        context: { test: true }
+        input: { test: true }
       });
 
       expect(state.context).toEqual({
