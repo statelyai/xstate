@@ -74,7 +74,8 @@ const defaultInspectorOptions = {
     globalThis.__xstate__ = devTools;
     return devTools;
   },
-  serialize: undefined
+  serialize: undefined,
+  targetWindow: undefined
 };
 
 const getFinalOptions = (options?: Partial<InspectorOptions>) => {
@@ -91,10 +92,11 @@ const patchedInterpreters = new Set<AnyInterpreter>();
 
 export function inspect(
   options?: InspectorOptions
-): BrowserInspector | undefined {
-  const { iframe, url, devTools } = getFinalOptions(options);
-
-  if (iframe === null && !options?.targetWindow) {
+): Inspector | undefined {
+  const finalOptions = getFinalOptions(options);
+  const { iframe, url, devTools, targetWindow } = finalOptions
+  
+  if (iframe === null && !targetWindow) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
@@ -110,7 +112,7 @@ export function inspect(
     listeners.forEach((listener) => listener.next(state));
   });
 
-  let targetWindow: Window | null | undefined = options?.targetWindow;
+  let targetWindow: Window | null | undefined = finalOptions?.targetWindow;
   let client: Pick<ActorRef<any>, 'send'>;
 
   const messageHandler = (event: MessageEvent<unknown>) => {
@@ -223,7 +225,6 @@ export function inspect(
   }
 
   return {
-    targetWindow,
     send: (event) => {
       inspectService.send(event);
     },

@@ -29,10 +29,6 @@ export interface Inspector extends ActorRef<InspectMachineEvent, AnyState> {
   disconnect: () => void;
 }
 
-export interface BrowserInspector extends Inspector {
-  targetWindow?: Window;
-}
-
 /**
  * Events that the receiver sends to the inspector
  */

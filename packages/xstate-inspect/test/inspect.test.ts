@@ -341,22 +341,6 @@ describe('@xstate/inspect', () => {
     ).toHaveLength(1);
   });
 
-  it('browser inspector should return the new targetWindow if opened', () => {
-    const windowMock = jest.fn() as unknown as Window;
-    const windowSpy = jest.spyOn(window, 'open');
-    windowSpy.mockImplementation(() => windowMock);
-
-    const devTools = createDevTools();
-    const inspector = inspect({
-      devTools,
-      iframe: undefined
-    });
-
-    expect(inspector?.targetWindow).toEqual(windowMock);
-
-    windowSpy.mockRestore();
-  });
-
   it('browser inspector should return the original targetWindow if provided', () => {
     const windowMock = jest.fn() as unknown as Window;
     const windowSpy = jest.spyOn(window, 'open');
