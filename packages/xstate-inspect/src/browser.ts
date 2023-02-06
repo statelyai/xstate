@@ -15,7 +15,7 @@ import {
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { stringifyMachine, stringifyState } from './serialize';
 import type {
-  BrowserInspector,
+  Inspector,
   InspectorOptions,
   InspectReceiver,
   ParsedReceiverEvent,
@@ -94,7 +94,9 @@ export function inspect(
   options?: InspectorOptions
 ): Inspector | undefined {
   const finalOptions = getFinalOptions(options);
-  const { iframe, url, devTools, targetWindow } = finalOptions
+  const { iframe, url, devTools } = finalOptions;
+  let targetWindow: Window | null | undefined = finalOptions?.targetWindow;
+
   
   if (iframe === null && !targetWindow) {
     console.warn(
@@ -112,7 +114,6 @@ export function inspect(
     listeners.forEach((listener) => listener.next(state));
   });
 
-  let targetWindow: Window | null | undefined = finalOptions?.targetWindow;
   let client: Pick<ActorRef<any>, 'send'>;
 
   const messageHandler = (event: MessageEvent<unknown>) => {
@@ -245,7 +246,7 @@ export function inspect(
       window.removeEventListener('message', messageHandler);
       sub.unsubscribe();
     }
-  } as BrowserInspector;
+  } as Inspector;
 }
 
 export function createWindowReceiver(
