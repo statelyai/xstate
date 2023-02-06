@@ -4,12 +4,10 @@ import {
   AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  EventObject,
   InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
   InterpreterStatus,
-  MachineContext,
   StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop } from './types.js';
