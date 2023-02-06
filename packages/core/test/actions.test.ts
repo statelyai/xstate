@@ -723,7 +723,7 @@ describe('entry/exit actions', () => {
       const flushTracked = trackEntries(machine);
 
       const aa1State = machine.resolveStateValue({ A: 'A1' });
-      const service = interpret(machine.at(aa1State)).start();
+      const service = interpret(machine, { state: aa1State }).start();
       service.send({ type: 'NEXT' });
 
       expect(flushTracked()).toEqual([

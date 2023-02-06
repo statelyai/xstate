@@ -161,7 +161,7 @@ describe('interpreter', () => {
       const recreated = JSON.parse(JSON.stringify(nextState));
       const restoredState = lightMachine.createState(recreated);
 
-      const service = interpret(lightMachine.at(restoredState));
+      const service = interpret(lightMachine, { state: restoredState });
       service.start();
     });
 
@@ -188,7 +188,7 @@ describe('interpreter', () => {
       // Ensure that there are no actions attached to the state
       bState.actions.length = 0;
 
-      interpret(machine.at(bState)).start();
+      interpret(machine, { state: bState }).start();
 
       expect(aCalled).toBe(false);
     });
@@ -635,7 +635,7 @@ describe('interpreter', () => {
       });
       const bState = toggleMachine.transition(activeState, { type: 'SWITCH' });
 
-      interpret(toggleMachine.at(bState)).start();
+      interpret(toggleMachine, { state: bState }).start();
 
       setTimeout(() => {
         expect(activityActive).toBeFalsy();
@@ -1207,9 +1207,9 @@ describe('interpreter', () => {
     });
 
     it('should be able to be initialized at a custom state', (done) => {
-      const startService = interpret(
-        startMachine.at(State.from('bar', undefined, startMachine))
-      ).onTransition((state) => {
+      const startService = interpret(startMachine, {
+        state: State.from('bar', undefined, startMachine)
+      }).onTransition((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
@@ -1219,20 +1219,20 @@ describe('interpreter', () => {
 
     it('should be able to be initialized at a custom state value', (done) => {
       const barState = startMachine.resolveStateValue('bar');
-      const startService = interpret(startMachine.at(barState)).onTransition(
-        (state) => {
-          expect(state.matches('bar')).toBeTruthy();
-          done();
-        }
-      );
+      const startService = interpret(startMachine, {
+        state: barState
+      }).onTransition((state) => {
+        expect(state.matches('bar')).toBeTruthy();
+        done();
+      });
 
       startService.start();
     });
 
     it('should be able to resolve a custom initialized state', (done) => {
-      const startService = interpret(
-        startMachine.at(State.from('foo', undefined, startMachine))
-      ).onTransition((state) => {
+      const startService = interpret(startMachine, {
+        state: State.from('foo', undefined, startMachine)
+      }).onTransition((state) => {
         expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();
       });

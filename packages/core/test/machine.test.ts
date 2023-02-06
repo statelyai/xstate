@@ -416,10 +416,12 @@ describe('machine', () => {
 
       const persistedState = getPersistedState(nextState);
 
-      const service = interpret(machine.at(persistedState)).onDone(() => {
-        // Should reach done state immediately
-        done();
-      });
+      const service = interpret(machine, { state: persistedState }).onDone(
+        () => {
+          // Should reach done state immediately
+          done();
+        }
+      );
 
       service.start();
     });

@@ -130,6 +130,11 @@ export class Interpreter<
       ...options
     };
 
+    if (resolvedOptions.state) {
+      this.behavior =
+        this.behavior.at?.(resolvedOptions.state) ?? this.behavior;
+    }
+
     const { clock, logger, parent, id } = resolvedOptions;
     const self = this;
 

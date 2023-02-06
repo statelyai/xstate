@@ -27,7 +27,8 @@ async function runTestToCompletion(
   let done = false;
   let nextState: AnyState = machine.initialState;
 
-  const service = interpret(machine.at(nextState), {
+  const service = interpret(machine, {
+    state: nextState,
     clock: new SimulatedClock()
   })
     .onTransition((state) => {

@@ -73,7 +73,8 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     },
     persistedState
   }) => {
-    const [current, send] = useMachine(fetchMachine.at(persistedState), {
+    const [current, send] = useMachine(fetchMachine, {
+      state: persistedState,
       actors: {
         fetchData: fromPromise(onFetch)
       }
@@ -925,9 +926,9 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     let currentState: StateFrom<typeof testMachine>;
 
     const Test = () => {
-      const [state, send] = useMachine(
-        testMachine.at(testMachine.createState(JSON.parse(persistedState)))
-      );
+      const [state, send] = useMachine(testMachine, {
+        state: testMachine.createState(JSON.parse(persistedState))
+      });
 
       currentState = state;
 

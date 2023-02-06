@@ -15,7 +15,7 @@ describe('rehydration', () => {
       const persistedState = JSON.stringify(machine.initialState);
       const restoredState = machine.createState(JSON.parse(persistedState));
 
-      const service = interpret(machine.at(restoredState)).start();
+      const service = interpret(machine, { state: restoredState }).start();
 
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
@@ -35,7 +35,7 @@ describe('rehydration', () => {
       const persistedState = JSON.stringify(machine.initialState);
       const restoredState = machine.createState(JSON.parse(persistedState));
 
-      interpret(machine.at(restoredState)).start().stop();
+      interpret(machine, { state: restoredState }).start().stop();
 
       expect(actual).toEqual(['a', 'root']);
     });
@@ -53,7 +53,7 @@ describe('rehydration', () => {
         interpret(machine).start().getSnapshot()
       );
       const restoredState = JSON.parse(persistedState);
-      const service = interpret(machine.at(restoredState)).start();
+      const service = interpret(machine, { state: restoredState }).start();
 
       expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
@@ -75,7 +75,7 @@ describe('rehydration', () => {
 
       const activeState = machine.transition(undefined, { type: 'NEXT' });
 
-      const service = interpret(machine.at(activeState));
+      const service = interpret(machine, { state: activeState });
 
       service.start();
 
@@ -99,7 +99,7 @@ describe('rehydration', () => {
 
       const activeState = machine.resolveStateValue('active');
 
-      interpret(machine.at(activeState)).start().stop();
+      interpret(machine, { state: activeState }).start().stop();
 
       expect(actual).toEqual(['active', 'root']);
     });

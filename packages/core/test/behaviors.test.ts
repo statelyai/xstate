@@ -370,7 +370,9 @@ describe('machine behavior', () => {
     // child is at 'b'
 
     const persistedState = actor.getPersistedState()!;
-    const newActor = interpret(parentMachine.at(persistedState)).start();
+    const newActor = interpret(parentMachine, {
+      state: persistedState
+    }).start();
     const newSnapshot = newActor.getSnapshot();
 
     expect(newSnapshot.children.child.getSnapshot().value).toBe('b');

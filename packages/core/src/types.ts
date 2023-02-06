@@ -1590,6 +1590,8 @@ export interface InterpreterOptions {
    * The input data to pass to the machine.
    */
   input?: any;
+
+  state?: any; // TODO: type this
 }
 
 export type AnyInterpreter = Interpreter<any>;
