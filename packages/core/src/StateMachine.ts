@@ -1,7 +1,7 @@
 import { createInitEvent, initEvent } from './actions.js';
 import { STATE_DELIMITER } from './constants.js';
 import { createSpawner } from './spawn.js';
-import { getPersistedState, isStateConfig, State } from './State.js';
+import { getPersistedState, State } from './State.js';
 import { StateNode } from './StateNode.js';
 import { interpret } from './interpreter.js';
 import {

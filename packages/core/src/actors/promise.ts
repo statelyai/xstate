@@ -1,4 +1,4 @@
-import { Lazy, ActorBehavior, WithRequired } from '../types';
+import { Lazy, ActorBehavior } from '../types';
 import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
 

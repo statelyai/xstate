@@ -1,9 +1,4 @@
-import {
-  ActorBehavior,
-  ActorContext,
-  EventObject,
-  WithRequired
-} from '../types';
+import { ActorBehavior, ActorContext, EventObject } from '../types';
 import { isSCXMLEvent } from '../utils';
 
 /**
