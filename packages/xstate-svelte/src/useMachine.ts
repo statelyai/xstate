@@ -3,30 +3,14 @@ import { Readable, readable } from 'svelte/store';
 import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  EventObject,
   InternalMachineImplementations,
   interpret,
   InterpreterFrom,
   InterpreterOptions,
-  StateConfig,
   StateFrom
 } from 'xstate';
 
 type Prop<T, K> = K extends keyof T ? T[K] : never;
-interface UseMachineOptions<
-  TContext extends object,
-  TEvent extends EventObject
-> {
-  /**
-   * If provided, will be merged with machine's `context`.
-   */
-  context?: Partial<TContext>;
-  /**
-   * The state to rehydrate the machine to. The machine will
-   * start at this state instead of its `initialState`.
-   */
-  state?: StateConfig<TContext, TEvent>;
-}
 
 type RestParams<
   TMachine extends AnyStateMachine
@@ -35,7 +19,6 @@ type RestParams<
 > extends false
   ? [
       options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
         InternalMachineImplementations<
           TMachine['__TContext'],
           TMachine['__TEvent'],
@@ -45,7 +28,6 @@ type RestParams<
     ]
   : [
       options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
         InternalMachineImplementations<
           TMachine['__TContext'],
           TMachine['__TEvent'],
@@ -66,31 +48,16 @@ export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  const {
-    context,
-    guards,
-    actions,
-    actors,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+  const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
     actors,
     delays
   };
 
-  const resolvedMachine = machine
-    .provide(machineConfig as any)
-    .at(
-      rehydratedState
-        ? (machine.createState(rehydratedState) as any)
-        : undefined
-    );
+  const resolvedMachine = machine.provide(machineConfig as any);
 
   const service = interpret(resolvedMachine, interpreterOptions).start();
 

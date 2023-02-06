@@ -1,4 +1,4 @@
-import { initEvent } from './actions.js';
+import { createInitEvent, initEvent } from './actions.js';
 import { STATE_DELIMITER } from './constants.js';
 import { createSpawner } from './spawn.js';
 import { getPersistedState, isStateConfig, State } from './State.js';
@@ -95,15 +95,20 @@ export class StateMachine<
       State<TContext, TEvent, TResolvedTypesMeta>,
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     > {
-  private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
+  private _contextFactory: (stuff: {
+    spawn: Spawner;
+    input: any; // TODO: fix types
+  }) => TContext;
+  // TODO: this getter should be removed
   public get context(): TContext {
-    return this.getContextAndActions()[0];
+    return this.getContextAndActions({} as any)[0];
   }
-  private getContextAndActions(): [TContext, InvokeActionObject[]] {
+  private getContextAndActions(input: any): [TContext, InvokeActionObject[]] {
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
-      spawn: createSpawner(this, null as any, null as any, actions) // TODO: fix types
+      spawn: createSpawner(this, null as any, null as any, actions), // TODO: fix types
+      input
     });
 
     return [context, actions];
@@ -132,6 +137,7 @@ export class StateMachine<
 
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<TEvent['type']>;
+  public input: any = {}; // TODO: fix
 
   constructor(
     /**
@@ -322,19 +328,20 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: ActorContext<any, any> | undefined
+    actorCtx: ActorContext<any, any> | undefined,
+    input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     if (this.preInitialState) {
       return this.preInitialState;
     }
 
-    const [context, actions] = this.getContextAndActions();
+    const [context, actions] = this.getContextAndActions(input);
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
       this.createState({
         value: {}, // TODO: this is computed in state constructor
         context,
-        _event: initEvent as SCXML.Event<TEvent>,
+        _event: (createInitEvent({}) as unknown) as SCXML.Event<TEvent>, // TODO: fix
         _sessionid: actorCtx?.sessionId ?? undefined,
         actions: [],
         meta: undefined,
@@ -372,21 +379,26 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    actorCtx?: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TResolvedTypesMeta>
+    >,
+    // TODO: input should not be optional when it's required
+    input?: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = microstep(
-      [],
-      preInitialState,
-      actorCtx,
-      initEvent as SCXML.Event<TEvent>
-    );
+    const initEvent = (createInitEvent(
+      input
+    ) as unknown) as SCXML.Event<TEvent>; // TODO: fix;
+
+    const preInitialState = this.getPreInitialState(actorCtx, input);
+    const nextState = microstep([], preInitialState, actorCtx, initEvent);
     nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
 
     return macroState;
   }
+
   public start(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>

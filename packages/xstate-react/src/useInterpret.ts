@@ -16,12 +16,10 @@ import {
 } from 'xstate';
 import { MaybeLazy } from './types.js';
 import useConstant from './useConstant.js';
-import { UseMachineOptions } from './useMachine.js';
 
 export function useIdleInterpreter(
   getMachine: MaybeLazy<AnyStateMachine>,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<any, never>> &
     Partial<MachineImplementations<any, never>>
 ): AnyInterpreter {
   const machine = useConstant(() => {
@@ -42,18 +40,10 @@ export function useIdleInterpreter(
     }
   }
 
-  const {
-    context,
-    actors,
-    guards,
-    actions,
-    delays,
-    ...interpreterOptions
-  } = options;
+  const { actors, guards, actions, delays, ...interpreterOptions } = options;
 
   const service = useConstant(() => {
     const machineConfig = {
-      context,
       guards,
       actions,
       actors,
@@ -87,7 +77,6 @@ type RestParams<
 > extends false
   ? [
       options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
         InternalMachineImplementations<
           TMachine['__TContext'],
           TMachine['__TEvent'],
@@ -100,7 +89,6 @@ type RestParams<
     ]
   : [
       options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
         InternalMachineImplementations<
           TMachine['__TContext'],
           TMachine['__TEvent'],
