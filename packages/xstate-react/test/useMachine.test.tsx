@@ -163,33 +163,34 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
-  it('should merge machine context with options.context', () => {
-    const testMachine = createMachine<{ foo: string; test: boolean }>({
-      context: ({ input }) => ({
-        foo: 'bar',
-        test: input.test ?? false
-      }),
-      initial: 'idle',
-      states: {
-        idle: {}
-      }
-    });
+  // TODO: make new test with input (not related to options.context)
+  // it('should merge machine context with options.context', () => {
+  //   const testMachine = createMachine<{ foo: string; test: boolean }>({
+  //     context: ({ input }) => ({
+  //       foo: 'bar',
+  //       test: input.test ?? false
+  //     }),
+  //     initial: 'idle',
+  //     states: {
+  //       idle: {}
+  //     }
+  //   });
 
-    const Test = () => {
-      const [state] = useMachine(testMachine, {
-        input: { test: true }
-      });
+  //   const Test = () => {
+  //     const [state] = useMachine(testMachine, {
+  //       input: { test: true }
+  //     });
 
-      expect(state.context).toEqual({
-        foo: 'bar',
-        test: true
-      });
+  //     expect(state.context).toEqual({
+  //       foo: 'bar',
+  //       test: true
+  //     });
 
-      return null;
-    };
+  //     return null;
+  //   };
 
-    render(<Test />);
-  });
+  //   render(<Test />);
+  // });
 
   it('should not spawn actors until service is started', async () => {
     const spawnMachine = createMachine<{ ref?: ActorRef<any> }>({

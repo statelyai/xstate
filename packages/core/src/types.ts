@@ -985,7 +985,6 @@ type InitialContext<TContext extends MachineContext> =
 
 export type ContextFactory<TContext extends MachineContext> = (stuff: {
   spawn: Spawner;
-  input: any; // TODO: fix
 }) => TContext;
 
 export interface MachineConfig<
@@ -1586,11 +1585,6 @@ export interface InterpreterOptions {
 
   sync?: boolean;
 
-  /**
-   * The input data to pass to the machine.
-   */
-  input?: any;
-
   state?: any; // TODO: type this
 }
 
@@ -1834,8 +1828,7 @@ export interface ActorBehavior<
     ctx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot>,
-    input?: any
+    actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   restoreState?: (
     restoredState: any,
