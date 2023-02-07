@@ -41,7 +41,8 @@ import {
   EventFrom,
   AnyActorRef,
   PredictableActionArgumentsExec,
-  BaseActionObject
+  BaseActionObject,
+  LowInfer
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -467,7 +468,9 @@ export function resolveStop<TContext, TEvent extends EventObject>(
  * @param assignment An object that represents the partial context to update.
  */
 export const assign = <TContext, TEvent extends EventObject = EventObject>(
-  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
+  assignment:
+    | Assigner<LowInfer<TContext>, TEvent>
+    | PropertyAssigner<LowInfer<TContext>, TEvent>
 ): AssignAction<TContext, TEvent> => {
   return {
     type: actionTypes.assign,
