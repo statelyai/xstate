@@ -173,10 +173,7 @@ export class Interpreter<
           this._actorContext
         );
       }
-      return this.behavior.getInitialState(
-        this._actorContext,
-        this.options.input
-      );
+      return this.behavior.getInitialState(this._actorContext);
     });
   }
 
