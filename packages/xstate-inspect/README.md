@@ -62,7 +62,7 @@ service.start();
 * `iframe` *(optional)* - The iframe that loads the provided URL. If iframe is set to `false`, then a new tab is opened instead.
 * `devTools` *(optional)* - Allows custom implementation for lifecycle hooks.
 * `serialize` *(optional)* - A custom serializer for messages sent to the URL endpoint. Useful for sanitizing sensitive information, such as credentials, from leaving your application.
-* `targetWindow` *(optional)* - Provide a preferred `window.open` location that will be used instead. When using this option, you must still provide the `url` value due to security checks in browser APIs.
+* `targetWindow` *(optional)* - Provide a pre-existing window location that will be used instead of opening a new window etc. When using this option, you must still provide the `url` value due to security checks in browser APIs, and the `iframe` option is ignored in such a case.
 
 ### Examples
 
