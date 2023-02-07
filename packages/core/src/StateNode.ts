@@ -356,22 +356,24 @@ class StateNode<
 
     this.initial = this.config.initial;
 
-    this.states = (this.config.states
-      ? mapValues(
-          this.config.states,
-          (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
-            const stateNode = new StateNode(stateConfig, {}, undefined, {
-              parent: this,
-              key: key as string
-            });
-            Object.assign(this.idMap, {
-              [stateNode.id]: stateNode,
-              ...stateNode.idMap
-            });
-            return stateNode;
-          }
-        )
-      : EMPTY_OBJECT) as StateNodesConfig<TContext, TStateSchema, TEvent>;
+    this.states = (
+      this.config.states
+        ? mapValues(
+            this.config.states,
+            (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
+              const stateNode = new StateNode(stateConfig, {}, undefined, {
+                parent: this,
+                key: key as string
+              });
+              Object.assign(this.idMap, {
+                [stateNode.id]: stateNode,
+                ...stateNode.idMap
+              });
+              return stateNode;
+            }
+          )
+        : EMPTY_OBJECT
+    ) as StateNodesConfig<TContext, TStateSchema, TEvent>;
 
     // Document order
     let order = 0;
@@ -404,13 +406,13 @@ class StateNode<
     this.strict = !!this.config.strict;
 
     // TODO: deprecate (entry)
-    this.onEntry = toArray(
-      this.config.entry || this.config.onEntry
-    ).map((action) => toActionObject(action));
+    this.onEntry = toArray(this.config.entry || this.config.onEntry).map(
+      (action) => toActionObject(action as any)
+    );
     // TODO: deprecate (exit)
-    this.onExit = toArray(
-      this.config.exit || this.config.onExit
-    ).map((action) => toActionObject(action));
+    this.onExit = toArray(this.config.exit || this.config.onExit).map(
+      (action) => toActionObject(action as any)
+    );
     this.meta = this.config.meta;
     this.doneData =
       this.type === 'final'
@@ -764,7 +766,7 @@ class StateNode<
       configuration,
       done: isInFinalState(configuration, this),
       tags: getTagsFromConfiguration(configuration),
-      machine: (this.machine as unknown) as AnyStateMachine
+      machine: this.machine as unknown as AnyStateMachine
     });
   }
 
@@ -978,17 +980,10 @@ class StateNode<
     }
 
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
-    let marker:
-      | StateNode<TContext, any, TEvent, any, any, any>
-      | undefined = this;
-    let possibleAncestor: StateNode<
-      TContext,
-      any,
-      TEvent,
-      any,
-      any,
-      any
-    > = targetNode;
+    let marker: StateNode<TContext, any, TEvent, any, any, any> | undefined =
+      this;
+    let possibleAncestor: StateNode<TContext, any, TEvent, any, any, any> =
+      targetNode;
 
     while (marker && marker !== possibleAncestor) {
       nodes.push(marker);
@@ -1108,7 +1103,7 @@ class StateNode<
       actions: toActionObjects(
         [
           ...stateNode.onExit,
-          ...stateNode.activities.map((activity) => stop(activity))
+          ...stateNode.activities.map((activity) => stop(activity as any))
         ],
         this.machine.options.actions as any
       )
@@ -1136,7 +1131,8 @@ class StateNode<
         (action) =>
           action.type !== actionTypes.raise &&
           (action.type !== actionTypes.send ||
-            (!!action.to && action.to !== SpecialTargets.Internal))
+            (!!(action as any).to &&
+              (action as any).to !== SpecialTargets.Internal))
       );
       return actions.concat({ type: 'stop', actions: stopActions });
     }
@@ -1305,10 +1301,12 @@ class StateNode<
       for (const action of block.actions) {
         if (action.type === actionTypes.start) {
           activities[
-            action.activity!.id || action.activity!.type
+            (action as any).activity!.id || (action as any).activity!.type
           ] = action as ActivityDefinition<TContext, TEvent>;
         } else if (action.type === actionTypes.stop) {
-          activities[action.activity!.id || action.activity!.type] = false;
+          activities[
+            (action as any).activity!.id || (action as any).activity!.type
+          ] = false;
         }
       }
     }
@@ -1329,7 +1327,7 @@ class StateNode<
       (
         action
       ): action is
-        | RaiseActionObject<TEvent>
+        | RaiseActionObject<TContext, TEvent>
         | SendActionObject<TContext, TEvent, TEvent> =>
         action.type === actionTypes.raise ||
         (action.type === actionTypes.send &&
@@ -1554,14 +1552,8 @@ class StateNode<
     }
 
     const arrayStatePath = toStatePath(statePath, this.delimiter).slice();
-    let currentStateNode: StateNode<
-      TContext,
-      any,
-      TEvent,
-      any,
-      any,
-      any
-    > = this;
+    let currentStateNode: StateNode<TContext, any, TEvent, any, any, any> =
+      this;
     while (arrayStatePath.length) {
       const key = arrayStatePath.shift()!;
 
@@ -1628,9 +1620,8 @@ class StateNode<
 
   private getResolvedPath(stateIdentifier: string): string[] {
     if (isStateId(stateIdentifier)) {
-      const stateNode = this.machine.idMap[
-        stateIdentifier.slice(STATE_IDENTIFIER.length)
-      ];
+      const stateNode =
+        this.machine.idMap[stateIdentifier.slice(STATE_IDENTIFIER.length)];
 
       if (!stateNode) {
         throw new Error(`Unable to find state node '${stateIdentifier}'`);
@@ -1661,12 +1652,14 @@ class StateNode<
         );
       }
 
-      initialStateValue = (isLeafNode(this.states[this.initial as string])
-        ? this.initial
-        : {
-            [this.initial]: this.states[this.initial as string]
-              .initialStateValue
-          }) as StateValue;
+      initialStateValue = (
+        isLeafNode(this.states[this.initial as string])
+          ? this.initial
+          : {
+              [this.initial]:
+                this.states[this.initial as string].initialStateValue
+            }
+      ) as StateValue;
     } else {
       // The finite state value of a machine without child states is just an empty object
       initialStateValue = {};
@@ -1979,9 +1972,8 @@ class StateNode<
 
       if (this.parent) {
         try {
-          const targetStateNode = this.parent.getStateNodeByPath(
-            resolvedTarget
-          );
+          const targetStateNode =
+            this.parent.getStateNodeByPath(resolvedTarget);
           return targetStateNode;
         } catch (err) {
           throw new Error(
@@ -2043,10 +2035,8 @@ class StateNode<
     } else if (Array.isArray(this.config.on)) {
       onConfig = this.config.on;
     } else {
-      const {
-        [WILDCARD]: wildcardConfigs = [],
-        ...strictTransitionConfigs
-      } = this.config.on;
+      const { [WILDCARD]: wildcardConfigs = [], ...strictTransitionConfigs } =
+        this.config.on;
 
       onConfig = flatten(
         Object.keys(strictTransitionConfigs)
@@ -2096,7 +2086,7 @@ class StateNode<
     }
 
     const invokeConfig = flatten(
-      this.invoke.map((invokeDef) => {
+      this.invoke.map((invokeDef: any) => {
         const settleTransitions: any[] = [];
         if (invokeDef.onDone) {
           settleTransitions.push(
