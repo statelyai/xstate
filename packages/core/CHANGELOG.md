@@ -1,5 +1,17 @@
 # xstate
 
+## 4.35.4
+
+### Patch Changes
+
+- [#3801](https://github.com/statelyai/xstate/pull/3801) [`10d0ba76a`](https://github.com/statelyai/xstate/commit/10d0ba76a1e35e7a58d24496caa57da6c28f6c64) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not clearing registered interpreters when their machines reached final states.
+
+## 4.35.3
+
+### Patch Changes
+
+- [#3783](https://github.com/statelyai/xstate/pull/3783) [`b68f0e8bf`](https://github.com/statelyai/xstate/commit/b68f0e8bf0d097f5cb249bd3ddfd5553c1bcc028) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `EmittedFrom` sometimes not being able to infer the snapshot types from machines.
+
 ## 4.35.2
 
 ### Patch Changes

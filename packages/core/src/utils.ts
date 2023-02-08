@@ -93,7 +93,7 @@ export function getActionType(action: Action<any, any>): ActionType {
       ? `${action}`
       : isFunction(action)
       ? action.name
-      : action.type;
+      : (action as any).type;
   } catch (e) {
     throw new Error(
       'Actions must be strings or objects with a string action.type property.'

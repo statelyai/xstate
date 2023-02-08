@@ -31,7 +31,7 @@ function actionToSCXML(action: ActionObject<any, any>): XMLElement {
       type: 'element',
       name: 'raise',
       attributes: {
-        event: action.event.type
+        event: (action as any).event.type
       }
     };
   }

@@ -1,5 +1,59 @@
 # Changelog
 
+## 3.1.2
+
+### Patch Changes
+
+- [#3804](https://github.com/statelyai/xstate/pull/3804) [`b53856d28`](https://github.com/statelyai/xstate/commit/b53856d28da4ecbba7d4393f72aa38894fd523d9) Thanks [@farskid](https://github.com/farskid)! - Interpreter options can now be specified in the second argument of createActorContext(machine, options).
+
+## 3.1.1
+
+### Patch Changes
+
+- [#3799](https://github.com/statelyai/xstate/pull/3799) [`51d254692`](https://github.com/statelyai/xstate/commit/51d254692c2d267c24c65fc5802461540c012393) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused the internally used `useSyncExternalStore` to warn about the computed snapshot not being cached when a not-started machine servive was passed to `useActor`.
+
+## 3.1.0
+
+### Minor Changes
+
+- [#3778](https://github.com/statelyai/xstate/pull/3778) [`f12248b23`](https://github.com/statelyai/xstate/commit/f12248b2379e4e554d69a238019216feea5211f6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createActorContext(...)` helper has been introduced to make global actors easier to use with React. It outputs a React Context object with the following properties:
+
+  - `.Provider` - The React Context provider
+  - `.useActor(...)` - A hook that can be used to get the current state and send events to the actor
+  - `.useSelector(...)` - A hook that can be used to select some derived state from the actor's state
+  - `.useActorRef()` - A hook that can be used to get a reference to the actor that can be passed to other components
+
+  Usage:
+
+  ```jsx
+  import { createActorContext } from '@xstate/react';
+  import { someMachine } from './someMachine';
+
+  // Create a React Context object that will interpret the machine
+  const SomeContext = createActorContext(someMachine);
+
+  function SomeComponent() {
+    // Get the current state and `send` function
+    const [state, send] = SomeContext.useActor();
+
+    // Or select some derived state
+    const someValue = SomeContext.useSelector((state) => state.context.someValue);
+
+    // Or get a reference to the actor
+    const actorRef = SomeContext.useActorRef();
+
+    return (/* ... */);
+  }
+
+  function App() {
+    return (
+      <SomeContext.Provider>
+        <SomeComponent />
+      </SomeContext.Provider>
+    );
+  }
+  ```
+
 ## 3.0.2
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/solid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "XState tools for SolidJS",
   "keywords": [
     "state",
@@ -34,7 +34,7 @@
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
     "test": "jest",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
@@ -42,7 +42,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^2.0.0",
     "solid-js": "^1.6.0",
-    "xstate": "^4.35.2"
+    "xstate": "^4.35.4"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -69,6 +69,6 @@
     "solid-js": "^1.6.0",
     "solid-testing-library": "^0.3.0",
     "typescript": "^4.8.4",
-    "xstate": "4.35.2"
+    "xstate": "4.35.4"
   }
 }

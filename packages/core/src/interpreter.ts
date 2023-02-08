@@ -30,12 +30,12 @@ import {
   ActorRef,
   ActorRefFrom,
   Behavior,
-  StopActionObject,
   Subscription,
   AnyState,
   StateConfig,
   InteropSubscribable,
-  RaiseActionObject
+  RaiseActionObject,
+  LogActionObject
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
@@ -132,7 +132,8 @@ export class Interpreter<
     ActorRef<
       TEvent,
       State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
-    > {
+    >
+{
   /**
    * The default interpreter options:
    *
@@ -210,9 +211,8 @@ export class Interpreter<
   public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
-  private _outgoingQueue: Array<
-    [{ send: (ev: unknown) => void }, unknown]
-  > = [];
+  private _outgoingQueue: Array<[{ send: (ev: unknown) => void }, unknown]> =
+    [];
 
   // Dev Tools
   private devTools?: any;
@@ -335,7 +335,7 @@ export class Interpreter<
     ) {
       this.execute(this.state);
     } else {
-      let item: typeof this._outgoingQueue[number] | undefined;
+      let item: (typeof this._outgoingQueue)[number] | undefined;
       while ((item = this._outgoingQueue.shift())) {
         item[0].send(item[1]);
       }
@@ -387,6 +387,7 @@ export class Interpreter<
       }
       this._stop();
       this._stopChildren();
+      registry.free(this.sessionId);
     }
   }
   /*
@@ -960,7 +961,7 @@ export class Interpreter<
       | RaiseActionObject<TContext, TEvent>
   ): void {
     const timerId = this.clock.setTimeout(() => {
-      if (sendAction.to) {
+      if ('to' in sendAction && sendAction.to) {
         this.sendTo(sendAction._event, sendAction.to, true);
       } else {
         this.send(
@@ -989,7 +990,7 @@ export class Interpreter<
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
-      ? actionOrExec.exec
+      ? (actionOrExec as any).exec
       : action.exec;
 
     if (exec) {
@@ -1046,7 +1047,7 @@ export class Interpreter<
         break;
 
       case actionTypes.cancel:
-        this.cancel((action as CancelAction).sendId);
+        this.cancel((action as CancelAction<any, any>).sendId);
 
         break;
       case actionTypes.start: {
@@ -1140,12 +1141,12 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild((action as StopActionObject).activity.id);
+        this.stopChild((action as any).activity.id);
         break;
       }
 
       case actionTypes.log:
-        const { label, value } = action;
+        const { label, value } = action as LogActionObject<TContext, TEvent>;
 
         if (label) {
           this.logger(label, value);

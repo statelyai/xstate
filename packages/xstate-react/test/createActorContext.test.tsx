@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createMachine, assign } from 'xstate';
 import { fireEvent, screen, render } from '@testing-library/react';
-import { shallowEqual, useSelector, createActorContext } from '../src';
+import { useSelector, createActorContext, shallowEqual } from '../src';
 
 const originalConsoleError = console.error;
 
@@ -302,5 +302,38 @@ describe('createActorContext', () => {
       `"You used a hook from \\"ActorProvider((machine))\\" but it's not inside a <ActorProvider((machine))> component."`
     );
     checkConsoleErrorOutputForMissingProvider();
+  });
+
+  it('should be able to pass interpreter options to the actor', () => {
+    const someMachine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: ['testAction']
+        }
+      }
+    });
+    const stubFn = jest.fn();
+    const SomeContext = createActorContext(someMachine, {
+      actions: {
+        testAction: stubFn
+      }
+    });
+
+    const Component = () => {
+      return null;
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider machine={someMachine}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(stubFn).toHaveBeenCalledTimes(1);
   });
 });

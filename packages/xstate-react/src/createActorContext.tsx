@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { useInterpret } from './useInterpret';
+import { RestParams, useInterpret } from './useInterpret';
 import { useActor as useActorUnbound } from './useActor';
 import { useSelector as useSelectorUnbound } from './useSelector';
 import { ActorRefFrom, AnyStateMachine, EmittedFrom } from 'xstate';
 
 export function createActorContext<TMachine extends AnyStateMachine>(
-  machine: TMachine
+  machine: TMachine,
+  ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): {
   useActor: () => ReturnType<typeof useActorUnbound<ActorRefFrom<TMachine>>>;
   useSelector: <T>(
@@ -29,7 +30,11 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     children: React.ReactNode;
     machine: TMachine | (() => TMachine);
   }) {
-    const actor = useInterpret(providedMachine) as ActorRefFrom<TMachine>;
+    const actor = useInterpret(
+      providedMachine,
+      options,
+      observerOrListener
+    ) as ActorRefFrom<TMachine>;
 
     return <OriginalProvider value={actor}>{children}</OriginalProvider>;
   }

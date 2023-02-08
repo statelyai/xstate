@@ -7,12 +7,13 @@ import {
   assign,
   send,
   sendParent,
-  EventObject,
   StateValue,
   AnyEventObject,
   createMachine,
   AnyState,
-  InterpreterStatus
+  InterpreterStatus,
+  ActorRefFrom,
+  ActorRef
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise, stop, sendTo } from '../src/actions';
@@ -369,10 +370,12 @@ describe('interpreter', () => {
             onEntry: send('FINISH', {
               delay: (ctx, _, { _event }) =>
                 ctx.initialDelay +
-                (_event.data as Extract<
-                  DelayExpMachineEvents,
-                  { type: 'ACTIVATE' }
-                >).wait
+                (
+                  _event.data as Extract<
+                    DelayExpMachineEvents,
+                    { type: 'ACTIVATE' }
+                  >
+                ).wait
             }),
             on: {
               FINISH: 'finished'
@@ -434,10 +437,7 @@ describe('interpreter', () => {
               }
             },
             c: {
-              onEntry: send(
-                { type: 'FIRE_DELAY', value: 200 },
-                { delay: 20 }
-              ) as EventObject,
+              onEntry: send({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
               on: {
                 FIRE_DELAY: 'd'
               }
@@ -1998,10 +1998,14 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const parentMachine = createMachine<any>({
+      const parentMachine = createMachine({
         id: 'form',
         initial: 'present',
-        context: {},
+        context: {} as {
+          machineRef: ActorRefFrom<typeof childMachine>;
+          promiseRef: ActorRefFrom<Promise<unknown>>;
+          observableRef: ActorRef<any, any>;
+        },
         entry: assign({
           machineRef: () => spawn(childMachine, 'machineChild'),
           promiseRef: () =>
@@ -2019,10 +2023,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
               NEXT: {
                 target: 'gone',
                 actions: [
-                  // TODO: type these correctly in TContext
-                  stop((ctx) => (ctx as any).machineRef),
-                  stop((ctx) => (ctx as any).promiseRef),
-                  stop((ctx) => (ctx as any).observableRef)
+                  stop((ctx) => ctx.machineRef),
+                  stop((ctx) => ctx.promiseRef),
+                  stop((ctx) => ctx.observableRef)
                 ]
               }
             }
