@@ -806,8 +806,8 @@ export class Interpreter<
         batchedActions.push(
           ...(this.machine.config.predictableActionArguments
             ? nextState.actions
-            : (nextState.actions.map((a) =>
-                bindActionToState(a, nextState)
+            : (nextState.actions.map((action) =>
+                bindActionToState(action, nextState, this)
               ) as Array<ActionObject<TContext, TEvent>>))
         );
 
@@ -980,14 +980,15 @@ export class Interpreter<
 
     if (exec) {
       try {
-        return (exec as any)(
+        return exec(
           context,
           _event.data,
           !this.machine.config.predictableActionArguments
             ? {
                 action,
                 state: this.state,
-                _event
+                _event,
+                self: this
               }
             : {
                 action,

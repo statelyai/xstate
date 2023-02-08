@@ -1792,7 +1792,8 @@ describe('actions config', () => {
           {
             action: action as any,
             state: initialState,
-            _event: initialState._event
+            _event: initialState._event,
+            self: undefined
           }
         );
       }
@@ -1812,7 +1813,8 @@ describe('actions config', () => {
           {
             action: action as any,
             state: initialState,
-            _event: initialState._event
+            _event: initialState._event,
+            self: undefined
           }
         );
       }
@@ -2763,4 +2765,20 @@ describe('assign action order', () => {
       expect(captured).toEqual([2, 2, 2]);
     }
   );
+
+  it('should include reference to self (interpreter)', (done) => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: (_ctx, _e, { self }) => {
+            expect(self).toBeDefined();
+            done();
+          }
+        }
+      }
+    });
+
+    interpret(machine).start();
+  });
 });

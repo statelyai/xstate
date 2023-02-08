@@ -12,7 +12,8 @@ import {
   Typestate,
   ActorRef,
   StateMachine,
-  SimpleEventsOf
+  SimpleEventsOf,
+  AnyInterpreter
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, isString, warn } from './utils';
@@ -65,7 +66,8 @@ export const isState = isStateConfig;
 
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
-  state: State<TC, TE, any, any, any>
+  state: State<TC, TE, any, any, any>,
+  interpreter: AnyInterpreter
 ): ActionObject<TC, TE> {
   const { exec } = action;
   const boundAction: ActionObject<TC, TE> = {
@@ -76,7 +78,8 @@ export function bindActionToState<TC, TE extends EventObject>(
             exec(state.context, state.event as TE, {
               action: action as any,
               state,
-              _event: state._event
+              _event: state._event,
+              self: interpreter
             })
         : undefined
   } as any;
