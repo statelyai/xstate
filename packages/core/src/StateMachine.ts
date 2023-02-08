@@ -156,7 +156,6 @@ export class StateMachine<
             partialContext
           ) as TContext;
         }; // TODO: fix types
-    this.preInitialState = options?.state;
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? (({} as any) as this['schema']);
@@ -205,8 +204,7 @@ export class StateMachine<
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
       delays: { ...delays, ...implementations.delays },
-      context: implementations.context!,
-      state: this.preInitialState
+      context: implementations.context!
     });
   }
 

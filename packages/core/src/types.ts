@@ -784,7 +784,6 @@ export interface MachineImplementationsSimplified<
   >;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
-  state: State<TContext, TEvent, any> | undefined;
 }
 
 type MachineImplementationsActions<
