@@ -314,11 +314,7 @@ describe('createActorContext', () => {
       }
     });
     const stubFn = jest.fn();
-    const SomeContext = createActorContext(someMachine, {
-      actions: {
-        testAction: stubFn
-      }
-    });
+    const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
       return null;
@@ -326,7 +322,14 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeContext.Provider machine={someMachine}>
+        <SomeContext.Provider
+          machine={someMachine}
+          options={{
+            actions: {
+              testAction: stubFn
+            }
+          }}
+        >
           <Component />
         </SomeContext.Provider>
       );
