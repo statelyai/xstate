@@ -1,6 +1,7 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import {
+  ActorRef,
   ActorRefFrom,
   AnyState,
   assign,
@@ -294,7 +295,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const parentMachine = createMachine({
       schema: {
         context: {} as {
-          childActor: ActorRefFrom<ReturnType<typeof createActor>>;
+          childActor: ActorRef<any, any>;
         }
       },
       entry: assign({
@@ -303,8 +304,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const identitySelector = (value: any) => value;
-    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
-      actor.latestValue;
+    const getSnapshot = (actor: ActorRef<any, any>) =>
+      (actor as any).latestValue;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
@@ -433,7 +434,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const parentMachine = createMachine({
       schema: {
         context: {} as {
-          childActor: ActorRefFrom<ReturnType<typeof createActor>>;
+          childActor: ActorRef<any, any>;
         }
       },
       entry: assign({
@@ -442,8 +443,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const identitySelector = (value: any) => value;
-    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
-      actor.latestValue;
+    const getSnapshot = (actor: ActorRef<any, any>) =>
+      (actor as any).latestValue;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
