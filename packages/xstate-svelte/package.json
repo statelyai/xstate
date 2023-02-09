@@ -39,7 +39,7 @@
     "build": "tsc && tsc --outDir es --module esnext",
     "test": "jest",
     "prepare": "npm run build",
-    "svelte-check": "svelte-check"
+    "svelte-check": "svelte-check --workspace test"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
