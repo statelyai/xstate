@@ -889,4 +889,45 @@ describe('actions', () => {
       ]
     });
   });
+
+  it('should accept assign with partial static object', () => {
+    createMachine({
+      schema: {
+        events: {} as {
+          type: 'TOGGLE';
+        },
+        context: {} as {
+          count: number;
+          mode: 'foo' | 'bar' | null;
+        }
+      },
+      context: {
+        count: 0,
+        mode: null
+      },
+      entry: assign({ mode: 'foo' })
+    });
+  });
+
+  it("should provide context to single prop updater in assign when it's mixed with a static value for another prop", () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          skip: boolean;
+        },
+        events: {} as {
+          type: 'TOGGLE';
+        }
+      },
+      context: {
+        count: 0,
+        skip: true
+      },
+      entry: assign({
+        count: (context) => context.count + 1,
+        skip: true
+      })
+    });
+  });
 });
