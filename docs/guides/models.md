@@ -104,7 +104,7 @@ const machine = userModel.createMachine(
   {
     actions: {
       assignAge: userModel.assign({
-        age: (_, event) => event.value // inferred
+        age: (_, event) => event.value
       })
     }
   }

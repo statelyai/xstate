@@ -21,7 +21,7 @@ export const validateMachine = (machine: AnyStateMachine) => {
     actions.forEach((action) => {
       if (
         action.type.startsWith('xstate.') &&
-        typeof action.delay === 'number'
+        typeof (action as any).delay === 'number'
       ) {
         throw new Error('Delayed actions on test machines are not supported');
       }

@@ -61,18 +61,30 @@ export interface BaseActionObject {
    */
   type: string;
   [other: string]: any;
+  [notAnArrayLike: number]: never;
 }
 
 /**
  * The full definition of an action, with a string `type` and an
  * `exec` implementation function.
  */
-export interface ActionObject<TContext, TEvent extends EventObject>
-  extends BaseActionObject {
+export interface ActionObject<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject = BaseActionObject
+> {
+  type: string;
   /**
    * The implementation for executing the action.
    */
-  exec?: ActionFunction<TContext, TEvent> | undefined;
+  exec?: ActionFunction<TContext, TEvent, TAction> | undefined;
+
+  /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
+  (
+    arg: TContext,
+    ev: TEvent,
+    meta: ActionMeta<TContext, TEvent, TAction>
+  ): void;
 }
 
 export type DefaultContext = Record<string, any> | undefined;
@@ -118,6 +130,7 @@ export interface ChooseCondition<TContext, TEvent extends EventObject> {
 
 export type Action<TContext, TEvent extends EventObject> =
   | ActionType
+  | BaseActionObject
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 
@@ -134,9 +147,8 @@ type SimpleActionsOf<T extends BaseActionObject> = ActionObject<
 /**
  * Events that do not require payload
  */
-export type SimpleEventsOf<
-  TEvent extends EventObject
-> = ExtractWithSimpleSupport<TEvent>;
+export type SimpleEventsOf<TEvent extends EventObject> =
+  ExtractWithSimpleSupport<TEvent>;
 
 export type BaseAction<
   TContext,
@@ -145,13 +157,14 @@ export type BaseAction<
 > =
   | SimpleActionsOf<TAction>['type']
   | TAction
-  | RaiseAction<any>
+  | RaiseAction<TContext, TEvent>
   | SendAction<TContext, TEvent, any>
   | AssignAction<TContext, TEvent>
   | LogAction<TContext, TEvent>
-  | CancelAction
+  | CancelAction<TContext, TEvent>
   | StopAction<TContext, TEvent>
   | ChooseAction<TContext, TEvent>
+  | PureAction<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
@@ -782,7 +795,8 @@ type MachineOptionsActions<
   [K in keyof TEventsCausingActions]?:
     | ActionObject<
         TContext,
-        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
+        Cast<Prop<TIndexedActions, K>, BaseActionObject>
       >
     | ActionFunction<
         TContext,
@@ -1171,13 +1185,14 @@ export enum ActionTypes {
   Choose = 'xstate.choose'
 }
 
-export interface RaiseAction<TEvent extends EventObject> {
+export interface RaiseAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Raise;
   event: TEvent['type'];
 }
 
-export interface RaiseActionObject<TEvent extends EventObject> {
-  type: ActionTypes.Raise;
+export interface RaiseActionObject<TContext, TEvent extends EventObject>
+  extends RaiseAction<TContext, TEvent> {
   _event: SCXML.Event<TEvent>;
 }
 
@@ -1237,6 +1252,7 @@ export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
 
 export interface LogAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Log;
   label: string | undefined;
   expr: string | LogExpr<TContext, TEvent>;
 }
@@ -1251,6 +1267,7 @@ export interface SendAction<
   TEvent extends EventObject,
   TSentEvent extends EventObject
 > extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Send;
   to:
     | string
     | number
@@ -1319,7 +1336,9 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
     | ExprWithMeta<TContext, TEvent, string | ActorRef<any>>;
 }
 
-export interface CancelAction extends ActionObject<any, any> {
+export interface CancelAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Cancel;
   sendId: string | number;
 }
 
@@ -1910,16 +1929,15 @@ type Matches<TypegenEnabledArg, TypegenDisabledArg> = {
   (stateValue: TypegenDisabledArg): any;
 };
 
-export type StateValueFrom<
-  TMachine extends AnyStateMachine
-> = StateFrom<TMachine>['matches'] extends Matches<
-  infer TypegenEnabledArg,
-  infer TypegenDisabledArg
->
-  ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
-    ? TypegenEnabledArg
-    : TypegenDisabledArg
-  : never;
+export type StateValueFrom<TMachine extends AnyStateMachine> =
+  StateFrom<TMachine>['matches'] extends Matches<
+    infer TypegenEnabledArg,
+    infer TypegenDisabledArg
+  >
+    ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
+      ? TypegenEnabledArg
+      : TypegenDisabledArg
+    : never;
 
 export type PredictableActionArgumentsExec = (
   action: ActionObject<unknown, EventObject>,
