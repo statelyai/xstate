@@ -40,7 +40,9 @@ import {
   Cast,
   EventFrom,
   AnyActorRef,
-  PredictableActionArgumentsExec
+  PredictableActionArgumentsExec,
+  BaseActionObject,
+  LowInfer
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -89,35 +91,35 @@ export function toActionObject<TContext, TEvent extends EventObject>(
       actionObject = {
         type: action,
         exec
-      };
+      } as any;
     } else if (exec) {
       actionObject = exec;
     } else {
-      actionObject = { type: action, exec: undefined };
+      actionObject = { type: action, exec: undefined } as any;
     }
   } else if (isFunction(action)) {
     actionObject = {
       // Convert action to string if unnamed
       type: action.name || action.toString(),
       exec: action
-    };
+    } as any;
   } else {
-    const exec = getActionFunction(action.type, actionFunctionMap);
+    const exec = getActionFunction((action as any).type, actionFunctionMap);
     if (isFunction(exec)) {
       actionObject = {
-        ...action,
+        ...(action as any),
         exec
       };
     } else if (exec) {
-      const actionType = exec.type || action.type;
+      const actionType = (exec as any).type || (action as any).type;
 
       actionObject = {
-        ...exec,
-        ...action,
+        ...(exec as any),
+        ...(action as any),
         type: actionType
       } as ActionObject<TContext, TEvent>;
     } else {
-      actionObject = action as ActionObject<TContext, TEvent>;
+      actionObject = action as any;
     }
   }
   return actionObject;
@@ -144,10 +146,10 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
   const actionObject = toActionObject(action);
 
   return {
-    id: isString(action) ? action : actionObject.id,
+    id: isString(action) ? action : (actionObject as any).id,
     ...actionObject,
     type: actionObject.type
-  };
+  } as any;
 }
 
 /**
@@ -158,23 +160,25 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  */
 export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
-): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
+):
+  | RaiseAction<TContext, TEvent>
+  | SendAction<TContext, AnyEventObject, TEvent> {
   if (!isString(event)) {
     return send(event, { to: SpecialTargets.Internal });
   }
   return {
     type: actionTypes.raise,
     event
-  };
+  } as any;
 }
 
-export function resolveRaise<TEvent extends EventObject>(
-  action: RaiseAction<TEvent>
-): RaiseActionObject<TEvent> {
+export function resolveRaise<TContext, TEvent extends EventObject>(
+  action: RaiseAction<TContext, TEvent>
+): RaiseActionObject<TContext, TEvent> {
   return {
     type: actionTypes.raise,
     _event: toSCXMLEvent(action.event)
-  };
+  } as any;
 }
 
 /**
@@ -206,7 +210,7 @@ export function send<
         : isFunction(event)
         ? event.name
         : (getEventType<TSentEvent>(event) as string)
-  };
+  } as any;
 }
 
 export function resolveSend<
@@ -252,7 +256,7 @@ export function resolveSend<
     _event: resolvedEvent,
     event: resolvedEvent.data,
     delay: resolvedDelay
-  };
+  } as any;
 }
 
 /**
@@ -367,22 +371,23 @@ export function log<TContext, TEvent extends EventObject>(
     type: actionTypes.log,
     label,
     expr
-  };
+  } as any;
 }
 
 export const resolveLog = <TContext, TEvent extends EventObject>(
   action: LogAction<TContext, TEvent>,
   ctx: TContext,
   _event: SCXML.Event<TEvent>
-): LogActionObject<TContext, TEvent> => ({
-  // TODO: remove .expr from resulting object
-  ...action,
-  value: isString(action.expr)
-    ? action.expr
-    : action.expr(ctx, _event.data, {
-        _event
-      })
-});
+): LogActionObject<TContext, TEvent> =>
+  ({
+    // TODO: remove .expr from resulting object
+    ...action,
+    value: isString(action.expr)
+      ? action.expr
+      : action.expr(ctx, _event.data, {
+          _event
+        })
+  } as any);
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -391,11 +396,13 @@ export const resolveLog = <TContext, TEvent extends EventObject>(
  *
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
-export const cancel = (sendId: string | number): CancelAction => {
+export const cancel = <TContext, TEvent extends EventObject>(
+  sendId: string | number
+): CancelAction<TContext, TEvent> => {
   return {
     type: actionTypes.cancel,
     sendId
-  };
+  } as any;
 };
 
 /**
@@ -412,7 +419,7 @@ export function start<TContext, TEvent extends EventObject>(
     type: ActionTypes.Start,
     activity: activityDef,
     exec: undefined
-  };
+  } as any;
 }
 
 /**
@@ -421,10 +428,7 @@ export function start<TContext, TEvent extends EventObject>(
  * @param actorRef The activity to stop.
  */
 export function stop<TContext, TEvent extends EventObject>(
-  actorRef:
-    | string
-    | ActivityDefinition<TContext, TEvent>
-    | Expr<TContext, TEvent, string | { id: string }>
+  actorRef: string | Expr<TContext, TEvent, string | { id: string }>
 ): StopAction<TContext, TEvent> {
   const activity = isFunction(actorRef)
     ? actorRef
@@ -434,7 +438,7 @@ export function stop<TContext, TEvent extends EventObject>(
     type: ActionTypes.Stop,
     activity,
     exec: undefined
-  };
+  } as any;
 }
 
 export function resolveStop<TContext, TEvent extends EventObject>(
@@ -464,12 +468,14 @@ export function resolveStop<TContext, TEvent extends EventObject>(
  * @param assignment An object that represents the partial context to update.
  */
 export const assign = <TContext, TEvent extends EventObject = EventObject>(
-  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
+  assignment:
+    | Assigner<LowInfer<TContext>, TEvent>
+    | PropertyAssigner<LowInfer<TContext>, TEvent>
 ): AssignAction<TContext, TEvent> => {
   return {
     type: actionTypes.assign,
     assignment
-  };
+  } as any;
 };
 
 export function isActionObject<TContext, TEvent extends EventObject>(
@@ -545,14 +551,16 @@ export function pure<TContext, TEvent extends EventObject>(
     event: TEvent
   ) =>
     | SingleOrArray<
-        ActionObject<TContext, TEvent> | ActionObject<TContext, TEvent>['type']
+        | BaseActionObject
+        | BaseActionObject['type']
+        | ActionObject<TContext, TEvent>
       >
     | undefined
 ): PureAction<TContext, TEvent> {
   return {
     type: ActionTypes.Pure,
     get: getActions
-  };
+  } as any;
 }
 
 /**
@@ -623,7 +631,7 @@ export function choose<TContext, TEvent extends EventObject>(
   return {
     type: ActionTypes.Choose,
     conds
-  };
+  } as any;
 }
 
 const pluckAssigns = <TContext, TEvent extends EventObject>(
@@ -679,7 +687,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
   ) {
     switch (actionObject.type) {
       case actionTypes.raise: {
-        return resolveRaise(actionObject as RaiseAction<TEvent>);
+        return resolveRaise(actionObject as RaiseAction<TContext, TEvent>);
       }
       case actionTypes.send:
         const sendAction = resolveSend(
@@ -690,12 +698,14 @@ export function resolveActions<TContext, TEvent extends EventObject>(
         ) as SendActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
         if (!IS_PRODUCTION) {
+          const configuredDelay = (
+            actionObject as SendAction<TContext, TEvent, AnyEventObject>
+          ).delay;
           // warn after resolving as we can create better contextual message here
           warn(
-            !isString(actionObject.delay) ||
-              typeof sendAction.delay === 'number',
+            !isString(configuredDelay) || typeof sendAction.delay === 'number',
             // tslint:disable-next-line:max-line-length
-            `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.id}'`
+            `No delay reference for delay expression '${configuredDelay}' was found on machine '${machine.id}'`
           );
         }
 
@@ -737,35 +747,32 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           return [];
         }
 
-        const [
-          resolvedActionsFromChoose,
-          resolvedContextFromChoose
-        ] = resolveActions(
-          machine,
-          currentState,
-          updatedContext,
-          _event,
-          [
-            {
-              type: blockType,
-              actions: toActionObjects(
-                toArray(matchedActions),
-                machine.options.actions as any
-              )
-            }
-          ],
-          predictableExec,
-          preserveActionOrder
-        );
+        const [resolvedActionsFromChoose, resolvedContextFromChoose] =
+          resolveActions(
+            machine,
+            currentState,
+            updatedContext,
+            _event,
+            [
+              {
+                type: blockType,
+                actions: toActionObjects(
+                  toArray(matchedActions),
+                  machine.options.actions as any
+                )
+              }
+            ],
+            predictableExec,
+            preserveActionOrder
+          );
         updatedContext = resolvedContextFromChoose;
         preservedContexts?.push(updatedContext);
         return resolvedActionsFromChoose;
       }
       case actionTypes.pure: {
-        const matchedActions = (actionObject as PureAction<
-          TContext,
-          TEvent
-        >).get(updatedContext, _event.data);
+        const matchedActions = (
+          actionObject as PureAction<TContext, TEvent>
+        ).get(updatedContext, _event.data);
         if (!matchedActions) {
           return [];
         }
@@ -795,7 +802,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           actionObject as StopAction<TContext, TEvent>,
           updatedContext,
           _event
-        );
+        ) as any;
 
         predictableExec?.(resolved, currentContext, _event);
         return resolved;
@@ -820,12 +827,13 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           predictableExec(resolvedActionObject, updatedContext, _event);
         } else if (exec && preservedContexts) {
           const contextIndex = preservedContexts.length - 1;
-          resolvedActionObject = {
+          const wrapped = {
             ...resolvedActionObject,
             exec: (_ctx, ...args) => {
-              exec(preservedContexts[contextIndex], ...args);
+              (exec as any)(preservedContexts[contextIndex], ...args);
             }
           };
+          resolvedActionObject = wrapped as any;
         }
         return resolvedActionObject;
     }

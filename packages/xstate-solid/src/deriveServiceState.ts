@@ -33,6 +33,7 @@ export const deriveServiceState = <
       toStrings: state.toStrings,
       can: state.can,
       hasTag: state.hasTag,
+      nextEvents: state.nextEvents,
       matches:
         prevState && isState(prevState)
           ? prevState.matches

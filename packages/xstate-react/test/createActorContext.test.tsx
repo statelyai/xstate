@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createMachine, assign } from 'xstate';
 import { fireEvent, screen, render } from '@testing-library/react';
-import { useSelector, createActorContext } from '../src';
+import { useSelector, createActorContext, shallowEqual } from '../src';
 
 const originalConsoleError = console.error;
 
@@ -122,7 +122,7 @@ describe('createActorContext', () => {
     expect(screen.getByTestId('value').textContent).toBe('b');
   });
 
-  it.skip('should work with useSelector and a custom comparator', async () => {
+  it('should work with useSelector and a custom comparator', async () => {
     interface MachineContext {
       obj: {
         counter: number;
@@ -158,7 +158,10 @@ describe('createActorContext', () => {
 
     const Component = () => {
       const actor = SomeContext.useActorRef();
-      const value = SomeContext.useSelector((state) => state.context.obj);
+      const value = SomeContext.useSelector(
+        (state) => state.context.obj,
+        shallowEqual
+      );
 
       rerenders += 1;
 
