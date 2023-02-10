@@ -18,6 +18,8 @@
 
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
+[🆕 Check out our new Stately and XState documentation at https://stately.ai/docs](https://stately.ai/docs).
+
 📖 [Read the documentation](https://xstate.js.org/docs)
 
 💙 [Explore our catalogue of examples](https://xstate-catalogue.com/)
