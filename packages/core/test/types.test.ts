@@ -211,7 +211,7 @@ describe('Nested parallel stateSchema', () => {
 });
 
 describe('Raise events', () => {
-  // TODO: will be rmeoved in v5
+  // TODO: will be removed in v5
   it('should accept a valid simple event type', () => {
     interface Context {}
 
@@ -222,7 +222,7 @@ describe('Raise events', () => {
     });
   });
 
-  // TODO: will be rmeoved in v5
+  // TODO: will be removed in v5
   it('should reject an invalid simple event type', () => {
     interface Context {}
 

@@ -74,15 +74,17 @@ export interface Model<
   };
 }
 
-export type ModelContextFrom<TModel extends Model<any, any, any, any>> =
-  TModel extends Model<infer TContext, any, any, any> ? TContext : never;
+export type ModelContextFrom<
+  TModel extends Model<any, any, any, any>
+> = TModel extends Model<infer TContext, any, any, any> ? TContext : never;
 
 export type ModelEventsFrom<
   TModel extends Model<any, any, any, any> | undefined
 > = TModel extends Model<any, infer TEvent, any, any> ? TEvent : EventObject;
 
-export type ModelActionsFrom<TModel extends Model<any, any, any, any>> =
-  TModel extends Model<any, any, infer TAction, any> ? TAction : never;
+export type ModelActionsFrom<
+  TModel extends Model<any, any, any, any>
+> = TModel extends Model<any, any, infer TAction, any> ? TAction : never;
 
 export type EventCreator<
   Self extends AnyFunction,

@@ -1317,7 +1317,7 @@ class StateNode<
     );
 
     const [raisedEvents, nonRaisedActions] = partition(
-      resolvedActions,
+      resolvedActions as any,
       isRaisableAction
     );
 
@@ -1435,7 +1435,7 @@ class StateNode<
         const raisedEvent = raisedEvents.shift()!;
         maybeNextState = this.resolveRaisedTransition(
           maybeNextState,
-          raisedEvent._event,
+          raisedEvent._event as any,
           _event,
           predictableExec
         );

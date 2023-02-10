@@ -185,7 +185,7 @@ export function resolveRaise<
   ctx: TContext,
   _event: SCXML.Event<TExpressionEvent>,
   delaysMap?: DelayFunctionMap<TContext, TEvent>
-): RaiseActionObject<TContext, TEvent> {
+): RaiseActionObject<TContext, TExpressionEvent, TEvent> {
   const meta = {
     _event
   };
@@ -231,13 +231,13 @@ export function send<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  event: Event<AnyEventObject> | SendExpr<TContext, TEvent, AnyEventObject>,
   options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent, TSentEvent> {
   return {
     to: options ? options.to : undefined,
     type: actionTypes.send,
-    event: isFunction(event) ? event : toEventObject<TSentEvent>(event),
+    event: isFunction(event) ? event : toEventObject(event),
     delay: options ? options.delay : undefined,
     // TODO: don't auto-generate IDs here like that
     // there is too big chance of the ID collision
@@ -246,7 +246,7 @@ export function send<
         ? options.id
         : isFunction(event)
         ? event.name
-        : (getEventType<TSentEvent>(event) as string)
+        : (getEventType(event) as string)
   } as any;
 }
 
@@ -307,7 +307,7 @@ export function sendParent<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  event: Event<AnyEventObject> | SendExpr<TContext, TEvent, AnyEventObject>,
   options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent, TSentEvent> {
   return send<TContext, TEvent, TSentEvent>(event, {
@@ -355,11 +355,9 @@ export function sendTo<
 export function sendUpdate<TContext, TEvent extends EventObject>(): SendAction<
   TContext,
   TEvent,
-  { type: ActionTypes.Update }
+  AnyEventObject
 > {
-  return sendParent<TContext, TEvent, { type: ActionTypes.Update }>(
-    actionTypes.update
-  );
+  return sendParent(actionTypes.update);
 }
 
 /**
@@ -735,7 +733,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           machine.options.delays as any
         );
         if (predictableExec && typeof raisedAction.delay === 'number') {
-          predictableExec(raisedAction, updatedContext, _event);
+          predictableExec(raisedAction as any, updatedContext, _event);
         }
         return raisedAction;
       }

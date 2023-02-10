@@ -724,20 +724,24 @@ export function createInvokeId(stateNodeId: string, index: number): string {
   return `${stateNodeId}:invocation[${index}]`;
 }
 
-export function isRaisableAction<TContext, TEvent extends EventObject>(
-  action: ActionObject<TContext, TEvent>
+export function isRaisableAction<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject
+>(
+  action: ActionObject<TContext, TExpressionEvent, TEvent>
 ): action is
-  | RaiseActionObject<TContext, TEvent>
-  | SendActionObject<TContext, TEvent, TEvent> {
+  | RaiseActionObject<TContext, TExpressionEvent, TEvent>
+  | SendActionObject<TContext, TExpressionEvent, TEvent> {
   return (
     (action.type === actionTypes.raise ||
       (action.type === actionTypes.send &&
-        (action as SendActionObject<TContext, TEvent>).to ===
+        (action as SendActionObject<TContext, TExpressionEvent, TEvent>).to ===
           SpecialTargets.Internal)) &&
     typeof (
       action as
-        | RaiseActionObject<TContext, TEvent>
-        | SendActionObject<TContext, TEvent>
+        | RaiseActionObject<TContext, TExpressionEvent, TEvent>
+        | SendActionObject<TContext, TExpressionEvent, TEvent>
     ).delay !== 'number'
   );
 }

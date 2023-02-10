@@ -986,7 +986,7 @@ export class Interpreter<
     actionFunctionMap = this.machine.options.actions
   ): void => {
     const actionOrExec =
-      action.exec || getActionFunction(action.type, actionFunctionMap);
+      action.exec || getActionFunction(action.type, actionFunctionMap as any);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
