@@ -171,7 +171,7 @@ export class Interpreter<
       ? this.behavior.restoreState
         ? this.behavior.restoreState(this.options.state, this._actorContext)
         : this.options.state
-      : this.behavior.getInitialState(this._actorContext);
+      : this.behavior.getInitialState(this._actorContext, this.options.input);
   }
 
   // array of functions to defer
