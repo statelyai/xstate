@@ -95,7 +95,7 @@ export function inspect(
 ): Inspector | undefined {
   const finalOptions = getFinalOptions(options);
   const { iframe, url, devTools } = finalOptions;
-  if ('targetWindow' in finalOptions && !finalOptions.targetWindow) {
+  if ('targetWindow' in options && !finalOptions.targetWindow) {
     throw new Error('Received a nullable `targetWindow`.')
   }
   let targetWindow: Window | null | undefined = finalOptions.targetWindow;
