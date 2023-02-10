@@ -2,6 +2,10 @@
 
 You can install XState from NPM or Yarn, or you can embed the `<script>` directly from a CDN.
 
+:::tip Check out our new docs!
+🆕 Find more about [installing XState](https://stately.ai/docs/xstate/installation) in our new docs.
+:::
+
 ## Package Manager
 
 ```bash
