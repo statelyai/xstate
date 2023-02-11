@@ -79,7 +79,8 @@ export function createMachine<T extends MachineTypes>(
     value: machine.initial,
     context: machine.context ?? {},
     actions: initialActions,
-    changed: false
+    changed: false,
+    children: {}
   };
 
   for (let actionObject of initialActions) {
@@ -140,13 +141,15 @@ export function createMachine<T extends MachineTypes>(
         const entryActions = toArray(stateToEnter?.entry) ?? [];
         const exitActions = toArray(stateToExit?.exit) ?? [];
         const transitionActions = toArray(transitionObject.actions) ?? [];
+        const children: any = {};
         const invokeActions = toArray(stateToEnter?.invoke).map(
-          (invokeDef) => ({
+          (invokeDef, i) => ({
             type: 'xstate.invoke',
             execute: () => {
               const actorRef = interpret(invokeDef.src);
               // @ts-ignore
               actorRef.parent = actorCtx?.self;
+              children[`${nextValue}[${i}]`] = actorRef;
 
               actorRef.start();
             }
@@ -154,6 +157,9 @@ export function createMachine<T extends MachineTypes>(
         );
 
         if (stateChanged) {
+          Object.values(state.children).forEach((child) => {
+            (child as ActorRef<any>).stop();
+          });
           // stopping logic
         }
 
@@ -170,7 +176,8 @@ export function createMachine<T extends MachineTypes>(
           actions: allActions.map((a) =>
             toActionObject(a, implementations.actions)
           ),
-          changed: false
+          changed: false,
+          children
         };
 
         for (let action of allActions) {
@@ -264,6 +271,7 @@ export function interpret<TBehavior extends AnyBehavior>(
     stop: () => {
       observers.forEach((observer) => observer.complete?.());
       observers.clear();
+      behavior.stop?.(currentState);
     },
     getSnapshot: () => behavior.getSnapshot(currentState)
   };

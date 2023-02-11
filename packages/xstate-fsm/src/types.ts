@@ -84,6 +84,7 @@ export interface MachineState<T extends MachineTypes> {
   context: T['context'];
   actions: BaseActionObject[];
   changed: boolean;
+  children: any;
 }
 
 export type Action<T extends MachineTypes> =
