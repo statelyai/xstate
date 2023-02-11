@@ -2,6 +2,10 @@
 
 A state is an abstract representation of a system (such as an application) at a specific point in time. To learn more, read the [section on states in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#states).
 
+:::tip Check out our new docs!
+🆕 Find more about [states in XState](https://stately.ai/docs/xstate/basics/what-is-a-statechart#states) as well as a [no-code introduction to states](https://stately.ai/docs/states/intro).
+:::
+
 ## API
 
 The current state of a machine is represented by a `State` instance:

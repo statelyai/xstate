@@ -27,7 +27,7 @@ export function functionToExpr(fn: Function): string {
 }
 
 function actionToSCXML(action: ActionObject<any, any>): XMLElement {
-  const { type, ...attributes } = action;
+  const { type, ...attributes }: any = action;
 
   const actionTypeMap: Record<ActionType, string> = {
     'xstate.raise': 'raise'

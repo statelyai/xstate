@@ -8,7 +8,7 @@ import {
   spawn,
   ActorRefFrom
 } from '../src/index';
-import { raise } from '../src/actions';
+import { raise, stop } from '../src/actions';
 import { createModel } from '../src/model';
 
 function noop(_x: unknown) {
@@ -721,5 +721,221 @@ describe('service-targets', () => {
     });
     noop(machine);
     expect(true).toBeTruthy();
+  });
+});
+
+describe('actions', () => {
+  it('context should get inferred for builtin actions used as an entry action', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      context: {
+        count: 0
+      },
+      entry: assign((ctx) => {
+        ((_accept: number) => {})(ctx.count);
+        // @ts-expect-error
+        ((_accept: "ain't any") => {})(ctx.count);
+        return {};
+      })
+    });
+  });
+
+  it('context should get inferred for builtin actions used as a transition action', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      context: {
+        count: 0
+      },
+      on: {
+        FOO: {
+          actions: assign((ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: "ain't any") => {})(ctx.count);
+            return {};
+          })
+        }
+      }
+    });
+  });
+
+  it('context should get inferred for a builtin action within an array of entry actions', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      entry: [
+        'foo',
+        assign((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return {};
+        })
+      ]
+    });
+  });
+
+  it('context should get inferred for a builtin action within an array of transition actions', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      on: {
+        FOO: {
+          actions: [
+            'foo',
+            assign((ctx) => {
+              ((_accept: number) => {})(ctx.count);
+              // @ts-expect-error
+              ((_accept: "ain't any") => {})(ctx.count);
+              return {};
+            })
+          ]
+        }
+      }
+    });
+  });
+
+  it('context should get inferred for a stop action used as an entry action', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+        }
+      },
+      entry: stop((ctx) => {
+        ((_accept: number) => {})(ctx.count);
+        // @ts-expect-error
+        ((_accept: "ain't any") => {})(ctx.count);
+        return ctx.childRef;
+      })
+    });
+  });
+
+  it('context should get inferred for a stop action used as a transition action', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+        }
+      },
+      on: {
+        FOO: {
+          actions: stop((ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: "ain't any") => {})(ctx.count);
+            return ctx.childRef;
+          })
+        }
+      }
+    });
+  });
+
+  it('should report an error when the stop action returns an invalid actor ref', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        }
+      },
+      entry: stop(
+        // @ts-expect-error
+        (ctx) => {
+          return ctx.count;
+        }
+      )
+    });
+  });
+
+  it('context should get inferred for a stop actions within an array of entry actions', () => {
+    const childMachine = createMachine({});
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+          promiseRef: ActorRefFrom<Promise<string>>;
+        }
+      },
+      entry: [
+        stop((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return ctx.childRef;
+        }),
+        stop((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return ctx.promiseRef;
+        })
+      ]
+    });
+  });
+
+  it('should accept assign with partial static object', () => {
+    createMachine({
+      schema: {
+        events: {} as {
+          type: 'TOGGLE';
+        },
+        context: {} as {
+          count: number;
+          mode: 'foo' | 'bar' | null;
+        }
+      },
+      context: {
+        count: 0,
+        mode: null
+      },
+      entry: assign({ mode: 'foo' })
+    });
+  });
+
+  it("should provide context to single prop updater in assign when it's mixed with a static value for another prop", () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          skip: boolean;
+        },
+        events: {} as {
+          type: 'TOGGLE';
+        }
+      },
+      context: {
+        count: 0,
+        skip: true
+      },
+      entry: assign({
+        count: (context) => context.count + 1,
+        skip: true
+      })
+    });
   });
 });

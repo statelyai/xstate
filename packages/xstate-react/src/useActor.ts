@@ -2,8 +2,16 @@ import { useRef, useCallback } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { ActorRef, EventObject, Sender } from 'xstate';
 import useConstant from './useConstant';
-import { useSyncExternalStore } from 'use-sync-external-store/shim';
-import { getServiceSnapshot, isService } from './utils';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import {
+  getServiceSnapshot,
+  isInterpreterStateEqual,
+  isService
+} from './utils';
+
+function identity<T>(a: T) {
+  return a;
+}
 
 export function isActorWithState<T extends ActorRef<any>>(
   actorRef: T
@@ -17,9 +25,8 @@ function isDeferredActor<T extends ActorRef<any>>(
   return 'deferred' in actorRef;
 }
 
-type EmittedFromActorRef<
-  TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
+type EmittedFromActorRef<TActor extends ActorRef<any, any>> =
+  TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
 
 function defaultGetSnapshot<TEmitted>(
   actorRef: ActorRef<any, TEmitted>
@@ -58,15 +65,27 @@ export function useActor(
     [actorRef]
   );
 
-  const boundGetSnapshot = useCallback(() => getSnapshot(actorRef), [
-    actorRef,
-    getSnapshot
-  ]);
+  const boundGetSnapshot = useCallback(
+    () => getSnapshot(actorRef),
+    [actorRef, getSnapshot]
+  );
 
-  const storeSnapshot = useSyncExternalStore(
+  const isEqual = useCallback(
+    (prevState, nextState) => {
+      if (isService(actorRef)) {
+        return isInterpreterStateEqual(actorRef, prevState, nextState);
+      }
+      return prevState === nextState;
+    },
+    [actorRef]
+  );
+
+  const storeSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
     boundGetSnapshot,
-    boundGetSnapshot
+    boundGetSnapshot,
+    identity,
+    isEqual
   );
 
   const send: Sender<EventObject> = useConstant(() => (...args) => {
