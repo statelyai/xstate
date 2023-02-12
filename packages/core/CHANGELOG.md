@@ -1,5 +1,24 @@
 # xstate
 
+## 4.36.0
+
+### Minor Changes
+
+- [#3393](https://github.com/statelyai/xstate/pull/3393) [`430986cdf`](https://github.com/statelyai/xstate/commit/430986cdf9ae6919abc9219caeabbf695e96895a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Deprecated `send()` action creator. Instead of that, you can use `sendTo()` to send events to other actors and `raise()` to send events to the "self" actor.
+
+- [#3802](https://github.com/statelyai/xstate/pull/3802) [`8743ad0bd`](https://github.com/statelyai/xstate/commit/8743ad0bd6683029a17bec7e1c163ee9a221a276) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a class of inference problems for our builtin actions (`assign`, `sendTo`, etc).
+
+### Patch Changes
+
+- [#3818](https://github.com/statelyai/xstate/pull/3818) [`2d8d84fd8`](https://github.com/statelyai/xstate/commit/2d8d84fd839b520d73653dba9eba93c9c1cb2249) Thanks [@Andarist](https://github.com/Andarist)! - Fixed inference for `assign` using `PropertyAssigner`, like here:
+
+  ```ts
+  actions: assign({
+    counter: 0,
+    delta: (ctx, ev) => ev.delta
+  });
+  ```
+
 ## 4.35.4
 
 ### Patch Changes

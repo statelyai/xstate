@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.2.0
+
+### Minor Changes
+
+- [#3814](https://github.com/statelyai/xstate/pull/3814) [`494203b3d`](https://github.com/statelyai/xstate/commit/494203b3dc358807e96cf1368f1347ff8e1d14e3) Thanks [@Andarist](https://github.com/Andarist)! - The `Provider` from `createActorContext(...)` now accepts the `options={{...}}` prop that takes the same object as the second argument to the `useMachine(machine, options)` hook.
+
+  These options are no longer passed as the second argument to the `createActorContext(machine)` function:
+
+  ```diff
+
+  -const SomeContext = createActorContext(someMachine,
+  -  { actions: { ... } });
+  +const SomeContext = createActorContext(someMachine);
+
+  // ...
+
+  -<SomeContext.Provider>
+  +<SomeContext.Provider options={{ actions: { ... } }}>
+
+  // ...
+  ```
+
 ## 3.1.2
 
 ### Patch Changes
