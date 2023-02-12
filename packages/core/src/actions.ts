@@ -41,6 +41,7 @@ import {
   EventFrom,
   AnyActorRef,
   PredictableActionArgumentsExec,
+  RaiseActionOptions,
   BaseActionObject,
   LowInfer
 } from './types';
@@ -159,31 +160,56 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  * @param eventType The event to raise.
  */
 export function raise<TContext, TEvent extends EventObject>(
-  event: Event<TEvent>
-):
-  | RaiseAction<TContext, TEvent>
-  | SendAction<TContext, AnyEventObject, TEvent> {
-  if (!isString(event)) {
-    return send(event, { to: SpecialTargets.Internal });
-  }
+  event: Event<TEvent> | SendExpr<TContext, TEvent, TEvent>,
+  options?: RaiseActionOptions<TContext, TEvent>
+): RaiseAction<TContext, TEvent> {
   return {
     type: actionTypes.raise,
-    event
+    event: typeof event === 'function' ? event : toEventObject<TEvent>(event),
+    delay: options ? options.delay : undefined,
+    id: options?.id
   } as any;
 }
 
 export function resolveRaise<TContext, TEvent extends EventObject>(
-  action: RaiseAction<TContext, TEvent>
+  action: RaiseAction<TContext, TEvent>,
+  ctx: TContext,
+  _event: SCXML.Event<TEvent>,
+  delaysMap?: DelayFunctionMap<TContext, TEvent>
 ): RaiseActionObject<TContext, TEvent> {
+  const meta = {
+    _event
+  };
+  const resolvedEvent = toSCXMLEvent(
+    isFunction(action.event)
+      ? action.event(ctx, _event.data, meta)
+      : action.event
+  );
+
+  let resolvedDelay: number | undefined;
+  if (isString(action.delay)) {
+    const configDelay = delaysMap && delaysMap[action.delay];
+    resolvedDelay = isFunction(configDelay)
+      ? configDelay(ctx, _event.data, meta)
+      : configDelay;
+  } else {
+    resolvedDelay = isFunction(action.delay)
+      ? action.delay(ctx, _event.data, meta)
+      : action.delay;
+  }
   return {
+    ...action,
     type: actionTypes.raise,
-    _event: toSCXMLEvent(action.event)
+    _event: resolvedEvent,
+    delay: resolvedDelay
   } as any;
 }
 
 /**
  * Sends an event. This returns an action that will be read by an interpreter to
  * send the event in the next step, after the current step is finished executing.
+ *
+ * @deprecated Use the `sendTo(...)` action creator instead.
  *
  * @param event The event to send.
  * @param options Options to pass into the send event:
@@ -204,6 +230,8 @@ export function send<
     type: actionTypes.send,
     event: isFunction(event) ? event : toEventObject<TSentEvent>(event),
     delay: options ? options.delay : undefined,
+    // TODO: don't auto-generate IDs here like that
+    // there is too big chance of the ID collision
     id:
       options && options.id !== undefined
         ? options.id
@@ -296,7 +324,7 @@ export function sendTo<
   TEvent extends EventObject,
   TActor extends AnyActorRef
 >(
-  actor: string | TActor | ((ctx: TContext) => TActor),
+  actor: string | TActor | ((ctx: TContext, event: TEvent) => TActor),
   event:
     | EventFrom<TActor>
     | SendExpr<
@@ -687,7 +715,16 @@ export function resolveActions<TContext, TEvent extends EventObject>(
   ) {
     switch (actionObject.type) {
       case actionTypes.raise: {
-        return resolveRaise(actionObject as RaiseAction<TContext, TEvent>);
+        const raisedAction = resolveRaise(
+          actionObject as RaiseAction<TContext, TEvent>,
+          updatedContext,
+          _event,
+          machine.options.delays as any
+        );
+        if (predictableExec && typeof raisedAction.delay === 'number') {
+          predictableExec(raisedAction, updatedContext, _event);
+        }
+        return raisedAction;
       }
       case actionTypes.send:
         const sendAction = resolveSend(
@@ -713,7 +750,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           if (blockType === 'entry') {
             deferredToBlockEnd.push(sendAction);
           } else {
-            predictableExec?.(sendAction, updatedContext, _event);
+            predictableExec(sendAction, updatedContext, _event);
           }
         }
 

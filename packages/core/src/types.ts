@@ -1188,12 +1188,17 @@ export enum ActionTypes {
 export interface RaiseAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Raise;
-  event: TEvent['type'];
+  event: TEvent | SendExpr<TContext, TEvent, TEvent>;
+  delay: number | string | undefined | DelayExpr<TContext, TEvent>;
+  id: string | number | undefined;
 }
 
 export interface RaiseActionObject<TContext, TEvent extends EventObject>
   extends RaiseAction<TContext, TEvent> {
+  type: ActionTypes.Raise;
   _event: SCXML.Event<TEvent>;
+  delay: number | undefined;
+  id: string | number | undefined;
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
@@ -1327,13 +1332,17 @@ export enum SpecialTargets {
   Internal = '#_internal'
 }
 
-export interface SendActionOptions<TContext, TEvent extends EventObject> {
-  id?: string | number;
-  delay?: number | string | DelayExpr<TContext, TEvent>;
+export interface SendActionOptions<TContext, TEvent extends EventObject>
+  extends RaiseActionOptions<TContext, TEvent> {
   to?:
     | string
     | ActorRef<any>
     | ExprWithMeta<TContext, TEvent, string | ActorRef<any>>;
+}
+
+export interface RaiseActionOptions<TContext, TEvent extends EventObject> {
+  id?: string | number;
+  delay?: number | string | DelayExpr<TContext, TEvent>;
 }
 
 export interface CancelAction<TContext, TEvent extends EventObject>
