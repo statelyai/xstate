@@ -85,7 +85,7 @@ export function useIdleInterpreter(
   return service as any;
 }
 
-export type RestParams<TMachine extends AnyStateMachine> =
+type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends false
