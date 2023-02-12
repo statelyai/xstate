@@ -167,10 +167,8 @@ export type BaseAction<
   | SimpleActionsOf<TAction>['type']
   | TAction
   | RaiseAction<TContext, TExpressionEvent, TEvent>
-  // | SendAction<TContext, TExpressionEvent, TEvent>
+  | SendAction<TContext, TExpressionEvent, TEvent>
   | AssignAction<TContext, TExpressionEvent, TEvent>
-  // TODO: those might need to receive `TEvent` as well
-  // it might be required to type the ActionMeta in them properly
   | LogAction<TContext, TExpressionEvent, TEvent>
   | CancelAction<TContext, TExpressionEvent, TEvent>
   | StopAction<TContext, TExpressionEvent, TEvent>
@@ -1438,7 +1436,6 @@ export interface AssignAction<
   assignment:
     | Assigner<TContext, TExpressionEvent>
     | PropertyAssigner<TContext, TExpressionEvent>;
-  // (ctx: TContext, ev: TExpressionEvent): void;
 }
 
 export interface PureAction<
