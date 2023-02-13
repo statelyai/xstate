@@ -1819,6 +1819,9 @@ export interface ActorBehavior<
   TEvent extends EventObject,
   TSnapshot = any,
   TInternalState = any,
+  /**
+   * Serialized internal state used for persistence & restoration
+   */
   TPersisted = TInternalState
 > {
   transition: (
