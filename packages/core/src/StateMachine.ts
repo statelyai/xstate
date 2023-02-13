@@ -312,7 +312,7 @@ export class StateMachine<
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
-  public preInitialState:
+  private _preInitialState:
     | State<TContext, TEvent, TResolvedTypesMeta>
     | undefined;
 
@@ -323,8 +323,8 @@ export class StateMachine<
   private getPreInitialState(
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    if (this.preInitialState) {
-      return this.preInitialState;
+    if (this._preInitialState) {
+      return this._preInitialState;
     }
 
     const [context, actions] = this.getContextAndActions();
