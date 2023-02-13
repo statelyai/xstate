@@ -1,5 +1,5 @@
 import { interpret, createMachine, assign } from '../src/index';
-import { State, getPersistedState } from '../src/State';
+import { State } from '../src/State';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -414,7 +414,7 @@ describe('machine', () => {
 
       const nextState = machine.transition(undefined, { type: 'NEXT' });
 
-      const persistedState = getPersistedState(nextState);
+      const persistedState = machine.getPersistedState(nextState);
 
       const service = interpret(machine, { state: persistedState }).onDone(
         () => {
