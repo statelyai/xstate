@@ -1,4 +1,4 @@
-import { interpret } from '../src';
+import { assign, interpret } from '../src';
 import { createMachine } from '../src/Machine';
 
 describe('input', () => {
@@ -65,5 +65,42 @@ describe('input', () => {
       // TODO: add ts-expect-errpr
       interpret(machine).start();
     }).not.toThrowError();
+  });
+
+  it('should provide input data to invoked machines', (done) => {
+    const invokedMachine = createMachine({
+      entry: (_, ev) => {
+        expect(ev.input.greeting).toBe('hello');
+        done();
+      }
+    });
+
+    const machine = createMachine({
+      invoke: {
+        src: invokedMachine,
+        input: { greeting: 'hello' }
+      }
+    });
+
+    interpret(machine).start();
+  });
+
+  it('should provide input data to spawned machines', (done) => {
+    const spawnedMachine = createMachine({
+      entry: (_, ev) => {
+        expect(ev.input.greeting).toBe('hello');
+        done();
+      }
+    });
+
+    const machine = createMachine({
+      entry: assign((_ctx, _ev, { spawn }) => {
+        return {
+          ref: spawn(spawnedMachine, undefined, { greeting: 'hello' })
+        };
+      })
+    });
+
+    interpret(machine).start();
   });
 });

@@ -32,7 +32,7 @@ export function invoke<
     { type: invokeActionType, params: invokeDef },
     (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
-      const { id, data, src, meta } = invokeDef;
+      const { id, data, src, meta, input } = invokeDef;
 
       let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
@@ -66,7 +66,8 @@ export function invoke<
           const ref = interpret(behavior, {
             id,
             src,
-            parent: actorContext?.self
+            parent: actorContext?.self,
+            input
           });
 
           resolvedInvokeAction = {

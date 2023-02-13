@@ -115,7 +115,8 @@ export interface ActionMeta<
 // or just make machine a behavior
 export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
-  name?: string
+  name?: string,
+  input?: any
 ) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>
   ? ActorRef<TActorEvent, TActorEmitted>
   : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
@@ -374,6 +375,7 @@ export type ActorBehaviorCreator<
     src: InvokeSourceDefinition;
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
+    input: any;
   }
 ) => TActorBehavior;
 
@@ -405,6 +407,8 @@ export interface InvokeDefinition<
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+
+  input?: any;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -553,6 +557,8 @@ export interface InvokeConfig<
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+
+  input?: any;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
