@@ -38,7 +38,7 @@ export interface ImmerUpdateEvent<
 
 export interface ImmerUpdater<TContext, TEvent extends ImmerUpdateEvent> {
   update: (input: TEvent['input']) => TEvent;
-  action: AssignAction<TContext, TEvent>;
+  action: AssignAction<TContext, TEvent, any>;
   type: TEvent['type'];
 }
 
