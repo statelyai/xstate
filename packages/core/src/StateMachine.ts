@@ -312,10 +312,6 @@ export class StateMachine<
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
-  private _preInitialState:
-    | State<TContext, TEvent, TResolvedTypesMeta>
-    | undefined;
-
   /**
    * The initial state _before_ evaluating any microsteps.
    * This "pre-initial" state is provided to initial actions executed in the initial state.
@@ -323,10 +319,6 @@ export class StateMachine<
   private getPreInitialState(
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    if (this._preInitialState) {
-      return this._preInitialState;
-    }
-
     const [context, actions] = this.getContextAndActions();
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
