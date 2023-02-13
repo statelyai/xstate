@@ -21,7 +21,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     | Observer<StateFrom<TMachine>>
     | ((value: StateFrom<TMachine>) => void)
 ): {
-  useActor: () => ReturnType<typeof useActorUnbound<ActorRefFrom<TMachine>>>;
+  useActor: () => [StateFrom<TMachine>, ActorRefFrom<TMachine>['send']];
   useSelector: <T>(
     selector: (snapshot: EmittedFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
