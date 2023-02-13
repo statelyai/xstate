@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.2.1
+
+### Patch Changes
+
+- [#3829](https://github.com/statelyai/xstate/pull/3829) [`c110c429d`](https://github.com/statelyai/xstate/commit/c110c429d33cb724242ff65136de3ebe408eab97) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility of the generated TS types for `createActorContext` with pre-4.7.
+
 ## 3.2.0
 
 ### Minor Changes
