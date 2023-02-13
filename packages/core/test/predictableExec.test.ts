@@ -267,7 +267,7 @@ describe('predictableExec', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            'callback-1'
+            { name: 'callback-1' }
           )
         };
       },
@@ -329,7 +329,7 @@ describe('predictableExec', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            'my_name'
+            { name: 'my_name' }
           )
         };
       },
@@ -389,7 +389,7 @@ describe('predictableExec', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            'my_name'
+            { name: 'my_name' }
           )
         };
       },
@@ -449,7 +449,7 @@ describe('predictableExec', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            'my_name'
+            { name: 'my_name' }
           )
         };
       },

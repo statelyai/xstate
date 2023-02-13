@@ -59,7 +59,8 @@ export function invoke<
                   data: data && mapContext(data, state.context, _event as any),
                   src,
                   _event,
-                  meta
+                  meta,
+                  input
                 })
               : behaviorImpl;
 

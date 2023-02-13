@@ -96,7 +96,7 @@ describe('input', () => {
     const machine = createMachine({
       entry: assign((_ctx, _ev, { spawn }) => {
         return {
-          ref: spawn(spawnedMachine, undefined, { greeting: 'hello' })
+          ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
         };
       })
     });

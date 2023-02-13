@@ -493,7 +493,8 @@ export class StateMachine<
               data: undefined,
               src: src!,
               _event: state._event,
-              meta: {}
+              meta: {},
+              input: undefined // TODO: add input
             })
           : behaviorImpl;
 

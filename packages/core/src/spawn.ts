@@ -21,7 +21,7 @@ export function createSpawner<
   _event: SCXML.Event<TEvent>,
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
-  return (behavior, name, input) => {
+  return (behavior, { name, input } = {}) => {
     if (isString(behavior)) {
       const behaviorCreator = machine.options.actors[behavior];
 

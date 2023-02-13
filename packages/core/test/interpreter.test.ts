@@ -1755,7 +1755,8 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: (_, __, { spawn }) => spawn(childMachine, 'child')
+          firstNameRef: (_, __, { spawn }) =>
+            spawn(childMachine, { name: 'child' })
         }),
         states: {
           idle: {}
@@ -1787,7 +1788,8 @@ describe('interpreter', () => {
           observableRef: ActorRef<any, any>;
         },
         entry: assign({
-          machineRef: (_, __, { spawn }) => spawn(childMachine, 'machineChild'),
+          machineRef: (_, __, { spawn }) =>
+            spawn(childMachine, { name: 'machineChild' }),
           promiseRef: (_, __, { spawn }) =>
             spawn(
               fromPromise(
@@ -1796,12 +1798,12 @@ describe('interpreter', () => {
                     // ...
                   })
               ),
-              'promiseChild'
+              { name: 'promiseChild' }
             ),
           observableRef: (_, __, { spawn }) =>
             spawn(
               fromObservable(() => interval(1000)),
-              'observableChild'
+              { name: 'observableChild' }
             )
         }),
         states: {
