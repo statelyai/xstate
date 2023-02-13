@@ -53,7 +53,7 @@ export function fromPromise<T>(
           return state;
       }
     },
-    start: (state, { self }) => {
+    start: (_, { self }) => {
       const resolvedPromise = Promise.resolve(lazyPromise());
 
       resolvedPromise.then(
