@@ -382,13 +382,11 @@ export class StateMachine<
   public start(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+  ): void {
     // When starting from a restored state, execute the actions
     state.actions.forEach((action) => {
       action.execute?.(actorCtx);
     });
-
-    return state;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {

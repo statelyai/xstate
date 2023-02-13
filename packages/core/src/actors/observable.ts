@@ -87,8 +87,6 @@ export function fromObservable<T, TEvent extends EventObject>(
           self.send({ type: completeEventType });
         }
       });
-
-      return state;
     },
     getSnapshot: (state) => state.data,
     getStatus: (state) => state
@@ -161,8 +159,6 @@ export function fromEventObservable<T extends EventObject>(
           self.send({ type: completeEventType });
         }
       });
-
-      return state;
     },
     getSnapshot: (_) => undefined,
     getStatus: (state) => state

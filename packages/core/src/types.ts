@@ -1841,7 +1841,7 @@ export interface ActorBehavior<
   start?: (
     state: TInternalState,
     actorCtx: ActorContext<TEvent, TSnapshot>
-  ) => TInternalState;
+  ) => void;
   /**
    * @returns Persisted state
    */

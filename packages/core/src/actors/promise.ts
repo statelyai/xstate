@@ -64,8 +64,6 @@ export function fromPromise<T>(
           self.send({ type: rejectEventType, data: errorData });
         }
       );
-
-      return state;
     },
     getInitialState: () => {
       return {
