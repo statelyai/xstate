@@ -133,7 +133,7 @@ export class Interpreter<
     };
 
     if (resolvedOptions.state) {
-      this._initialState = resolvedOptions.state;
+      this._initialState = this._state = resolvedOptions.state;
     }
 
     const { clock, logger, parent, id } = resolvedOptions;
@@ -483,11 +483,9 @@ export class Interpreter<
   }
 
   public getPersistedState(): PersistedFrom<TBehavior> | undefined {
-    if (!this._state) {
-      return undefined;
-    }
-
-    return this.behavior.getPersistedState?.(this._state);
+    return this.behavior.getPersistedState?.(
+      this._state ?? this._getInitialState()
+    );
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {

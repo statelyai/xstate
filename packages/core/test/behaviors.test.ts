@@ -384,4 +384,21 @@ describe('machine behavior', () => {
 
     expect(newActor.getSnapshot().children.child.getSnapshot().value).toBe('c');
   });
+
+  it('should return the initial persisted state of a non-started actor', () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    const actor = interpret(machine);
+
+    expect(actor.getPersistedState()).toEqual(
+      expect.objectContaining({
+        value: 'idle'
+      })
+    );
+  });
 });
