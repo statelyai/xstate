@@ -1,5 +1,13 @@
 # xstate
 
+## 4.37.0
+
+### Minor Changes
+
+- [#3694](https://github.com/statelyai/xstate/pull/3694) [`fd589055b`](https://github.com/statelyai/xstate/commit/fd589055bdd92df91bb354471d17b3cda703658f) Thanks [@Andarist](https://github.com/Andarist)! - All actions received a new generic: `TExpressionEvent`. To type things more correctly and allow TS to infer things better we need to distinguish between all events accepted by a machine (`TEvent`) and the event type that actions are "called" with (`TExpressionEvent`).
+
+  It's best to rely on type inference so you shouldn't have to specify this generic manually all over the place.
+
 ## 4.36.0
 
 ### Minor Changes
