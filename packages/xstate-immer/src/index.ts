@@ -18,9 +18,13 @@ export interface ImmerAssignAction<TContext, TEvent extends EventObject>
   assignment: ImmerAssigner<TContext, TEvent>;
 }
 
-function immerAssign<TContext, TEvent extends EventObject = EventObject>(
-  recipe: ImmerAssigner<TContext, TEvent>
-): AssignAction<TContext, TEvent> {
+function immerAssign<
+  TContext,
+  TExpressionEvent extends EventObject = EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
+  recipe: ImmerAssigner<TContext, TExpressionEvent>
+): AssignAction<TContext, TExpressionEvent, TEvent> {
   return xstateAssign((context, event, meta) => {
     return produce(context, (draft) => void recipe(draft, event, meta));
   });
