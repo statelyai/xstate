@@ -371,6 +371,8 @@ export interface InvokeDefinition<
   TEvent extends EventObject
 > {
   id: string;
+
+  key: string | undefined;
   /**
    * The source of the actor's behavior to be invoked
    */
@@ -512,6 +514,8 @@ export interface InvokeConfig<
    * will be the machine's own `id`, or the URL (from `src`).
    */
   id?: string;
+
+  key?: string;
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -1139,6 +1143,7 @@ export interface InvokeActionObject extends BaseActionObject {
   params: {
     src: InvokeSourceDefinition | ActorRef<any>;
     id: string;
+    key: string | undefined;
     autoForward?: boolean;
     data?: any;
     exec?: undefined;
@@ -1518,6 +1523,7 @@ export interface StateMeta<
 > {
   state: State<TContext, TEvent, any>;
   _event: SCXML.Event<TEvent>;
+  system?: ActorSystem<any>;
 }
 
 export interface StateLike<TContext extends MachineContext> {
@@ -1584,7 +1590,7 @@ export interface InterpreterOptions {
 
   sync?: boolean;
 
-  system?: System;
+  system?: ActorSystem<any>;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1723,6 +1729,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
+  system?: ActorSystem<any>;
   status: ActorStatus;
 }
 
@@ -1805,23 +1812,31 @@ export type EventOfMachine<
   TMachine extends AnyStateMachine
 > = TMachine extends StateMachine<any, infer E, any, any, any> ? E : never;
 
-export interface ActorContext<TEvent extends EventObject, TSnapshot> {
+export interface ActorContext<
+  TEvent extends EventObject,
+  TSnapshot,
+  TSystem extends ActorSystem<any> = any
+> {
   self: ActorRef<TEvent, TSnapshot>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
+  // TODO: system type should trickle down from e.g.:
+  // createSystem().createMachine()
+  system: TSystem;
 }
 
 export interface ActorBehavior<
   TEvent extends EventObject,
   TSnapshot = any,
-  TInternalState = any
+  TInternalState = any,
+  TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   transition: (
     state: TInternalState,
     message: TEvent | LifecycleSignal,
-    ctx: ActorContext<TEvent, TSnapshot>
+    ctx: ActorContext<TEvent, TSnapshot, TSystem>
   ) => TInternalState;
   getInitialState: (
     actorCtx: ActorContext<TEvent, TSnapshot>
@@ -1914,7 +1929,14 @@ export type StateFromMachine<
   TMachine extends AnyStateMachine
 > = TMachine['initialState'];
 
-export interface System extends ActorRef<any, any> {
+export interface FooSystem {
+  actors: Record<string, AnyActorRef>;
+}
+
+export interface ActorSystem<T extends FooSystem> {
   register: (actorRef: AnyActorRef) => string;
   unregister: (actorRef: AnyActorRef) => void;
+  get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  make: <T extends ActorBehavior<any, any, any, this>>(behavior: T) => this;
 }

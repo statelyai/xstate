@@ -28,7 +28,7 @@ export function invoke<
 > {
   return createDynamicAction(
     { type: invokeActionType, params: invokeDef },
-    (_event, { state }) => {
+    (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
       const { id, data, src, meta } = invokeDef;
 
@@ -65,7 +65,7 @@ export function invoke<
             type,
             params: {
               ...invokeDef,
-              ref: interpret(behavior, { id })
+              ref: interpret(behavior, { id, parent: actorContext?.self })
             }
           } as InvokeActionObject;
         }
@@ -80,8 +80,8 @@ export function invoke<
       });
 
       resolvedInvokeAction.execute = (actorCtx) => {
-        const interpreter = actorCtx.self as AnyInterpreter;
-        const { id, autoForward, ref } = resolvedInvokeAction.params;
+        const parent = actorCtx.self as AnyInterpreter;
+        const { id, autoForward, ref, key } = resolvedInvokeAction.params;
         if (!ref) {
           if (!IS_PRODUCTION) {
             warn(
@@ -93,19 +93,22 @@ export function invoke<
           }
           return;
         }
-        ref._parent = interpreter; // TODO: fix
+        if (key) {
+          actorCtx.system?.set(key, ref);
+        }
+        ref._parent = parent; // TODO: fix
         actorCtx.defer(() => {
           if (actorRef.status === ActorStatus.Stopped) {
             return;
           }
           try {
             if (autoForward) {
-              interpreter._forwardTo.add(actorRef);
+              parent._forwardTo.add(actorRef);
             }
 
             actorRef.start?.();
           } catch (err) {
-            interpreter.send(error(id, err));
+            parent.send(error(id, err));
             return;
           }
         });

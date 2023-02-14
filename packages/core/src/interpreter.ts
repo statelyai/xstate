@@ -6,13 +6,13 @@ import type {
   EventFromBehavior,
   InterpreterFrom,
   SnapshotFrom,
-  System
+  ActorSystem
 } from './types.js';
 import { stopSignalType } from './actors/index.js';
 import { devToolsAdapter } from './dev/index.js';
 import { IS_PRODUCTION } from './environment.js';
 import { Mailbox } from './Mailbox.js';
-import { registry } from './registry.js';
+import { createSystem, registry } from './system.js';
 import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.js';
 import {
   ActorRef,
@@ -118,7 +118,7 @@ export class Interpreter<
   // TODO: remove
   public _forwardTo: Set<AnyActorRef> = new Set();
 
-  private system: System;
+  public system: ActorSystem<any>;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
@@ -135,18 +135,7 @@ export class Interpreter<
     const { clock, logger, parent, id } = resolvedOptions;
     const self = this;
 
-    this.system =
-      options?.system ??
-      ({
-        register: (actorRef) => {
-          const sessionId = registry.bookId();
-          registry.register(sessionId, actorRef);
-          return sessionId;
-        },
-        unregister: (actorRef) => {
-          registry.free(self.sessionId);
-        }
-      } as System);
+    this.system = parent?.system ?? options?.system ?? createSystem();
 
     this.sessionId = this.system.register(this);
     this.id = id ?? this.sessionId;
@@ -162,7 +151,8 @@ export class Interpreter<
       logger: this.logger,
       defer: (fn) => {
         this._deferred.push(fn);
-      }
+      },
+      system: this.system
     };
 
     // Ensure that the send method is bound to this interpreter instance

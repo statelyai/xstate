@@ -258,7 +258,7 @@ export class StateNode<
         const generatedId = createInvokeId(this.id, i);
         const invokeConfig = toInvokeConfig(invocable, generatedId);
         const resolvedId = invokeConfig.id || generatedId;
-        const { src } = invokeConfig;
+        const { src, key } = invokeConfig;
 
         const resolvedSrc = toInvokeSource(
           isString(src) ? src : !('type' in src) ? resolvedId : src
@@ -280,6 +280,7 @@ export class StateNode<
           ...invokeConfig,
           src: resolvedSrc,
           id: resolvedId,
+          key,
           toJSON() {
             const { onDone, onError, ...invokeDefValues } = invokeConfig;
             return {

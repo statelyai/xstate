@@ -1,6 +1,6 @@
 import { fromCallback } from '../src/actors/callback.js';
 import { createMachine, interpret } from '../src/index.js';
-import { createSystem } from '../src/registry.js';
+import { createSystem } from '../src/system.js';
 
 describe('system', () => {
   it('should create a system', () => {
@@ -17,7 +17,7 @@ describe('system', () => {
     interpret(machine, { system }).start();
   });
 
-  it.only('should register an actor', () => {
+  it('should register an actor (implicit system)', (done) => {
     const machine = createMachine({
       id: 'parent',
       initial: 'a',
@@ -25,9 +25,10 @@ describe('system', () => {
         a: {
           invoke: [
             {
-              src: fromCallback((cb, receive) => {
+              src: fromCallback((_, receive) => {
                 receive((event) => {
-                  console.log('received', event);
+                  expect(event.type).toBe('HELLO');
+                  done();
                 });
               }),
               key: 'receiver'
@@ -38,7 +39,9 @@ describe('system', () => {
                 entry: (ctx, ev, { system }) => {
                   const receiver = system?.get('receiver');
 
-                  console.log('receiver', receiver);
+                  if (receiver) {
+                    receiver.send({ type: 'HELLO' });
+                  }
                 }
               })
             }
@@ -48,5 +51,43 @@ describe('system', () => {
     });
 
     interpret(machine).start();
+  });
+
+  it('should register an actor (explicit system)', (done) => {
+    const system = createSystem();
+
+    const machine = createMachine({
+      id: 'parent',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: [
+            {
+              src: fromCallback((_, receive) => {
+                receive((event) => {
+                  expect(event.type).toBe('HELLO');
+                  done();
+                });
+              }),
+              key: 'receiver'
+            },
+            {
+              src: createMachine({
+                id: 'childmachine',
+                entry: (ctx, ev, { system }) => {
+                  const receiver = system?.get('receiver');
+
+                  if (receiver) {
+                    receiver.send({ type: 'HELLO' });
+                  }
+                }
+              })
+            }
+          ]
+        }
+      }
+    });
+
+    interpret(machine, { system }).start();
   });
 });

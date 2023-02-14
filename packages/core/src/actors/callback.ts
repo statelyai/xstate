@@ -29,7 +29,7 @@ export function fromCallback<TEvent extends EventObject>(
 
       return state;
     },
-    transition: (state, event, { self, id }) => {
+    transition: function callbackTransition(state, event, { self, id }) {
       const _event = toSCXMLEvent(event);
 
       if (_event.name === startSignalType) {
