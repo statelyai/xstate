@@ -90,17 +90,15 @@ const getFinalOptions = (options?: Partial<InspectorOptions>) => {
 
 const patchedInterpreters = new Set<AnyInterpreter>();
 
-export function inspect(
-  options?: InspectorOptions
-): Inspector | undefined {
+export function inspect(options?: InspectorOptions): Inspector | undefined {
   const finalOptions = getFinalOptions(options);
   const { iframe, url, devTools } = finalOptions;
-  if ('targetWindow' in options && !finalOptions.targetWindow) {
-    throw new Error('Received a nullable `targetWindow`.')
+
+  if (options?.targetWindow === null) {
+    throw new Error('Received a nullable `targetWindow`.');
   }
   let targetWindow: Window | null | undefined = finalOptions.targetWindow;
 
-  
   if (iframe === null && !targetWindow) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
