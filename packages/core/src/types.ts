@@ -1822,8 +1822,6 @@ export interface ActorContext<
   sessionId: string;
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
-  // TODO: system type should trickle down from e.g.:
-  // createSystem().createMachine()
   system: TSystem;
 }
 
