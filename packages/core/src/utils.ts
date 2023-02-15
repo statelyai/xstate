@@ -23,8 +23,12 @@ import {
   GuardMeta,
   InvokeSourceDefinition,
   Observer,
-  Behavior
+  Behavior,
+  RaiseActionObject,
+  SendActionObject,
+  SpecialTargets
 } from './types';
+import * as actionTypes from './actionTypes';
 import {
   STATE_DELIMITER,
   DEFAULT_GUARD_TYPE,
@@ -34,7 +38,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
-import { AnyStateMachine } from '.';
+import { ActionObject, AnyStateMachine } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -718,4 +722,26 @@ export function toObserver<T>(
 
 export function createInvokeId(stateNodeId: string, index: number): string {
   return `${stateNodeId}:invocation[${index}]`;
+}
+
+export function isRaisableAction<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject
+>(
+  action: ActionObject<TContext, TExpressionEvent, TEvent>
+): action is
+  | RaiseActionObject<TContext, TExpressionEvent, TEvent>
+  | SendActionObject<TContext, TExpressionEvent, TEvent> {
+  return (
+    (action.type === actionTypes.raise ||
+      (action.type === actionTypes.send &&
+        (action as SendActionObject<TContext, TExpressionEvent, TEvent>).to ===
+          SpecialTargets.Internal)) &&
+    typeof (
+      action as
+        | RaiseActionObject<TContext, TExpressionEvent, TEvent>
+        | SendActionObject<TContext, TExpressionEvent, TEvent>
+    ).delay !== 'number'
+  );
 }

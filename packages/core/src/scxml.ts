@@ -137,7 +137,7 @@ function mapAction<
 >(element: XMLElement): ActionObject<TContext, TEvent> {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TContext, TEvent>(
+      return actions.raise<TContext, TEvent, TEvent>(
         element.attributes!.event! as string
       );
     }

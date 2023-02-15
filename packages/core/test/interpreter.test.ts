@@ -11,11 +11,12 @@ import {
   AnyEventObject,
   createMachine,
   AnyState,
+  InterpreterStatus,
   ActorRefFrom,
   ActorRef
 } from '../src';
 import { State } from '../src/State';
-import { log, actionTypes, raise, stop } from '../src/actions';
+import { log, actionTypes, raise, stop, sendTo } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -830,7 +831,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       },
       on: {
         PING_CHILD: {
-          actions: [send('PING', { to: 'child' }), logAction]
+          actions: [sendTo('child', 'PING'), logAction]
         },
         '*': {
           actions: [logAction]
@@ -2052,6 +2053,27 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
           service.send('NEXT');
         }
+      });
+    });
+  });
+
+  describe('.onDone(...)', () => {
+    it('should call an onDone callback immediately if the service is already done', (done) => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      expect(service.status).toBe(InterpreterStatus.Stopped);
+
+      service.onDone(() => {
+        done();
       });
     });
   });

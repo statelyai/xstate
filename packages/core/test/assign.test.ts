@@ -1,11 +1,5 @@
-import {
-  Machine,
-  interpret,
-  assign,
-  send,
-  sendParent,
-  createMachine
-} from '../src';
+import { Machine, interpret, assign, sendParent, createMachine } from '../src';
+import { sendTo } from '../src/actions';
 
 interface CounterContext {
   count: number;
@@ -369,7 +363,7 @@ describe('assign meta', () => {
       },
       on: {
         PING_CHILD: {
-          actions: [send('PING', { to: 'child' }), assignEventLog]
+          actions: [sendTo('child', 'PING'), assignEventLog]
         },
         '*': {
           actions: [assignEventLog]

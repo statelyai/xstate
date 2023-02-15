@@ -34,6 +34,7 @@ import {
   AnyState,
   StateConfig,
   InteropSubscribable,
+  RaiseActionObject,
   LogActionObject
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
@@ -65,7 +66,8 @@ import {
   isActor,
   isBehavior,
   symbolObservable,
-  flatten
+  flatten,
+  isRaisableAction
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -214,6 +216,7 @@ export class Interpreter<
 
   // Dev Tools
   private devTools?: any;
+  private _doneEvent?: DoneEvent;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -377,8 +380,10 @@ export class Interpreter<
           ? mapContext(finalChildStateNode.doneData, state.context, _event)
           : undefined;
 
+      this._doneEvent = doneInvoke(this.id, doneData);
+
       for (const listener of this.doneListeners) {
-        listener(doneInvoke(this.id, doneData));
+        listener(this._doneEvent);
       }
       this._stop();
       this._stopChildren();
@@ -500,7 +505,11 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(listener: EventListener<DoneEvent>): this {
-    this.doneListeners.add(listener);
+    if (this.status === InterpreterStatus.Stopped && this._doneEvent) {
+      listener(this._doneEvent);
+    } else {
+      this.doneListeners.add(listener);
+    }
     return this;
   }
   /**
@@ -667,11 +676,7 @@ export class Interpreter<
           historyValue: undefined,
           history: this.state,
           actions: resolvedActions.filter(
-            (action) =>
-              action.type !== actionTypes.raise &&
-              (action.type !== actionTypes.send ||
-                (!!(action as any).to &&
-                  (action as any).to !== SpecialTargets.Internal))
+            (action) => !isRaisableAction(action)
           ),
           activities: {},
           events: [],
@@ -841,7 +846,9 @@ export class Interpreter<
     const target = isParent
       ? this.parent
       : isString(to)
-      ? this.children.get(to as string) || registry.get(to as string)
+      ? to === SpecialTargets.Internal
+        ? this
+        : this.children.get(to as string) || registry.get(to as string)
       : isActor(to)
       ? to
       : undefined;
@@ -948,9 +955,13 @@ export class Interpreter<
       child.send(event);
     }
   }
-  private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
-      if (sendAction.to) {
+  private defer(
+    sendAction:
+      | SendActionObject<TContext, TEvent>
+      | RaiseActionObject<TContext, TEvent>
+  ): void {
+    const timerId = this.clock.setTimeout(() => {
+      if ('to' in sendAction && sendAction.to) {
         this.sendTo(sendAction._event, sendAction.to, true);
       } else {
         this.send(
@@ -958,6 +969,10 @@ export class Interpreter<
         );
       }
     }, sendAction.delay as number);
+
+    if (sendAction.id) {
+      this.delayedEventsMap[sendAction.id] = timerId;
+    }
   }
   private cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
@@ -971,7 +986,7 @@ export class Interpreter<
     actionFunctionMap = this.machine.options.actions
   ): void => {
     const actionOrExec =
-      action.exec || getActionFunction(action.type, actionFunctionMap);
+      action.exec || getActionFunction(action.type, actionFunctionMap as any);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
@@ -1007,6 +1022,13 @@ export class Interpreter<
     }
 
     switch (action.type) {
+      case actionTypes.raise: {
+        // if raise action reached the interpreter then it's a delayed one
+        const sendAction = action as RaiseActionObject<TContext, TEvent>;
+        this.defer(sendAction);
+        break;
+      }
+
       case actionTypes.send:
         const sendAction = action as SendActionObject<TContext, TEvent>;
 
