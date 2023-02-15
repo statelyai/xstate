@@ -10,12 +10,14 @@ const schema = {
         type: 'feedback.bad';
       }
     | {
-        type: 'submit';
-        feedback: string;
+        type: 'feedback.update';
+        value: string;
       }
+    | { type: 'submit' }
     | {
         type: 'close';
       }
+    | { type: 'back' }
 };
 
 export const feedbackMachine = createMachine({
@@ -34,10 +36,14 @@ export const feedbackMachine = createMachine({
     },
     form: {
       on: {
-        submit: {
+        'feedback.update': {
           actions: assign({
-            feedback: (_, event) => event.feedback
-          }),
+            feedback: (_, event) => event.value
+          })
+        },
+        back: { target: 'prompt' },
+        submit: {
+          cond: (ctx) => ctx.feedback.length > 0,
           target: 'thanks'
         }
       }

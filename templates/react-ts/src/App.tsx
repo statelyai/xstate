@@ -2,28 +2,8 @@ import './App.css';
 import { feedbackMachine } from './feedbackMachine';
 import { useMachine } from '@xstate/react';
 
-function FeedbackForm(props: { onSubmit: (feedback: string) => void }) {
-  return (
-    <form
-      className="step"
-      onSubmit={(ev) => {
-        ev.preventDefault();
-
-        const form = ev.target as HTMLFormElement;
-        const feedback = form.elements.feedback as HTMLTextAreaElement;
-
-        props.onSubmit(feedback.value);
-      }}
-    >
-      <h2>What can we do better?</h2>
-      <textarea name="feedback" rows={4} placeholder="So many things..." />
-      <button className="button">Submit</button>
-    </form>
-  );
-}
-
 function Feedback() {
-  const [state, send] = useMachine(feedbackMachine);
+  const [state, send, actor] = useMachine(feedbackMachine);
 
   if (state.matches('closed')) {
     return <em>Feedback form closed.</em>;
@@ -58,11 +38,40 @@ function Feedback() {
       )}
 
       {state.matches('form') && (
-        <FeedbackForm
-          onSubmit={(feedback) => {
-            send({ type: 'submit', feedback });
+        <form
+          className="step"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            send({
+              type: 'submit'
+            });
           }}
-        />
+        >
+          <h2>What can we do better?</h2>
+          <textarea
+            name="feedback"
+            rows={4}
+            placeholder="So many things..."
+            onChange={(ev) => {
+              send({
+                type: 'feedback.update',
+                value: ev.target.value
+              });
+            }}
+          />
+          <button className="button" disabled={!state.can({ type: 'submit' })}>
+            Submit
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              send('back');
+            }}
+          >
+            Back
+          </button>
+        </form>
       )}
     </div>
   );
