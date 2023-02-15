@@ -6,7 +6,9 @@ import {
   interpret,
   StateMachine,
   spawn,
-  ActorRefFrom
+  ActorRefFrom,
+  TagsFrom,
+  StateFrom
 } from '../src/index';
 import { raise, stop } from '../src/actions';
 import { createModel } from '../src/model';
@@ -952,6 +954,87 @@ describe('actions', () => {
         count: (context) => context.count + 1,
         skip: true
       })
+    });
+  });
+});
+
+describe('tags', () => {
+  describe('with typegen', () => {
+    const machine = createMachine({
+      tsTypes: ({} as unknown) as {
+        '@@xstate/typegen': true;
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    it('derives tags from StateMachine', () => {
+      type Tags = TagsFrom<typeof machine>;
+
+      const a: Tags = 'a';
+      const b: Tags = 'b';
+      const c: Tags = 'c';
+      // @ts-expect-error 'd' is not a valid tag
+      const d: Tags = 'd';
+    });
+
+    it('derives tags from State', () => {
+      type Tags = TagsFrom<StateFrom<typeof machine>>;
+
+      const a: Tags = 'a';
+      const b: Tags = 'b';
+      const c: Tags = 'c';
+      // @ts-expect-error 'd' is not a valid tag
+      const d: Tags = 'd';
+    });
+
+    it('derives tags from Interpreter', () => {
+      const service = interpret(machine);
+
+      type Tags = TagsFrom<typeof service>;
+
+      const a: Tags = 'a';
+      const b: Tags = 'b';
+      const c: Tags = 'c';
+      // @ts-expect-error 'd' is not a valid tag
+      const d: Tags = 'd';
+    });
+  });
+
+  describe('without typegen', () => {
+    const machine = createMachine({
+      tsTypes: ({} as unknown) as {
+        '@@xstate/typegen': false;
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    it('derives string from Machine', () => {
+      type Tags = TagsFrom<typeof machine>;
+
+      const a: Tags = 'a';
+      const b: Tags = 'b';
+      const c: Tags = 'c';
+      const d: Tags = 'd';
+    });
+
+    it('derives string from State', () => {
+      type Tags = TagsFrom<StateFrom<typeof machine>>;
+
+      const a: Tags = 'a';
+      const b: Tags = 'b';
+      const c: Tags = 'c';
+      const d: Tags = 'd';
+    });
+
+    it('derives string from Interpreter', () => {
+      const service = interpret(machine);
+
+      type Tags = TagsFrom<typeof service>;
+
+      const a: Tags = 'a';
+      const b: Tags = 'b';
+      const c: Tags = 'c';
+      const d: Tags = 'd';
     });
   });
 });
