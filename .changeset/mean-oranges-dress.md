@@ -2,7 +2,7 @@
 'xstate': minor
 ---
 
-The new `TagsFrom` helper type extracts the type of `tags` from any type which uses tags (when typegen is enabled):
+The new `TagsFrom` helper type extracts the type of `tags` from a state machine when typegen is enabled:
 
 ```ts
 const machine = createMachine({

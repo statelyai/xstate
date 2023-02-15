@@ -1,4 +1,5 @@
 import { Clock, Interpreter } from './interpreter';
+import { createMachine } from './Machine';
 import { Model } from './model.types';
 import { State } from './State';
 import { StateNode } from './StateNode';
@@ -2002,36 +2003,6 @@ export type PredictableActionArgumentsExec = (
   _event: SCXML.Event<EventObject>
 ) => void;
 
-type _TagsFrom<TResolvedTypesMeta> = TResolvedTypesMeta extends TypegenEnabled
-  ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
-  : string;
-
-export type TagsFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<
-      infer _,
-      infer __,
-      infer ___,
-      infer ____,
-      infer _____,
-      infer ______,
-      infer TResolvedTypesMeta
-    >
-    ? _TagsFrom<TResolvedTypesMeta>
-    : R extends State<
-        infer _,
-        infer __,
-        infer ___,
-        infer ____,
-        infer TResolvedTypesMeta
-      >
-    ? _TagsFrom<TResolvedTypesMeta>
-    : R extends Interpreter<
-        infer _,
-        infer __,
-        infer ___,
-        infer ____,
-        infer TResolvedTypesMeta
-      >
-    ? _TagsFrom<TResolvedTypesMeta>
-    : never
-  : never;
+export type TagsFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['hasTag']
+>[0];
