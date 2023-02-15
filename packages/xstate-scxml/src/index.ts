@@ -3,7 +3,6 @@ import {
   ActionObject,
   TransitionDefinition,
   StateNode,
-  ActionType,
   AnyStateMachine
 } from 'xstate';
 
@@ -27,19 +26,13 @@ export function functionToExpr(fn: Function): string {
 }
 
 function actionToSCXML(action: ActionObject<any, any>): XMLElement {
-  const { type, ...attributes } = action;
-
-  const actionTypeMap: Record<ActionType, string> = {
-    'xstate.raise': 'raise'
-  };
-
-  const name = actionTypeMap[action.type];
-
-  if (name) {
+  if (action.type === 'xstate.raise') {
     return {
       type: 'element',
-      name,
-      attributes
+      name: 'raise',
+      attributes: {
+        event: (action as any).event.type
+      }
     };
   }
 

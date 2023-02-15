@@ -36,7 +36,11 @@ export interface Model<
       | Assigner<TContext, SimplisticExtractEvent<TEvent, TEventType>>
       | PropertyAssigner<TContext, SimplisticExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
-  ) => AssignAction<TContext, SimplisticExtractEvent<TEvent, TEventType>>;
+  ) => AssignAction<
+    TContext,
+    SimplisticExtractEvent<TEvent, TEventType>,
+    TEvent
+  >;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;

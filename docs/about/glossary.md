@@ -2,6 +2,10 @@
 
 This glossary is a guide to the most common terms in statecharts and state machines.
 
+:::tip Check out our new docs!
+🆕 Find more terms in our [all-new Stately and XState glossary](https://stately.ai/docs/glossary).
+:::
+
 ## State machines
 
 A state machine is a model that describes how the state of a process transitions to another state when an event occurs.

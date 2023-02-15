@@ -2,21 +2,62 @@ import * as React from 'react';
 import { useInterpret } from './useInterpret';
 import { useActor as useActorUnbound } from './useActor';
 import { useSelector as useSelectorUnbound } from './useSelector';
-import { ActorRefFrom, AnyStateMachine, EmittedFrom } from 'xstate';
+import {
+  ActorRefFrom,
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  EmittedFrom,
+  InternalMachineOptions,
+  InterpreterOptions,
+  Observer,
+  StateFrom
+} from 'xstate';
+import { UseMachineOptions } from './useMachine';
 
 export function createActorContext<TMachine extends AnyStateMachine>(
-  machine: TMachine
+  machine: TMachine,
+  interpreterOptions?: InterpreterOptions,
+  observerOrListener?:
+    | Observer<StateFrom<TMachine>>
+    | ((value: StateFrom<TMachine>) => void)
 ): {
-  useActor: () => ReturnType<typeof useActorUnbound<ActorRefFrom<TMachine>>>;
+  useActor: () => [StateFrom<TMachine>, ActorRefFrom<TMachine>['send']];
   useSelector: <T>(
     selector: (snapshot: EmittedFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
   useActorRef: () => ActorRefFrom<TMachine>;
-  Provider: (props: {
-    children: React.ReactNode;
-    machine?: TMachine | (() => TMachine);
-  }) => React.ReactElement<any, any>;
+  Provider: (
+    props: {
+      children: React.ReactNode;
+      machine?: TMachine | (() => TMachine);
+    } & (AreAllImplementationsAssumedToBeProvided<
+      TMachine['__TResolvedTypesMeta']
+    > extends false
+      ? {
+          options: UseMachineOptions<
+            TMachine['__TContext'],
+            TMachine['__TEvent']
+          > &
+            InternalMachineOptions<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              TMachine['__TResolvedTypesMeta'],
+              true
+            >;
+        }
+      : {
+          options?: UseMachineOptions<
+            TMachine['__TContext'],
+            TMachine['__TEvent']
+          > &
+            InternalMachineOptions<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              TMachine['__TResolvedTypesMeta']
+            >;
+        })
+  ) => React.ReactElement<any, any>;
 } {
   const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
 
@@ -24,12 +65,18 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   function Provider({
     children,
-    machine: providedMachine = machine
+    machine: providedMachine = machine,
+    options
   }: {
     children: React.ReactNode;
     machine: TMachine | (() => TMachine);
+    options?: any;
   }) {
-    const actor = useInterpret(providedMachine) as ActorRefFrom<TMachine>;
+    const actor = useInterpret(
+      providedMachine,
+      { ...interpreterOptions, ...options },
+      observerOrListener
+    ) as ActorRefFrom<TMachine>;
 
     return <OriginalProvider value={actor}>{children}</OriginalProvider>;
   }

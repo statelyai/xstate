@@ -11,9 +11,15 @@ import {
   spawn,
   toActorRef
 } from 'xstate';
-import { useMachine } from '../src';
+import { useInterpret, useMachine } from '../src';
 import { useActor } from '../src/useActor';
 import { describeEachReactMode } from './utils';
+
+const originalConsoleError = console.error;
+
+afterEach(() => {
+  console.error = originalConsoleError;
+});
 
 describeEachReactMode('useActor (%s)', ({ render }) => {
   it('initial invoked actor should be immediately available', (done) => {
@@ -127,14 +133,12 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
     });
 
     interface Ctx {
-      actorRef?: ActorRefFrom<typeof childMachine>;
+      actorRef: ActorRefFrom<typeof childMachine>;
     }
 
     const machine = createMachine<Ctx>({
       initial: 'active',
-      context: {
-        actorRef: undefined
-      },
+      context: {} as Ctx,
       states: {
         active: {
           entry: assign({
@@ -179,12 +183,12 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
       }
     });
     const machine = createMachine<{
-      actorRef?: ActorRefFrom<typeof childMachine>;
+      actorRef: ActorRefFrom<typeof childMachine>;
     }>({
       initial: 'active',
       context: {
         actorRef: undefined
-      },
+      } as any,
       states: {
         active: {
           entry: assign({
@@ -504,5 +508,21 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
     fireEvent.click(elSend);
 
     expect(elState.textContent).toEqual('two');
+  });
+
+  it('should not log any spurious errors when used with a not-started actor', () => {
+    const spy = jest.fn();
+    console.error = spy;
+
+    const machine = createMachine({});
+    const App = () => {
+      useActor(useInterpret(machine));
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(spy).not.toBeCalled();
   });
 });

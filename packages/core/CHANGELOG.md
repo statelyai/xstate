@@ -1,5 +1,40 @@
 # xstate
 
+## 4.36.0
+
+### Minor Changes
+
+- [#3393](https://github.com/statelyai/xstate/pull/3393) [`430986cdf`](https://github.com/statelyai/xstate/commit/430986cdf9ae6919abc9219caeabbf695e96895a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Deprecated `send()` action creator. Instead of that, you can use `sendTo()` to send events to other actors and `raise()` to send events to the "self" actor.
+
+- [#3802](https://github.com/statelyai/xstate/pull/3802) [`8743ad0bd`](https://github.com/statelyai/xstate/commit/8743ad0bd6683029a17bec7e1c163ee9a221a276) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a class of inference problems for our builtin actions (`assign`, `sendTo`, etc).
+
+- [#3694](https://github.com/statelyai/xstate/pull/3694) [`fd589055b`](https://github.com/statelyai/xstate/commit/fd589055bdd92df91bb354471d17b3cda703658f) Thanks [@Andarist](https://github.com/Andarist)! - All actions received a new generic: `TExpressionEvent`. To type things more correctly and allow TS to infer things better we need to distinguish between all events accepted by a machine (`TEvent`) and the event type that actions are "called" with (`TExpressionEvent`).
+
+  It's best to rely on type inference so you shouldn't have to specify this generic manually all over the place.
+
+### Patch Changes
+
+- [#3818](https://github.com/statelyai/xstate/pull/3818) [`2d8d84fd8`](https://github.com/statelyai/xstate/commit/2d8d84fd839b520d73653dba9eba93c9c1cb2249) Thanks [@Andarist](https://github.com/Andarist)! - Fixed inference for `assign` using `PropertyAssigner`, like here:
+
+  ```ts
+  actions: assign({
+    counter: 0,
+    delta: (ctx, ev) => ev.delta
+  });
+  ```
+
+## 4.35.4
+
+### Patch Changes
+
+- [#3801](https://github.com/statelyai/xstate/pull/3801) [`10d0ba76a`](https://github.com/statelyai/xstate/commit/10d0ba76a1e35e7a58d24496caa57da6c28f6c64) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not clearing registered interpreters when their machines reached final states.
+
+## 4.35.3
+
+### Patch Changes
+
+- [#3783](https://github.com/statelyai/xstate/pull/3783) [`b68f0e8bf`](https://github.com/statelyai/xstate/commit/b68f0e8bf0d097f5cb249bd3ddfd5553c1bcc028) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `EmittedFrom` sometimes not being able to infer the snapshot types from machines.
+
 ## 4.35.2
 
 ### Patch Changes

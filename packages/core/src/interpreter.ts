@@ -30,11 +30,12 @@ import {
   ActorRef,
   ActorRefFrom,
   Behavior,
-  StopActionObject,
   Subscription,
   AnyState,
   StateConfig,
-  InteropSubscribable
+  InteropSubscribable,
+  RaiseActionObject,
+  LogActionObject
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
@@ -65,7 +66,8 @@ import {
   isActor,
   isBehavior,
   symbolObservable,
-  flatten
+  flatten,
+  isRaisableAction
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -130,7 +132,8 @@ export class Interpreter<
     ActorRef<
       TEvent,
       State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
-    > {
+    >
+{
   /**
    * The default interpreter options:
    *
@@ -208,12 +211,12 @@ export class Interpreter<
   public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
-  private _outgoingQueue: Array<
-    [{ send: (ev: unknown) => void }, unknown]
-  > = [];
+  private _outgoingQueue: Array<[{ send: (ev: unknown) => void }, unknown]> =
+    [];
 
   // Dev Tools
   private devTools?: any;
+  private _doneEvent?: DoneEvent;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -332,7 +335,7 @@ export class Interpreter<
     ) {
       this.execute(this.state);
     } else {
-      let item: typeof this._outgoingQueue[number] | undefined;
+      let item: (typeof this._outgoingQueue)[number] | undefined;
       while ((item = this._outgoingQueue.shift())) {
         item[0].send(item[1]);
       }
@@ -377,11 +380,14 @@ export class Interpreter<
           ? mapContext(finalChildStateNode.doneData, state.context, _event)
           : undefined;
 
+      this._doneEvent = doneInvoke(this.id, doneData);
+
       for (const listener of this.doneListeners) {
-        listener(doneInvoke(this.id, doneData));
+        listener(this._doneEvent);
       }
       this._stop();
       this._stopChildren();
+      registry.free(this.sessionId);
     }
   }
   /*
@@ -499,7 +505,11 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(listener: EventListener<DoneEvent>): this {
-    this.doneListeners.add(listener);
+    if (this.status === InterpreterStatus.Stopped && this._doneEvent) {
+      listener(this._doneEvent);
+    } else {
+      this.doneListeners.add(listener);
+    }
     return this;
   }
   /**
@@ -666,10 +676,7 @@ export class Interpreter<
           historyValue: undefined,
           history: this.state,
           actions: resolvedActions.filter(
-            (action) =>
-              action.type !== actionTypes.raise &&
-              (action.type !== actionTypes.send ||
-                (!!action.to && action.to !== SpecialTargets.Internal))
+            (action) => !isRaisableAction(action)
           ),
           activities: {},
           events: [],
@@ -839,7 +846,9 @@ export class Interpreter<
     const target = isParent
       ? this.parent
       : isString(to)
-      ? this.children.get(to as string) || registry.get(to as string)
+      ? to === SpecialTargets.Internal
+        ? this
+        : this.children.get(to as string) || registry.get(to as string)
       : isActor(to)
       ? to
       : undefined;
@@ -946,9 +955,13 @@ export class Interpreter<
       child.send(event);
     }
   }
-  private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
-      if (sendAction.to) {
+  private defer(
+    sendAction:
+      | SendActionObject<TContext, TEvent>
+      | RaiseActionObject<TContext, TEvent>
+  ): void {
+    const timerId = this.clock.setTimeout(() => {
+      if ('to' in sendAction && sendAction.to) {
         this.sendTo(sendAction._event, sendAction.to, true);
       } else {
         this.send(
@@ -956,6 +969,10 @@ export class Interpreter<
         );
       }
     }, sendAction.delay as number);
+
+    if (sendAction.id) {
+      this.delayedEventsMap[sendAction.id] = timerId;
+    }
   }
   private cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
@@ -969,11 +986,11 @@ export class Interpreter<
     actionFunctionMap = this.machine.options.actions
   ): void => {
     const actionOrExec =
-      action.exec || getActionFunction(action.type, actionFunctionMap);
+      action.exec || getActionFunction(action.type, actionFunctionMap as any);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
-      ? actionOrExec.exec
+      ? (actionOrExec as any).exec
       : action.exec;
 
     if (exec) {
@@ -1005,6 +1022,13 @@ export class Interpreter<
     }
 
     switch (action.type) {
+      case actionTypes.raise: {
+        // if raise action reached the interpreter then it's a delayed one
+        const sendAction = action as RaiseActionObject<TContext, TEvent>;
+        this.defer(sendAction);
+        break;
+      }
+
       case actionTypes.send:
         const sendAction = action as SendActionObject<TContext, TEvent>;
 
@@ -1023,7 +1047,7 @@ export class Interpreter<
         break;
 
       case actionTypes.cancel:
-        this.cancel((action as CancelAction).sendId);
+        this.cancel((action as CancelAction<any, any>).sendId);
 
         break;
       case actionTypes.start: {
@@ -1117,12 +1141,12 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild((action as StopActionObject).activity.id);
+        this.stopChild((action as any).activity.id);
         break;
       }
 
       case actionTypes.log:
-        const { label, value } = action;
+        const { label, value } = action as LogActionObject<TContext, TEvent>;
 
         if (label) {
           this.logger(label, value);

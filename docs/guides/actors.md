@@ -1,5 +1,9 @@
 # Actors <Badge text="4.6+"/>
 
+:::tip Check out our new docs!
+🆕 Find our [actors in XState explainer](https://stately.ai/docs/xstate/actors/intro) in our new docs, along with a [no-code introduction to actors in statecharts and the Stately Studio](https://stately.ai/docs/actions-and-actors/actors).
+:::
+
 [:rocket: Quick Reference](#quick-reference)
 
 [[toc]]
@@ -207,9 +211,7 @@ Just like [invoking promises](./communication.md#invoking-promises), promises ca
 ```js {11}
 // Returns a promise
 const fetchData = (query) => {
-  return fetch(`http://example.com?query=${query}`).then((data) =>
-    data.json()
-  );
+  return fetch(`http://example.com?query=${query}`).then((data) => data.json());
 };
 
 // ...
