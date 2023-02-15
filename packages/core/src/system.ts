@@ -1,5 +1,4 @@
-import { fromReducer } from './actors/reducer.js';
-import { ActorRef, ActorSystem, FooSystem } from './types.js';
+import { ActorRef, ActorSystem, ActorSystemInfo } from './types.js';
 
 const children = new Map<string, ActorRef<any>>();
 
@@ -28,7 +27,7 @@ export const registry: Registry = {
   }
 };
 
-export function createSystem<T extends FooSystem>(): ActorSystem<T> {
+export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
   const children = new Map<string, ActorRef<any>>();
   const keyedActors = new Map<keyof T['actors'], ActorRef<any> | undefined>();
 

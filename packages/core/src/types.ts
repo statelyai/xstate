@@ -1929,14 +1929,13 @@ export type StateFromMachine<
   TMachine extends AnyStateMachine
 > = TMachine['initialState'];
 
-export interface FooSystem {
+export interface ActorSystemInfo {
   actors: Record<string, AnyActorRef>;
 }
 
-export interface ActorSystem<T extends FooSystem> {
+export interface ActorSystem<T extends ActorSystemInfo> {
   register: (actorRef: AnyActorRef) => string;
   unregister: (actorRef: AnyActorRef) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
-  make: <T extends ActorBehavior<any, any, any, this>>(behavior: T) => this;
 }
