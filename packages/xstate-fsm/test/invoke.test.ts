@@ -17,7 +17,11 @@ describe('invoking promises', () => {
             src: fromPromise(() => Promise.resolve('data')),
             onDone: {
               target: 'success',
+              // actions: (ctx, ev) => {
+              //   ev.data; // properly inferred as string
+              // }
               actions: assign({
+                // ev.data improperly inferred as any
                 data: (_, event) => event.data
               })
             }

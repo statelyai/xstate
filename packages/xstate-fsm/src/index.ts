@@ -6,6 +6,7 @@ import {
   BaseActionObject,
   DynamicActionObject,
   EventFrom,
+  EventObject,
   Implementations,
   InternalStateFrom,
   MachineBehavior,
@@ -16,9 +17,9 @@ import {
   StateMachineConfig
 } from './types';
 
-export function assign<T extends MachineTypes>(
+export function assign<T extends MachineTypes, TE extends EventObject>(
   assignments: any
-): DynamicActionObject<T> {
+): DynamicActionObject<T, TE> {
   return {
     type: 'xstate.assign',
     params: assignments,
@@ -45,9 +46,9 @@ export function assign<T extends MachineTypes>(
 }
 
 function toActionObject<T extends MachineTypes>(
-  action: Action<T>,
+  action: Action<T, any>,
   actionImpls?: Implementations<T>['actions']
-): DynamicActionObject<any> | BaseActionObject {
+): DynamicActionObject<any, any> | BaseActionObject {
   if (typeof action === 'string') {
     return actionImpls?.[action]
       ? toActionObject(actionImpls[action], actionImpls)
@@ -64,8 +65,8 @@ function toActionObject<T extends MachineTypes>(
   return action;
 }
 
-export function createMachine<T extends MachineTypes>(
-  machine: StateMachineConfig<T>,
+export function createMachine<T extends MachineTypes, TC>(
+  machine: StateMachineConfig<T, TC>,
   implementations: Implementations<T> = {}
 ): MachineBehavior<T> {
   const initialStateNode = machine.initial

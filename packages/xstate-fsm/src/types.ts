@@ -87,24 +87,22 @@ export interface MachineState<T extends MachineTypes> {
   children: any;
 }
 
-export type Action<T extends MachineTypes> =
+export type Action<T extends MachineTypes, TE extends EventObject> =
   | string
-  | (() => void)
+  | ((ctx: T['context'], event: TE) => void)
   | BaseActionObject
-  | DynamicActionObject<T>;
+  | DynamicActionObject<T, TE>;
 
 export type TransitionStringOrObject<
   T extends MachineTypes,
-  K extends T['events']['type']
+  TS,
+  TE extends EventObject
 > =
-  | string
+  | keyof TS
   | {
-      target?: string;
-      guard?: (
-        context: T['context'],
-        event: T['events'] & { type: K }
-      ) => boolean;
-      actions?: SingleOrArray<Action<T>>;
+      target?: keyof TS;
+      guard?: (context: T['context'], event: TE) => boolean;
+      actions?: SingleOrArray<Action<T, TE>>;
     };
 
 export interface BaseActionObject {
@@ -113,19 +111,22 @@ export interface BaseActionObject {
   execute?: () => void;
 }
 
-export interface DynamicActionObject<T extends MachineTypes> {
+export interface DynamicActionObject<
+  T extends MachineTypes,
+  TE extends EventObject
+> {
   type: string;
   params: Record<string, any>;
   resolve: (
     state: MachineState<T>,
-    event: EventObject
+    event: TE
     // actorCtx: ActorContext
   ) => [MachineState<T>, BaseActionObject];
 }
 
 export type Implementations<T extends MachineTypes> = {
   actions?: {
-    [key: string]: Action<T>;
+    [key: string]: Action<T, T['events']>;
   };
 };
 
@@ -134,29 +135,44 @@ export type MachineBehavior<T extends MachineTypes> = Behavior<
   MachineState<T>,
   MachineState<T>
 > & {
-  config: StateMachineConfig<T>;
+  config: StateMachineConfig<T, any>;
   provide: (implementations: {
     actions?: {
-      [key: string]: Action<T>;
+      [key: string]: Action<T, T['events']>;
     };
   }) => MachineBehavior<T>;
   implementations: Implementations<T>;
 };
 
-export interface StateMachineConfig<T extends MachineTypes> {
-  initial: string;
-  context?: T['context'];
+export interface StateMachineConfig<TTypes extends MachineTypes, TStates> {
+  initial: keyof TStates & string;
+  types?: TTypes;
+  context?: TTypes['context'];
   states?: {
-    [key: string]: {
+    [K in keyof TStates]: {
       invoke?: {
-        src: AnyBehavior;
-        onDone?: TransitionStringOrObject<T, any>;
-        onError?: TransitionStringOrObject<T, any>;
+        src: TStates[K] & AnyBehavior;
+        // onDone?: TransitionStringOrObject<TTypes, any>;
+        onDone?: TransitionStringOrObject<
+          TTypes,
+          TStates,
+          {
+            type: 'done';
+            data: TStates[K] extends AnyBehavior
+              ? Exclude<SnapshotFrom<TStates[K]>, undefined>
+              : never;
+          }
+        >;
+        onError?: TransitionStringOrObject<TTypes, TStates, { type: 'error' }>;
       };
-      entry?: SingleOrArray<Action<T>>;
-      exit?: SingleOrArray<Action<T>>;
+      entry?: SingleOrArray<Action<TTypes, TTypes['events']>>;
+      exit?: SingleOrArray<Action<TTypes, TTypes['events']>>;
       on?: {
-        [K in T['events']['type']]?: TransitionStringOrObject<T, K>;
+        [K in TTypes['events']['type']]?: TransitionStringOrObject<
+          TTypes,
+          TStates,
+          TTypes['events'] & { type: K }
+        >;
       };
     };
   };

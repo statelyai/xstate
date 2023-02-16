@@ -101,10 +101,13 @@ describe('@xstate/fsm', () => {
     | { type: 'INC' }
     | { type: 'EMERGENCY'; value: number };
 
-  const lightConfig: StateMachineConfig<{
-    context: LightContext;
-    events: LightEvent;
-  }> = {
+  const lightConfig: StateMachineConfig<
+    {
+      context: LightContext;
+      events: LightEvent;
+    },
+    any
+  > = {
     initial: 'green',
     context: { count: 0, foo: 'bar', go: true },
     states: {
@@ -226,18 +229,18 @@ describe('@xstate/fsm', () => {
   });
 
   it('should throw an error for undefined next state config', () => {
-    const testConfig: StateMachineConfig<any> = {
+    const testMachine = createMachine({
       initial: 'green',
       states: {
         green: {
           on: {
+            // @ts-expect-error
             TARGET_INVALID: 'blue'
           }
         },
         yellow: {}
       }
-    };
-    const testMachine = createMachine(testConfig);
+    });
     expect(() => {
       testMachine.transition(testMachine.initialState, {
         type: 'TARGET_INVALID'
@@ -248,12 +251,13 @@ describe('@xstate/fsm', () => {
   });
 
   it('should work with guards', () => {
-    const fsm = createMachine<{
-      context: { count: number };
-      events:
-        | { type: 'NEXT'; value: number }
-        | { type: 'SET_COUNT'; value: number };
-    }>({
+    const fsm = createMachine({
+      types: {} as {
+        context: { count: number };
+        events:
+          | { type: 'NEXT'; value: number }
+          | { type: 'SET_COUNT'; value: number };
+      },
       initial: 'inactive',
       context: {
         count: 0
