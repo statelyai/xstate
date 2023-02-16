@@ -3,7 +3,13 @@ import { feedbackMachine } from './feedbackMachine';
 import { useMachine } from '@xstate/react';
 
 function Feedback() {
-  const [state, send, actor] = useMachine(feedbackMachine);
+  const [state, send] = useMachine(feedbackMachine);
+
+  function send2(event) {
+    const err = new Error('test');
+    console.log(err.stack);
+    send(event);
+  }
 
   if (state.matches('closed')) {
     return <em>Feedback form closed.</em>;
@@ -22,18 +28,27 @@ function Feedback() {
       {state.matches('prompt') && (
         <div className="step">
           <h2>How was your experience?</h2>
-          <button className="button" onClick={() => send('feedback.good')}>
+          <button
+            className="button"
+            onClick={() => send2({ type: 'feedback.good' })}
+          >
             Good
           </button>
-          <button className="button" onClick={() => send('feedback.bad')}>
+          <button
+            className="button"
+            onClick={() => send({ type: 'feedback.bad' })}
+          >
             Bad
           </button>
         </div>
       )}
+
       {state.matches('thanks') && (
         <div className="step">
           <h2>Thanks for your feedback.</h2>
-          <p>"{state.context.feedback}"</p>
+          {state.context.feedback.length > 0 && (
+            <p>"{state.context.feedback}"</p>
+          )}
         </div>
       )}
 
@@ -66,7 +81,7 @@ function Feedback() {
             className="button"
             type="button"
             onClick={() => {
-              send('back');
+              send({ type: 'back' });
             }}
           >
             Back
