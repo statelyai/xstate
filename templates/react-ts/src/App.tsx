@@ -5,12 +5,6 @@ import { useMachine } from '@xstate/react';
 function Feedback() {
   const [state, send] = useMachine(feedbackMachine);
 
-  function send2(event) {
-    const err = new Error('test');
-    console.log(err.stack);
-    send(event);
-  }
-
   if (state.matches('closed')) {
     return <em>Feedback form closed.</em>;
   }
@@ -30,7 +24,7 @@ function Feedback() {
           <h2>How was your experience?</h2>
           <button
             className="button"
-            onClick={() => send2({ type: 'feedback.good' })}
+            onClick={() => send({ type: 'feedback.good' })}
           >
             Good
           </button>
