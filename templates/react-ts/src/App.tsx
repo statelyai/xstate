@@ -6,7 +6,19 @@ function Feedback() {
   const [state, send] = useMachine(feedbackMachine);
 
   if (state.matches('closed')) {
-    return <em>Feedback form closed.</em>;
+    return (
+      <div>
+        <em>Feedback form closed.</em>
+        <br />
+        <button
+          onClick={() => {
+            send({ type: 'restart' });
+          }}
+        >
+          Provide more feedback
+        </button>
+      </div>
+    );
   }
 
   return (

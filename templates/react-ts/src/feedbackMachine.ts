@@ -18,6 +18,7 @@ const schema = {
         type: 'close';
       }
     | { type: 'back' }
+    | { type: 'restart' }
 };
 
 export const feedbackMachine = createMachine({
@@ -49,7 +50,11 @@ export const feedbackMachine = createMachine({
       }
     },
     thanks: {},
-    closed: {}
+    closed: {
+      on: {
+        restart: 'prompt'
+      }
+    }
   },
   on: {
     close: 'closed'
