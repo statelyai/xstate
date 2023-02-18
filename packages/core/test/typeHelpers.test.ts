@@ -432,11 +432,11 @@ describe('EmittedFrom', () => {
 
 describe('tags', () => {
   it('derives tags from StateMachine when typegen is enabled', () => {
+    interface TypesMeta extends TypegenMeta {
+      tags: 'a' | 'b' | 'c';
+    }
     const machine = createMachine({
-      tsTypes: ({} as unknown) as {
-        '@@xstate/typegen': true;
-        tags: 'a' | 'b' | 'c';
-      }
+      tsTypes: {} as TypesMeta
     });
 
     type Tags = TagsFrom<typeof machine>;
@@ -451,12 +451,7 @@ describe('tags', () => {
   });
 
   it('derives string from StateMachine without typegen', () => {
-    const machine = createMachine({
-      tsTypes: ({} as unknown) as {
-        '@@xstate/typegen': false;
-        tags: 'a' | 'b' | 'c';
-      }
-    });
+    const machine = createMachine({});
 
     type Tags = TagsFrom<typeof machine>;
 

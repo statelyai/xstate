@@ -6,12 +6,12 @@ The new `TagsFrom` helper type extracts the type of `tags` from a state machine 
 
 ```ts
 const machine = createMachine({
+  // `tags` attached to machine via typegen
+  tsTypes: {} as import('./machine.typegen').Typegen0,
   tags: ['a', 'b'],
   states: {
-    c: { tags: 'c' }
+    idle: { tags: 'c' }
   },
-  // `tags` attached to machine via typegen
-  tsTypes: {} as import('./machine.typegen').Typegen0
 });
 
 type Tags = TagsFrom<typeof machine>; // 'a' | 'b' | 'c'
@@ -23,7 +23,7 @@ If typegen is not enabled, `TagsFrom` returns `string`:
 const machine = createMachine({
   tags: ['a', 'b'],
   states: {
-    c: { tags: 'c' }
+    idle: { tags: 'c' }
   }
 });
 
