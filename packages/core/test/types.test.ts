@@ -6,9 +6,7 @@ import {
   interpret,
   StateMachine,
   spawn,
-  ActorRefFrom,
-  TagsFrom,
-  StateFrom
+  ActorRefFrom
 } from '../src/index';
 import { raise, stop } from '../src/actions';
 import { createModel } from '../src/model';
