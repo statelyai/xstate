@@ -155,8 +155,9 @@ type SimpleActionsOf<T extends BaseActionObject> = ActionObject<
 /**
  * Events that do not require payload
  */
-export type SimpleEventsOf<TEvent extends EventObject> =
-  ExtractWithSimpleSupport<TEvent>;
+export type SimpleEventsOf<
+  TEvent extends EventObject
+> = ExtractWithSimpleSupport<TEvent>;
 
 export type BaseAction<
   TContext,
@@ -1984,18 +1985,23 @@ type Matches<TypegenEnabledArg, TypegenDisabledArg> = {
   (stateValue: TypegenDisabledArg): any;
 };
 
-export type StateValueFrom<TMachine extends AnyStateMachine> =
-  StateFrom<TMachine>['matches'] extends Matches<
-    infer TypegenEnabledArg,
-    infer TypegenDisabledArg
-  >
-    ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
-      ? TypegenEnabledArg
-      : TypegenDisabledArg
-    : never;
+export type StateValueFrom<
+  TMachine extends AnyStateMachine
+> = StateFrom<TMachine>['matches'] extends Matches<
+  infer TypegenEnabledArg,
+  infer TypegenDisabledArg
+>
+  ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
+    ? TypegenEnabledArg
+    : TypegenDisabledArg
+  : never;
 
 export type PredictableActionArgumentsExec = (
   action: ActionObject<unknown, EventObject>,
   context: unknown,
   _event: SCXML.Event<EventObject>
 ) => void;
+
+export type TagsFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['hasTag']
+>[0];
