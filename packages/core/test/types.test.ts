@@ -957,38 +957,3 @@ describe('actions', () => {
     });
   });
 });
-
-describe('tags', () => {
-  it('derives tags from StateMachine when typegen is enabled', () => {
-    const machine = createMachine({
-      tsTypes: ({} as unknown) as {
-        '@@xstate/typegen': true;
-        tags: 'a' | 'b' | 'c';
-      }
-    });
-
-    type Tags = TagsFrom<typeof machine>;
-
-    const a: Tags = 'a';
-    const b: Tags = 'b';
-    const c: Tags = 'c';
-    // @ts-expect-error 'd' is not a valid tag
-    const d: Tags = 'd';
-  });
-
-  it('derives string from StateMachine without typegen', () => {
-    const machine = createMachine({
-      tsTypes: ({} as unknown) as {
-        '@@xstate/typegen': false;
-        tags: 'a' | 'b' | 'c';
-      }
-    });
-
-    type Tags = TagsFrom<typeof machine>;
-
-    const a: Tags = 'a';
-    const b: Tags = 'b';
-    const c: Tags = 'c';
-    const d: Tags = 'd';
-  });
-});

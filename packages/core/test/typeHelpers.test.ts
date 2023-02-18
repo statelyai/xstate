@@ -6,7 +6,8 @@ import {
   EventFrom,
   interpret,
   MachineOptionsFrom,
-  StateValueFrom
+  StateValueFrom,
+  TagsFrom
 } from '../src';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -426,5 +427,45 @@ describe('EmittedFrom', () => {
     acceptState(machine.initialState);
     // @ts-expect-error
     acceptState("isn't any");
+  });
+});
+
+describe('tags', () => {
+  it('derives tags from StateMachine when typegen is enabled', () => {
+    const machine = createMachine({
+      tsTypes: ({} as unknown) as {
+        '@@xstate/typegen': true;
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    type Tags = TagsFrom<typeof machine>;
+
+    const acceptTag = (_tag: Tags) => {};
+
+    acceptTag('a');
+    acceptTag('b');
+    acceptTag('c');
+    // @ts-expect-error d is not a valid tag
+    acceptTag('d');
+  });
+
+  it('derives string from StateMachine without typegen', () => {
+    const machine = createMachine({
+      tsTypes: ({} as unknown) as {
+        '@@xstate/typegen': false;
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    type Tags = TagsFrom<typeof machine>;
+
+    const acceptTag = (_tag: Tags) => {};
+
+    acceptTag('a');
+    acceptTag('b');
+    acceptTag('c');
+    // d is a valid tag, as is any string
+    acceptTag('d');
   });
 });

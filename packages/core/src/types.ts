@@ -1,5 +1,4 @@
 import { Clock, Interpreter } from './interpreter';
-import { createMachine } from './Machine';
 import { Model } from './model.types';
 import { State } from './State';
 import { StateNode } from './StateNode';
