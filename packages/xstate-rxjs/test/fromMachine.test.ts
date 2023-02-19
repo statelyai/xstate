@@ -1,5 +1,5 @@
 import { assign, createMachine, doneInvoke } from 'xstate';
-import { fromInterpret } from '../src';
+import { fromMachine } from '../src';
 
 const fetchMachine = createMachine<{ data: string | undefined }>({
   predictableActionArguments: true,
@@ -42,7 +42,7 @@ const persistedFetchStateConfig = JSON.parse(
 
 describe('fromMachine function', () => {
   it('should work', (done) => {
-    const { state$, send } = fromInterpret(fetchMachine, {
+    const { state$, send } = fromMachine(fetchMachine, {
       services: {
         fetchData: () => {
           return new Promise((res) => setTimeout(() => res('some data'), 50));
@@ -61,7 +61,7 @@ describe('fromMachine function', () => {
   });
 
   it('should work with rehydrated state', (done) => {
-    const { state$ } = fromInterpret(fetchMachine, {
+    const { state$ } = fromMachine(fetchMachine, {
       state: persistedFetchState
     });
 
@@ -74,7 +74,7 @@ describe('fromMachine function', () => {
   });
 
   it('should work with rehydrated state config', (done) => {
-    const { state$ } = fromInterpret(fetchMachine, {
+    const { state$ } = fromMachine(fetchMachine, {
       state: persistedFetchStateConfig
     });
 
