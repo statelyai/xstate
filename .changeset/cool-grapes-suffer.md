@@ -2,7 +2,7 @@
 'xstate': major
 ---
 
-Actors are now always part of a "system", which is a collection of actors that can communicate with each other. Systems are implicitly created, and can be used get and set references to any actor on the system via the `key` prop:
+Actors are now always part of a "system", which is a collection of actors that can communicate with each other. Systems are implicitly created, and can be used to get and set references to any actor in the system via the `key` prop:
 
 ```js
 const machine = createMachine({
