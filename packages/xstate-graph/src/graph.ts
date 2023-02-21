@@ -15,7 +15,8 @@ import type {
   DirectedGraphNode,
   TraversalOptions,
   AnyStateNode,
-  TraversalConfig
+  TraversalConfig,
+  EventCaseMap
 } from './types';
 
 function flatten<T>(array: Array<T | T[]>): T[] {
@@ -26,7 +27,7 @@ export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
 ): TEvent {
   if (typeof event === 'string' || typeof event === 'number') {
-    return ({ type: event } as unknown) as TEvent;
+    return { type: event } as unknown as TEvent;
   }
 
   return event;
@@ -81,8 +82,20 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
     serializeState: serializeMachineState,
     serializeEvent,
     eventCases: {},
-    getEvents: (state) => {
-      return state.nextEvents.map((type) => ({ type })) as EventFrom<TMachine>;
+    getEvents: (state, eventCases: EventCaseMap<any, any>) => {
+      return flatten(
+        state.nextEvents.map((type) => {
+          const eventCaseValue = eventCases[type];
+
+          if (!eventCaseValue) {
+            return { type };
+          }
+          if (typeof eventCaseValue === 'function') {
+            return eventCaseValue(state);
+          }
+          return eventCaseValue.map((eventCase) => ({ type, ...eventCase }));
+        })
+      ) as EventFrom<TMachine>[];
     },
     fromState: machine.initialState as StateFrom<TMachine>
   };

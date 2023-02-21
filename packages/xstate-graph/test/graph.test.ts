@@ -26,9 +26,7 @@ function getPathsSnapshot(
   return paths.map((path) => getPathSnapshot(path));
 }
 
-function getPathSnapshot(
-  path: StatePath<any, any>
-): {
+function getPathSnapshot(path: StatePath<any, any>): {
   state: StateValue;
   steps: Array<{ state: StateValue; eventType: string }>;
 } {
