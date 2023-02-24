@@ -134,7 +134,6 @@ export interface VisitedContext<TState, TEvent> {
 }
 
 export interface SerializationConfig<TState, TEvent extends EventObject> {
-  eventCases: EventCaseMap<TState, TEvent>;
   serializeState: (
     state: TState,
     event: TEvent | undefined,
@@ -144,10 +143,7 @@ export interface SerializationConfig<TState, TEvent extends EventObject> {
 }
 
 export type SerializationOptions<TState, TEvent extends EventObject> = Partial<
-  Pick<
-    SerializationConfig<TState, TEvent>,
-    'eventCases' | 'serializeState' | 'serializeEvent'
-  >
+  Pick<SerializationConfig<TState, TEvent>, 'serializeState' | 'serializeEvent'>
 >;
 /**
  * A sample event object payload (_without_ the `type` property).
@@ -187,10 +183,7 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * `event` when building the adjacency map.
    */
   filter: (state: TState, event: TEvent) => boolean;
-  getEvents: (
-    state: TState,
-    cases: EventCaseMap<TState, TEvent>
-  ) => ReadonlyArray<TEvent>;
+  getEvents: (state: TState) => Array<TEvent>;
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.

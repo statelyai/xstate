@@ -118,9 +118,16 @@ describe('getMachineShortestPaths', () => {
     });
 
     const shortestPaths = getMachineShortestPaths(machine, {
-      eventCases: {
-        'todo.add': [{ todo: 'one' }, { todo: 'two' }]
-      },
+      getEvents: () => [
+        {
+          type: 'todo.add',
+          todo: 'one'
+        } as const,
+        {
+          type: 'todo.add',
+          todo: 'two'
+        } as const
+      ],
       filter: (state) => state.context.todos.length < 3
     });
 

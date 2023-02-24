@@ -47,7 +47,6 @@ export class TestModel<TState, TEvent extends EventObject> {
         `${simpleStringify(state)}|${event?.type ?? ''}`,
       getEvents: () => [],
       stateMatcher: (_, stateKey) => stateKey === '*',
-      eventCases: {},
       logger: {
         log: console.log.bind(console),
         error: console.error.bind(console)

@@ -22,12 +22,11 @@ describe('types', () => {
     );
 
     getMachineShortestPaths(machine, {
-      getEvents: () =>
-        [
-          {
-            type: 'FOO'
-          }
-        ] as const
+      getEvents: () => [
+        {
+          type: 'FOO'
+        } as const
+      ]
     });
   });
 
@@ -35,13 +34,12 @@ describe('types', () => {
     const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
 
     getMachineShortestPaths(machine, {
-      eventCases: {
-        FOO: [
-          {
-            value: 100
-          }
-        ]
-      }
+      getEvents: () => [
+        {
+          type: 'FOO',
+          value: 100
+        } as const
+      ]
     });
   });
 
@@ -52,13 +50,7 @@ describe('types', () => {
     >({});
 
     getMachineShortestPaths(machine, {
-      eventCases: {
-        FOO: [
-          {
-            value: 100
-          }
-        ]
-      }
+      getEvents: () => [{ type: 'FOO', value: 100 } as const]
     });
   });
 
@@ -66,14 +58,12 @@ describe('types', () => {
     const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
 
     getMachineShortestPaths(machine, {
-      eventCases: {
-        // @ts-expect-error
-        UNKNOWN: [
-          {
-            value: 100
-          }
-        ]
-      }
+      getEvents: () => [
+        {
+          type: 'UNKNOWN',
+          value: 100
+        } as any
+      ]
     });
   });
 
@@ -84,14 +74,13 @@ describe('types', () => {
     >({});
 
     getMachineShortestPaths(machine, {
-      eventCases: {
-        FOO: [
-          {
-            // @ts-expect-error
-            other: 'nana nana nananana'
-          }
-        ]
-      }
+      // @ts-expect-error
+      getEvents: () => [
+        {
+          type: 'FOO',
+          other: 'nana nana nananana'
+        }
+      ]
     });
   });
 

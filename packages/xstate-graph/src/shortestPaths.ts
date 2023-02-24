@@ -129,7 +129,7 @@ export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
 ): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
-    createDefaultMachineOptions(machine)
+    createDefaultMachineOptions(machine, options)
   );
 
   return getShortestPaths(machineToBehavior(machine), resolvedOptions);
