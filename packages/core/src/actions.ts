@@ -398,10 +398,14 @@ const defaultLogExpr = <TContext, TEvent extends EventObject>(
  *  - `event` - the event that caused this action to be executed.
  * @param label The label to give to the logged expression.
  */
-export function log<TContext, TEvent extends EventObject>(
-  expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
+export function log<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
+  expr: string | LogExpr<TContext, TExpressionEvent> = defaultLogExpr,
   label?: string
-): LogAction<TContext, TEvent> {
+): LogAction<TContext, TExpressionEvent, TEvent> {
   return {
     type: actionTypes.log,
     label,
@@ -431,9 +435,13 @@ export const resolveLog = <TContext, TEvent extends EventObject>(
  *
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
-export const cancel = <TContext, TEvent extends EventObject>(
+export const cancel = <
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject
+>(
   sendId: string | number
-): CancelAction<TContext, TEvent> => {
+): CancelAction<TContext, TExpressionEvent, TEvent> => {
   return {
     type: actionTypes.cancel,
     sendId
@@ -462,9 +470,13 @@ export function start<TContext, TEvent extends EventObject>(
  *
  * @param actorRef The activity to stop.
  */
-export function stop<TContext, TEvent extends EventObject>(
-  actorRef: string | Expr<TContext, TEvent, string | { id: string }>
-): StopAction<TContext, TEvent> {
+export function stop<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
+  actorRef: string | Expr<TContext, TExpressionEvent, string | { id: string }>
+): StopAction<TContext, TExpressionEvent, TEvent> {
   const activity = isFunction(actorRef)
     ? actorRef
     : toActivityDefinition(actorRef);
@@ -584,18 +596,22 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
   return eventObject as ErrorPlatformEvent & string;
 }
 
-export function pure<TContext, TEvent extends EventObject>(
+export function pure<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
   getActions: (
     context: TContext,
-    event: TEvent
+    event: TExpressionEvent
   ) =>
     | SingleOrArray<
         | BaseActionObject
         | BaseActionObject['type']
-        | ActionObject<TContext, TEvent>
+        | ActionObject<TContext, TExpressionEvent, TEvent>
       >
     | undefined
-): PureAction<TContext, TEvent> {
+): PureAction<TContext, TExpressionEvent, TEvent> {
   return {
     type: ActionTypes.Pure,
     get: getActions
@@ -664,9 +680,13 @@ export function escalate<
   );
 }
 
-export function choose<TContext, TEvent extends EventObject>(
-  conds: Array<ChooseCondition<TContext, TEvent>>
-): ChooseAction<TContext, TEvent> {
+export function choose<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
+  conds: Array<ChooseCondition<TContext, TExpressionEvent, TEvent>>
+): ChooseAction<TContext, TExpressionEvent, TEvent> {
   return {
     type: ActionTypes.Choose,
     conds

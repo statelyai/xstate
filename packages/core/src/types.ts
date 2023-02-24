@@ -127,9 +127,13 @@ export type ActionFunction<
   ): void;
 }['bivarianceHack'];
 
-export interface ChooseCondition<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
-  actions: Actions<TContext, TEvent>;
+export interface ChooseCondition<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
+> {
+  cond?: Condition<TContext, TExpressionEvent>;
+  actions: Actions<TContext, TExpressionEvent, TEvent>;
 }
 
 export type Action<
@@ -155,9 +159,8 @@ type SimpleActionsOf<T extends BaseActionObject> = ActionObject<
 /**
  * Events that do not require payload
  */
-export type SimpleEventsOf<
-  TEvent extends EventObject
-> = ExtractWithSimpleSupport<TEvent>;
+export type SimpleEventsOf<TEvent extends EventObject> =
+  ExtractWithSimpleSupport<TEvent>;
 
 export type BaseAction<
   TContext,
@@ -1985,16 +1988,15 @@ type Matches<TypegenEnabledArg, TypegenDisabledArg> = {
   (stateValue: TypegenDisabledArg): any;
 };
 
-export type StateValueFrom<
-  TMachine extends AnyStateMachine
-> = StateFrom<TMachine>['matches'] extends Matches<
-  infer TypegenEnabledArg,
-  infer TypegenDisabledArg
->
-  ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
-    ? TypegenEnabledArg
-    : TypegenDisabledArg
-  : never;
+export type StateValueFrom<TMachine extends AnyStateMachine> =
+  StateFrom<TMachine>['matches'] extends Matches<
+    infer TypegenEnabledArg,
+    infer TypegenDisabledArg
+  >
+    ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
+      ? TypegenEnabledArg
+      : TypegenDisabledArg
+    : never;
 
 export type PredictableActionArgumentsExec = (
   action: ActionObject<unknown, EventObject>,
