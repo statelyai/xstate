@@ -8,7 +8,7 @@ import {
   spawn,
   ActorRefFrom
 } from '../src/index';
-import { raise, stop } from '../src/actions';
+import { raise, stop, log } from '../src/actions';
 import { createModel } from '../src/model';
 
 function noop(_x: unknown) {
@@ -315,6 +315,46 @@ describe('Raise events', () => {
       entry: raise(() => ({
         type: 'UNKNOWN'
       }))
+    });
+  });
+});
+
+describe('log', () => {
+  it('should narrow down the event type in the expression', () => {
+    createMachine({
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      on: {
+        FOO: {
+          actions: log((_ctx, ev) => {
+            ((_arg: 'FOO') => {})(ev.type);
+            // @ts-expect-error
+            ((_arg: 'BAR') => {})(ev.type);
+          })
+        }
+      }
+    });
+  });
+});
+
+describe('stop', () => {
+  it('should narrow down the event type in the expression', () => {
+    createMachine({
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      on: {
+        FOO: {
+          actions: stop((_ctx, ev) => {
+            ((_arg: 'FOO') => {})(ev.type);
+            // @ts-expect-error
+            ((_arg: 'BAR') => {})(ev.type);
+
+            return 'fakeId';
+          })
+        }
+      }
     });
   });
 });
