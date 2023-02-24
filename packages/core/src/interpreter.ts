@@ -5,7 +5,8 @@ import type {
   ActorBehavior,
   EventFromBehavior,
   InterpreterFrom,
-  SnapshotFrom
+  SnapshotFrom,
+  RaiseActionObject
 } from './types.js';
 import { stopSignalType } from './actors/index.js';
 import { devToolsAdapter } from './dev/index.js';
@@ -66,16 +67,16 @@ const defaultOptions = {
   devTools: false
 };
 
-type InternalStateFrom<
-  TBehavior extends ActorBehavior<any, any, any>
-> = TBehavior extends ActorBehavior<infer _, infer __, infer TInternalState>
-  ? TInternalState
-  : never;
+type InternalStateFrom<TBehavior extends ActorBehavior<any, any, any>> =
+  TBehavior extends ActorBehavior<infer _, infer __, infer TInternalState>
+    ? TInternalState
+    : never;
 
 export class Interpreter<
   TBehavior extends ActorBehavior<any, any>,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
-> implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
+> implements ActorRef<TEvent, SnapshotFrom<TBehavior>>
+{
   /**
    * The current state of the interpreted behavior.
    */
@@ -116,6 +117,8 @@ export class Interpreter<
 
   // TODO: remove
   public _forwardTo: Set<AnyActorRef> = new Set();
+
+  private _doneEvent?: DoneEvent;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
@@ -170,7 +173,7 @@ export class Interpreter<
     const snapshot = this.getSnapshot();
 
     // Execute deferred effects
-    let deferredFn: typeof this._deferred[number] | undefined;
+    let deferredFn: (typeof this._deferred)[number] | undefined;
 
     while ((deferredFn = this._deferred.shift())) {
       deferredFn(state);
@@ -184,8 +187,9 @@ export class Interpreter<
 
     switch (status?.status) {
       case 'done':
+        this._doneEvent = doneInvoke(this.id, status.data);
         this._parent?.send(
-          toSCXMLEvent(doneInvoke(this.id, status.data) as any, {
+          toSCXMLEvent(this._doneEvent as any, {
             origin: this,
             invokeid: this.id
           })
@@ -268,14 +272,17 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(listener: EventListener<DoneEvent>): this {
-    this.observers.add({
-      complete: () => {
-        const snapshot = this.getSnapshot();
-        if ((snapshot as any).done) {
-          listener(doneInvoke(this.id, (snapshot as any).output));
+    if (this.status === ActorStatus.Stopped && this._doneEvent) {
+      listener(this._doneEvent);
+    } else {
+      this.observers.add({
+        complete: () => {
+          if (this._doneEvent) {
+            listener(this._doneEvent);
+          }
         }
-      }
-    });
+      });
+    }
 
     return this;
   }
@@ -444,9 +451,11 @@ export class Interpreter<
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
-  public delaySend(sendAction: SendActionObject): void {
+  public delaySend(
+    sendAction: SendActionObject | RaiseActionObject<any, any, any>
+  ): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
-      if (sendAction.params.to) {
+      if ('to' in sendAction.params && sendAction.params.to) {
         sendAction.params.to.send(sendAction.params._event);
       } else {
         this.send(sendAction.params._event as SCXML.Event<TEvent>);

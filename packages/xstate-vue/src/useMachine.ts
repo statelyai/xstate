@@ -10,30 +10,29 @@ import {
 import { MaybeLazy, Prop, UseMachineOptions } from './types.js';
 import { useInterpret } from './useInterpret.js';
 
-type RestParams<
-  TMachine extends AnyStateMachine
-> = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
-> extends false
-  ? [
-      options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineImplementations<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >
-    ]
-  : [
-      options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineImplementations<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >
-    ];
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: InterpreterOptions &
+          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >
+      ]
+    : [
+        options?: InterpreterOptions &
+          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta']
+          >
+      ];
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,

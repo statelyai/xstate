@@ -1,5 +1,11 @@
 # @xstate/inspect
 
+## 0.7.1
+
+### Patch Changes
+
+- [#3772](https://github.com/statelyai/xstate/pull/3772) [`cea609ce3`](https://github.com/statelyai/xstate/commit/cea609ce39a09f77568a95d8fcaf281020ebce7d) Thanks [@jlarmstrongiv](https://github.com/jlarmstrongiv)! - Fixed an issue with a misleading dev-only warning being printed when inspecting machines because of the internal `createMachine` call.
+
 ## 0.7.0
 
 ### Minor Changes

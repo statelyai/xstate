@@ -152,19 +152,21 @@ export class StateNode<
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
 
-    this.states = (this.config.states
-      ? mapValues(
-          this.config.states,
-          (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
-            const stateNode = new StateNode(stateConfig, {
-              _parent: this,
-              _key: key as string,
-              _machine: this.machine
-            });
-            return stateNode;
-          }
-        )
-      : EMPTY_OBJECT) as StateNodesConfig<TContext, TEvent>;
+    this.states = (
+      this.config.states
+        ? mapValues(
+            this.config.states,
+            (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
+              const stateNode = new StateNode(stateConfig, {
+                _parent: this,
+                _key: key as string,
+                _machine: this.machine
+              });
+              return stateNode;
+            }
+          )
+        : EMPTY_OBJECT
+    ) as StateNodesConfig<TContext, TEvent>;
 
     if (this.type === 'compound' && !this.config.initial) {
       throw new Error(
@@ -194,10 +196,9 @@ export class StateNode<
   public _initialize() {
     this.transitions = formatTransitions(this);
     if (this.config.always) {
-      this.always = toTransitionConfigArray(
-        NULL_EVENT,
-        this.config.always
-      ).map((t) => formatTransition(this, t));
+      this.always = toTransitionConfigArray(NULL_EVENT, this.config.always).map(
+        (t) => formatTransition(this, t)
+      );
     }
 
     Object.keys(this.states).forEach((key) => {

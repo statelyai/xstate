@@ -89,7 +89,8 @@ export class StateMachine<
       TEvent | SCXML.Event<TEvent>,
       State<TContext, TEvent, TResolvedTypesMeta>,
       State<TContext, TEvent, TResolvedTypesMeta>
-    > {
+    >
+{
   private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
   public get context(): TContext {
     return this.getContextAndActions()[0];
@@ -153,7 +154,7 @@ export class StateMachine<
     // this.context = resolveContext(config.context, options?.context);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
-    this.schema = this.config.schema ?? (({} as any) as this['schema']);
+    this.schema = this.config.schema ?? ({} as any as this['schema']);
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
@@ -199,7 +200,7 @@ export class StateMachine<
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
       delays: { ...delays, ...implementations.delays },
-      context: implementations.context!
+      context: implementations.context ?? this._contextFactory
     });
   }
 

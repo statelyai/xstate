@@ -1,5 +1,9 @@
 # Interpreting Machines
 
+:::tip Check out our new docs!
+🆕 Find more about [interpreting machines using XState](https://stately.ai/docs/xstate/running-machines/intro#interpret) in our new docs.
+:::
+
 While a state machine/statechart with a pure `.transition()` function is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:
 
 - Keep track of the current state, and persist it

@@ -11,14 +11,16 @@ import { toActionObjects } from '../actions.js';
 
 export function choose<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
-  guards: Array<ChooseCondition<TContext, TEvent>>
+  guards: Array<ChooseCondition<TContext, TExpressionEvent>>
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   ResolvedChooseAction,
-  ChooseAction<TContext, TEvent>['params']
+  ChooseAction<TContext, TExpressionEvent>['params']
 > {
   return createDynamicAction(
     { type: actionTypes.choose, params: { guards } },

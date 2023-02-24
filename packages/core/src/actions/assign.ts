@@ -6,7 +6,8 @@ import type {
   AssignActionObject,
   DynamicAssignAction,
   AssignMeta,
-  InvokeActionObject
+  InvokeActionObject,
+  LowInfer
 } from '../types.js';
 import * as actionTypes from '../actionTypes.js';
 import { createDynamicAction } from '../../actions/dynamicAction.js';
@@ -21,19 +22,20 @@ import { cloneState } from '../State.js';
  */
 export function assign<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TAssignment extends
-    | Assigner<TContext, TEvent>
-    | PropertyAssigner<TContext, TEvent> =
-    | Assigner<TContext, TEvent>
-    | PropertyAssigner<TContext, TEvent>
->(assignment: TAssignment): DynamicAssignAction<TContext, TEvent> {
+  TExpressionEvent extends EventObject = EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
+  assignment:
+    | Assigner<LowInfer<TContext>, TExpressionEvent, TEvent>
+    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent, TEvent>
+): DynamicAssignAction<TContext, TExpressionEvent, TEvent> {
   return createDynamicAction<
     TContext,
+    TExpressionEvent,
     TEvent,
     AssignActionObject<TContext>,
     {
-      assignment: TAssignment;
+      assignment: typeof assignment;
     }
   >(
     {
@@ -51,7 +53,7 @@ export function assign<
         );
       }
 
-      const meta: AssignMeta<TContext, TEvent> = {
+      const meta: AssignMeta<TContext, TExpressionEvent, TEvent> = {
         state,
         action,
         _event,

@@ -1,11 +1,11 @@
 import {
-  interpret,
   assign,
-  send,
+  createMachine,
+  interpret,
   sendParent,
-  createMachine
+  sendTo
 } from '../src/index.js';
-import { ActorRef } from '../src/types';
+import { ActorRef } from '../src/types.js';
 
 interface CounterContext {
   count: number;
@@ -390,7 +390,7 @@ describe('assign meta', () => {
       },
       on: {
         PING_CHILD: {
-          actions: [send({ type: 'PING' }, { to: 'child' }), assignEventLog]
+          actions: [sendTo('child', { type: 'PING' }), assignEventLog]
         },
         '*': {
           actions: [assignEventLog]
