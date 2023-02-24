@@ -17,11 +17,13 @@ import { IS_PRODUCTION } from '../environment.js';
 
 export function invoke<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
   invokeDef: InvokeDefinition<TContext, TEvent>
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   InvokeActionObject,
   DynamicInvokeActionObject<TContext, TEvent>['params']
@@ -54,7 +56,7 @@ export function invoke<
             typeof behaviorImpl === 'function'
               ? behaviorImpl(state.context, _event.data, {
                   id,
-                  data: data && mapContext(data, state.context, _event),
+                  data: data && mapContext(data, state.context, _event as any),
                   src,
                   _event,
                   meta

@@ -33,7 +33,7 @@ module.exports = {
           : []
       }
     ],
-    '@babel/preset-react',
+    ['@babel/preset-react', { runtime: 'automatic' }],
     [
       '@babel/preset-typescript',
       { isTSX: true, allExtensions: true, disallowAmbiguousJSXLike: true }
@@ -55,6 +55,10 @@ module.exports = {
           }
         ]
       ]
+    },
+    {
+      test: /\/xstate-solid\//,
+      presets: ['babel-preset-solid']
     }
   ],
   plugins: [

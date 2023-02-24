@@ -26,7 +26,9 @@ import { actionTypes, error } from '../actions.js';
  * Sends an event. This returns an action that will be read by an interpreter to
  * send the event in the next step, after the current step is finished executing.
  *
- * @param event The event to send.
+ * @deprecated Use the `sendTo(...)` action creator instead.
+ *
+ * @param eventOrExpr The event to send.
  * @param options Options to pass into the send event:
  *  - `id` - The unique send event identifier (used with `cancel()`).
  *  - `delay` - The number of milliseconds to delay the sending of the event.
@@ -37,19 +39,19 @@ export function send<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>,
+  eventOrExpr: TSentEvent | SendExpr<TContext, TEvent, AnyEventObject>,
   options?: SendActionOptions<TContext, TEvent>
 ): BaseDynamicActionObject<
   TContext,
   TEvent,
+  TEvent,
   SendActionObject<AnyEventObject>,
   SendActionParams<TContext, TEvent>
 > {
-  const eventOrExpr = isFunction(event) ? event : event;
-
   return createDynamicAction<
     TContext,
     TEvent,
+    AnyEventObject,
     SendActionObject<AnyEventObject>,
     SendActionParams<TContext, TEvent>
   >(
@@ -62,9 +64,9 @@ export function send<
         id:
           options && options.id !== undefined
             ? options.id
-            : isFunction(event)
-            ? event.name
-            : event.type
+            : isFunction(eventOrExpr)
+            ? eventOrExpr.name
+            : eventOrExpr.type
       }
     },
     (_event, { actorContext, state }) => {
@@ -72,12 +74,14 @@ export function send<
         to: options ? options.to : undefined,
         delay: options ? options.delay : undefined,
         event: eventOrExpr,
+        // TODO: don't auto-generate IDs here like that
+        // there is too big chance of the ID collision
         id:
           options && options.id !== undefined
             ? options.id
-            : isFunction(event)
-            ? event.name
-            : event.type
+            : isFunction(eventOrExpr)
+            ? eventOrExpr.name
+            : eventOrExpr.type
       };
       const meta = {
         _event
@@ -292,7 +296,7 @@ export function sendTo<
   TEvent extends EventObject,
   TActor extends AnyActorRef
 >(
-  actor: TActor | string | ((ctx: TContext) => TActor | string),
+  actor: TActor | string | ((ctx: TContext, event: TEvent) => TActor | string),
   event:
     | EventFrom<TActor>
     | SendExpr<

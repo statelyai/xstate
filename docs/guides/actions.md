@@ -29,6 +29,10 @@ Actions are fire-and-forget [effects](./effects.md). They can be declared in thr
 
 To learn more, read about [actions in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
 
+:::tip Check out our new docs!
+🆕 Find our [actions in XState explainer](https://stately.ai/docs/xstate/actions/) in our new docs, along with a [no-code introduction to actions in statecharts and the Stately Studio](https://stately.ai/docs/actions-and-actors/entry-and-exit-actions).
+:::
+
 ## API
 
 Actions can be added like so:
@@ -213,6 +217,26 @@ entry: send({ type: 'SOME_EVENT' });
 :::
 
 ## Send action
+
+::: warning
+
+The `send(...)` action creator is deprecated in favor of the `sendTo(...)` action creator:
+
+```diff
+-send({ type: 'EVENT' }, { to: 'someActor' });
++sendTo('someActor', { type: 'EVENT' });
+```
+
+For sending events to self, `raise(...)` should be used:
+
+```diff
+-send({ type: 'EVENT' });
++raise({ type: 'EVENT' });
+```
+
+The `send(...)` action creator will be removed in XState v5.0.
+
+:::
 
 The `send(event)` action creator creates a special “send” action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue, which means the event is sent on the next “step” of the interpreter.
 

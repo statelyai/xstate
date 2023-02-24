@@ -161,7 +161,7 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TEvent>({
+      return actions.raise<any, any>({
         type: element.attributes!.event!
       } as TEvent);
     }
@@ -239,7 +239,7 @@ function mapAction<
     case 'log': {
       const label = element.attributes!.label;
 
-      return actions.log<TContext, TEvent>(
+      return actions.log<TContext, any, any>(
         (context, e, meta) => {
           const fnBody = `
               return ${element.attributes!.expr};
@@ -251,9 +251,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: Array<ChooseCondition<TContext, TEvent>> = [];
+      const conds: Array<ChooseCondition<TContext, any>> = [];
 
-      let current: ChooseCondition<TContext, TEvent> = {
+      let current: ChooseCondition<TContext, any> = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };

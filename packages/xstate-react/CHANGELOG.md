@@ -1,5 +1,87 @@
 # Changelog
 
+## 3.2.1
+
+### Patch Changes
+
+- [#3829](https://github.com/statelyai/xstate/pull/3829) [`c110c429d`](https://github.com/statelyai/xstate/commit/c110c429d33cb724242ff65136de3ebe408eab97) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility of the generated TS types for `createActorContext` with pre-4.7.
+
+## 3.2.0
+
+### Minor Changes
+
+- [#3814](https://github.com/statelyai/xstate/pull/3814) [`494203b3d`](https://github.com/statelyai/xstate/commit/494203b3dc358807e96cf1368f1347ff8e1d14e3) Thanks [@Andarist](https://github.com/Andarist)! - The `Provider` from `createActorContext(...)` now accepts the `options={{...}}` prop that takes the same object as the second argument to the `useMachine(machine, options)` hook.
+
+  These options are no longer passed as the second argument to the `createActorContext(machine)` function:
+
+  ```diff
+
+  -const SomeContext = createActorContext(someMachine,
+  -  { actions: { ... } });
+  +const SomeContext = createActorContext(someMachine);
+
+  // ...
+
+  -<SomeContext.Provider>
+  +<SomeContext.Provider options={{ actions: { ... } }}>
+
+  // ...
+  ```
+
+## 3.1.2
+
+### Patch Changes
+
+- [#3804](https://github.com/statelyai/xstate/pull/3804) [`b53856d28`](https://github.com/statelyai/xstate/commit/b53856d28da4ecbba7d4393f72aa38894fd523d9) Thanks [@farskid](https://github.com/farskid)! - Interpreter options can now be specified in the second argument of createActorContext(machine, options).
+
+## 3.1.1
+
+### Patch Changes
+
+- [#3799](https://github.com/statelyai/xstate/pull/3799) [`51d254692`](https://github.com/statelyai/xstate/commit/51d254692c2d267c24c65fc5802461540c012393) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused the internally used `useSyncExternalStore` to warn about the computed snapshot not being cached when a not-started machine servive was passed to `useActor`.
+
+## 3.1.0
+
+### Minor Changes
+
+- [#3778](https://github.com/statelyai/xstate/pull/3778) [`f12248b23`](https://github.com/statelyai/xstate/commit/f12248b2379e4e554d69a238019216feea5211f6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createActorContext(...)` helper has been introduced to make global actors easier to use with React. It outputs a React Context object with the following properties:
+
+  - `.Provider` - The React Context provider
+  - `.useActor(...)` - A hook that can be used to get the current state and send events to the actor
+  - `.useSelector(...)` - A hook that can be used to select some derived state from the actor's state
+  - `.useActorRef()` - A hook that can be used to get a reference to the actor that can be passed to other components
+
+  Usage:
+
+  ```jsx
+  import { createActorContext } from '@xstate/react';
+  import { someMachine } from './someMachine';
+
+  // Create a React Context object that will interpret the machine
+  const SomeContext = createActorContext(someMachine);
+
+  function SomeComponent() {
+    // Get the current state and `send` function
+    const [state, send] = SomeContext.useActor();
+
+    // Or select some derived state
+    const someValue = SomeContext.useSelector((state) => state.context.someValue);
+
+    // Or get a reference to the actor
+    const actorRef = SomeContext.useActorRef();
+
+    return (/* ... */);
+  }
+
+  function App() {
+    return (
+      <SomeContext.Provider>
+        <SomeComponent />
+      </SomeContext.Provider>
+    );
+  }
+  ```
+
 ## 3.0.2
 
 ### Patch Changes

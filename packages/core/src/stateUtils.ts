@@ -418,10 +418,8 @@ export function formatTransitions<
   if (Array.isArray(stateNode.config.on)) {
     transitionConfigs.push(...stateNode.config.on);
   } else if (stateNode.config.on) {
-    const {
-      [WILDCARD]: wildcardConfigs = [],
-      ...namedTransitionConfigs
-    } = stateNode.config.on;
+    const { [WILDCARD]: wildcardConfigs = [], ...namedTransitionConfigs } =
+      stateNode.config.on;
     for (const eventType of Object.keys(namedTransitionConfigs)) {
       if (eventType === NULL_EVENT) {
         throw new Error(
@@ -1482,9 +1480,8 @@ function exitStates(
           return sn.parent === exitStateNode;
         };
       }
-      historyValue[historyNode.id] = Array.from(mutConfiguration).filter(
-        predicate
-      );
+      historyValue[historyNode.id] =
+        Array.from(mutConfiguration).filter(predicate);
     }
   }
 
@@ -1507,7 +1504,7 @@ export function resolveActionsAndContext<
 } {
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
-  const raiseActions: Array<RaiseActionObject<TEvent>> = [];
+  const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
   let intermediateState = currentState;
 
   function handleAction(action: BaseActionObject): void {
@@ -1539,9 +1536,10 @@ export function resolveActionsAndContext<
       intermediateState = nextState;
 
       if (
-        resolvedAction.type === actionTypes.raise ||
-        (resolvedAction.type === actionTypes.send &&
-          (resolvedAction as SendActionObject).params.internal)
+        (resolvedAction.type === actionTypes.raise ||
+          (resolvedAction.type === actionTypes.send &&
+            (resolvedAction as SendActionObject).params.internal)) &&
+        typeof (resolvedAction as any).params.delay !== 'number'
       ) {
         raiseActions.push(resolvedAction);
       }

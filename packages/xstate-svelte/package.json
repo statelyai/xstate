@@ -38,7 +38,7 @@
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
-    "svelte-check": "svelte-check"
+    "svelte-check": "svelte-check --workspace test"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"

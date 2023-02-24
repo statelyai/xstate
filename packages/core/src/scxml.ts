@@ -140,7 +140,9 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return raise<TEvent>({ type: element.attributes!.event! } as TEvent);
+      return raise<TContext, TEvent, TEvent>({
+        type: element.attributes!.event!
+      } as TEvent);
     }
     case 'assign': {
       return assign<TContext, TEvent>((context, e, meta) => {
@@ -215,7 +217,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
     case 'log': {
       const label = element.attributes!.label;
 
-      return log<TContext, TEvent>(
+      return log<TContext, any>(
         (context, e, meta) => {
           const fnBody = `
 return ${element.attributes!.expr};
