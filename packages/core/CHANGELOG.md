@@ -1,5 +1,41 @@
 # xstate
 
+## 4.37.0
+
+### Minor Changes
+
+- [#3835](https://github.com/statelyai/xstate/pull/3835) [`431472082`](https://github.com/statelyai/xstate/commit/431472082f8b644da9f519931207aa994052517f) Thanks [@with-heart](https://github.com/with-heart)! - The new `TagsFrom` helper type extracts the type of `tags` from a state machine when typegen is enabled:
+
+  ```ts
+  const machine = createMachine({
+    // `tags` attached to machine via typegen
+    tsTypes: {} as import('./machine.typegen').Typegen0,
+    tags: ['a', 'b'],
+    states: {
+      idle: { tags: 'c' }
+    }
+  });
+
+  type Tags = TagsFrom<typeof machine>; // 'a' | 'b' | 'c'
+  ```
+
+  If typegen is not enabled, `TagsFrom` returns `string`:
+
+  ```ts
+  const machine = createMachine({
+    tags: ['a', 'b'],
+    states: {
+      idle: { tags: 'c' }
+    }
+  });
+
+  type Tags = TagsFrom<typeof machine>; // string
+  ```
+
+### Patch Changes
+
+- [#3855](https://github.com/statelyai/xstate/pull/3855) [`02012c2be`](https://github.com/statelyai/xstate/commit/02012c2be12f89aac43479b30571688496d8f1b3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed event type narrowing in some of the builtin actions.
+
 ## 4.36.0
 
 ### Minor Changes
