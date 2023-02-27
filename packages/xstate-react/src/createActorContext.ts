@@ -12,7 +12,6 @@ import {
   Observer,
   StateFrom
 } from 'xstate';
-import { UseMachineOptions } from './useMachine';
 
 export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -35,27 +34,19 @@ export function createActorContext<TMachine extends AnyStateMachine>(
       TMachine['__TResolvedTypesMeta']
     > extends false
       ? {
-          options: UseMachineOptions<
+          options: InternalMachineImplementations<
             TMachine['__TContext'],
-            TMachine['__TEvent']
-          > &
-            InternalMachineImplementations<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              TMachine['__TResolvedTypesMeta'],
-              true
-            >;
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >;
         }
       : {
-          options?: UseMachineOptions<
+          options?: InternalMachineImplementations<
             TMachine['__TContext'],
-            TMachine['__TEvent']
-          > &
-            InternalMachineImplementations<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              TMachine['__TResolvedTypesMeta']
-            >;
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta']
+          >;
         })
   ) => React.ReactElement<any, any>;
 } {

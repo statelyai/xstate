@@ -558,17 +558,23 @@ export interface InvokeConfig<
    */
   onDone?:
     | string
-    | SingleOrArray<TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<
+        TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+      >;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
   onError?:
     | string
-    | SingleOrArray<TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<
+        TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+      >;
 
   onSnapshot?:
     | string
-    | SingleOrArray<TransitionConfigOrTarget<TContext, SnapshotEvent<any>>>;
+    | SingleOrArray<
+        TransitionConfigOrTarget<TContext, SnapshotEvent<any>, TEvent>
+      >;
   /**
    * Meta data related to this invocation
    */
