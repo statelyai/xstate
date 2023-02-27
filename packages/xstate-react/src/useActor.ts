@@ -19,9 +19,10 @@ export function useActor(
     [actorRef]
   );
 
-  const boundGetSnapshot = useCallback(() => actorRef.getSnapshot(), [
-    actorRef
-  ]);
+  const boundGetSnapshot = useCallback(
+    () => actorRef.getSnapshot(),
+    [actorRef]
+  );
 
   const storeSnapshot = useSyncExternalStore(
     subscribe,

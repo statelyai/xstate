@@ -18,7 +18,7 @@ import {
 } from '../src/actions';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
-import { send, sendTo } from '../src/actions/send';
+import { sendTo } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';
 import { fromReducer } from '../src/actors/reducer';
 import { fromObservable, fromEventObservable } from '../src/actors/observable';
@@ -92,7 +92,7 @@ describe('spawning machines', () => {
       },
       sendPing: {
         entry: [
-          send({ type: 'PING' }, { to: (ctx) => ctx.server! }),
+          sendTo((ctx) => ctx.server!, { type: 'PING' }),
           raise({ type: 'SUCCESS' })
         ],
         on: {
@@ -148,13 +148,11 @@ describe('spawning machines', () => {
           })
         },
         SET_COMPLETE: {
-          actions: send(
-            { type: 'SET_COMPLETE' },
-            {
-              to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-                return ctx.todoRefs[e.id];
-              }
-            }
+          actions: sendTo(
+            (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
+              return ctx.todoRefs[e.id];
+            },
+            { type: 'SET_COMPLETE' }
           )
         }
       }
@@ -177,7 +175,7 @@ describe('spawning machines', () => {
     const parentMachine = createMachine(
       {
         context: {
-          ref: null
+          ref: null! as ActorRef<any, any>
         },
         initial: 'waiting',
         states: {
@@ -357,20 +355,18 @@ describe('spawning callbacks', () => {
 
 describe('spawning observables', () => {
   it('should spawn an observable', (done) => {
+    const observableBehavior = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined
+        observableRef: undefined! as ActorRefFrom<typeof observableBehavior>
       },
       states: {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(
-                fromObservable(() => interval(10)),
-                'int'
-              );
+              const ref = spawn(observableBehavior, 'int');
 
               return ref;
             }
@@ -401,7 +397,7 @@ describe('spawning observables', () => {
         id: 'observable',
         initial: 'idle',
         context: {
-          observableRef: undefined
+          observableRef: undefined! as ActorRef<any, any>
         },
         states: {
           idle: {
@@ -435,20 +431,18 @@ describe('spawning observables', () => {
   });
 
   it(`should read the latest snapshot of the event's origin while handling that event`, (done) => {
+    const observableBehavior = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined
+        observableRef: undefined! as ActorRefFrom<typeof observableBehavior>
       },
       states: {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(
-                fromObservable(() => interval(10)),
-                'int'
-              );
+              const ref = spawn(observableBehavior, 'int');
 
               return ref;
             }
@@ -478,22 +472,22 @@ describe('spawning observables', () => {
 
 describe('spawning event observables', () => {
   it('should spawn an event observable', (done) => {
+    const eventObservableBehavior = fromEventObservable(() =>
+      interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+    );
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined
+        observableRef: undefined! as ActorRefFrom<
+          typeof eventObservableBehavior
+        >
       },
       states: {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(
-                fromEventObservable(() =>
-                  interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
-                ),
-                'int'
-              );
+              const ref = spawn(eventObservableBehavior, 'int');
 
               return ref;
             }
@@ -524,7 +518,7 @@ describe('spawning event observables', () => {
         id: 'observable',
         initial: 'idle',
         context: {
-          observableRef: undefined
+          observableRef: undefined! as ActorRef<any, any>
         },
         states: {
           idle: {
@@ -647,7 +641,7 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: send({ type: 'ACTIVATE' }, { to: 'existing' })
+              actions: sendTo('existing', { type: 'ACTIVATE' })
             }
           }
         },
@@ -686,16 +680,13 @@ describe('communicating with spawned actors', () => {
       },
       states: {
         pending: {
-          entry: send({ type: 'ACTIVATE' }, { to: () => existingService }),
+          entry: sendTo(existingService, { type: 'ACTIVATE' }),
           on: {
             'EXISTING.DONE': 'success'
           },
           after: {
             100: {
-              actions: send(
-                { type: 'ACTIVATE' },
-                { to: (ctx) => ctx.existingRef }
-              )
+              actions: sendTo((ctx) => ctx.existingRef, { type: 'ACTIVATE' })
             }
           }
         },
@@ -995,7 +986,7 @@ describe('actors', () => {
         }),
         states: {
           waiting: {
-            entry: send({ type: 'PING' }, { to: (ctx) => ctx.ponger! }),
+            entry: sendTo((ctx) => ctx.ponger!, { type: 'PING' }),
             invoke: {
               id: 'ponger',
               src: pongBehavior

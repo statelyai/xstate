@@ -12,7 +12,7 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
     "strictPropertyInitialization": true
   },

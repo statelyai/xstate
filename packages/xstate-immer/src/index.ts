@@ -10,27 +10,32 @@ import { produce, Draft } from 'immer';
 
 export type ImmerAssigner<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 > = (
   context: Draft<TContext>,
-  event: TEvent,
-  meta: AssignMeta<TContext, TEvent>
+  event: TExpressionEvent,
+  meta: AssignMeta<TContext, TExpressionEvent, TEvent>
 ) => void;
 
 export interface ImmerAssignAction<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 > extends BaseActionObject {
-  assignment: ImmerAssigner<TContext, TEvent>;
+  assignment: ImmerAssigner<TContext, TExpressionEvent, TEvent>;
 }
 
 function immerAssign<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject
->(recipe: ImmerAssigner<TContext, TEvent>) {
-  return xstateAssign<TContext, TEvent>((context, event, meta) => {
-    return produce(context, (draft) => void recipe(draft, event, meta));
-  });
+  TExpressionEvent extends EventObject = EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(recipe: ImmerAssigner<TContext, TExpressionEvent, TEvent>) {
+  return xstateAssign<TContext, TExpressionEvent, TEvent>(
+    (context, event, meta) => {
+      return produce(context, (draft) => void recipe(draft, event, meta));
+    }
+  );
 }
 
 export { immerAssign as assign };
@@ -57,7 +62,7 @@ export function createUpdater<
   TEvent extends ImmerUpdateEvent
 >(
   type: TEvent['type'],
-  recipe: ImmerAssigner<TContext, TEvent>
+  recipe: ImmerAssigner<TContext, TEvent, TEvent>
 ): ImmerUpdater<TContext, TEvent> {
   const update = (input: TEvent['input']): TEvent => {
     return {

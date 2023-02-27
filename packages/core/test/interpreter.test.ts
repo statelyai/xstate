@@ -6,14 +6,17 @@ import {
   assign,
   send,
   sendParent,
-  EventObject,
   StateValue,
   AnyEventObject,
   createMachine,
-  AnyState
+  AnyState,
+  InterpreterStatus,
+  ActorRefFrom,
+  ActorRef
 } from '../src/index.js';
 import { State } from '../src/State';
 import { raise } from '../src/actions/raise';
+import { sendTo } from '../src/actions/send';
 import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
@@ -76,7 +79,7 @@ describe('interpreter', () => {
       const machine = createMachine({
         initial: 'idle',
         context: {
-          actor: undefined
+          actor: undefined! as ActorRefFrom<ReturnType<typeof fromPromise>>
         },
         states: {
           idle: {
@@ -305,10 +308,12 @@ describe('interpreter', () => {
                 delay: (ctx, e) =>
                   ctx.initialDelay +
                   ('wait' in e
-                    ? (e as Extract<
-                        DelayExpMachineEvents,
-                        { type: 'ACTIVATE' }
-                      >).wait
+                    ? (
+                        e as Extract<
+                          DelayExpMachineEvents,
+                          { type: 'ACTIVATE' }
+                        >
+                      ).wait
                     : 0)
               }
             ),
@@ -381,10 +386,12 @@ describe('interpreter', () => {
               {
                 delay: (ctx, _, { _event }) =>
                   ctx.initialDelay +
-                  (_event.data as Extract<
-                    DelayExpMachineEvents,
-                    { type: 'ACTIVATE' }
-                  >).wait
+                  (
+                    _event.data as Extract<
+                      DelayExpMachineEvents,
+                      { type: 'ACTIVATE' }
+                    >
+                  ).wait
               }
             ),
             on: {
@@ -447,10 +454,7 @@ describe('interpreter', () => {
               }
             },
             c: {
-              entry: send(
-                { type: 'FIRE_DELAY', value: 200 },
-                { delay: 20 }
-              ) as EventObject,
+              entry: send({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
               on: {
                 FIRE_DELAY: 'd'
               }
@@ -885,7 +889,7 @@ describe('interpreter', () => {
       },
       on: {
         PING_CHILD: {
-          actions: [send({ type: 'PING' }, { to: 'child' }), logAction]
+          actions: [sendTo('child', { type: 'PING' }), logAction]
         },
         '*': {
           actions: [logAction]
@@ -1780,7 +1784,11 @@ describe('interpreter', () => {
       const parentMachine = createMachine({
         id: 'form',
         initial: 'present',
-        context: {},
+        context: {} as {
+          machineRef: ActorRefFrom<typeof childMachine>;
+          promiseRef: ActorRefFrom<Promise<unknown>>;
+          observableRef: ActorRef<any, any>;
+        },
         entry: assign({
           machineRef: (_, __, { spawn }) => spawn(childMachine, 'machineChild'),
           promiseRef: (_, __, { spawn }) =>
@@ -1805,9 +1813,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx: any) => ctx.machineRef),
-                  stop((ctx: any) => ctx.promiseRef),
-                  stop((ctx: any) => ctx.observableRef)
+                  stop((ctx) => ctx.machineRef),
+                  stop((ctx) => ctx.promiseRef),
+                  stop((ctx) => ctx.observableRef)
                 ]
               }
             }
@@ -1886,5 +1894,24 @@ describe('interpreter', () => {
         done();
       })
       .start();
+  });
+
+  it('should call an onDone callback immediately if the service is already done', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.status).toBe(InterpreterStatus.Stopped);
+
+    service.onDone(() => {
+      done();
+    });
   });
 });

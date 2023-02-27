@@ -12,17 +12,19 @@ import { toActionObjects } from '../actions.js';
 
 export function pure<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 >(
   getActions: (
     context: TContext,
-    event: TEvent
+    event: TExpressionEvent
   ) => SingleOrArray<BaseActionObject | string> | undefined
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   PureActionObject,
-  DynamicPureActionObject<TContext, TEvent>['params']
+  DynamicPureActionObject<TContext, TExpressionEvent>['params']
 > {
   return createDynamicAction(
     {

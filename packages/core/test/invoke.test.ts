@@ -20,9 +20,10 @@ import {
   done as _done,
   doneInvoke,
   escalate,
-  forwardTo
-} from '../src/actions';
-import { raise } from '../src/actions/raise';
+  forwardTo,
+  sendTo,
+  raise
+} from '../src/actions.js';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
@@ -605,7 +606,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
+            entry: sendTo('foo-child', { type: 'NEXT' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -638,7 +639,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
+            entry: sendTo('foo-child', { type: 'NEXT' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -664,7 +665,7 @@ describe('invoke', () => {
               id: 'foo-child',
               src: subMachine
             },
-            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
+            entry: sendTo('foo-child', { type: 'NEXT' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -704,7 +705,7 @@ describe('invoke', () => {
               src: doneSubMachine,
               onDone: 'two'
             },
-            entry: send({ type: 'NEXT' }, { to: 'foo-child' })
+            entry: sendTo('foo-child', { type: 'NEXT' })
           },
           two: {
             on: { NEXT: 'three' }
@@ -1734,7 +1735,7 @@ describe('invoke', () => {
                 });
               })
             },
-            entry: send({ type: 'PING' }, { to: 'child' }),
+            entry: sendTo('child', { type: 'PING' }),
             on: {
               PONG: 'done'
             }
@@ -1986,7 +1987,7 @@ describe('invoke', () => {
             },
             on: {
               STOPCHILD: {
-                actions: send({ type: 'STOP' }, { to: 'invoked.child' })
+                actions: sendTo('invoked.child', { type: 'STOP' })
               }
             }
           },
@@ -2354,7 +2355,7 @@ describe('invoke', () => {
         initial: 'waiting',
         states: {
           waiting: {
-            entry: send({ type: 'PING' }, { to: 'ponger' }),
+            entry: sendTo('ponger', { type: 'PING' }),
             invoke: {
               id: 'ponger',
               src: pongBehavior
@@ -2487,7 +2488,7 @@ describe('invoke', () => {
                 src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
-              entry: send({ type: 'PING' }, { to: 'pong' }),
+              entry: sendTo('pong', { type: 'PING' }),
               on: {
                 PONG: 'innerSuccess'
               }

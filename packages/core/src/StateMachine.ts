@@ -94,7 +94,8 @@ export class StateMachine<
       State<TContext, TEvent, TResolvedTypesMeta>,
       State<TContext, TEvent, TResolvedTypesMeta>,
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
-    > {
+    >
+{
   private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
   // TODO: this getter should be removed
   public get context(): TContext {
@@ -158,7 +159,7 @@ export class StateMachine<
         }; // TODO: fix types
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
-    this.schema = this.config.schema ?? (({} as any) as this['schema']);
+    this.schema = this.config.schema ?? ({} as any as this['schema']);
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
@@ -204,7 +205,7 @@ export class StateMachine<
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
       delays: { ...delays, ...implementations.delays },
-      context: implementations.context!
+      context: implementations.context ?? this._contextFactory
     });
   }
 
@@ -493,7 +494,7 @@ export class StateMachine<
       state.children = restoredChildren;
 
       restoredState = this.createState(
-        new State((state as unknown) as StateConfig<TContext, TEvent>, this)
+        new State(state as unknown as StateConfig<TContext, TEvent>, this)
       );
     } else {
       restoredState = this.createState(state);

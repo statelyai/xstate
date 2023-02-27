@@ -21,17 +21,19 @@ import { isFunction } from '../utils.js';
 
 export function stop<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
   actorRef:
     | string
     | ActorRef<any>
-    | Expr<TContext, TEvent, ActorRef<any> | string>
+    | Expr<TContext, TExpressionEvent, ActorRef<any> | string>
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   StopActionObject,
-  DynamicStopActionObject<TContext, TEvent>['params']
+  DynamicStopActionObject<TContext, TExpressionEvent>['params']
 > {
   const actor = actorRef;
 

@@ -27,15 +27,17 @@ const defaultLogExpr = <TContext, TEvent extends EventObject>(
 
 export function log<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 >(
-  expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
+  expr: string | LogExpr<TContext, TExpressionEvent> = defaultLogExpr,
   label?: string
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   LogActionObject,
-  DynamicLogAction<TContext, TEvent>['params']
+  DynamicLogAction<TContext, TExpressionEvent, TEvent>['params']
 > {
   return createDynamicAction(
     { type: logActionType, params: { label, expr } },

@@ -9,9 +9,14 @@ import {
   interpret,
   sendParent
 } from 'xstate';
-import { useMachine } from '../src/index.js';
-import { useActor } from '../src/useActor';
+import { useMachine, useInterpret, useActor } from '../src/index.js';
 import { describeEachReactMode } from './utils';
+
+const originalConsoleError = console.error;
+
+afterEach(() => {
+  console.error = originalConsoleError;
+});
 
 describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
   it('initial invoked actor should be immediately available', () => {
@@ -128,14 +133,12 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     });
 
     interface Ctx {
-      actorRef?: ActorRefFrom<typeof childMachine>;
+      actorRef: ActorRefFrom<typeof childMachine>;
     }
 
     const machine = createMachine<Ctx>({
       initial: 'active',
-      context: {
-        actorRef: undefined
-      },
+      context: {} as Ctx,
       states: {
         active: {
           entry: assign({
@@ -489,5 +492,21 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     fireEvent.click(elSend);
 
     expect(elState.textContent).toEqual('two');
+  });
+
+  it('should not log any spurious errors when used with a not-started actor', () => {
+    const spy = jest.fn();
+    console.error = spy;
+
+    const machine = createMachine({});
+    const App = () => {
+      useActor(useInterpret(machine));
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(spy).not.toBeCalled();
   });
 });

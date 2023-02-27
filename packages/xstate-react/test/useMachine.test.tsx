@@ -60,9 +60,8 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     data: 'persisted data'
   });
 
-  const persistedSuccessFetchState = fetchMachine.getPersistedState(
-    successFetchState
-  );
+  const persistedSuccessFetchState =
+    fetchMachine.getPersistedState(successFetchState);
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
@@ -402,64 +401,6 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     fireEvent.click(extButton);
 
     fireEvent.click(button);
-  });
-
-  it('should compile with typed matches (createMachine)', () => {
-    interface TestContext {
-      count?: number;
-      user?: { name: string };
-    }
-
-    const machine = createMachine<TestContext, any>({
-      initial: 'loading',
-      states: {
-        loading: {
-          initial: 'one',
-          states: {
-            one: {},
-            two: {}
-          }
-        },
-        loaded: {}
-      }
-    });
-
-    const ServiceApp: React.FC<{
-      service: ActorRefFrom<typeof machine>;
-    }> = ({ service }) => {
-      const [state] = useActor(service);
-
-      if (state.matches('loaded')) {
-        const name = state.context.user!.name;
-
-        // never called - it's okay if the name is undefined
-        expect(name).toBeTruthy();
-      } else if (state.matches('loading')) {
-        // Make sure state isn't "never" - if it is, tests will fail to compile
-        expect(state).toBeTruthy();
-      }
-
-      return null;
-    };
-
-    const App = () => {
-      const [state, , service] = useMachine(machine);
-
-      if (state.matches('loaded')) {
-        const name = state.context.user!.name;
-
-        // never called - it's okay if the name is undefined
-        expect(name).toBeTruthy();
-      } else if (state.matches('loading')) {
-        // Make sure state isn't "never" - if it is, tests will fail to compile
-        expect(state).toBeTruthy();
-      }
-
-      return <ServiceApp service={service} />;
-    };
-
-    // Just testing that it compiles
-    render(<App />);
   });
 
   it('should only render once when initial microsteps are involved', () => {

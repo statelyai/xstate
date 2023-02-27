@@ -224,6 +224,93 @@ const App = ({ service }) => {
 };
 ```
 
+### `createActorContext(machine)`
+
+_Since 3.1.0_
+
+Returns a [React Context object](https://beta.reactjs.org/learn/passing-data-deeply-with-context) that interprets the `machine` and makes the interpreted actor available through React Context. There are helper methods for accessing state and the actor ref.
+
+**Arguments**
+
+- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
+
+**Returns**
+
+Returns a React Context object that contains the following properties:
+
+- `Provider` - a React Context Provider component with the following props:
+  - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) that must be of the same type as the machine passed to `createActorContext(...)`
+- `useActor()` - a React hook that returns a tuple of `[state, send]` from the React Context
+- `useSelector(selector, compare?)` - a React hook that takes in a `selector` function and optional `compare` function and returns the selected value from the actor snapshot
+- `useActorRef()` - a React hook that returns the actor ref of the interpreted `machine`
+
+Creating a React Context for the actor and providing it in app scope:
+
+```js
+import { createActorContext } from '@xstate/react';
+import { someMachine } from '../path/to/someMachine';
+const SomeMachineContext = createActorContext(someMachine);
+function App() {
+  return (
+    <SomeMachineContext.Provider>
+      <SomeComponent />
+    </SomeMachineContext.Provider>
+  );
+}
+```
+
+Consuming the actor in a component:
+
+```js
+import { SomeMachineContext } from '../path/to/SomeMachineContext';
+function SomeComponent() {
+  // Read full snapshot and get `send` function from `useActor()`
+  const [state, send] = SomeMachineContext.useActor();
+  // Or derive a specific value from the snapshot with `useSelector()`
+  const count = SomeMachineContext.useSelector((state) => state.context.count);
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => send('INCREMENT')}>Increment</button>
+    </div>
+  );
+}
+```
+
+Reading the actor ref:
+
+```js
+import { SomeMachineContext } from '../path/to/SomeMachineContext';
+function SomeComponent() {
+  const actorRef = SomeMachineContext.useActorRef();
+  return (
+    <div>
+      <button onClick={() => actorRef.send('INCREMENT')}>Increment</button>
+    </div>
+  );
+}
+```
+
+Providing a similar machine:
+
+```js
+import { SomeMachineContext } from '../path/to/SomeMachineContext';
+import { someMachine } from '../path/to/someMachine';
+function SomeComponent() {
+  return (
+    <SomeMachineContext.Provider
+      machine={() =>
+        someMachine.withConfig({
+          /* ... */
+        })
+      }
+    >
+      <SomeOtherComponent />
+    </SomeMachineContext.Provider>
+  );
+}
+```
+
 ### `useMachine(machine)` with `@xstate/fsm`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.

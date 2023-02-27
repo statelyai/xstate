@@ -3,7 +3,7 @@ import { createMachine, actions, assign } from 'xstate';
 export default createMachine({
   initial: 's1',
   context: {
-    o1: null
+    o1: null as { p1: string; p2: string } | null
   },
   states: {
     uber: {

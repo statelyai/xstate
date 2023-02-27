@@ -1,5 +1,4 @@
 import { render } from '@testing-library/react';
-import * as React from 'react';
 import { ActorRefFrom, assign, createMachine } from 'xstate';
 import { useActor, useMachine } from '../src/index.js';
 

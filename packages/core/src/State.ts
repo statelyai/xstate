@@ -51,6 +51,8 @@ export class State<
   TEvent extends EventObject = EventObject,
   TResolvedTypesMeta = TypegenDisabled
 > {
+  public tags: Set<string>;
+
   public value: StateValue;
   /**
    * Indicates whether the state is a final state.
@@ -170,6 +172,7 @@ export class State<
     this.children = config.children;
 
     this.value = getStateValue(machine.root, this.configuration);
+    this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
     this.done = config.done ?? false;
     this.output = config.output;
   }
@@ -274,10 +277,6 @@ export class State<
       return acc;
     }, {} as Record<string, any>);
   }
-
-  public get tags(): Set<string> {
-    return new Set(flatten(this.configuration.map((sn) => sn.tags)));
-  }
 }
 
 export function cloneState<TState extends AnyState>(
@@ -293,14 +292,8 @@ export function cloneState<TState extends AnyState>(
 export function getPersistedState<TState extends AnyState>(
   state: TState
 ): PersistedMachineState<TState> {
-  const {
-    configuration,
-    transitions,
-    tags,
-    machine,
-    children,
-    ...jsonValues
-  } = state;
+  const { configuration, transitions, tags, machine, children, ...jsonValues } =
+    state;
 
   const childrenJson: any = {};
 

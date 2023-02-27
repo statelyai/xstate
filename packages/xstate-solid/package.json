@@ -1,0 +1,75 @@
+{
+  "name": "@xstate/solid",
+  "version": "0.1.2",
+  "description": "XState tools for SolidJS",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "solidjs",
+    "store"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-solid#readme",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "dist/xstate-solid.cjs.js",
+  "module": "dist/xstate-solid.esm.js",
+  "exports": {
+    "./fsm": {
+      "module": "./fsm/dist/xstate-solid-fsm.esm.js",
+      "default": "./fsm/dist/xstate-solid-fsm.cjs.js"
+    },
+    ".": {
+      "module": "./dist/xstate-solid.esm.js",
+      "default": "./dist/xstate-solid.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "lib/index.d.ts",
+  "files": [
+    "dist",
+    "fsm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "scripts": {
+    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
+    "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
+    "test": "jest",
+    "prepare": "npm run build"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "@xstate/fsm": "^3.0.0-alpha.0",
+    "solid-js": "^1.6.0",
+    "xstate": "^5.0.0-alpha.1"
+  },
+  "peerDependenciesMeta": {
+    "@xstate/fsm": {
+      "optional": true
+    },
+    "xstate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@xstate/fsm": "3.0.0-alpha.0",
+    "solid-js": "^1.6.0",
+    "solid-testing-library": "^0.3.0",
+    "xstate": "5.0.0-alpha.1"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts",
+      "./fsm.ts"
+    ]
+  }
+}
