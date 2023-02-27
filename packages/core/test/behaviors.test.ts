@@ -269,6 +269,7 @@ describe('machine behavior', () => {
           id: 'a',
           src: fromPromise(() => Promise.resolve(42)),
           onDone: {
+            // @ts-ignore TODO: fix types
             actions: raise({ type: 'done' })
           }
         },
