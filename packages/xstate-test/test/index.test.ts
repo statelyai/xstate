@@ -1,4 +1,4 @@
-import { assign, createMachine } from 'xstate';
+import { EventFrom, assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
@@ -59,9 +59,9 @@ describe('events', () => {
     });
 
     const testModel = createTestModel(feedbackMachine, {
-      getEvents: () => [
-        { type: 'SUBMIT', value: 'something' } as const,
-        { type: 'SUBMIT', value: '' } as const
+      events: [
+        { type: 'SUBMIT', value: 'something' },
+        { type: 'SUBMIT', value: '' }
       ]
     });
 
@@ -115,8 +115,10 @@ describe('events', () => {
     const testedEvents: any[] = [];
 
     const testModel = createTestModel(testMachine, {
-      getEvents: (state) =>
-        state.context.values.map((value) => ({ type: 'EVENT', value } as const))
+      events: (state) =>
+        state.context.values.map(
+          (value) => ({ type: 'EVENT', value } as EventFrom<typeof testMachine>)
+        )
     });
 
     const paths = testModel.getShortestPaths();
@@ -277,7 +279,7 @@ it('Event in event executor should contain payload from case', async () => {
   const nonSerializableData = () => 42;
 
   const model = createTestModel(machine, {
-    getEvents: () => [{ type: 'NEXT', payload: 10, fn: nonSerializableData }]
+    events: [{ type: 'NEXT', payload: 10, fn: nonSerializableData }]
   });
 
   const paths = model.getShortestPaths({

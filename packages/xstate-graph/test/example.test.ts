@@ -67,8 +67,7 @@ export const feedbackMachine = createMachine({
 
 it('whatever', () => {
   const p = getMachineShortestPaths(feedbackMachine, {
-    // @ts-ignore Whyyy does this not work
-    getEvents: () => [{ type: 'feedback.update', value: 'not good' }],
+    events: [{ type: 'feedback.update', value: 'not good' }],
     toState: (state) =>
       state.value === 'closed' && state.context.feedback === 'not good'
   });
@@ -134,7 +133,7 @@ it('tweets', () => {
     },
     {
       toState: (state) => state.value === 'tweeted',
-      getEvents: () => [
+      events: [
         { type: 'click tweet button' },
         { type: 'click modal tweet button' },
         { type: 'type tweet in modal' },

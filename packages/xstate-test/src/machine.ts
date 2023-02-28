@@ -91,7 +91,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   const serializeEvent = options?.serializeEvent ?? simpleStringify;
   const serializeTransition =
     options?.serializeTransition ?? serializeMachineTransition;
-  const { getEvents, ...otherOptions } = options ?? {};
+  const { events: getEvents, ...otherOptions } = options ?? {};
 
   const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
     machine as SimpleBehavior<any, any>,
@@ -112,8 +112,9 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           ? state.configuration.includes(machine.getStateNodeById(key))
           : state.matches(key);
       },
-      getEvents: (state) => {
-        const events = getEvents?.(state) ?? [];
+      events: (state) => {
+        const events =
+          typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
         return flatten(
           state.nextEvents.map((eventType) => {

@@ -43,7 +43,10 @@ describe('testModel.testPaths(...)', () => {
     );
 
     const paths = testModel.getPaths((behavior, options) => {
-      const events = options.getEvents?.(behavior.initialState) ?? [];
+      const events =
+        typeof options.events === 'function'
+          ? options.events(behavior.initialState)
+          : options.events ?? [];
 
       const nextState = behavior.transition(behavior.initialState, events[0]);
       return [
@@ -172,7 +175,7 @@ describe('transition coverage', () => {
     const model = createTestModel(machine);
 
     const paths = model.getShortestPaths({
-      getEvents: () => [
+      events: [
         { type: 'NEXT', value: 0 },
         { type: 'NEXT', value: 100 },
         { type: 'NEXT', value: 1000 }

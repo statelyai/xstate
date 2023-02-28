@@ -45,7 +45,7 @@ export class TestModel<TState, TEvent extends EventObject> {
       // separate transitions, so just use event type
       serializeTransition: (state, event) =>
         `${simpleStringify(state)}|${event?.type ?? ''}`,
-      getEvents: () => [],
+      events: [],
       stateMatcher: (_, stateKey) => stateKey === '*',
       logger: {
         log: console.log.bind(console),

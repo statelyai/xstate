@@ -78,15 +78,16 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
 ): TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>> {
-  const { getEvents, ...otherOptions } = options ?? {};
+  const { events: getEvents, ...otherOptions } = options ?? {};
   const traversalOptions: TraversalOptions<
     StateFrom<TMachine>,
     EventFrom<TMachine>
   > = {
     serializeState: serializeMachineState,
     serializeEvent,
-    getEvents: (state) => {
-      const events = getEvents?.(state) ?? [];
+    events: (state) => {
+      const events =
+        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
       return flatten(
         state.nextEvents.map((type) => {
           const matchingEvents = events.filter(
@@ -184,7 +185,7 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     serializeState,
     serializeEvent,
     filter: () => true,
-    getEvents: () => [],
+    events: [],
     traversalLimit: Infinity,
     fromState: undefined,
     toState: undefined,

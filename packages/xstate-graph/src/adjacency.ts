@@ -15,7 +15,7 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
   const {
     serializeEvent,
     serializeState,
-    getEvents,
+    events: getEvents,
     traversalLimit: limit,
     fromState: customFromState,
     stopCondition
@@ -57,7 +57,8 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
       continue;
     }
 
-    const events = getEvents(state);
+    const events =
+      typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
       const nextState = transition(state, nextEvent);

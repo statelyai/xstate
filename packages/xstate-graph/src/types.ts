@@ -168,7 +168,7 @@ export type TraversalOptions<
     Pick<
       TraversalConfig<TState, TEvent>,
       | 'filter'
-      | 'getEvents'
+      | 'events'
       | 'traversalLimit'
       | 'fromState'
       | 'stopCondition'
@@ -183,7 +183,7 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * `event` when building the adjacency map.
    */
   filter: (state: TState, event: TEvent) => boolean;
-  getEvents: (state: TState) => Array<TEvent>;
+  events: TEvent[] | ((state: TState) => TEvent[]);
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.

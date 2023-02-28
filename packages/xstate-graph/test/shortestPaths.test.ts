@@ -118,7 +118,7 @@ describe('getMachineShortestPaths', () => {
     });
 
     const shortestPaths = getMachineShortestPaths(machine, {
-      getEvents: () => [
+      events: [
         {
           type: 'todo.add',
           todo: 'one'
