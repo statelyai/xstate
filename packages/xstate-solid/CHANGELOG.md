@@ -1,5 +1,11 @@
 # @xstate/solid
 
+## 0.1.3
+
+### Patch Changes
+
+- [#3856](https://github.com/statelyai/xstate/pull/3856) [`7e5110b94`](https://github.com/statelyai/xstate/commit/7e5110b9454d50b81cd7089eaeaf84cb14415f43) Thanks [@GoldingAustin](https://github.com/GoldingAustin)! - Fix array deletions/additions causing duplicate entries
+
 ## 0.1.2
 
 ### Patch Changes
