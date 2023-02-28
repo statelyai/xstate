@@ -7,7 +7,7 @@ describe('action creators', () => {
   (['start', 'stop'] as const).forEach((actionKey) => {
     describe(`${actionKey}()`, () => {
       it('should accept a string action', () => {
-        const action = actions[actionKey]('test');
+        const action = (actions[actionKey] as any)('test');
         expect(action.type).toEqual(actionTypes[actionKey]);
         expect(action).toEqual({
           type: actionTypes[actionKey],
@@ -21,7 +21,10 @@ describe('action creators', () => {
       });
 
       it('should accept an action object', () => {
-        const action = actions[actionKey]({ type: 'test', foo: 'bar' } as any);
+        const action = (actions[actionKey] as any)({
+          type: 'test',
+          foo: 'bar'
+        } as any);
         expect(action.type).toEqual(actionTypes[actionKey]);
         expect(action).toEqual({
           type: actionTypes[actionKey],
@@ -35,7 +38,7 @@ describe('action creators', () => {
       });
 
       it('should accept an activity definition', () => {
-        const action = actions[actionKey]({
+        const action = (actions[actionKey] as any)({
           type: 'test',
           foo: 'bar',
           src: 'someSrc'
