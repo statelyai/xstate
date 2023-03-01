@@ -297,8 +297,8 @@ export function getPersistedState<TState extends AnyState>(
 
   const childrenJson: any = {};
 
-  for (const key in children) {
-    childrenJson[key] = children[key].getPersistedState?.();
+  for (const id in children) {
+    childrenJson[id] = children[id].getPersistedState?.();
   }
 
   return {
