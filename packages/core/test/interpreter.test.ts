@@ -1235,7 +1235,7 @@ describe('interpreter', () => {
 
     it('should be able to resolve a custom initialized state', (done) => {
       const startService = interpret(startMachine, {
-        state: State.from('foo', undefined, startMachine)
+        state: startMachine.resolveStateValue('foo')
       }).onTransition((state) => {
         expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();

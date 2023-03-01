@@ -1997,5 +1997,3 @@ export interface PersistedMachineState<TState extends AnyState> {
   };
   persisted: true;
 }
-
-export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };

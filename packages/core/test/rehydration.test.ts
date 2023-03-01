@@ -73,8 +73,7 @@ describe('rehydration', () => {
         }
       });
 
-      const activeState = machine.transition(undefined, { type: 'NEXT' });
-
+      const activeState = machine.resolveStateValue('active');
       const service = interpret(machine, { state: activeState });
 
       service.start();
