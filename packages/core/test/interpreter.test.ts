@@ -188,10 +188,7 @@ describe('interpreter', () => {
 
       expect(bState.value).toEqual('b');
 
-      // Ensure that there are no actions attached to the state
-      bState.actions.length = 0;
-
-      interpret(machine, { state: bState }).start();
+      interpret(machine, { state: machine.resolveStateValue('b') }).start();
 
       expect(aCalled).toBe(false);
     });
