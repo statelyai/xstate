@@ -9,7 +9,7 @@ import { isSCXMLEvent } from '../utils';
  * @returns An actor behavior
  */
 
-export function fromReducer<TState extends {}, TEvent extends EventObject>(
+export function fromReducer<TState, TEvent extends EventObject>(
   transition: (
     state: TState,
     event: TEvent,
