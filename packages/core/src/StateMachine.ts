@@ -457,28 +457,28 @@ export class StateMachine<
     if ('persisted' in state) {
       const restoredChildren: Record<string, AnyActorRef> = {};
 
-      Object.keys(state.children).forEach((key) => {
-        const persistedState = state.children[key];
-        const impl = this.options.actors[key];
+      Object.keys(state.children).forEach((id) => {
+        const persistedState = state.children[id];
+        const impl = this.options.actors[id];
 
         if (!impl) return;
 
         if (typeof impl === 'function') {
           const behavior = impl(state.context, state.event, {
-            id: key,
+            id: id,
             src: {} as any,
             _event: state._event,
             meta: undefined
           });
 
           const actorRef = interpret(behavior, {
-            id: key,
+            id,
             state: persistedState
           });
 
           state.actions.unshift(
             invoke({
-              id: key,
+              id,
               // @ts-ignore TODO: fix types
               src: actorRef, // TODO
               ref: actorRef,
@@ -487,7 +487,7 @@ export class StateMachine<
           );
 
           // TODO: this should only start if actorCtx is enabled
-          restoredChildren[key] = actorRef;
+          restoredChildren[id] = actorRef;
         }
       });
 
