@@ -162,7 +162,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
-  it('should provide the input to the context factory', () => {
+  it('should accept input and provide it to the context factory', () => {
     const testMachine = createMachine<{ foo: string; test: boolean }>({
       context: ({ input }) => ({
         foo: 'bar',
