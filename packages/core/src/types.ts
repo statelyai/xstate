@@ -1866,7 +1866,7 @@ export type EventOfMachine<TMachine extends AnyStateMachine> =
 export interface ActorContext<
   TEvent extends EventObject,
   TSnapshot,
-  TSystem extends ActorSystem<any> = any
+  TSystem extends ActorSystem<any>
 > {
   self: ActorRef<TEvent, TSnapshot>;
   id: string;
