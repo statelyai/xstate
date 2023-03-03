@@ -461,10 +461,9 @@ export class StateMachine<
       Object.keys(state.children).forEach((actorId) => {
         const actorData = state.children[actorId];
         const childState = actorData.state;
+        const src = actorData.src;
 
-        const behaviorImpl = actorData.src
-          ? self.options.actors[actorData.src.type]
-          : undefined;
+        const behaviorImpl = src ? self.options.actors[src.type] : undefined;
 
         if (!behaviorImpl) {
           return;
@@ -475,7 +474,7 @@ export class StateMachine<
             ? behaviorImpl(state.context, state._event.data, {
                 id: actorId,
                 data: undefined,
-                src: actorData.src,
+                src,
                 _event: state._event,
                 meta: {}
               })
@@ -492,7 +491,7 @@ export class StateMachine<
           invoke({
             id: actorId,
             // @ts-ignore TODO: fix types
-            src: actorRef, // TODO
+            src: actorRef,
             ref: actorRef,
             meta: undefined
           })

@@ -1990,13 +1990,13 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
 export type StateFromMachine<TMachine extends AnyStateMachine> =
   TMachine['initialState'];
 
-export interface PersistedMachineState<TState extends AnyState> {
+export type PersistedMachineState<TState extends AnyState> = {
   [key: string]: any;
   children: {
     [K in keyof TState['children']]: {
-      state: PersistedFrom<TState['children'][K]>;
+      state: any; // TODO: fix (should be state from actorref)
       src?: InvokeSourceDefinition;
     };
   };
   persisted: true;
-}
+};
