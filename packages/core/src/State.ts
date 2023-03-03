@@ -125,7 +125,7 @@ export class State<
       return stateValue;
     }
 
-    const _event = (createInitEvent({}) as unknown) as SCXML.Event<TEvent>; // TODO: fix
+    const _event = createInitEvent({}) as unknown as SCXML.Event<TEvent>; // TODO: fix
 
     const configuration = getConfiguration(
       getStateNodes(machine.root, stateValue)

@@ -43,7 +43,8 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState
+  PersistedMachineState,
+  AnyActorBehavior
 } from './types.js';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
 
