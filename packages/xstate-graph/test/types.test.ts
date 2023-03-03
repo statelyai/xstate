@@ -60,9 +60,10 @@ describe('types', () => {
     getMachineShortestPaths(machine, {
       events: [
         {
+          // @ts-expect-error
           type: 'UNKNOWN',
           value: 100
-        } as any
+        }
       ]
     });
   });
