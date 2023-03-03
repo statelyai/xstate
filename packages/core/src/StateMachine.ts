@@ -44,7 +44,8 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState
+  PersistedMachineState,
+  AnyActorBehavior
 } from './types.js';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
 import { invoke } from './actions/invoke.js';
@@ -384,7 +385,6 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): void {
-    // When starting from a restored state, execute the actions
     state.actions.forEach((action) => {
       action.execute?.(actorCtx);
     });
@@ -446,58 +446,64 @@ export class StateMachine<
   }
 
   public restoreState(
-    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    state: PersistedMachineState<any>,
     _actorCtx?: ActorContext<
       TEvent,
       State<TContext, TEvent, TResolvedTypesMeta>
     >
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    let restoredState: State<TContext, TEvent, TResolvedTypesMeta>;
+    const self = this;
+    let restoredState;
 
-    if ('persisted' in state) {
-      const restoredChildren: Record<string, AnyActorRef> = {};
+    const children = {};
 
-      Object.keys(state.children).forEach((id) => {
-        const persistedState = state.children[id];
-        const impl = this.options.actors[id];
+    if (_actorCtx && state.persisted) {
+      Object.keys(state.children).forEach((actorId) => {
+        const actorData = state.children[actorId];
+        const childState = actorData.state;
 
-        if (!impl) return;
+        const behaviorImpl = actorData.src
+          ? self.options.actors[actorData.src.type]
+          : undefined;
 
-        if (typeof impl === 'function') {
-          const behavior = impl(state.context, state.event, {
-            id: id,
-            src: {} as any,
-            _event: state._event,
-            meta: undefined
-          });
-
-          const actorRef = interpret(behavior, {
-            id,
-            state: persistedState
-          });
-
-          state.actions.unshift(
-            invoke({
-              id,
-              // @ts-ignore TODO: fix types
-              src: actorRef, // TODO
-              ref: actorRef,
-              meta: undefined
-            })
-          );
-
-          // TODO: this should only start if actorCtx is enabled
-          restoredChildren[id] = actorRef;
+        if (!behaviorImpl) {
+          return;
         }
+
+        const behavior =
+          typeof behaviorImpl === 'function'
+            ? behaviorImpl(state.context, state._event.data, {
+                id: actorId,
+                data: undefined,
+                src: actorData.src,
+                _event: state._event,
+                meta: {}
+              })
+            : behaviorImpl;
+
+        const actorState = behavior.restoreState?.(childState, _actorCtx);
+
+        const actorRef = interpret(behavior, {
+          id: actorId,
+          state: actorState
+        });
+
+        state.actions.unshift(
+          invoke({
+            id: actorId,
+            // @ts-ignore TODO: fix types
+            src: actorRef, // TODO
+            ref: actorRef,
+            meta: undefined
+          })
+        );
+
+        children[actorId] = actorRef;
       });
 
-      state.children = restoredChildren;
-
-      restoredState = this.createState(
-        new State(state as unknown as StateConfig<TContext, TEvent>, this)
-      );
+      restoredState = this.createState(new State({ ...state, children }, this));
     } else {
-      restoredState = this.createState(state);
+      restoredState = this.createState({ ...state });
     }
 
     return restoredState;

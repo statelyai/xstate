@@ -294,23 +294,25 @@ describe('machine behavior', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.children.a).toEqual(
+    expect(persistedState.children.a.state).toEqual(
       expect.objectContaining({
         canceled: false,
         data: 42
       })
     );
 
-    expect(persistedState.children.b).toEqual(
+    expect(persistedState.children.b.state).toEqual(
       expect.objectContaining({
         context: {
           count: 55
         },
         value: 'start',
         children: {
-          reducer: {
-            status: 'active'
-          }
+          reducer: expect.objectContaining({
+            state: {
+              status: 'active'
+            }
+          })
         }
       })
     );

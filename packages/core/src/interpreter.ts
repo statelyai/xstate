@@ -86,7 +86,7 @@ export class Interpreter<
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: Readonly<InterpreterOptions>;
+  public options: Readonly<InterpreterOptions<TBehavior>>;
 
   /**
    * The unique identifier for this actor relative to its parent.
@@ -128,15 +128,14 @@ export class Interpreter<
    * @param behavior The behavior to be interpreted
    * @param options Interpreter options
    */
-  constructor(public behavior: TBehavior, options?: InterpreterOptions) {
+  constructor(
+    public behavior: TBehavior,
+    options?: InterpreterOptions<TBehavior>
+  ) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
     };
-
-    if (resolvedOptions.state) {
-      this._initialState = this._state = resolvedOptions.state;
-    }
 
     const { clock, logger, parent, id } = resolvedOptions;
     const self = this;
@@ -158,6 +157,13 @@ export class Interpreter<
         this._deferred.push(fn);
       }
     };
+
+    if (resolvedOptions.state) {
+      this._initialState = this._state = this.behavior.restoreState?.(
+        resolvedOptions.state,
+        this._actorContext
+      );
+    }
 
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
@@ -311,7 +317,7 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = ActorStatus.Running;
 
-    let resolvedState = this._getInitialState();
+    let resolvedState = this._state ?? this._getInitialState();
 
     if (this.behavior.start) {
       this.behavior.start(resolvedState, this._actorContext);
@@ -521,13 +527,16 @@ export function interpret<TMachine extends AnyStateMachine>(
   > extends true
     ? TMachine
     : 'Some implementations missing',
-  options?: InterpreterOptions
+  options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
-  options?: InterpreterOptions
+  options?: InterpreterOptions<TBehavior>
 ): Interpreter<TBehavior>;
-export function interpret(behavior: any, options?: InterpreterOptions): any {
+export function interpret(
+  behavior: any,
+  options?: InterpreterOptions<any>
+): any {
   const interpreter = new Interpreter(behavior, options);
 
   return interpreter;

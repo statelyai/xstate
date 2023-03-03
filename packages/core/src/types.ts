@@ -1606,7 +1606,7 @@ export interface StateConfig<
   _internalQueue?: Array<SCXML.Event<TEvent>>;
 }
 
-export interface InterpreterOptions {
+export interface InterpreterOptions<TActorBehavior extends AnyActorBehavior> {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
@@ -1642,7 +1642,7 @@ export interface InterpreterOptions {
 
   sync?: boolean;
 
-  state?: any; // TODO: type this
+  state?: PersistedFrom<TActorBehavior>; // TODO: type this
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1891,7 +1891,7 @@ export interface ActorBehavior<
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   restoreState?: (
-    restoredState: any,
+    restoredState: TPersisted,
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
@@ -1993,7 +1993,10 @@ export type StateFromMachine<TMachine extends AnyStateMachine> =
 export interface PersistedMachineState<TState extends AnyState> {
   [key: string]: any;
   children: {
-    [key in keyof TState['children']]: any;
+    [K in keyof TState['children']]: {
+      state: PersistedFrom<TState['children'][K]>;
+      src?: InvokeSourceDefinition;
+    };
   };
   persisted: true;
 }
