@@ -1,4 +1,4 @@
-import { initEvent } from './actions.js';
+import { error, initEvent } from './actions.js';
 import { STATE_DELIMITER } from './constants.js';
 import { createSpawner } from './spawn.js';
 import { getPersistedState, State } from './State.js';
@@ -388,6 +388,16 @@ export class StateMachine<
     state.actions.forEach((action) => {
       action.execute?.(actorCtx);
     });
+    Object.values(state.children).forEach((child) => {
+      if (child.status === 0) {
+        try {
+          child.start?.();
+        } catch (err) {
+          // TODO: unify error handling when child starts
+          actorCtx.self.send(error(child.id, err));
+        }
+      }
+    });
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
@@ -486,16 +496,6 @@ export class StateMachine<
           id: actorId,
           state: actorState
         });
-
-        state.actions.unshift(
-          invoke({
-            id: actorId,
-            // @ts-ignore TODO: fix types
-            src: actorRef,
-            ref: actorRef,
-            meta: undefined
-          })
-        );
 
         children[actorId] = actorRef;
       });

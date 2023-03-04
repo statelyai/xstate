@@ -595,7 +595,7 @@ describe('interpreter', () => {
       expect(stopActivityState!).toEqual('off');
     });
 
-    it('should not restart activities from a compound state', (done) => {
+    it('should restart activities from a compound state', (done) => {
       let activityActive = false;
 
       const toggleMachine = createMachine(
@@ -639,7 +639,7 @@ describe('interpreter', () => {
       interpret(toggleMachine, { state: bState }).start();
 
       setTimeout(() => {
-        expect(activityActive).toBeFalsy();
+        expect(activityActive).toBeTruthy();
         done();
       }, 10);
     });
