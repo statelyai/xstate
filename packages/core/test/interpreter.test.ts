@@ -205,13 +205,14 @@ describe('interpreter', () => {
       }
     });
 
-    it('should notify subscribers of the current state upon subscription (subscribe)', (done) => {
+    it('should not notify subscribers of the current state upon subscription (subscribe)', (done) => {
       const service = interpret(machine).start();
 
-      service.subscribe((state) => {
-        expect(state.value).toBe('active');
-        done();
+      service.subscribe(() => {
+        throw new Error('Should not be called');
       });
+
+      setTimeout(() => done(), 10);
     });
 
     it('should notify subscribers of the current state upon subscription (onTransition)', (done) => {
@@ -1337,20 +1338,20 @@ describe('interpreter', () => {
 
       const sub = toggleService.subscribe(listener);
 
+      expect(stateCount).toEqual(0);
+
+      toggleService.send({ type: 'TOGGLE' });
+
       expect(stateCount).toEqual(1);
 
       toggleService.send({ type: 'TOGGLE' });
 
       expect(stateCount).toEqual(2);
 
-      toggleService.send({ type: 'TOGGLE' });
-
-      expect(stateCount).toEqual(3);
-
       sub.unsubscribe();
       toggleService.send({ type: 'TOGGLE' });
 
-      expect(stateCount).toEqual(3);
+      expect(stateCount).toEqual(2);
     });
   });
 
@@ -1472,7 +1473,7 @@ describe('interpreter', () => {
           },
           error: undefined,
           complete: () => {
-            expect(count).toEqual(6);
+            expect(count).toEqual(5);
             done();
           }
         });

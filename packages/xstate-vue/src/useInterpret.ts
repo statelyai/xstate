@@ -80,7 +80,9 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   let sub;
   onMounted(() => {
     if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener as any));
+      const observer = toObserver(observerOrListener as any);
+      observer.next?.(service.getSnapshot());
+      sub = service.subscribe(observer);
     }
   });
 

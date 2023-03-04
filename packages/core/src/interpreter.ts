@@ -250,11 +250,6 @@ export class Interpreter<
 
     this.observers.add(observer);
 
-    // Send current state to listener
-    if (this.status !== ActorStatus.NotStarted) {
-      observer.next?.(this.getSnapshot());
-    }
-
     if (this.status === ActorStatus.Stopped) {
       observer.complete?.();
       this.observers.delete(observer);
