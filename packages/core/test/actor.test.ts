@@ -234,7 +234,7 @@ describe('spawning promises', () => {
                       res('response');
                     })
                 ),
-                { name: 'my-promise' }
+                { id: 'my-promise' }
               );
 
               return ref;
@@ -272,7 +272,7 @@ describe('spawning promises', () => {
           idle: {
             entry: assign({
               promiseRef: (_, __, { spawn }) =>
-                spawn('somePromise', { name: 'my-promise' })
+                spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
               [doneInvoke('my-promise')]: {
@@ -366,7 +366,7 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(observableBehavior, { name: 'int' });
+              const ref = spawn(observableBehavior, { id: 'int' });
 
               return ref;
             }
@@ -403,7 +403,7 @@ describe('spawning observables', () => {
           idle: {
             entry: assign({
               observableRef: (_, __, { spawn }) =>
-                spawn('interval', { name: 'int' })
+                spawn('interval', { id: 'int' })
             }),
             on: {
               'xstate.snapshot.int': {
@@ -443,7 +443,7 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(observableBehavior, { name: 'int' });
+              const ref = spawn(observableBehavior, { id: 'int' });
 
               return ref;
             }
@@ -488,7 +488,7 @@ describe('spawning event observables', () => {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(eventObservableBehavior, { name: 'int' });
+              const ref = spawn(eventObservableBehavior, { id: 'int' });
 
               return ref;
             }
@@ -525,7 +525,7 @@ describe('spawning event observables', () => {
           idle: {
             entry: assign({
               observableRef: (_, __, { spawn }) =>
-                spawn('interval', { name: 'int' })
+                spawn('interval', { id: 'int' })
             }),
             on: {
               COUNT: {
@@ -898,7 +898,7 @@ describe('actors', () => {
                     setTimeout(() => res(42));
                   })
               ),
-              { name: 'test' }
+              { id: 'test' }
             )
         }),
         initial: 'pending',
@@ -936,7 +936,7 @@ describe('actors', () => {
                   setTimeout(() => rej(errorMessage), 1);
                 })
             ),
-            { name: 'test' }
+            { id: 'test' }
           )
         }),
         initial: 'pending',
@@ -1160,7 +1160,7 @@ describe('actors', () => {
         child: (_, __, { spawn }) =>
           spawn(
             fromObservable(() => EMPTY),
-            { name: 'myactor' }
+            { id: 'myactor' }
           )
       }),
       initial: 'init',

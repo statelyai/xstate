@@ -2242,7 +2242,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: (_, __, { spawn }) => spawn(child, { name: 'x' })
+            child: (_, __, { spawn }) => spawn(child, { id: 'x' })
           }),
           on: {
             EVENT: {
@@ -2712,7 +2712,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       context: ({ spawn }) => {
         return {
-          child: spawn(childMachine, { name: 'child' }),
+          child: spawn(childMachine, { id: 'child' }),
           count: 42
         };
       },
@@ -2768,7 +2768,7 @@ describe('sendTo', () => {
       child: ActorRefFrom<typeof childMachine>;
     }>({
       context: ({ spawn }) => ({
-        child: spawn(childMachine, { name: 'child' })
+        child: spawn(childMachine, { id: 'child' })
       }),
       // No type-safety for the event yet
       entry: sendTo('child', { type: 'EVENT' })

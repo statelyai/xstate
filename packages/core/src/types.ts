@@ -116,7 +116,7 @@ export interface ActionMeta<
 export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
   options?: Partial<{
-    name: string;
+    id: string;
     input: any;
   }>
 ) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>

@@ -1789,7 +1789,7 @@ describe('interpreter', () => {
         },
         entry: assign({
           machineRef: (_, __, { spawn }) =>
-            spawn(childMachine, { name: 'machineChild' }),
+            spawn(childMachine, { id: 'machineChild' }),
           promiseRef: (_, __, { spawn }) =>
             spawn(
               fromPromise(
@@ -1798,12 +1798,12 @@ describe('interpreter', () => {
                     // ...
                   })
               ),
-              { name: 'promiseChild' }
+              { id: 'promiseChild' }
             ),
           observableRef: (_, __, { spawn }) =>
             spawn(
               fromObservable(() => interval(1000)),
-              { name: 'observableChild' }
+              { id: 'observableChild' }
             )
         }),
         states: {
