@@ -218,7 +218,7 @@ function mapAction<
       const conds: ChooseCondition<TContext, TEvent>[] = [];
 
       let current: ChooseCondition<TContext, TEvent> = {
-        cond: createCond(element.attributes!.cond as string),
+        guard: createCond(element.attributes!.cond as string),
         actions: []
       };
 
@@ -231,7 +231,7 @@ function mapAction<
           case 'elseif':
             conds.push(current);
             current = {
-              cond: createCond(el.attributes!.cond as string),
+              guard: createCond(el.attributes!.cond as string),
               actions: []
             };
             break;

@@ -798,7 +798,10 @@ export function resolveActions<TContext, TEvent extends EventObject>(
       case actionTypes.choose: {
         const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
         const matchedActions = chooseAction.conds.find((condition) => {
-          const guard = toGuard(condition.cond, machine.options.guards as any);
+          const guard = toGuard(
+            condition.guard ?? condition.cond,
+            machine.options.guards as any
+          );
           return (
             !guard ||
             evaluateGuard(

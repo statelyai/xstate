@@ -132,7 +132,11 @@ export interface ChooseCondition<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 > {
+  /**
+   * @deprecated Use `guard` instead
+   */
   cond?: Condition<TContext, TExpressionEvent>;
+  guard?: Condition<TContext, TExpressionEvent>;
   actions: Actions<TContext, TExpressionEvent, TEvent>;
 }
 
@@ -234,7 +238,11 @@ export type Guard<TContext, TEvent extends EventObject> =
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
+  /**
+   * @deprecated Use `guard` instead
+   */
   cond: Guard<TContext, TEvent>;
+  guard: Guard<TContext, TEvent>;
 }
 
 export type Condition<TContext, TEvent extends EventObject> =
@@ -256,7 +264,11 @@ export interface TransitionConfig<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 > {
+  /**
+   * @deprecated Use `guard` instead
+   */
   cond?: Condition<TContext, TExpressionEvent>;
+  guard?: Condition<TContext, TExpressionEvent>;
   actions?: BaseActions<TContext, TExpressionEvent, TEvent, BaseActionObject>;
   in?: StateValue;
   internal?: boolean;
@@ -1472,7 +1484,11 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   target: Array<StateNode<TContext, any, TEvent>> | undefined;
   source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
+  /**
+   * @deprecated Use `guard` instead
+   */
   cond?: Guard<TContext, TEvent>;
+  guard?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
@@ -1498,24 +1514,6 @@ export interface DelayedTransitionDefinition<
   TEvent extends EventObject
 > extends TransitionDefinition<TContext, TEvent> {
   delay: number | string | DelayExpr<TContext, TEvent>;
-}
-
-export interface Edge<
-  TContext,
-  TEvent extends EventObject,
-  TEventType extends TEvent['type'] = string
-> {
-  event: TEventType;
-  source: StateNode<TContext, any, TEvent>;
-  target: StateNode<TContext, any, TEvent>;
-  cond?: Condition<TContext, TEvent & { type: TEventType }>;
-  actions: Array<Action<TContext, TEvent>>;
-  meta?: MetaObject;
-  transition: TransitionDefinition<TContext, TEvent>;
-}
-export interface NodesAndEdges<TContext, TEvent extends EventObject> {
-  nodes: StateNode[];
-  edges: Array<Edge<TContext, TEvent, TEvent['type']>>;
 }
 
 export interface Segment<TContext, TEvent extends EventObject> {

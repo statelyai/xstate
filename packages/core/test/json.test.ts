@@ -140,6 +140,7 @@ describe('json', () => {
           "cond": undefined,
           "event": "done.invoke.(machine).active:invocation[0]",
           "eventType": "done.invoke.(machine).active:invocation[0]",
+          "guard": undefined,
           "internal": false,
           "source": "#(machine).active",
           "target": Array [
@@ -152,6 +153,7 @@ describe('json', () => {
           "cond": undefined,
           "event": "error.platform.(machine).active:invocation[0]",
           "eventType": "error.platform.(machine).active:invocation[0]",
+          "guard": undefined,
           "internal": false,
           "source": "#(machine).active",
           "target": Array [
@@ -164,6 +166,7 @@ describe('json', () => {
           "cond": undefined,
           "event": "EVENT",
           "eventType": "EVENT",
+          "guard": undefined,
           "internal": false,
           "source": "#(machine).active",
           "target": Array [

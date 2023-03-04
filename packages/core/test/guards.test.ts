@@ -412,4 +412,49 @@ describe('guards - other', () => {
 
     expect(service.state.value).toBe('c');
   });
+
+  it('can be renamed to guard instead of cond (named)', () => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: {
+                guard: 'isValid',
+                target: 'b'
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        guards: {
+          isValid: () => true
+        }
+      }
+    );
+
+    expect(machine.transition('a', 'NEXT').value).toBe('b');
+  });
+
+  it('can be renamed to guard instead of cond (inline)', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              guard: () => true,
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    expect(machine.transition('a', 'NEXT').value).toBe('b');
+  });
 });

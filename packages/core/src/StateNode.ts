@@ -1990,10 +1990,16 @@ class StateNode<
 
     const target = this.resolveTarget(normalizedTarget);
 
+    const guard = toGuard(
+      transitionConfig.guard ?? transitionConfig.cond,
+      guards as any
+    );
+
     const transition = {
       ...transitionConfig,
       actions: toActionObjects(toArray(transitionConfig.actions)),
-      cond: toGuard(transitionConfig.cond, guards as any),
+      cond: guard,
+      guard,
       target,
       source: this as any,
       internal,

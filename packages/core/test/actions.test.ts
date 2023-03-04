@@ -2437,6 +2437,34 @@ describe('choose', () => {
 
     expect(service.state.context).toEqual({ answer: 42 });
   });
+
+  it('can use "guard" instead of "cond"', () => {
+    interface Ctx {
+      isValid: boolean;
+      answer?: number;
+    }
+
+    const machine = createMachine<Ctx>({
+      context: {
+        isValid: true
+      },
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: choose([
+            {
+              guard: (ctx) => ctx.isValid,
+              actions: assign<Ctx>({ answer: 42 })
+            }
+          ])
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.getSnapshot().context.answer).toEqual(42);
+  });
 });
 
 describe('sendParent', () => {
