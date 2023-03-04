@@ -1642,7 +1642,7 @@ export interface InterpreterOptions<TActorBehavior extends AnyActorBehavior> {
 
   sync?: boolean;
 
-  state?: PersistedFrom<TActorBehavior>; // TODO: type this
+  state?: PersistedFrom<TActorBehavior>;
 }
 
 export type AnyInterpreter = Interpreter<any>;
