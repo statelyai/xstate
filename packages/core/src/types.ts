@@ -1784,6 +1784,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   status: ActorStatus;
+  src?: InvokeSourceDefinition;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
@@ -1990,8 +1991,7 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
 export type StateFromMachine<TMachine extends AnyStateMachine> =
   TMachine['initialState'];
 
-export type PersistedMachineState<TState extends AnyState> = {
-  [key: string]: any;
+export type PersistedMachineState<TState extends AnyState> = TState & {
   children: {
     [K in keyof TState['children']]: {
       state: any; // TODO: fix (should be state from actorref)
