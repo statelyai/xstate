@@ -13,7 +13,7 @@ import { stopSignalType } from './actors/index.js';
 import { devToolsAdapter } from './dev/index.js';
 import { IS_PRODUCTION } from './environment.js';
 import { Mailbox } from './Mailbox.js';
-import { createSystem, registry } from './system.js';
+import { createSystem } from './system.js';
 import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.js';
 import {
   ActorRef,
@@ -304,7 +304,6 @@ export class Interpreter<
       return this;
     }
 
-    registry.register(this.sessionId, this.ref);
     this.status = ActorStatus.Running;
 
     let resolvedState = initialState
