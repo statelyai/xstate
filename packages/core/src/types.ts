@@ -1641,8 +1641,6 @@ export interface InterpreterOptions {
   autoForward?: boolean;
 
   sync?: boolean;
-
-  system?: ActorSystem<any>;
 }
 
 export type AnyInterpreter = Interpreter<any>;

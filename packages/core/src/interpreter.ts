@@ -137,7 +137,7 @@ export class Interpreter<
     const { clock, logger, parent, id } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? options?.system ?? createSystem();
+    this.system = parent?.system ?? createSystem();
 
     this.sessionId = this.system.register(this);
     this.id = id ?? this.sessionId;
