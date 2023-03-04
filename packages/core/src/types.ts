@@ -62,7 +62,7 @@ export interface AnyEventObject extends EventObject {
 export interface BaseActionObject {
   type: string;
   params?: Record<string, any>;
-  execute?: (actorCtx: ActorContext<any, any>) => void;
+  execute?: (actorCtx: AnyActorContext) => void;
 }
 
 export interface BuiltInActionObject {
@@ -87,7 +87,7 @@ export interface BaseDynamicActionObject<
        * The original action object
        */
       action: BaseActionObject;
-      actorContext: ActorContext<any, any> | undefined;
+      actorContext: AnyActorContext | undefined;
     }
   ) => [AnyState, TResolvedAction];
 
@@ -1641,6 +1641,11 @@ export interface InterpreterOptions {
   autoForward?: boolean;
 
   sync?: boolean;
+
+  /**
+   * The receptionist key to register this actor under
+   */
+  key?: string;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1874,6 +1879,8 @@ export interface ActorContext<
   system: TSystem;
 }
 
+export type AnyActorContext = ActorContext<any, any, any>;
+
 export interface ActorBehavior<
   TEvent extends EventObject,
   TSnapshot = any,
@@ -1886,17 +1893,17 @@ export interface ActorBehavior<
     ctx: ActorContext<TEvent, TSnapshot, TSystem>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot>
+    actorCtx: ActorContext<TEvent, TSnapshot, any> // TODO: add system typing
   ) => TInternalState;
   restoreState?: (
     restoredState: any,
-    actorCtx: ActorContext<TEvent, TSnapshot>
+    actorCtx: ActorContext<TEvent, TSnapshot, any> // TODO: add system typing
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
   getStatus?: (state: TInternalState) => { status: string; data?: any };
   start?: (
     state: TInternalState,
-    actorCtx: ActorContext<TEvent, TSnapshot>
+    actorCtx: ActorContext<TEvent, TSnapshot, any> // TODO: add system typing
   ) => TInternalState;
 }
 
@@ -1909,7 +1916,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? SnapshotFrom<TBehavior>
     : R extends ActorBehavior<infer _, infer TSnapshot>
     ? TSnapshot
-    : R extends ActorContext<infer _, infer TSnapshot>
+    : R extends ActorContext<infer _, infer TSnapshot, infer __>
     ? TSnapshot
     : never
   : never;

@@ -67,7 +67,11 @@ export function invoke<
             type,
             params: {
               ...invokeDef,
-              ref: interpret(behavior, { id, parent: actorContext?.self })
+              ref: interpret(behavior, {
+                id,
+                parent: actorContext?.self,
+                key: invokeDef.key
+              })
             }
           } as InvokeActionObject;
         }
@@ -83,7 +87,7 @@ export function invoke<
 
       resolvedInvokeAction.execute = (actorCtx) => {
         const parent = actorCtx.self as AnyInterpreter;
-        const { id, autoForward, ref, key } = resolvedInvokeAction.params;
+        const { id, autoForward, ref } = resolvedInvokeAction.params;
         if (!ref) {
           if (!IS_PRODUCTION) {
             warn(
@@ -95,9 +99,7 @@ export function invoke<
           }
           return;
         }
-        if (key) {
-          actorCtx.system?.set(key, ref);
-        }
+
         ref._parent = parent; // TODO: fix
         actorCtx.defer(() => {
           if (actorRef.status === ActorStatus.Stopped) {

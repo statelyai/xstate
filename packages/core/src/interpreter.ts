@@ -109,7 +109,8 @@ export class Interpreter<
   // Actor Ref
   public _parent?: ActorRef<any>;
   public ref: ActorRef<TEvent>;
-  private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>>;
+  // TODO: add typings for system
+  private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>, any>;
 
   /**
    * The globally unique process ID for this invocation.
@@ -134,10 +135,14 @@ export class Interpreter<
       ...options
     };
 
-    const { clock, logger, parent, id } = resolvedOptions;
+    const { clock, logger, parent, id, key } = resolvedOptions;
     const self = this;
 
     this.system = parent?.system ?? createSystem();
+
+    if (key) {
+      this.system.set(key, this);
+    }
 
     this.sessionId = this.system.register(this);
     this.id = id ?? this.sessionId;

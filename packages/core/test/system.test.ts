@@ -48,4 +48,13 @@ describe('system', () => {
 
     interpret(machine).start();
   });
+
+  it('system can be accessed outside the actor', () => {
+    const machine = createMachine({});
+    const actor = interpret(machine, { key: 'test' });
+    const system = actor.system;
+    const retrievedActor = system.get('test');
+
+    expect(actor).toBe(retrievedActor);
+  });
 });

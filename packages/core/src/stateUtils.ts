@@ -45,7 +45,7 @@ import { evaluateGuard, toGuardDefinition } from './guards.js';
 import type { StateNode } from './StateNode.js';
 import { isDynamicAction } from '../actions/dynamicAction.js';
 import {
-  ActorContext,
+  AnyActorContext,
   AnyEventObject,
   AnyHistoryValue,
   AnyState,
@@ -1047,7 +1047,7 @@ export function microstep<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
-  actorCtx: ActorContext<any, any> | undefined,
+  actorCtx: AnyActorContext | undefined,
   scxmlEvent: SCXML.Event<TEvent>
 ): State<TContext, TEvent, any> {
   const { machine } = currentState;
@@ -1135,7 +1135,7 @@ function microstepProcedure(
   currentState: AnyState,
   mutConfiguration: Set<AnyStateNode>,
   scxmlEvent: SCXML.Event<AnyEventObject>,
-  actorCtx: ActorContext<any, any> | undefined
+  actorCtx: AnyActorContext | undefined
 ): typeof currentState {
   const { machine } = currentState;
   const actions: BaseActionObject[] = [];
@@ -1498,7 +1498,7 @@ export function resolveActionsAndContext<
   actions: BaseActionObject[],
   scxmlEvent: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any>,
-  actorCtx: ActorContext<any, any> | undefined
+  actorCtx: AnyActorContext | undefined
 ): {
   nextState: AnyState;
 } {
@@ -1572,7 +1572,7 @@ export function resolveActionsAndContext<
 export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
   scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
-  actorCtx: ActorContext<any, any> | undefined
+  actorCtx: AnyActorContext | undefined
 ): {
   state: typeof state;
   microstates: Array<typeof state>;
@@ -1658,7 +1658,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 function stopStep(
   scxmlEvent: SCXML.Event<any>,
   nextState: AnyState,
-  actorCtx: ActorContext<any, any> | undefined
+  actorCtx: AnyActorContext | undefined
 ): AnyState {
   const actions: BaseActionObject[] = [];
 
