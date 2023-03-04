@@ -404,4 +404,29 @@ describe('machine behavior', () => {
       })
     );
   });
+
+  // TODO: make this work
+  it.skip('should invoke an actor even if missing in persisted state', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: createMachine({
+          initial: 'inner',
+          states: { inner: {} }
+        })
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    const persisted = actor.getPersistedState();
+
+    delete persisted?.children['child'];
+
+    const actor2 = interpret(machine, { state: persisted }).start();
+
+    expect(actor2.getSnapshot().children.child.getSnapshot().value).toBe(
+      'inner'
+    );
+  });
 });
