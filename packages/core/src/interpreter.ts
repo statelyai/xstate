@@ -141,7 +141,7 @@ export class Interpreter<
     const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem();
+    this.system = parent?.system ?? createSystem(this);
 
     if (systemId) {
       this._systemId = systemId;
@@ -164,7 +164,14 @@ export class Interpreter<
       defer: (fn) => {
         this._deferred.push(fn);
       },
-      system: this.system
+      system: this.system,
+      stop: (child) => {
+        if (child._parent === this) {
+          child._stop?.();
+        } else {
+          throw new Error('no');
+        }
+      }
     };
 
     // Ensure that the send method is bound to this interpreter instance
@@ -212,7 +219,7 @@ export class Interpreter<
           })
         );
 
-        this._stop();
+        this._stopProcedure();
         break;
       case 'error':
         this._parent?.send(
@@ -324,7 +331,7 @@ export class Interpreter<
       this.update(nextState);
 
       if (event.name === stopSignalType) {
-        this._stop();
+        this._stopProcedure();
       }
     } catch (err) {
       // TODO: properly handle errors
@@ -332,7 +339,7 @@ export class Interpreter<
         this.observers.forEach((observer) => {
           observer.error?.(err);
         });
-        this.stop();
+        this._stop();
       } else {
         throw err;
       }
@@ -342,7 +349,7 @@ export class Interpreter<
   /**
    * Stops the interpreter and unsubscribe all listeners.
    */
-  public stop(): this {
+  public _stop(): this {
     if (this.status === ActorStatus.Stopped) {
       return this;
     }
@@ -361,7 +368,7 @@ export class Interpreter<
     }
     this.observers.clear();
   }
-  private _stop(): this {
+  private _stopProcedure(): this {
     this._complete();
 
     if (this.status !== ActorStatus.Running) {

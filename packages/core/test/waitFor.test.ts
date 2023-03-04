@@ -68,7 +68,7 @@ describe('waitFor', () => {
     ]);
 
     expect(result).toBe('timeout');
-    service.stop();
+    service.system.stop();
   });
 
   it('should throw an error when reaching a final state that does not match the predicate', async () => {

@@ -1768,7 +1768,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   getSnapshot: () => TSnapshot | undefined;
   // TODO: this should return some sort of TPersistedState, not any
   getPersistedState?: () => any;
-  stop?: () => void;
+  _stop?: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
@@ -1867,6 +1867,7 @@ export interface ActorContext<
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
   system: TSystem;
+  stop: (child: AnyActorRef) => void;
 }
 
 export type AnyActorContext = ActorContext<any, any, any>;
@@ -2010,6 +2011,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  stop: () => void;
 }
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,

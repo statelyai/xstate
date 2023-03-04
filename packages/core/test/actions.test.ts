@@ -1161,7 +1161,7 @@ describe('entry/exit actions', () => {
       });
 
       const service = interpret(machine).start();
-      service.stop();
+      service.system.stop();
 
       expect(exitCalled).toBeTruthy();
       expect(childExitCalled).toBeTruthy();
@@ -1185,7 +1185,7 @@ describe('entry/exit actions', () => {
       const service = interpret(machine).start();
 
       flushTracked();
-      service.stop();
+      service.system.stop();
 
       expect(flushTracked()).toEqual([
         'exit: a.a1',
@@ -1217,7 +1217,7 @@ describe('entry/exit actions', () => {
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
       flushTracked();
-      service.stop();
+      service.system.stop();
 
       expect(flushTracked()).toEqual(['exit: a', 'exit: __root__']);
     });
@@ -1256,7 +1256,7 @@ describe('entry/exit actions', () => {
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
       flushTracked();
-      service.stop();
+      service.system.stop();
 
       expect(flushTracked()).toEqual([
         'exit: b.child_b',
@@ -1301,7 +1301,7 @@ describe('entry/exit actions', () => {
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
       flushTracked();
-      service.stop();
+      service.system.stop();
 
       expect(flushTracked()).toEqual([
         'exit: b.child_b',
@@ -1352,7 +1352,7 @@ describe('entry/exit actions', () => {
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
       flushTracked();
-      service.stop();
+      service.system.stop();
 
       expect(flushTracked()).toEqual([
         'exit: b.child_b',
@@ -1372,7 +1372,7 @@ describe('entry/exit actions', () => {
       });
 
       const service = interpret(machine).start();
-      service.stop();
+      service.system.stop();
 
       expect(receivedEvent).toEqual({ type: 'xstate.stop' });
     });
@@ -1424,7 +1424,7 @@ describe('entry/exit actions', () => {
       const interpreter = interpret(parent);
       interpreter.start();
 
-      expect(() => interpreter.stop()).not.toThrow();
+      expect(() => interpreter.system.stop()).not.toThrow();
     });
 
     // TODO: determine if the sendParent action should execute when the child actor is stopped.
@@ -1619,7 +1619,7 @@ describe('entry/exit actions', () => {
       });
 
       const interpreter = interpret(parent).start();
-      interpreter.stop();
+      interpreter.system.stop();
     });
 
     it('should execute referenced custom actions correctly when stopping an interpreter', () => {
@@ -1640,7 +1640,7 @@ describe('entry/exit actions', () => {
       );
 
       const interpreter = interpret(parent).start();
-      interpreter.stop();
+      interpreter.system.stop();
 
       expect(called).toBe(true);
     });
@@ -1668,7 +1668,7 @@ describe('entry/exit actions', () => {
       );
 
       const interpreter = interpret(machine).start();
-      interpreter.stop();
+      interpreter.system.stop();
 
       expect(interpreter.getSnapshot().context.executedAssigns).toEqual([
         'referenced',
@@ -1685,7 +1685,7 @@ describe('entry/exit actions', () => {
               service.send({ type: 'SOME_EVENT' });
               service.send({ type: 'SOME_EVENT' });
               // but also immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
-              service.stop();
+              service.system.stop();
             }
           },
           SOME_EVENT: {
@@ -1716,7 +1716,7 @@ describe('entry/exit actions', () => {
                 actions: [
                   () => {
                     // immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
-                    service.stop();
+                    service.system.stop();
                   },
                   () => {}
                 ]
@@ -1753,7 +1753,7 @@ describe('entry/exit actions', () => {
                 actions: [
                   () => {
                     // immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
-                    service.stop();
+                    service.system.stop();
                   },
                   () => {
                     executedActions.push('foo transition action');

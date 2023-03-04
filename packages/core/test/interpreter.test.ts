@@ -564,7 +564,7 @@ describe('interpreter', () => {
 
       expect(stopActivityState!).toEqual('on');
 
-      stopActivityService.stop();
+      stopActivityService.system.stop();
 
       expect(stopActivityState!).toEqual('off');
     });
@@ -785,7 +785,7 @@ describe('interpreter', () => {
     service.send({ type: 'TIMER' }); // yellow
     expect(service.getSnapshot().value).toEqual('yellow');
 
-    service.stop();
+    service.system.stop();
     try {
       service.send({ type: 'TIMER' }); // red if interpreter is not stopped
     } catch (e) {
@@ -1237,7 +1237,7 @@ describe('interpreter', () => {
 
       const delayedService = interpret(delayedMachine).start();
 
-      delayedService.stop();
+      delayedService.system.stop();
 
       setTimeout(() => {
         expect(called).toBe(false);
@@ -1266,7 +1266,7 @@ describe('interpreter', () => {
 
       const service = interpret(testMachine).start();
 
-      service.stop();
+      service.system.stop();
 
       service.send({ type: 'TRIGGER' });
 
@@ -1285,7 +1285,7 @@ describe('interpreter', () => {
       );
 
       expect(() => {
-        service.stop();
+        service.system.stop();
       }).not.toThrow();
     });
   });
@@ -1535,7 +1535,7 @@ describe('interpreter', () => {
         }
       });
 
-      service.stop();
+      service.system.stop();
 
       expect(completeCb).toHaveBeenCalledTimes(1);
     });

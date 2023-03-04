@@ -1,6 +1,8 @@
 import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.js';
 
-export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
+export function createSystem<T extends ActorSystemInfo>(
+  rootActor: AnyActorRef
+): ActorSystem<T> {
   let sessionIdCounter = 0;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
@@ -34,6 +36,9 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
 
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
+    },
+    stop: () => {
+      rootActor._stop?.();
     }
   };
 
