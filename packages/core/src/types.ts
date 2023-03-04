@@ -1894,6 +1894,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   sessionId: string;
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
+  input: any; // TODO: add types
 }
 
 export interface ActorBehavior<

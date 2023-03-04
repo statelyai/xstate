@@ -1,5 +1,6 @@
 import { assign, interpret } from '../src';
 import { createMachine } from '../src/Machine';
+import { fromPromise } from '../src/actors';
 
 describe('input', () => {
   it('should create a machine with input', () => {
@@ -102,5 +103,17 @@ describe('input', () => {
     });
 
     interpret(machine).start();
+  });
+
+  it('should create a promise with input', async () => {
+    const promiseBehavior = fromPromise(({ input }) => Promise.resolve(input));
+
+    const promiseActor = interpret(promiseBehavior, {
+      input: { count: 42 }
+    }).start();
+
+    await new Promise((res) => setTimeout(res, 5));
+
+    expect(promiseActor.getSnapshot()).toEqual({ count: 42 });
   });
 });

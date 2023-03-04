@@ -157,7 +157,8 @@ export class Interpreter<
       logger: this.logger,
       defer: (fn) => {
         this._deferred.push(fn);
-      }
+      },
+      input: options?.input
     };
 
     // Ensure that the send method is bound to this interpreter instance
