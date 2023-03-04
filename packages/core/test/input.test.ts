@@ -1,6 +1,6 @@
 import { assign, interpret } from '../src';
 import { createMachine } from '../src/Machine';
-import { fromPromise } from '../src/actors';
+import { fromPromise, fromReducer } from '../src/actors';
 
 describe('input', () => {
   it('should create a machine with input', () => {
@@ -115,5 +115,18 @@ describe('input', () => {
     await new Promise((res) => setTimeout(res, 5));
 
     expect(promiseActor.getSnapshot()).toEqual({ count: 42 });
+  });
+
+  it('should create a reducer with input', () => {
+    const reducerBehavior = fromReducer(
+      (state) => state,
+      ({ input }) => input
+    );
+
+    const reducerActor = interpret(reducerBehavior, {
+      input: { count: 42 }
+    }).start();
+
+    expect(reducerActor.getSnapshot()).toEqual({ count: 42 });
   });
 });

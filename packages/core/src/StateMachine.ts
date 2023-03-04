@@ -378,13 +378,9 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx?: ActorContext<
-      TEvent,
-      State<TContext, TEvent, TResolvedTypesMeta>
-    >,
-    // TODO: input should not be optional when it's required
-    input?: any
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const input = actorCtx?.input;
     const initEvent = createInitEvent(input) as unknown as SCXML.Event<TEvent>; // TODO: fix;
 
     const preInitialState = this.getPreInitialState(actorCtx, input);

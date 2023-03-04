@@ -15,7 +15,7 @@ export function fromReducer<TState, TEvent extends EventObject>(
     event: TEvent,
     actorContext: ActorContext<TEvent, TState>
   ) => TState,
-  initialState: TState
+  initialState: TState | (({ input: any }) => TState) // TODO: type
 ): ActorBehavior<TEvent, TState, TState> {
   const behavior: ActorBehavior<TEvent, TState, TState, TState> = {
     transition: (state, event, actorCtx) => {
@@ -24,7 +24,8 @@ export function fromReducer<TState, TEvent extends EventObject>(
       // @ts-ignore TODO
       return transition(state, resolvedEvent, actorCtx);
     },
-    getInitialState: () => initialState,
+    getInitialState:
+      typeof initialState === 'function' ? initialState : () => initialState,
     getSnapshot: (state) => state,
     getPersistedState: (state) => state,
     restoreState: (state) => state

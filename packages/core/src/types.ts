@@ -1912,8 +1912,7 @@ export interface ActorBehavior<
     ctx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot>,
-    input?: any
+    actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   restoreState?: (
     persistedState: TPersisted,
