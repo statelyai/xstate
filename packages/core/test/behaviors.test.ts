@@ -113,6 +113,60 @@ describe('promise behavior (fromPromise)', () => {
       done();
     }, 5);
   });
+
+  it('should not invoke a resolved promise again', async () => {
+    let createdPromises = 0;
+    const promiseBehavior = fromPromise(() => {
+      createdPromises++;
+      return Promise.resolve(createdPromises);
+    });
+    const actor = interpret(promiseBehavior);
+    actor.start();
+
+    await new Promise((res) => setTimeout(res, 5));
+
+    const resolvedPersistedState = actor.getPersistedState();
+    expect(resolvedPersistedState).toEqual(
+      expect.objectContaining({
+        data: 1
+      })
+    );
+    expect(createdPromises).toBe(1);
+
+    const restoredActor = interpret(promiseBehavior, {
+      state: resolvedPersistedState
+    }).start();
+
+    expect(restoredActor.getSnapshot()).toBe(1);
+    expect(createdPromises).toBe(1);
+  });
+
+  it('should not invoke a rejected promise again', async () => {
+    let createdPromises = 0;
+    const promiseBehavior = fromPromise(() => {
+      createdPromises++;
+      return Promise.reject(createdPromises);
+    });
+    const actor = interpret(promiseBehavior);
+    actor.start();
+
+    await new Promise((res) => setTimeout(res, 5));
+
+    const rejectedPersistedState = actor.getPersistedState();
+    expect(rejectedPersistedState).toEqual(
+      expect.objectContaining({
+        data: 1
+      })
+    );
+    expect(createdPromises).toBe(1);
+
+    const restoredActor = interpret(promiseBehavior, {
+      state: rejectedPersistedState
+    }).start();
+
+    expect(restoredActor.getSnapshot()).toBe(1);
+    expect(createdPromises).toBe(1);
+  });
 });
 
 describe('reducer behavior (fromReducer)', () => {
