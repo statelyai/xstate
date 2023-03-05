@@ -30,7 +30,7 @@ describe('types', () => {
     });
   });
 
-  it('`eventCases` should allow known event', () => {
+  it('`events` should allow known event', () => {
     const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
 
     getMachineShortestPaths(machine, {
@@ -43,7 +43,7 @@ describe('types', () => {
     });
   });
 
-  it('`eventCases` should not require all event types', () => {
+  it('`events` should not require all event types', () => {
     const machine = createMachine<
       unknown,
       { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
@@ -54,7 +54,7 @@ describe('types', () => {
     });
   });
 
-  it('`eventCases` should not allow unknown events', () => {
+  it('`events` should not allow unknown events', () => {
     const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
 
     getMachineShortestPaths(machine, {
@@ -68,7 +68,7 @@ describe('types', () => {
     });
   });
 
-  it('`eventCases` should only allow props of a specific event', () => {
+  it('`events` should only allow props of a specific event', () => {
     const machine = createMachine<
       unknown,
       { type: 'FOO'; value: number } | { type: 'BAR'; other: string }
