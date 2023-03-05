@@ -182,7 +182,7 @@ describe('useMachine hook', () => {
     });
 
     const Test = () => {
-      const [state] = useMachine(testMachine, { context: { test: true } });
+      const [state] = useMachine(testMachine.withContext({ test: true }));
 
       expect(state.context).toEqual({
         foo: 'bar',

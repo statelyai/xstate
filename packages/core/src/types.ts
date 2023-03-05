@@ -1642,7 +1642,7 @@ export interface InterpreterOptions<TActorBehavior extends AnyActorBehavior> {
 
   sync?: boolean;
 
-  state?: PersistedFrom<TActorBehavior>;
+  state?: PersistedFrom<TActorBehavior> | InternalStateFrom<TActorBehavior>;
 
   /**
    * The source definition.
@@ -1937,6 +1937,16 @@ export type PersistedFrom<TBehavior extends ActorBehavior<any, any>> =
     infer TPersisted
   >
     ? TPersisted
+    : never;
+
+export type InternalStateFrom<TBehavior extends ActorBehavior<any, any>> =
+  TBehavior extends ActorBehavior<
+    infer _TEvent,
+    infer _TSnapshot,
+    infer TInternalState,
+    infer _TPersisted
+  >
+    ? TInternalState
     : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
