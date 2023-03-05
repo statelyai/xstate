@@ -5,7 +5,7 @@ import type {
   ActorBehavior,
   EventFromBehavior,
   InterpreterFrom,
-  PersistedFrom,
+  PersistedStateFrom,
   SnapshotFrom,
   AnyActorBehavior,
   RaiseActionObject,
@@ -500,7 +500,7 @@ export class Interpreter<
     };
   }
 
-  public getPersistedState(): PersistedFrom<TBehavior> | undefined {
+  public getPersistedState(): PersistedStateFrom<TBehavior> | undefined {
     return this.behavior.getPersistedState?.(
       this._state ?? this._getInitialState()
     );
