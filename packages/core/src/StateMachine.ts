@@ -25,7 +25,6 @@ import type {
 import type {
   ActorContext,
   ActorMap,
-  AnyActorRef,
   AnyStateMachine,
   BaseActionObject,
   ActorBehavior,
@@ -44,11 +43,9 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState,
-  AnyActorBehavior
+  PersistedMachineState
 } from './types.js';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
-import { invoke } from './actions/invoke.js';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -394,7 +391,7 @@ export class StateMachine<
           child.start?.();
         } catch (err) {
           // TODO: unify error handling when child starts
-          actorCtx.self.send(error(child.id, err));
+          actorCtx.self.send(error(child.id, err) as unknown as TEvent);
         }
       }
     });
@@ -502,7 +499,7 @@ export class StateMachine<
 
       restoredState = this.createState(new State({ ...state, children }, this));
     } else {
-      restoredState = this.createState({ ...state });
+      restoredState = this.createState(state);
     }
 
     return restoredState;

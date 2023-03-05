@@ -317,7 +317,7 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = ActorStatus.Running;
 
-    let resolvedState = this._state ?? this._getInitialState();
+    let resolvedState = this._getInitialState();
 
     if (this.behavior.start) {
       this.behavior.start(resolvedState, this._actorContext);
