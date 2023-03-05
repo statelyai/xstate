@@ -148,7 +148,7 @@ describe('machine', () => {
         guards: { someCondition: () => true }
       });
 
-      expect(differentMachine.context).toEqual({ foo: 'bar' });
+      expect(differentMachine.getContext()).toEqual({ foo: 'bar' });
 
       const service = interpret(differentMachine);
 
@@ -165,7 +165,7 @@ describe('machine', () => {
       const differentMachine = configMachine.provide({});
 
       expect(differentMachine.initialState.context).toEqual(
-        configMachine.context
+        configMachine.getContext()
       );
     });
 

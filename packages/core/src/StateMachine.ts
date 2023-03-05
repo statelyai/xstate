@@ -100,8 +100,8 @@ export class StateMachine<
     input: any; // TODO: fix types
   }) => TContext;
   // TODO: this getter should be removed
-  public get context(): TContext {
-    return this.getContextAndActions({} as any)[0];
+  public getContext(input?: any): TContext {
+    return this.getContextAndActions(input)[0];
   }
   private getContextAndActions(
     input: any,
@@ -262,7 +262,7 @@ export class StateMachine<
     stateValue: StateValue
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const resolvedStateValue = resolveStateValue(this.root, stateValue);
-    const resolvedContext = this.context;
+    const resolvedContext = this.getContext();
 
     return this.resolveState(
       State.from(resolvedStateValue, resolvedContext, this)
@@ -427,7 +427,7 @@ export class StateMachine<
 
   public get definition(): StateMachineDefinition<TContext, TEvent> {
     return {
-      context: this.context,
+      context: this.getContext(),
       ...this.root.definition
     };
   }
