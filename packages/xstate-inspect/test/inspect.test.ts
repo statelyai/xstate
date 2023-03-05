@@ -340,4 +340,23 @@ describe('@xstate/inspect', () => {
         .filter((message: any) => message.type === 'service.event')
     ).toHaveLength(1);
   });
+
+  it('browser inspector should use targetWindow if provided', () => {
+    const windowMock = jest.fn() as unknown as Window;
+    const windowSpy = jest.spyOn(window, 'open');
+    windowSpy.mockImplementation(() => windowMock);
+
+    const localWindowMock = jest.fn() as unknown as Window;
+    const devTools = createDevTools();
+
+    inspect({
+      devTools,
+      iframe: undefined,
+      targetWindow: localWindowMock
+    });
+
+    expect(windowSpy).not.toHaveBeenCalled();
+
+    windowSpy.mockRestore();
+  });
 });
