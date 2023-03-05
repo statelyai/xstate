@@ -21,12 +21,12 @@ export function createSpawner<
   _event: SCXML.Event<TEvent>,
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
-  return (behavior, { name, input } = {}) => {
+  return (behavior, { id, input } = {}) => {
     if (isString(behavior)) {
       const behaviorCreator = machine.options.actors[behavior];
 
       if (behaviorCreator) {
-        const resolvedName = name ?? 'anon'; // TODO: better name
+        const resolvedName = id ?? 'anon'; // TODO: better name
         const createdBehavior =
           typeof behaviorCreator === 'function'
             ? behaviorCreator(context, _event.data, {
@@ -66,7 +66,7 @@ export function createSpawner<
       // TODO: this should also receive `src`
       // TODO: instead of anonymous, it should be a unique stable ID
       const actorRef = interpret(behavior, {
-        id: name || 'anonymous',
+        id: id || 'anonymous',
         parent: self,
         input
       });

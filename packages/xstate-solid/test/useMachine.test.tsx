@@ -208,7 +208,7 @@ describe('useMachine hook', () => {
             ref: (_, __, { spawn }) =>
               spawn(
                 fromPromise(() => new Promise((res) => res(42))),
-                'my-promise'
+                { id: 'my-promise' }
               )
           }),
           on: {

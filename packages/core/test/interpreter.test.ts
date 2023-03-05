@@ -1756,7 +1756,7 @@ describe('interpreter', () => {
         context: {},
         entry: assign({
           firstNameRef: (_, __, { spawn }) =>
-            spawn(childMachine, { name: 'child' })
+            spawn(childMachine, { id: 'child' })
         }),
         states: {
           idle: {}

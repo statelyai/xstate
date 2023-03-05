@@ -491,7 +491,7 @@ export class StateMachine<
               src: src!,
               _event: state._event,
               meta: {},
-              input: undefined // TODO: add input
+              input: actorData.input
             })
           : behaviorImpl;
 

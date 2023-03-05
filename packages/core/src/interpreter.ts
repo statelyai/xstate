@@ -122,6 +122,7 @@ export class Interpreter<
   private _doneEvent?: DoneEvent;
 
   public src?: InvokeSourceDefinition;
+  public input?: any;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
@@ -149,6 +150,7 @@ export class Interpreter<
     this._parent = parent;
     this.options = resolvedOptions;
     this.src = resolvedOptions.src;
+    this.input = resolvedOptions.input;
     this.ref = this;
     this._actorContext = {
       self,

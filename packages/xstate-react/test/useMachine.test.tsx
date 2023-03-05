@@ -203,7 +203,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
                 fromPromise(() => {
                   return new Promise((res) => res(42));
                 }),
-                { name: 'my-promise' }
+                { id: 'my-promise' }
               )
           }),
           on: {
