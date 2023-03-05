@@ -1,4 +1,4 @@
-import { EventFrom, assign, createMachine } from 'xstate';
+import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
