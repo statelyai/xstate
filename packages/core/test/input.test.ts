@@ -1,6 +1,12 @@
+import { of } from 'rxjs';
 import { assign, interpret } from '../src';
 import { createMachine } from '../src/Machine';
-import { fromPromise, fromReducer } from '../src/actors';
+import {
+  fromCallback,
+  fromObservable,
+  fromPromise,
+  fromReducer
+} from '../src/actors';
 
 describe('input', () => {
   it('should create a machine with input', () => {
@@ -117,7 +123,7 @@ describe('input', () => {
     expect(promiseActor.getSnapshot()).toEqual({ count: 42 });
   });
 
-  it('should create a reducer with input', () => {
+  it('should create a reducer actor with input', () => {
     const reducerBehavior = fromReducer(
       (state) => state,
       ({ input }) => input
@@ -128,5 +134,29 @@ describe('input', () => {
     }).start();
 
     expect(reducerActor.getSnapshot()).toEqual({ count: 42 });
+  });
+
+  it('should create an observable actor with input', (done) => {
+    const observableBehavior = fromObservable(({ input }) => of(input));
+
+    const observableActor = interpret(observableBehavior, {
+      input: { count: 42 }
+    }).start();
+
+    observableActor.subscribe((state) => {
+      expect(state).toEqual({ count: 42 });
+      done();
+    });
+  });
+
+  it('should create a callback actor with input', (done) => {
+    const callbackBehavior = fromCallback((_sendBack, _receive, { input }) => {
+      expect(input).toEqual({ count: 42 });
+      done();
+    });
+
+    interpret(callbackBehavior, {
+      input: { count: 42 }
+    }).start();
   });
 });

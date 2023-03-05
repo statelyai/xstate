@@ -360,8 +360,9 @@ export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject
 > = (
-  callback: (event: TSentEvent) => void,
-  onReceive: Receiver<TEvent>
+  sendBack: (event: TSentEvent) => void,
+  onReceive: Receiver<TEvent>,
+  actorContext: ActorContext<TEvent, undefined>
 ) => (() => void) | Promise<any> | void;
 
 export type ActorBehaviorCreator<

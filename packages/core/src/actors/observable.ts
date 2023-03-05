@@ -3,7 +3,8 @@ import {
   Lazy,
   ActorBehavior,
   EventObject,
-  Subscription
+  Subscription,
+  ActorContext
 } from '../types';
 import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
@@ -21,7 +22,7 @@ export type ObservablePersistedState<T> = Omit<
 >;
 
 export function fromObservable<T, TEvent extends EventObject>(
-  lazyObservable: Lazy<Subscribable<T>>
+  observableCreator: (actorCtx: ActorContext<TEvent, any>) => Subscribable<T>
 ): ActorBehavior<
   TEvent,
   T | undefined,
@@ -86,13 +87,13 @@ export function fromObservable<T, TEvent extends EventObject>(
         data: undefined
       };
     },
-    start: (state, { self }) => {
+    start: (state, actorContext) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
       }
-
-      state.subscription = lazyObservable().subscribe({
+      const { self } = actorContext;
+      state.subscription = observableCreator(actorContext).subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
         },

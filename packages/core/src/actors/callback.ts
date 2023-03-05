@@ -27,7 +27,8 @@ export function fromCallback<TEvent extends EventObject>(
     start: (_state, actorCtx) => {
       actorCtx.self.send({ type: startSignalType } as TEvent);
     },
-    transition: (state, event, { self, id }) => {
+    transition: (state, event, actorCtx) => {
+      const { self, id } = actorCtx;
       const _event = toSCXMLEvent(event);
 
       if (_event.name === startSignalType) {
@@ -43,7 +44,7 @@ export function fromCallback<TEvent extends EventObject>(
           state.receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback(sender, receiver);
+        state.dispose = invokeCallback(sender, receiver, actorCtx);
 
         if (isPromiseLike(state.dispose)) {
           state.dispose.then(
