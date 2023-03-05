@@ -8,7 +8,8 @@ import type {
   PersistedFrom,
   SnapshotFrom,
   AnyActorBehavior,
-  RaiseActionObject
+  RaiseActionObject,
+  InvokeSourceDefinition
 } from './types.js';
 import { stopSignalType } from './actors/index.js';
 import { devToolsAdapter } from './dev/index.js';
@@ -122,6 +123,8 @@ export class Interpreter<
   private _initialState: any;
   private _doneEvent?: DoneEvent;
 
+  public src?: InvokeSourceDefinition;
+
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
@@ -147,6 +150,7 @@ export class Interpreter<
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
+    this.src = resolvedOptions.src;
     this.ref = this;
     this._actorContext = {
       self,

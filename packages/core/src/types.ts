@@ -1643,6 +1643,11 @@ export interface InterpreterOptions<TActorBehavior extends AnyActorBehavior> {
   sync?: boolean;
 
   state?: PersistedFrom<TActorBehavior>;
+
+  /**
+   * The source definition.
+   */
+  src?: InvokeSourceDefinition;
 }
 
 export type AnyInterpreter = Interpreter<any>;
