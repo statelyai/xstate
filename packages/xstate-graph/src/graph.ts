@@ -26,7 +26,7 @@ export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
 ): TEvent {
   if (typeof event === 'string' || typeof event === 'number') {
-    return ({ type: event } as unknown) as TEvent;
+    return { type: event } as unknown as TEvent;
   }
 
   return event;
@@ -75,17 +75,36 @@ export function serializeEvent<TEvent extends EventObject>(
 }
 
 export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
-  machine: TMachine
+  machine: TMachine,
+  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
 ): TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>> {
-  return {
+  const { events: getEvents, ...otherOptions } = options ?? {};
+  const traversalOptions: TraversalOptions<
+    StateFrom<TMachine>,
+    EventFrom<TMachine>
+  > = {
     serializeState: serializeMachineState,
     serializeEvent,
-    eventCases: {},
-    getEvents: (state) => {
-      return state.nextEvents.map((type) => ({ type })) as EventFrom<TMachine>;
+    events: (state) => {
+      const events =
+        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+      return flatten(
+        state.nextEvents.map((type) => {
+          const matchingEvents = events.filter(
+            (ev) => (ev as any).type === type
+          );
+          if (matchingEvents.length) {
+            return matchingEvents;
+          }
+          return [{ type }];
+        })
+      ) as any[];
     },
-    fromState: machine.initialState as StateFrom<TMachine>
+    fromState: machine.initialState as StateFrom<TMachine>,
+    ...otherOptions
   };
+
+  return traversalOptions;
 }
 
 export function createDefaultBehaviorOptions<
@@ -93,8 +112,7 @@ export function createDefaultBehaviorOptions<
 >(_behavior: TBehavior): TraversalOptions<any, any> {
   return {
     serializeState: (state) => JSON.stringify(state),
-    serializeEvent,
-    eventCases: {}
+    serializeEvent
   };
 }
 
@@ -163,12 +181,11 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     traversalOptions?.serializeState ??
     defaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
-  return {
+  const traversalConfig: TraversalConfig<TState, TEvent> = {
     serializeState,
     serializeEvent,
     filter: () => true,
-    eventCases: {},
-    getEvents: () => [],
+    events: [],
     traversalLimit: Infinity,
     fromState: undefined,
     toState: undefined,
@@ -178,6 +195,8 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     ...defaultOptions,
     ...traversalOptions
   };
+
+  return traversalConfig;
 }
 
 export function joinPaths<TState, TEvent extends EventObject>(

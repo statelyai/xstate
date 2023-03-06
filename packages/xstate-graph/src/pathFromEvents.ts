@@ -24,9 +24,7 @@ export function getPathsFromEvents<
 ): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions<TState, TEvent>(
     {
-      getEvents: () => {
-        return events;
-      },
+      events,
       ...options
     },
     isMachine(behavior)
@@ -58,9 +56,8 @@ export function getPathsFromEvents<
     });
 
     const eventSerial = serializeEvent(event);
-    const { state: nextState, event: _nextEvent } = adjacency[
-      stateSerial
-    ].transitions[eventSerial];
+    const { state: nextState, event: _nextEvent } =
+      adjacency[stateSerial].transitions[eventSerial];
 
     if (!nextState) {
       throw new Error(

@@ -26,9 +26,7 @@ function getPathsSnapshot(
   return paths.map((path) => getPathSnapshot(path));
 }
 
-function getPathSnapshot(
-  path: StatePath<any, any>
-): {
+function getPathSnapshot(path: StatePath<any, any>): {
   state: StateValue;
   steps: Array<{ state: StateValue; eventType: string }>;
 } {
@@ -248,16 +246,15 @@ describe('@xstate/graph', () => {
       });
 
       const paths = getMachineShortestPaths(machine, {
-        getEvents: () =>
-          [
-            {
-              type: 'EVENT',
-              id: 'whatever'
-            },
-            {
-              type: 'STATE'
-            }
-          ] as const
+        events: [
+          {
+            type: 'EVENT',
+            id: 'whatever'
+          },
+          {
+            type: 'STATE'
+          }
+        ]
       });
 
       expect(getPathsSnapshot(paths)).toMatchSnapshot(
@@ -418,7 +415,7 @@ describe('@xstate/graph', () => {
       });
 
       const paths = getMachineSimplePaths(countMachine, {
-        getEvents: () => [{ type: 'INC', value: 1 }] as const
+        events: [{ type: 'INC', value: 1 } as const]
       });
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
@@ -515,7 +512,7 @@ it('simple paths for reducers', () => {
       initialState: 0
     },
     {
-      getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
+      events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
       serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
     }
   );
@@ -541,7 +538,7 @@ it('shortest paths for reducers', () => {
       initialState: 0 as number
     },
     {
-      getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
+      events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
       serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
     }
   );
@@ -568,7 +565,7 @@ describe('filtering', () => {
     });
 
     const sp = getMachineShortestPaths(machine, {
-      getEvents: () => [{ type: 'INC' }],
+      events: [{ type: 'INC' }],
       filter: (s) => s.context.count < 5
     });
 
