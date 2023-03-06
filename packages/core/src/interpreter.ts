@@ -144,7 +144,7 @@ export class Interpreter<
       this.system.set(key, this);
     }
 
-    this.sessionId = this.system.register(this);
+    this.sessionId = this.system._register(this);
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
@@ -406,7 +406,7 @@ export class Interpreter<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = ActorStatus.Stopped;
-    this.system.unregister(this);
+    this.system._unregister(this);
 
     return this;
   }

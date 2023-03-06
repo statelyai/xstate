@@ -1986,8 +1986,8 @@ export interface ActorSystemInfo {
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
-  register: (actorRef: AnyActorRef) => string;
-  unregister: (actorRef: AnyActorRef) => void;
+  _register: (actorRef: AnyActorRef) => string;
+  _unregister: (actorRef: AnyActorRef) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
 }

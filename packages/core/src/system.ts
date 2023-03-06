@@ -7,12 +7,12 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
 
   const system: ActorSystem<T> = {
-    register: (actorRef) => {
+    _register: (actorRef) => {
       const id = `x:${sessionIdIndex++}`;
       children.set(id, actorRef);
       return id;
     },
-    unregister: (actorRef) => {
+    _unregister: (actorRef) => {
       children.delete(actorRef.id);
       const key = reverseKeyedActors.get(actorRef);
 
