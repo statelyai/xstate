@@ -23,7 +23,7 @@ export function createService<TMachine extends AnyStateMachine>(
 
   if (!isServer) {
     service.start();
-    onCleanup(() => service.stop());
+    onCleanup(() => service.system.stop());
   }
 
   return service as unknown as InterpreterFrom<TMachine>;

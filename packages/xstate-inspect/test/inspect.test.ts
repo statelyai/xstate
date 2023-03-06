@@ -338,7 +338,7 @@ describe('@xstate/inspect', () => {
     const service = interpret(machine).start();
     devTools.register(service);
 
-    service.stop();
+    service.system.stop();
     service.start();
     devTools.register(service);
 

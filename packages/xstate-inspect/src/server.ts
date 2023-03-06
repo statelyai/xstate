@@ -141,13 +141,13 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     },
     disconnect: () => {
       server.close();
-      inspectService.stop();
+      inspectService.system.stop();
     },
     getSnapshot: () => undefined
   });
 
   server.on('close', () => {
-    inspectService.stop();
+    inspectService.system.stop();
     server.clients.forEach((client) => client.terminate());
   });
 

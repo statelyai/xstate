@@ -60,7 +60,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const service = interpret(resolvedMachine, interpreterOptions).start();
 
-  onDestroy(() => service.stop());
+  onDestroy(() => service.system.stop());
 
   const state = readable(service.getSnapshot(), (set) => {
     return service.subscribe((state) => {

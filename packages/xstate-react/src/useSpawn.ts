@@ -20,7 +20,7 @@ export function useSpawn<TState, TEvent extends EventObject>(
   useEffect(() => {
     actorRef.start?.();
     return () => {
-      actorRef!.stop?.();
+      actorRef!.system.stop?.();
     };
   }, []);
 

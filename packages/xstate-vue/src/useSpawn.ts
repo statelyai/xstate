@@ -15,7 +15,7 @@ export function useSpawn<TState, TEvent extends EventObject>(
 
   actorRef.start?.();
   onBeforeUnmount(() => {
-    actorRef.stop?.();
+    actorRef.system.stop?.();
   });
 
   return actorRef;
