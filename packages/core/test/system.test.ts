@@ -57,4 +57,30 @@ describe('system', () => {
 
     expect(actor).toBe(retrievedActor);
   });
+
+  it('should remove actor from receptionist if stopped', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            src: createMachine({}),
+            key: 'test'
+          },
+          on: {
+            toggle: 'inactive'
+          }
+        },
+        inactive: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.system.get('test')).toBeDefined();
+
+    actor.send({ type: 'toggle' });
+
+    expect(actor.system.get('test')).toBeUndefined();
+  });
 });
