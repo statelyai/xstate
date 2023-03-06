@@ -1606,7 +1606,7 @@ export interface StateConfig<
   _internalQueue?: Array<SCXML.Event<TEvent>>;
 }
 
-export interface InterpreterOptions<TActorBehavior extends AnyActorBehavior> {
+export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
@@ -1642,9 +1642,10 @@ export interface InterpreterOptions<TActorBehavior extends AnyActorBehavior> {
 
   sync?: boolean;
 
-  state?:
-    | PersistedStateFrom<TActorBehavior>
-    | InternalStateFrom<TActorBehavior>;
+  // state?:
+  //   | PersistedStateFrom<TActorBehavior>
+  //   | InternalStateFrom<TActorBehavior>;
+  state?: any;
 
   /**
    * The source definition.
