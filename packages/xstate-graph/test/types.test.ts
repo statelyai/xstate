@@ -43,7 +43,7 @@ describe('types', () => {
     });
   });
 
-  it('`events` should not require all event types', () => {
+  it('`events` should not require all event types (array literal expression)', () => {
     const machine = createMachine<
       unknown,
       { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
@@ -51,6 +51,19 @@ describe('types', () => {
 
     getMachineShortestPaths(machine, {
       events: [{ type: 'FOO', value: 100 }]
+    });
+  });
+
+  it('`events` should not require all event types (tuple)', () => {
+    const machine = createMachine<
+      unknown,
+      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
+    >({});
+
+    const events = [{ type: 'FOO', value: 100 }] as const;
+
+    getMachineShortestPaths(machine, {
+      events
     });
   });
 
