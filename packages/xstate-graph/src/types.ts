@@ -169,7 +169,7 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * `event` when building the adjacency map.
    */
   filter: (state: TState, event: TEvent) => boolean;
-  events: TEvent[] | ((state: TState) => TEvent[]);
+  events: readonly TEvent[] | ((state: TState) => readonly TEvent[]);
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.

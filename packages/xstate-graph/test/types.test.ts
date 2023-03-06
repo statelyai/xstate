@@ -54,6 +54,17 @@ describe('types', () => {
     });
   });
 
+  it('`events` should not require all event types (function)', () => {
+    const machine = createMachine<
+      unknown,
+      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
+    >({});
+
+    getMachineShortestPaths(machine, {
+      events: () => [{ type: 'FOO', value: 100 }] as const
+    });
+  });
+
   it('`events` should not allow unknown events', () => {
     const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
 
