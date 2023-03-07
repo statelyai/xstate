@@ -453,7 +453,7 @@ export class StateMachine<
   }
 
   public restoreState(
-    state: PersistedMachineState<any>,
+    state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
     _actorCtx?: ActorContext<
       TEvent,
       State<TContext, TEvent, TResolvedTypesMeta>
