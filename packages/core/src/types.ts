@@ -59,13 +59,16 @@ export interface AnyEventObject extends EventObject {
   [key: string]: any;
 }
 
-export interface BaseActionObject {
+export interface ParameterizedObject {
   type: string;
   params?: Record<string, any>;
+}
+
+export interface BaseActionObject extends ParameterizedObject {
   execute?: (actorCtx: ActorContext<any, any>) => void;
 }
 
-export interface BuiltInActionObject {
+export interface BuiltInActionObject extends ParameterizedObject {
   type: `xstate.${string}`;
   params: Record<string, any>;
 }
@@ -226,9 +229,7 @@ export type GuardPredicate<
 export interface DefaultGuardObject<
   TContext extends MachineContext,
   TEvent extends EventObject
-> {
-  type: string;
-  params?: { [key: string]: any };
+> extends ParameterizedObject {
   /**
    * Nested guards
    */
@@ -278,7 +279,7 @@ export interface GuardDefinition<
 export interface BooleanGuardObject<
   TContext extends MachineContext,
   TEvent extends EventObject
-> {
+> extends ParameterizedObject {
   type: 'xstate.boolean';
   children: Array<GuardConfig<TContext, TEvent>>;
   params: {
@@ -1512,52 +1513,6 @@ export interface Segment<
    * Event from state.
    */
   event: TEvent;
-}
-
-export interface PathItem<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  state: State<TContext, TEvent>;
-  path: Array<Segment<TContext, TEvent>>;
-  weight?: number;
-}
-
-export interface PathMap<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  [key: string]: PathItem<TContext, TEvent>;
-}
-
-export interface PathsItem<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  state: State<TContext, TEvent>;
-  paths: Array<Array<Segment<TContext, TEvent>>>;
-}
-
-export interface PathsMap<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  [key: string]: PathsItem<TContext, TEvent>;
-}
-
-export interface TransitionMap {
-  state: StateValue | undefined;
-}
-
-export interface AdjacencyMap {
-  [stateId: string]: Record<string, TransitionMap>;
-}
-
-export interface ValueAdjacencyMap<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  [stateId: string]: Record<string, State<TContext, TEvent>>;
 }
 
 export interface SCXMLEventMeta<TEvent extends EventObject> {

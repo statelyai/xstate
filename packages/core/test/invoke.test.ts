@@ -2895,6 +2895,7 @@ describe('invoke', () => {
         states: {
           searching: {
             invoke: {
+              // TODO: refactor this to use input instead of src
               src: {
                 type: 'search',
                 endpoint: 'example.com'
