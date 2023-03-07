@@ -459,7 +459,6 @@ export class StateMachine<
       State<TContext, TEvent, TResolvedTypesMeta>
     >
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const self = this;
     let restoredState;
 
     const children = {};
@@ -470,7 +469,7 @@ export class StateMachine<
         const childState = actorData.state;
         const src = actorData.src;
 
-        const behaviorImpl = src ? self.options.actors[src.type] : undefined;
+        const behaviorImpl = src ? this.options.actors[src.type] : undefined;
 
         if (!behaviorImpl) {
           return;
