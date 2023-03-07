@@ -150,6 +150,7 @@ describe('predictableExec', () => {
           entry: raise({ type: 'RAISED' })
         },
         c: {
+          // TODO: fix this
           invoke: {
             src: (_ctx, ev) => {
               eventArg = ev;

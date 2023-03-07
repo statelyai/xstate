@@ -13,19 +13,18 @@ const machine = createMachine({
   initial: 'inactive',
   invoke: {
     id: 'ponger',
-    src: () =>
-      fromCallback((cb, receive) => {
-        receive((event) => {
-          if (event.type === 'PING') {
-            cb(
-              toSCXMLEvent({
-                type: 'PONG',
-                arr: [1, 2, 3]
-              })
-            );
-          }
-        });
-      })
+    src: fromCallback((cb, receive) => {
+      receive((event) => {
+        if (event.type === 'PING') {
+          cb(
+            toSCXMLEvent({
+              type: 'PONG',
+              arr: [1, 2, 3]
+            })
+          );
+        }
+      });
+    })
   },
   states: {
     inactive: {

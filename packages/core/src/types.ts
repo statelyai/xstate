@@ -375,7 +375,7 @@ export type ActorBehaviorCreator<
   meta: {
     id: string;
     data?: any;
-    src: InvokeSourceDefinition;
+    src: string;
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
     input: any;
@@ -384,7 +384,7 @@ export type ActorBehaviorCreator<
 
 export interface InvokeMeta {
   data: any;
-  src: InvokeSourceDefinition;
+  src: string;
   meta: MetaObject | undefined;
 }
 
@@ -396,7 +396,7 @@ export interface InvokeDefinition<
   /**
    * The source of the actor's behavior to be invoked
    */
-  src: InvokeSourceDefinition;
+  src: string;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -525,11 +525,6 @@ export type TransitionsConfig<
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
-export interface InvokeSourceDefinition {
-  [key: string]: any;
-  type: string;
-}
-
 export interface InvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -542,7 +537,7 @@ export interface InvokeConfig<
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | InvokeSourceDefinition | ActorBehavior<any, any>; // TODO: fix types
+  src: string | ActorBehavior<any, any>; // TODO: fix types
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -1157,7 +1152,7 @@ export type DoneEvent = DoneEventObject & string;
 
 export interface InvokeAction {
   type: ActionTypes.Invoke;
-  src: InvokeSourceDefinition | ActorRef<any>;
+  src: string | ActorRef<any>;
   id: string;
   autoForward?: boolean;
   data?: any;
@@ -1176,7 +1171,7 @@ export interface DynamicInvokeActionObject<
 export interface InvokeActionObject extends BaseActionObject {
   type: ActionTypes.Invoke;
   params: {
-    src: InvokeSourceDefinition | ActorRef<any>;
+    src: string | ActorRef<any>;
     id: string;
     autoForward?: boolean;
     data?: any;
@@ -1661,7 +1656,7 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   /**
    * The source definition.
    */
-  src?: InvokeSourceDefinition;
+  src?: string;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1805,7 +1800,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   status: ActorStatus;
 
   // Meta data about the actor
-  src?: InvokeSourceDefinition;
+  src?: string;
   input?: any;
 }
 
@@ -2037,7 +2032,7 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
   children: {
     [K in keyof TState['children']]: {
       state: any; // TODO: fix (should be state from actorref)
-      src?: InvokeSourceDefinition;
+      src?: string;
     };
   };
 };

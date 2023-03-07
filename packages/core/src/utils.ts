@@ -9,7 +9,6 @@ import type {
   EventObject,
   EventType,
   InvokeConfig,
-  InvokeSourceDefinition,
   MachineContext,
   Mapper,
   Observer,
@@ -487,16 +486,6 @@ export function toInvokeConfig<
     id,
     src: invocable
   };
-}
-
-export function toInvokeSource(
-  src: string | InvokeSourceDefinition
-): InvokeSourceDefinition {
-  if (typeof src === 'string') {
-    return { type: src };
-  }
-
-  return src;
 }
 
 export function toObserver<T>(

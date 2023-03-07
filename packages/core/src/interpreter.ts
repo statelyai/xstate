@@ -8,8 +8,7 @@ import type {
   PersistedStateFrom,
   SnapshotFrom,
   AnyActorBehavior,
-  RaiseActionObject,
-  InvokeSourceDefinition
+  RaiseActionObject
 } from './types.js';
 import { stopSignalType } from './actors/index.js';
 import { devToolsAdapter } from './dev/index.js';
@@ -121,7 +120,7 @@ export class Interpreter<
 
   private _doneEvent?: DoneEvent;
 
-  public src?: InvokeSourceDefinition;
+  public src?: string;
   public input?: any;
 
   /**

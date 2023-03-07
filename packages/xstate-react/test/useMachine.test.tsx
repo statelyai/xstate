@@ -743,13 +743,12 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const machine = createMachine({
       initial: 'active',
       invoke: {
-        src: () =>
-          fromCallback(() => {
-            activatedCount++;
-            return () => {
-              /* empty */
-            };
-          })
+        src: fromCallback(() => {
+          activatedCount++;
+          return () => {
+            /* empty */
+          };
+        })
       },
       states: {
         active: {}

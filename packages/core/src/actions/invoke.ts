@@ -6,8 +6,7 @@ import {
   AnyInterpreter,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
-  InvokeActionObject,
-  InvokeSourceDefinition
+  InvokeActionObject
 } from '../index.js';
 import { actionTypes, error } from '../actions.js';
 import { mapContext, warn } from '../utils.js';
@@ -44,7 +43,7 @@ export function invoke<
           }
         } as InvokeActionObject;
       } else {
-        const behaviorImpl = state.machine.options.actors[src.type];
+        const behaviorImpl = state.machine.options.actors[src];
 
         if (!behaviorImpl) {
           resolvedInvokeAction = {
@@ -96,9 +95,7 @@ export function invoke<
           if (!IS_PRODUCTION) {
             warn(
               false,
-              `Actor type '${
-                (resolvedInvokeAction.params.src as InvokeSourceDefinition).type
-              }' not found in machine '${actorCtx.id}'.`
+              `Actor type '${resolvedInvokeAction.params.src}' not found in machine '${actorCtx.id}'.`
             );
           }
           return;

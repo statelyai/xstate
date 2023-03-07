@@ -477,7 +477,7 @@ export class StateMachine<
       const childState = actorData.state;
       const src = actorData.src;
 
-      const behaviorImpl = src ? this.options.actors[src.type] : undefined;
+      const behaviorImpl = src ? this.options.actors[src] : undefined;
 
       if (!behaviorImpl) {
         return;

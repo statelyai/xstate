@@ -1936,7 +1936,7 @@ describe('invoke', () => {
         JSON.stringify(waitingState);
       }).not.toThrow();
 
-      expect(typeof waitingState.actions[0].params?.src.type).toBe('string');
+      expect(typeof waitingState.actions[0].params?.src).toBe('string');
     });
 
     it('should throw error if unhandled (sync)', () => {
@@ -2888,15 +2888,15 @@ describe('invoke', () => {
     });
   });
 
-  it('invoke `src` should accept invoke source definition', (done) => {
+  it('invoke `src` can be used with invoke `input`', (done) => {
     const machine = createMachine(
       {
         initial: 'searching',
         states: {
           searching: {
             invoke: {
-              src: {
-                type: 'search',
+              src: 'search',
+              input: {
                 endpoint: 'example.com'
               },
               onDone: 'success'
@@ -2910,8 +2910,8 @@ describe('invoke', () => {
       {
         actors: {
           search: (_, __, meta) =>
-            fromPromise(async () => {
-              expect(meta.src.endpoint).toEqual('example.com');
+            fromPromise(async ({ input }) => {
+              expect(input.endpoint).toEqual('example.com');
 
               return await 42;
             })
@@ -3008,15 +3008,6 @@ describe('invoke', () => {
         src: fromCallback(() => {
           /* ... */
         })
-      }
-    ],
-    [
-      'src containing a parametrized invokee with id parameter',
-      {
-        src: {
-          type: 'someSrc',
-          id: 'h4sh'
-        }
       }
     ]
   ])(

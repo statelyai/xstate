@@ -31,7 +31,7 @@ export function createSpawner<
           typeof behaviorCreator === 'function'
             ? behaviorCreator(context, _event.data, {
                 id: resolvedName,
-                src: { type: behavior },
+                src: behavior,
                 _event,
                 meta: undefined,
                 input
