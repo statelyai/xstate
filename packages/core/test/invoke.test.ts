@@ -820,7 +820,7 @@ describe('invoke', () => {
       const machine = createMachine({
         id: 'machine',
         invoke: {
-          src: () => fromCallback(() => () => (actorStopped = true))
+          src: fromCallback(() => () => (actorStopped = true))
         },
         initial: 'running',
         states: {
@@ -1703,7 +1703,7 @@ describe('invoke', () => {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: () => fromCallback(() => spy)
+              src: fromCallback(() => spy)
             },
             on: {
               NEXT: 'idle'

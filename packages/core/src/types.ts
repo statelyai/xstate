@@ -542,11 +542,7 @@ export interface InvokeConfig<
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src:
-    | string
-    | InvokeSourceDefinition
-    | ActorBehaviorCreator<TContext, TEvent>
-    | ActorBehavior<any, any>; // TODO: fix types
+  src: string | InvokeSourceDefinition | ActorBehavior<any, any>; // TODO: fix types
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
