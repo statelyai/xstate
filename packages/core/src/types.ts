@@ -1940,7 +1940,7 @@ export type PersistedStateFrom<TBehavior extends ActorBehavior<any, any>> =
     infer TPersisted
   >
     ? TPersisted
-    : 'nope';
+    : never;
 
 export type InternalStateFrom<TBehavior extends ActorBehavior<any, any>> =
   TBehavior extends ActorBehavior<
