@@ -1,7 +1,11 @@
 ---
-'@xstate/graph': major
-'@xstate/test': major
+'@xstate/graph': patch
+'@xstate/test': patch
 ---
+
+author: @davidkpiano
+pr: #3864
+commit: 59f3a8e
 
 Event cases are now specified as an array of event objects, instead of an object with event types as keys and event object payloads as values:
 
