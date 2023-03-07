@@ -254,35 +254,6 @@ export class StateNode<
    * The behaviors invoked as actors by this state node.
    */
   public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
-    // const generatedSrc = createInvokeId(this.id, i);
-    // const invokeConfig = toInvokeConfig(invocable, generatedSrc);
-    // const resolvedId = invokeConfig.id || generatedSrc;
-    // const { src } = invokeConfig;
-
-    // const resolvedSrc = toInvokeSource(
-    //   isString(src) ? src : !('type' in src) ? resolvedId : src
-    // );
-
-    // const srcKey = typeof src === 'string' ? src : generatedSrc;
-
-    // if (typeof src !== 'string') {
-    //   this.machine.options.actors = {
-    //     ...this.machine.options.actors,
-    //     [srcKey]: typeof src === 'function' ? src : () => src
-    //   };
-    // }
-
-    // // if (
-    // //   !this.machine.options.actors[resolvedId] &&
-    // //   typeof src !== 'string' &&
-    // //   !('type' in src)
-    // // ) {
-    // //   this.machine.options.actors = {
-    // //     ...this.machine.options.actors,
-    // //     // TODO: this should accept `src` as-is
-    // //     [resolvedId]: typeof src === 'function' ? src : () => src
-    // //   };
-    // // }
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
         const generatedId = createInvokeId(this.id, i);
