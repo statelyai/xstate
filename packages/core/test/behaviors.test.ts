@@ -459,6 +459,26 @@ describe('machine behavior', () => {
     );
   });
 
+  it('the initial state of a child is available before starting the parent', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: createMachine({
+          initial: 'inner',
+          states: { inner: {} }
+        })
+      }
+    });
+
+    const actor = interpret(machine);
+
+    expect(actor.getPersistedState()?.children['child'].state).toEqual(
+      expect.objectContaining({
+        value: 'inner'
+      })
+    );
+  });
+
   // TODO: make this work
   it.skip('should invoke an actor even if missing in persisted state', () => {
     const machine = createMachine({

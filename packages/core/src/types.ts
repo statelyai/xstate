@@ -2009,7 +2009,10 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
 export type StateFromMachine<TMachine extends AnyStateMachine> =
   TMachine['initialState'];
 
-export type PersistedMachineState<TState extends AnyState> = TState & {
+export type PersistedMachineState<TState extends AnyState> = Pick<
+  TState,
+  'value' | 'output' | 'context' | '_event' | 'done' | 'historyValue'
+> & {
   children: {
     [K in keyof TState['children']]: {
       state: any; // TODO: fix (should be state from actorref)
