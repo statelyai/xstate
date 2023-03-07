@@ -1900,7 +1900,7 @@ export interface ActorBehavior<
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   restoreState?: (
-    restoredState: TPersisted,
+    persistedState: TPersisted,
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
