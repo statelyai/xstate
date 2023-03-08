@@ -103,7 +103,7 @@ export class StateMachine<
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
-      spawn: createSpawner(this, null as any, null as any, actions) // TODO: fix types
+      spawn: createSpawner(undefined, this, null as any, null as any, actions) // TODO: fix types
     });
 
     return [context, actions];
