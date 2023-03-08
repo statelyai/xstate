@@ -1,4 +1,4 @@
-import { initEvent } from './actions.js';
+import { error, initEvent } from './actions.js';
 import { STATE_DELIMITER } from './constants.js';
 import { createSpawner } from './spawn.js';
 import { getPersistedState, State } from './State.js';
@@ -25,7 +25,6 @@ import type {
 import type {
   ActorContext,
   ActorMap,
-  AnyActorRef,
   AnyStateMachine,
   BaseActionObject,
   ActorBehavior,
@@ -47,7 +46,6 @@ import type {
   PersistedMachineState
 } from './types.js';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
-import { invoke } from './actions/invoke.js';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -384,9 +382,18 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): void {
-    // When starting from a restored state, execute the actions
     state.actions.forEach((action) => {
       action.execute?.(actorCtx);
+    });
+    Object.values(state.children).forEach((child) => {
+      if (child.status === 0) {
+        try {
+          child.start?.();
+        } catch (err) {
+          // TODO: unify error handling when child starts
+          actorCtx.self.send(error(child.id, err) as unknown as TEvent);
+        }
+      }
     });
   }
 
@@ -446,56 +453,50 @@ export class StateMachine<
   }
 
   public restoreState(
-    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
     _actorCtx?: ActorContext<
       TEvent,
       State<TContext, TEvent, TResolvedTypesMeta>
     >
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    let restoredState: State<TContext, TEvent, TResolvedTypesMeta>;
+    let restoredState;
 
-    if ('persisted' in state) {
-      const restoredChildren: Record<string, AnyActorRef> = {};
+    const children = {};
 
-      Object.keys(state.children).forEach((key) => {
-        const persistedState = state.children[key];
-        const impl = this.options.actors[key];
+    if (_actorCtx && state.persisted) {
+      Object.keys(state.children).forEach((actorId) => {
+        const actorData = state.children[actorId];
+        const childState = actorData.state;
+        const src = actorData.src;
 
-        if (!impl) return;
+        const behaviorImpl = src ? this.options.actors[src.type] : undefined;
 
-        if (typeof impl === 'function') {
-          const behavior = impl(state.context, state.event, {
-            id: key,
-            src: {} as any,
-            _event: state._event,
-            meta: undefined
-          });
-
-          const actorRef = interpret(behavior, {
-            id: key,
-            state: persistedState
-          });
-
-          state.actions.unshift(
-            invoke({
-              id: key,
-              // @ts-ignore TODO: fix types
-              src: actorRef, // TODO
-              ref: actorRef,
-              meta: undefined
-            })
-          );
-
-          // TODO: this should only start if actorCtx is enabled
-          restoredChildren[key] = actorRef;
+        if (!behaviorImpl) {
+          return;
         }
+
+        const behavior =
+          typeof behaviorImpl === 'function'
+            ? behaviorImpl(state.context, state._event.data, {
+                id: actorId,
+                data: undefined,
+                src,
+                _event: state._event,
+                meta: {}
+              })
+            : behaviorImpl;
+
+        const actorState = behavior.restoreState?.(childState, _actorCtx);
+
+        const actorRef = interpret(behavior, {
+          id: actorId,
+          state: actorState
+        });
+
+        children[actorId] = actorRef;
       });
 
-      state.children = restoredChildren;
-
-      restoredState = this.createState(
-        new State(state as unknown as StateConfig<TContext, TEvent>, this)
-      );
+      restoredState = this.createState(new State({ ...state, children }, this));
     } else {
       restoredState = this.createState(state);
     }

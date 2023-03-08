@@ -295,15 +295,18 @@ export function getPersistedState<TState extends AnyState>(
   const { configuration, transitions, tags, machine, children, ...jsonValues } =
     state;
 
-  const childrenJson: any = {};
+  const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
 
   for (const id in children) {
-    childrenJson[id] = children[id].getPersistedState?.();
+    childrenJson[id] = {
+      state: children[id].getPersistedState?.(),
+      src: children[id].src
+    };
   }
 
   return {
     ...jsonValues,
     children: childrenJson,
     persisted: true
-  };
+  } as PersistedMachineState<TState>;
 }

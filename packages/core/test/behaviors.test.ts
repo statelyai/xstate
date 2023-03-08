@@ -113,6 +113,60 @@ describe('promise behavior (fromPromise)', () => {
       done();
     }, 5);
   });
+
+  it('should not invoke a resolved promise again', async () => {
+    let createdPromises = 0;
+    const promiseBehavior = fromPromise(() => {
+      createdPromises++;
+      return Promise.resolve(createdPromises);
+    });
+    const actor = interpret(promiseBehavior);
+    actor.start();
+
+    await new Promise((res) => setTimeout(res, 5));
+
+    const resolvedPersistedState = actor.getPersistedState();
+    expect(resolvedPersistedState).toEqual(
+      expect.objectContaining({
+        data: 1
+      })
+    );
+    expect(createdPromises).toBe(1);
+
+    const restoredActor = interpret(promiseBehavior, {
+      state: resolvedPersistedState
+    }).start();
+
+    expect(restoredActor.getSnapshot()).toBe(1);
+    expect(createdPromises).toBe(1);
+  });
+
+  it('should not invoke a rejected promise again', async () => {
+    let createdPromises = 0;
+    const promiseBehavior = fromPromise(() => {
+      createdPromises++;
+      return Promise.reject(createdPromises);
+    });
+    const actor = interpret(promiseBehavior);
+    actor.start();
+
+    await new Promise((res) => setTimeout(res, 5));
+
+    const rejectedPersistedState = actor.getPersistedState();
+    expect(rejectedPersistedState).toEqual(
+      expect.objectContaining({
+        data: 1
+      })
+    );
+    expect(createdPromises).toBe(1);
+
+    const restoredActor = interpret(promiseBehavior, {
+      state: rejectedPersistedState
+    }).start();
+
+    expect(restoredActor.getSnapshot()).toBe(1);
+    expect(createdPromises).toBe(1);
+  });
 });
 
 describe('reducer behavior (fromReducer)', () => {
@@ -294,23 +348,25 @@ describe('machine behavior', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.children.a).toEqual(
+    expect(persistedState.children.a.state).toEqual(
       expect.objectContaining({
         canceled: false,
         data: 42
       })
     );
 
-    expect(persistedState.children.b).toEqual(
+    expect(persistedState.children.b.state).toEqual(
       expect.objectContaining({
         context: {
           count: 55
         },
         value: 'start',
         children: {
-          reducer: {
-            status: 'active'
-          }
+          reducer: expect.objectContaining({
+            state: {
+              status: 'active'
+            }
+          })
         }
       })
     );
@@ -400,6 +456,51 @@ describe('machine behavior', () => {
       expect.objectContaining({
         value: 'idle'
       })
+    );
+  });
+
+  it('the initial state of a child is available before starting the parent', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: createMachine({
+          initial: 'inner',
+          states: { inner: {} }
+        })
+      }
+    });
+
+    const actor = interpret(machine);
+
+    expect(actor.getPersistedState()?.children['child'].state).toEqual(
+      expect.objectContaining({
+        value: 'inner'
+      })
+    );
+  });
+
+  // TODO: make this work
+  it.skip('should invoke an actor even if missing in persisted state', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: createMachine({
+          initial: 'inner',
+          states: { inner: {} }
+        })
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    const persisted = actor.getPersistedState();
+
+    delete persisted?.children['child'];
+
+    const actor2 = interpret(machine, { state: persisted }).start();
+
+    expect(actor2.getSnapshot().children.child.getSnapshot().value).toBe(
+      'inner'
     );
   });
 });

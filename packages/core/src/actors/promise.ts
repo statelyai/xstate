@@ -53,7 +53,13 @@ export function fromPromise<T>(
           return state;
       }
     },
-    start: (_, { self }) => {
+    start: (state, { self }) => {
+      // TODO: determine how to allow customizing this so that promises
+      // can be restarted if necessary
+      if (state.status !== 'active') {
+        return;
+      }
+
       const resolvedPromise = Promise.resolve(lazyPromise());
 
       resolvedPromise.then(

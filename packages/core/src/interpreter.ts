@@ -5,10 +5,11 @@ import type {
   ActorBehavior,
   EventFromBehavior,
   InterpreterFrom,
-  PersistedFrom,
+  PersistedStateFrom,
   SnapshotFrom,
   AnyActorBehavior,
-  RaiseActionObject
+  RaiseActionObject,
+  InvokeSourceDefinition
 } from './types.js';
 import { stopSignalType } from './actors/index.js';
 import { devToolsAdapter } from './dev/index.js';
@@ -85,7 +86,7 @@ export class Interpreter<
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: Readonly<InterpreterOptions>;
+  public options: Readonly<InterpreterOptions<TBehavior>>;
 
   /**
    * The unique identifier for this actor relative to its parent.
@@ -120,13 +121,18 @@ export class Interpreter<
 
   private _doneEvent?: DoneEvent;
 
+  public src?: InvokeSourceDefinition;
+
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
    * @param behavior The behavior to be interpreted
    * @param options Interpreter options
    */
-  constructor(public behavior: TBehavior, options?: InterpreterOptions) {
+  constructor(
+    public behavior: TBehavior,
+    options?: InterpreterOptions<TBehavior>
+  ) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
@@ -142,6 +148,7 @@ export class Interpreter<
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
+    this.src = resolvedOptions.src;
     this.ref = this;
     this._actorContext = {
       self,
@@ -152,6 +159,13 @@ export class Interpreter<
         this._deferred.push(fn);
       }
     };
+
+    if (resolvedOptions.state) {
+      this._initialState = this._state = this.behavior.restoreState?.(
+        resolvedOptions.state,
+        this._actorContext
+      );
+    }
 
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
@@ -475,7 +489,7 @@ export class Interpreter<
     };
   }
 
-  public getPersistedState(): PersistedFrom<TBehavior> | undefined {
+  public getPersistedState(): PersistedStateFrom<TBehavior> | undefined {
     return this.behavior.getPersistedState?.(this._state);
   }
 
@@ -502,13 +516,16 @@ export function interpret<TMachine extends AnyStateMachine>(
   > extends true
     ? TMachine
     : 'Some implementations missing',
-  options?: InterpreterOptions
+  options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
-  options?: InterpreterOptions
+  options?: InterpreterOptions<TBehavior>
 ): Interpreter<TBehavior>;
-export function interpret(behavior: any, options?: InterpreterOptions): any {
+export function interpret(
+  behavior: any,
+  options?: InterpreterOptions<any>
+): any {
   const interpreter = new Interpreter(behavior, options);
 
   return interpreter;

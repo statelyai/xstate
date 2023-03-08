@@ -15,7 +15,7 @@ import {
 
 export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  interpreterOptions?: InterpreterOptions,
+  interpreterOptions?: InterpreterOptions<TMachine>,
   observerOrListener?:
     | Observer<StateFrom<TMachine>>
     | ((value: StateFrom<TMachine>) => void)

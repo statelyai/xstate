@@ -63,11 +63,13 @@ export function invoke<
                 })
               : behaviorImpl;
 
+          const ref = interpret(behavior, { id, src });
+
           resolvedInvokeAction = {
             type,
             params: {
               ...invokeDef,
-              ref: interpret(behavior, { id })
+              ref
             }
           } as InvokeActionObject;
         }

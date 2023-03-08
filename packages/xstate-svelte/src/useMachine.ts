@@ -12,28 +12,27 @@ import {
 
 type Prop<T, K> = K extends keyof T ? T[K] : never;
 
-type RestParams<
-  TMachine extends AnyStateMachine
-> = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
-> extends false
-  ? [
-      options: InterpreterOptions &
-        InternalMachineImplementations<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >
-    ]
-  : [
-      options?: InterpreterOptions &
-        InternalMachineImplementations<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >
-    ];
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: InterpreterOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >
+      ]
+    : [
+        options?: InterpreterOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta']
+          >
+      ];
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,

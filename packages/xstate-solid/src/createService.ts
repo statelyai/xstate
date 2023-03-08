@@ -8,11 +8,9 @@ export function createService<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {
-  const { context, guards, actions, actors, delays, ...interpreterOptions } =
-    options;
+  const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
     actors,
@@ -28,5 +26,5 @@ export function createService<TMachine extends AnyStateMachine>(
     onCleanup(() => service.stop());
   }
 
-  return service as InterpreterFrom<TMachine>;
+  return service as unknown as InterpreterFrom<TMachine>;
 }

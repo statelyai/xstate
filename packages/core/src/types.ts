@@ -1606,7 +1606,7 @@ export interface StateConfig<
   _internalQueue?: Array<SCXML.Event<TEvent>>;
 }
 
-export interface InterpreterOptions {
+export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
@@ -1642,7 +1642,15 @@ export interface InterpreterOptions {
 
   sync?: boolean;
 
-  state?: any; // TODO: type this
+  // state?:
+  //   | PersistedStateFrom<TActorBehavior>
+  //   | InternalStateFrom<TActorBehavior>;
+  state?: any;
+
+  /**
+   * The source definition.
+   */
+  src?: InvokeSourceDefinition;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1784,6 +1792,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   status: ActorStatus;
+  src?: InvokeSourceDefinition;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
@@ -1891,7 +1900,7 @@ export interface ActorBehavior<
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   restoreState?: (
-    restoredState: any,
+    persistedState: TPersisted,
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
@@ -1923,7 +1932,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
 export type EventFromBehavior<TBehavior extends ActorBehavior<any, any>> =
   TBehavior extends ActorBehavior<infer TEvent, infer _> ? TEvent : never;
 
-export type PersistedFrom<TBehavior extends ActorBehavior<any, any>> =
+export type PersistedStateFrom<TBehavior extends ActorBehavior<any, any>> =
   TBehavior extends ActorBehavior<
     infer _TEvent,
     infer _TSnapshot,
@@ -1931,6 +1940,16 @@ export type PersistedFrom<TBehavior extends ActorBehavior<any, any>> =
     infer TPersisted
   >
     ? TPersisted
+    : never;
+
+export type InternalStateFrom<TBehavior extends ActorBehavior<any, any>> =
+  TBehavior extends ActorBehavior<
+    infer _TEvent,
+    infer _TSnapshot,
+    infer TInternalState,
+    infer _TPersisted
+  >
+    ? TInternalState
     : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
@@ -1990,10 +2009,15 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
 export type StateFromMachine<TMachine extends AnyStateMachine> =
   TMachine['initialState'];
 
-export interface PersistedMachineState<TState extends AnyState> {
-  [key: string]: any;
+export type PersistedMachineState<TState extends AnyState> = Pick<
+  TState,
+  'value' | 'output' | 'context' | '_event' | 'done' | 'historyValue'
+> & {
   children: {
-    [key in keyof TState['children']]: any;
+    [K in keyof TState['children']]: {
+      state: any; // TODO: fix (should be state from actorref)
+      src?: InvokeSourceDefinition;
+    };
   };
   persisted: true;
-}
+};
