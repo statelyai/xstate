@@ -30,7 +30,7 @@ export function invoke<
 > {
   return createDynamicAction(
     { type: invokeActionType, params: invokeDef },
-    (_event, { state }) => {
+    (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
       const { id, data, src, meta } = invokeDef;
 
@@ -63,7 +63,11 @@ export function invoke<
                 })
               : behaviorImpl;
 
-          const ref = interpret(behavior, { id, src });
+          const ref = interpret(behavior, {
+            id,
+            src,
+            parent: actorContext?.self
+          });
 
           resolvedInvokeAction = {
             type,
@@ -97,7 +101,6 @@ export function invoke<
           }
           return;
         }
-        ref._parent = interpreter; // TODO: fix
         actorCtx.defer(() => {
           if (actorRef.status === ActorStatus.Stopped) {
             return;
