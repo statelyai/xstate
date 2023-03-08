@@ -99,11 +99,19 @@ export class StateMachine<
   public get context(): TContext {
     return this.getContextAndActions()[0];
   }
-  private getContextAndActions(): [TContext, InvokeActionObject[]] {
+  private getContextAndActions(
+    actorCtx?: ActorContext<any, any>
+  ): [TContext, InvokeActionObject[]] {
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
-      spawn: createSpawner(undefined, this, null as any, null as any, actions) // TODO: fix types
+      spawn: createSpawner(
+        actorCtx?.self,
+        this,
+        null as any,
+        null as any,
+        actions
+      ) // TODO: fix types
     });
 
     return [context, actions];
@@ -318,7 +326,7 @@ export class StateMachine<
   private getPreInitialState(
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const [context, actions] = this.getContextAndActions();
+    const [context, actions] = this.getContextAndActions(actorCtx);
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
       this.createState({
