@@ -160,13 +160,6 @@ export class Interpreter<
       }
     };
 
-    if (resolvedOptions.state) {
-      this._initialState = this._state = this.behavior.restoreState?.(
-        resolvedOptions.state,
-        this._actorContext
-      );
-    }
-
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
     this.send = this.send.bind(this);
