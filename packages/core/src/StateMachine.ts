@@ -459,7 +459,7 @@ export class StateMachine<
       State<TContext, TEvent, TResolvedTypesMeta>
     >
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    let restoredState;
+    let restoredState: State<TContext, TEvent, TResolvedTypesMeta>;
 
     const children = {};
 
@@ -500,6 +500,41 @@ export class StateMachine<
     } else {
       restoredState = this.createState(state);
     }
+
+    // TODO: DRY this up
+    restoredState.configuration.forEach((stateNode) => {
+      if (stateNode.invoke) {
+        stateNode.invoke.forEach((invokeConfig) => {
+          const { id, src } = invokeConfig;
+
+          if (children[id]) {
+            return;
+          }
+
+          const behaviorImpl = this.options.actors[src.type];
+
+          const behavior =
+            typeof behaviorImpl === 'function'
+              ? behaviorImpl(state.context, state._event.data, {
+                  id,
+                  data: undefined,
+                  src,
+                  _event: state._event,
+                  meta: {}
+                })
+              : behaviorImpl;
+
+          if (behavior) {
+            const actorRef = interpret(behavior, {
+              id,
+              parent: _actorCtx?.self
+            });
+
+            children[id] = actorRef;
+          }
+        });
+      }
+    });
 
     return restoredState;
   }
