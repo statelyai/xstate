@@ -81,7 +81,7 @@ export class Interpreter<
   /**
    * The current state of the interpreted behavior.
    */
-  private _state: InternalStateFrom<TBehavior>;
+  private _state!: InternalStateFrom<TBehavior>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -163,11 +163,14 @@ export class Interpreter<
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
     this.send = this.send.bind(this);
+    this._initState();
+  }
 
-    this._state = resolvedOptions.state
+  private _initState() {
+    this._state = this.options.state
       ? this.behavior.restoreState
-        ? this.behavior.restoreState(resolvedOptions.state, this._actorContext)
-        : resolvedOptions.state
+        ? this.behavior.restoreState(this.options.state, this._actorContext)
+        : this.options.state
       : this.behavior.getInitialState(this._actorContext);
   }
 

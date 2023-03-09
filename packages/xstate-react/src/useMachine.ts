@@ -81,6 +81,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
     return () => {
       service.stop();
       service.status = InterpreterStatus.NotStarted;
+      (service as any)._initState();
     };
   }, []);
 
