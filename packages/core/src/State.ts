@@ -168,7 +168,7 @@ export class State<
     this.configuration =
       config.configuration ??
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
-    this.transitions = config.transitions;
+    this.transitions = config.transitions as any;
     this.children = config.children;
 
     this.value = getStateValue(machine.root, this.configuration);

@@ -454,52 +454,44 @@ export class StateMachine<
 
   public restoreState(
     state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
-    _actorCtx?: ActorContext<
-      TEvent,
-      State<TContext, TEvent, TResolvedTypesMeta>
-    >
+    _actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    let restoredState: State<TContext, TEvent, TResolvedTypesMeta>;
-
     const children = {};
 
-    if (_actorCtx && state.persisted) {
-      Object.keys(state.children).forEach((actorId) => {
-        const actorData = state.children[actorId];
-        const childState = actorData.state;
-        const src = actorData.src;
+    Object.keys(state.children).forEach((actorId) => {
+      const actorData = state.children[actorId];
+      const childState = actorData.state;
+      const src = actorData.src;
 
-        const behaviorImpl = src ? this.options.actors[src.type] : undefined;
+      const behaviorImpl = src ? this.options.actors[src.type] : undefined;
 
-        if (!behaviorImpl) {
-          return;
-        }
+      if (!behaviorImpl) {
+        return;
+      }
 
-        const behavior =
-          typeof behaviorImpl === 'function'
-            ? behaviorImpl(state.context, state._event.data, {
-                id: actorId,
-                data: undefined,
-                src,
-                _event: state._event,
-                meta: {}
-              })
-            : behaviorImpl;
+      const behavior =
+        typeof behaviorImpl === 'function'
+          ? behaviorImpl(state.context, state._event.data, {
+              id: actorId,
+              data: undefined,
+              src: src!,
+              _event: state._event,
+              meta: {}
+            })
+          : behaviorImpl;
 
-        const actorState = behavior.restoreState?.(childState, _actorCtx);
+      const actorState = behavior.restoreState?.(childState, _actorCtx);
 
-        const actorRef = interpret(behavior, {
-          id: actorId,
-          state: actorState
-        });
-
-        children[actorId] = actorRef;
+      const actorRef = interpret(behavior, {
+        id: actorId,
+        state: actorState
       });
 
-      restoredState = this.createState(new State({ ...state, children }, this));
-    } else {
-      restoredState = this.createState(state);
-    }
+      children[actorId] = actorRef;
+    });
+
+    const restoredState: State<TContext, TEvent, TResolvedTypesMeta> =
+      this.createState(new State({ ...state, children }, this));
 
     // TODO: DRY this up
     restoredState.configuration.forEach((stateNode) => {

@@ -1597,7 +1597,7 @@ export interface StateConfig<
   actions?: BaseActionObject[];
   meta?: any;
   configuration?: Array<StateNode<TContext, TEvent>>;
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
+  transitions?: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   output?: any;
@@ -2011,7 +2011,13 @@ export type StateFromMachine<TMachine extends AnyStateMachine> =
 
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
-  'value' | 'output' | 'context' | '_event' | 'done' | 'historyValue'
+  | 'value'
+  | 'output'
+  | 'context'
+  | '_event'
+  | 'done'
+  | 'historyValue'
+  | '_sessionid'
 > & {
   children: {
     [K in keyof TState['children']]: {
