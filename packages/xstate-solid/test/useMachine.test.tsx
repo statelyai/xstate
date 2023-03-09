@@ -1663,7 +1663,7 @@ describe('useMachine (strict mode)', () => {
 
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
-          state: testMachine.createState(JSON.parse(persistedState))
+          state: JSON.parse(persistedState)
         });
         createEffect(
           on(
