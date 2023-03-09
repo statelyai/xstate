@@ -30,7 +30,6 @@ import {
 } from './types.js';
 import { toObserver, toSCXMLEvent, warn } from './utils.js';
 import { symbolObservable } from './symbolObservable.js';
-import { evict, memo } from './memo.js';
 import { doneInvoke, error } from './actions.js';
 
 export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
@@ -82,7 +81,7 @@ export class Interpreter<
   /**
    * The current state of the interpreted behavior.
    */
-  private _state?: InternalStateFrom<TBehavior>;
+  private _state!: InternalStateFrom<TBehavior>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -120,7 +119,6 @@ export class Interpreter<
   // TODO: remove
   public _forwardTo: Set<AnyActorRef> = new Set();
 
-  private _initialState: any;
   private _doneEvent?: DoneEvent;
 
   public src?: InvokeSourceDefinition;
@@ -162,32 +160,22 @@ export class Interpreter<
       }
     };
 
-    if (resolvedOptions.state) {
-      this._initialState = this._state = this.behavior.restoreState?.(
-        resolvedOptions.state,
-        this._actorContext
-      );
-    }
-
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
     this.send = this.send.bind(this);
+    this._initState();
+  }
+
+  private _initState() {
+    this._state = this.options.state
+      ? this.behavior.restoreState
+        ? this.behavior.restoreState(this.options.state, this._actorContext)
+        : this.options.state
+      : this.behavior.getInitialState(this._actorContext);
   }
 
   // array of functions to defer
   private _deferred: Array<(state: any) => void> = [];
-
-  private _getInitialState(): InternalStateFrom<TBehavior> {
-    return memo(this, 'initial', () => {
-      if (this._initialState && this.behavior.restoreState) {
-        return this.behavior.restoreState(
-          this._initialState,
-          this._actorContext
-        );
-      }
-      return this.behavior.getInitialState(this._actorContext);
-    });
-  }
 
   private update(state: InternalStateFrom<TBehavior>): void {
     // Update state
@@ -321,16 +309,14 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = ActorStatus.Running;
 
-    let resolvedState = this._getInitialState();
-
     if (this.behavior.start) {
-      this.behavior.start(resolvedState, this._actorContext);
+      this.behavior.start(this._state, this._actorContext);
     }
 
     // TODO: this notifies all subscribers but usually this is redundant
-    // if we are using the initialState as `resolvedState` then there is no real change happening here
+    // there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(resolvedState);
+    this.update(this._state);
 
     if (this.options.devTools) {
       this.attachDevTools();
@@ -373,7 +359,6 @@ export class Interpreter<
    * Stops the interpreter and unsubscribe all listeners.
    */
   public stop(): this {
-    evict(this, 'initial');
     if (this.status === ActorStatus.Stopped) {
       return this;
     }
@@ -501,9 +486,7 @@ export class Interpreter<
   }
 
   public getPersistedState(): PersistedStateFrom<TBehavior> | undefined {
-    return this.behavior.getPersistedState?.(
-      this._state ?? this._getInitialState()
-    );
+    return this.behavior.getPersistedState?.(this._state);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {
@@ -511,11 +494,9 @@ export class Interpreter<
   }
 
   public getSnapshot(): SnapshotFrom<TBehavior> {
-    const getter = this.behavior.getSnapshot ?? ((s) => s);
-    if (this.status === ActorStatus.NotStarted) {
-      return getter(this._getInitialState());
-    }
-    return getter(this._state!);
+    return this.behavior.getSnapshot
+      ? this.behavior.getSnapshot(this._state)
+      : this._state;
   }
 }
 

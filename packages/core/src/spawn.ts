@@ -4,7 +4,8 @@ import {
   SCXML,
   InvokeActionObject,
   AnyStateMachine,
-  Spawner
+  Spawner,
+  ActorRef
 } from '.';
 import { invoke } from './actions/invoke.js';
 import { interpret } from './interpreter.js';
@@ -14,6 +15,7 @@ export function createSpawner<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
+  self: ActorRef<any, any> | undefined,
   machine: AnyStateMachine,
   context: TContext,
   _event: SCXML.Event<TEvent>,
@@ -35,16 +37,20 @@ export function createSpawner<
               })
             : behaviorCreator;
 
-        const actorRef = interpret(createdBehavior, { id: resolvedName });
+        // TODO: this should also receive `src`
+        const actorRef = interpret(createdBehavior, {
+          id: resolvedName,
+          parent: self
+        });
 
         mutCapturedActions.push(
-          (invoke({
+          invoke({
             id: actorRef.id,
             // @ts-ignore TODO: fix types
             src: actorRef, // TODO
             ref: actorRef,
             meta: undefined
-          }) as any) as InvokeActionObject
+          }) as any as InvokeActionObject
         );
 
         return actorRef as any; // TODO: fix types
@@ -54,16 +60,20 @@ export function createSpawner<
         `Behavior '${behavior}' not implemented in machine '${machine.id}'`
       );
     } else {
-      const actorRef = interpret(behavior, { id: name || 'anonymous' });
+      // TODO: this should also receive `src`
+      const actorRef = interpret(behavior, {
+        id: name || 'anonymous',
+        parent: self
+      });
 
       mutCapturedActions.push(
-        (invoke({
+        invoke({
           // @ts-ignore TODO: fix types
           src: actorRef,
           ref: actorRef,
           id: actorRef.id,
           meta: undefined
-        }) as any) as InvokeActionObject
+        }) as any as InvokeActionObject
       );
 
       return actorRef as any; // TODO: fix types
