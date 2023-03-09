@@ -465,8 +465,9 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const { getByRole } = render(<App />);
 
     expect(effectsFired).toBe(
-      suiteKey === 'strict' // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
-        ? // atm it's 3 cause we the double-invoked effect sees the initial value
+      suiteKey === 'strict'
+        ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
+          // atm it's 3 cause we the double-invoked effect sees the initial value
           // but the 3rd call comes from the restarted machine (that happens because of the strict effects)
           // the second effect with `service.start()` doesn't have a way to change what another effect in the same "effect batch" sees
           3
