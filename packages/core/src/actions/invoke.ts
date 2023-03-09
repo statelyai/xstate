@@ -31,7 +31,7 @@ export function invoke<
     { type: invokeActionType, params: invokeDef },
     (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
-      const { id, data, src, meta, input } = invokeDef;
+      const { id, src, meta, input } = invokeDef;
 
       let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
@@ -55,7 +55,6 @@ export function invoke<
             typeof behaviorImpl === 'function'
               ? behaviorImpl(state.context, _event.data, {
                   id,
-                  data: data && mapContext(data, state.context, _event as any),
                   src,
                   _event,
                   meta,

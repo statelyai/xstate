@@ -383,7 +383,6 @@ export type ActorBehaviorCreator<
 ) => TActorBehavior;
 
 export interface InvokeMeta {
-  data: any;
   src: string;
   meta: MetaObject | undefined;
 }

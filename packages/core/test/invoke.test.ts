@@ -31,9 +31,9 @@ const user = { name: 'David' };
 
 const fetchMachine = createMachine<{ userId: string | undefined }>({
   id: 'fetch',
-  context: {
-    userId: undefined
-  },
+  context: ({ input }) => ({
+    userId: input.userId
+  }),
   initial: 'pending',
   states: {
     pending: {
@@ -72,7 +72,7 @@ const fetcherMachine = createMachine({
     waiting: {
       invoke: {
         src: fetchMachine,
-        data: {
+        input: {
           userId: (ctx: any) => ctx.selectedUserId
         },
         onDone: {
@@ -86,7 +86,8 @@ const fetcherMachine = createMachine({
     },
     waitingInvokeMachine: {
       invoke: {
-        src: fetchMachine.withContext({ userId: '55' }),
+        src: fetchMachine,
+        input: { userId: '55' },
         onDone: 'received'
       }
     },
@@ -334,9 +335,9 @@ describe('invoke', () => {
   it('should start services (explicit machine, invoke = config)', (done) => {
     const childMachine = createMachine<{ userId: string | undefined }>({
       id: 'fetch',
-      context: {
-        userId: undefined
-      },
+      context: ({ input }) => ({
+        userId: input.userId
+      }),
       initial: 'pending',
       states: {
         pending: {
@@ -375,11 +376,8 @@ describe('invoke', () => {
         },
         waiting: {
           invoke: {
-            src: (ctx) =>
-              childMachine.withContext({
-                userId: ctx.selectedUserId
-              }),
-            data: {
+            src: childMachine,
+            input: {
               userId: (ctx: any) => ctx.selectedUserId
             },
             onDone: {
@@ -3330,7 +3328,7 @@ describe('actors option', () => {
             invoke: {
               src: 'stringService',
               // TODO: should this be part of "input" concept?
-              data: {
+              input: {
                 staticVal: 'hello',
                 newCount: (ctx: any) => ctx.count * 2 // TODO: types
               },
@@ -3344,16 +3342,13 @@ describe('actors option', () => {
       },
       {
         actors: {
-          stringService: (ctx, _, { data }) =>
-            fromPromise(() => {
-              expect(ctx).toEqual({ count: 42 });
+          stringService: fromPromise(({ input }) => {
+            expect(input).toEqual({ newCount: 84, staticVal: 'hello' });
 
-              expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
-
-              return new Promise<void>((res) => {
-                res();
-              });
-            })
+            return new Promise<void>((res) => {
+              res();
+            });
+          })
         }
       }
     );
