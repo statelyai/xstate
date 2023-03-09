@@ -2909,12 +2909,11 @@ describe('invoke', () => {
       },
       {
         actors: {
-          search: (_, __, meta) =>
-            fromPromise(async ({ input }) => {
-              expect(input.endpoint).toEqual('example.com');
+          search: fromPromise(async ({ input }) => {
+            expect(input.endpoint).toEqual('example.com');
 
-              return await 42;
-            })
+            return await 42;
+          })
         }
       }
     );
@@ -2923,6 +2922,45 @@ describe('invoke', () => {
       .onDone(() => done())
       .start();
   });
+
+  it.each([(ctx) => ({ endpoint: ctx.url }), { endpoint: (ctx) => ctx.url }])(
+    'invoke `src` can be used with dynamic invoke `input`',
+    (input, done) => {
+      const machine = createMachine(
+        {
+          initial: 'searching',
+          context: {
+            url: 'example.com'
+          },
+          states: {
+            searching: {
+              invoke: {
+                src: 'search',
+                input,
+                onDone: 'success'
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          actors: {
+            search: fromPromise(async ({ input }) => {
+              expect(input.endpoint).toEqual('example.com');
+
+              return await 42;
+            })
+          }
+        }
+      );
+
+      interpret(machine)
+        .onDone(() => done())
+        .start();
+    }
+  );
 
   describe('meta data', () => {
     it('should show meta data', () => {

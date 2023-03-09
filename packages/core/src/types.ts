@@ -411,7 +411,7 @@ export interface InvokeDefinition<
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
 
-  input?: any;
+  input?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -552,7 +552,7 @@ export interface InvokeConfig<
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
 
-  input?: any;
+  input?: MaybeLazy<Record<string, any>>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */

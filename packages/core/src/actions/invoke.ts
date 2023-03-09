@@ -59,7 +59,9 @@ export function invoke<
                   src,
                   _event,
                   meta,
-                  input
+                  input: input
+                    ? mapContext(input, state.context, _event as any)
+                    : undefined
                 })
               : behaviorImpl;
 
@@ -67,7 +69,7 @@ export function invoke<
             id,
             src,
             parent: actorContext?.self,
-            input
+            input: input ? mapContext(input, state.context, _event) : undefined
           });
 
           resolvedInvokeAction = {
