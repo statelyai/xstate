@@ -479,8 +479,7 @@ describe('machine behavior', () => {
     );
   });
 
-  // TODO: make this work
-  it.skip('should invoke an actor even if missing in persisted state', () => {
+  it('should invoke an actor even if missing in persisted state', () => {
     const machine = createMachine({
       invoke: {
         id: 'child',
