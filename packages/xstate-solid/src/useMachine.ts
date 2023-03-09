@@ -1,5 +1,4 @@
 import type { AnyStateMachine, StateFrom, InterpreterFrom, Prop } from 'xstate';
-import { InterpreterStatus } from 'xstate';
 import type { CheckSnapshot, RestParams } from './types.js';
 import { createService } from './createService.js';
 import { onCleanup, onMount } from 'solid-js';
@@ -22,12 +21,9 @@ export function useMachine<TMachine extends AnyStateMachine>(
 ): UseMachineReturn<TMachine> {
   const service = createService(machine, options);
 
-  const initialState =
-    service.status === InterpreterStatus.NotStarted && options.state
-      ? (service.behavior as AnyStateMachine).createState(options.state)
-      : service.getSnapshot();
-
-  const [state, setState] = createImmutable(deriveServiceState(initialState));
+  const [state, setState] = createImmutable(
+    deriveServiceState(service.getSnapshot())
+  );
 
   onMount(() => {
     const { unsubscribe } = service.subscribe((nextState) => {

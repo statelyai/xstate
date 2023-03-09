@@ -34,9 +34,11 @@ describe('useMachine composition function', () => {
     }
   });
 
-  const persistedFetchState = fetchMachine.transition(
-    'loading',
-    doneInvoke('fetchData', 'persisted data')
+  const persistedFetchState = fetchMachine.getPersistedState(
+    fetchMachine.transition(
+      'loading',
+      doneInvoke('fetchData', 'persisted data')
+    )
   );
 
   it('should work with a component ', async () => {
