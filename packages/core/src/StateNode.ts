@@ -303,7 +303,7 @@ export class StateNode<
           this.machine.options.actors = {
             ...this.machine.options.actors,
             // TODO: this should accept `src` as-is
-            [resolvedId]: typeof src === 'function' ? src : () => src
+            [resolvedId]: src
           };
         }
 

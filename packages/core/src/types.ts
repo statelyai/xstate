@@ -551,7 +551,7 @@ export interface InvokeConfig<
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
 
-  input?: MaybeLazy<Record<string, any>>;
+  input?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -615,11 +615,7 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<
-    | string
-    | ActorBehaviorCreator<TContext, TEvent>
-    | InvokeConfig<TContext, TEvent>
-  >;
+  invoke?: SingleOrArray<string | InvokeConfig<TContext, TEvent>>;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -803,10 +799,7 @@ export interface MachineImplementationsSimplified<
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
-  actors: Record<
-    string,
-    ActorBehaviorCreator<TContext, TEvent> | AnyActorBehavior
-  >;
+  actors: Record<string, AnyActorBehavior>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
 }
@@ -867,27 +860,17 @@ type MachineImplementationsGuards<
 };
 
 type MachineImplementationsActors<
-  TContext extends MachineContext,
   TResolvedTypesMeta,
   TEventsCausingActors = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'eventsCausingActors'
   >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
   _TInvokeSrcNameMap = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'invokeSrcNameMap'
   >
 > = {
-  [K in keyof TEventsCausingActors]?:
-    | ActorBehaviorCreator<
-        TContext,
-        Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
-        // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
-        // EventObject,
-        // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
-      >
-    | AnyActorBehavior;
+  [K in keyof TEventsCausingActors]?: AnyActorBehavior;
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
@@ -946,7 +929,6 @@ type GenerateGuardsImplementationsPart<
 };
 
 type GenerateActorsImplementationsPart<
-  TContext extends MachineContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
   TMissingImplementations
@@ -955,7 +937,7 @@ type GenerateActorsImplementationsPart<
   Prop<TMissingImplementations, 'actors'>,
   TRequireMissingImplementations
 > & {
-  actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
+  actors?: MachineImplementationsActors<TResolvedTypesMeta>;
 };
 
 export type InternalMachineImplementations<
@@ -986,7 +968,6 @@ export type InternalMachineImplementations<
     TMissingImplementations
   > &
   GenerateActorsImplementationsPart<
-    TContext,
     TResolvedTypesMeta,
     TRequireMissingImplementations,
     TMissingImplementations

@@ -529,11 +529,10 @@ describe('interpreter', () => {
       },
       {
         actors: {
-          myActivity: () =>
-            fromCallback(() => {
-              activityState = 'on';
-              return () => (activityState = 'off');
-            })
+          myActivity: fromCallback(() => {
+            activityState = 'on';
+            return () => (activityState = 'off');
+          })
         }
       }
     );
@@ -577,11 +576,10 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            myActivity: () =>
-              fromCallback(() => {
-                stopActivityState = 'on';
-                return () => (stopActivityState = 'off');
-              })
+            myActivity: fromCallback(() => {
+              stopActivityState = 'on';
+              return () => (stopActivityState = 'off');
+            })
           }
         }
       );
@@ -619,14 +617,13 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            blink: () =>
-              fromCallback(() => {
-                activityActive = true;
+            blink: fromCallback(() => {
+              activityActive = true;
 
-                return () => {
-                  activityActive = false;
-                };
-              })
+              return () => {
+                activityActive = false;
+              };
+            })
           }
         }
       );
@@ -1584,10 +1581,9 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            testService: () =>
-              fromCallback(() => {
-                // nothing
-              })
+            testService: fromCallback(() => {
+              // nothing
+            })
           }
         }
       );

@@ -110,13 +110,7 @@ export class StateMachine<
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
-      spawn: createSpawner(
-        actorCtx?.self,
-        this,
-        null as any,
-        null as any,
-        actions
-      ), // TODO: fix types
+      spawn: createSpawner(actorCtx?.self, this, actions),
       input
     });
 
@@ -331,8 +325,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: ActorContext<any, any> | undefined,
-    input: any
+    actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions(input, actorCtx);
     const config = getInitialConfiguration(this.root);
@@ -383,7 +376,7 @@ export class StateMachine<
     const input = actorCtx?.input;
     const initEvent = createInitEvent(input) as unknown as SCXML.Event<TEvent>; // TODO: fix;
 
-    const preInitialState = this.getPreInitialState(actorCtx, input);
+    const preInitialState = this.getPreInitialState(actorCtx);
     const nextState = microstep([], preInitialState, actorCtx, initEvent);
     nextState.actions.unshift(...preInitialState.actions);
 
@@ -483,17 +476,7 @@ export class StateMachine<
         return;
       }
 
-      const behavior =
-        typeof behaviorImpl === 'function'
-          ? behaviorImpl(state.context, state._event.data, {
-              id: actorId,
-              data: undefined,
-              src: src!,
-              _event: state._event,
-              meta: {},
-              input: actorData.input
-            })
-          : behaviorImpl;
+      const behavior = behaviorImpl;
 
       const actorState = behavior.restoreState?.(childState, _actorCtx);
 
@@ -518,23 +501,15 @@ export class StateMachine<
             return;
           }
 
-          const behaviorImpl = this.options.actors[src.type];
+          const behaviorImpl = this.options.actors[src];
 
-          const behavior =
-            typeof behaviorImpl === 'function'
-              ? behaviorImpl(state.context, state._event.data, {
-                  id,
-                  data: undefined,
-                  src,
-                  _event: state._event,
-                  meta: {}
-                })
-              : behaviorImpl;
+          const behavior = behaviorImpl;
 
           if (behavior) {
             const actorRef = interpret(behavior, {
               id,
-              parent: _actorCtx?.self
+              parent: _actorCtx?.self,
+              input
             });
 
             children[id] = actorRef;

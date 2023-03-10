@@ -624,11 +624,10 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       },
       {
         actors: {
-          foo: () =>
-            fromPromise(() => {
-              serviceCalled = true;
-              return Promise.resolve();
-            })
+          foo: fromPromise(() => {
+            serviceCalled = true;
+            return Promise.resolve();
+          })
         }
       }
     );

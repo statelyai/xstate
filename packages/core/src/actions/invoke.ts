@@ -31,7 +31,7 @@ export function invoke<
     { type: invokeActionType, params: invokeDef },
     (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
-      const { id, src, meta, input } = invokeDef;
+      const { id, src, input } = invokeDef;
 
       let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
@@ -51,24 +51,15 @@ export function invoke<
             params: invokeDef
           } as InvokeActionObject;
         } else {
-          const behavior =
-            typeof behaviorImpl === 'function'
-              ? behaviorImpl(state.context, _event.data, {
-                  id,
-                  src,
-                  _event,
-                  meta,
-                  input: input
-                    ? mapContext(input, state.context, _event as any)
-                    : undefined
-                })
-              : behaviorImpl;
+          const behavior = behaviorImpl;
 
           const ref = interpret(behavior, {
             id,
             src,
             parent: actorContext?.self,
-            input: input ? mapContext(input, state.context, _event) : undefined
+            input: input
+              ? mapContext(input, state.context, _event as any) // TODO: fix type
+              : undefined
           });
 
           resolvedInvokeAction = {

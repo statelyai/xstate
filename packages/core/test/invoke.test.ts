@@ -138,7 +138,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => childMachine
+          child: childMachine
         }
       }
     );
@@ -209,7 +209,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => childMachine
+          child: childMachine
         }
       }
     );
@@ -421,8 +421,8 @@ describe('invoke', () => {
       initial: 'pending',
       states: {
         pending: {
-          invoke: () =>
-            createMachine({
+          invoke: {
+            src: createMachine({
               id: 'child',
               initial: 'sending',
               states: {
@@ -430,7 +430,8 @@ describe('invoke', () => {
                   entry: sendParent({ type: 'SUCCESS', data: 42 })
                 }
               }
-            }),
+            })
+          },
           on: {
             SUCCESS: {
               target: 'success',
@@ -463,8 +464,8 @@ describe('invoke', () => {
           initial: 'b',
           states: {
             b: {
-              invoke: () =>
-                createMachine({
+              invoke: {
+                src: createMachine({
                   id: 'child',
                   initial: 'sending',
                   states: {
@@ -473,6 +474,7 @@ describe('invoke', () => {
                     }
                   }
                 })
+              }
             }
           }
         },
@@ -528,7 +530,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => childMachine
+          child: childMachine
         }
       }
     );
@@ -536,16 +538,15 @@ describe('invoke', () => {
     interpret(
       someParentMachine.provide({
         actors: {
-          child: () =>
-            createMachine({
-              id: 'child',
-              initial: 'init',
-              states: {
-                init: {
-                  entry: [sendParent({ type: 'STOP' })]
-                }
+          child: createMachine({
+            id: 'child',
+            initial: 'init',
+            states: {
+              init: {
+                entry: [sendParent({ type: 'STOP' })]
               }
-            })
+            }
+          })
         }
       })
     )
@@ -601,39 +602,6 @@ describe('invoke', () => {
         invoke: {
           id: 'foo-child',
           src: subMachine
-        },
-        states: {
-          one: {
-            entry: sendTo('foo-child', { type: 'NEXT' }),
-            on: { NEXT: 'two' }
-          },
-          two: {
-            type: 'final'
-          }
-        }
-      });
-
-      interpret(mainMachine)
-        .onDone(() => {
-          done();
-        })
-        .start();
-    });
-
-    it('should communicate with the child machine (invoke on created machine)', (done) => {
-      interface MainMachineCtx {
-        machine: typeof subMachine;
-      }
-
-      const mainMachine = createMachine<MainMachineCtx>({
-        id: 'parent',
-        initial: 'one',
-        context: {
-          machine: subMachine
-        },
-        invoke: {
-          id: 'foo-child',
-          src: (ctx) => ctx.machine
         },
         states: {
           one: {
@@ -953,16 +921,16 @@ describe('invoke', () => {
         states: {
           pending: {
             invoke: {
-              src: (ctx) =>
-                fromPromise(() =>
-                  createPromise((resolve) => {
-                    if (ctx.succeed) {
-                      resolve(ctx.id);
-                    } else {
-                      throw new Error(`failed on purpose for: ${ctx.id}`);
-                    }
-                  })
-                ),
+              src: fromPromise(({ input }) =>
+                createPromise((resolve) => {
+                  if (input.succeed) {
+                    resolve(input.id);
+                  } else {
+                    throw new Error(`failed on purpose for: ${input.id}`);
+                  }
+                })
+              ),
+              input: (ctx) => ctx,
               onDone: {
                 target: 'success',
                 guard: (ctx, e) => {
@@ -1133,8 +1101,9 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: () =>
-                fromPromise(() => createPromise((resolve) => resolve()))
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve())
+              )
             }
           }
         );
@@ -1152,10 +1121,9 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: () =>
-                  fromPromise(() =>
-                    createPromise((resolve) => resolve({ count: 1 }))
-                  ),
+                src: fromPromise(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                ),
                 onDone: {
                   target: 'success',
                   actions: assign({ count: (_, e) => e.data.count })
@@ -1203,10 +1171,9 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: () =>
-                fromPromise(() =>
-                  createPromise((resolve) => resolve({ count: 1 }))
-                )
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve({ count: 1 }))
+              )
             }
           }
         );
@@ -1233,10 +1200,9 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: () =>
-                  fromPromise(() =>
-                    createPromise((resolve) => resolve({ count: 1 }))
-                  ),
+                src: fromPromise(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                ),
                 onDone: {
                   target: 'success',
                   actions: (_, e) => {
@@ -1285,10 +1251,9 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: () =>
-                fromPromise(() =>
-                  createPromise((resolve) => resolve({ count: 1 }))
-                )
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve({ count: 1 }))
+              )
             }
           }
         );
@@ -1322,6 +1287,10 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
+                  input: {
+                    foo: (ctx) => ctx.foo,
+                    event: (_, ev) => ev
+                  },
                   onDone: 'last'
                 }
               },
@@ -1332,12 +1301,11 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: (ctx, e) =>
-                fromPromise(() => {
-                  return createPromise((resolve, reject) => {
-                    ctx.foo && e.payload ? resolve() : reject();
-                  });
-                })
+              somePromise: fromPromise(({ input }) => {
+                return createPromise((resolve, reject) => {
+                  input.foo && input.event.payload ? resolve() : reject();
+                });
+              })
             }
           }
         );
@@ -1467,7 +1435,11 @@ describe('invoke', () => {
             },
             first: {
               invoke: {
-                src: 'someCallback'
+                src: 'someCallback',
+                input: {
+                  foo: (ctx) => ctx.foo,
+                  event: (_, ev) => ev
+                }
               },
               on: {
                 CALLBACK: {
@@ -1483,23 +1455,22 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: (ctx, e) =>
-              fromCallback((cb) => {
-                if (ctx.foo && e.type === 'BEGIN') {
-                  cb({
-                    type: 'CALLBACK',
-                    data: 40
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 41
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 42
-                  });
-                }
-              })
+            someCallback: fromCallback((cb, _receive, { input }) => {
+              if (input.foo && input.event.type === 'BEGIN') {
+                cb({
+                  type: 'CALLBACK',
+                  data: 40
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 41
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 42
+                });
+              }
+            })
           }
         }
       );
@@ -1539,10 +1510,9 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: () =>
-              fromCallback((cb) => {
-                cb({ type: 'CALLBACK' });
-              })
+            someCallback: fromCallback((cb) => {
+              cb({ type: 'CALLBACK' });
+            })
           }
         }
       );
@@ -1581,10 +1551,9 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: () =>
-              fromCallback((cb) => {
-                cb({ type: 'CALLBACK' });
-              })
+            someCallback: fromCallback((cb) => {
+              cb({ type: 'CALLBACK' });
+            })
           }
         }
       );
@@ -1630,10 +1599,9 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: () =>
-              fromCallback((cb) => {
-                cb({ type: 'CALLBACK' });
-              })
+            someCallback: fromCallback((cb) => {
+              cb({ type: 'CALLBACK' });
+            })
           }
         }
       );
@@ -1665,14 +1633,13 @@ describe('invoke', () => {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: () =>
-                fromCallback((cb) => {
-                  const ivl = setInterval(() => {
-                    cb({ type: 'INC' });
-                  }, 10);
+              src: fromCallback((cb) => {
+                const ivl = setInterval(() => {
+                  cb({ type: 'INC' });
+                }, 10);
 
-                  return () => clearInterval(ivl);
-                })
+                return () => clearInterval(ivl);
+              })
             },
             always: {
               target: 'finished',
@@ -2923,7 +2890,7 @@ describe('invoke', () => {
 
   it.each([(ctx) => ({ endpoint: ctx.url }), { endpoint: (ctx) => ctx.url }])(
     'invoke `src` can be used with dynamic invoke `input`',
-    (input, done) => {
+    async (input) => {
       const machine = createMachine(
         {
           initial: 'searching',
@@ -2954,9 +2921,11 @@ describe('invoke', () => {
         }
       );
 
-      interpret(machine)
-        .onDone(() => done())
-        .start();
+      await new Promise<void>((res) =>
+        interpret(machine)
+          .onDone(() => res())
+          .start()
+      );
     }
   );
 
@@ -2978,12 +2947,11 @@ describe('invoke', () => {
       expect.assertions(1);
       const machine = createMachine({
         invoke: {
-          src: (_ctx, _e, { meta }) =>
-            fromPromise(() => {
-              expect(meta).toEqual({ url: 'stately.ai' });
-              return Promise.resolve();
-            }),
-          meta: {
+          src: fromPromise(({ input }) => {
+            expect(input).toEqual({ url: 'stately.ai' });
+            return Promise.resolve();
+          }),
+          input: {
             url: 'stately.ai'
           }
         }
@@ -3286,11 +3254,10 @@ describe('invoke', () => {
     const machine = createMachine({
       id: 'root',
       invoke: {
-        src: () =>
-          fromPromise(() => {
-            count++;
-            return Promise.resolve(42);
-          })
+        src: fromPromise(() => {
+          count++;
+          return Promise.resolve(42);
+        })
       },
       on: {
         EVENT: {

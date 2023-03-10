@@ -194,7 +194,7 @@ describe('spawning machines', () => {
       },
       {
         actors: {
-          child: () => childMachine
+          child: childMachine
         }
       }
     );
@@ -288,13 +288,12 @@ describe('spawning promises', () => {
       },
       {
         actors: {
-          somePromise: () =>
-            fromPromise(
-              () =>
-                new Promise((res) => {
-                  res('response');
-                })
-            )
+          somePromise: fromPromise(
+            () =>
+              new Promise((res) => {
+                res('response');
+              })
+          )
         }
       }
     );
@@ -541,10 +540,9 @@ describe('spawning event observables', () => {
       },
       {
         actors: {
-          interval: () =>
-            fromEventObservable(() =>
-              interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
-            )
+          interval: fromEventObservable(() =>
+            interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+          )
         }
       }
     );

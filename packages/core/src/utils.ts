@@ -5,7 +5,6 @@ import { IS_PRODUCTION } from './environment.js';
 import type { StateNode } from './StateNode.js';
 import type {
   ActorBehavior,
-  ActorBehaviorCreator,
   EventObject,
   EventType,
   InvokeConfig,
@@ -462,11 +461,7 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable:
-    | InvokeConfig<TContext, TEvent>
-    | string
-    | ActorBehaviorCreator<TContext, TEvent>
-    | ActorBehavior<any, any>,
+  invocable: InvokeConfig<TContext, TEvent> | string | ActorBehavior<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object') {
