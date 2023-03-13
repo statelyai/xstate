@@ -123,9 +123,8 @@ export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: rea
 export interface AssignMeta<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> {
-  state: State<TContext, TEvent>;
+  _TEvent extends EventObject
+> extends StateMeta<TContext, TExpressionEvent> {
   action: BaseActionObject;
   _event: SCXML.Event<TExpressionEvent>;
   spawn: Spawner;
@@ -1559,9 +1558,7 @@ export interface ValueAdjacencyMap<
   [stateId: string]: Record<string, State<TContext, TEvent>>;
 }
 
-export interface SCXMLEventMeta<TEvent extends EventObject> {
-  _event: SCXML.Event<TEvent>;
-}
+export type SCXMLEventMeta<TEvent extends EventObject> = StateMeta<any, TEvent>;
 
 export interface StateMeta<
   TContext extends MachineContext,

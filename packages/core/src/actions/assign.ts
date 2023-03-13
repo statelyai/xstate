@@ -44,7 +44,7 @@ export function assign<
         assignment
       }
     },
-    (_event, { state, action }) => {
+    (_event, { state, action, actorContext }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!state.context) {
@@ -54,7 +54,7 @@ export function assign<
       }
 
       const meta: AssignMeta<TContext, TExpressionEvent, TEvent> = {
-        state,
+        state: state as any,
         action,
         _event,
         spawn: createSpawner(
@@ -62,7 +62,8 @@ export function assign<
           state.context,
           _event,
           capturedActions
-        )
+        ),
+        self: actorContext?.self ?? ({} as any)
       };
 
       let partialUpdate: Partial<TContext> = {};

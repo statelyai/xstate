@@ -17,6 +17,7 @@ import {
   EventFrom,
   ExprWithMeta,
   InferEvent,
+  SCXMLEventMeta,
   SendActionObject,
   SendActionOptions
 } from '../index.js';
@@ -83,8 +84,10 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta = {
-        _event
+      const meta: SCXMLEventMeta<TEvent> = {
+        _event,
+        state: state as any, // TODO: fix
+        self: actorContext?.self ?? (null as any)
       };
       const delaysMap = state.machine.options.delays;
 
