@@ -2025,5 +2025,4 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
       src?: InvokeSourceDefinition;
     };
   };
-  persisted: true;
 };
