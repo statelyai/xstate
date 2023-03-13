@@ -1178,7 +1178,7 @@ describe('actors', () => {
     expect(service.getSnapshot().value).toBe('done');
   });
 
-  it('should not restart a completed observable', (done) => {
+  it('should not restart a completed observable', () => {
     let subscriptionCount = 0;
     const machine = createMachine({
       invoke: {
