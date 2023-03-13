@@ -19,7 +19,7 @@ import {
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { sendTo } from '../src/actions/send';
-import { EMPTY, interval } from 'rxjs';
+import { EMPTY, interval, of } from 'rxjs';
 import { fromReducer } from '../src/actors/reducer';
 import { fromObservable, fromEventObservable } from '../src/actors/observable';
 import { fromPromise } from '../src/actors/promise';
@@ -1176,5 +1176,50 @@ describe('actors', () => {
     service.start();
 
     expect(service.getSnapshot().value).toBe('done');
+  });
+
+  it('should not restart a completed observable', (done) => {
+    let subscriptionCount = 0;
+    const machine = createMachine({
+      invoke: {
+        id: 'observable',
+        src: fromObservable(() => {
+          const obs = of(42);
+          const sub = obs.subscribe.bind(obs);
+
+          obs.subscribe = (...args) => {
+            subscriptionCount++;
+            return sub(...(args as any));
+          };
+
+          return obs;
+        })
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    const obs = actor
+      .getSnapshot()
+      .children['observable'].getPersistedState?.();
+
+    expect(obs).toEqual(
+      expect.objectContaining({
+        data: 42,
+        status: 'done'
+      })
+    );
+
+    const persistedState = actor.getPersistedState();
+
+    interpret(machine, {
+      state: persistedState
+    }).start();
+
+    setTimeout(() => {
+      // Will be 2 if the observable is resubscribed
+      expect(subscriptionCount).toBe(1);
+      done();
+    });
   });
 });
