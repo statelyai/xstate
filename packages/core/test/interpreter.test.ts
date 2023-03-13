@@ -118,7 +118,8 @@ describe('interpreter', () => {
     });
 
     // https://github.com/statelyai/xstate/issues/1174
-    it('executes actions from a restored state', (done) => {
+    it('should not execute actions from a restored state', (done) => {
+      let executed = false;
       const lightMachine = createMachine(
         {
           id: 'light',
@@ -149,7 +150,7 @@ describe('interpreter', () => {
         {
           actions: {
             report: () => {
-              done();
+              executed = true;
             }
           }
         }
@@ -166,6 +167,11 @@ describe('interpreter', () => {
 
       const service = interpret(lightMachine, { state: restoredState });
       service.start();
+
+      setTimeout(() => {
+        expect(executed).toBe(false);
+        done();
+      }, 10);
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {

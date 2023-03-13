@@ -137,7 +137,10 @@ describe('delayed transitions', () => {
     expect(machine.initialState.actions.length).toBe(1);
   });
 
-  it('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
+  // TODO: create an XState clock service for handling delayed transitions,
+  // with options for mocking time and determining replay behavior;
+  // e.g. should it be replayed based on remaining time, original duration, or timestamp?
+  it.skip('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
     const machine = createMachine({
       id: 'machine',
       initial: 'a',

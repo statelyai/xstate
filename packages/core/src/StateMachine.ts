@@ -499,7 +499,7 @@ export class StateMachine<
     });
 
     const restoredState: State<TContext, TEvent, TResolvedTypesMeta> =
-      this.createState(new State({ ...state, children }, this));
+      this.createState(new State({ ...state, children, actions: [] }, this));
 
     // TODO: DRY this up
     restoredState.configuration.forEach((stateNode) => {
