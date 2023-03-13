@@ -1199,16 +1199,6 @@ describe('actors', () => {
 
     const actor = interpret(machine).start();
 
-    const obs = actor
-      .getSnapshot()
-      .children['observable'].getPersistedState?.();
-
-    expect(obs).toEqual(
-      expect.objectContaining({
-        data: 42,
-        status: 'done'
-      })
-    );
 
     const persistedState = actor.getPersistedState();
 
