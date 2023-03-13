@@ -25,7 +25,8 @@ import type {
   TransitionDefinitionMap,
   InitialTransitionDefinition,
   MachineContext,
-  BaseActionObject
+  BaseActionObject,
+  ActorContext
 } from './types.js';
 import type { State } from './State.js';
 import * as actionTypes from './actionTypes.js';
@@ -331,7 +332,8 @@ export class StateNode<
 
   public next(
     state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>
+    _event: SCXML.Event<TEvent>,
+    actorCtx: ActorContext<TEvent, any>
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
@@ -362,7 +364,8 @@ export class StateNode<
             guard,
             resolvedContext,
             _event,
-            state
+            state,
+            actorCtx
           );
       } catch (err) {
         throw new Error(

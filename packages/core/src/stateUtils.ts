@@ -754,13 +754,14 @@ export function transitionAtomicNode<
   stateNode: AnyStateNode,
   stateValue: string,
   state: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent>,
+  actorCtx: ActorContext<TEvent, any>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
-  const next = childStateNode.next(state, _event);
+  const next = childStateNode.next(state, _event, actorCtx);
 
   if (!next || !next.length) {
-    return stateNode.next(state, _event);
+    return stateNode.next(state, _event, actorCtx);
   }
 
   return next;
@@ -773,7 +774,8 @@ export function transitionCompoundNode<
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent>,
+  actorCtx: ActorContext<TEvent, any>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
 
@@ -782,11 +784,12 @@ export function transitionCompoundNode<
     childStateNode,
     stateValue[subStateKeys[0]],
     state,
-    _event
+    _event,
+    actorCtx
   );
 
   if (!next || !next.length) {
-    return stateNode.next(state, _event);
+    return stateNode.next(state, _event, actorCtx);
   }
 
   return next;
@@ -799,7 +802,8 @@ export function transitionParallelNode<
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent>,
+  actorCtx: ActorContext<TEvent, any>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
@@ -815,14 +819,15 @@ export function transitionParallelNode<
       subStateNode,
       subStateValue,
       state,
-      _event
+      _event,
+      actorCtx
     );
     if (innerTransitions) {
       allInnerTransitions.push(...innerTransitions);
     }
   }
   if (!allInnerTransitions.length) {
-    return stateNode.next(state, _event);
+    return stateNode.next(state, _event, actorCtx);
   }
 
   return allInnerTransitions;
@@ -835,20 +840,27 @@ export function transitionNode<
   stateNode: AnyStateNode,
   stateValue: StateValue,
   state: State<TContext, TEvent, any>,
-  _event: SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent>,
+  actorCtx: ActorContext<any, any>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (isString(stateValue)) {
-    return transitionAtomicNode(stateNode, stateValue, state, _event);
+    return transitionAtomicNode(stateNode, stateValue, state, _event, actorCtx);
   }
 
   // compound node
   if (Object.keys(stateValue).length === 1) {
-    return transitionCompoundNode(stateNode, stateValue, state, _event);
+    return transitionCompoundNode(
+      stateNode,
+      stateValue,
+      state,
+      _event,
+      actorCtx
+    );
   }
 
   // parallel node
-  return transitionParallelNode(stateNode, stateValue, state, _event);
+  return transitionParallelNode(stateNode, stateValue, state, _event, actorCtx);
 }
 
 function getHistoryNodes(stateNode: AnyStateNode): Array<AnyStateNode> {
@@ -1598,7 +1610,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
   if (scxmlEvent.name !== actionTypes.init) {
-    const transitions = selectTransitions(scxmlEvent, nextState);
+    const transitions = selectTransitions(scxmlEvent, nextState, actorCtx);
     nextState = microstep(transitions, state, actorCtx, scxmlEvent);
     states.push(nextState);
   }
@@ -1684,9 +1696,10 @@ function stopStep(
 
 function selectTransitions(
   scxmlEvent: SCXML.Event<any>,
-  nextState: AnyState
+  nextState: AnyState,
+  actorCtx: ActorContext<any, any>
 ): AnyTransitionDefinition[] {
-  return nextState.machine.getTransitionData(nextState, scxmlEvent);
+  return nextState.machine.getTransitionData(nextState, scxmlEvent, actorCtx);
 }
 
 function selectEventlessTransitions(

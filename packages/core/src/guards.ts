@@ -7,7 +7,8 @@ import type {
   GuardMeta,
   SCXML,
   GuardPredicate,
-  MachineContext
+  MachineContext,
+  ActorContext
 } from './types.js';
 import { isStateId } from './stateUtils.js';
 import { isFunction, isString } from './utils.js';
@@ -45,8 +46,7 @@ export function not<
         meta.guard.children![0],
         ctx,
         meta._event,
-        meta.state,
-        meta.state.machine!
+        meta.state
       );
     }
   };
@@ -64,13 +64,7 @@ export function and<
     children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, _, meta) => {
       return meta.guard.children!.every((childGuard) => {
-        return meta.evaluate(
-          childGuard,
-          ctx,
-          meta._event,
-          meta.state,
-          meta.state.machine!
-        );
+        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
       });
     }
   };
@@ -85,13 +79,7 @@ export function or<TContext extends MachineContext, TEvent extends EventObject>(
     children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, _, meta) => {
       return meta.guard.children!.some((childGuard) => {
-        return meta.evaluate(
-          childGuard,
-          ctx,
-          meta._event,
-          meta.state,
-          meta.state.machine!
-        );
+        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
       });
     }
   };
@@ -104,14 +92,19 @@ export function evaluateGuard<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent>,
+  actorContext?: ActorContext<any, any>
 ): boolean {
   const { machine } = state;
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     guard,
     _event,
-    evaluate: evaluateGuard
+    evaluate: evaluateGuard,
+    // TODO: `self` should always be "defined", and developers should expect it to exist
+    // only when they're actually interpreting the machine.
+    // Trying to access `self` with an uninterpreted machine should fail correctly.
+    self: actorContext?.self ?? (null as any)
   };
 
   const predicate = machine?.options?.guards?.[guard.type] ?? guard.predicate;
@@ -152,9 +145,9 @@ export function toGuardDefinition<
   return {
     type: guardConfig.type,
     params: guardConfig.params || guardConfig,
-    children: (guardConfig.children as Array<
-      GuardConfig<TContext, TEvent>
-    >)?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
+    children: (
+      guardConfig.children as Array<GuardConfig<TContext, TEvent>>
+    )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
     predicate:
       getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
   };

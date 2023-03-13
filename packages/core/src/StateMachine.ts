@@ -303,9 +303,12 @@ export class StateMachine<
 
   public getTransitionData(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
-    _event: SCXML.Event<TEvent>
+    _event: SCXML.Event<TEvent>,
+    actorCtx: ActorContext<any, any>
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    return transitionNode(this.root, state.value, state, _event) || [];
+    return (
+      transitionNode(this.root, state.value, state, _event, actorCtx) || []
+    );
   }
 
   /**

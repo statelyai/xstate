@@ -243,8 +243,7 @@ export type GuardEvaluator<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>,
-  machine: StateMachine<TContext, TEvent>
+  state: State<TContext, TEvent>
 ) => boolean;
 
 export interface GuardMeta<
@@ -1570,6 +1569,7 @@ export interface StateMeta<
 > {
   state: State<TContext, TEvent, any>;
   _event: SCXML.Event<TEvent>;
+  self: ActorRef<TEvent>;
 }
 
 export interface StateLike<TContext extends MachineContext> {
