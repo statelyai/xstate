@@ -173,6 +173,11 @@ export function fromEventObservable<T extends EventObject>(
       };
     },
     start: (state, { self }) => {
+      if (state.status === 'done') {
+        // Do not restart a completed observable
+        return;
+      }
+
       state.subscription = lazyObservable().subscribe({
         next: (value) => {
           self._parent?.send(toSCXMLEvent(value, { origin: self }));
@@ -186,7 +191,16 @@ export function fromEventObservable<T extends EventObject>(
       });
     },
     getSnapshot: (_) => undefined,
-    getStatus: (state) => state
+    getPersistedState: ({ canceled, status, data }) => ({
+      canceled,
+      status,
+      data
+    }),
+    getStatus: (state) => state,
+    restoreState: (state) => ({
+      ...state,
+      subscription: undefined
+    })
   };
 
   return behavior;

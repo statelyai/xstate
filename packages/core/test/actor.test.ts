@@ -1191,8 +1191,6 @@ describe('actors', () => {
     });
 
     const actor = interpret(machine).start();
-
-
     const persistedState = actor.getPersistedState();
 
     interpret(machine, {
@@ -1200,6 +1198,29 @@ describe('actors', () => {
     }).start();
 
     // Will be 2 if the observable is resubscribed
+    expect(subscriptionCount).toBe(1);
+  });
+
+  it('should not restart a completed event observable', () => {
+    let subscriptionCount = 0;
+    const machine = createMachine({
+      invoke: {
+        id: 'observable',
+        src: fromEventObservable(() => {
+          subscriptionCount++;
+          return of({ type: 'TEST' });
+        })
+      }
+    });
+
+    const actor = interpret(machine).start();
+    const persistedState = actor.getPersistedState();
+
+    interpret(machine, {
+      state: persistedState
+    }).start();
+
+    // Will be 2 if the event observable is resubscribed
     expect(subscriptionCount).toBe(1);
   });
 });
