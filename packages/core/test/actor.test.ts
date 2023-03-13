@@ -1184,15 +1184,8 @@ describe('actors', () => {
       invoke: {
         id: 'observable',
         src: fromObservable(() => {
-          const obs = of(42);
-          const sub = obs.subscribe.bind(obs);
-
-          obs.subscribe = (...args) => {
-            subscriptionCount++;
-            return sub(...(args as any));
-          };
-
-          return obs;
+          subscriptionCount++;
+          return of(42);
         })
       }
     });
