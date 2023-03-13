@@ -1206,10 +1206,7 @@ describe('actors', () => {
       state: persistedState
     }).start();
 
-    setTimeout(() => {
-      // Will be 2 if the observable is resubscribed
-      expect(subscriptionCount).toBe(1);
-      done();
-    });
+    // Will be 2 if the observable is resubscribed
+    expect(subscriptionCount).toBe(1);
   });
 });
