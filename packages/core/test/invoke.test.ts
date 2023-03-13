@@ -118,8 +118,7 @@ describe('invoke', () => {
           start: {
             invoke: {
               src: 'child',
-              id: 'someService',
-              autoForward: true
+              id: 'someService'
             },
             always: {
               target: 'stop',
@@ -127,7 +126,10 @@ describe('invoke', () => {
             },
             on: {
               INC: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
+                actions: [
+                  assign({ count: (ctx) => ctx.count + 1 }),
+                  sendTo('someService', { type: 'INC' })
+                ]
               }
             }
           },
@@ -190,8 +192,7 @@ describe('invoke', () => {
           start: {
             invoke: {
               src: 'child',
-              id: 'someService',
-              autoForward: true
+              id: 'someService'
             },
             always: {
               target: 'stop',
@@ -199,7 +200,9 @@ describe('invoke', () => {
             },
             on: {
               DEC: { actions: assign({ count: (ctx) => ctx.count - 1 }) },
-              FORWARD_DEC: undefined
+              FORWARD_DEC: {
+                actions: sendTo('child', { type: 'FORWARD_DEC' })
+              }
             }
           },
           stop: {
@@ -284,8 +287,8 @@ describe('invoke', () => {
         },
         invokeChild: {
           invoke: {
+            id: 'child',
             src: childMachine,
-            autoForward: true,
             onDone: {
               target: 'done',
               actions: assign((_ctx, event) => ({
@@ -295,9 +298,12 @@ describe('invoke', () => {
           },
           on: {
             INCREMENT: {
-              actions: () => {
-                actual.push('parent got INCREMENT');
-              }
+              actions: [
+                () => {
+                  actual.push('parent got INCREMENT');
+                },
+                sendTo('child', { type: 'INCREMENT' })
+              ]
             }
           }
         },
@@ -315,12 +321,12 @@ describe('invoke', () => {
       .onDone(() => {
         expect(state.context).toEqual({ countedTo: 3 });
         expect(actual).toEqual([
-          'child got INCREMENT',
           'parent got INCREMENT',
           'child got INCREMENT',
           'parent got INCREMENT',
           'child got INCREMENT',
-          'parent got INCREMENT'
+          'parent got INCREMENT',
+          'child got INCREMENT'
         ]);
         done();
       })
@@ -516,8 +522,7 @@ describe('invoke', () => {
           start: {
             invoke: {
               src: 'child',
-              id: 'someService',
-              autoForward: true
+              id: 'someService'
             },
             on: {
               STOP: 'stop'
