@@ -466,7 +466,7 @@ describe('State', () => {
           }
         });
 
-        expect(testMachine.initialState._sessionid).toBeUndefined();
+        expect(testMachine.initialState.sessionId).toBeUndefined();
       });
 
       it('_sessionid should be the service sessionId for invoked machines', (done) => {
@@ -488,7 +488,7 @@ describe('State', () => {
 
         service
           .onTransition((state) => {
-            expect(state._sessionid).toEqual(service.sessionId);
+            expect(state.sessionId).toEqual(service.sessionId);
           })
           .onDone(() => {
             done();
@@ -515,13 +515,13 @@ describe('State', () => {
 
         const { initialState } = testMachine;
 
-        initialState._sessionid = 'somesessionid';
+        initialState.sessionId = 'somesessionid';
 
         const nextState = testMachine.transition(initialState, {
           type: 'TOGGLE'
         });
 
-        expect(nextState._sessionid).toEqual('somesessionid');
+        expect(nextState.sessionId).toEqual('somesessionid');
       });
     });
   });

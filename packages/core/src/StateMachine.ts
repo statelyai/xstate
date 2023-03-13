@@ -322,7 +322,7 @@ export class StateMachine<
         value: {}, // TODO: this is computed in state constructor
         context,
         _event: initEvent as SCXML.Event<TEvent>,
-        _sessionid: actorCtx?.sessionId ?? undefined,
+        sessionId: actorCtx?.sessionId ?? undefined,
         actions: [],
         meta: undefined,
         configuration: config,

@@ -75,7 +75,7 @@ describe('action creators', () => {
             context: { delay: 100 },
             value: {},
             _event: {} as any,
-            _sessionid: '',
+            sessionId: '',
             transitions: [],
             children: {}
           }),

@@ -1586,7 +1586,7 @@ export interface StateConfig<
   value: StateValue;
   context: TContext;
   _event: SCXML.Event<TEvent>;
-  _sessionid: string | undefined;
+  sessionId: string | undefined;
   historyValue?: HistoryValue<TContext, TEvent>;
   actions?: BaseActionObject[];
   meta?: any;
