@@ -139,7 +139,8 @@ export function fromEventObservable<T extends EventObject>(
   const behavior: ActorBehavior<
     any,
     T | undefined,
-    ObservableInternalState<T>
+    ObservableInternalState<T>,
+    ObservablePersistedState<T>
   > = {
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
