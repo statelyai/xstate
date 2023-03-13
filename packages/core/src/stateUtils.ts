@@ -755,7 +755,7 @@ export function transitionAtomicNode<
   stateValue: string,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>,
-  actorCtx: ActorContext<TEvent, any>
+  actorCtx?: ActorContext<TEvent, any>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
   const next = childStateNode.next(state, _event, actorCtx);
@@ -775,7 +775,7 @@ export function transitionCompoundNode<
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>,
-  actorCtx: ActorContext<TEvent, any>
+  actorCtx?: ActorContext<TEvent, any>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
 
@@ -803,7 +803,7 @@ export function transitionParallelNode<
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>,
-  actorCtx: ActorContext<TEvent, any>
+  actorCtx?: ActorContext<TEvent, any>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
@@ -841,7 +841,7 @@ export function transitionNode<
   stateValue: StateValue,
   state: State<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
-  actorCtx: ActorContext<any, any>
+  actorCtx?: ActorContext<any, any>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (isString(stateValue)) {
@@ -1697,7 +1697,7 @@ function stopStep(
 function selectTransitions(
   scxmlEvent: SCXML.Event<any>,
   nextState: AnyState,
-  actorCtx: ActorContext<any, any>
+  actorCtx?: ActorContext<any, any>
 ): AnyTransitionDefinition[] {
   return nextState.machine.getTransitionData(nextState, scxmlEvent, actorCtx);
 }

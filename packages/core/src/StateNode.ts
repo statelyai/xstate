@@ -333,7 +333,7 @@ export class StateNode<
   public next(
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>,
-    actorCtx: ActorContext<TEvent, any>
+    actorCtx?: ActorContext<TEvent, any>
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
