@@ -103,14 +103,13 @@ export class StateMachine<
     return this.getContextAndActions(input)[0];
   }
   private getContextAndActions(
-    input: any,
     actorCtx?: ActorContext<any, any>
   ): [TContext, InvokeActionObject[]] {
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
       spawn: createSpawner(actorCtx?.self, this, actions),
-      input
+      input: actorCtx?.input
     });
 
     return [context, actions];
@@ -326,7 +325,7 @@ export class StateMachine<
   private getPreInitialState(
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const [context, actions] = this.getContextAndActions(input, actorCtx);
+    const [context, actions] = this.getContextAndActions(actorCtx);
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
       this.createState({
@@ -494,7 +493,7 @@ export class StateMachine<
     restoredState.configuration.forEach((stateNode) => {
       if (stateNode.invoke) {
         stateNode.invoke.forEach((invokeConfig) => {
-          const { id, src } = invokeConfig;
+          const { id, src, input } = invokeConfig;
 
           if (children[id]) {
             return;
