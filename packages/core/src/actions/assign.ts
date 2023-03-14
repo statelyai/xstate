@@ -58,6 +58,7 @@ export function assign<
         action,
         _event,
         spawn: createSpawner(
+          actorContext?.self,
           state.machine,
           state.context,
           _event,

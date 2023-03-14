@@ -10,12 +10,24 @@ export interface PromiseInternalState<T> {
 
 export function fromPromise<T>(
   lazyPromise: Lazy<PromiseLike<T>>
-): ActorBehavior<{ type: string }, T | undefined> {
+): ActorBehavior<{ type: string }, T | undefined, PromiseInternalState<T>> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
 
   // TODO: add event types
-  const behavior: ActorBehavior<any, T | undefined, PromiseInternalState<T>> = {
+  const behavior: ActorBehavior<
+    | { type: string }
+    | {
+        type: typeof resolveEventType;
+        data: T;
+      }
+    | {
+        type: typeof rejectEventType;
+        data: any;
+      },
+    T | undefined,
+    PromiseInternalState<T>
+  > = {
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 
@@ -42,6 +54,12 @@ export function fromPromise<T>(
       }
     },
     start: (state, { self }) => {
+      // TODO: determine how to allow customizing this so that promises
+      // can be restarted if necessary
+      if (state.status !== 'active') {
+        return;
+      }
+
       const resolvedPromise = Promise.resolve(lazyPromise());
 
       resolvedPromise.then(
@@ -52,8 +70,6 @@ export function fromPromise<T>(
           self.send({ type: rejectEventType, data: errorData });
         }
       );
-
-      return state;
     },
     getInitialState: () => {
       return {
@@ -63,7 +79,9 @@ export function fromPromise<T>(
       };
     },
     getSnapshot: (state) => state.data,
-    getStatus: (state) => state
+    getStatus: (state) => state,
+    getPersistedState: (state) => state,
+    restoreState: (state) => state
   };
 
   return behavior;

@@ -15,9 +15,19 @@ export interface ObservableInternalState<T> {
   data: T | undefined;
 }
 
+export type ObservablePersistedState<T> = Omit<
+  ObservableInternalState<T>,
+  'subscription'
+>;
+
 export function fromObservable<T, TEvent extends EventObject>(
   lazyObservable: Lazy<Subscribable<T>>
-): ActorBehavior<TEvent, T | undefined> {
+): ActorBehavior<
+  TEvent,
+  T | undefined,
+  ObservableInternalState<T>,
+  ObservablePersistedState<T>
+> {
   const nextEventType = '$$xstate.next';
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
@@ -26,7 +36,8 @@ export function fromObservable<T, TEvent extends EventObject>(
   const behavior: ActorBehavior<
     any,
     T | undefined,
-    ObservableInternalState<T>
+    ObservableInternalState<T>,
+    ObservablePersistedState<T>
   > = {
     transition: (state, event, { self, id, defer }) => {
       const _event = toSCXMLEvent(event);
@@ -76,6 +87,11 @@ export function fromObservable<T, TEvent extends EventObject>(
       };
     },
     start: (state, { self }) => {
+      if (state.status === 'done') {
+        // Do not restart a completed observable
+        return;
+      }
+
       state.subscription = lazyObservable().subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
@@ -87,11 +103,18 @@ export function fromObservable<T, TEvent extends EventObject>(
           self.send({ type: completeEventType });
         }
       });
-
-      return state;
     },
     getSnapshot: (state) => state.data,
-    getStatus: (state) => state
+    getPersistedState: ({ canceled, status, data }) => ({
+      canceled,
+      status,
+      data
+    }),
+    getStatus: (state) => state,
+    restoreState: (state) => ({
+      ...state,
+      subscription: undefined
+    })
   };
 
   return behavior;
@@ -116,7 +139,8 @@ export function fromEventObservable<T extends EventObject>(
   const behavior: ActorBehavior<
     any,
     T | undefined,
-    ObservableInternalState<T>
+    ObservableInternalState<T>,
+    ObservablePersistedState<T>
   > = {
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
@@ -150,6 +174,11 @@ export function fromEventObservable<T extends EventObject>(
       };
     },
     start: (state, { self }) => {
+      if (state.status === 'done') {
+        // Do not restart a completed observable
+        return;
+      }
+
       state.subscription = lazyObservable().subscribe({
         next: (value) => {
           self._parent?.send(toSCXMLEvent(value, { origin: self }));
@@ -161,11 +190,18 @@ export function fromEventObservable<T extends EventObject>(
           self.send({ type: completeEventType });
         }
       });
-
-      return state;
     },
     getSnapshot: (_) => undefined,
-    getStatus: (state) => state
+    getPersistedState: ({ canceled, status, data }) => ({
+      canceled,
+      status,
+      data
+    }),
+    getStatus: (state) => state,
+    restoreState: (state) => ({
+      ...state,
+      subscription: undefined
+    })
   };
 
   return behavior;

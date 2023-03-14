@@ -19,7 +19,7 @@ import {
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { sendTo } from '../src/actions/send';
-import { EMPTY, interval } from 'rxjs';
+import { EMPTY, interval, of } from 'rxjs';
 import { fromReducer } from '../src/actors/reducer';
 import { fromObservable, fromEventObservable } from '../src/actors/observable';
 import { fromPromise } from '../src/actors/promise';
@@ -1176,5 +1176,51 @@ describe('actors', () => {
     service.start();
 
     expect(service.getSnapshot().value).toBe('done');
+  });
+
+  it('should not restart a completed observable', () => {
+    let subscriptionCount = 0;
+    const machine = createMachine({
+      invoke: {
+        id: 'observable',
+        src: fromObservable(() => {
+          subscriptionCount++;
+          return of(42);
+        })
+      }
+    });
+
+    const actor = interpret(machine).start();
+    const persistedState = actor.getPersistedState();
+
+    interpret(machine, {
+      state: persistedState
+    }).start();
+
+    // Will be 2 if the observable is resubscribed
+    expect(subscriptionCount).toBe(1);
+  });
+
+  it('should not restart a completed event observable', () => {
+    let subscriptionCount = 0;
+    const machine = createMachine({
+      invoke: {
+        id: 'observable',
+        src: fromEventObservable(() => {
+          subscriptionCount++;
+          return of({ type: 'TEST' });
+        })
+      }
+    });
+
+    const actor = interpret(machine).start();
+    const persistedState = actor.getPersistedState();
+
+    interpret(machine, {
+      state: persistedState
+    }).start();
+
+    // Will be 2 if the event observable is resubscribed
+    expect(subscriptionCount).toBe(1);
   });
 });

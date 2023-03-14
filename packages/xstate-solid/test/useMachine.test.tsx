@@ -6,8 +6,8 @@ import {
   doneInvoke,
   createMachine,
   send as xsend,
-  AnyState,
-  InterpreterStatus
+  InterpreterStatus,
+  PersistedMachineState
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { DoneEventObject } from 'xstate';
@@ -63,14 +63,16 @@ describe('useMachine hook', () => {
     }
   });
 
-  const persistedFetchState = fetchMachine.transition(
-    'loading',
-    doneInvoke('fetchData', 'persisted data')
+  const persistedFetchState = fetchMachine.getPersistedState(
+    fetchMachine.transition(
+      'loading',
+      doneInvoke('fetchData', 'persisted data')
+    )
   );
 
   const Fetcher = (props: {
     onFetch: () => Promise<any>;
-    persistedState?: AnyState;
+    persistedState?: PersistedMachineState<any>;
   }) => {
     const mergedProps = mergeProps(
       {
@@ -182,7 +184,7 @@ describe('useMachine hook', () => {
     });
 
     const Test = () => {
-      const [state] = useMachine(testMachine, { context: { test: true } });
+      const [state] = useMachine(testMachine.withContext({ test: true }));
 
       expect(state.context).toEqual({
         foo: 'bar',
@@ -1661,7 +1663,7 @@ describe('useMachine (strict mode)', () => {
 
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
-          state: testMachine.createState(JSON.parse(persistedState))
+          state: JSON.parse(persistedState)
         });
         createEffect(
           on(

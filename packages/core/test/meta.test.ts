@@ -118,15 +118,19 @@ describe('state meta data', () => {
       }
     });
 
-    const service = interpret(machine).onTransition((state) => {
-      expect(state.meta).toEqual({
-        'test.second': {
-          name: 'second state'
-        }
-      });
-      done();
-    });
-    service.start('second');
+    const secondState = machine.resolveStateValue('second');
+
+    const service = interpret(machine, { state: secondState }).onTransition(
+      (state) => {
+        expect(state.meta).toEqual({
+          'test.second': {
+            name: 'second state'
+          }
+        });
+        done();
+      }
+    );
+    service.start();
   });
 });
 

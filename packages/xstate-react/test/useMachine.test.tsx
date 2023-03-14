@@ -4,12 +4,12 @@ import { useState } from 'react';
 import {
   ActorRef,
   ActorRefFrom,
-  AnyState,
   assign,
   createMachine,
   DoneEventObject,
   doneInvoke,
   Interpreter,
+  PersistedMachineState,
   send,
   StateFrom
 } from 'xstate';
@@ -55,26 +55,28 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     }
   });
 
-  const persistedFetchState = fetchMachine.transition('loading', {
+  const successFetchState = fetchMachine.transition('loading', {
     type: 'done.invoke.fetchData',
     data: 'persisted data'
   });
 
+  const persistedSuccessFetchState =
+    fetchMachine.getPersistedState(successFetchState);
+
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: AnyState;
+    persistedState?: PersistedMachineState<any>;
   }> = ({
     onFetch = () => {
-      console.log('fetching...');
       return new Promise((res) => res('some data'));
     },
     persistedState
   }) => {
     const [current, send] = useMachine(fetchMachine, {
+      state: persistedState,
       actors: {
         fetchData: fromPromise(onFetch)
-      },
-      state: persistedState
+      }
     });
 
     switch (current.value) {
@@ -107,7 +109,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     render(
       <Fetcher
         onFetch={() => new Promise((res) => res('fake data'))}
-        persistedState={persistedFetchState}
+        persistedState={persistedSuccessFetchState}
       />
     );
 
@@ -118,7 +120,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('should work with the useMachine hook (rehydrated state config)', async () => {
     const persistedFetchStateConfig = JSON.parse(
-      JSON.stringify(persistedFetchState)
+      JSON.stringify(persistedSuccessFetchState)
     );
     render(
       <Fetcher
@@ -153,34 +155,6 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       });
 
       expect(service.options.execute).toBe(false);
-
-      return null;
-    };
-
-    render(<Test />);
-  });
-
-  it('should merge machine context with options.context', () => {
-    const testMachine = createMachine<{ foo: string; test: boolean }>({
-      context: {
-        foo: 'bar',
-        test: false
-      },
-      initial: 'idle',
-      states: {
-        idle: {}
-      }
-    });
-
-    const Test = () => {
-      const [state] = useMachine(testMachine, {
-        context: { test: true }
-      });
-
-      expect(state.context).toEqual({
-        foo: 'bar',
-        test: true
-      });
 
       return null;
     };
@@ -866,7 +840,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     const Test = () => {
       const [state, send] = useMachine(testMachine, {
-        state: testMachine.createState(JSON.parse(persistedState))
+        state: JSON.parse(persistedState)
       });
 
       currentState = state;

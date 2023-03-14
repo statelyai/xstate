@@ -414,14 +414,16 @@ describe('machine', () => {
 
       const nextState = machine.transition(undefined, { type: 'NEXT' });
 
-      const persistedState = JSON.stringify(nextState);
+      const persistedState = machine.getPersistedState(nextState);
 
-      const service = interpret(machine).onDone(() => {
-        // Should reach done state immediately
-        done();
-      });
+      const service = interpret(machine, { state: persistedState }).onDone(
+        () => {
+          // Should reach done state immediately
+          done();
+        }
+      );
 
-      service.start(JSON.parse(persistedState!));
+      service.start();
     });
   });
 
