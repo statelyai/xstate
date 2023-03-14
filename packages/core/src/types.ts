@@ -1780,6 +1780,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
    * The unique identifier for this actor relative to its parent.
    */
   id: string;
+  sessionId: string;
   send: (event: TEvent) => void;
   // TODO: should this be optional?
   start?: () => void;
