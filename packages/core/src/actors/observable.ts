@@ -72,7 +72,7 @@ export function fromObservable<T, TEvent extends EventObject>(
           return state;
         case stopSignalType:
           state.canceled = true;
-          state.subscription?.unsubscribe();
+          state.subscription!.unsubscribe();
           return state;
         default:
           return state;
