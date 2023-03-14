@@ -164,7 +164,7 @@ describe('invoke', () => {
       .start();
   });
 
-  it('should forward events to services if autoForward: true', () => {
+  it('can forward events to services', () => {
     const childMachine = createMachine({
       id: 'child',
       initial: 'init',
@@ -224,7 +224,7 @@ describe('invoke', () => {
       })
       .onDone(() => {
         // 1. The 'parent' machine will not do anything (inert transition)
-        // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (autoForward: true)
+        // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
         // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
         // 4. The context of the 'parent' machine will be updated from 2 to -1
 
@@ -235,7 +235,7 @@ describe('invoke', () => {
     service.send({ type: 'FORWARD_DEC' });
   });
 
-  it('should forward events to services if autoForward: true before processing them', (done) => {
+  it('another forwarding pattern', (done) => {
     const actual: string[] = [];
 
     const childMachine = createMachine<{ count: number }>({

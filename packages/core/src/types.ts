@@ -1150,10 +1150,6 @@ export interface InvokeActionObject extends BaseActionObject {
     exec?: undefined;
     ref?: ActorRef<any>;
     meta: MetaObject | undefined;
-    /**
-     * @deprecated For SCXML use only
-     */
-    autoForward?: boolean;
   };
 }
 
