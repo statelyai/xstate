@@ -7,7 +7,7 @@ import {
   InterpreterOptions,
   StateFrom
 } from 'xstate';
-import { MaybeLazy, Prop, UseMachineOptions } from './types.js';
+import { MaybeLazy, Prop } from './types.js';
 import { useInterpret } from './useInterpret.js';
 
 type RestParams<TMachine extends AnyStateMachine> =
@@ -15,8 +15,7 @@ type RestParams<TMachine extends AnyStateMachine> =
     TMachine['__TResolvedTypesMeta']
   > extends false
     ? [
-        options: InterpreterOptions &
-          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        options: InterpreterOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -25,8 +24,7 @@ type RestParams<TMachine extends AnyStateMachine> =
           >
       ]
     : [
-        options?: InterpreterOptions &
-          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        options?: InterpreterOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -55,11 +53,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const service = useInterpret(getMachine, options, listener);
 
-  const state = shallowRef(
-    options.state
-      ? (service.behavior as AnyStateMachine).createState(options.state)
-      : service.getSnapshot()
-  );
+  const state = shallowRef(service.getSnapshot());
 
   return { state, send: service.send, service } as any;
 }
