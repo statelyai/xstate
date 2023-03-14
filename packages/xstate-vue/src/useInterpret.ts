@@ -10,15 +10,14 @@ import {
   StateFrom,
   toObserver
 } from 'xstate';
-import { MaybeLazy, UseMachineOptions } from './types.js';
+import { MaybeLazy } from './types.js';
 
 type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends false
     ? [
-        options: InterpreterOptions &
-          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        options: InterpreterOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -30,8 +29,7 @@ type RestParams<TMachine extends AnyStateMachine> =
           | ((value: StateFrom<TMachine>) => void)
       ]
     : [
-        options?: InterpreterOptions &
-          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        options?: InterpreterOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -48,34 +46,18 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 ): InterpreterFrom<TMachine> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
-  const {
-    context,
-    guards,
-    actions,
-    actors,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+  const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
     actors,
     delays
   };
 
-  const machineWithConfig = machine.provide({
-    ...machineConfig,
-    context
-  } as any);
+  const machineWithConfig = machine.provide(machineConfig as any);
 
-  const service = interpret(machineWithConfig, interpreterOptions).start(
-    rehydratedState
-      ? (machineWithConfig.createState(rehydratedState) as any)
-      : undefined
-  );
+  const service = interpret(machineWithConfig, interpreterOptions).start();
 
   let sub;
   onMounted(() => {

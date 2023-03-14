@@ -16,12 +16,10 @@ import {
 } from 'xstate';
 import { MaybeLazy } from './types.js';
 import useConstant from './useConstant.js';
-import { UseMachineOptions } from './useMachine.js';
 
 export function useIdleInterpreter(
   getMachine: MaybeLazy<AnyStateMachine>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<any, never>> &
+  options: Partial<InterpreterOptions<AnyStateMachine>> &
     Partial<MachineImplementations<any, never>>
 ): AnyInterpreter {
   const machine = useConstant(() => {
@@ -42,19 +40,10 @@ export function useIdleInterpreter(
     }
   }
 
-  const {
-    context,
-    actors,
-    guards,
-    actions,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+  const { actors, guards, actions, delays, ...interpreterOptions } = options;
 
   const service = useConstant(() => {
     const machineConfig = {
-      context,
       guards,
       actions,
       actors,
@@ -86,8 +75,7 @@ type RestParams<TMachine extends AnyStateMachine> =
     TMachine['__TResolvedTypesMeta']
   > extends false
     ? [
-        options: InterpreterOptions &
-          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        options: InterpreterOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -99,8 +87,7 @@ type RestParams<TMachine extends AnyStateMachine> =
           | ((value: StateFrom<TMachine>) => void)
       ]
     : [
-        options?: InterpreterOptions &
-          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        options?: InterpreterOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -128,18 +115,12 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   }, [observerOrListener]);
 
   useEffect(() => {
-    const rehydratedState = options.state;
-    service.start(
-      rehydratedState
-        ? ((service.behavior as AnyStateMachine).createState(
-            rehydratedState
-          ) as any)
-        : undefined
-    );
+    service.start();
 
     return () => {
       service.stop();
       service.status = InterpreterStatus.NotStarted;
+      (service as any)._initState();
     };
   }, []);
 

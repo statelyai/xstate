@@ -164,8 +164,8 @@ describe('interpreter', () => {
       const recreated = JSON.parse(JSON.stringify(nextState));
       const restoredState = lightMachine.createState(recreated);
 
-      const service = interpret(lightMachine);
-      service.start(restoredState);
+      const service = interpret(lightMachine, { state: restoredState });
+      service.start();
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
@@ -184,14 +184,11 @@ describe('interpreter', () => {
         }
       });
 
-      const s = interpret(machine);
+      const bState = machine.initialState;
 
-      // would have deferred the entry action
-      s.getSnapshot();
+      expect(bState.value).toEqual('b');
 
-      // instead, we start from a different state
-      // and only execute those actions
-      s.start('b');
+      interpret(machine, { state: machine.resolveStateValue('b') }).start();
 
       expect(aCalled).toBe(false);
     });
@@ -599,7 +596,7 @@ describe('interpreter', () => {
       expect(stopActivityState!).toEqual('off');
     });
 
-    it('should not restart activities from a compound state', (done) => {
+    it('should restart activities from a compound state', (done) => {
       let activityActive = false;
 
       const toggleMachine = createMachine(
@@ -640,10 +637,10 @@ describe('interpreter', () => {
       });
       const bState = toggleMachine.transition(activeState, { type: 'SWITCH' });
 
-      interpret(toggleMachine).start(bState);
+      interpret(toggleMachine, { state: bState }).start();
 
       setTimeout(() => {
-        expect(activityActive).toBeFalsy();
+        expect(activityActive).toBeTruthy();
         done();
       }, 10);
     });
@@ -1212,30 +1209,37 @@ describe('interpreter', () => {
     });
 
     it('should be able to be initialized at a custom state', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
+      const startService = interpret(startMachine, {
+        state: State.from('bar', undefined, startMachine)
+      }).onTransition((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
 
-      startService.start(State.from('bar', undefined, startMachine));
+      startService.start();
     });
 
     it('should be able to be initialized at a custom state value', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
+      const barState = startMachine.resolveStateValue('bar');
+      const startService = interpret(startMachine, {
+        state: barState
+      }).onTransition((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
 
-      startService.start('bar');
+      startService.start();
     });
 
     it('should be able to resolve a custom initialized state', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
+      const startService = interpret(startMachine, {
+        state: startMachine.resolveStateValue('foo')
+      }).onTransition((state) => {
         expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();
       });
 
-      startService.start(State.from('foo', undefined, startMachine));
+      startService.start();
     });
   });
 

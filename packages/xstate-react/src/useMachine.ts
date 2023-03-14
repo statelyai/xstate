@@ -4,14 +4,10 @@ import {
   AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  EventObject,
   InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
   InterpreterStatus,
-  MachineContext,
-  State,
-  StateConfig,
   StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop } from './types.js';
@@ -25,28 +21,12 @@ const isEqual = (prevState: AnyState, nextState: AnyState) => {
   return prevState === nextState || nextState.changed === false;
 };
 
-export interface UseMachineOptions<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  /**
-   * If provided, will be merged with machine's `context`.
-   */
-  context?: Partial<TContext>;
-  /**
-   * The state to rehydrate the machine to. The machine will
-   * start at this state instead of its `initialState`.
-   */
-  state?: StateConfig<TContext, TEvent>;
-}
-
 type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends false
     ? [
-        options: InterpreterOptions &
-          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        options: InterpreterOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -55,8 +35,7 @@ type RestParams<TMachine extends AnyStateMachine> =
           >
       ]
     : [
-        options?: InterpreterOptions &
-          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        options?: InterpreterOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -69,9 +48,6 @@ type UseMachineReturn<
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
-// TODO: rethink how we can do this better
-const cachedRehydratedStates = new WeakMap();
-
 export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
@@ -81,18 +57,6 @@ export function useMachine<TMachine extends AnyStateMachine>(
   const service = useIdleInterpreter(getMachine, options as any);
 
   const getSnapshot = useCallback(() => {
-    if (service.status === InterpreterStatus.NotStarted && options.state) {
-      const cached = cachedRehydratedStates.get(options.state);
-      if (cached) {
-        return cached;
-      }
-      const created = (service.behavior as AnyStateMachine).createState(
-        options.state
-      ) as State<any, any, any>;
-      cachedRehydratedStates.set(options.state, created);
-      return created;
-    }
-
     return service.getSnapshot();
   }, [service]);
 
@@ -112,18 +76,12 @@ export function useMachine<TMachine extends AnyStateMachine>(
   );
 
   useEffect(() => {
-    const rehydratedState = options.state;
-    service.start(
-      rehydratedState
-        ? ((service.behavior as AnyStateMachine).createState(
-            rehydratedState
-          ) as any)
-        : undefined
-    );
+    service.start();
 
     return () => {
       service.stop();
       service.status = InterpreterStatus.NotStarted;
+      (service as any)._initState();
     };
   }, []);
 

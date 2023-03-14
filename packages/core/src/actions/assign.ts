@@ -44,7 +44,7 @@ export function assign<
         assignment
       }
     },
-    (_event, { state, action }) => {
+    (_event, { state, action, actorContext }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!state.context) {
@@ -58,6 +58,7 @@ export function assign<
         action,
         _event,
         spawn: createSpawner(
+          actorContext?.self,
           state.machine,
           state.context,
           _event,
