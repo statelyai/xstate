@@ -11,8 +11,8 @@ import {
   isSCXMLEvent,
   isFunction
 } from '../utils';
-import { doneInvoke, error } from '../actions';
-import { startSignalType, stopSignalType, isSignal } from '../actors';
+import { doneInvoke, error } from '../actions.js';
+import { startSignalType, stopSignalType, isSignal } from '../actors/index.js';
 
 export interface CallbackInternalState {
   canceled: boolean;
@@ -24,10 +24,8 @@ export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): ActorBehavior<TEvent, undefined> {
   const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
-    start: (state, { self }) => {
-      self.send({ type: startSignalType } as TEvent);
-
-      return state;
+    start: (_state, actorCtx) => {
+      actorCtx.self.send({ type: startSignalType } as TEvent);
     },
     transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);

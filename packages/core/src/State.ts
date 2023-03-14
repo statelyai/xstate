@@ -16,6 +16,7 @@ import type {
   EventObject,
   HistoryValue,
   MachineContext,
+  PersistedMachineState,
   Prop,
   SCXML,
   StateConfig,
@@ -124,7 +125,7 @@ export class State<
       return stateValue;
     }
 
-    const _event = initEvent as SCXML.Event<TEvent>;
+    const _event = initEvent as SCXML.Event<TEvent>; // TODO: fix
 
     const configuration = getConfiguration(
       getStateNodes(machine.root, stateValue)
@@ -167,7 +168,7 @@ export class State<
     this.configuration =
       config.configuration ??
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
-    this.transitions = config.transitions;
+    this.transitions = config.transitions as any;
     this.children = config.children;
 
     this.value = getStateValue(machine.root, this.configuration);
@@ -286,4 +287,25 @@ export function cloneState<TState extends AnyState>(
     { ...state, ...config } as StateConfig<any, any>,
     state.machine
   ) as TState;
+}
+
+export function getPersistedState<TState extends AnyState>(
+  state: TState
+): PersistedMachineState<TState> {
+  const { configuration, transitions, tags, machine, children, ...jsonValues } =
+    state;
+
+  const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
+
+  for (const id in children) {
+    childrenJson[id] = {
+      state: children[id].getPersistedState?.(),
+      src: children[id].src
+    };
+  }
+
+  return {
+    ...jsonValues,
+    children: childrenJson
+  } as PersistedMachineState<TState>;
 }

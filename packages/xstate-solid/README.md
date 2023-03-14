@@ -367,7 +367,7 @@ createEffect(() => {
 }); // note: service should never change
 ```
 
-Or by using the [`from` utility](https://www.solidjs.com/docs/latest/api#from). Note that this returns a shallow signal and is not deeply reactive 
+Or by using the [`from` utility](https://www.solidjs.com/docs/latest/api#from). Note that this returns a shallow signal and is not deeply reactive
 
 ```js
 const serviceState = from(service); // Returns an auto updating signal that subscribes/unsubscribes for you

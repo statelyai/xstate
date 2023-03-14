@@ -8,18 +8,9 @@ export function createService<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {
-  const {
-    context,
-    guards,
-    actions,
-    actors,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+  const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
     actors,
@@ -31,15 +22,9 @@ export function createService<TMachine extends AnyStateMachine>(
   const service = interpret(machineWithConfig, interpreterOptions);
 
   if (!isServer) {
-    service.start(
-      rehydratedState
-        ? ((service.behavior as AnyStateMachine).createState(
-            rehydratedState
-          ) as any)
-        : undefined
-    );
+    service.start();
     onCleanup(() => service.stop());
   }
 
-  return service as InterpreterFrom<TMachine>;
+  return service as unknown as InterpreterFrom<TMachine>;
 }
