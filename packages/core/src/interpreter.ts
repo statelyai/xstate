@@ -5,8 +5,11 @@ import type {
   ActorBehavior,
   EventFromBehavior,
   InterpreterFrom,
+  PersistedStateFrom,
   SnapshotFrom,
   ActorSystem,
+  InvokeSourceDefinition,
+  AnyActorBehavior,
   RaiseActionObject
 } from './types.js';
 import { stopSignalType } from './actors/index.js';
@@ -24,15 +27,13 @@ import {
   Observer,
   SCXML,
   SendActionObject,
-  StateValue,
   Subscription
 } from './types.js';
 import { toObserver, toSCXMLEvent, warn } from './utils.js';
 import { symbolObservable } from './symbolObservable.js';
-import { evict, memo } from './memo.js';
 import { doneInvoke, error } from './actions.js';
 
-export type SnapshotListener<TBehavior extends ActorBehavior<any, any>> = (
+export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>
 ) => void;
 
@@ -74,19 +75,19 @@ type InternalStateFrom<TBehavior extends ActorBehavior<any, any, any>> =
     : never;
 
 export class Interpreter<
-  TBehavior extends ActorBehavior<any, any>,
+  TBehavior extends AnyActorBehavior,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
 > implements ActorRef<TEvent, SnapshotFrom<TBehavior>>
 {
   /**
    * The current state of the interpreted behavior.
    */
-  private _state?: InternalStateFrom<TBehavior>;
+  private _state!: InternalStateFrom<TBehavior>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: Readonly<InterpreterOptions>;
+  public options: Readonly<InterpreterOptions<TBehavior>>;
 
   /**
    * The unique identifier for this actor relative to its parent.
@@ -123,13 +124,18 @@ export class Interpreter<
   public system: ActorSystem<any>;
   private _doneEvent?: DoneEvent;
 
+  public src?: InvokeSourceDefinition;
+
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
    * @param behavior The behavior to be interpreted
    * @param options Interpreter options
    */
-  constructor(public behavior: TBehavior, options?: InterpreterOptions) {
+  constructor(
+    public behavior: TBehavior,
+    options?: InterpreterOptions<TBehavior>
+  ) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
@@ -150,6 +156,7 @@ export class Interpreter<
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
+    this.src = resolvedOptions.src;
     this.ref = this;
     this._actorContext = {
       self,
@@ -165,16 +172,19 @@ export class Interpreter<
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
     this.send = this.send.bind(this);
+    this._initState();
+  }
+
+  private _initState() {
+    this._state = this.options.state
+      ? this.behavior.restoreState
+        ? this.behavior.restoreState(this.options.state, this._actorContext)
+        : this.options.state
+      : this.behavior.getInitialState(this._actorContext);
   }
 
   // array of functions to defer
   private _deferred: Array<(state: any) => void> = [];
-
-  private _getInitialState(): InternalStateFrom<TBehavior> {
-    return memo(this, 'initial', () => {
-      return this.behavior.getInitialState(this._actorContext);
-    });
-  }
 
   private update(state: InternalStateFrom<TBehavior>): void {
     // Update state
@@ -297,13 +307,9 @@ export class Interpreter<
   }
 
   /**
-   * Starts the interpreter from the given state, or the initial state.
-   * @param initialState The state to start the statechart from
+   * Starts the interpreter from the initial state
    */
-  public start(
-    // TODO: remove this argument
-    initialState?: InternalStateFrom<TBehavior> | StateValue
-  ): this {
+  public start(): this {
     if (this.status === ActorStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -311,18 +317,14 @@ export class Interpreter<
 
     this.status = ActorStatus.Running;
 
-    let resolvedState = initialState
-      ? this.behavior.restoreState?.(initialState, this._actorContext)
-      : this._getInitialState() ?? undefined;
-
     if (this.behavior.start) {
-      resolvedState = this.behavior.start(resolvedState, this._actorContext);
+      this.behavior.start(this._state, this._actorContext);
     }
 
     // TODO: this notifies all subscribers but usually this is redundant
-    // if we are using the initialState as `resolvedState` then there is no real change happening here
+    // there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(resolvedState);
+    this.update(this._state);
 
     if (this.options.devTools) {
       this.attachDevTools();
@@ -365,7 +367,6 @@ export class Interpreter<
    * Stops the interpreter and unsubscribe all listeners.
    */
   public stop(): this {
-    evict(this, 'initial');
     if (this.status === ActorStatus.Stopped) {
       return this;
     }
@@ -492,16 +493,18 @@ export class Interpreter<
     };
   }
 
+  public getPersistedState(): PersistedStateFrom<TBehavior> | undefined {
+    return this.behavior.getPersistedState?.(this._state);
+  }
+
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {
     return this;
   }
 
   public getSnapshot(): SnapshotFrom<TBehavior> {
-    const getter = this.behavior.getSnapshot ?? ((s) => s);
-    if (this.status === ActorStatus.NotStarted) {
-      return getter(this._getInitialState());
-    }
-    return getter(this._state!);
+    return this.behavior.getSnapshot
+      ? this.behavior.getSnapshot(this._state)
+      : this._state;
   }
 }
 
@@ -517,13 +520,16 @@ export function interpret<TMachine extends AnyStateMachine>(
   > extends true
     ? TMachine
     : 'Some implementations missing',
-  options?: InterpreterOptions
+  options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
-export function interpret<TBehavior extends ActorBehavior<any, any>>(
+export function interpret<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
-  options?: InterpreterOptions
+  options?: InterpreterOptions<TBehavior>
 ): Interpreter<TBehavior>;
-export function interpret(behavior: any, options?: InterpreterOptions): any {
+export function interpret(
+  behavior: any,
+  options?: InterpreterOptions<any>
+): any {
   const interpreter = new Interpreter(behavior, options);
 
   return interpreter;

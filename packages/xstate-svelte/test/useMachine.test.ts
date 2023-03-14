@@ -4,9 +4,8 @@ import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcrip
 import { fetchMachine } from './fetchMachine';
 import { doneInvoke } from 'xstate';
 
-const persistedFetchState = fetchMachine.transition(
-  'loading',
-  doneInvoke('fetchData', 'persisted data')
+const persistedFetchState = fetchMachine.getPersistedState(
+  fetchMachine.transition('loading', doneInvoke('fetchData', 'persisted data'))
 );
 
 const persistedFetchStateConfig = JSON.parse(

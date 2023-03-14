@@ -28,6 +28,7 @@ async function runTestToCompletion(
   let nextState: AnyState = machine.initialState;
 
   const service = interpret(machine, {
+    state: nextState,
     clock: new SimulatedClock()
   })
     .onTransition((state) => {
@@ -36,7 +37,7 @@ async function runTestToCompletion(
     .onDone(() => {
       done = true;
     })
-    .start(nextState);
+    .start();
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
@@ -84,8 +85,8 @@ describe('scxml', () => {
 
   testGroupKeys.forEach((testGroupName) => {
     testGroups[testGroupName].forEach((testName) => {
-      const originalMachine = require(`./fixtures/${testGroupName}/${testName}`)
-        .default;
+      const originalMachine =
+        require(`./fixtures/${testGroupName}/${testName}`).default;
       const scxmlDefinition = toSCXML(originalMachine);
 
       const scxmlTest = JSON.parse(

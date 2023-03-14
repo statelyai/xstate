@@ -63,15 +63,18 @@ export function invoke<
                 })
               : behaviorImpl;
 
+          const ref = interpret(behavior, {
+            id,
+            src,
+            parent: actorContext?.self,
+            key: invokeDef.key
+          });
+
           resolvedInvokeAction = {
             type,
             params: {
               ...invokeDef,
-              ref: interpret(behavior, {
-                id,
-                parent: actorContext?.self,
-                key: invokeDef.key
-              })
+              ref
             }
           } as InvokeActionObject;
         }
@@ -99,8 +102,6 @@ export function invoke<
           }
           return;
         }
-
-        ref._parent = parent; // TODO: fix
         actorCtx.defer(() => {
           if (actorRef.status === ActorStatus.Stopped) {
             return;
