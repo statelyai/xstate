@@ -468,13 +468,11 @@ export class StateMachine<
       const childState = actorData.state;
       const src = actorData.src;
 
-      const behaviorImpl = src ? this.options.actors[src] : undefined;
+      const behavior = src ? this.options.actors[src] : undefined;
 
-      if (!behaviorImpl) {
+      if (!behavior) {
         return;
       }
-
-      const behavior = behaviorImpl;
 
       const actorState = behavior.restoreState?.(childState, _actorCtx);
 
@@ -499,9 +497,7 @@ export class StateMachine<
             return;
           }
 
-          const behaviorImpl = this.options.actors[src];
-
-          const behavior = behaviorImpl;
+          const behavior = this.options.actors[src];
 
           if (behavior) {
             const actorRef = interpret(behavior, {
