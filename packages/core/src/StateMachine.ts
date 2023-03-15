@@ -42,7 +42,7 @@ import type {
   TransitionDefinition,
   PersistedMachineState
 } from './types.js';
-import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
+import { isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
