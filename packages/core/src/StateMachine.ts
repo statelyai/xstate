@@ -25,7 +25,6 @@ import type {
 import type {
   ActorContext,
   ActorMap,
-  AnyStateMachine,
   BaseActionObject,
   ActorBehavior,
   EventObject,
@@ -35,10 +34,8 @@ import type {
   MachineContext,
   MachineImplementationsSimplified,
   MachineSchema,
-  MaybeLazy,
   NoInfer,
   SCXML,
-  Spawner,
   StateConfig,
   StateMachineDefinition,
   StateValue,
@@ -58,20 +55,6 @@ function createDefaultOptions() {
     delays: {},
     guards: {},
     context: {}
-  };
-}
-
-function resolveContext<TContext extends MachineContext>(
-  context: TContext,
-  partialContext?: Partial<TContext>
-): TContext {
-  if (isFunction(partialContext)) {
-    return { ...context, ...partialContext };
-  }
-
-  return {
-    ...context,
-    ...partialContext
   };
 }
 
