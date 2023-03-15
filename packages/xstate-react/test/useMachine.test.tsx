@@ -804,9 +804,14 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
+      schema: {
+        context: {} as { value: number }
+      },
       initial: 'intitial',
-      context: {
-        value: 100
+      context: ({ input }) => {
+        return {
+          value: input.value
+        };
       },
       states: {
         intitial: {}
@@ -819,7 +824,8 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
         active: {
           invoke: {
             id: 'test',
-            src: childMachine.withContext({ value: 42 })
+            src: childMachine,
+            input: { value: 42 }
           }
         }
       }
