@@ -1624,7 +1624,7 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   sync?: boolean;
 
   /**
-   * The input data to pass to the machine.
+   * The input data to pass to the actor.
    */
   input?: any;
 
