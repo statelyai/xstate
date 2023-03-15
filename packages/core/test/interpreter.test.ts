@@ -1034,9 +1034,9 @@ describe('interpreter', () => {
       const childMachine = createMachine({
         id: 'child',
         initial: 'start',
-        context: {
-          password: 'unknown'
-        },
+        context: ({ input }) => ({
+          password: input.password
+        }),
         states: {
           start: {
             entry: sendParent((ctx) => {
@@ -1056,7 +1056,8 @@ describe('interpreter', () => {
           start: {
             invoke: {
               id: 'child',
-              src: childMachine.withContext({ password: 'foo' })
+              src: childMachine,
+              input: { password: 'foo' }
             },
             on: {
               NEXT: {

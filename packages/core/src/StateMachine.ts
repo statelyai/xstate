@@ -25,7 +25,6 @@ import type {
 import type {
   ActorContext,
   ActorMap,
-  AnyStateMachine,
   BaseActionObject,
   ActorBehavior,
   EventObject,
@@ -35,17 +34,15 @@ import type {
   MachineContext,
   MachineImplementationsSimplified,
   MachineSchema,
-  MaybeLazy,
   NoInfer,
   SCXML,
-  Spawner,
   StateConfig,
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
   PersistedMachineState
 } from './types.js';
-import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
+import { isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -58,20 +55,6 @@ function createDefaultOptions() {
     delays: {},
     guards: {},
     context: {}
-  };
-}
-
-function resolveContext<TContext extends MachineContext>(
-  context: TContext,
-  partialContext?: Partial<TContext>
-): TContext {
-  if (isFunction(partialContext)) {
-    return { ...context, ...partialContext };
-  }
-
-  return {
-    ...context,
-    ...partialContext
   };
 }
 
@@ -94,10 +77,6 @@ export class StateMachine<
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     >
 {
-  private _contextFactory: (stuff: {
-    spawn: Spawner;
-    input: any; // TODO: fix types
-  }) => TContext;
   // TODO: this getter should be removed
   public getContext(input?: any): TContext {
     return this.getContextAndActions(input)[0];
@@ -106,13 +85,16 @@ export class StateMachine<
     actorCtx?: ActorContext<any, any>
   ): [TContext, InvokeActionObject[]] {
     const actions: InvokeActionObject[] = [];
-    // TODO: merge with this.options.context
-    const context = this._contextFactory({
-      spawn: createSpawner(actorCtx?.self, this, actions),
-      input: actorCtx?.input
-    });
+    const { context } = this.config;
+    const resolvedContext =
+      typeof context === 'function'
+        ? context({
+            spawn: createSpawner(actorCtx?.self, this, actions),
+            input: actorCtx?.input
+          })
+        : context;
 
-    return [context, actions];
+    return [resolvedContext || ({} as TContext), actions];
   }
   /**
    * The machine's own version.
@@ -138,7 +120,6 @@ export class StateMachine<
 
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<TEvent['type']>;
-  public input: any = {}; // TODO: fix
 
   constructor(
     /**
@@ -149,19 +130,6 @@ export class StateMachine<
   ) {
     this.id = config.id || '(machine)';
     this.options = Object.assign(createDefaultOptions(), options);
-    this._contextFactory = isFunction(config.context)
-      ? config.context
-      : (stuff) => {
-          const partialContext =
-            typeof options?.context === 'function'
-              ? options.context(stuff)
-              : options?.context;
-
-          return resolveContext(
-            config.context as TContext,
-            partialContext
-          ) as TContext;
-        }; // TODO: fix types
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? ({} as any as this['schema']);
@@ -193,7 +161,7 @@ export class StateMachine<
       TEvent,
       TResolvedTypesMeta,
       true
-    > & { context?: MaybeLazy<Partial<TContext>> }
+    >
   ): StateMachine<
     TContext,
     TEvent,
@@ -209,23 +177,8 @@ export class StateMachine<
       actions: { ...actions, ...implementations.actions },
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
-      delays: { ...delays, ...implementations.delays },
-      context: implementations.context ?? this._contextFactory
+      delays: { ...delays, ...implementations.delays }
     });
-  }
-
-  /**
-   * Clones this state machine with custom `context`.
-   *
-   * The `context` provided can be partial `context`, which will be combined with the original `context`.
-   *
-   * @param context Custom context (will override predefined context, not recursive)
-   */
-  public withContext(context: Partial<TContext>): this;
-  public withContext(context: Partial<TContext>): AnyStateMachine {
-    return this.provide({
-      context
-    } as any);
   }
 
   /**

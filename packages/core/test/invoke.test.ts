@@ -556,31 +556,6 @@ describe('invoke', () => {
       .start();
   });
 
-  it('should not start services only once when using withContext', () => {
-    let startCount = 0;
-
-    const startMachine = createMachine({
-      id: 'start',
-      initial: 'active',
-      context: { foo: true },
-      states: {
-        active: {
-          invoke: {
-            src: fromCallback(() => {
-              startCount++;
-            })
-          }
-        }
-      }
-    });
-
-    const startService = interpret(startMachine.withContext({ foo: false }));
-
-    startService.start();
-
-    expect(startCount).toEqual(1);
-  });
-
   describe('parent to child', () => {
     const subMachine = createMachine({
       id: 'child',
@@ -914,10 +889,11 @@ describe('invoke', () => {
       const invokePromiseMachine = createMachine({
         id: 'invokePromise',
         initial: 'pending',
-        context: {
+        context: ({ input }) => ({
           id: 42,
-          succeed: true
-        },
+          succeed: true,
+          ...input
+        }),
         states: {
           pending: {
             invoke: {
@@ -959,7 +935,7 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise factory and reject with ErrorExecution', (done) => {
-        interpret(invokePromiseMachine.withContext({ id: 31, succeed: false }))
+        interpret(invokePromiseMachine, { input: { id: 31, succeed: false } })
           .onDone(() => done())
           .start();
       });
