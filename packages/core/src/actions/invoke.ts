@@ -43,16 +43,14 @@ export function invoke<
           }
         } as InvokeActionObject;
       } else {
-        const behaviorImpl = state.machine.options.actors[src];
+        const behavior = state.machine.options.actors[src];
 
-        if (!behaviorImpl) {
+        if (!behavior) {
           resolvedInvokeAction = {
             type,
             params: invokeDef
           } as InvokeActionObject;
         } else {
-          const behavior = behaviorImpl;
-
           const ref = interpret(behavior, {
             id,
             src,

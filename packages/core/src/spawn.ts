@@ -8,16 +8,15 @@ export function createSpawner(
   machine: AnyStateMachine,
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
-  return (behavior, { id, input } = {}) => {
-    if (isString(behavior)) {
-      const behaviorCreator = machine.options.actors[behavior];
+  return (src, { id, input } = {}) => {
+    if (isString(src)) {
+      const behavior = machine.options.actors[src];
 
-      if (behaviorCreator) {
+      if (behavior) {
         const resolvedName = id ?? 'anon'; // TODO: better name
-        const createdBehavior = behaviorCreator;
 
         // TODO: this should also receive `src`
-        const actorRef = interpret(createdBehavior, {
+        const actorRef = interpret(behavior, {
           id: resolvedName,
           parent: self,
           input
@@ -38,12 +37,12 @@ export function createSpawner(
       }
 
       throw new Error(
-        `Behavior '${behavior}' not implemented in machine '${machine.id}'`
+        `Behavior '${src}' not implemented in machine '${machine.id}'`
       );
     } else {
       // TODO: this should also receive `src`
       // TODO: instead of anonymous, it should be a unique stable ID
-      const actorRef = interpret(behavior, {
+      const actorRef = interpret(src, {
         id: id || 'anonymous',
         parent: self,
         input
