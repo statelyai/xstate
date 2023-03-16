@@ -9,7 +9,7 @@ import {
   InvokeActionObject
 } from '../index.js';
 import { actionTypes, error } from '../actions.js';
-import { mapContext, warn } from '../utils.js';
+import { warn } from '../utils.js';
 import { ActorStatus, interpret } from '../interpreter.js';
 import { cloneState } from '../State.js';
 import { IS_PRODUCTION } from '../environment.js';
@@ -55,9 +55,10 @@ export function invoke<
             id,
             src,
             parent: actorContext?.self,
-            input: input
-              ? mapContext(input, state.context, _event as any) // TODO: fix type
-              : undefined
+            input:
+              typeof input === 'function'
+                ? input(state.context, _event.data as any)
+                : input
           });
 
           resolvedInvokeAction = {

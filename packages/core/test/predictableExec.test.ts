@@ -154,9 +154,7 @@ describe('predictableExec', () => {
             src: fromCallback((_sendBack, _receive, { input }) => {
               eventArg = input.event;
             }),
-            input: {
-              event: (_, ev) => ev
-            }
+            input: (_, event) => ({ event })
           }
         }
       }

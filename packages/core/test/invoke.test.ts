@@ -1263,10 +1263,10 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
-                  input: {
-                    foo: (ctx) => ctx.foo,
-                    event: (_, ev) => ev
-                  },
+                  input: (ctx, ev) => ({
+                    foo: ctx.foo,
+                    event: ev
+                  }),
                   onDone: 'last'
                 }
               },
@@ -1412,10 +1412,10 @@ describe('invoke', () => {
             first: {
               invoke: {
                 src: 'someCallback',
-                input: {
-                  foo: (ctx) => ctx.foo,
-                  event: (_, ev) => ev
-                }
+                input: (ctx, ev) => ({
+                  foo: ctx.foo,
+                  event: ev
+                })
               },
               on: {
                 CALLBACK: {
@@ -3267,11 +3267,10 @@ describe('actors option', () => {
           pending: {
             invoke: {
               src: 'stringService',
-              // TODO: should this be part of "input" concept?
-              input: {
+              input: (ctx) => ({
                 staticVal: 'hello',
-                newCount: (ctx: any) => ctx.count * 2 // TODO: types
-              },
+                newCount: ctx.count * 2 // TODO: types
+              }),
               onDone: 'success'
             }
           },
