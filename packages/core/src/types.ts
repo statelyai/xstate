@@ -1764,7 +1764,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   status: ActorStatus;
-  src: string;
+  src?: string;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
