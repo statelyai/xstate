@@ -148,7 +148,6 @@ export class Interpreter<
     this._parent = parent;
     this.options = resolvedOptions;
     this.src = resolvedOptions.src;
-    this.input = resolvedOptions.input;
     this.ref = this;
     this._actorContext = {
       self,
@@ -157,8 +156,7 @@ export class Interpreter<
       logger: this.logger,
       defer: (fn) => {
         this._deferred.push(fn);
-      },
-      input: options?.input
+      }
     };
 
     // Ensure that the send method is bound to this interpreter instance
@@ -172,7 +170,7 @@ export class Interpreter<
       ? this.behavior.restoreState
         ? this.behavior.restoreState(this.options.state, this._actorContext)
         : this.options.state
-      : this.behavior.getInitialState(this._actorContext);
+      : this.behavior.getInitialState(this._actorContext, this.options?.input);
   }
 
   // array of functions to defer

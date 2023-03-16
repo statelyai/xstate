@@ -6,6 +6,7 @@ export interface PromiseInternalState<T> {
   status: 'active' | 'error' | 'done';
   canceled: boolean;
   data: T | undefined;
+  input?: any;
 }
 
 export function fromPromise<T>(
@@ -42,26 +43,31 @@ export function fromPromise<T>(
         case resolveEventType:
           state.status = 'done';
           state.data = eventObject.data;
+          delete state.input;
           return state;
         case rejectEventType:
           state.status = 'error';
           state.data = eventObject.data;
+          delete state.input;
           return state;
         case stopSignalType:
           state.canceled = true;
+          delete state.input;
           return state;
         default:
           return state;
       }
     },
-    start: (state, { self, input }) => {
+    start: (state, { self }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
         return;
       }
 
-      const resolvedPromise = Promise.resolve(promiseCreator({ input }));
+      const resolvedPromise = Promise.resolve(
+        promiseCreator({ input: state.input })
+      );
 
       resolvedPromise.then(
         (response) => {
@@ -72,11 +78,12 @@ export function fromPromise<T>(
         }
       );
     },
-    getInitialState: () => {
+    getInitialState: (_, input) => {
       return {
         canceled: false,
         status: 'active',
-        data: undefined
+        data: undefined,
+        input
       };
     },
     getSnapshot: (state) => state.data,

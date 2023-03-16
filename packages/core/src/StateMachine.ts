@@ -79,10 +79,11 @@ export class StateMachine<
 {
   // TODO: this getter should be removed
   public getContext(input?: any): TContext {
-    return this.getContextAndActions(input)[0];
+    return this.getContextAndActions(undefined, input)[0];
   }
   private getContextAndActions(
-    actorCtx?: ActorContext<any, any>
+    actorCtx?: ActorContext<any, any>,
+    input?: any
   ): [TContext, InvokeActionObject[]] {
     const actions: InvokeActionObject[] = [];
     const { context } = this.config;
@@ -90,7 +91,7 @@ export class StateMachine<
       typeof context === 'function'
         ? context({
             spawn: createSpawner(actorCtx?.self, this, actions),
-            input: actorCtx?.input
+            input
           })
         : context;
 
@@ -276,9 +277,10 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: ActorContext<any, any> | undefined
+    actorCtx: ActorContext<any, any> | undefined,
+    input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const [context, actions] = this.getContextAndActions(actorCtx);
+    const [context, actions] = this.getContextAndActions(actorCtx, input);
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
       this.createState({
@@ -322,12 +324,15 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    actorCtx?: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TResolvedTypesMeta>
+    >,
+    input?: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const input = actorCtx?.input;
     const initEvent = createInitEvent(input) as unknown as SCXML.Event<TEvent>; // TODO: fix;
 
-    const preInitialState = this.getPreInitialState(actorCtx);
+    const preInitialState = this.getPreInitialState(actorCtx, input);
     const nextState = microstep([], preInitialState, actorCtx, initEvent);
     nextState.actions.unshift(...preInitialState.actions);
 

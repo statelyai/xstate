@@ -537,7 +537,7 @@ export interface InvokeConfig<
    */
   autoForward?: boolean;
 
-  input?: Mapper<TContext, TEvent, any>;
+  input?: Mapper<TContext, TEvent, any> | any;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -1851,7 +1851,6 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   sessionId: string;
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
-  input: any; // TODO: add types
 }
 
 export interface ActorBehavior<
@@ -1869,7 +1868,8 @@ export interface ActorBehavior<
     ctx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot>
+    actorCtx: ActorContext<TEvent, TSnapshot>,
+    input: any
   ) => TInternalState;
   restoreState?: (
     persistedState: TPersisted,

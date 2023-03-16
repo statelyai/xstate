@@ -12,6 +12,7 @@ export interface ObservableInternalState<T> {
   canceled: boolean;
   status: 'active' | 'done' | 'error';
   data: T | undefined;
+  input?: any;
 }
 
 export type ObservablePersistedState<T> = Omit<
@@ -65,33 +66,37 @@ export function fromObservable<T, TEvent extends EventObject>(
           return state;
         case errorEventType:
           state.status = 'error';
+          delete state.input;
           state.data = _event.data.data;
           return state;
         case completeEventType:
           state.status = 'done';
+          delete state.input;
           return state;
         case stopSignalType:
           state.canceled = true;
+          delete state.input;
           state.subscription!.unsubscribe();
           return state;
         default:
           return state;
       }
     },
-    getInitialState: () => {
+    getInitialState: (_, input) => {
       return {
         subscription: undefined,
         canceled: false,
         status: 'active',
-        data: undefined
+        data: undefined,
+        input
       };
     },
-    start: (state, { self, input }) => {
+    start: (state, { self }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
       }
-      state.subscription = observableCreator({ input }).subscribe({
+      state.subscription = observableCreator({ input: state.input }).subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
         },
@@ -104,10 +109,11 @@ export function fromObservable<T, TEvent extends EventObject>(
       });
     },
     getSnapshot: (state) => state.data,
-    getPersistedState: ({ canceled, status, data }) => ({
+    getPersistedState: ({ canceled, status, data, input }) => ({
       canceled,
       status,
-      data
+      data,
+      input
     }),
     getStatus: (state) => state,
     restoreState: (state) => ({
@@ -151,13 +157,16 @@ export function fromEventObservable<T extends EventObject>(
       switch (_event.name) {
         case errorEventType:
           state.status = 'error';
+          delete state.input;
           state.data = _event.data.data;
           return state;
         case completeEventType:
           state.status = 'done';
+          delete state.input;
           return state;
         case stopSignalType:
           state.canceled = true;
+          delete state.input;
           state.subscription!.unsubscribe();
           return state;
         default:
@@ -172,13 +181,13 @@ export function fromEventObservable<T extends EventObject>(
         data: undefined
       };
     },
-    start: (state, { self, input }) => {
+    start: (state, { self }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
       }
 
-      state.subscription = lazyObservable({ input }).subscribe({
+      state.subscription = lazyObservable({ input: state.input }).subscribe({
         next: (value) => {
           self._parent?.send(toSCXMLEvent(value, { origin: self }));
         },
@@ -191,10 +200,11 @@ export function fromEventObservable<T extends EventObject>(
       });
     },
     getSnapshot: (_) => undefined,
-    getPersistedState: ({ canceled, status, data }) => ({
+    getPersistedState: ({ canceled, status, data, input }) => ({
       canceled,
       status,
-      data
+      data,
+      input
     }),
     getStatus: (state) => state,
     restoreState: (state) => ({
