@@ -24,11 +24,10 @@ export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): ActorBehavior<TEvent, undefined> {
   const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
-    start: (_state, actorCtx) => {
-      actorCtx.self.send({ type: startSignalType } as TEvent);
+    start: (_state, { self }) => {
+      self.send({ type: startSignalType } as TEvent);
     },
-    transition: (state, event, actorCtx) => {
-      const { self, id } = actorCtx;
+    transition: (state, event, { self, id, input }) => {
       const _event = toSCXMLEvent(event);
 
       if (_event.name === startSignalType) {
@@ -44,7 +43,7 @@ export function fromCallback<TEvent extends EventObject>(
           state.receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback(sender, receiver, actorCtx);
+        state.dispose = invokeCallback(sender, receiver, { input });
 
         if (isPromiseLike(state.dispose)) {
           state.dispose.then(

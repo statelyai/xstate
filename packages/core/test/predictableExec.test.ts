@@ -150,7 +150,6 @@ describe('predictableExec', () => {
           entry: raise({ type: 'RAISED' })
         },
         c: {
-          // TODO: fix this
           invoke: {
             src: fromCallback((_sendBack, _receive, { input }) => {
               eventArg = input.event;

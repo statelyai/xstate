@@ -2361,7 +2361,7 @@ describe('invoke', () => {
 
       const countReducer = (
         count: number,
-        event: { type: 'INC' } | { type: 'DOUBLE' },
+        event: CountEvents,
         { self }: ActorContext<CountEvents, any>
       ): number => {
         if (event.type === 'INC') {
@@ -2864,46 +2864,43 @@ describe('invoke', () => {
       .start();
   });
 
-  it.each([(ctx) => ({ endpoint: ctx.url }), { endpoint: (ctx) => ctx.url }])(
-    'invoke `src` can be used with dynamic invoke `input`',
-    async (input) => {
-      const machine = createMachine(
-        {
-          initial: 'searching',
-          context: {
-            url: 'example.com'
-          },
-          states: {
-            searching: {
-              invoke: {
-                src: 'search',
-                input,
-                onDone: 'success'
-              }
-            },
-            success: {
-              type: 'final'
-            }
-          }
+  it('invoke `src` can be used with dynamic invoke `input`', async () => {
+    const machine = createMachine(
+      {
+        initial: 'searching',
+        context: {
+          url: 'example.com'
         },
-        {
-          actors: {
-            search: fromPromise(async ({ input }) => {
-              expect(input.endpoint).toEqual('example.com');
-
-              return await 42;
-            })
+        states: {
+          searching: {
+            invoke: {
+              src: 'search',
+              input: (ctx) => ({ endpoint: ctx.url }),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
           }
         }
-      );
+      },
+      {
+        actors: {
+          search: fromPromise(async ({ input }) => {
+            expect(input.endpoint).toEqual('example.com');
 
-      await new Promise<void>((res) =>
-        interpret(machine)
-          .onDone(() => res())
-          .start()
-      );
-    }
-  );
+            return await 42;
+          })
+        }
+      }
+    );
+
+    await new Promise<void>((res) =>
+      interpret(machine)
+        .onDone(() => res())
+        .start()
+    );
+  });
 
   describe('meta data', () => {
     it('should show meta data', () => {

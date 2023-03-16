@@ -15,14 +15,14 @@ export function fromReducer<TState, TEvent extends EventObject>(
     event: TEvent,
     actorContext: ActorContext<TEvent, TState>
   ) => TState,
-  initialState: TState | ((actorCtx: ActorContext<TEvent, TState>) => TState) // TODO: type
+  initialState: TState | (({ input }: { input: any }) => TState) // TODO: type
 ): ActorBehavior<TEvent, TState, TState> {
   const behavior: ActorBehavior<TEvent, TState, TState, TState> = {
-    transition: (state, event, actorCtx) => {
+    transition: (state, event, actorContext) => {
       // @ts-ignore TODO
       const resolvedEvent = isSCXMLEvent(event) ? event.data : event;
       // @ts-ignore TODO
-      return transition(state, resolvedEvent, actorCtx);
+      return transition(state, resolvedEvent, actorContext);
     },
     getInitialState:
       typeof initialState === 'function'

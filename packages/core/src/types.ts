@@ -362,7 +362,7 @@ export type InvokeCallback<
 > = (
   sendBack: (event: TSentEvent) => void,
   onReceive: Receiver<TEvent>,
-  actorContext: ActorContext<TEvent, undefined>
+  { input }: { input: any }
 ) => (() => void) | Promise<any> | void;
 
 export type ActorBehaviorCreator<
@@ -402,15 +402,8 @@ export interface InvokeDefinition<
    * Default: `false`
    */
   autoForward?: boolean;
-  /**
-   * Data from the parent machine's context to set as the (partial or full) context
-   * for the invoked child machine.
-   *
-   * Data should be mapped to match the child machine's context shape.
-   */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
 
-  input?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  input?: Mapper<TContext, TEvent, any>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -543,15 +536,8 @@ export interface InvokeConfig<
    * Default: `false`
    */
   autoForward?: boolean;
-  /**
-   * Data from the parent machine's context to set as the (partial or full) context
-   * for the invoked child machine.
-   *
-   * Data should be mapped to match the child machine's context shape.
-   */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
 
-  input?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  input?: Mapper<TContext, TEvent, any>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -988,7 +974,10 @@ type InitialContext<TContext extends MachineContext> =
   | TContext
   | ContextFactory<TContext>;
 
-export type ContextFactory<TContext extends MachineContext> = (stuff: {
+export type ContextFactory<TContext extends MachineContext> = ({
+  spawn,
+  input
+}: {
   spawn: Spawner;
   input: any; // TODO: fix
 }) => TContext;
@@ -1134,7 +1123,6 @@ export interface InvokeAction {
   src: string | ActorRef<any>;
   id: string;
   autoForward?: boolean;
-  data?: any;
   exec?: undefined;
   meta: MetaObject | undefined;
 }
@@ -1153,7 +1141,6 @@ export interface InvokeActionObject extends BaseActionObject {
     src: string | ActorRef<any>;
     id: string;
     autoForward?: boolean;
-    data?: any;
     exec?: undefined;
     ref?: ActorRef<any>;
     meta: MetaObject | undefined;
@@ -1777,10 +1764,6 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   status: ActorStatus;
-
-  // Meta data about the actor
-  src?: string;
-  input?: any;
 }
 
 export type AnyActorRef = ActorRef<any, any>;

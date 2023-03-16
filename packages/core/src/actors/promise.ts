@@ -10,7 +10,7 @@ export interface PromiseInternalState<T> {
 
 export function fromPromise<T>(
   // TODO: add types
-  promiseCreator: (obj: { input: any }) => PromiseLike<T>
+  promiseCreator: ({ input }: { input: any }) => PromiseLike<T>
 ): ActorBehavior<{ type: string }, T | undefined, PromiseInternalState<T>> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';

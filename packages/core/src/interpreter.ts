@@ -121,7 +121,6 @@ export class Interpreter<
   private _doneEvent?: DoneEvent;
 
   public src?: string;
-  public input?: any;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.

@@ -1,10 +1,8 @@
 import {
   Subscribable,
-  Lazy,
   ActorBehavior,
   EventObject,
-  Subscription,
-  ActorContext
+  Subscription
 } from '../types';
 import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
@@ -21,8 +19,9 @@ export type ObservablePersistedState<T> = Omit<
   'subscription'
 >;
 
+// TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
 export function fromObservable<T, TEvent extends EventObject>(
-  observableCreator: (actorCtx: ActorContext<TEvent, any>) => Subscribable<T>
+  observableCreator: ({ input }: { input: any }) => Subscribable<T>
 ): ActorBehavior<
   TEvent,
   T | undefined,
@@ -87,13 +86,12 @@ export function fromObservable<T, TEvent extends EventObject>(
         data: undefined
       };
     },
-    start: (state, actorContext) => {
+    start: (state, { self, input }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
       }
-      const { self } = actorContext;
-      state.subscription = observableCreator(actorContext).subscribe({
+      state.subscription = observableCreator({ input }).subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
         },
@@ -131,7 +129,7 @@ export function fromObservable<T, TEvent extends EventObject>(
  */
 
 export function fromEventObservable<T extends EventObject>(
-  lazyObservable: Lazy<Subscribable<T>>
+  lazyObservable: ({ input }: { input: any }) => Subscribable<T>
 ): ActorBehavior<EventObject, T | undefined> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
@@ -174,13 +172,13 @@ export function fromEventObservable<T extends EventObject>(
         data: undefined
       };
     },
-    start: (state, { self }) => {
+    start: (state, { self, input }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
       }
 
-      state.subscription = lazyObservable().subscribe({
+      state.subscription = lazyObservable({ input }).subscribe({
         next: (value) => {
           self._parent?.send(toSCXMLEvent(value, { origin: self }));
         },
