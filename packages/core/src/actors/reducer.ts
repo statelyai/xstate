@@ -24,14 +24,11 @@ export function fromReducer<TState, TEvent extends EventObject>(
       // @ts-ignore TODO
       return transition(state, resolvedEvent, actorContext);
     },
-    getInitialState:
-      typeof initialState === 'function'
-        ? (initialState as ActorBehavior<
-            TEvent,
-            TState,
-            TState
-          >['getInitialState'])
-        : () => initialState,
+    getInitialState: (_, input) => {
+      return typeof initialState === 'function'
+        ? (initialState as any)({ input })
+        : initialState;
+    },
     getSnapshot: (state) => state,
     getPersistedState: (state) => state,
     restoreState: (state) => state
