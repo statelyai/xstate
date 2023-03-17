@@ -42,7 +42,11 @@ import type {
   TransitionDefinition,
   PersistedMachineState
 } from './types.js';
-import { isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
+import {
+  isSCXMLErrorEvent,
+  resolveReferencedActor,
+  toSCXMLEvent
+} from './utils.js';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -426,7 +430,9 @@ export class StateMachine<
       const childState = actorData.state;
       const src = actorData.src;
 
-      const behavior = src ? this.options.actors[src] : undefined;
+      const behavior = src
+        ? resolveReferencedActor(this.options.actors[src])?.src
+        : undefined;
 
       if (!behavior) {
         return;
@@ -449,19 +455,20 @@ export class StateMachine<
     restoredState.configuration.forEach((stateNode) => {
       if (stateNode.invoke) {
         stateNode.invoke.forEach((invokeConfig) => {
-          const { id, src, input } = invokeConfig;
+          const { id, src } = invokeConfig;
 
           if (children[id]) {
             return;
           }
 
-          const behavior = this.options.actors[src];
+          const referenced = resolveReferencedActor(this.options.actors[src]);
 
-          if (behavior) {
-            const actorRef = interpret(behavior, {
+          if (referenced) {
+            const actorRef = interpret(referenced.src, {
               id,
               parent: _actorCtx?.self,
-              input
+              input:
+                'input' in invokeConfig ? invokeConfig.input : referenced.input
             });
 
             children[id] = actorRef;

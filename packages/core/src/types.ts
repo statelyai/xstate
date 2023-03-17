@@ -785,7 +785,11 @@ export interface MachineImplementationsSimplified<
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
-  actors: Record<string, AnyActorBehavior>;
+  actors: Record<
+    string,
+    | AnyActorBehavior
+    | { src: AnyActorBehavior; input: Mapper<TContext, TEvent, any> | any }
+  >;
   delays: DelayFunctionMap<TContext, TEvent>;
 }
 
@@ -845,17 +849,31 @@ type MachineImplementationsGuards<
 };
 
 type MachineImplementationsActors<
+  TContext extends MachineContext,
   TResolvedTypesMeta,
   TEventsCausingActors = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'eventsCausingActors'
   >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
   _TInvokeSrcNameMap = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'invokeSrcNameMap'
   >
 > = {
-  [K in keyof TEventsCausingActors]?: AnyActorBehavior;
+  // TODO: this should require `{ src, input }` for required inputs
+  [K in keyof TEventsCausingActors]?:
+    | AnyActorBehavior
+    | {
+        src: AnyActorBehavior;
+        input:
+          | Mapper<
+              TContext,
+              Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>,
+              any
+            >
+          | any;
+      };
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
@@ -914,6 +932,7 @@ type GenerateGuardsImplementationsPart<
 };
 
 type GenerateActorsImplementationsPart<
+  TContext extends MachineContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
   TMissingImplementations
@@ -922,7 +941,7 @@ type GenerateActorsImplementationsPart<
   Prop<TMissingImplementations, 'actors'>,
   TRequireMissingImplementations
 > & {
-  actors?: MachineImplementationsActors<TResolvedTypesMeta>;
+  actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
 };
 
 export type InternalMachineImplementations<
@@ -953,6 +972,7 @@ export type InternalMachineImplementations<
     TMissingImplementations
   > &
   GenerateActorsImplementationsPart<
+    TContext,
     TResolvedTypesMeta,
     TRequireMissingImplementations,
     TMissingImplementations
