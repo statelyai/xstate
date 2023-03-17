@@ -54,12 +54,12 @@ describe('schema', () => {
       }
     });
 
-    noop(m.context.foo);
-    noop(m.context.baz.one);
+    noop(m.getContext().foo);
+    noop(m.getContext().baz.one);
     m.transition('active', { type: 'BAR' });
 
     // @ts-expect-error
-    noop(m.context.something);
+    noop(m.getContext().something);
 
     // @ts-expect-error
     m.transition('active', { type: 'INVALID' });

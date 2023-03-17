@@ -1226,7 +1226,7 @@ function microstepProcedure(
         configuration: Array.from(mutConfiguration),
         historyValue,
         _internalQueue: [toSCXMLEvent({ type: 'error.execution' })],
-        context: machine.context
+        context: currentState.context
       });
     } else {
       throw e;
