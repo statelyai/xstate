@@ -8,7 +8,11 @@ The `interpret(...)` function now accepts `input` in the second argument, which 
 const greetMachine = createMachine({
   context: ({ input }) => ({
     greeting: `Hello ${input.name}!`
-  })
+  }),
+  entry: (_, event) => {
+    event.type // 'xstate.init'
+    event.input // { name: 'David' }
+  }
   // ...
 });
 
