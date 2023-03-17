@@ -371,7 +371,7 @@ describe('invocations (activities)', () => {
             on: {
               NEXT: {
                 target: 'a',
-                internal: false
+                external: true
               }
             }
           }

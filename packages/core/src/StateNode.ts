@@ -221,6 +221,7 @@ export class StateNode<
             source: this,
             actions: this.initial.actions,
             eventType: null as any,
+            external: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
