@@ -31,9 +31,9 @@ const user = { name: 'David' };
 
 const fetchMachine = createMachine<{ userId: string | undefined }>({
   id: 'fetch',
-  context: {
-    userId: undefined
-  },
+  context: ({ input }) => ({
+    userId: input.userId
+  }),
   initial: 'pending',
   states: {
     pending: {
@@ -72,7 +72,7 @@ const fetcherMachine = createMachine({
     waiting: {
       invoke: {
         src: fetchMachine,
-        data: {
+        input: {
           userId: (ctx: any) => ctx.selectedUserId
         },
         onDone: {
@@ -86,7 +86,8 @@ const fetcherMachine = createMachine({
     },
     waitingInvokeMachine: {
       invoke: {
-        src: fetchMachine.withContext({ userId: '55' }),
+        src: fetchMachine,
+        input: { userId: '55' },
         onDone: 'received'
       }
     },
@@ -137,7 +138,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => childMachine
+          child: childMachine
         }
       }
     );
@@ -208,7 +209,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => childMachine
+          child: childMachine
         }
       }
     );
@@ -334,9 +335,9 @@ describe('invoke', () => {
   it('should start services (explicit machine, invoke = config)', (done) => {
     const childMachine = createMachine<{ userId: string | undefined }>({
       id: 'fetch',
-      context: {
-        userId: undefined
-      },
+      context: ({ input }) => ({
+        userId: input.userId
+      }),
       initial: 'pending',
       states: {
         pending: {
@@ -375,11 +376,8 @@ describe('invoke', () => {
         },
         waiting: {
           invoke: {
-            src: (ctx) =>
-              childMachine.withContext({
-                userId: ctx.selectedUserId
-              }),
-            data: {
+            src: childMachine,
+            input: {
               userId: (ctx: any) => ctx.selectedUserId
             },
             onDone: {
@@ -423,8 +421,8 @@ describe('invoke', () => {
       initial: 'pending',
       states: {
         pending: {
-          invoke: () =>
-            createMachine({
+          invoke: {
+            src: createMachine({
               id: 'child',
               initial: 'sending',
               states: {
@@ -432,7 +430,8 @@ describe('invoke', () => {
                   entry: sendParent({ type: 'SUCCESS', data: 42 })
                 }
               }
-            }),
+            })
+          },
           on: {
             SUCCESS: {
               target: 'success',
@@ -465,8 +464,8 @@ describe('invoke', () => {
           initial: 'b',
           states: {
             b: {
-              invoke: () =>
-                createMachine({
+              invoke: {
+                src: createMachine({
                   id: 'child',
                   initial: 'sending',
                   states: {
@@ -475,6 +474,7 @@ describe('invoke', () => {
                     }
                   }
                 })
+              }
             }
           }
         },
@@ -530,7 +530,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => childMachine
+          child: childMachine
         }
       }
     );
@@ -538,16 +538,15 @@ describe('invoke', () => {
     interpret(
       someParentMachine.provide({
         actors: {
-          child: () =>
-            createMachine({
-              id: 'child',
-              initial: 'init',
-              states: {
-                init: {
-                  entry: [sendParent({ type: 'STOP' })]
-                }
+          child: createMachine({
+            id: 'child',
+            initial: 'init',
+            states: {
+              init: {
+                entry: [sendParent({ type: 'STOP' })]
               }
-            })
+            }
+          })
         }
       })
     )
@@ -555,31 +554,6 @@ describe('invoke', () => {
         done();
       })
       .start();
-  });
-
-  it('should not start services only once when using withContext', () => {
-    let startCount = 0;
-
-    const startMachine = createMachine({
-      id: 'start',
-      initial: 'active',
-      context: { foo: true },
-      states: {
-        active: {
-          invoke: {
-            src: fromCallback(() => {
-              startCount++;
-            })
-          }
-        }
-      }
-    });
-
-    const startService = interpret(startMachine.withContext({ foo: false }));
-
-    startService.start();
-
-    expect(startCount).toEqual(1);
   });
 
   describe('parent to child', () => {
@@ -603,39 +577,6 @@ describe('invoke', () => {
         invoke: {
           id: 'foo-child',
           src: subMachine
-        },
-        states: {
-          one: {
-            entry: sendTo('foo-child', { type: 'NEXT' }),
-            on: { NEXT: 'two' }
-          },
-          two: {
-            type: 'final'
-          }
-        }
-      });
-
-      interpret(mainMachine)
-        .onDone(() => {
-          done();
-        })
-        .start();
-    });
-
-    it('should communicate with the child machine (invoke on created machine)', (done) => {
-      interface MainMachineCtx {
-        machine: typeof subMachine;
-      }
-
-      const mainMachine = createMachine<MainMachineCtx>({
-        id: 'parent',
-        initial: 'one',
-        context: {
-          machine: subMachine
-        },
-        invoke: {
-          id: 'foo-child',
-          src: (ctx) => ctx.machine
         },
         states: {
           one: {
@@ -820,7 +761,7 @@ describe('invoke', () => {
       const machine = createMachine({
         id: 'machine',
         invoke: {
-          src: () => fromCallback(() => () => (actorStopped = true))
+          src: fromCallback(() => () => (actorStopped = true))
         },
         initial: 'running',
         states: {
@@ -948,23 +889,24 @@ describe('invoke', () => {
       const invokePromiseMachine = createMachine({
         id: 'invokePromise',
         initial: 'pending',
-        context: {
+        context: ({ input }) => ({
           id: 42,
-          succeed: true
-        },
+          succeed: true,
+          ...input
+        }),
         states: {
           pending: {
             invoke: {
-              src: (ctx) =>
-                fromPromise(() =>
-                  createPromise((resolve) => {
-                    if (ctx.succeed) {
-                      resolve(ctx.id);
-                    } else {
-                      throw new Error(`failed on purpose for: ${ctx.id}`);
-                    }
-                  })
-                ),
+              src: fromPromise(({ input }) =>
+                createPromise((resolve) => {
+                  if (input.succeed) {
+                    resolve(input.id);
+                  } else {
+                    throw new Error(`failed on purpose for: ${input.id}`);
+                  }
+                })
+              ),
+              input: (ctx) => ctx,
               onDone: {
                 target: 'success',
                 guard: (ctx, e) => {
@@ -993,7 +935,7 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise factory and reject with ErrorExecution', (done) => {
-        interpret(invokePromiseMachine.withContext({ id: 31, succeed: false }))
+        interpret(invokePromiseMachine, { input: { id: 31, succeed: false } })
           .onDone(() => done())
           .start();
       });
@@ -1135,8 +1077,9 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: () =>
-                fromPromise(() => createPromise((resolve) => resolve()))
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve())
+              )
             }
           }
         );
@@ -1154,10 +1097,9 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: () =>
-                  fromPromise(() =>
-                    createPromise((resolve) => resolve({ count: 1 }))
-                  ),
+                src: fromPromise(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                ),
                 onDone: {
                   target: 'success',
                   actions: assign({ count: (_, e) => e.data.count })
@@ -1205,10 +1147,9 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: () =>
-                fromPromise(() =>
-                  createPromise((resolve) => resolve({ count: 1 }))
-                )
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve({ count: 1 }))
+              )
             }
           }
         );
@@ -1235,10 +1176,9 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: () =>
-                  fromPromise(() =>
-                    createPromise((resolve) => resolve({ count: 1 }))
-                  ),
+                src: fromPromise(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                ),
                 onDone: {
                   target: 'success',
                   actions: (_, e) => {
@@ -1287,10 +1227,9 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: () =>
-                fromPromise(() =>
-                  createPromise((resolve) => resolve({ count: 1 }))
-                )
+              somePromise: fromPromise(() =>
+                createPromise((resolve) => resolve({ count: 1 }))
+              )
             }
           }
         );
@@ -1324,6 +1263,10 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
+                  input: (ctx, ev) => ({
+                    foo: ctx.foo,
+                    event: ev
+                  }),
                   onDone: 'last'
                 }
               },
@@ -1334,12 +1277,11 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: (ctx, e) =>
-                fromPromise(() => {
-                  return createPromise((resolve, reject) => {
-                    ctx.foo && e.payload ? resolve() : reject();
-                  });
-                })
+              somePromise: fromPromise(({ input }) => {
+                return createPromise((resolve, reject) => {
+                  input.foo && input.event.payload ? resolve() : reject();
+                });
+              })
             }
           }
         );
@@ -1469,7 +1411,11 @@ describe('invoke', () => {
             },
             first: {
               invoke: {
-                src: 'someCallback'
+                src: 'someCallback',
+                input: (ctx, ev) => ({
+                  foo: ctx.foo,
+                  event: ev
+                })
               },
               on: {
                 CALLBACK: {
@@ -1485,23 +1431,22 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: (ctx, e) =>
-              fromCallback((cb) => {
-                if (ctx.foo && e.type === 'BEGIN') {
-                  cb({
-                    type: 'CALLBACK',
-                    data: 40
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 41
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 42
-                  });
-                }
-              })
+            someCallback: fromCallback((cb, _receive, { input }) => {
+              if (input.foo && input.event.type === 'BEGIN') {
+                cb({
+                  type: 'CALLBACK',
+                  data: 40
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 41
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 42
+                });
+              }
+            })
           }
         }
       );
@@ -1541,10 +1486,9 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: () =>
-              fromCallback((cb) => {
-                cb({ type: 'CALLBACK' });
-              })
+            someCallback: fromCallback((cb) => {
+              cb({ type: 'CALLBACK' });
+            })
           }
         }
       );
@@ -1583,10 +1527,9 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: () =>
-              fromCallback((cb) => {
-                cb({ type: 'CALLBACK' });
-              })
+            someCallback: fromCallback((cb) => {
+              cb({ type: 'CALLBACK' });
+            })
           }
         }
       );
@@ -1632,10 +1575,9 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: () =>
-              fromCallback((cb) => {
-                cb({ type: 'CALLBACK' });
-              })
+            someCallback: fromCallback((cb) => {
+              cb({ type: 'CALLBACK' });
+            })
           }
         }
       );
@@ -1667,14 +1609,13 @@ describe('invoke', () => {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: () =>
-                fromCallback((cb) => {
-                  const ivl = setInterval(() => {
-                    cb({ type: 'INC' });
-                  }, 10);
+              src: fromCallback((cb) => {
+                const ivl = setInterval(() => {
+                  cb({ type: 'INC' });
+                }, 10);
 
-                  return () => clearInterval(ivl);
-                })
+                return () => clearInterval(ivl);
+              })
             },
             always: {
               target: 'finished',
@@ -1703,7 +1644,7 @@ describe('invoke', () => {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: () => fromCallback(() => spy)
+              src: fromCallback(() => spy)
             },
             on: {
               NEXT: 'idle'
@@ -1936,7 +1877,7 @@ describe('invoke', () => {
         JSON.stringify(waitingState);
       }).not.toThrow();
 
-      expect(typeof waitingState.actions[0].params?.src.type).toBe('string');
+      expect(typeof waitingState.actions[0].params?.src).toBe('string');
     });
 
     it('should throw error if unhandled (sync)', () => {
@@ -2420,7 +2361,7 @@ describe('invoke', () => {
 
       const countReducer = (
         count: number,
-        event: { type: 'INC' } | { type: 'DOUBLE' },
+        event: CountEvents,
         { self }: ActorContext<CountEvents, any>
       ): number => {
         if (event.type === 'INC') {
@@ -2888,15 +2829,15 @@ describe('invoke', () => {
     });
   });
 
-  it('invoke `src` should accept invoke source definition', (done) => {
+  it('invoke `src` can be used with invoke `input`', (done) => {
     const machine = createMachine(
       {
         initial: 'searching',
         states: {
           searching: {
             invoke: {
-              src: {
-                type: 'search',
+              src: 'search',
+              input: {
                 endpoint: 'example.com'
               },
               onDone: 'success'
@@ -2909,12 +2850,11 @@ describe('invoke', () => {
       },
       {
         actors: {
-          search: (_, __, meta) =>
-            fromPromise(async () => {
-              expect(meta.src.endpoint).toEqual('example.com');
+          search: fromPromise(async ({ input }) => {
+            expect(input.endpoint).toEqual('example.com');
 
-              return await 42;
-            })
+            return await 42;
+          })
         }
       }
     );
@@ -2922,6 +2862,44 @@ describe('invoke', () => {
     interpret(machine)
       .onDone(() => done())
       .start();
+  });
+
+  it('invoke `src` can be used with dynamic invoke `input`', async () => {
+    const machine = createMachine(
+      {
+        initial: 'searching',
+        context: {
+          url: 'example.com'
+        },
+        states: {
+          searching: {
+            invoke: {
+              src: 'search',
+              input: (ctx) => ({ endpoint: ctx.url }),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          search: fromPromise(async ({ input }) => {
+            expect(input.endpoint).toEqual('example.com');
+
+            return await 42;
+          })
+        }
+      }
+    );
+
+    await new Promise<void>((res) =>
+      interpret(machine)
+        .onDone(() => res())
+        .start()
+    );
   });
 
   describe('meta data', () => {
@@ -2942,12 +2920,11 @@ describe('invoke', () => {
       expect.assertions(1);
       const machine = createMachine({
         invoke: {
-          src: (_ctx, _e, { meta }) =>
-            fromPromise(() => {
-              expect(meta).toEqual({ url: 'stately.ai' });
-              return Promise.resolve();
-            }),
-          meta: {
+          src: fromPromise(({ input }) => {
+            expect(input).toEqual({ url: 'stately.ai' });
+            return Promise.resolve();
+          }),
+          input: {
             url: 'stately.ai'
           }
         }
@@ -3008,15 +2985,6 @@ describe('invoke', () => {
         src: fromCallback(() => {
           /* ... */
         })
-      }
-    ],
-    [
-      'src containing a parametrized invokee with id parameter',
-      {
-        src: {
-          type: 'someSrc',
-          id: 'h4sh'
-        }
       }
     ]
   ])(
@@ -3259,11 +3227,10 @@ describe('invoke', () => {
     const machine = createMachine({
       id: 'root',
       invoke: {
-        src: () =>
-          fromPromise(() => {
-            count++;
-            return Promise.resolve(42);
-          })
+        src: fromPromise(() => {
+          count++;
+          return Promise.resolve(42);
+        })
       },
       on: {
         EVENT: {
@@ -3300,11 +3267,10 @@ describe('actors option', () => {
           pending: {
             invoke: {
               src: 'stringService',
-              // TODO: should this be part of "input" concept?
-              data: {
+              input: (ctx) => ({
                 staticVal: 'hello',
-                newCount: (ctx: any) => ctx.count * 2 // TODO: types
-              },
+                newCount: ctx.count * 2 // TODO: types
+              }),
               onDone: 'success'
             }
           },
@@ -3315,16 +3281,13 @@ describe('actors option', () => {
       },
       {
         actors: {
-          stringService: (ctx, _, { data }) =>
-            fromPromise(() => {
-              expect(ctx).toEqual({ count: 42 });
+          stringService: fromPromise(({ input }) => {
+            expect(input).toEqual({ newCount: 84, staticVal: 'hello' });
 
-              expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
-
-              return new Promise<void>((res) => {
-                res();
-              });
-            })
+            return new Promise<void>((res) => {
+              res();
+            });
+          })
         }
       }
     );
