@@ -6,11 +6,10 @@ import {
   AnyInterpreter,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
-  InvokeActionObject,
-  InvokeSourceDefinition
+  InvokeActionObject
 } from '../index.js';
 import { actionTypes, error } from '../actions.js';
-import { mapContext, warn } from '../utils.js';
+import { resolveReferencedActor, warn } from '../utils.js';
 import { ActorStatus, interpret } from '../interpreter.js';
 import { cloneState } from '../State.js';
 import { IS_PRODUCTION } from '../environment.js';
@@ -32,7 +31,7 @@ export function invoke<
     { type: invokeActionType, params: invokeDef },
     (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
-      const { id, data, src, meta } = invokeDef;
+      const { id, src } = invokeDef;
 
       let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
@@ -44,30 +43,27 @@ export function invoke<
           }
         } as InvokeActionObject;
       } else {
-        const behaviorImpl = state.machine.options.actors[src.type];
+        const referenced = resolveReferencedActor(
+          state.machine.options.actors[src]
+        );
 
-        if (!behaviorImpl) {
+        if (!referenced) {
           resolvedInvokeAction = {
             type,
             params: invokeDef
           } as InvokeActionObject;
         } else {
-          const behavior =
-            typeof behaviorImpl === 'function'
-              ? behaviorImpl(state.context, _event.data, {
-                  id,
-                  data: data && mapContext(data, state.context, _event as any),
-                  src,
-                  _event,
-                  meta
-                })
-              : behaviorImpl;
-
-          const ref = interpret(behavior, {
+          const input =
+            'input' in invokeDef ? invokeDef.input : referenced.input;
+          const ref = interpret(referenced.src, {
             id,
             src,
             parent: actorContext?.self,
-            key: invokeDef.key
+            key: invokeDef.key,
+            input:
+              typeof input === 'function'
+                ? input(state.context, _event.data as any)
+                : input
           });
 
           resolvedInvokeAction = {
@@ -95,9 +91,7 @@ export function invoke<
           if (!IS_PRODUCTION) {
             warn(
               false,
-              `Actor type '${
-                (resolvedInvokeAction.params.src as InvokeSourceDefinition).type
-              }' not found in machine '${actorCtx.id}'.`
+              `Actor type '${resolvedInvokeAction.params.src}' not found in machine '${actorCtx.id}'.`
             );
           }
           return;

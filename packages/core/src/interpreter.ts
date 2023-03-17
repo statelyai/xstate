@@ -8,7 +8,6 @@ import type {
   PersistedStateFrom,
   SnapshotFrom,
   ActorSystem,
-  InvokeSourceDefinition,
   AnyActorBehavior,
   RaiseActionObject
 } from './types.js';
@@ -124,7 +123,7 @@ export class Interpreter<
   public system: ActorSystem<any>;
   private _doneEvent?: DoneEvent;
 
-  public src?: InvokeSourceDefinition;
+  public src?: string;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
@@ -180,7 +179,7 @@ export class Interpreter<
       ? this.behavior.restoreState
         ? this.behavior.restoreState(this.options.state, this._actorContext)
         : this.options.state
-      : this.behavior.getInitialState(this._actorContext);
+      : this.behavior.getInitialState(this._actorContext, this.options?.input);
   }
 
   // array of functions to defer

@@ -1,6 +1,5 @@
 import {
   Subscribable,
-  Lazy,
   ActorBehavior,
   EventObject,
   Subscription
@@ -13,6 +12,7 @@ export interface ObservableInternalState<T> {
   canceled: boolean;
   status: 'active' | 'done' | 'error';
   data: T | undefined;
+  input?: any;
 }
 
 export type ObservablePersistedState<T> = Omit<
@@ -20,8 +20,9 @@ export type ObservablePersistedState<T> = Omit<
   'subscription'
 >;
 
+// TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
 export function fromObservable<T, TEvent extends EventObject>(
-  lazyObservable: Lazy<Subscribable<T>>
+  observableCreator: ({ input }: { input: any }) => Subscribable<T>
 ): ActorBehavior<
   TEvent,
   T | undefined,
@@ -65,25 +66,29 @@ export function fromObservable<T, TEvent extends EventObject>(
           return state;
         case errorEventType:
           state.status = 'error';
+          delete state.input;
           state.data = _event.data.data;
           return state;
         case completeEventType:
           state.status = 'done';
+          delete state.input;
           return state;
         case stopSignalType:
           state.canceled = true;
+          delete state.input;
           state.subscription!.unsubscribe();
           return state;
         default:
           return state;
       }
     },
-    getInitialState: () => {
+    getInitialState: (_, input) => {
       return {
         subscription: undefined,
         canceled: false,
         status: 'active',
-        data: undefined
+        data: undefined,
+        input
       };
     },
     start: (state, { self }) => {
@@ -91,8 +96,7 @@ export function fromObservable<T, TEvent extends EventObject>(
         // Do not restart a completed observable
         return;
       }
-
-      state.subscription = lazyObservable().subscribe({
+      state.subscription = observableCreator({ input: state.input }).subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
         },
@@ -105,10 +109,11 @@ export function fromObservable<T, TEvent extends EventObject>(
       });
     },
     getSnapshot: (state) => state.data,
-    getPersistedState: ({ canceled, status, data }) => ({
+    getPersistedState: ({ canceled, status, data, input }) => ({
       canceled,
       status,
-      data
+      data,
+      input
     }),
     getStatus: (state) => state,
     restoreState: (state) => ({
@@ -130,7 +135,7 @@ export function fromObservable<T, TEvent extends EventObject>(
  */
 
 export function fromEventObservable<T extends EventObject>(
-  lazyObservable: Lazy<Subscribable<T>>
+  lazyObservable: ({ input }: { input: any }) => Subscribable<T>
 ): ActorBehavior<EventObject, T | undefined> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
@@ -152,13 +157,16 @@ export function fromEventObservable<T extends EventObject>(
       switch (_event.name) {
         case errorEventType:
           state.status = 'error';
+          delete state.input;
           state.data = _event.data.data;
           return state;
         case completeEventType:
           state.status = 'done';
+          delete state.input;
           return state;
         case stopSignalType:
           state.canceled = true;
+          delete state.input;
           state.subscription!.unsubscribe();
           return state;
         default:
@@ -179,7 +187,7 @@ export function fromEventObservable<T extends EventObject>(
         return;
       }
 
-      state.subscription = lazyObservable().subscribe({
+      state.subscription = lazyObservable({ input: state.input }).subscribe({
         next: (value) => {
           self._parent?.send(toSCXMLEvent(value, { origin: self }));
         },
@@ -192,10 +200,11 @@ export function fromEventObservable<T extends EventObject>(
       });
     },
     getSnapshot: (_) => undefined,
-    getPersistedState: ({ canceled, status, data }) => ({
+    getPersistedState: ({ canceled, status, data, input }) => ({
       canceled,
       status,
-      data
+      data,
+      input
     }),
     getStatus: (state) => state,
     restoreState: (state) => ({

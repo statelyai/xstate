@@ -230,11 +230,12 @@ describe('createActorContext', () => {
   });
 
   it('should work with a provided machine', () => {
-    const someMachine = createMachine({
-      context: { count: 0 }
-    });
+    const createSomeMachine = (context: { count: number }) =>
+      createMachine({
+        context
+      });
 
-    const SomeContext = createActorContext(someMachine);
+    const SomeContext = createActorContext(createSomeMachine({ count: 0 }));
 
     const Component = () => {
       const actor = SomeContext.useActorRef();
@@ -245,9 +246,7 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeContext.Provider
-          machine={() => someMachine.withContext({ count: 42 })}
-        >
+        <SomeContext.Provider machine={() => createSomeMachine({ count: 42 })}>
           <Component />
         </SomeContext.Provider>
       );

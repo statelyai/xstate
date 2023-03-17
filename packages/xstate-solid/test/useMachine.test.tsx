@@ -171,12 +171,13 @@ describe('useMachine hook', () => {
     render(() => <Test />);
   });
 
-  it('should merge machine context with options.context', () => {
+  it('should accept input', () => {
     const testMachine = createMachine<{ foo: string; test: boolean }>({
-      context: {
+      context: ({ input }) => ({
         foo: 'bar',
-        test: false
-      },
+        test: false,
+        ...input
+      }),
       initial: 'idle',
       states: {
         idle: {}
@@ -184,7 +185,9 @@ describe('useMachine hook', () => {
     });
 
     const Test = () => {
-      const [state] = useMachine(testMachine.withContext({ test: true }));
+      const [state] = useMachine(testMachine, {
+        input: { test: true }
+      });
 
       expect(state.context).toEqual({
         foo: 'bar',
@@ -208,7 +211,7 @@ describe('useMachine hook', () => {
             ref: (_, __, { spawn }) =>
               spawn(
                 fromPromise(() => new Promise((res) => res(42))),
-                'my-promise'
+                { id: 'my-promise' }
               )
           }),
           on: {
@@ -1603,9 +1606,9 @@ describe('useMachine (strict mode)', () => {
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
       initial: 'intitial',
-      context: {
-        value: 100
-      },
+      context: ({ input }) => ({
+        value: input.value
+      }),
       states: {
         intitial: {}
       }
@@ -1617,7 +1620,8 @@ describe('useMachine (strict mode)', () => {
         active: {
           invoke: {
             id: 'test',
-            src: childMachine.withContext({ value: 42 })
+            src: childMachine,
+            input: { value: 42 }
           }
         }
       }

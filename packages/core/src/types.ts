@@ -115,7 +115,10 @@ export interface ActionMeta<
 // or just make machine a behavior
 export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
-  name?: string
+  options?: Partial<{
+    id: string;
+    input: any;
+  }>
 ) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>
   ? ActorRef<TActorEvent, TActorEmitted>
   : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
@@ -357,8 +360,9 @@ export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject
 > = (
-  callback: (event: TSentEvent) => void,
-  onReceive: Receiver<TEvent>
+  sendBack: (event: TSentEvent) => void,
+  onReceive: Receiver<TEvent>,
+  { input }: { input: any }
 ) => (() => void) | Promise<any> | void;
 
 export type ActorBehaviorCreator<
@@ -371,15 +375,15 @@ export type ActorBehaviorCreator<
   meta: {
     id: string;
     data?: any;
-    src: InvokeSourceDefinition;
+    src: string;
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
+    input: any;
   }
 ) => TActorBehavior;
 
 export interface InvokeMeta {
-  data: any;
-  src: InvokeSourceDefinition;
+  src: string;
   meta: MetaObject | undefined;
 }
 
@@ -393,20 +397,15 @@ export interface InvokeDefinition<
   /**
    * The source of the actor's behavior to be invoked
    */
-  src: InvokeSourceDefinition;
+  src: string;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
    * Default: `false`
    */
   autoForward?: boolean;
-  /**
-   * Data from the parent machine's context to set as the (partial or full) context
-   * for the invoked child machine.
-   *
-   * Data should be mapped to match the child machine's context shape.
-   */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+
+  input?: Mapper<TContext, TEvent, any> | any;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -520,11 +519,6 @@ export type TransitionsConfig<
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
-export interface InvokeSourceDefinition {
-  [key: string]: any;
-  type: string;
-}
-
 export interface InvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -539,24 +533,15 @@ export interface InvokeConfig<
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src:
-    | string
-    | InvokeSourceDefinition
-    | ActorBehaviorCreator<TContext, TEvent>
-    | ActorBehavior<any, any>; // TODO: fix types
+  src: string | ActorBehavior<any, any>; // TODO: fix types
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
    * Default: `false`
    */
   autoForward?: boolean;
-  /**
-   * Data from the parent machine's context to set as the (partial or full) context
-   * for the invoked child machine.
-   *
-   * Data should be mapped to match the child machine's context shape.
-   */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+
+  input?: Mapper<TContext, TEvent, any> | any;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -620,11 +605,7 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<
-    | string
-    | ActorBehaviorCreator<TContext, TEvent>
-    | InvokeConfig<TContext, TEvent>
-  >;
+  invoke?: SingleOrArray<string | InvokeConfig<TContext, TEvent>>;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -810,10 +791,10 @@ export interface MachineImplementationsSimplified<
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
   actors: Record<
     string,
-    ActorBehaviorCreator<TContext, TEvent> | AnyActorBehavior
+    | AnyActorBehavior
+    | { src: AnyActorBehavior; input: Mapper<TContext, TEvent, any> | any }
   >;
   delays: DelayFunctionMap<TContext, TEvent>;
-  context: Partial<TContext> | ContextFactory<Partial<TContext>>;
 }
 
 type MachineImplementationsActions<
@@ -884,15 +865,19 @@ type MachineImplementationsActors<
     'invokeSrcNameMap'
   >
 > = {
+  // TODO: this should require `{ src, input }` for required inputs
   [K in keyof TEventsCausingActors]?:
-    | ActorBehaviorCreator<
-        TContext,
-        Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
-        // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
-        // EventObject,
-        // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
-      >
-    | AnyActorBehavior;
+    | AnyActorBehavior
+    | {
+        src: AnyActorBehavior;
+        input:
+          | Mapper<
+              TContext,
+              Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>,
+              any
+            >
+          | any;
+      };
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
@@ -1013,8 +998,12 @@ type InitialContext<TContext extends MachineContext> =
   | TContext
   | ContextFactory<TContext>;
 
-export type ContextFactory<TContext extends MachineContext> = (stuff: {
+export type ContextFactory<TContext extends MachineContext> = ({
+  spawn,
+  input
+}: {
   spawn: Spawner;
+  input: any; // TODO: fix
 }) => TContext;
 
 export interface MachineConfig<
@@ -1155,10 +1144,9 @@ export type DoneEvent = DoneEventObject & string;
 
 export interface InvokeAction {
   type: ActionTypes.Invoke;
-  src: InvokeSourceDefinition | ActorRef<any>;
+  src: string | ActorRef<any>;
   id: string;
   autoForward?: boolean;
-  data?: any;
   exec?: undefined;
   meta: MetaObject | undefined;
 }
@@ -1174,11 +1162,10 @@ export interface DynamicInvokeActionObject<
 export interface InvokeActionObject extends BaseActionObject {
   type: ActionTypes.Invoke;
   params: {
-    src: InvokeSourceDefinition | ActorRef<any>;
+    src: string | ActorRef<any>;
     id: string;
     key: string | undefined;
     autoForward?: boolean;
-    data?: any;
     exec?: undefined;
     ref?: ActorRef<any>;
     meta: MetaObject | undefined;
@@ -1652,6 +1639,11 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
    * The receptionist key to register this actor under
    */
   key?: string;
+  /**
+   * The input data to pass to the actor.
+   */
+  input?: any;
+
   // state?:
   //   | PersistedStateFrom<TActorBehavior>
   //   | InternalStateFrom<TActorBehavior>;
@@ -1660,7 +1652,7 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   /**
    * The source definition.
    */
-  src?: InvokeSourceDefinition;
+  src?: string;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1803,7 +1795,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   _parent?: ActorRef<any, any>;
   system?: ActorSystem<any>;
   status: ActorStatus;
-  src?: InvokeSourceDefinition;
+  src?: string;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
@@ -1916,7 +1908,8 @@ export interface ActorBehavior<
     ctx: ActorContext<TEvent, TSnapshot, TSystem>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot, any> // TODO: add system typing
+    actorCtx: ActorContext<TEvent, TSnapshot, any>,
+    input: any
   ) => TInternalState;
   restoreState?: (
     persistedState: TPersisted,
@@ -2051,7 +2044,7 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
   children: {
     [K in keyof TState['children']]: {
       state: any; // TODO: fix (should be state from actorref)
-      src?: InvokeSourceDefinition;
+      src?: string;
     };
   };
 };

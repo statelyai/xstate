@@ -194,7 +194,7 @@ describe('spawning machines', () => {
       },
       {
         actors: {
-          child: () => childMachine
+          child: childMachine
         }
       }
     );
@@ -234,7 +234,7 @@ describe('spawning promises', () => {
                       res('response');
                     })
                 ),
-                'my-promise'
+                { id: 'my-promise' }
               );
 
               return ref;
@@ -272,7 +272,7 @@ describe('spawning promises', () => {
           idle: {
             entry: assign({
               promiseRef: (_, __, { spawn }) =>
-                spawn('somePromise', 'my-promise')
+                spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
               [doneInvoke('my-promise')]: {
@@ -288,13 +288,12 @@ describe('spawning promises', () => {
       },
       {
         actors: {
-          somePromise: () =>
-            fromPromise(
-              () =>
-                new Promise((res) => {
-                  res('response');
-                })
-            )
+          somePromise: fromPromise(
+            () =>
+              new Promise((res) => {
+                res('response');
+              })
+          )
         }
       }
     );
@@ -366,7 +365,7 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(observableBehavior, 'int');
+              const ref = spawn(observableBehavior, { id: 'int' });
 
               return ref;
             }
@@ -402,7 +401,8 @@ describe('spawning observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: (_, __, { spawn }) => spawn('interval', 'int')
+              observableRef: (_, __, { spawn }) =>
+                spawn('interval', { id: 'int' })
             }),
             on: {
               'xstate.snapshot.int': {
@@ -442,7 +442,7 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(observableBehavior, 'int');
+              const ref = spawn(observableBehavior, { id: 'int' });
 
               return ref;
             }
@@ -487,7 +487,7 @@ describe('spawning event observables', () => {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(eventObservableBehavior, 'int');
+              const ref = spawn(eventObservableBehavior, { id: 'int' });
 
               return ref;
             }
@@ -523,7 +523,8 @@ describe('spawning event observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: (_, __, { spawn }) => spawn('interval', 'int')
+              observableRef: (_, __, { spawn }) =>
+                spawn('interval', { id: 'int' })
             }),
             on: {
               COUNT: {
@@ -539,10 +540,9 @@ describe('spawning event observables', () => {
       },
       {
         actors: {
-          interval: () =>
-            fromEventObservable(() =>
-              interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
-            )
+          interval: fromEventObservable(() =>
+            interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+          )
         }
       }
     );
@@ -896,7 +896,7 @@ describe('actors', () => {
                     setTimeout(() => res(42));
                   })
               ),
-              'test'
+              { id: 'test' }
             )
         }),
         initial: 'pending',
@@ -934,7 +934,7 @@ describe('actors', () => {
                   setTimeout(() => rej(errorMessage), 1);
                 })
             ),
-            'test'
+            { id: 'test' }
           )
         }),
         initial: 'pending',
@@ -1158,7 +1158,7 @@ describe('actors', () => {
         child: (_, __, { spawn }) =>
           spawn(
             fromObservable(() => EMPTY),
-            'myactor'
+            { id: 'myactor' }
           )
       }),
       initial: 'init',

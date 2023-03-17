@@ -61,7 +61,7 @@ export default defineComponent({
     const { state, send, service } = useMachine(fetchMachine, {
       state: persistedState,
       actors: {
-        fetchData: () => fromPromise(onFetch)
+        fetchData: fromPromise(onFetch)
       },
     });
     return { state, send, service };

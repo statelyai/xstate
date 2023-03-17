@@ -1,4 +1,4 @@
-import { error, initEvent } from './actions.js';
+import { error, createInitEvent, initEvent } from './actions.js';
 import { STATE_DELIMITER } from './constants.js';
 import { createSpawner } from './spawn.js';
 import { getPersistedState, State } from './State.js';
@@ -25,7 +25,6 @@ import type {
 import type {
   ActorContext,
   ActorMap,
-  AnyStateMachine,
   BaseActionObject,
   ActorBehavior,
   EventObject,
@@ -35,10 +34,8 @@ import type {
   MachineContext,
   MachineImplementationsSimplified,
   MachineSchema,
-  MaybeLazy,
   NoInfer,
   SCXML,
-  Spawner,
   StateConfig,
   StateMachineDefinition,
   StateValue,
@@ -46,7 +43,11 @@ import type {
   AnyActorContext,
   PersistedMachineState
 } from './types.js';
-import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
+import {
+  isSCXMLErrorEvent,
+  resolveReferencedActor,
+  toSCXMLEvent
+} from './utils.js';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -59,20 +60,6 @@ function createDefaultOptions() {
     delays: {},
     guards: {},
     context: {}
-  };
-}
-
-function resolveContext<TContext extends MachineContext>(
-  context: TContext,
-  partialContext?: Partial<TContext>
-): TContext {
-  if (isFunction(partialContext)) {
-    return { ...context, ...partialContext };
-  }
-
-  return {
-    ...context,
-    ...partialContext
   };
 }
 
@@ -95,27 +82,31 @@ export class StateMachine<
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     >
 {
-  private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
   // TODO: this getter should be removed
-  public get context(): TContext {
-    return this.getContextAndActions()[0];
+  public getContext(input?: any): TContext {
+    return this.getContextAndActions(undefined, input)[0];
   }
   private getContextAndActions(
-    actorCtx?: ActorContext<any, any>
+    actorCtx?: ActorContext<any, any>,
+    input?: any
   ): [TContext, InvokeActionObject[]] {
     const actions: InvokeActionObject[] = [];
-    // TODO: merge with this.options.context
-    const context = this._contextFactory({
-      spawn: createSpawner(
-        actorCtx?.self,
-        this,
-        null as any,
-        null as any,
-        actions
-      ) // TODO: fix types
-    });
+    const { context } = this.config;
+    const resolvedContext =
+      typeof context === 'function'
+        ? context({
+            spawn: createSpawner(
+              actorCtx?.self,
+              this,
+              undefined as any, // TODO: this requires `| undefined` for all referenced dynamic inputs that are spawnable in the context factory,
+              createInitEvent(input),
+              actions
+            ),
+            input
+          })
+        : context;
 
-    return [context, actions];
+    return [resolvedContext || ({} as TContext), actions];
   }
   /**
    * The machine's own version.
@@ -151,19 +142,6 @@ export class StateMachine<
   ) {
     this.id = config.id || '(machine)';
     this.options = Object.assign(createDefaultOptions(), options);
-    this._contextFactory = isFunction(config.context)
-      ? config.context
-      : (stuff) => {
-          const partialContext =
-            typeof options?.context === 'function'
-              ? options.context(stuff)
-              : options?.context;
-
-          return resolveContext(
-            config.context as TContext,
-            partialContext
-          ) as TContext;
-        }; // TODO: fix types
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? ({} as any as this['schema']);
@@ -195,7 +173,7 @@ export class StateMachine<
       TEvent,
       TResolvedTypesMeta,
       true
-    > & { context?: MaybeLazy<Partial<TContext>> }
+    >
   ): StateMachine<
     TContext,
     TEvent,
@@ -211,23 +189,8 @@ export class StateMachine<
       actions: { ...actions, ...implementations.actions },
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
-      delays: { ...delays, ...implementations.delays },
-      context: implementations.context ?? this._contextFactory
+      delays: { ...delays, ...implementations.delays }
     });
-  }
-
-  /**
-   * Clones this state machine with custom `context`.
-   *
-   * The `context` provided can be partial `context`, which will be combined with the original `context`.
-   *
-   * @param context Custom context (will override predefined context, not recursive)
-   */
-  public withContext(context: Partial<TContext>): this;
-  public withContext(context: Partial<TContext>): AnyStateMachine {
-    return this.provide({
-      context
-    } as any);
   }
 
   /**
@@ -256,7 +219,7 @@ export class StateMachine<
     stateValue: StateValue
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const resolvedStateValue = resolveStateValue(this.root, stateValue);
-    const resolvedContext = this.context;
+    const resolvedContext = this.getContext();
 
     return this.resolveState(
       State.from(resolvedStateValue, resolvedContext, this)
@@ -325,15 +288,16 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: AnyActorContext | undefined
+    actorCtx: AnyActorContext | undefined,
+    input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const [context, actions] = this.getContextAndActions(actorCtx);
+    const [context, actions] = this.getContextAndActions(actorCtx, input);
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
       this.createState({
         value: {}, // TODO: this is computed in state constructor
         context,
-        _event: initEvent as SCXML.Event<TEvent>, // TODO: fix
+        _event: createInitEvent({}) as unknown as SCXML.Event<TEvent>, // TODO: fix
         _sessionid: actorCtx?.sessionId ?? undefined,
         actions: [],
         meta: undefined,
@@ -371,15 +335,16 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    actorCtx?: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TResolvedTypesMeta>
+    >,
+    input?: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = microstep(
-      [],
-      preInitialState,
-      actorCtx,
-      initEvent as SCXML.Event<TEvent>
-    );
+    const initEvent = createInitEvent(input) as unknown as SCXML.Event<TEvent>; // TODO: fix;
+
+    const preInitialState = this.getPreInitialState(actorCtx, input);
+    const nextState = microstep([], preInitialState, actorCtx, initEvent);
     nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
@@ -422,7 +387,7 @@ export class StateMachine<
 
   public get definition(): StateMachineDefinition<TContext, TEvent> {
     return {
-      context: this.context,
+      context: this.getContext(),
       ...this.root.definition
     };
   }
@@ -472,22 +437,13 @@ export class StateMachine<
       const childState = actorData.state;
       const src = actorData.src;
 
-      const behaviorImpl = src ? this.options.actors[src.type] : undefined;
+      const behavior = src
+        ? resolveReferencedActor(this.options.actors[src])?.src
+        : undefined;
 
-      if (!behaviorImpl) {
+      if (!behavior) {
         return;
       }
-
-      const behavior =
-        typeof behaviorImpl === 'function'
-          ? behaviorImpl(state.context, state._event.data, {
-              id: actorId,
-              data: undefined,
-              src: src!,
-              _event: state._event,
-              meta: {}
-            })
-          : behaviorImpl;
 
       const actorState = behavior.restoreState?.(childState, _actorCtx);
 
@@ -512,23 +468,14 @@ export class StateMachine<
             return;
           }
 
-          const behaviorImpl = this.options.actors[src.type];
+          const referenced = resolveReferencedActor(this.options.actors[src]);
 
-          const behavior =
-            typeof behaviorImpl === 'function'
-              ? behaviorImpl(state.context, state._event.data, {
-                  id,
-                  data: undefined,
-                  src,
-                  _event: state._event,
-                  meta: {}
-                })
-              : behaviorImpl;
-
-          if (behavior) {
-            const actorRef = interpret(behavior, {
+          if (referenced) {
+            const actorRef = interpret(referenced.src, {
               id,
-              parent: _actorCtx?.self
+              parent: _actorCtx?.self,
+              input:
+                'input' in invokeConfig ? invokeConfig.input : referenced.input
             });
 
             children[id] = actorRef;
