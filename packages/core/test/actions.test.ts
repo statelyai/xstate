@@ -548,7 +548,7 @@ describe('entry/exit actions', () => {
       expect(called).toBe(true);
     });
 
-    it('root entry/exit actions should not be called on root external transitions', () => {
+    it('root entry/exit actions should be called on root external transitions', () => {
       let entrySpy = jest.fn();
       let exitSpy = jest.fn();
 
@@ -559,7 +559,7 @@ describe('entry/exit actions', () => {
         on: {
           EVENT: {
             target: '#two',
-            internal: false
+            external: true
           }
         },
         initial: 'one',
@@ -578,8 +578,8 @@ describe('entry/exit actions', () => {
 
       service.send({ type: 'EVENT' });
 
-      expect(entrySpy).not.toHaveBeenCalled();
-      expect(exitSpy).not.toHaveBeenCalled();
+      expect(entrySpy).toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalled();
     });
 
     describe('should ignore same-parent state actions (sparse)', () => {
@@ -781,7 +781,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should enter all descendents when target is a descendent of current', () => {
+    it('should enter all descendents when target is a descendent of the source when using an external transition', () => {
       const machine = createMachine({
         initial: 'A',
         states: {
@@ -789,7 +789,7 @@ describe('entry/exit actions', () => {
             initial: 'A1',
             on: {
               NEXT: {
-                internal: false,
+                external: true,
                 target: '.A2'
               }
             },

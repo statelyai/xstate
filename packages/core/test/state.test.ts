@@ -29,7 +29,7 @@ const exampleMachine = createMachine<any, Events>({
       on: {
         EXTERNAL: {
           target: 'one',
-          internal: false
+          external: true
         },
         INERT: {},
         INTERNAL: {
