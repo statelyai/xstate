@@ -163,7 +163,7 @@ describe('input', () => {
   it('should provide a static inline input to the referenced actor', () => {
     const spy = jest.fn();
 
-    const machine = createMachine<{ count: number }>(
+    const machine = createMachine(
       {
         invoke: {
           src: 'child',
@@ -190,7 +190,7 @@ describe('input', () => {
   it('should provide a dynamic inline input to the referenced actor', () => {
     const spy = jest.fn();
 
-    const machine = createMachine<{ count: number }>(
+    const machine = createMachine(
       {
         invoke: {
           src: 'child',
@@ -217,7 +217,7 @@ describe('input', () => {
   it('should provide input to the referenced actor defined together with static input', () => {
     const spy = jest.fn();
 
-    const machine = createMachine<{ count: number }>(
+    const machine = createMachine(
       {
         invoke: {
           src: 'child'
@@ -243,10 +243,10 @@ describe('input', () => {
     expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('should provide to the referenced actor defined together with dynamic input', () => {
+  it('should provide input to the referenced actor defined together with dynamic input when invoking', () => {
     const spy = jest.fn();
 
-    const machine = createMachine<{ count: number }>(
+    const machine = createMachine(
       {
         invoke: {
           src: 'child'
@@ -272,15 +272,73 @@ describe('input', () => {
     expect(spy).toHaveBeenCalledWith(142);
   });
 
-  it('should prioritize inline input over the one defined with referenced actor', () => {
+  it('should provide input to the referenced actor defined together with dynamic input when spawning', () => {
     const spy = jest.fn();
 
-    const machine = createMachine<{ count: number }>(
+    const machine = createMachine(
+      {
+        entry: assign((_ctx, _ev, { spawn }) => ({
+          childRef: spawn('child')
+        }))
+      },
+      {
+        actors: {
+          child: {
+            src: createMachine({
+              context: ({ input }) => {
+                spy(input);
+                return {};
+              }
+            }),
+            input: (_, { input }) => input + 100
+          }
+        }
+      }
+    );
+
+    interpret(machine, { input: 42 }).start();
+
+    expect(spy).toHaveBeenCalledWith(142);
+  });
+
+  it('should prioritize inline input over the one defined with referenced actor when invoking', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
       {
         invoke: {
           src: 'child',
           input: 69
         }
+      },
+      {
+        actors: {
+          child: {
+            src: createMachine({
+              context: ({ input }) => {
+                spy(input);
+                return {};
+              }
+            }),
+            input: 42
+          }
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(spy).toHaveBeenCalledWith(69);
+  });
+
+  it('should prioritize inline input over the one defined with referenced actor when spawning', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: assign((_ctx, _ev, { spawn }) => ({
+          childRef: spawn('child', { input: 69 })
+        }))
       },
       {
         actors: {

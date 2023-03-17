@@ -94,7 +94,13 @@ export class StateMachine<
     const resolvedContext =
       typeof context === 'function'
         ? context({
-            spawn: createSpawner(actorCtx?.self, this, actions),
+            spawn: createSpawner(
+              actorCtx?.self,
+              this,
+              undefined as any, // TODO: this requires `| undefined` for all referenced inputs that are spawnable in the context factory,
+              createInitEvent(input),
+              actions
+            ),
             input
           })
         : context;

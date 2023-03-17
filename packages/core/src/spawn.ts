@@ -1,11 +1,24 @@
-import { InvokeActionObject, AnyStateMachine, Spawner, ActorRef } from '.';
+import {
+  InvokeActionObject,
+  AnyStateMachine,
+  Spawner,
+  ActorRef,
+  MachineContext,
+  EventObject,
+  SCXML
+} from '.';
 import { invoke } from './actions/invoke.js';
 import { interpret } from './interpreter.js';
 import { isString, resolveReferencedActor } from './utils.js';
 
-export function createSpawner(
+export function createSpawner<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   self: ActorRef<any, any> | undefined,
   machine: AnyStateMachine,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
   return (src, options = {}) => {
@@ -20,7 +33,8 @@ export function createSpawner(
         const actorRef = interpret(referenced.src, {
           id: resolvedName,
           parent: self,
-          input
+          input:
+            typeof input === 'function' ? input(context, _event.data) : input
         });
 
         mutCapturedActions.push(
