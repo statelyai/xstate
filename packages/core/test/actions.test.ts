@@ -781,7 +781,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should enter all descendents when target is a descendent of current', () => {
+    it('should enter all descendents when target is a descendent of the source when using an external transition', () => {
       const machine = createMachine({
         initial: 'A',
         states: {
@@ -789,7 +789,7 @@ describe('entry/exit actions', () => {
             initial: 'A1',
             on: {
               NEXT: {
-                internal: false,
+                external: true,
                 target: '.A2'
               }
             },

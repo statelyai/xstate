@@ -448,7 +448,7 @@ export class StateNode<
           return !(
             !transition.target &&
             !transition.actions.length &&
-            transition.internal
+            !transition.external
           );
         })
         .map((transition) => transition.eventType)
