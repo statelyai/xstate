@@ -8,10 +8,10 @@ import type {
   SCXML,
   GuardPredicate,
   MachineContext
-} from './types.js';
-import { isStateId } from './stateUtils.js';
-import { isFunction, isString } from './utils.js';
-import type { State } from './State.js';
+} from './types.ts';
+import { isStateId } from './stateUtils.ts';
+import { isFunction, isString } from './utils.ts';
+import type { State } from './State.ts';
 
 export function stateIn<
   TContext extends MachineContext,
@@ -152,9 +152,9 @@ export function toGuardDefinition<
   return {
     type: guardConfig.type,
     params: guardConfig.params || guardConfig,
-    children: (guardConfig.children as Array<
-      GuardConfig<TContext, TEvent>
-    >)?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
+    children: (
+      guardConfig.children as Array<GuardConfig<TContext, TEvent>>
+    )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
     predicate:
       getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
   };

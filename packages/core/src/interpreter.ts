@@ -9,13 +9,13 @@ import type {
   SnapshotFrom,
   AnyActorBehavior,
   RaiseActionObject
-} from './types.js';
-import { stopSignalType } from './actors/index.js';
-import { devToolsAdapter } from './dev/index.js';
-import { IS_PRODUCTION } from './environment.js';
-import { Mailbox } from './Mailbox.js';
-import { registry } from './registry.js';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.js';
+} from './types.ts';
+import { stopSignalType } from './actors/index.ts';
+import { devToolsAdapter } from './dev/index.ts';
+import { IS_PRODUCTION } from './environment.ts';
+import { Mailbox } from './Mailbox.ts';
+import { registry } from './registry.ts';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.ts';
 import {
   ActorRef,
   DoneEvent,
@@ -26,10 +26,10 @@ import {
   SCXML,
   SendActionObject,
   Subscription
-} from './types.js';
-import { toObserver, toSCXMLEvent, warn } from './utils.js';
-import { symbolObservable } from './symbolObservable.js';
-import { doneInvoke, error } from './actions.js';
+} from './types.ts';
+import { toObserver, toSCXMLEvent, warn } from './utils.ts';
+import { symbolObservable } from './symbolObservable.ts';
+import { doneInvoke, error } from './actions.ts';
 
 export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>

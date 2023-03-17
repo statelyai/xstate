@@ -8,7 +8,7 @@ import {
   Subscribable,
   Observer,
   toSCXMLEvent
-} from '../src/index.js';
+} from '../src/index.ts';
 import {
   sendParent,
   doneInvoke,

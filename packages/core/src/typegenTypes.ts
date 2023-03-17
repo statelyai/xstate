@@ -8,7 +8,7 @@ import {
   IsAny,
   ActorMap,
   Cast
-} from './types.js';
+} from './types.ts';
 
 export interface TypegenDisabled {
   '@@xstate/typegen': false;
@@ -108,11 +108,9 @@ export type AreAllImplementationsAssumedToBeProvided<
   ? true
   : TResolvedTypesMeta extends TypegenEnabled
   ? IsNever<
-      Values<
-        {
-          [K in keyof TMissingImplementations]: TMissingImplementations[K];
-        }
-      >
+      Values<{
+        [K in keyof TMissingImplementations]: TMissingImplementations[K];
+      }>
     > extends true
     ? true
     : false

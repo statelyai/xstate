@@ -10,7 +10,7 @@ import {
   StateFrom,
   toObserver
 } from 'xstate';
-import { MaybeLazy } from './types.js';
+import { MaybeLazy } from './types.ts';
 
 type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<

@@ -1,13 +1,13 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { createMachine, interpret } from '../src/index.js';
+import { createMachine, interpret } from '../src/index.ts';
 import {
   fromObservable,
   fromPromise,
   fromReducer
-} from '../src/actors/index.js';
-import { waitFor } from '../src/waitFor.js';
-import { raise, sendTo } from '../src/actions.js';
+} from '../src/actors/index.ts';
+import { waitFor } from '../src/waitFor.ts';
+import { raise, sendTo } from '../src/actions.ts';
 
 describe('promise behavior (fromPromise)', () => {
   it('should interpret a promise', async () => {

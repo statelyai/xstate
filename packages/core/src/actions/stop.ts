@@ -1,6 +1,6 @@
-import { createDynamicAction } from '../../actions/dynamicAction.js';
-import { stop as stopActionType } from '../actionTypes.js';
-import { ActorStatus } from '../interpreter.js';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import { stop as stopActionType } from '../actionTypes.ts';
+import { ActorStatus } from '../interpreter.ts';
 import {
   ActorContext,
   ActorRef,
@@ -10,8 +10,8 @@ import {
   Expr,
   MachineContext,
   StopActionObject
-} from '../types.js';
-import { isFunction } from '../utils.js';
+} from '../types.ts';
+import { isFunction } from '../utils.ts';
 
 /**
  * Stops an actor.

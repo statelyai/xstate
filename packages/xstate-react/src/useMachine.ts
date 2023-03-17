@@ -10,8 +10,8 @@ import {
   InterpreterStatus,
   StateFrom
 } from 'xstate';
-import { MaybeLazy, Prop } from './types.js';
-import { useIdleInterpreter } from './useInterpret.js';
+import { MaybeLazy, Prop } from './types.ts';
+import { useIdleInterpreter } from './useInterpret.ts';
 
 function identity<T>(a: T): T {
   return a;

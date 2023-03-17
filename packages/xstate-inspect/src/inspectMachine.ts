@@ -1,8 +1,8 @@
 import { ActorRef, assign, createMachine, Interpreter, SCXML } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { stringifyMachine, stringifyState } from './serialize.js';
+import { stringifyMachine, stringifyState } from './serialize.ts';
 
-import { ReceiverEvent, Replacer } from './types.js';
+import { ReceiverEvent, Replacer } from './types.ts';
 
 export type InspectMachineEvent =
   | ReceiverEvent

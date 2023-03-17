@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { xml2js } from 'xml-js';
-import { toSCXML } from '../src/index.js';
+import { toSCXML } from '../src/index.ts';
 
 const testGroups = {
   actionSend: ['send1']
@@ -18,8 +18,8 @@ describe('toSCXML', () => {
         encoding: 'utf-8'
       });
 
-      const machine = require(`./fixtures/${testGroupName}/${testName}`)
-        .default;
+      const machine =
+        require(`./fixtures/${testGroupName}/${testName}`).default;
 
       it(`${testGroupName}/${testName}`, () => {
         expect(xml2js(toSCXML(machine))).toEqual(

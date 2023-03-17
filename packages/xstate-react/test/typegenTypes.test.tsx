@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { ActorRefFrom, assign, createMachine, TypegenMeta } from 'xstate';
-import { createActorContext, useInterpret, useMachine } from '../src/index.js';
+import { createActorContext, useInterpret, useMachine } from '../src/index.ts';
 
 describe('useMachine', () => {
   it('should allow to be used with a machine without any missing implementations', () => {

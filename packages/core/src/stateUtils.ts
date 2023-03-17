@@ -10,7 +10,7 @@ import {
   toStateValue,
   mapContext,
   toSCXMLEvent
-} from './utils.js';
+} from './utils.ts';
 import {
   BaseActionObject,
   EventObject,
@@ -26,24 +26,24 @@ import {
   RaiseActionObject,
   InitialTransitionConfig,
   MachineContext
-} from './types.js';
-import { cloneState, State } from './State.js';
+} from './types.ts';
+import { cloneState, State } from './State.ts';
 import {
   after,
   done,
   toActionObjects,
   actionTypes,
   resolveActionObject
-} from './actions.js';
-import { send } from './actions/send.js';
-import { cancel } from './actions/cancel.js';
-import { invoke } from './actions/invoke.js';
-import { stop } from './actions/stop.js';
-import { IS_PRODUCTION } from './environment.js';
-import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.js';
-import { evaluateGuard, toGuardDefinition } from './guards.js';
-import type { StateNode } from './StateNode.js';
-import { isDynamicAction } from '../actions/dynamicAction.js';
+} from './actions.ts';
+import { send } from './actions/send.ts';
+import { cancel } from './actions/cancel.ts';
+import { invoke } from './actions/invoke.ts';
+import { stop } from './actions/stop.ts';
+import { IS_PRODUCTION } from './environment.ts';
+import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.ts';
+import { evaluateGuard, toGuardDefinition } from './guards.ts';
+import type { StateNode } from './StateNode.ts';
+import { isDynamicAction } from '../actions/dynamicAction.ts';
 import {
   ActorContext,
   AnyEventObject,
@@ -58,8 +58,8 @@ import {
   SendActionObject,
   StateFromMachine
 } from '.';
-import { stopSignalType } from './actors/index.js';
-import { ActorStatus } from './interpreter.js';
+import { stopSignalType } from './actors/index.ts';
+import { ActorStatus } from './interpreter.ts';
 
 type Configuration<
   TContext extends MachineContext,

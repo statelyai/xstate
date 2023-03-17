@@ -9,7 +9,7 @@ import {
   SimulatedClock
 } from 'xstate';
 import { toMachine } from '../src/scxml';
-import { toSCXML, transitionToSCXML } from '../src/index.js';
+import { toSCXML, transitionToSCXML } from '../src/index.ts';
 
 interface SCIONTest {
   initialConfiguration: string[];
@@ -85,8 +85,8 @@ describe('scxml', () => {
 
   testGroupKeys.forEach((testGroupName) => {
     testGroups[testGroupName].forEach((testName) => {
-      const originalMachine = require(`./fixtures/${testGroupName}/${testName}`)
-        .default;
+      const originalMachine =
+        require(`./fixtures/${testGroupName}/${testName}`).default;
       const scxmlDefinition = toSCXML(originalMachine);
 
       const scxmlTest = JSON.parse(

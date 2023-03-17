@@ -1,2 +1,2 @@
-export { useMachine } from './useMachine.js';
-export { useSelector } from './useSelector.js';
+export { useMachine } from './useMachine.ts';
+export { useSelector } from './useSelector.ts';

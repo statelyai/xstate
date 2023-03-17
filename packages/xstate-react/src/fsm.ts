@@ -12,7 +12,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import useConstant from './useConstant.js';
+import useConstant from './useConstant.ts';
 
 function identity<T>(a: T): T {
   return a;

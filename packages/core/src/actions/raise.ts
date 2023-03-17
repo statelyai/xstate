@@ -1,5 +1,5 @@
-import { createDynamicAction } from '../../actions/dynamicAction.js';
-import * as actionTypes from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import * as actionTypes from '../actionTypes.ts';
 import {
   EventObject,
   MachineContext,
@@ -10,8 +10,8 @@ import {
   AnyInterpreter,
   RaiseActionParams,
   NoInfer
-} from '../types.js';
-import { toSCXMLEvent } from '../utils.js';
+} from '../types.ts';
+import { toSCXMLEvent } from '../utils.ts';
 
 /**
  * Raises an event. This places the event in the internal event queue, so that

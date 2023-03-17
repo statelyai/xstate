@@ -10,11 +10,11 @@ import {
   ActorBehavior,
   SpecialTargets,
   toSCXMLEvent
-} from '../src/index.js';
-import { fromReducer } from '../src/actors/index.js';
-import { fromObservable, fromEventObservable } from '../src/actors/index.js';
-import { fromPromise } from '../src/actors/index.js';
-import { fromCallback } from '../src/actors/index.js';
+} from '../src/index.ts';
+import { fromReducer } from '../src/actors/index.ts';
+import { fromObservable, fromEventObservable } from '../src/actors/index.ts';
+import { fromPromise } from '../src/actors/index.ts';
+import { fromCallback } from '../src/actors/index.ts';
 import {
   actionTypes,
   done as _done,
@@ -23,7 +23,7 @@ import {
   forwardTo,
   sendTo,
   raise
-} from '../src/actions.js';
+} from '../src/actions.ts';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 

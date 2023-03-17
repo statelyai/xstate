@@ -1,5 +1,5 @@
-import { interpret } from '../src/index.js';
-import { createMachine } from '../src/index.js';
+import { interpret } from '../src/index.ts';
+import { createMachine } from '../src/index.ts';
 import { waitFor } from '../src/waitFor';
 
 describe('waitFor', () => {

@@ -1,9 +1,9 @@
-import { error, createInitEvent, initEvent } from './actions.js';
-import { STATE_DELIMITER } from './constants.js';
-import { createSpawner } from './spawn.js';
-import { getPersistedState, State } from './State.js';
-import { StateNode } from './StateNode.js';
-import { interpret } from './interpreter.js';
+import { error, createInitEvent, initEvent } from './actions.ts';
+import { STATE_DELIMITER } from './constants.ts';
+import { createSpawner } from './spawn.ts';
+import { getPersistedState, State } from './State.ts';
+import { StateNode } from './StateNode.ts';
+import { interpret } from './interpreter.ts';
 import {
   getConfiguration,
   getInitialConfiguration,
@@ -15,13 +15,13 @@ import {
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode
-} from './stateUtils.js';
+} from './stateUtils.ts';
 import type {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
   TypegenDisabled
-} from './typegenTypes.js';
+} from './typegenTypes.ts';
 import type {
   ActorContext,
   ActorMap,
@@ -41,12 +41,12 @@ import type {
   StateValue,
   TransitionDefinition,
   PersistedMachineState
-} from './types.js';
+} from './types.ts';
 import {
   isSCXMLErrorEvent,
   resolveReferencedActor,
   toSCXMLEvent
-} from './utils.js';
+} from './utils.ts';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';

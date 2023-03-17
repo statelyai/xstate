@@ -12,13 +12,13 @@ import {
   BaseActionObject,
   SCXML,
   AnyState
-} from './types.js';
-import * as actionTypes from './actionTypes.js';
-import { toSCXMLEvent, isArray } from './utils.js';
+} from './types.ts';
+import * as actionTypes from './actionTypes.ts';
+import { toSCXMLEvent, isArray } from './utils.ts';
 import {
   createDynamicAction,
   isDynamicAction
-} from '../actions/dynamicAction.js';
+} from '../actions/dynamicAction.ts';
 export {
   send,
   sendTo,
@@ -26,14 +26,14 @@ export {
   respond,
   forwardTo,
   escalate
-} from './actions/send.js';
+} from './actions/send.ts';
 
-export { stop } from './actions/stop.js';
-export { log } from './actions/log.js';
-export { cancel } from './actions/cancel.js';
-export { assign } from './actions/assign.js';
-export { raise } from './actions/raise.js';
-export { choose } from './actions/choose.js';
+export { stop } from './actions/stop.ts';
+export { log } from './actions/log.ts';
+export { cancel } from './actions/cancel.ts';
+export { assign } from './actions/assign.ts';
+export { raise } from './actions/raise.ts';
+export { choose } from './actions/choose.ts';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });

@@ -13,7 +13,7 @@ import {
   useInterpret,
   useMachine,
   useSelector
-} from '../src/index.js';
+} from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 
 const originalConsoleError = console.error;

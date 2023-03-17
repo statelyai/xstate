@@ -1,4 +1,4 @@
-import { ActionTypes, InvokeActionObject, ActorRef } from './types.js';
+import { ActionTypes, InvokeActionObject, ActorRef } from './types.ts';
 
 export const CapturedState = {
   current: {

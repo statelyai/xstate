@@ -9,7 +9,7 @@ import {
   StateValueFrom,
   ActorBehavior,
   ActorRefFrom
-} from '../src/index.js';
+} from '../src/index.ts';
 import { TypegenMeta } from '../src/typegenTypes';
 
 describe('ContextFrom', () => {

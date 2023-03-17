@@ -7,8 +7,8 @@ import {
   InterpreterOptions,
   StateFrom
 } from 'xstate';
-import { MaybeLazy, Prop } from './types.js';
-import { useInterpret } from './useInterpret.js';
+import { MaybeLazy, Prop } from './types.ts';
+import { useInterpret } from './useInterpret.ts';
 
 type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<

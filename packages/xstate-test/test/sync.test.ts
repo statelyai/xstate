@@ -1,5 +1,5 @@
 import { createMachine } from 'xstate';
-import { createTestModel } from '../src/index.js';
+import { createTestModel } from '../src/index.ts';
 
 const machine = createMachine({
   initial: 'a',

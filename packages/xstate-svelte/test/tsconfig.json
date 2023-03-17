@@ -2,11 +2,8 @@
   "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "types": ["jest"]
-  },
-  "references": [
-    {
-      "path": ".."
-    }
-  ]
+    "types": ["jest"],
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true
+  }
 }
