@@ -1,4 +1,4 @@
-import { AnyState } from '.';
+import { AnyActorBehavior, AnyState } from '.';
 import { errorExecution, errorPlatform } from './actionTypes.js';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.js';
 import { IS_PRODUCTION } from './environment.js';
@@ -503,4 +503,17 @@ export function toObserver<T>(
 
 export function createInvokeId(stateNodeId: string, index: number): string {
   return `${stateNodeId}:invocation[${index}]`;
+}
+
+export function resolveReferencedActor(
+  referenced:
+    | AnyActorBehavior
+    | { src: AnyActorBehavior; input: Mapper<any, any, any> | any }
+    | undefined
+) {
+  return referenced
+    ? 'transition' in referenced
+      ? { src: referenced, input: undefined }
+      : referenced
+    : undefined;
 }

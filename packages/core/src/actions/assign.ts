@@ -57,7 +57,13 @@ export function assign<
         state,
         action,
         _event,
-        spawn: createSpawner(actorContext?.self, state.machine, capturedActions)
+        spawn: createSpawner(
+          actorContext?.self,
+          state.machine,
+          state.context,
+          _event,
+          capturedActions
+        )
       };
 
       let partialUpdate: Partial<TContext> = {};

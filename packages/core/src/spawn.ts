@@ -1,25 +1,40 @@
-import { InvokeActionObject, AnyStateMachine, Spawner, ActorRef } from '.';
+import {
+  InvokeActionObject,
+  AnyStateMachine,
+  Spawner,
+  ActorRef,
+  MachineContext,
+  EventObject,
+  SCXML
+} from '.';
 import { invoke } from './actions/invoke.js';
 import { interpret } from './interpreter.js';
-import { isString } from './utils.js';
+import { isString, resolveReferencedActor } from './utils.js';
 
-export function createSpawner(
+export function createSpawner<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   self: ActorRef<any, any> | undefined,
   machine: AnyStateMachine,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
-  return (src, { id, input } = {}) => {
+  return (src, options = {}) => {
     if (isString(src)) {
-      const behavior = machine.options.actors[src];
+      const referenced = resolveReferencedActor(machine.options.actors[src]);
 
-      if (behavior) {
-        const resolvedName = id ?? 'anon'; // TODO: better name
+      if (referenced) {
+        const resolvedName = options.id ?? 'anon'; // TODO: better name
+        const input = 'input' in options ? options.input : referenced.input;
 
         // TODO: this should also receive `src`
-        const actorRef = interpret(behavior, {
+        const actorRef = interpret(referenced.src, {
           id: resolvedName,
           parent: self,
-          input
+          input:
+            typeof input === 'function' ? input(context, _event.data) : input
         });
 
         mutCapturedActions.push(
@@ -43,9 +58,9 @@ export function createSpawner(
       // TODO: this should also receive `src`
       // TODO: instead of anonymous, it should be a unique stable ID
       const actorRef = interpret(src, {
-        id: id || 'anonymous',
+        id: options.id || 'anonymous',
         parent: self,
-        input
+        input: options.input
       });
 
       mutCapturedActions.push(
@@ -55,7 +70,7 @@ export function createSpawner(
           ref: actorRef,
           id: actorRef.id,
           meta: undefined,
-          input
+          input: options.input
         }) as any as InvokeActionObject
       );
 

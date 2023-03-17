@@ -9,7 +9,7 @@ import {
   InvokeActionObject
 } from '../index.js';
 import { actionTypes, error } from '../actions.js';
-import { warn } from '../utils.js';
+import { resolveReferencedActor, warn } from '../utils.js';
 import { ActorStatus, interpret } from '../interpreter.js';
 import { cloneState } from '../State.js';
 import { IS_PRODUCTION } from '../environment.js';
@@ -31,7 +31,7 @@ export function invoke<
     { type: invokeActionType, params: invokeDef },
     (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
-      const { id, src, input } = invokeDef;
+      const { id, src } = invokeDef;
 
       let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
@@ -43,15 +43,19 @@ export function invoke<
           }
         } as InvokeActionObject;
       } else {
-        const behavior = state.machine.options.actors[src];
+        const referenced = resolveReferencedActor(
+          state.machine.options.actors[src]
+        );
 
-        if (!behavior) {
+        if (!referenced) {
           resolvedInvokeAction = {
             type,
             params: invokeDef
           } as InvokeActionObject;
         } else {
-          const ref = interpret(behavior, {
+          const input =
+            'input' in invokeDef ? invokeDef.input : referenced.input;
+          const ref = interpret(referenced.src, {
             id,
             src,
             parent: actorContext?.self,
