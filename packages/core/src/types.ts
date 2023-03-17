@@ -310,7 +310,7 @@ export interface TransitionConfig<
 > {
   guard?: GuardConfig<TContext, TExpressionEvent>;
   actions?: BaseActions<TContext, TExpressionEvent, TEvent, TAction>;
-  internal?: boolean;
+  external?: boolean;
   target?: TransitionTarget | undefined;
   meta?: Record<string, any>;
   description?: string;
@@ -1431,6 +1431,7 @@ export interface TransitionDefinition<
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: BaseActionObject[];
+  external: boolean;
   guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | '*';
   toJSON: () => {

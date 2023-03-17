@@ -18,8 +18,8 @@ describe('toSCXML', () => {
         encoding: 'utf-8'
       });
 
-      const machine = require(`./fixtures/${testGroupName}/${testName}`)
-        .default;
+      const machine =
+        require(`./fixtures/${testGroupName}/${testName}`).default;
 
       it(`${testGroupName}/${testName}`, () => {
         expect(xml2js(toSCXML(machine))).toEqual(
