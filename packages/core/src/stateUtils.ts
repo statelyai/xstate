@@ -363,17 +363,7 @@ export function formatTransition<
   }
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
-  const internal =
-    stateNode === stateNode.machine.root
-      ? true // always internal for root
-      : 'internal' in transitionConfig
-      ? transitionConfig.internal
-      : normalizedTarget
-      ? normalizedTarget.some(
-          (_target) =>
-            isString(_target) && _target[0] === stateNode.machine.delimiter
-        )
-      : true;
+  const external = transitionConfig.external ?? false;
   const { guards } = stateNode.machine.options;
   const target = resolveTarget(stateNode, normalizedTarget);
 
@@ -394,7 +384,7 @@ export function formatTransition<
       : undefined,
     target,
     source: stateNode,
-    internal,
+    external,
     eventType: transitionConfig.event,
     toJSON: () => ({
       ...transition,
@@ -537,6 +527,7 @@ export function formatInitialTransition<
       source: stateNode,
       actions: [],
       eventType: null as any,
+      external: false,
       target: resolvedTarget!,
       toJSON: () => ({
         ...transition,
@@ -996,7 +987,7 @@ function getTransitionDomain(
   }
 
   if (
-    transition.internal &&
+    !transition.external &&
     transition.source.type === 'compound' &&
     targetStates.every((targetStateNode) =>
       isDescendant(targetStateNode, transition.source)
@@ -1075,6 +1066,7 @@ export function microstep<
           {
             target: [...currentState.configuration].filter(isAtomicStateNode),
             source: machine.root,
+            external: true,
             actions: [],
             eventType: null as any,
             toJSON: null as any // TODO: fix
