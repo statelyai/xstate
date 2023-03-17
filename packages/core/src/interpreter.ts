@@ -230,12 +230,6 @@ export class Interpreter<
   public onTransition(listener: SnapshotListener<TBehavior>): this {
     const observer = toObserver(listener);
     this.observers.add(observer);
-
-    // Send current state to listener
-    if (this.status === ActorStatus.Running) {
-      observer.next?.(this.getSnapshot());
-    }
-
     return this;
   }
 

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActorRefFrom, createMachine, sendTo } from 'xstate';
+import { ActorRefFrom, createMachine, sendTo, StateFrom } from 'xstate';
 import { fireEvent, screen } from '@testing-library/react';
 import { useActor, useInterpret, useMachine } from '../src/index.js';
 import { describeEachReactMode } from './utils';
@@ -12,7 +12,8 @@ afterEach(() => {
 
 describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
   it('observer should be called with initial state', () => {
-    let initialState: any;
+    const spy = jest.fn();
+    const observer = (state: StateFrom<typeof machine>) => spy(state.value);
 
     const machine = createMachine({
       initial: 'inactive',
@@ -27,20 +28,13 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
-
-      React.useEffect(() => {
-        service.subscribe((state) => {
-          initialState ??= state;
-        });
-      }, [service]);
-
+      useInterpret(machine, {}, observer);
       return null;
     };
 
     render(<App />);
 
-    expect(initialState.matches('inactive')).toBeTruthy();
+    expect(spy).toHaveBeenCalledWith('inactive');
   });
 
   it('observer should be called with next state', (done) => {
