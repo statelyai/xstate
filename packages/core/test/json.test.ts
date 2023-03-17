@@ -145,7 +145,7 @@ describe('json', () => {
           "actions": [],
           "event": "done.invoke.active:invocation[0]",
           "eventType": "done.invoke.active:invocation[0]",
-          "external": false,
+          "reenter": false,
           "guard": undefined,
           "source": "#active",
           "target": [
@@ -157,7 +157,7 @@ describe('json', () => {
           "actions": [],
           "event": "error.platform.active:invocation[0]",
           "eventType": "error.platform.active:invocation[0]",
-          "external": false,
+          "reenter": false,
           "guard": undefined,
           "source": "#active",
           "target": [
@@ -169,7 +169,7 @@ describe('json', () => {
           "actions": [],
           "event": "EVENT",
           "eventType": "EVENT",
-          "external": false,
+          "reenter": false,
           "guard": undefined,
           "source": "#active",
           "target": [

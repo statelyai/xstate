@@ -357,7 +357,7 @@ describe('invocations (activities)', () => {
     expect(actual).toEqual(['start 0', 'stop 0', 'start 1']);
   });
 
-  it('should start a new actor when reentering the invoking state during an external self transition', () => {
+  it('should start a new actor when reentering the invoking state during a reentering self transition', () => {
     let counter = 0;
     const actual: string[] = [];
     const machine = createMachine(
@@ -371,7 +371,7 @@ describe('invocations (activities)', () => {
             on: {
               NEXT: {
                 target: 'a',
-                external: true
+                reenter: true
               }
             }
           }

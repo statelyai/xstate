@@ -3220,7 +3220,7 @@ describe('invoke', () => {
     expect(disposed).toBe(true);
   });
 
-  it('root invocations should restart on root external transitions', () => {
+  it('root invocations should restart on root reentering transitions', () => {
     let count = 0;
 
     const machine = createMachine({
@@ -3234,7 +3234,7 @@ describe('invoke', () => {
       on: {
         EVENT: {
           target: '#two',
-          external: true
+          reenter: true
         }
       },
       initial: 'one',

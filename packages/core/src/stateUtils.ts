@@ -363,7 +363,7 @@ export function formatTransition<
   }
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
-  const external = transitionConfig.external ?? false;
+  const reenter = transitionConfig.reenter ?? false;
   const { guards } = stateNode.machine.options;
   const target = resolveTarget(stateNode, normalizedTarget);
 
@@ -384,7 +384,7 @@ export function formatTransition<
       : undefined,
     target,
     source: stateNode,
-    external,
+    reenter,
     eventType: transitionConfig.event,
     toJSON: () => ({
       ...transition,
@@ -527,7 +527,7 @@ export function formatInitialTransition<
       source: stateNode,
       actions: [],
       eventType: null as any,
-      external: false,
+      reenter: false,
       target: resolvedTarget!,
       toJSON: () => ({
         ...transition,
@@ -987,8 +987,7 @@ function getTransitionDomain(
   }
 
   if (
-    !transition.external &&
-    transition.source.type === 'compound' &&
+    !transition.reenter &&
     targetStates.every((targetStateNode) =>
       isDescendant(targetStateNode, transition.source)
     )
@@ -1066,7 +1065,7 @@ export function microstep<
           {
             target: [...currentState.configuration].filter(isAtomicStateNode),
             source: machine.root,
-            external: true,
+            reenter: true,
             actions: [],
             eventType: null as any,
             toJSON: null as any // TODO: fix

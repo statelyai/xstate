@@ -19,14 +19,14 @@ const wordMachine = createMachine({
         RIGHT_CLICK: '.right',
         RIGHT_CLICK_EXTERNAL: {
           target: '.right',
-          external: true
+          reenter: true
         },
         CENTER_CLICK: '.center',
         JUSTIFY_CLICK: '.justify',
         RESET: 'direction', // explicit self-transition
         RESET_TO_CENTER: {
           target: 'direction.center',
-          external: true
+          reenter: true
         }
       }
     }

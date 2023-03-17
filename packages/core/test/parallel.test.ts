@@ -895,7 +895,7 @@ describe('parallel states', () => {
     });
 
     // https://github.com/statelyai/xstate/issues/531
-    it('should calculate the entry set for external transitions in parallel states', () => {
+    it('should calculate the entry set for reentering transitions in parallel states', () => {
       const testMachine = createMachine<{ log: string[] }>({
         id: 'test',
         context: { log: [] },

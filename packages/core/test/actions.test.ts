@@ -548,7 +548,7 @@ describe('entry/exit actions', () => {
       expect(called).toBe(true);
     });
 
-    it('root entry/exit actions should be called on root external transitions', () => {
+    it('root entry/exit actions should be called on root reentering transitions', () => {
       let entrySpy = jest.fn();
       let exitSpy = jest.fn();
 
@@ -559,7 +559,7 @@ describe('entry/exit actions', () => {
         on: {
           EVENT: {
             target: '#two',
-            external: true
+            reenter: true
           }
         },
         initial: 'one',
@@ -781,7 +781,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should enter all descendents when target is a descendent of the source when using an external transition', () => {
+    it('should enter all descendents when target is a descendent of the source when using an reentering transition', () => {
       const machine = createMachine({
         initial: 'A',
         states: {
@@ -789,7 +789,7 @@ describe('entry/exit actions', () => {
             initial: 'A1',
             on: {
               NEXT: {
-                external: true,
+                reenter: true,
                 target: '.A2'
               }
             },

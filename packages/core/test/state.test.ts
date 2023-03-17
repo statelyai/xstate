@@ -29,7 +29,7 @@ const exampleMachine = createMachine<any, Events>({
       on: {
         EXTERNAL: {
           target: 'one',
-          external: true
+          reenter: true
         },
         INERT: {},
         INTERNAL: {
@@ -110,7 +110,7 @@ describe('State', () => {
       expect(exampleMachine.initialState.changed).not.toBeDefined();
     });
 
-    it('states from external transitions with entry actions should be changed', () => {
+    it('states from reentering transitions with entry actions should be changed', () => {
       const changedState = exampleMachine.transition(
         exampleMachine.initialState,
         { type: 'EXTERNAL' }
@@ -673,7 +673,7 @@ describe('State', () => {
       expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
     });
 
-    it('should return true for an external self-transition without actions', () => {
+    it('should return true for a reentering self-transition without actions', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -688,7 +688,7 @@ describe('State', () => {
       expect(machine.initialState.can({ type: 'EV' })).toBe(true);
     });
 
-    it('should return true for an external self-transition with reentry action', () => {
+    it('should return true for a reentering self-transition with reentry action', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -704,7 +704,7 @@ describe('State', () => {
       expect(machine.initialState.can({ type: 'EV' })).toBe(true);
     });
 
-    it('should return true for an external self-transition with transition action', () => {
+    it('should return true for a reentering self-transition with transition action', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
