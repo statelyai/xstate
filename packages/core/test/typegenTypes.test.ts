@@ -153,15 +153,15 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: (_ctx, event) =>
-            fromPromise(() => {
-              event.type === 'FOO';
-              event.type === 'BAR';
-              // @ts-expect-error
-              event.type === 'BAZ';
+          // TODO: add test for input?
+          myActor: fromPromise(({ input }) => {
+            input.type === 'FOO';
+            input.type === 'BAR';
+            // @x-ts-expect-error TODO: strongly type inputs for promise
+            input.type === 'BAZ';
 
-              return Promise.resolve(42);
-            })
+            return Promise.resolve(42);
+          })
         }
       }
     );
@@ -801,7 +801,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: (_ctx) => createMachine<{ foo: string }>({})
+          myActor: createMachine<{ foo: string }>({})
         }
       }
     );
@@ -886,7 +886,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: () => createMachine({})
+          fooActor: createMachine({})
         }
       }
     );
@@ -937,14 +937,13 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: () =>
-            fromCallback((_send, onReceive) => {
-              onReceive((event) => {
-                ((_accept: string) => {})(event.type);
-                // @x-ts-expect-error TODO: determine how to get parent event type here
-                event.unknown;
-              });
-            })
+          fooActor: fromCallback((_send, onReceive) => {
+            onReceive((event) => {
+              ((_accept: string) => {})(event.type);
+              // @x-ts-expect-error TODO: determine how to get parent event type here
+              event.unknown;
+            });
+          })
         }
       }
     );
@@ -966,12 +965,11 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: () =>
-            fromCallback((_send, onReceive) => {
-              onReceive((_event: { type: 'TEST' }) => {});
-              // @ts-expect-error
-              onReceive((_event: { type: number }) => {});
-            })
+          fooActor: fromCallback((_send, onReceive) => {
+            onReceive((_event: { type: 'TEST' }) => {});
+            // @ts-expect-error
+            onReceive((_event: { type: number }) => {});
+          })
         }
       }
     );

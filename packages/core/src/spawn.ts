@@ -1,15 +1,15 @@
 import {
-  MachineContext,
-  EventObject,
-  SCXML,
   InvokeActionObject,
   AnyStateMachine,
   Spawner,
-  ActorRef
+  ActorRef,
+  MachineContext,
+  EventObject,
+  SCXML
 } from '.';
 import { invoke } from './actions/invoke.js';
 import { interpret } from './interpreter.js';
-import { isString } from './utils.js';
+import { isString, resolveReferencedActor } from './utils.js';
 
 export function createSpawner<
   TContext extends MachineContext,
@@ -21,26 +21,20 @@ export function createSpawner<
   _event: SCXML.Event<TEvent>,
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
-  return (behavior, name) => {
-    if (isString(behavior)) {
-      const behaviorCreator = machine.options.actors[behavior];
+  return (src, options = {}) => {
+    if (isString(src)) {
+      const referenced = resolveReferencedActor(machine.options.actors[src]);
 
-      if (behaviorCreator) {
-        const resolvedName = name ?? 'anon'; // TODO: better name
-        const createdBehavior =
-          typeof behaviorCreator === 'function'
-            ? behaviorCreator(context, _event.data, {
-                id: resolvedName,
-                src: { type: behavior },
-                _event,
-                meta: undefined
-              })
-            : behaviorCreator;
+      if (referenced) {
+        const resolvedName = options.id ?? 'anon'; // TODO: better name
+        const input = 'input' in options ? options.input : referenced.input;
 
         // TODO: this should also receive `src`
-        const actorRef = interpret(createdBehavior, {
+        const actorRef = interpret(referenced.src, {
           id: resolvedName,
-          parent: self
+          parent: self,
+          input:
+            typeof input === 'function' ? input(context, _event.data) : input
         });
 
         mutCapturedActions.push(
@@ -49,7 +43,8 @@ export function createSpawner<
             // @ts-ignore TODO: fix types
             src: actorRef, // TODO
             ref: actorRef,
-            meta: undefined
+            meta: undefined,
+            input
           }) as any as InvokeActionObject
         );
 
@@ -57,13 +52,15 @@ export function createSpawner<
       }
 
       throw new Error(
-        `Behavior '${behavior}' not implemented in machine '${machine.id}'`
+        `Behavior '${src}' not implemented in machine '${machine.id}'`
       );
     } else {
       // TODO: this should also receive `src`
-      const actorRef = interpret(behavior, {
-        id: name || 'anonymous',
-        parent: self
+      // TODO: instead of anonymous, it should be a unique stable ID
+      const actorRef = interpret(src, {
+        id: options.id || 'anonymous',
+        parent: self,
+        input: options.input
       });
 
       mutCapturedActions.push(
@@ -72,7 +69,8 @@ export function createSpawner<
           src: actorRef,
           ref: actorRef,
           id: actorRef.id,
-          meta: undefined
+          meta: undefined,
+          input: options.input
         }) as any as InvokeActionObject
       );
 

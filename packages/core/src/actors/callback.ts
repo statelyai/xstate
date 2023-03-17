@@ -18,14 +18,15 @@ export interface CallbackInternalState {
   canceled: boolean;
   receivers: Set<(e: EventObject) => void>;
   dispose: void | (() => void) | Promise<any>;
+  input?: any;
 }
 
 export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): ActorBehavior<TEvent, undefined> {
   const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
-    start: (_state, actorCtx) => {
-      actorCtx.self.send({ type: startSignalType } as TEvent);
+    start: (_state, { self }) => {
+      self.send({ type: startSignalType } as TEvent);
     },
     transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);
@@ -43,7 +44,9 @@ export function fromCallback<TEvent extends EventObject>(
           state.receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback(sender, receiver);
+        state.dispose = invokeCallback(sender, receiver, {
+          input: state.input
+        });
 
         if (isPromiseLike(state.dispose)) {
           state.dispose.then(
@@ -95,14 +98,16 @@ export function fromCallback<TEvent extends EventObject>(
 
       return state;
     },
-    getInitialState: () => {
+    getInitialState: (_, input) => {
       return {
         canceled: false,
         receivers: new Set(),
-        dispose: undefined
+        dispose: undefined,
+        input
       };
     },
-    getSnapshot: () => undefined
+    getSnapshot: () => undefined,
+    getPersistedState: ({ input }) => input
   };
 
   return behavior;

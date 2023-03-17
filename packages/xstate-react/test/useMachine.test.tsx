@@ -162,6 +162,34 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
+  it('should accept input and provide it to the context factory', () => {
+    const testMachine = createMachine<{ foo: string; test: boolean }>({
+      context: ({ input }) => ({
+        foo: 'bar',
+        test: input.test ?? false
+      }),
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    const Test = () => {
+      const [state] = useMachine(testMachine, {
+        input: { test: true }
+      });
+
+      expect(state.context).toEqual({
+        foo: 'bar',
+        test: true
+      });
+
+      return null;
+    };
+
+    render(<Test />);
+  });
+
   it('should not spawn actors until service is started', async () => {
     const spawnMachine = createMachine<{ ref?: ActorRef<any> }>({
       id: 'spawn',
@@ -175,7 +203,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
                 fromPromise(() => {
                   return new Promise((res) => res(42));
                 }),
-                'my-promise'
+                { id: 'my-promise' }
               )
           }),
           on: {
@@ -596,11 +624,10 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       },
       {
         actors: {
-          foo: () =>
-            fromPromise(() => {
-              serviceCalled = true;
-              return Promise.resolve();
-            })
+          foo: fromPromise(() => {
+            serviceCalled = true;
+            return Promise.resolve();
+          })
         }
       }
     );
@@ -715,13 +742,12 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const machine = createMachine({
       initial: 'active',
       invoke: {
-        src: () =>
-          fromCallback(() => {
-            activatedCount++;
-            return () => {
-              /* empty */
-            };
-          })
+        src: fromCallback(() => {
+          activatedCount++;
+          return () => {
+            /* empty */
+          };
+        })
       },
       states: {
         active: {}
@@ -778,9 +804,14 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
+      schema: {
+        context: {} as { value: number }
+      },
       initial: 'intitial',
-      context: {
-        value: 100
+      context: ({ input }) => {
+        return {
+          value: input.value
+        };
       },
       states: {
         intitial: {}
@@ -793,7 +824,8 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
         active: {
           invoke: {
             id: 'test',
-            src: childMachine.withContext({ value: 42 })
+            src: childMachine,
+            input: { value: 42 }
           }
         }
       }

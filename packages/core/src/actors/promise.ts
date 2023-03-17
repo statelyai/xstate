@@ -1,4 +1,4 @@
-import { Lazy, ActorBehavior } from '../types';
+import { ActorBehavior } from '../types';
 import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
 
@@ -6,10 +6,12 @@ export interface PromiseInternalState<T> {
   status: 'active' | 'error' | 'done';
   canceled: boolean;
   data: T | undefined;
+  input?: any;
 }
 
 export function fromPromise<T>(
-  lazyPromise: Lazy<PromiseLike<T>>
+  // TODO: add types
+  promiseCreator: ({ input }: { input: any }) => PromiseLike<T>
 ): ActorBehavior<{ type: string }, T | undefined, PromiseInternalState<T>> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
@@ -41,13 +43,16 @@ export function fromPromise<T>(
         case resolveEventType:
           state.status = 'done';
           state.data = eventObject.data;
+          delete state.input;
           return state;
         case rejectEventType:
           state.status = 'error';
           state.data = eventObject.data;
+          delete state.input;
           return state;
         case stopSignalType:
           state.canceled = true;
+          delete state.input;
           return state;
         default:
           return state;
@@ -60,7 +65,9 @@ export function fromPromise<T>(
         return;
       }
 
-      const resolvedPromise = Promise.resolve(lazyPromise());
+      const resolvedPromise = Promise.resolve(
+        promiseCreator({ input: state.input })
+      );
 
       resolvedPromise.then(
         (response) => {
@@ -71,11 +78,12 @@ export function fromPromise<T>(
         }
       );
     },
-    getInitialState: () => {
+    getInitialState: (_, input) => {
       return {
         canceled: false,
         status: 'active',
-        data: undefined
+        data: undefined,
+        input
       };
     },
     getSnapshot: (state) => state.data,

@@ -151,10 +151,10 @@ describe('predictableExec', () => {
         },
         c: {
           invoke: {
-            src: (_ctx, ev) => {
-              eventArg = ev;
-              return fromCallback(() => {});
-            }
+            src: fromCallback((_sendBack, _receive, { input }) => {
+              eventArg = input.event;
+            }),
+            input: (_, event) => ({ event })
           }
         }
       }
@@ -267,7 +267,7 @@ describe('predictableExec', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            'callback-1'
+            { id: 'callback-1' }
           )
         };
       },
@@ -329,7 +329,7 @@ describe('predictableExec', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            'my_name'
+            { id: 'my_name' }
           )
         };
       },
@@ -389,7 +389,7 @@ describe('predictableExec', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            'my_name'
+            { id: 'my_name' }
           )
         };
       },
@@ -449,7 +449,7 @@ describe('predictableExec', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            'my_name'
+            { id: 'my_name' }
           )
         };
       },
@@ -504,15 +504,13 @@ describe('predictableExec', () => {
         },
         active: {
           invoke: {
-            src: () => {
-              return fromCallback(() => {
-                const localId = ++invokeCounter;
-                actual.push(`start ${localId}`);
-                return () => {
-                  actual.push(`stop ${localId}`);
-                };
-              });
-            }
+            src: fromCallback(() => {
+              const localId = ++invokeCounter;
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            })
           },
           on: {
             REENTER: {
@@ -677,9 +675,12 @@ describe('predictableExec', () => {
         b: {
           entry: assign({ updated: true }),
           invoke: {
-            src: (ctx) => {
-              expect(ctx.updated).toBe(true);
-              return fromPromise(() => Promise.resolve());
+            src: fromPromise(({ input }) => {
+              expect(input.updated).toBe(true);
+              return Promise.resolve();
+            }),
+            input: {
+              updated: (ctx) => ctx.updated
             }
           }
         }
@@ -705,16 +706,15 @@ describe('predictableExec', () => {
           }
         },
         b: {
-          entry: send({ type: 'KNOCK_KNOCK' }, { to: 'myChild' }),
+          entry: sendTo('myChild', { type: 'KNOCK_KNOCK' }),
           invoke: {
             id: 'myChild',
-            src: () =>
-              fromCallback((_sendBack, onReceive) => {
-                onReceive((event) => {
-                  received = event;
-                });
-                return () => {};
-              })
+            src: fromCallback((_sendBack, onReceive) => {
+              onReceive((event) => {
+                received = event;
+              });
+              return () => {};
+            })
           }
         }
       }
