@@ -308,7 +308,7 @@ describe('input', () => {
       {
         invoke: {
           src: 'child',
-          input: 69
+          input: 100
         }
       },
       {
@@ -328,7 +328,7 @@ describe('input', () => {
 
     interpret(machine).start();
 
-    expect(spy).toHaveBeenCalledWith(69);
+    expect(spy).toHaveBeenCalledWith(100);
   });
 
   it('should prioritize inline input over the one defined with referenced actor when spawning', () => {
@@ -337,7 +337,7 @@ describe('input', () => {
     const machine = createMachine(
       {
         entry: assign((_ctx, _ev, { spawn }) => ({
-          childRef: spawn('child', { input: 69 })
+          childRef: spawn('child', { input: 100 })
         }))
       },
       {
@@ -357,6 +357,6 @@ describe('input', () => {
 
     interpret(machine).start();
 
-    expect(spy).toHaveBeenCalledWith(69);
+    expect(spy).toHaveBeenCalledWith(100);
   });
 });
