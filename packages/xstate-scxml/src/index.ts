@@ -71,7 +71,7 @@ export function transitionToSCXML(
       target: (transition.target || [])
         .map((stateNode) => stateNode.id)
         .join(' '),
-      type: !transition.external ? 'internal' : undefined
+      type: !transition.reenter ? 'internal' : undefined
     }),
     elements: elements.length ? elements : undefined
   };
