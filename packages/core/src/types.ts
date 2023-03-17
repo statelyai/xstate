@@ -403,7 +403,7 @@ export interface InvokeDefinition<
    */
   autoForward?: boolean;
 
-  input?: Mapper<TContext, TEvent, any>;
+  input?: Mapper<TContext, TEvent, any> | any;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
