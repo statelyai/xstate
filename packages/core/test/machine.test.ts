@@ -148,7 +148,7 @@ describe('machine', () => {
         guards: { someCondition: () => true }
       });
 
-      expect(differentMachine.context).toEqual({ foo: 'bar' });
+      expect(differentMachine.getContext()).toEqual({ foo: 'bar' });
 
       const service = interpret(differentMachine);
 
@@ -165,7 +165,7 @@ describe('machine', () => {
       const differentMachine = configMachine.provide({});
 
       expect(differentMachine.initialState.context).toEqual(
-        configMachine.context
+        configMachine.getContext()
       );
     });
 
@@ -202,74 +202,19 @@ describe('machine', () => {
       expect(machine.initialState.context).toEqual({});
     });
 
-    it('should allow for lazy context to be used with `provide`', () => {
-      const machine = createMachine({
-        context: { foo: { prop: 'bar' } }
-      });
-      const copiedMachine = machine.provide({
-        context: () => ({
-          foo: { prop: 'baz' }
-        })
-      });
-      expect(copiedMachine.initialState.context).toEqual({
-        foo: { prop: 'baz' }
-      });
-    });
-
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
-      const machine = createMachine({
-        context: { foo: { prop: 'bar' } }
-      });
-
-      const copiedMachine = machine.provide({
+      const machine = createMachine<{ foo: { prop: string } }>({
         context: () => ({
           foo: { prop: 'baz' }
         })
       });
+
+      const copiedMachine = machine.provide({});
 
       const a = interpret(copiedMachine).start();
       const b = interpret(copiedMachine).start();
 
       expect(a.getSnapshot().context.foo).not.toBe(b.getSnapshot().context.foo);
-    });
-  });
-
-  describe('machine.withContext', () => {
-    it('should partially override context', () => {
-      const fooBarMachine = createMachine({
-        initial: 'active',
-        context: {
-          foo: 1,
-          bar: 2
-        },
-        states: {
-          active: {}
-        }
-      });
-
-      const changedBarMachine = fooBarMachine.withContext({
-        bar: 42
-      });
-
-      expect(changedBarMachine.initialState.context).toEqual({
-        foo: 1,
-        bar: 42
-      });
-    });
-
-    it('should override undefined context', () => {
-      const fooBarMachine = createMachine({
-        initial: 'active',
-        states: {
-          active: {}
-        }
-      });
-
-      const changedBarMachine = fooBarMachine.withContext({
-        bar: 42
-      });
-
-      expect(changedBarMachine.initialState.context).toEqual({ bar: 42 });
     });
   });
 

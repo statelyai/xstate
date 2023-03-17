@@ -1,15 +1,13 @@
-import { AnyState } from '.';
+import { AnyActorBehavior, AnyState } from '.';
 import { errorExecution, errorPlatform } from './actionTypes.js';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.js';
 import { IS_PRODUCTION } from './environment.js';
 import type { StateNode } from './StateNode.js';
 import type {
   ActorBehavior,
-  ActorBehaviorCreator,
   EventObject,
   EventType,
   InvokeConfig,
-  InvokeSourceDefinition,
   MachineContext,
   Mapper,
   Observer,
@@ -463,11 +461,7 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable:
-    | InvokeConfig<TContext, TEvent>
-    | string
-    | ActorBehaviorCreator<TContext, TEvent>
-    | ActorBehavior<any, any>,
+  invocable: InvokeConfig<TContext, TEvent> | string | ActorBehavior<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object') {
@@ -487,16 +481,6 @@ export function toInvokeConfig<
     id,
     src: invocable
   };
-}
-
-export function toInvokeSource(
-  src: string | InvokeSourceDefinition
-): InvokeSourceDefinition {
-  if (typeof src === 'string') {
-    return { type: src };
-  }
-
-  return src;
 }
 
 export function toObserver<T>(
@@ -519,4 +503,17 @@ export function toObserver<T>(
 
 export function createInvokeId(stateNodeId: string, index: number): string {
   return `${stateNodeId}:invocation[${index}]`;
+}
+
+export function resolveReferencedActor(
+  referenced:
+    | AnyActorBehavior
+    | { src: AnyActorBehavior; input: Mapper<any, any, any> | any }
+    | undefined
+) {
+  return referenced
+    ? 'transition' in referenced
+      ? { src: referenced, input: undefined }
+      : referenced
+    : undefined;
 }
