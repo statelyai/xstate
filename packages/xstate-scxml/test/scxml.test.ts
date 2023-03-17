@@ -85,8 +85,8 @@ describe('scxml', () => {
 
   testGroupKeys.forEach((testGroupName) => {
     testGroups[testGroupName].forEach((testName) => {
-      const originalMachine = require(`./fixtures/${testGroupName}/${testName}`)
-        .default;
+      const originalMachine =
+        require(`./fixtures/${testGroupName}/${testName}`).default;
       const scxmlDefinition = toSCXML(originalMachine);
 
       const scxmlTest = JSON.parse(
@@ -209,8 +209,7 @@ const lightMachine = createMachine({
       on: {
         TIMER: 'green',
         POWER_OUTAGE: {
-          target: 'red',
-          internal: true
+          target: 'red'
         }
       },
       ...pedestrianStates
@@ -238,7 +237,6 @@ xdescribe('transition to SCXML', () => {
           on: {
             SOME_EVENT: {
               target: 'next',
-              internal: true,
               guard: () => true,
               actions: ['foo', 'bar']
             }
