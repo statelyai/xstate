@@ -97,7 +97,7 @@ export class StateMachine<
             spawn: createSpawner(
               actorCtx?.self,
               this,
-              undefined as any, // TODO: this requires `| undefined` for all referenced inputs that are spawnable in the context factory,
+              undefined as any, // TODO: this requires `| undefined` for all referenced dynamic inputs that are spawnable in the context factory,
               createInitEvent(input),
               actions
             ),
