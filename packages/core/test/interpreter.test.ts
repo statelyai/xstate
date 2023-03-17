@@ -530,11 +530,10 @@ describe('interpreter', () => {
       },
       {
         actors: {
-          myActivity: () =>
-            fromCallback(() => {
-              activityState = 'on';
-              return () => (activityState = 'off');
-            })
+          myActivity: fromCallback(() => {
+            activityState = 'on';
+            return () => (activityState = 'off');
+          })
         }
       }
     );
@@ -578,11 +577,10 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            myActivity: () =>
-              fromCallback(() => {
-                stopActivityState = 'on';
-                return () => (stopActivityState = 'off');
-              })
+            myActivity: fromCallback(() => {
+              stopActivityState = 'on';
+              return () => (stopActivityState = 'off');
+            })
           }
         }
       );
@@ -620,14 +618,13 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            blink: () =>
-              fromCallback(() => {
-                activityActive = true;
+            blink: fromCallback(() => {
+              activityActive = true;
 
-                return () => {
-                  activityActive = false;
-                };
-              })
+              return () => {
+                activityActive = false;
+              };
+            })
           }
         }
       );
@@ -1038,9 +1035,9 @@ describe('interpreter', () => {
       const childMachine = createMachine({
         id: 'child',
         initial: 'start',
-        context: {
-          password: 'unknown'
-        },
+        context: ({ input }) => ({
+          password: input.password
+        }),
         states: {
           start: {
             entry: sendParent((ctx) => {
@@ -1060,7 +1057,8 @@ describe('interpreter', () => {
           start: {
             invoke: {
               id: 'child',
-              src: childMachine.withContext({ password: 'foo' })
+              src: childMachine,
+              input: { password: 'foo' }
             },
             on: {
               NEXT: {
@@ -1585,10 +1583,9 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            testService: () =>
-              fromCallback(() => {
-                // nothing
-              })
+            testService: fromCallback(() => {
+              // nothing
+            })
           }
         }
       );
@@ -1756,7 +1753,8 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: (_, __, { spawn }) => spawn(childMachine, 'child')
+          firstNameRef: (_, __, { spawn }) =>
+            spawn(childMachine, { id: 'child' })
         }),
         states: {
           idle: {}
@@ -1788,7 +1786,8 @@ describe('interpreter', () => {
           observableRef: ActorRef<any, any>;
         },
         entry: assign({
-          machineRef: (_, __, { spawn }) => spawn(childMachine, 'machineChild'),
+          machineRef: (_, __, { spawn }) =>
+            spawn(childMachine, { id: 'machineChild' }),
           promiseRef: (_, __, { spawn }) =>
             spawn(
               fromPromise(
@@ -1797,12 +1796,12 @@ describe('interpreter', () => {
                     // ...
                   })
               ),
-              'promiseChild'
+              { id: 'promiseChild' }
             ),
           observableRef: (_, __, { spawn }) =>
             spawn(
               fromObservable(() => interval(1000)),
-              'observableChild'
+              { id: 'observableChild' }
             )
         }),
         states: {
