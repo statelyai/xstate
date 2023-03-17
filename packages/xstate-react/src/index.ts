@@ -1,6 +1,7 @@
-export { useMachine } from './useMachine';
-export { useActor } from './useActor';
-export { useInterpret } from './useInterpret';
-export { useSelector } from './useSelector';
-export { useSpawn } from './useSpawn';
-export { shallowEqual } from './shallowEqual';
+export { useMachine } from './useMachine.js';
+export { useActor } from './useActor.js';
+export { useInterpret } from './useInterpret.js';
+export { useSelector } from './useSelector.js';
+export { useSpawn } from './useSpawn.js';
+export { shallowEqual } from './shallowEqual.js';
+export { createActorContext } from './createActorContext.js';

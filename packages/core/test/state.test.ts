@@ -2,7 +2,7 @@ import { createMachine, interpret } from '../src/index';
 import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { toSCXMLEvent } from '../src/utils';
-import { fromCallback } from '../src/actors';
+import { fromCallback } from '../src/actors/callback';
 
 type Events =
   | { type: 'BAR_EVENT' }

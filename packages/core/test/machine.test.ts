@@ -414,14 +414,32 @@ describe('machine', () => {
 
       const nextState = machine.transition(undefined, { type: 'NEXT' });
 
-      const persistedState = JSON.stringify(nextState);
+      const persistedState = machine.getPersistedState(nextState);
 
-      const service = interpret(machine).onDone(() => {
-        // Should reach done state immediately
-        done();
+      const service = interpret(machine, { state: persistedState }).onDone(
+        () => {
+          // Should reach done state immediately
+          done();
+        }
+      );
+
+      service.start();
+    });
+  });
+
+  describe('machine.getInitialState', () => {
+    it('should follow always transition', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            always: [{ target: 'b' }]
+          },
+          b: {}
+        }
       });
 
-      service.start(JSON.parse(persistedState!));
+      expect(machine.getInitialState().value).toBe('b');
     });
   });
 

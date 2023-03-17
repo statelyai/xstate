@@ -6,13 +6,14 @@ import type {
   AssignActionObject,
   DynamicAssignAction,
   AssignMeta,
-  InvokeActionObject
-} from '../types';
-import * as actionTypes from '../actionTypes';
-import { createDynamicAction } from '../../actions/dynamicAction';
-import { isFunction } from '../utils';
-import { createSpawner } from '../spawn';
-import { cloneState } from '../State';
+  InvokeActionObject,
+  LowInfer
+} from '../types.js';
+import * as actionTypes from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
+import { isFunction } from '../utils.js';
+import { createSpawner } from '../spawn.js';
+import { cloneState } from '../State.js';
 
 /**
  * Updates the current context of the machine.
@@ -21,19 +22,20 @@ import { cloneState } from '../State';
  */
 export function assign<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TAssignment extends
-    | Assigner<TContext, TEvent>
-    | PropertyAssigner<TContext, TEvent> =
-    | Assigner<TContext, TEvent>
-    | PropertyAssigner<TContext, TEvent>
->(assignment: TAssignment): DynamicAssignAction<TContext, TEvent> {
+  TExpressionEvent extends EventObject = EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
+  assignment:
+    | Assigner<LowInfer<TContext>, TExpressionEvent, TEvent>
+    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent, TEvent>
+): DynamicAssignAction<TContext, TExpressionEvent, TEvent> {
   return createDynamicAction<
     TContext,
+    TExpressionEvent,
     TEvent,
     AssignActionObject<TContext>,
     {
-      assignment: TAssignment;
+      assignment: typeof assignment;
     }
   >(
     {
@@ -42,7 +44,7 @@ export function assign<
         assignment
       }
     },
-    (_event, { state, action }) => {
+    (_event, { state, action, actorContext }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!state.context) {
@@ -51,11 +53,12 @@ export function assign<
         );
       }
 
-      const meta: AssignMeta<TContext, TEvent> = {
+      const meta: AssignMeta<TContext, TExpressionEvent, TEvent> = {
         state,
         action,
         _event,
         spawn: createSpawner(
+          actorContext?.self,
           state.machine,
           state.context,
           _event,

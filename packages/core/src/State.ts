@@ -1,9 +1,13 @@
-import { initEvent } from './actions';
-import { IS_PRODUCTION } from './environment';
-import { memo } from './memo';
-import type { StateNode } from './StateNode';
-import { getConfiguration, getStateNodes, getStateValue } from './stateUtils';
-import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
+import { initEvent } from './actions.js';
+import { IS_PRODUCTION } from './environment.js';
+import { memo } from './memo.js';
+import type { StateNode } from './StateNode.js';
+import {
+  getConfiguration,
+  getStateNodes,
+  getStateValue
+} from './stateUtils.js';
+import { TypegenDisabled, TypegenEnabled } from './typegenTypes.js';
 import type {
   ActorRef,
   AnyState,
@@ -12,13 +16,20 @@ import type {
   EventObject,
   HistoryValue,
   MachineContext,
+  PersistedMachineState,
   Prop,
   SCXML,
   StateConfig,
   StateValue,
   TransitionDefinition
-} from './types';
-import { flatten, isString, matchesState, toSCXMLEvent, warn } from './utils';
+} from './types.js';
+import {
+  flatten,
+  isString,
+  matchesState,
+  toSCXMLEvent,
+  warn
+} from './utils.js';
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -40,6 +51,8 @@ export class State<
   TEvent extends EventObject = EventObject,
   TResolvedTypesMeta = TypegenDisabled
 > {
+  public tags: Set<string>;
+
   public value: StateValue;
   /**
    * Indicates whether the state is a final state.
@@ -112,7 +125,7 @@ export class State<
       return stateValue;
     }
 
-    const _event = initEvent as SCXML.Event<TEvent>;
+    const _event = initEvent as SCXML.Event<TEvent>; // TODO: fix
 
     const configuration = getConfiguration(
       getStateNodes(machine.root, stateValue)
@@ -155,10 +168,11 @@ export class State<
     this.configuration =
       config.configuration ??
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
-    this.transitions = config.transitions;
+    this.transitions = config.transitions as any;
     this.children = config.children;
 
     this.value = getStateValue(machine.root, this.configuration);
+    this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
     this.done = config.done ?? false;
     this.output = config.output;
   }
@@ -263,10 +277,6 @@ export class State<
       return acc;
     }, {} as Record<string, any>);
   }
-
-  public get tags(): Set<string> {
-    return new Set(flatten(this.configuration.map((sn) => sn.tags)));
-  }
 }
 
 export function cloneState<TState extends AnyState>(
@@ -277,4 +287,25 @@ export function cloneState<TState extends AnyState>(
     { ...state, ...config } as StateConfig<any, any>,
     state.machine
   ) as TState;
+}
+
+export function getPersistedState<TState extends AnyState>(
+  state: TState
+): PersistedMachineState<TState> {
+  const { configuration, transitions, tags, machine, children, ...jsonValues } =
+    state;
+
+  const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
+
+  for (const id in children) {
+    childrenJson[id] = {
+      state: children[id].getPersistedState?.(),
+      src: children[id].src
+    };
+  }
+
+  return {
+    ...jsonValues,
+    children: childrenJson
+  } as PersistedMachineState<TState>;
 }

@@ -10,10 +10,6 @@
       "module": "./dist/xstate.esm.js",
       "default": "./dist/xstate.cjs.js"
     },
-    "./actors": {
-      "module": "./actors/dist/xstate-actors.esm.js",
-      "default": "./actors/dist/xstate-actors.cjs.js"
-    },
     "./guards": {
       "module": "./guards/dist/xstate-guards.esm.js",
       "default": "./guards/dist/xstate-guards.cjs.js"
@@ -25,6 +21,10 @@
     "./dev": {
       "module": "./dev/dist/xstate-dev.esm.js",
       "default": "./dev/dist/xstate-dev.cjs.js"
+    },
+    "./actors": {
+      "module": "./actors/dist/xstate-actors.esm.js",
+      "default": "./actors/dist/xstate-actors.cjs.js"
     },
     "./package.json": "./package.json"
   },
@@ -39,8 +39,7 @@
     "actions",
     "invoke",
     "guards",
-    "dev",
-    "model"
+    "dev"
   ],
   "keywords": [
     "statechart",
@@ -67,7 +66,7 @@
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "pkg-up": "^3.1.0",
-    "rxjs": "^7.1.0",
+    "rxjs": "^7.8.0",
     "xml-js": "^1.6.11"
   },
   "preconstruct": {
@@ -75,7 +74,7 @@
     "entrypoints": [
       "./index.ts",
       "./actions.ts",
-      "./actors.ts",
+      "./actors/index.ts",
       "./guards.ts",
       "./dev/index.ts"
     ]

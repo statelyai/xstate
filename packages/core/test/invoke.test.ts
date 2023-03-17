@@ -7,25 +7,23 @@ import {
   StateValue,
   createMachine,
   ActorContext,
-  Behavior,
+  ActorBehavior,
   SpecialTargets,
   toSCXMLEvent
-} from '../src';
-import {
-  fromCallback,
-  fromEventObservable,
-  fromObservable,
-  fromPromise,
-  fromReducer
-} from '../src/actors';
+} from '../src/index.js';
+import { fromReducer } from '../src/actors/index.js';
+import { fromObservable, fromEventObservable } from '../src/actors/index.js';
+import { fromPromise } from '../src/actors/index.js';
+import { fromCallback } from '../src/actors/index.js';
 import {
   actionTypes,
   done as _done,
   doneInvoke,
   escalate,
-  forwardTo
-} from '../src/actions';
-import { raise } from '../src/actions/raise';
+  forwardTo,
+  sendTo,
+  raise
+} from '../src/actions.js';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
@@ -608,7 +606,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
+            entry: sendTo('foo-child', { type: 'NEXT' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -641,7 +639,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
+            entry: sendTo('foo-child', { type: 'NEXT' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -667,7 +665,7 @@ describe('invoke', () => {
               id: 'foo-child',
               src: subMachine
             },
-            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
+            entry: sendTo('foo-child', { type: 'NEXT' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -707,7 +705,7 @@ describe('invoke', () => {
               src: doneSubMachine,
               onDone: 'two'
             },
-            entry: send({ type: 'NEXT' }, { to: 'foo-child' })
+            entry: sendTo('foo-child', { type: 'NEXT' })
           },
           two: {
             on: { NEXT: 'three' }
@@ -813,6 +811,34 @@ describe('invoke', () => {
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
       done();
+    });
+
+    it('should stop a child actor when reaching a final state', () => {
+      let actorStopped = false;
+
+      const machine = createMachine({
+        id: 'machine',
+        invoke: {
+          src: () => fromCallback(() => () => (actorStopped = true))
+        },
+        initial: 'running',
+        states: {
+          running: {
+            on: {
+              finished: 'complete'
+            }
+          },
+          complete: { type: 'final' }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      service.send({
+        type: 'finished'
+      });
+
+      expect(actorStopped).toBe(true);
     });
 
     it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
@@ -1708,7 +1734,7 @@ describe('invoke', () => {
                 });
               })
             },
-            entry: send({ type: 'PING' }, { to: 'child' }),
+            entry: sendTo('child', { type: 'PING' }),
             on: {
               PONG: 'done'
             }
@@ -1960,7 +1986,7 @@ describe('invoke', () => {
             },
             on: {
               STOPCHILD: {
-                actions: send({ type: 'STOP' }, { to: 'invoked.child' })
+                actions: sendTo('invoked.child', { type: 'STOP' })
               }
             }
           },
@@ -2271,7 +2297,7 @@ describe('invoke', () => {
 
   describe('with behaviors', () => {
     it('should work with a behavior', (done) => {
-      const countBehavior: Behavior<EventObject, number> = {
+      const countBehavior: ActorBehavior<EventObject, number> = {
         transition: (count, event) => {
           // TODO: all behaviors receive SCXML.Event objects,
           // make sure this is clear in the docs
@@ -2311,7 +2337,7 @@ describe('invoke', () => {
     });
 
     it('behaviors should have reference to the parent', (done) => {
-      const pongBehavior: Behavior<EventObject, undefined> = {
+      const pongBehavior: ActorBehavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           const _event = toSCXMLEvent(event);
 
@@ -2328,7 +2354,7 @@ describe('invoke', () => {
         initial: 'waiting',
         states: {
           waiting: {
-            entry: send({ type: 'PING' }, { to: 'ponger' }),
+            entry: sendTo('ponger', { type: 'PING' }),
             invoke: {
               id: 'ponger',
               src: pongBehavior
@@ -2461,7 +2487,7 @@ describe('invoke', () => {
                 src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
-              entry: send({ type: 'PING' }, { to: 'pong' }),
+              entry: sendTo('pong', { type: 'PING' }),
               on: {
                 PONG: 'innerSuccess'
               }

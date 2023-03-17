@@ -118,15 +118,19 @@ describe('state meta data', () => {
       }
     });
 
-    const service = interpret(machine).onTransition((state) => {
-      expect(state.meta).toEqual({
-        'test.second': {
-          name: 'second state'
-        }
-      });
-      done();
-    });
-    service.start('second');
+    const secondState = machine.resolveStateValue('second');
+
+    const service = interpret(machine, { state: secondState }).onTransition(
+      (state) => {
+        expect(state.meta).toEqual({
+          'test.second': {
+            name: 'second state'
+          }
+        });
+        done();
+      }
+    );
+    service.start();
   });
 });
 
@@ -152,8 +156,8 @@ describe('transition meta data', () => {
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.transitions.map((t) => t.meta)).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "description": "Going from inactive to active",
         },
       ]

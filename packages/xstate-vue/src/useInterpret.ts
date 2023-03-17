@@ -10,38 +10,35 @@ import {
   StateFrom,
   toObserver
 } from 'xstate';
-import { MaybeLazy, UseMachineOptions } from './types';
+import { MaybeLazy } from './types.js';
 
-type RestParams<
-  TMachine extends AnyStateMachine
-> = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
-> extends false
-  ? [
-      options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineImplementations<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >,
-      observerOrListener?:
-        | Observer<StateFrom<TMachine>>
-        | ((value: StateFrom<TMachine>) => void)
-    ]
-  : [
-      options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineImplementations<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >,
-      observerOrListener?:
-        | Observer<StateFrom<TMachine>>
-        | ((value: StateFrom<TMachine>) => void)
-    ];
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: InterpreterOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TMachine>>
+          | ((value: StateFrom<TMachine>) => void)
+      ]
+    : [
+        options?: InterpreterOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta']
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TMachine>>
+          | ((value: StateFrom<TMachine>) => void)
+      ];
 
 export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
@@ -49,34 +46,18 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 ): InterpreterFrom<TMachine> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
-  const {
-    context,
-    guards,
-    actions,
-    actors,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+  const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
     actors,
     delays
   };
 
-  const machineWithConfig = machine.provide({
-    ...machineConfig,
-    context
-  } as any);
+  const machineWithConfig = machine.provide(machineConfig as any);
 
-  const service = interpret(machineWithConfig, interpreterOptions).start(
-    rehydratedState
-      ? (machineWithConfig.createState(rehydratedState) as any)
-      : undefined
-  );
+  const service = interpret(machineWithConfig, interpreterOptions).start();
 
   let sub;
   onMounted(() => {

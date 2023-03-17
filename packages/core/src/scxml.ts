@@ -1,21 +1,21 @@
 import { Element as XMLElement, xml2js } from 'xml-js';
-import { assign } from './actions/assign';
-import { cancel } from './actions/cancel';
-import { choose } from './actions/choose';
-import { log } from './actions/log';
-import { raise } from './actions/raise';
-import { send } from './actions/send';
-import { NULL_EVENT } from './constants';
-import { not, stateIn } from './guards';
-import { AnyStateMachine, BaseActionObject, createMachine } from './index';
+import { assign } from './actions/assign.js';
+import { cancel } from './actions/cancel.js';
+import { choose } from './actions/choose.js';
+import { log } from './actions/log.js';
+import { raise } from './actions/raise.js';
+import { send } from './actions/send.js';
+import { NULL_EVENT } from './constants.js';
+import { not, stateIn } from './guards.js';
+import { AnyStateMachine, BaseActionObject, createMachine } from './index.js';
 import {
   ChooseCondition,
   DelayExpr,
   EventObject,
   SCXMLEventMeta,
   SendExpr
-} from './types';
-import { flatten, isString, mapValues } from './utils';
+} from './types.js';
+import { flatten, isString, mapValues } from './utils.js';
 
 function getAttribute(
   element: XMLElement,
@@ -140,7 +140,9 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return raise<TEvent>({ type: element.attributes!.event! } as TEvent);
+      return raise<TContext, TEvent, TEvent>({
+        type: element.attributes!.event!
+      } as TEvent);
     }
     case 'assign': {
       return assign<TContext, TEvent>((context, e, meta) => {
@@ -215,7 +217,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
     case 'log': {
       const label = element.attributes!.label;
 
-      return log<TContext, TEvent>(
+      return log<TContext, any>(
         (context, e, meta) => {
           const fnBody = `
 return ${element.attributes!.expr};

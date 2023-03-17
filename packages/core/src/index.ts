@@ -7,33 +7,33 @@ import {
   respond,
   sendParent,
   sendTo
-} from './actions';
-import { assign } from './actions/assign';
-import { cancel } from './actions/cancel';
-import { choose } from './actions/choose';
-import { log } from './actions/log';
-import { pure } from './actions/pure';
-import { raise } from './actions/raise';
-import { send } from './actions/send';
-import { stop } from './actions/stop';
-import { interpret, Interpreter, ActorStatus } from './interpreter';
-import { createMachine } from './Machine';
-import { mapState } from './mapState';
-import { State } from './State';
-import { StateNode } from './StateNode';
-export { createSchema, t } from './schema';
-export { SimulatedClock } from './SimulatedClock';
-export { StateMachine } from './StateMachine';
-export { getStateNodes } from './stateUtils';
-export * from './typegenTypes';
-export * from './types';
+} from './actions.js';
+import { assign } from './actions/assign.js';
+import { cancel } from './actions/cancel.js';
+import { choose } from './actions/choose.js';
+import { log } from './actions/log.js';
+import { pure } from './actions/pure.js';
+import { raise } from './actions/raise.js';
+import { send } from './actions/send.js';
+import { stop } from './actions/stop.js';
+import { interpret, Interpreter, ActorStatus } from './interpreter.js';
+import { createMachine } from './Machine.js';
+import { mapState } from './mapState.js';
+import { State } from './State.js';
+import { StateNode } from './StateNode.js';
+export { createSchema, t } from './schema.js';
+export { SimulatedClock } from './SimulatedClock.js';
+export { StateMachine } from './StateMachine.js';
+export { getStateNodes } from './stateUtils.js';
+export * from './typegenTypes.js';
+export * from './types.js';
 // TODO: decide from where those should be exported
 export {
   matchesState,
   pathToStateValue,
   toObserver,
   toSCXMLEvent
-} from './utils';
+} from './utils.js';
 export {
   StateNode,
   State,
@@ -41,6 +41,7 @@ export {
   actions,
   assign,
   send,
+  sendTo,
   sendParent,
   forwardTo,
   interpret,

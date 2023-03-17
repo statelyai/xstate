@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src';
+import { createMachine, interpret } from '../src/index.js';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -15,7 +15,7 @@ describe('rehydration', () => {
       const persistedState = JSON.stringify(machine.initialState);
       const restoredState = machine.createState(JSON.parse(persistedState));
 
-      const service = interpret(machine).start(restoredState);
+      const service = interpret(machine, { state: restoredState }).start();
 
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
@@ -35,7 +35,7 @@ describe('rehydration', () => {
       const persistedState = JSON.stringify(machine.initialState);
       const restoredState = machine.createState(JSON.parse(persistedState));
 
-      interpret(machine).start(restoredState).stop();
+      interpret(machine, { state: restoredState }).start().stop();
 
       expect(actual).toEqual(['a', 'root']);
     });
@@ -53,7 +53,7 @@ describe('rehydration', () => {
         interpret(machine).start().getSnapshot()
       );
       const restoredState = JSON.parse(persistedState);
-      const service = interpret(machine).start(restoredState);
+      const service = interpret(machine, { state: restoredState }).start();
 
       expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
@@ -73,9 +73,10 @@ describe('rehydration', () => {
         }
       });
 
-      const service = interpret(machine);
+      const activeState = machine.resolveStateValue('active');
+      const service = interpret(machine, { state: activeState });
 
-      service.start('active');
+      service.start();
 
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
@@ -95,7 +96,9 @@ describe('rehydration', () => {
         }
       });
 
-      interpret(machine).start('active').stop();
+      const activeState = machine.resolveStateValue('active');
+
+      interpret(machine, { state: activeState }).start().stop();
 
       expect(actual).toEqual(['active', 'root']);
     });

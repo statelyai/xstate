@@ -6,19 +6,24 @@ import {
   assign,
   send,
   sendParent,
-  EventObject,
   StateValue,
   AnyEventObject,
   createMachine,
-  AnyState
-} from '../src';
+  AnyState,
+  InterpreterStatus,
+  ActorRefFrom,
+  ActorRef
+} from '../src/index.js';
 import { State } from '../src/State';
 import { raise } from '../src/actions/raise';
+import { sendTo } from '../src/actions/send';
 import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
-import { fromCallback, fromObservable, fromPromise } from '../src/actors';
+import { fromObservable } from '../src/actors/observable';
+import { fromPromise } from '../src/actors/promise';
+import { fromCallback } from '../src/actors/callback';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -74,7 +79,7 @@ describe('interpreter', () => {
       const machine = createMachine({
         initial: 'idle',
         context: {
-          actor: undefined
+          actor: undefined! as ActorRefFrom<ReturnType<typeof fromPromise>>
         },
         states: {
           idle: {
@@ -159,8 +164,8 @@ describe('interpreter', () => {
       const recreated = JSON.parse(JSON.stringify(nextState));
       const restoredState = lightMachine.createState(recreated);
 
-      const service = interpret(lightMachine);
-      service.start(restoredState);
+      const service = interpret(lightMachine, { state: restoredState });
+      service.start();
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
@@ -179,14 +184,11 @@ describe('interpreter', () => {
         }
       });
 
-      const s = interpret(machine);
+      const bState = machine.initialState;
 
-      // would have deferred the entry action
-      s.getSnapshot();
+      expect(bState.value).toEqual('b');
 
-      // instead, we start from a different state
-      // and only execute those actions
-      s.start('b');
+      interpret(machine, { state: machine.resolveStateValue('b') }).start();
 
       expect(aCalled).toBe(false);
     });
@@ -303,10 +305,12 @@ describe('interpreter', () => {
                 delay: (ctx, e) =>
                   ctx.initialDelay +
                   ('wait' in e
-                    ? (e as Extract<
-                        DelayExpMachineEvents,
-                        { type: 'ACTIVATE' }
-                      >).wait
+                    ? (
+                        e as Extract<
+                          DelayExpMachineEvents,
+                          { type: 'ACTIVATE' }
+                        >
+                      ).wait
                     : 0)
               }
             ),
@@ -379,10 +383,12 @@ describe('interpreter', () => {
               {
                 delay: (ctx, _, { _event }) =>
                   ctx.initialDelay +
-                  (_event.data as Extract<
-                    DelayExpMachineEvents,
-                    { type: 'ACTIVATE' }
-                  >).wait
+                  (
+                    _event.data as Extract<
+                      DelayExpMachineEvents,
+                      { type: 'ACTIVATE' }
+                    >
+                  ).wait
               }
             ),
             on: {
@@ -445,10 +451,7 @@ describe('interpreter', () => {
               }
             },
             c: {
-              entry: send(
-                { type: 'FIRE_DELAY', value: 200 },
-                { delay: 20 }
-              ) as EventObject,
+              entry: send({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
               on: {
                 FIRE_DELAY: 'd'
               }
@@ -592,7 +595,7 @@ describe('interpreter', () => {
       expect(stopActivityState!).toEqual('off');
     });
 
-    it('should not restart activities from a compound state', (done) => {
+    it('should restart activities from a compound state', (done) => {
       let activityActive = false;
 
       const toggleMachine = createMachine(
@@ -633,10 +636,10 @@ describe('interpreter', () => {
       });
       const bState = toggleMachine.transition(activeState, { type: 'SWITCH' });
 
-      interpret(toggleMachine).start(bState);
+      interpret(toggleMachine, { state: bState }).start();
 
       setTimeout(() => {
-        expect(activityActive).toBeFalsy();
+        expect(activityActive).toBeTruthy();
         done();
       }, 10);
     });
@@ -798,7 +801,7 @@ describe('interpreter', () => {
     expect(() => {
       interpret(createMachine(invalidMachine)).start();
     }).toThrowErrorMatchingInlineSnapshot(
-      `"Initial state node \\"create\\" not found on parent state node #fetchMachine"`
+      `"Initial state node "create" not found on parent state node #fetchMachine"`
     );
   });
 
@@ -883,7 +886,7 @@ describe('interpreter', () => {
       },
       on: {
         PING_CHILD: {
-          actions: [send({ type: 'PING' }, { to: 'child' }), logAction]
+          actions: [sendTo('child', { type: 'PING' }), logAction]
         },
         '*': {
           actions: [logAction]
@@ -900,24 +903,24 @@ describe('interpreter', () => {
 
     expect(logs.length).toBe(4);
     expect(logs).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "event": "PING_CHILD",
           "origin": undefined,
         },
-        Object {
+        {
           "event": "PONG",
-          "origin": Object {
+          "origin": {
             "id": "child",
           },
         },
-        Object {
+        {
           "event": "PING_CHILD",
           "origin": undefined,
         },
-        Object {
+        {
           "event": "PONG",
-          "origin": Object {
+          "origin": {
             "id": "child",
           },
         },
@@ -1205,30 +1208,37 @@ describe('interpreter', () => {
     });
 
     it('should be able to be initialized at a custom state', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
+      const startService = interpret(startMachine, {
+        state: State.from('bar', undefined, startMachine)
+      }).onTransition((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
 
-      startService.start(State.from('bar', undefined, startMachine));
+      startService.start();
     });
 
     it('should be able to be initialized at a custom state value', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
+      const barState = startMachine.resolveStateValue('bar');
+      const startService = interpret(startMachine, {
+        state: barState
+      }).onTransition((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
 
-      startService.start('bar');
+      startService.start();
     });
 
     it('should be able to resolve a custom initialized state', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
+      const startService = interpret(startMachine, {
+        state: startMachine.resolveStateValue('foo')
+      }).onTransition((state) => {
         expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();
       });
 
-      startService.start(State.from('foo', undefined, startMachine));
+      startService.start();
     });
   });
 
@@ -1771,7 +1781,11 @@ describe('interpreter', () => {
       const parentMachine = createMachine({
         id: 'form',
         initial: 'present',
-        context: {},
+        context: {} as {
+          machineRef: ActorRefFrom<typeof childMachine>;
+          promiseRef: ActorRefFrom<Promise<unknown>>;
+          observableRef: ActorRef<any, any>;
+        },
         entry: assign({
           machineRef: (_, __, { spawn }) => spawn(childMachine, 'machineChild'),
           promiseRef: (_, __, { spawn }) =>
@@ -1796,9 +1810,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx: any) => ctx.machineRef),
-                  stop((ctx: any) => ctx.promiseRef),
-                  stop((ctx: any) => ctx.observableRef)
+                  stop((ctx) => ctx.machineRef),
+                  stop((ctx) => ctx.promiseRef),
+                  stop((ctx) => ctx.observableRef)
                 ]
               }
             }
@@ -1877,5 +1891,24 @@ describe('interpreter', () => {
         done();
       })
       .start();
+  });
+
+  it('should call an onDone callback immediately if the service is already done', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.status).toBe(InterpreterStatus.Stopped);
+
+    service.onDone(() => {
+      done();
+    });
   });
 });

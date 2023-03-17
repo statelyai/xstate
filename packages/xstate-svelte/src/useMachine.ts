@@ -3,55 +3,36 @@ import { Readable, readable } from 'svelte/store';
 import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  EventObject,
   InternalMachineImplementations,
   interpret,
   InterpreterFrom,
   InterpreterOptions,
-  StateConfig,
   StateFrom
 } from 'xstate';
 
 type Prop<T, K> = K extends keyof T ? T[K] : never;
-interface UseMachineOptions<
-  TContext extends object,
-  TEvent extends EventObject
-> {
-  /**
-   * If provided, will be merged with machine's `context`.
-   */
-  context?: Partial<TContext>;
-  /**
-   * The state to rehydrate the machine to. The machine will
-   * start at this state instead of its `initialState`.
-   */
-  state?: StateConfig<TContext, TEvent>;
-}
 
-type RestParams<
-  TMachine extends AnyStateMachine
-> = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
-> extends false
-  ? [
-      options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineImplementations<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >
-    ]
-  : [
-      options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineImplementations<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >
-    ];
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: InterpreterOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >
+      ]
+    : [
+        options?: InterpreterOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta']
+          >
+      ];
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
@@ -66,18 +47,9 @@ export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  const {
-    context,
-    guards,
-    actions,
-    actors,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+  const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
     actors,
@@ -86,9 +58,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const resolvedMachine = machine.provide(machineConfig as any);
 
-  const service = interpret(resolvedMachine, interpreterOptions).start(
-    rehydratedState ? (machine.createState(rehydratedState) as any) : undefined
-  );
+  const service = interpret(resolvedMachine, interpreterOptions).start();
 
   onDestroy(() => service.stop());
 

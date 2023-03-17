@@ -1,5 +1,11 @@
-import { interpret, assign, send, sendParent, createMachine } from '../src';
-import { ActorRef } from '../src/types';
+import {
+  assign,
+  createMachine,
+  interpret,
+  sendParent,
+  sendTo
+} from '../src/index.js';
+import { ActorRef } from '../src/types.js';
 
 interface CounterContext {
   count: number;
@@ -384,7 +390,7 @@ describe('assign meta', () => {
       },
       on: {
         PING_CHILD: {
-          actions: [send({ type: 'PING' }, { to: 'child' }), assignEventLog]
+          actions: [sendTo('child', { type: 'PING' }), assignEventLog]
         },
         '*': {
           actions: [assignEventLog]
@@ -404,25 +410,25 @@ describe('assign meta', () => {
     service.send({ type: 'PING_CHILD' });
 
     expect(state.context).toMatchInlineSnapshot(`
-      Object {
-        "eventLog": Array [
-          Object {
+      {
+        "eventLog": [
+          {
             "event": "PING_CHILD",
             "origin": undefined,
           },
-          Object {
+          {
             "event": "PONG",
-            "origin": Object {
+            "origin": {
               "id": "child",
             },
           },
-          Object {
+          {
             "event": "PING_CHILD",
             "origin": undefined,
           },
-          Object {
+          {
             "event": "PONG",
-            "origin": Object {
+            "origin": {
               "id": "child",
             },
           },

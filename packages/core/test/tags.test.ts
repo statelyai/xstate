@@ -1,4 +1,4 @@
-import { createMachine } from '../src';
+import { createMachine } from '../src/index.js';
 
 describe('tags', () => {
   it('supports tagging states', () => {

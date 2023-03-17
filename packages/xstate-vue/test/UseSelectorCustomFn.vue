@@ -13,7 +13,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { assign, createMachine } from 'xstate';
-import { useInterpret, useSelector } from '../src';
+import { useInterpret, useSelector } from '../src/index.js';
 
 const machine = createMachine<{ name: string }>({
   initial: 'active',

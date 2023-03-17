@@ -11,6 +11,7 @@
     "@xstate/immer",
     "@xstate/inspect",
     "@xstate/scxml",
+    "@xstate/solid",
     "@xstate/svelte",
     "@xstate/test"
   ],

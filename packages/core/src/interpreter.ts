@@ -2,17 +2,21 @@ import type {
   ActorContext,
   AnyActorRef,
   AnyStateMachine,
-  Behavior,
+  ActorBehavior,
   EventFromBehavior,
   InterpreterFrom,
-  SnapshotFrom
-} from './types';
-import { stopSignalType } from './actors';
-import { devToolsAdapter } from './dev/index';
-import { IS_PRODUCTION } from './environment';
-import { Mailbox } from './Mailbox';
-import { registry } from './registry';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
+  PersistedStateFrom,
+  SnapshotFrom,
+  AnyActorBehavior,
+  RaiseActionObject,
+  InvokeSourceDefinition
+} from './types.js';
+import { stopSignalType } from './actors/index.js';
+import { devToolsAdapter } from './dev/index.js';
+import { IS_PRODUCTION } from './environment.js';
+import { Mailbox } from './Mailbox.js';
+import { registry } from './registry.js';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.js';
 import {
   ActorRef,
   DoneEvent,
@@ -22,15 +26,13 @@ import {
   Observer,
   SCXML,
   SendActionObject,
-  StateValue,
   Subscription
-} from './types';
-import { toObserver, toSCXMLEvent, warn } from './utils';
-import { symbolObservable } from './symbolObservable';
-import { evict, memo } from './memo';
-import { doneInvoke, error } from './actions';
+} from './types.js';
+import { toObserver, toSCXMLEvent, warn } from './utils.js';
+import { symbolObservable } from './symbolObservable.js';
+import { doneInvoke, error } from './actions.js';
 
-export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
+export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>
 ) => void;
 
@@ -66,25 +68,25 @@ const defaultOptions = {
   devTools: false
 };
 
-type InternalStateFrom<
-  TBehavior extends Behavior<any, any, any>
-> = TBehavior extends Behavior<infer _, infer __, infer TInternalState>
-  ? TInternalState
-  : never;
+type InternalStateFrom<TBehavior extends ActorBehavior<any, any, any>> =
+  TBehavior extends ActorBehavior<infer _, infer __, infer TInternalState>
+    ? TInternalState
+    : never;
 
 export class Interpreter<
-  TBehavior extends Behavior<any, any>,
+  TBehavior extends AnyActorBehavior,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
-> implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
+> implements ActorRef<TEvent, SnapshotFrom<TBehavior>>
+{
   /**
    * The current state of the interpreted behavior.
    */
-  private _state?: InternalStateFrom<TBehavior>;
+  private _state!: InternalStateFrom<TBehavior>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: Readonly<InterpreterOptions>;
+  public options: Readonly<InterpreterOptions<TBehavior>>;
 
   /**
    * The unique identifier for this actor relative to its parent.
@@ -117,13 +119,20 @@ export class Interpreter<
   // TODO: remove
   public _forwardTo: Set<AnyActorRef> = new Set();
 
+  private _doneEvent?: DoneEvent;
+
+  public src?: InvokeSourceDefinition;
+
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
    * @param behavior The behavior to be interpreted
    * @param options Interpreter options
    */
-  constructor(public behavior: TBehavior, options?: InterpreterOptions) {
+  constructor(
+    public behavior: TBehavior,
+    options?: InterpreterOptions<TBehavior>
+  ) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
@@ -139,6 +148,7 @@ export class Interpreter<
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
+    this.src = resolvedOptions.src;
     this.ref = this;
     this._actorContext = {
       self,
@@ -153,16 +163,19 @@ export class Interpreter<
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
     this.send = this.send.bind(this);
+    this._initState();
+  }
+
+  private _initState() {
+    this._state = this.options.state
+      ? this.behavior.restoreState
+        ? this.behavior.restoreState(this.options.state, this._actorContext)
+        : this.options.state
+      : this.behavior.getInitialState(this._actorContext);
   }
 
   // array of functions to defer
   private _deferred: Array<(state: any) => void> = [];
-
-  private _getInitialState(): InternalStateFrom<TBehavior> {
-    return memo(this, 'initial', () => {
-      return this.behavior.getInitialState(this._actorContext);
-    });
-  }
 
   private update(state: InternalStateFrom<TBehavior>): void {
     // Update state
@@ -170,7 +183,7 @@ export class Interpreter<
     const snapshot = this.getSnapshot();
 
     // Execute deferred effects
-    let deferredFn: typeof this._deferred[number] | undefined;
+    let deferredFn: (typeof this._deferred)[number] | undefined;
 
     while ((deferredFn = this._deferred.shift())) {
       deferredFn(state);
@@ -184,8 +197,9 @@ export class Interpreter<
 
     switch (status?.status) {
       case 'done':
+        this._doneEvent = doneInvoke(this.id, status.data);
         this._parent?.send(
-          toSCXMLEvent(doneInvoke(this.id, status.data) as any, {
+          toSCXMLEvent(this._doneEvent as any, {
             origin: this,
             invokeid: this.id
           })
@@ -268,26 +282,25 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(listener: EventListener<DoneEvent>): this {
-    this.observers.add({
-      complete: () => {
-        const snapshot = this.getSnapshot();
-        if ((snapshot as any).done) {
-          listener(doneInvoke(this.id, (snapshot as any).output));
+    if (this.status === ActorStatus.Stopped && this._doneEvent) {
+      listener(this._doneEvent);
+    } else {
+      this.observers.add({
+        complete: () => {
+          if (this._doneEvent) {
+            listener(this._doneEvent);
+          }
         }
-      }
-    });
+      });
+    }
 
     return this;
   }
 
   /**
-   * Starts the interpreter from the given state, or the initial state.
-   * @param initialState The state to start the statechart from
+   * Starts the interpreter from the initial state
    */
-  public start(
-    // TODO: remove this argument
-    initialState?: InternalStateFrom<TBehavior> | StateValue
-  ): this {
+  public start(): this {
     if (this.status === ActorStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -296,18 +309,14 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = ActorStatus.Running;
 
-    let resolvedState = initialState
-      ? this.behavior.restoreState?.(initialState, this._actorContext)
-      : this._getInitialState() ?? undefined;
-
     if (this.behavior.start) {
-      resolvedState = this.behavior.start(resolvedState, this._actorContext);
+      this.behavior.start(this._state, this._actorContext);
     }
 
     // TODO: this notifies all subscribers but usually this is redundant
-    // if we are using the initialState as `resolvedState` then there is no real change happening here
+    // there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(resolvedState);
+    this.update(this._state);
 
     if (this.options.devTools) {
       this.attachDevTools();
@@ -350,7 +359,6 @@ export class Interpreter<
    * Stops the interpreter and unsubscribe all listeners.
    */
   public stop(): this {
-    evict(this, 'initial');
     if (this.status === ActorStatus.Stopped) {
       return this;
     }
@@ -399,11 +407,7 @@ export class Interpreter<
   /**
    * Sends an event to the running interpreter to trigger a transition.
    *
-   * An array of events (batched) can be sent as well, which will send all
-   * batched events to the running interpreter. The listeners will be
-   * notified only **once** when all events are processed.
-   *
-   * @param event The event(s) to send
+   * @param event The event to send
    */
   public send(event: TEvent | SCXML.Event<TEvent>) {
     const _event = toSCXMLEvent(event);
@@ -448,9 +452,11 @@ export class Interpreter<
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
-  public delaySend(sendAction: SendActionObject): void {
+  public delaySend(
+    sendAction: SendActionObject | RaiseActionObject<any, any, any>
+  ): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
-      if (sendAction.params.to) {
+      if ('to' in sendAction.params && sendAction.params.to) {
         sendAction.params.to.send(sendAction.params._event);
       } else {
         this.send(sendAction.params._event as SCXML.Event<TEvent>);
@@ -479,16 +485,18 @@ export class Interpreter<
     };
   }
 
+  public getPersistedState(): PersistedStateFrom<TBehavior> | undefined {
+    return this.behavior.getPersistedState?.(this._state);
+  }
+
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {
     return this;
   }
 
   public getSnapshot(): SnapshotFrom<TBehavior> {
-    const getter = this.behavior.getSnapshot ?? ((s) => s);
-    if (this.status === ActorStatus.NotStarted) {
-      return getter(this._getInitialState());
-    }
-    return getter(this._state!);
+    return this.behavior.getSnapshot
+      ? this.behavior.getSnapshot(this._state)
+      : this._state;
   }
 }
 
@@ -504,13 +512,16 @@ export function interpret<TMachine extends AnyStateMachine>(
   > extends true
     ? TMachine
     : 'Some implementations missing',
-  options?: InterpreterOptions
+  options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
-export function interpret<TBehavior extends Behavior<any, any>>(
+export function interpret<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
-  options?: InterpreterOptions
+  options?: InterpreterOptions<TBehavior>
 ): Interpreter<TBehavior>;
-export function interpret(behavior: any, options?: InterpreterOptions): any {
+export function interpret(
+  behavior: any,
+  options?: InterpreterOptions<any>
+): any {
   const interpreter = new Interpreter(behavior, options);
 
   return interpreter;

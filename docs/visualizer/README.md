@@ -72,7 +72,7 @@ The Copy Image URL option in the share menu copies the URL for the image of the 
 
 The image below is a snapshot of [David’s example fetch machine](https://stately.ai/viz/7c0ec648-09d6-46fe-a912-fc0e46da5094).
 
-![Statechart for a fetch machine.](https://stately.ai/registry/machines/7c0ec648-09d6-46fe-a912-fc0e46da5094.png)
+![Statechart for a fetch machine.](https://stately.ai/registry/viz/machines/7c0ec648-09d6-46fe-a912-fc0e46da5094.png)
 
 ### Embed mode
 

@@ -1,4 +1,9 @@
-import { createMachine, assign, interpret, StateMachine } from '../src';
+import {
+  createMachine,
+  assign,
+  interpret,
+  StateMachine
+} from '../src/index.js';
 
 describe('@xstate/fsm', () => {
   interface LightContext {

@@ -1,5 +1,9 @@
 # Concepts
 
+:::tip Check out our new docs!
+🆕 Learn the concepts in [all-new Stately and XState documentation](https://stately.ai/docs/state-machines-and-statecharts).
+:::
+
 XState is a library for creating, interpreting, and executing finite state machines and statecharts, as well as managing invocations of those machines as actors. The following fundamental computer science concepts are important to know how to make the best use of XState, and in general for all your current and future software projects.
 
 ## Finite State Machines

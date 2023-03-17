@@ -8,7 +8,12 @@ import {
   interpret,
   StateFrom
 } from 'xstate';
-import { shallowEqual, useInterpret, useMachine, useSelector } from '../src';
+import {
+  shallowEqual,
+  useInterpret,
+  useMachine,
+  useSelector
+} from '../src/index.js';
 import { describeEachReactMode } from './utils';
 
 const originalConsoleError = console.error;
@@ -587,5 +592,28 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const [snapshot1] = snapshots;
     expect(snapshots.every((s) => s === snapshot1));
     expect(console.error).toHaveBeenCalledTimes(0);
+  });
+
+  it(`shouldn't interfere with spawning actors that are part of the initial state of an actor`, () => {
+    let called = false;
+    const child = createMachine({
+      entry: () => (called = true)
+    });
+    const machine = createMachine({
+      context: ({ spawn }) => ({
+        childRef: spawn(child)
+      })
+    });
+
+    function App() {
+      const service = useInterpret(machine);
+      useSelector(service, () => {});
+      expect(called).toBe(false);
+      return null;
+    }
+
+    render(<App />);
+
+    expect(called).toBe(true);
   });
 });

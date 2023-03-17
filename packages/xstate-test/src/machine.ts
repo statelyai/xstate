@@ -1,6 +1,5 @@
 import { SerializedState, serializeState, SimpleBehavior } from '@xstate/graph';
 import {
-  BaseActionObject,
   AnyEventObject,
   AnyState,
   AnyStateMachine,
@@ -9,16 +8,17 @@ import {
   EventObject,
   StateFrom,
   TypegenConstraint,
-  TypegenDisabled
+  TypegenDisabled,
+  MachineContext
 } from 'xstate';
-import { TestModel } from './TestModel';
+import { TestModel } from './TestModel.js';
 import {
   TestMachineConfig,
   TestMachineOptions,
   TestModelOptions
-} from './types';
-import { flatten, simpleStringify } from './utils';
-import { validateMachine } from './validateMachine';
+} from './types.js';
+import { flatten, simpleStringify } from './utils.js';
+import { validateMachine } from './validateMachine.js';
 
 export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
@@ -30,7 +30,7 @@ export async function testStateFromMeta(state: AnyState) {
 }
 
 export function createTestMachine<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
@@ -38,21 +38,6 @@ export function createTestMachine<
   options?: TestMachineOptions<TContext, TEvent, TTypesMeta>
 ) {
   return createMachine(config, options as any);
-}
-
-export function executeAction(
-  actionObject: BaseActionObject,
-  state: AnyState
-): void {
-  // TODO: this is a hack, it doesn't correctly resolve actions
-  // what gets passed as `action` here is probably also not correct
-  if (typeof (actionObject as any)._exec === 'function') {
-    (actionObject as any)._exec(state.context, state.event, {
-      _event: state._event,
-      action: actionObject,
-      state
-    });
-  }
 }
 
 function serializeMachineTransition(
@@ -78,7 +63,7 @@ function serializeMachineTransition(
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
  *
- * The test model is used to generate test plans, which are used to
+ * The test model is used to generate test paths, which are used to
  * verify that states in the `machine` are reachable in the SUT.
  *
  * @example
@@ -126,11 +111,6 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         return key.startsWith('#')
           ? state.configuration.includes(machine.getStateNodeById(key))
           : state.matches(key);
-      },
-      execute: (state) => {
-        state.actions.forEach((action) => {
-          executeAction(action, state);
-        });
       },
       getEvents: (state, eventCases) =>
         flatten(

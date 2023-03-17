@@ -2,6 +2,10 @@
 
 A state is an abstract representation of a system (such as an application) at a specific point in time. To learn more, read the [section on states in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#states).
 
+:::tip Check out our new docs!
+🆕 Find more about [states in XState](https://stately.ai/docs/xstate/basics/what-is-a-statechart#states) as well as a [no-code introduction to states](https://stately.ai/docs/states/intro).
+:::
+
 ## API
 
 The current state of a machine is represented by a `State` instance:
@@ -267,6 +271,10 @@ A state is considered “changed” if [`state.changed`](#state-changed) is `tru
 - its `state.value` changes
 - there are new `state.actions` to be executed
 - its `state.context` changes.
+
+::: warning
+The `state.can(...)` function will also check transition guards by executing them. Transition guards should be pure functions.
+:::
 
 ## Persisting state
 

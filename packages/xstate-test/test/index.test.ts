@@ -1,5 +1,5 @@
 import { assign, createMachine } from 'xstate';
-import { createTestModel } from '../src';
+import { createTestModel } from '../src/index.js';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
 
@@ -132,16 +132,16 @@ describe('events', () => {
     });
 
     expect(testedEvents).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "type": "EVENT",
           "value": 1,
         },
-        Object {
+        {
           "type": "EVENT",
           "value": 2,
         },
-        Object {
+        {
           "type": "EVENT",
           "value": 3,
         },
@@ -246,7 +246,9 @@ it('tests transitions', async () => {
 
   const model = createTestModel(machine);
 
-  const paths = model.getShortestPathsTo((state) => state.matches('second'));
+  const paths = model.getShortestPaths({
+    toState: (state) => state.matches('second')
+  });
 
   await paths[0].test({
     events: {
@@ -280,7 +282,9 @@ it('Event in event executor should contain payload from case', async () => {
     }
   });
 
-  const paths = model.getShortestPathsTo((state) => state.matches('second'));
+  const paths = model.getShortestPaths({
+    toState: (state) => state.matches('second')
+  });
 
   await model.testPath(
     paths[0],
@@ -400,7 +404,7 @@ describe('state tests', () => {
       }
     });
     expect(testedStateValues).toMatchInlineSnapshot(`
-      Array [
+      [
         "a",
         "b",
         "b.b1",

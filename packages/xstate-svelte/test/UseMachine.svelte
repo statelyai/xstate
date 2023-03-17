@@ -1,7 +1,7 @@
 <script lang="ts">
   export let persistedState: AnyState | undefined = undefined;
 
-  import { useMachine } from '../src';
+  import { useMachine } from '../src/index.js';
   import { fetchMachine } from './fetchMachine';
   import type { AnyState } from 'xstate';
   import { fromPromise } from 'xstate/actors';
@@ -10,10 +10,10 @@
     new Promise((res) => setTimeout(() => res('some data'), 50));
 
   const { state, send } = useMachine(fetchMachine, {
+    state: persistedState,
     actors: {
       fetchData: () => fromPromise(onFetch)
-    },
-    state: persistedState
+    }
   });
 </script>
 

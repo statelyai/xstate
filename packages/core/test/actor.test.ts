@@ -4,11 +4,11 @@ import {
   ActorRef,
   ActorRefFrom,
   EventObject,
-  Behavior,
+  ActorBehavior,
   Subscribable,
   Observer,
   toSCXMLEvent
-} from '../src';
+} from '../src/index.js';
 import {
   sendParent,
   doneInvoke,
@@ -18,15 +18,12 @@ import {
 } from '../src/actions';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
-import { send } from '../src/actions/send';
-import { EMPTY, interval } from 'rxjs';
-import {
-  fromCallback,
-  fromObservable,
-  fromEventObservable,
-  fromPromise,
-  fromReducer
-} from '../src/actors';
+import { sendTo } from '../src/actions/send';
+import { EMPTY, interval, of } from 'rxjs';
+import { fromReducer } from '../src/actors/reducer';
+import { fromObservable, fromEventObservable } from '../src/actors/observable';
+import { fromPromise } from '../src/actors/promise';
+import { fromCallback } from '../src/actors/callback';
 import { map } from 'rxjs/operators';
 
 describe('spawning machines', () => {
@@ -95,7 +92,7 @@ describe('spawning machines', () => {
       },
       sendPing: {
         entry: [
-          send({ type: 'PING' }, { to: (ctx) => ctx.server! }),
+          sendTo((ctx) => ctx.server!, { type: 'PING' }),
           raise({ type: 'SUCCESS' })
         ],
         on: {
@@ -151,13 +148,11 @@ describe('spawning machines', () => {
           })
         },
         SET_COMPLETE: {
-          actions: send(
-            { type: 'SET_COMPLETE' },
-            {
-              to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-                return ctx.todoRefs[e.id];
-              }
-            }
+          actions: sendTo(
+            (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
+              return ctx.todoRefs[e.id];
+            },
+            { type: 'SET_COMPLETE' }
           )
         }
       }
@@ -180,7 +175,7 @@ describe('spawning machines', () => {
     const parentMachine = createMachine(
       {
         context: {
-          ref: null
+          ref: null! as ActorRef<any, any>
         },
         initial: 'waiting',
         states: {
@@ -338,7 +333,7 @@ describe('spawning callbacks', () => {
           }),
           on: {
             START_CB: {
-              actions: send({ type: 'START' }, { to: (ctx) => ctx.callbackRef })
+              actions: sendTo((ctx) => ctx.callbackRef!, { type: 'START' })
             },
             SEND_BACK: 'success'
           }
@@ -360,20 +355,18 @@ describe('spawning callbacks', () => {
 
 describe('spawning observables', () => {
   it('should spawn an observable', (done) => {
+    const observableBehavior = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined
+        observableRef: undefined! as ActorRefFrom<typeof observableBehavior>
       },
       states: {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(
-                fromObservable(() => interval(10)),
-                'int'
-              );
+              const ref = spawn(observableBehavior, 'int');
 
               return ref;
             }
@@ -381,7 +374,7 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: (_: any, e: any) => e.data === 5
+              guard: (_, e) => e.data === 5
             }
           }
         },
@@ -404,7 +397,7 @@ describe('spawning observables', () => {
         id: 'observable',
         initial: 'idle',
         context: {
-          observableRef: undefined
+          observableRef: undefined! as ActorRef<any, any>
         },
         states: {
           idle: {
@@ -414,7 +407,7 @@ describe('spawning observables', () => {
             on: {
               'xstate.snapshot.int': {
                 target: 'success',
-                guard: (_: any, e: any) => e.data === 5
+                guard: (_, e) => e.data === 5
               }
             }
           },
@@ -438,20 +431,18 @@ describe('spawning observables', () => {
   });
 
   it(`should read the latest snapshot of the event's origin while handling that event`, (done) => {
+    const observableBehavior = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined
+        observableRef: undefined! as ActorRefFrom<typeof observableBehavior>
       },
       states: {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(
-                fromObservable(() => interval(10)),
-                'int'
-              );
+              const ref = spawn(observableBehavior, 'int');
 
               return ref;
             }
@@ -481,22 +472,22 @@ describe('spawning observables', () => {
 
 describe('spawning event observables', () => {
   it('should spawn an event observable', (done) => {
+    const eventObservableBehavior = fromEventObservable(() =>
+      interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+    );
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined
+        observableRef: undefined! as ActorRefFrom<
+          typeof eventObservableBehavior
+        >
       },
       states: {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(
-                fromEventObservable(() =>
-                  interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
-                ),
-                'int'
-              );
+              const ref = spawn(eventObservableBehavior, 'int');
 
               return ref;
             }
@@ -527,7 +518,7 @@ describe('spawning event observables', () => {
         id: 'observable',
         initial: 'idle',
         context: {
-          observableRef: undefined
+          observableRef: undefined! as ActorRef<any, any>
         },
         states: {
           idle: {
@@ -599,10 +590,7 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: send(
-                { type: 'ACTIVATE' },
-                { to: (ctx) => ctx.existingRef }
-              )
+              actions: sendTo((ctx) => ctx.existingRef!, { type: 'ACTIVATE' })
             }
           }
         },
@@ -653,7 +641,7 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: send({ type: 'ACTIVATE' }, { to: 'existing' })
+              actions: sendTo('existing', { type: 'ACTIVATE' })
             }
           }
         },
@@ -692,16 +680,13 @@ describe('communicating with spawned actors', () => {
       },
       states: {
         pending: {
-          entry: send({ type: 'ACTIVATE' }, { to: () => existingService }),
+          entry: sendTo(existingService, { type: 'ACTIVATE' }),
           on: {
             'EXISTING.DONE': 'success'
           },
           after: {
             100: {
-              actions: send(
-                { type: 'ACTIVATE' },
-                { to: (ctx) => ctx.existingRef }
-              )
+              actions: sendTo((ctx) => ctx.existingRef, { type: 'ACTIVATE' })
             }
           }
         },
@@ -977,7 +962,7 @@ describe('actors', () => {
     });
 
     it('behaviors should have reference to the parent', (done) => {
-      const pongBehavior: Behavior<EventObject, undefined> = {
+      const pongBehavior: ActorBehavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           const _event = toSCXMLEvent(event);
           if (_event.name === 'PING') {
@@ -1001,7 +986,7 @@ describe('actors', () => {
         }),
         states: {
           waiting: {
-            entry: send({ type: 'PING' }, { to: (ctx) => ctx.ponger! }),
+            entry: sendTo((ctx) => ctx.ponger!, { type: 'PING' }),
             invoke: {
               id: 'ponger',
               src: pongBehavior
@@ -1191,5 +1176,51 @@ describe('actors', () => {
     service.start();
 
     expect(service.getSnapshot().value).toBe('done');
+  });
+
+  it('should not restart a completed observable', () => {
+    let subscriptionCount = 0;
+    const machine = createMachine({
+      invoke: {
+        id: 'observable',
+        src: fromObservable(() => {
+          subscriptionCount++;
+          return of(42);
+        })
+      }
+    });
+
+    const actor = interpret(machine).start();
+    const persistedState = actor.getPersistedState();
+
+    interpret(machine, {
+      state: persistedState
+    }).start();
+
+    // Will be 2 if the observable is resubscribed
+    expect(subscriptionCount).toBe(1);
+  });
+
+  it('should not restart a completed event observable', () => {
+    let subscriptionCount = 0;
+    const machine = createMachine({
+      invoke: {
+        id: 'observable',
+        src: fromEventObservable(() => {
+          subscriptionCount++;
+          return of({ type: 'TEST' });
+        })
+      }
+    });
+
+    const actor = interpret(machine).start();
+    const persistedState = actor.getPersistedState();
+
+    interpret(machine, {
+      state: persistedState
+    }).start();
+
+    // Will be 2 if the event observable is resubscribed
+    expect(subscriptionCount).toBe(1);
   });
 });

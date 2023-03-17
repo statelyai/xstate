@@ -1,34 +1,36 @@
-import { EventObject, InvokeDefinition, MachineContext } from '../types';
-import { invoke as invokeActionType } from '../actionTypes';
-import { isActorRef } from '../actors';
-import { createDynamicAction } from '../../actions/dynamicAction';
+import { EventObject, InvokeDefinition, MachineContext } from '../types.js';
+import { invoke as invokeActionType } from '../actionTypes.js';
+import { isActorRef } from '../actors/index.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
 import {
   AnyInterpreter,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
   InvokeActionObject,
   InvokeSourceDefinition
-} from '..';
-import { actionTypes, error } from '../actions';
-import { mapContext, warn } from '../utils';
-import { ActorStatus, interpret } from '../interpreter';
-import { cloneState } from '../State';
-import { IS_PRODUCTION } from '../environment';
+} from '../index.js';
+import { actionTypes, error } from '../actions.js';
+import { mapContext, warn } from '../utils.js';
+import { ActorStatus, interpret } from '../interpreter.js';
+import { cloneState } from '../State.js';
+import { IS_PRODUCTION } from '../environment.js';
 
 export function invoke<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
   invokeDef: InvokeDefinition<TContext, TEvent>
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   InvokeActionObject,
   DynamicInvokeActionObject<TContext, TEvent>['params']
 > {
   return createDynamicAction(
     { type: invokeActionType, params: invokeDef },
-    (_event, { state }) => {
+    (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
       const { id, data, src, meta } = invokeDef;
 
@@ -54,18 +56,24 @@ export function invoke<
             typeof behaviorImpl === 'function'
               ? behaviorImpl(state.context, _event.data, {
                   id,
-                  data: data && mapContext(data, state.context, _event),
+                  data: data && mapContext(data, state.context, _event as any),
                   src,
                   _event,
                   meta
                 })
               : behaviorImpl;
 
+          const ref = interpret(behavior, {
+            id,
+            src,
+            parent: actorContext?.self
+          });
+
           resolvedInvokeAction = {
             type,
             params: {
               ...invokeDef,
-              ref: interpret(behavior, { id })
+              ref
             }
           } as InvokeActionObject;
         }
@@ -93,7 +101,6 @@ export function invoke<
           }
           return;
         }
-        ref._parent = interpreter; // TODO: fix
         actorCtx.defer(() => {
           if (actorRef.status === ActorStatus.Stopped) {
             return;

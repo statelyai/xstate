@@ -1,6 +1,6 @@
-import { createDynamicAction } from '../../actions/dynamicAction';
-import { stop as stopActionType } from '../actionTypes';
-import { ActorStatus } from '../interpreter';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
+import { stop as stopActionType } from '../actionTypes.js';
+import { ActorStatus } from '../interpreter.js';
 import {
   ActorContext,
   ActorRef,
@@ -10,8 +10,8 @@ import {
   Expr,
   MachineContext,
   StopActionObject
-} from '../types';
-import { isFunction } from '../utils';
+} from '../types.js';
+import { isFunction } from '../utils.js';
 
 /**
  * Stops an actor.
@@ -21,17 +21,19 @@ import { isFunction } from '../utils';
 
 export function stop<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
   actorRef:
     | string
     | ActorRef<any>
-    | Expr<TContext, TEvent, ActorRef<any> | string>
+    | Expr<TContext, TExpressionEvent, ActorRef<any> | string>
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   StopActionObject,
-  DynamicStopActionObject<TContext, TEvent>['params']
+  DynamicStopActionObject<TContext, TExpressionEvent>['params']
 > {
   const actor = actorRef;
 

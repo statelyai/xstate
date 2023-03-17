@@ -1,5 +1,11 @@
 # Models
 
+::: warning
+
+The `createModel(...)` function is deprecated and will be removed in XState version 5. It is recommended to use [Typegen](https://stately.ai/blog/introducing-typescript-typegen-for-xstate) instead.
+
+:::
+
 In XState, you can model a machine's `context` and `events` externally by using `createModel(...)`. This provides a convenient way to strongly type `context` and `events`, as well as helpers for event creation, assignment and other implementation details in the future.
 
 Using `createModel(...)` is _completely optional_, and is meant to improve the developer experience. The main reasons for using it are:
@@ -98,7 +104,7 @@ const machine = userModel.createMachine(
   {
     actions: {
       assignAge: userModel.assign({
-        age: (_, event) => event.value // inferred
+        age: (_, event) => event.value
       })
     }
   }

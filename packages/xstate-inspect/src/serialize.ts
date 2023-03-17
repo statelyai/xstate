@@ -1,6 +1,6 @@
 import { AnyState, AnyStateMachine } from 'xstate';
-import { Replacer } from './types';
-import { stringify } from './utils';
+import { Replacer } from './types.js';
+import { stringify } from './utils.js';
 
 export function selectivelyStringify<T extends object>(
   value: T,
@@ -21,9 +21,10 @@ export function selectivelyStringify<T extends object>(
 }
 
 export function stringifyState(state: AnyState, replacer?: Replacer): string {
-  const { machine, configuration, _internalQueue, ...stateToStringify } = state;
+  const { machine, configuration, _internalQueue, tags, ...stateToStringify } =
+    state;
   return selectivelyStringify(
-    stateToStringify,
+    { ...stateToStringify, tags: Array.from(tags) },
     ['context', 'event', '_event', 'actions'],
     replacer
   );

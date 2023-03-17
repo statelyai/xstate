@@ -1,7 +1,13 @@
-import { assign, interpret, MachineContext, StateMachine } from '../src';
-import { fromCallback, fromPromise } from '../src/actors';
-import { createMachine } from '../src/Machine';
-import { TypegenMeta } from '../src/typegenTypes';
+import {
+  assign,
+  interpret,
+  MachineContext,
+  StateMachine
+} from '../src/index.js';
+import { fromPromise } from '../src/actors/index.js';
+import { fromCallback } from '../src/actors/index.js';
+import { createMachine } from '../src/Machine.js';
+import { TypegenMeta } from '../src/typegenTypes.js';
 
 describe('typegen types', () => {
   it('should not require implementations when creating machine using `createMachine`', () => {

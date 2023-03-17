@@ -10,7 +10,7 @@ import {
   toStateValue,
   mapContext,
   toSCXMLEvent
-} from './utils';
+} from './utils.js';
 import {
   BaseActionObject,
   EventObject,
@@ -26,24 +26,24 @@ import {
   RaiseActionObject,
   InitialTransitionConfig,
   MachineContext
-} from './types';
-import { cloneState, State } from './State';
+} from './types.js';
+import { cloneState, State } from './State.js';
 import {
   after,
   done,
   toActionObjects,
   actionTypes,
   resolveActionObject
-} from './actions';
-import { send } from './actions/send';
-import { cancel } from './actions/cancel';
-import { invoke } from './actions/invoke';
-import { stop } from './actions/stop';
-import { IS_PRODUCTION } from './environment';
-import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
-import { evaluateGuard, toGuardDefinition } from './guards';
-import type { StateNode } from './StateNode';
-import { isDynamicAction } from '../actions/dynamicAction';
+} from './actions.js';
+import { send } from './actions/send.js';
+import { cancel } from './actions/cancel.js';
+import { invoke } from './actions/invoke.js';
+import { stop } from './actions/stop.js';
+import { IS_PRODUCTION } from './environment.js';
+import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.js';
+import { evaluateGuard, toGuardDefinition } from './guards.js';
+import type { StateNode } from './StateNode.js';
+import { isDynamicAction } from '../actions/dynamicAction.js';
 import {
   ActorContext,
   AnyEventObject,
@@ -58,8 +58,8 @@ import {
   SendActionObject,
   StateFromMachine
 } from '.';
-import { stopSignalType } from './actors';
-import { ActorStatus } from './interpreter';
+import { stopSignalType } from './actors/index.js';
+import { ActorStatus } from './interpreter.js';
 
 type Configuration<
   TContext extends MachineContext,
@@ -408,10 +408,8 @@ export function formatTransitions<
   if (Array.isArray(stateNode.config.on)) {
     transitionConfigs.push(...stateNode.config.on);
   } else if (stateNode.config.on) {
-    const {
-      [WILDCARD]: wildcardConfigs = [],
-      ...namedTransitionConfigs
-    } = stateNode.config.on;
+    const { [WILDCARD]: wildcardConfigs = [], ...namedTransitionConfigs } =
+      stateNode.config.on;
     for (const eventType of Object.keys(namedTransitionConfigs)) {
       if (eventType === NULL_EVENT) {
         throw new Error(
@@ -1460,10 +1458,6 @@ function exitStates(
     historyValue
   );
 
-  for (const sn of statesToExit) {
-    actions.push(...sn.invoke.map((def) => stop(def.id)));
-  }
-
   statesToExit.sort((a, b) => b.order - a.order);
 
   // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
@@ -1478,14 +1472,13 @@ function exitStates(
           return sn.parent === exitStateNode;
         };
       }
-      historyValue[historyNode.id] = Array.from(mutConfiguration).filter(
-        predicate
-      );
+      historyValue[historyNode.id] =
+        Array.from(mutConfiguration).filter(predicate);
     }
   }
 
   for (const s of statesToExit) {
-    actions.push(...s.exit.flat());
+    actions.push(...s.exit.flat(), ...s.invoke.map((def) => stop(def.id)));
     mutConfiguration.delete(s);
   }
 }
@@ -1503,7 +1496,7 @@ export function resolveActionsAndContext<
 } {
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
-  const raiseActions: Array<RaiseActionObject<TEvent>> = [];
+  const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
   let intermediateState = currentState;
 
   function handleAction(action: BaseActionObject): void {
@@ -1535,9 +1528,10 @@ export function resolveActionsAndContext<
       intermediateState = nextState;
 
       if (
-        resolvedAction.type === actionTypes.raise ||
-        (resolvedAction.type === actionTypes.send &&
-          (resolvedAction as SendActionObject).params.internal)
+        (resolvedAction.type === actionTypes.raise ||
+          (resolvedAction.type === actionTypes.send &&
+            (resolvedAction as SendActionObject).params.internal)) &&
+        typeof (resolvedAction as any).params.delay !== 'number'
       ) {
         raiseActions.push(resolvedAction);
       }

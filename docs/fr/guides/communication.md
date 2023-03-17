@@ -131,15 +131,16 @@ The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` 
 If a Promise rejects, the `onError` transition will be taken with a `{ type: 'error.platform' }` event. The error data is available on the event's `data` property:
 
 ```js
-const search = (context, event) => new Promise((resolve, reject) => {
-  if (!event.query.length) {
-    return reject('No query specified');
-    // or:
-    // throw new Error('No query specified');
-  }
+const search = (context, event) =>
+  new Promise((resolve, reject) => {
+    if (!event.query.length) {
+      return reject('No query specified');
+      // or:
+      // throw new Error('No query specified');
+    }
 
-  return resolve(getSearchResults(event.query));
-});
+    return resolve(getSearchResults(event.query));
+  });
 
 // ...
 const searchMachine = createMachine({
@@ -147,7 +148,7 @@ const searchMachine = createMachine({
   initial: 'idle',
   context: {
     results: undefined,
-    errorMessage: undefined,
+    errorMessage: undefined
   },
   states: {
     idle: {
@@ -157,7 +158,7 @@ const searchMachine = createMachine({
     },
     searching: {
       invoke: {
-        id: 'search'
+        id: 'search',
         src: search,
         onError: {
           target: 'failure',

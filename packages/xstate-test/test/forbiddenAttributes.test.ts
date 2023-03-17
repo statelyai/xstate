@@ -1,5 +1,5 @@
 import { createMachine, send } from 'xstate';
-import { createTestModel } from '../src';
+import { createTestModel } from '../src/index.js';
 
 describe('Forbidden attributes', () => {
   it('Should not let you declare invocations on your test machine', () => {

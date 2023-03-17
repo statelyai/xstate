@@ -1,11 +1,11 @@
 import { AnyState } from '.';
-import { errorExecution, errorPlatform } from './actionTypes';
-import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
-import { IS_PRODUCTION } from './environment';
-import type { StateNode } from './StateNode';
+import { errorExecution, errorPlatform } from './actionTypes.js';
+import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.js';
+import { IS_PRODUCTION } from './environment.js';
+import type { StateNode } from './StateNode.js';
 import type {
-  Behavior,
-  BehaviorCreator,
+  ActorBehavior,
+  ActorBehaviorCreator,
   EventObject,
   EventType,
   InvokeConfig,
@@ -22,8 +22,7 @@ import type {
   Subscribable,
   TransitionConfig,
   TransitionConfigTarget
-} from './types';
-import { AnyStateMachine } from './types';
+} from './types.js';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -278,7 +277,7 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   return false;
 }
 
-export function isBehavior(value: any): value is Behavior<any, any> {
+export function isBehavior(value: any): value is ActorBehavior<any, any> {
   return (
     value !== null &&
     typeof value === 'object' &&
@@ -349,10 +348,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export function isStateMachine(value: any): value is AnyStateMachine {
-  return !!value && '__xstatenode' in value;
-}
-
 export const uniqueId = (() => {
   let currentId = 0;
 
@@ -400,8 +395,7 @@ export function toTransitionConfigArray<
 >(
   event: TEvent['type'] | typeof NULL_EVENT | '*',
   configLike: SingleOrArray<
-    | TransitionConfig<TContext, TEvent>
-    | TransitionConfigTarget<TContext, TEvent>
+    TransitionConfig<TContext, TEvent> | TransitionConfigTarget
   >
 ): Array<
   TransitionConfig<TContext, TEvent> & {
@@ -411,8 +405,7 @@ export function toTransitionConfigArray<
   const transitions = toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
-      typeof transitionLike === 'string' ||
-      isStateMachine(transitionLike)
+      typeof transitionLike === 'string'
     ) {
       return { target: transitionLike, event };
     }
@@ -473,8 +466,8 @@ export function toInvokeConfig<
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string
-    | BehaviorCreator<TContext, TEvent>
-    | Behavior<any, any>,
+    | ActorBehaviorCreator<TContext, TEvent>
+    | ActorBehavior<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object') {

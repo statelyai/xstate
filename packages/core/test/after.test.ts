@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src';
+import { createMachine, interpret } from '../src/index.js';
 import { after, actionTypes } from '../src/actions';
 
 const lightMachine = createMachine({
@@ -160,9 +160,9 @@ describe('delayed transitions', () => {
 
     const withAfterState = machine.transition(undefined, { type: 'next' });
 
-    interpret(machine)
+    interpret(machine, { state: withAfterState })
       .onDone(() => done())
-      .start(withAfterState);
+      .start();
   });
 
   it('should execute an after transition after starting from a persisted state', (done) => {
@@ -190,7 +190,7 @@ describe('delayed transitions', () => {
 
     const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
 
-    service = interpret(createMyMachine()).start(persistedState);
+    service = interpret(createMyMachine(), { state: persistedState }).start();
 
     service.send({ type: 'NEXT' });
 

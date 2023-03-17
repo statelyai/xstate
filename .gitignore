@@ -37,6 +37,10 @@ _examples/
 __examples/
 *.tsbuildinfo
 
+# JetBrains IDE's
+.idea
+.fleet
+
 # Documentation
 docs-src/
 netlify/

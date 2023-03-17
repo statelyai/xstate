@@ -1,5 +1,4 @@
-export { createTestModel, createTestMachine } from './machine';
-export { TestModel, configure } from './TestModel';
-export type { TestModelDefaults } from './TestModel';
-export * from './types';
-export * from './pathGenerators';
+export { createTestModel, createTestMachine } from './machine.js';
+export { TestModel } from './TestModel.js';
+export * from './types.js';
+export * from './pathGenerators.js';

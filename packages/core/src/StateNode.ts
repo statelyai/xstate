@@ -7,7 +7,7 @@ import {
   toInvokeSource,
   toTransitionConfigArray,
   createInvokeId
-} from './utils';
+} from './utils.js';
 import type {
   EventObject,
   HistoryStateNodeConfig,
@@ -26,20 +26,20 @@ import type {
   InitialTransitionDefinition,
   MachineContext,
   BaseActionObject
-} from './types';
-import type { State } from './State';
-import * as actionTypes from './actionTypes';
-import { toActionObjects } from './actions';
-import { formatInitialTransition, formatTransition } from './stateUtils';
+} from './types.js';
+import type { State } from './State.js';
+import * as actionTypes from './actionTypes.js';
+import { toActionObjects } from './actions.js';
+import { formatInitialTransition, formatTransition } from './stateUtils.js';
 import {
   getDelayedTransitions,
   formatTransitions,
   getCandidates
-} from './stateUtils';
-import { evaluateGuard } from './guards';
-import type { StateMachine } from './StateMachine';
-import { memo } from './memo';
-import { NULL_EVENT } from './constants';
+} from './stateUtils.js';
+import { evaluateGuard } from './guards.js';
+import type { StateMachine } from './StateMachine.js';
+import { memo } from './memo.js';
+import { NULL_EVENT } from './constants.js';
 
 const EMPTY_OBJECT = {};
 
@@ -152,19 +152,21 @@ export class StateNode<
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
 
-    this.states = (this.config.states
-      ? mapValues(
-          this.config.states,
-          (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
-            const stateNode = new StateNode(stateConfig, {
-              _parent: this,
-              _key: key as string,
-              _machine: this.machine
-            });
-            return stateNode;
-          }
-        )
-      : EMPTY_OBJECT) as StateNodesConfig<TContext, TEvent>;
+    this.states = (
+      this.config.states
+        ? mapValues(
+            this.config.states,
+            (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
+              const stateNode = new StateNode(stateConfig, {
+                _parent: this,
+                _key: key as string,
+                _machine: this.machine
+              });
+              return stateNode;
+            }
+          )
+        : EMPTY_OBJECT
+    ) as StateNodesConfig<TContext, TEvent>;
 
     if (this.type === 'compound' && !this.config.initial) {
       throw new Error(
@@ -194,10 +196,9 @@ export class StateNode<
   public _initialize() {
     this.transitions = formatTransitions(this);
     if (this.config.always) {
-      this.always = toTransitionConfigArray(
-        NULL_EVENT,
-        this.config.always
-      ).map((t) => formatTransition(this, t));
+      this.always = toTransitionConfigArray(NULL_EVENT, this.config.always).map(
+        (t) => formatTransition(this, t)
+      );
     }
 
     Object.keys(this.states).forEach((key) => {
@@ -271,6 +272,7 @@ export class StateNode<
         ) {
           this.machine.options.actors = {
             ...this.machine.options.actors,
+            // TODO: this should accept `src` as-is
             [resolvedId]: typeof src === 'function' ? src : () => src
           };
         }

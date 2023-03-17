@@ -7,9 +7,9 @@ import {
   interpret,
   MachineImplementationsFrom,
   StateValueFrom,
-  Behavior,
+  ActorBehavior,
   ActorRefFrom
-} from '../src';
+} from '../src/index.js';
 import { TypegenMeta } from '../src/typegenTypes';
 
 describe('ContextFrom', () => {
@@ -319,11 +319,35 @@ describe('SnapshotFrom', () => {
     // @ts-expect-error
     acceptState("isn't any");
   });
+
+  it('should return state from a machine without context', () => {
+    const machine = createMachine({});
+
+    function acceptState(_state: SnapshotFrom<typeof machine>) {}
+
+    acceptState(machine.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a machine with context', () => {
+    const machine = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    function acceptState(_state: SnapshotFrom<typeof machine>) {}
+
+    acceptState(machine.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
 });
 
 describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on a `Behavior`', () => {
-    const behavior: Behavior<{ type: 'TEST' }> = {
+    const behavior: ActorBehavior<{ type: 'TEST' }> = {
       transition: () => {},
       getInitialState: () => undefined
     };
