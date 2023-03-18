@@ -299,8 +299,7 @@ export class StateMachine<
       this.createState({
         value: {}, // TODO: this is computed in state constructor
         context,
-        _event: createInitEvent({}) as unknown as SCXML.Event<TEvent>, // TODO: fix
-        _sessionid: actorCtx?.sessionId ?? undefined,
+        _event: createInitEvent({}) as unknown as SCXML.Event<TEvent>,
         actions: [],
         meta: undefined,
         configuration: config,

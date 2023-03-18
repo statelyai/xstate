@@ -10,8 +10,8 @@ const greetMachine = createMachine({
     greeting: `Hello ${input.name}!`
   }),
   entry: (_, event) => {
-    event.type // 'xstate.init'
-    event.input // { name: 'David' }
+    event.type; // 'xstate.init'
+    event.input; // { name: 'David' }
   }
   // ...
 });
