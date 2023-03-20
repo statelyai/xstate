@@ -7,7 +7,6 @@ import {
   InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
-  InterpreterStatus,
   StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop } from './types.js';
@@ -79,9 +78,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
     service.start();
 
     return () => {
-      service.stop();
-      service.status = InterpreterStatus.NotStarted;
-      (service as any)._initState();
+      service.reset();
     };
   }, []);
 
