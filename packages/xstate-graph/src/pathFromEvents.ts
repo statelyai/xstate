@@ -5,6 +5,7 @@ import {
   SerializedState,
   SimpleBehavior,
   StatePath,
+  Step,
   Steps,
   TraversalOptions
 } from './types';
@@ -82,10 +83,31 @@ export function getPathsFromEvents<
     return [];
   }
 
+  const newsteps: Step<TState, TEvent>[] = [];
+
+  steps.forEach((step, i) => {
+    if (i === 0) {
+      newsteps.push({
+        state: step.state,
+        event: { type: 'xstate.init' } as TEvent
+      });
+    } else {
+      newsteps.push({
+        state: step.state,
+        event: steps[i - 1].event
+      });
+    }
+  });
+
+  newsteps.push({
+    state: state,
+    event: steps[steps.length - 1]?.event ?? { type: 'xstate.init' }
+  });
+
   return [
     {
       state,
-      steps,
+      steps: newsteps,
       weight: steps.length
     }
   ];

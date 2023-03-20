@@ -16,7 +16,7 @@ export function simpleStringify(value: any): string {
 }
 
 export function formatPathTestResult(
-  path: StatePath<any, any>,
+  _path: StatePath<any, any>,
   testPathResult: TestPathResult,
   options?: Partial<TestResultStringOptions>
 ): string {
@@ -29,9 +29,6 @@ export function formatPathTestResult(
   };
 
   const { formatColor, serializeState, serializeEvent } = resolvedOptions;
-
-  const { state } = path;
-  const targetStateString = serializeState(state, null);
 
   let errMessage = '';
   let hasFailed = false;
@@ -57,17 +54,8 @@ export function formatPathTestResult(
             : formatColor('green', eventString)
         }`;
 
-        return [stateResult, eventResult].join('\n');
+        return [eventResult, stateResult].join('\n');
       })
-      .concat(
-        `\tState: ${
-          hasFailed
-            ? formatColor('gray', targetStateString)
-            : testPathResult.state.error
-            ? formatColor('red', targetStateString)
-            : formatColor('green', targetStateString)
-        }`
-      )
       .join('\n\n');
 
   return errMessage;

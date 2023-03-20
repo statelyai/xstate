@@ -5,6 +5,7 @@ import {
   SimpleBehavior,
   StatePath,
   StatePlanMap,
+  Step,
   TraversalOptions
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
@@ -83,7 +84,7 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   }
 
   const statePlanMap: StatePlanMap<TState, TEvent> = {};
-  const paths: Array<StatePath<TState, TEvent>> = [];
+  let paths: Array<StatePath<TState, TEvent>> = [];
 
   weightMap.forEach(
     ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
@@ -117,8 +118,33 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   );
 
   if (resolvedOptions.toState) {
-    return paths.filter((path) => resolvedOptions.toState!(path.state));
+    paths = paths.filter((path) => resolvedOptions.toState!(path.state));
   }
+
+  paths.forEach((path) => {
+    const steps: Step<TState, TEvent>[] = [];
+
+    path.steps.forEach((step, i) => {
+      if (i === 0) {
+        steps.push({
+          state: step.state,
+          event: { type: 'xstate.init' } as TEvent
+        });
+      } else {
+        steps.push({
+          state: step.state,
+          event: path.steps[i - 1].event
+        });
+      }
+    });
+
+    steps.push({
+      state: path.state,
+      event: path.steps[path.steps.length - 1]?.event ?? { type: 'xstate.init' }
+    });
+
+    path.steps = steps;
+  });
 
   return paths;
 }

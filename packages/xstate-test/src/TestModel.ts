@@ -14,7 +14,6 @@ import type {
 } from '@xstate/graph';
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
-import { deduplicatePaths } from './deduplicatePaths';
 import { createShortestPathsGen, createSimplePathsGen } from './pathGenerators';
 import type {
   EventExecutor,
@@ -26,6 +25,7 @@ import type {
   TestStepResult
 } from './types';
 import { formatPathTestResult, getDescription, simpleStringify } from './utils';
+import { deduplicatePaths } from './deduplicatePaths';
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -220,27 +220,22 @@ export class TestModel<TState, TEvent extends EventObject> {
         testPathResult.steps.push(testStepResult);
 
         try {
+          if (step.event.type !== 'xstate.init') {
+            this.testTransitionSync(params, step);
+          }
+        } catch (err) {
+          testStepResult.event.error = err;
+
+          throw err;
+        }
+
+        try {
           this.testStateSync(params, step.state, options);
         } catch (err) {
           testStepResult.state.error = err;
 
           throw err;
         }
-
-        try {
-          this.testTransitionSync(params, step);
-        } catch (err) {
-          testStepResult.event.error = err;
-
-          throw err;
-        }
-      }
-
-      try {
-        this.testStateSync(params, path.state, options);
-      } catch (err) {
-        testPathResult.state.error = err.message;
-        throw err;
       }
     } catch (err) {
       // TODO: make option
@@ -274,27 +269,22 @@ export class TestModel<TState, TEvent extends EventObject> {
         testPathResult.steps.push(testStepResult);
 
         try {
+          if (step.event.type !== 'xstate.init') {
+            await this.testTransition(params, step);
+          }
+        } catch (err) {
+          testStepResult.event.error = err;
+
+          throw err;
+        }
+
+        try {
           await this.testState(params, step.state, options);
         } catch (err) {
           testStepResult.state.error = err;
 
           throw err;
         }
-
-        try {
-          await this.testTransition(params, step);
-        } catch (err) {
-          testStepResult.event.error = err;
-
-          throw err;
-        }
-      }
-
-      try {
-        await this.testState(params, path.state, options);
-      } catch (err) {
-        testPathResult.state.error = err.message;
-        throw err;
       }
     } catch (err) {
       // TODO: make option

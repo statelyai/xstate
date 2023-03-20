@@ -4,12 +4,13 @@ import {
   SerializedState,
   SimpleBehavior,
   StatePath,
+  Step,
   TraversalOptions,
   VisitedContext
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
-import { flatten } from 'xstate/src/utils';
+import { flatten } from 'xstate/lib/utils';
 
 export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -72,9 +73,8 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
       for (const serializedEvent of Object.keys(
         adjacency[fromStateSerial].transitions
       ) as SerializedEvent[]) {
-        const { state: nextState, event: subEvent } = adjacency[
-          fromStateSerial
-        ].transitions[serializedEvent];
+        const { state: nextState, event: subEvent } =
+          adjacency[fromStateSerial].transitions[serializedEvent];
 
         if (!(serializedEvent in adjacency[fromStateSerial].transitions)) {
           continue;
@@ -106,11 +106,38 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
     util(fromStateSerial, nextStateSerial);
   }
 
-  const simplePaths = flatten(Object.values(pathMap).map((p) => p.paths));
+  let simplePaths = flatten(Object.values(pathMap).map((p) => p.paths));
 
   if (resolvedOptions.toState) {
-    return simplePaths.filter((path) => resolvedOptions.toState!(path.state));
+    simplePaths = simplePaths.filter((path) =>
+      resolvedOptions.toState!(path.state)
+    );
   }
+
+  simplePaths.forEach((path) => {
+    const steps: Step<TState, TEvent>[] = [];
+
+    path.steps.forEach((step, i) => {
+      if (i === 0) {
+        steps.push({
+          state: step.state,
+          event: { type: 'xstate.init' } as TEvent
+        });
+      } else {
+        steps.push({
+          state: step.state,
+          event: path.steps[i - 1].event
+        });
+      }
+    });
+
+    steps.push({
+      state: path.state,
+      event: path.steps[path.steps.length - 1]?.event ?? { type: 'xstate.init' }
+    });
+
+    path.steps = steps;
+  });
 
   return simplePaths;
 }

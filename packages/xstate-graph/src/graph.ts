@@ -211,7 +211,9 @@ export function joinPaths<TState, TEvent extends EventObject>(
 
   return {
     state: path2.state,
-    steps: path1.steps.concat(path2.steps),
+    // Do not include the first step of the second path,
+    // since it is replaced by the last step of the first path
+    steps: path1.steps.concat(path2.steps.slice(1)),
     weight: path1.weight + path2.weight
   };
 }

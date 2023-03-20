@@ -207,7 +207,7 @@ describe('@xstate/graph', () => {
         shortestPaths.find((path) =>
           path.state.matches(lightMachine.initialState.value)
         )!.steps
-      ).toHaveLength(0);
+      ).toHaveLength(1);
     });
 
     xit('should not throw when a condition is present', () => {
@@ -369,7 +369,7 @@ describe('@xstate/graph', () => {
         getMachineSimplePaths(lightMachine).find((p) =>
           p.state.matches(lightMachine.initialState.value)
         )!.steps
-      ).toHaveLength(0);
+      ).toHaveLength(1);
       expect(
         getMachineSimplePaths(equivMachine).find((p) =>
           p.state.matches(equivMachine.initialState.value)
@@ -379,7 +379,7 @@ describe('@xstate/graph', () => {
         getMachineSimplePaths(equivMachine).find((p) =>
           p.state.matches(equivMachine.initialState.value)
         )!.steps
-      ).toHaveLength(0);
+      ).toHaveLength(1);
     });
 
     it('should return value-based paths', () => {
@@ -622,7 +622,7 @@ it('should provide previous state for serializeState()', () => {
     shortestPaths
       .filter((path) => path.state.matches('a'))
       .map((path) => path.steps.length)
-  ).toEqual([0, 3]);
+  ).toEqual([1, 4]);
 });
 
 it.each([getMachineShortestPaths, getMachineSimplePaths])(
@@ -647,15 +647,15 @@ it.each([getMachineShortestPaths, getMachineSimplePaths])(
       fromState: machine.resolveState(State.from('b'))
     });
 
-    // Instead of taking 1 step to reach state 'b', there should
-    // exist a path that takes 0 steps
+    // Instead of taking 2 step to reach state 'b', there should
+    // exist a path that takes 1 step
     expect(
-      paths.find((path) => path.state.matches('b') && path.steps.length === 0)
+      paths.find((path) => path.state.matches('b') && path.steps.length === 1)
     ).toBeTruthy();
 
-    // Instead of starting at state 'a', it should take > 0 steps to reach 'a'
+    // Instead of starting at state 'a', it should take > 1 step to reach 'a'
     expect(
-      paths.find((path) => path.state.matches('a') && path.steps.length > 0)
+      paths.find((path) => path.state.matches('a') && path.steps.length > 1)
     ).toBeTruthy();
   }
 );
@@ -690,6 +690,7 @@ describe('joinPaths()', () => {
     expect(pathToBAndC.steps.map((step) => step.event.type))
       .toMatchInlineSnapshot(`
       Array [
+        "xstate.init",
         "NEXT",
         "TO_C",
       ]

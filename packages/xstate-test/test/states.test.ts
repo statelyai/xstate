@@ -26,22 +26,26 @@ describe('states', () => {
       })
     );
 
-    await testUtils.testModel(testModel, {
-      states: {
-        a: (state) => {
-          testedStateValues.push(state.value);
-        },
-        b: (state) => {
-          testedStateValues.push(state.value);
-        },
-        'b.b1': (state) => {
-          testedStateValues.push(state.value);
-        },
-        'b.b2': (state) => {
-          testedStateValues.push(state.value);
+    const shortestPaths = testModel.getShortestPaths();
+
+    for (const path of shortestPaths) {
+      await path.test({
+        states: {
+          a: (state) => {
+            testedStateValues.push(state.value);
+          },
+          b: (state) => {
+            testedStateValues.push(state.value);
+          },
+          'b.b1': (state) => {
+            testedStateValues.push(state.value);
+          },
+          'b.b2': (state) => {
+            testedStateValues.push(state.value);
+          }
         }
-      }
-    });
+      });
+    }
 
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
