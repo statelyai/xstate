@@ -1910,4 +1910,41 @@ describe('interpreter', () => {
       done();
     });
   });
+
+  it('should not error if the childMachine uses sendParent when not invoked within a parent machine', (done) => {
+    const orphanMachine = createMachine({
+      id: 'orphan',
+      initial: 'start',
+      context: {
+        password: 'hunter2'
+      },
+      states: {
+        start: {
+          entry: sendParent((ctx) => ({
+            type: 'NEXT',
+            password: ctx.password
+          })),
+          always: 'finish'
+        },
+        finish: {
+          type: 'final'
+        }
+      }
+    });
+    const actor = interpret(orphanMachine);
+    actor.subscribe((state) => {
+      expect(state.matches('finish')).toBe(true);
+    });
+    actor.start();
+
+    actor.system.deadLetters.subscribe((deadLetters) => {
+      if (deadLetters.length) {
+        expect(deadLetters[0].event.data).toEqual({
+          type: 'NEXT',
+          password: 'hunter2'
+        });
+        done();
+      }
+    });
+  });
 });

@@ -1653,6 +1653,8 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
    * The source definition.
    */
   src?: string;
+
+  system?: ActorSystem<any>;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1891,7 +1893,7 @@ export interface ActorContext<
   system: TSystem;
 }
 
-export type AnyActorContext = ActorContext<any, any, any>;
+export type AnyActorContext = ActorContext<any, any, ActorSystem<any>>;
 
 export interface ActorBehavior<
   TEvent extends EventObject,
@@ -2031,7 +2033,9 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _unregister: (actorRef: AnyActorRef) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  deadLetters: AnyActorRef;
 }
+
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
   'value' | 'output' | 'context' | '_event' | 'done' | 'historyValue'

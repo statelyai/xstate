@@ -143,7 +143,7 @@ export class Interpreter<
     const { clock, logger, parent, id, key } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem();
+    this.system = parent?.system ?? resolvedOptions.system ?? createSystem();
 
     if (key) {
       this.system.set(key, this);

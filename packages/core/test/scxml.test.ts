@@ -153,7 +153,7 @@ const testGroups: Record<string, string[]> = {
     'test191.txml',
     'test192.txml',
     'test193.txml',
-    'test194.txml',
+    // 'test194.txml', // sending to invalid targets does not throw (dead letter queue)
     // 'test198.txml', // origintype not implemented yet
     // 'test199.txml', // send type not checked
     'test200.txml',

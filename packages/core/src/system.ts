@@ -1,10 +1,36 @@
-import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.js';
+import { fromReducer } from './actors/reducer.js';
+import { interpret } from './interpreter.js';
+import {
+  ActorSystem,
+  ActorSystemInfo,
+  AnyActorRef,
+  AnyEventObject
+} from './types.js';
+
+const deadLettersBehavior = fromReducer<
+  any,
+  {
+    type: 'deadLetter';
+    event: AnyEventObject;
+  },
+  any
+>((state, event) => {
+  if (event.type === 'deadLetter') {
+    state.push({
+      event: event.event
+    });
+  }
+
+  return state;
+}, []);
 
 export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
   let sessionIdIndex = 0;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
+
+  let deadLetters;
 
   const system: ActorSystem<T> = {
     _register: (actorRef) => {
@@ -27,6 +53,15 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
     set: (key, actorRef) => {
       keyedActors.set(key, actorRef);
       reverseKeyedActors.set(actorRef, key);
+    },
+    get deadLetters() {
+      if (!deadLetters) {
+        deadLetters = interpret(deadLettersBehavior, {
+          system
+        }).start();
+      }
+
+      return deadLetters;
     }
   };
 
