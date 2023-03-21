@@ -48,11 +48,11 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   for (const serializedState of unvisited) {
     const prevState = stateMap.get(serializedState);
     const { weight } = weightMap.get(serializedState)!;
-    for (const event of Object.keys(
+    for (const prevEvent of Object.keys(
       adjacency[serializedState].transitions
     ) as SerializedEvent[]) {
       const { state: nextState, event: eventObject } =
-        adjacency[serializedState].transitions[event];
+        adjacency[serializedState].transitions[prevEvent];
       const nextSerializedState = serializeState(
         nextState,
         eventObject,
@@ -86,36 +86,37 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   const statePlanMap: StatePlanMap<TState, TEvent> = {};
   let paths: Array<StatePath<TState, TEvent>> = [];
 
-  weightMap.forEach(
-    ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
-      const state = stateMap.get(stateSerial)!;
-      paths.push({
-        state,
-        steps: !fromState
-          ? []
-          : statePlanMap[fromState].paths[0].steps.concat({
-              state: stateMap.get(fromState)!,
-              event: fromEvent!
-            }),
-        weight
-      });
-      statePlanMap[stateSerial] = {
-        state,
-        paths: [
-          {
-            state,
-            steps: !fromState
-              ? []
-              : statePlanMap[fromState].paths[0].steps.concat({
-                  state: stateMap.get(fromState)!,
-                  event: fromEvent!
-                }),
-            weight
-          }
-        ]
-      };
-    }
-  );
+  for (const [
+    stateSerial,
+    { weight, state: fromState, event: fromEvent }
+  ] of weightMap) {
+    const state = stateMap.get(stateSerial)!;
+    paths.push({
+      state,
+      steps: !fromState
+        ? []
+        : statePlanMap[fromState].paths[0].steps.concat({
+            state: stateMap.get(fromState)!,
+            event: fromEvent!
+          }),
+      weight
+    });
+    statePlanMap[stateSerial] = {
+      state,
+      paths: [
+        {
+          state,
+          steps: !fromState
+            ? []
+            : statePlanMap[fromState].paths[0].steps.concat({
+                state: stateMap.get(fromState)!,
+                event: fromEvent!
+              }),
+          weight
+        }
+      ]
+    };
+  }
 
   if (resolvedOptions.toState) {
     paths = paths.filter((path) => resolvedOptions.toState!(path.state));
