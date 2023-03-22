@@ -1,6 +1,5 @@
 import type {
   ActorContext,
-  AnyActorRef,
   AnyStateMachine,
   ActorBehavior,
   EventFromBehavior,
