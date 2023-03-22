@@ -115,9 +115,6 @@ export class Interpreter<
    */
   public sessionId: string;
 
-  // TODO: remove
-  public _forwardTo: Set<AnyActorRef> = new Set();
-
   private _doneEvent?: DoneEvent;
 
   public src?: string;
@@ -327,8 +324,6 @@ export class Interpreter<
   }
 
   private _process(event: SCXML.Event<TEvent>) {
-    this.forward(event);
-
     try {
       const nextState = this.behavior.transition(
         this._state,
@@ -440,14 +435,6 @@ export class Interpreter<
     }
 
     this.mailbox.enqueue(_event);
-  }
-
-  // TODO: remove
-  private forward(event: SCXML.Event<TEvent>): void {
-    // The _forwardTo set will be empty for non-machine actors anyway
-    for (const child of this._forwardTo) {
-      child.send(event);
-    }
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
