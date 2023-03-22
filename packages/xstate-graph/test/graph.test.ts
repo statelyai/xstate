@@ -61,7 +61,6 @@ describe('@xstate/graph', () => {
   };
 
   const lightMachine = createMachine({
-    predictableActionArguments: true,
     key: 'light',
     initial: 'green',
     states: {
