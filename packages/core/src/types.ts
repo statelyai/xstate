@@ -310,7 +310,7 @@ export interface TransitionConfig<
 > {
   guard?: GuardConfig<TContext, TExpressionEvent>;
   actions?: BaseActions<TContext, TExpressionEvent, TEvent, TAction>;
-  internal?: boolean;
+  external?: boolean;
   target?: TransitionTarget | undefined;
   meta?: Record<string, any>;
   description?: string;
@@ -1431,6 +1431,7 @@ export interface TransitionDefinition<
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: BaseActionObject[];
+  external: boolean;
   guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | '*';
   toJSON: () => {
@@ -1579,7 +1580,6 @@ export interface StateConfig<
   value: StateValue;
   context: TContext;
   _event: SCXML.Event<TEvent>;
-  _sessionid: string | undefined;
   historyValue?: HistoryValue<TContext, TEvent>;
   actions?: BaseActionObject[];
   meta?: any;
@@ -1773,6 +1773,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
    * The unique identifier for this actor relative to its parent.
    */
   id: string;
+  sessionId: string;
   send: (event: TEvent) => void;
   // TODO: should this be optional?
   start?: () => void;
@@ -2004,13 +2005,7 @@ export type StateFromMachine<TMachine extends AnyStateMachine> =
 
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
-  | 'value'
-  | 'output'
-  | 'context'
-  | '_event'
-  | 'done'
-  | 'historyValue'
-  | '_sessionid'
+  'value' | 'output' | 'context' | '_event' | 'done' | 'historyValue'
 > & {
   children: {
     [K in keyof TState['children']]: {
