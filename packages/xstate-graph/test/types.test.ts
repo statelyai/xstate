@@ -3,9 +3,9 @@ import { getMachineShortestPaths } from '../';
 
 describe('types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
-    const machine = createMachine<unknown, { type: 'FOO' } | { type: 'BAR' }>(
-      {}
-    );
+    const machine = createMachine<unknown, { type: 'FOO' } | { type: 'BAR' }>({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -17,9 +17,9 @@ describe('types', () => {
   });
 
   it('`getEvents` should be allowed to return a readonly array', () => {
-    const machine = createMachine<unknown, { type: 'FOO' } | { type: 'BAR' }>(
-      {}
-    );
+    const machine = createMachine<unknown, { type: 'FOO' } | { type: 'BAR' }>({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -31,7 +31,9 @@ describe('types', () => {
   });
 
   it('`events` should allow known event', () => {
-    const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
+    const machine = createMachine<unknown, { type: 'FOO'; value: number }>({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -47,7 +49,9 @@ describe('types', () => {
     const machine = createMachine<
       unknown,
       { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    >({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       events: [{ type: 'FOO', value: 100 }]
@@ -58,7 +62,9 @@ describe('types', () => {
     const machine = createMachine<
       unknown,
       { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    >({
+      predictableActionArguments: true
+    });
 
     const events = [{ type: 'FOO', value: 100 }] as const;
 
@@ -71,7 +77,9 @@ describe('types', () => {
     const machine = createMachine<
       unknown,
       { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    >({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       events: () => [{ type: 'FOO', value: 100 }] as const
@@ -79,7 +87,9 @@ describe('types', () => {
   });
 
   it('`events` should not allow unknown events', () => {
-    const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
+    const machine = createMachine<unknown, { type: 'FOO'; value: number }>({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -96,7 +106,9 @@ describe('types', () => {
     const machine = createMachine<
       unknown,
       { type: 'FOO'; value: number } | { type: 'BAR'; other: string }
-    >({});
+    >({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -110,7 +122,9 @@ describe('types', () => {
   });
 
   it('`serializeEvent` should be allowed to return plain string', () => {
-    const machine = createMachine({});
+    const machine = createMachine({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       serializeEvent: () => ''
@@ -118,7 +132,9 @@ describe('types', () => {
   });
 
   it('`serializeState` should be allowed to return plain string', () => {
-    const machine = createMachine({});
+    const machine = createMachine({
+      predictableActionArguments: true
+    });
 
     getMachineShortestPaths(machine, {
       serializeState: () => ''
