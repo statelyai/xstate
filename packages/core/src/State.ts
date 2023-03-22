@@ -68,7 +68,6 @@ export class State<
   public event: TEvent;
   public _internalQueue: Array<SCXML.Event<TEvent>>;
   public _event: SCXML.Event<TEvent>;
-  public _sessionid: string | undefined;
   public _initial: boolean = false;
   /**
    * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
@@ -111,7 +110,6 @@ export class State<
             value: stateValue.value,
             context,
             _event: stateValue._event,
-            _sessionid: undefined,
             actions: [],
             meta: {},
             configuration: [], // TODO: fix,
@@ -136,7 +134,6 @@ export class State<
         value: stateValue,
         context,
         _event,
-        _sessionid: undefined,
         actions: [],
         meta: undefined,
         configuration: Array.from(configuration),
@@ -158,7 +155,6 @@ export class State<
   ) {
     this.context = config.context;
     this._event = config._event;
-    this._sessionid = config._sessionid;
     this._internalQueue = config._internalQueue ?? [];
     this.event = this._event.data;
     this.historyValue = config.historyValue || {};
