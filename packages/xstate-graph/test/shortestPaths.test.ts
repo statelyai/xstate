@@ -6,7 +6,6 @@ import { getMachineShortestPaths } from '../src/shortestPaths';
 describe('getMachineShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
     const m = createMachine<{ count: number }>({
-      predictableActionArguments: true,
       initial: 'a',
       context: { count: 0 },
       states: {
@@ -50,7 +49,6 @@ describe('getMachineShortestPaths', () => {
 
   it('finds the shortest paths from a state to another state', () => {
     const m = createMachine<{ count: number }>({
-      predictableActionArguments: true,
       initial: 'a',
       states: {
         a: {
@@ -101,7 +99,6 @@ describe('getMachineShortestPaths', () => {
 
   it('handles event cases', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       schema: {
         events: {} as { type: 'todo.add'; todo: string },
         context: {} as { todos: string[] }

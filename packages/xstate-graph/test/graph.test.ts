@@ -98,7 +98,6 @@ describe('@xstate/graph', () => {
   type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
   const condMachine = createMachine<CondMachineCtx, CondMachineEvents>({
-    predictableActionArguments: true,
     key: 'cond',
     initial: 'pending',
     states: {
@@ -126,7 +125,6 @@ describe('@xstate/graph', () => {
   });
 
   const parallelMachine = createMachine({
-    predictableActionArguments: true,
     type: 'parallel',
     key: 'p',
     states: {
@@ -218,7 +216,6 @@ describe('@xstate/graph', () => {
 
     it.skip('should represent conditional paths based on context', () => {
       const machine = createMachine<CondMachineCtx, CondMachineEvents>({
-        predictableActionArguments: true,
         key: 'cond',
         initial: 'pending',
         context: {
@@ -306,7 +303,6 @@ describe('@xstate/graph', () => {
     });
 
     const equivMachine = createMachine({
-      predictableActionArguments: true,
       initial: 'a',
       states: {
         a: { on: { FOO: 'b', BAR: 'b' } },
@@ -342,7 +338,6 @@ describe('@xstate/graph', () => {
 
     it('should return multiple paths for equivalent transitions', () => {
       const machine = createMachine({
-        predictableActionArguments: true,
         initial: 'a',
         states: {
           a: { on: { FOO: 'b', BAR: 'b' } },
@@ -396,7 +391,6 @@ describe('@xstate/graph', () => {
         value: number;
       }
       const countMachine = createMachine<Ctx, Events>({
-        predictableActionArguments: true,
         id: 'count',
         initial: 'start',
         context: {
@@ -475,7 +469,6 @@ describe('@xstate/graph', () => {
   describe('toDirectedGraph', () => {
     it('should represent a statechart as a directed graph', () => {
       const machine = createMachine({
-        predictableActionArguments: true,
         id: 'light',
         initial: 'green',
         states: {
@@ -556,7 +549,6 @@ it('shortest paths for reducers', () => {
 describe('filtering', () => {
   it('should not traverse past filtered states', () => {
     const machine = createMachine<{ count: number }>({
-      predictableActionArguments: true,
       initial: 'counting',
       context: { count: 0 },
       states: {
@@ -601,7 +593,6 @@ describe('filtering', () => {
 
 it('should provide previous state for serializeState()', () => {
   const machine = createMachine({
-    predictableActionArguments: true,
     initial: 'a',
     states: {
       a: {
@@ -638,7 +629,6 @@ it.each([getMachineShortestPaths, getMachineSimplePaths])(
   'from-state can be specified',
   (pathGetter) => {
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'a',
       states: {
         a: {
@@ -673,7 +663,6 @@ it.each([getMachineShortestPaths, getMachineSimplePaths])(
 describe('joinPaths()', () => {
   it('should join two paths', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'a',
       states: {
         a: {
@@ -712,7 +701,6 @@ describe('joinPaths()', () => {
 
   it('should not join two paths with mismatched source/target states', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'a',
       states: {
         a: {
