@@ -164,7 +164,7 @@ describe('invoke', () => {
       .start();
   });
 
-  it('can forward events to services', () => {
+  it('child can immediately respond to the parent with multiple events', () => {
     const childMachine = createMachine({
       id: 'child',
       initial: 'init',
