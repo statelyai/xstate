@@ -176,12 +176,8 @@ export class State<
   /**
    * Returns an array of all the string leaf state node paths.
    * @param stateValue
-   * @param delimiter The character(s) that separate each subpath in the string state node path.
    */
-  public toStrings(
-    stateValue: StateValue = this.value,
-    delimiter: string = '.'
-  ): string[] {
+  public toStrings(stateValue: StateValue = this.value): string[] {
     if (isString(stateValue)) {
       return [stateValue];
     }
@@ -189,9 +185,7 @@ export class State<
 
     return valueKeys.concat(
       ...valueKeys.map((key) =>
-        this.toStrings(stateValue[key], delimiter).map(
-          (s) => key + delimiter + s
-        )
+        this.toStrings(stateValue[key]).map((s) => `${key}.${s}`)
       )
     );
   }

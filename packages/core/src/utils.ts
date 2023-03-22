@@ -1,8 +1,7 @@
 import { AnyActorBehavior, AnyState } from '.';
 import { errorExecution, errorPlatform } from './actionTypes.js';
-import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.js';
+import { NULL_EVENT, TARGETLESS_KEY } from './constants.js';
 import { IS_PRODUCTION } from './environment.js';
-import type { StateNode } from './StateNode.js';
 import type {
   ActorBehavior,
   EventObject,
@@ -28,11 +27,10 @@ export function keys<T extends object>(value: T): Array<keyof T & string> {
 
 export function matchesState(
   parentStateId: StateValue,
-  childStateId: StateValue,
-  delimiter: string = STATE_DELIMITER
+  childStateId: StateValue
 ): boolean {
-  const parentStateValue = toStateValue(parentStateId, delimiter);
-  const childStateValue = toStateValue(childStateId, delimiter);
+  const parentStateValue = toStateValue(parentStateId);
+  const childStateValue = toStateValue(childStateId);
 
   if (isString(childStateValue)) {
     if (isString(parentStateValue)) {
@@ -56,19 +54,12 @@ export function matchesState(
   });
 }
 
-export function toStatePath(
-  stateId: string | string[],
-  delimiter: string
-): string[] {
-  try {
-    if (isArray(stateId)) {
-      return stateId;
-    }
-
-    return stateId.toString().split(delimiter);
-  } catch (e) {
-    throw new Error(`'${stateId}' is not a valid state path.`);
+export function toStatePath(stateId: string | string[]): string[] {
+  if (isArray(stateId)) {
+    return stateId;
   }
+
+  return stateId.split('.');
 }
 
 export function isStateLike(state: any): state is AnyState {
@@ -82,8 +73,7 @@ export function isStateLike(state: any): state is AnyState {
 }
 
 export function toStateValue(
-  stateValue: StateLike<any> | StateValue | string[],
-  delimiter: string
+  stateValue: StateLike<any> | StateValue | string[]
 ): StateValue {
   if (isStateLike(stateValue)) {
     return stateValue.value;
@@ -97,7 +87,7 @@ export function toStateValue(
     return stateValue as StateValue;
   }
 
-  const statePath = toStatePath(stateValue as string, delimiter);
+  const statePath = toStatePath(stateValue as string);
 
   return pathToStateValue(statePath);
 }
@@ -418,12 +408,9 @@ export function toTransitionConfigArray<
   return transitions;
 }
 
-export function normalizeTarget<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  target: SingleOrArray<string | StateNode<TContext, TEvent>> | undefined
-): Array<string | StateNode<TContext, TEvent>> | undefined {
+export function normalizeTarget(
+  target: SingleOrArray<string> | undefined
+): Array<string> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
     return undefined;
   }

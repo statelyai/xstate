@@ -1,16 +1,13 @@
 import { error, createInitEvent, initEvent } from './actions.js';
-import { STATE_DELIMITER } from './constants.js';
 import { createSpawner } from './spawn.js';
 import { getPersistedState, State } from './State.js';
 import { StateNode } from './StateNode.js';
 import { interpret } from './interpreter.js';
 import {
   getConfiguration,
-  getStateNodeByPath,
   getInitialConfiguration,
   getStateNodes,
   isInFinalState,
-  isStateId,
   macrostep,
   microstep,
   resolveActionsAndContext,
@@ -50,7 +47,6 @@ import {
 } from './utils.js';
 
 export const NULL_EVENT = '';
-export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
 
 function createDefaultOptions() {
@@ -113,11 +109,6 @@ export class StateMachine<
    */
   public version?: string;
 
-  /**
-   * The string delimiter for serializing the path to a string. The default is "."
-   */
-  public delimiter: string;
-
   public options: MachineImplementationsSimplified<TContext, TEvent>;
 
   public schema: MachineSchema<TContext, TEvent>;
@@ -142,7 +133,6 @@ export class StateMachine<
   ) {
     this.id = config.id || '(machine)';
     this.options = Object.assign(createDefaultOptions(), options);
-    this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? ({} as any as this['schema']);
     this.transition = this.transition.bind(this);
@@ -368,22 +358,6 @@ export class StateMachine<
         }
       }
     });
-  }
-
-  public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
-    const fullPath = stateId.split(this.delimiter);
-    const relativePath = fullPath.slice(1);
-    const resolvedStateId = isStateId(fullPath[0])
-      ? fullPath[0].slice(STATE_IDENTIFIER.length)
-      : fullPath[0];
-
-    const stateNode = this.idMap.get(resolvedStateId);
-    if (!stateNode) {
-      throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
-      );
-    }
-    return getStateNodeByPath(stateNode, relativePath);
   }
 
   public get definition(): StateMachineDefinition<TContext, TEvent> {

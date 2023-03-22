@@ -1,9 +1,15 @@
-import { AnyStateMachine } from 'xstate';
+import { AnyStateMachine, AnyStateNode } from 'xstate';
+
+function getStates(state: AnyStateNode) {
+  return [state].concat(
+    Object.keys(state.states).flatMap((stateKey) => {
+      return getStates(state.states[stateKey]);
+    })
+  );
+}
 
 export const validateMachine = (machine: AnyStateMachine) => {
-  const states = machine.root.stateIds.map((stateId) =>
-    machine.getStateNodeById(stateId)
-  );
+  const states = getStates(machine.root);
 
   states.forEach((state) => {
     if (state.invoke.length > 0) {

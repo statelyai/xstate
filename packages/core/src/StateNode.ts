@@ -136,9 +136,15 @@ export class StateNode<
     this.key = options._key;
     this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
-    this.id =
-      this.config.id ||
-      [this.machine.id, ...this.path].join(this.machine.delimiter);
+
+    if (this.config.id) {
+      this.id = this.config.id;
+      this.machine.idMap.set(this.id, this);
+    } else {
+      this.id = [this.machine.id, ...this.path].join('.');
+      this.machine.idMap.set(this.id, this);
+    }
+
     this.type =
       this.config.type ||
       (this.config.states && Object.keys(this.config.states).length
@@ -149,7 +155,6 @@ export class StateNode<
     this.description = this.config.description;
 
     this.order = this.machine.idMap.size;
-    this.machine.idMap.set(this.id, this);
 
     this.states = (
       this.config.states

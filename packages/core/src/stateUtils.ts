@@ -40,7 +40,7 @@ import { cancel } from './actions/cancel.js';
 import { invoke } from './actions/invoke.js';
 import { stop } from './actions/stop.js';
 import { IS_PRODUCTION } from './environment.js';
-import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.js';
+import { NULL_EVENT, WILDCARD } from './constants.js';
 import { evaluateGuard, toGuardDefinition } from './guards.js';
 import type { StateNode } from './StateNode.js';
 import { isDynamicAction } from '../actions/dynamicAction.js';
@@ -231,7 +231,7 @@ export function isInFinalState(
   return false;
 }
 
-export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
+export const isStateId = (str: string) => str[0] === '#';
 
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
@@ -499,13 +499,7 @@ export function formatInitialTransition<
 ): InitialTransitionDefinition<TContext, TEvent> {
   if (isString(_target) || isArray(_target)) {
     const targets = toArray(_target).map((t) => {
-      // Resolve state string keys (which represent children)
-      // to their state node
-      const descStateNode = isString(t)
-        ? isStateId(t)
-          ? stateNode.machine.getStateNodeById(t)
-          : stateNode.states[t]
-        : t;
+      const descStateNode = stateNode.states[t];
 
       if (!descStateNode) {
         throw new Error(
@@ -513,28 +507,19 @@ export function formatInitialTransition<
         );
       }
 
-      if (!isDescendant(descStateNode, stateNode)) {
-        throw new Error(
-          `Invalid initial target: state node #${descStateNode.id} is not a descendant of #${stateNode.id}`
-        );
-      }
-
       return descStateNode;
     });
-    const resolvedTarget = resolveTarget(stateNode, targets);
 
     const transition = {
       source: stateNode,
       actions: [],
       eventType: null as any,
       external: false,
-      target: resolvedTarget!,
+      target: targets!,
       toJSON: () => ({
         ...transition,
         source: `#${stateNode.id}`,
-        target: resolvedTarget
-          ? resolvedTarget.map((t) => `#${t.id}`)
-          : undefined
+        target: targets ? targets.map((t) => `#${t.id}`) : undefined
       })
     };
 
@@ -544,7 +529,7 @@ export function formatInitialTransition<
   return formatTransition(stateNode, {
     target: toArray(_target.target).map((t) => {
       if (isString(t)) {
-        return isStateId(t) ? t : `${stateNode.machine.delimiter}${t}`;
+        return isStateId(t) ? t : `.${t}`;
       }
 
       return t;
@@ -554,60 +539,56 @@ export function formatInitialTransition<
   }) as InitialTransitionDefinition<TContext, TEvent>;
 }
 
+function resolveStateId(machine: AnyStateMachine, id: string) {
+  const stateNode = machine.idMap.get(id);
+  if (!stateNode) {
+    throw new Error(
+      `Child state node '#${id}' does not exist on machine '${machine.id}'`
+    );
+  }
+  return stateNode;
+}
+
 export function resolveTarget(
   stateNode: AnyStateNode,
-  targets: Array<string | AnyStateNode> | undefined
+  targets: Array<string> | undefined
 ): Array<AnyStateNode> | undefined {
   if (targets === undefined) {
     // an undefined target signals that the state node should not transition from that state when receiving that event
     return undefined;
   }
   return targets.map((target) => {
-    if (!isString(target)) {
-      return target;
+    if (target[0] === '.') {
+      return getStateNodeByPath(stateNode, target.slice(1).split('.'));
     }
-    if (isStateId(target)) {
-      return stateNode.machine.getStateNodeById(target);
+    const segments = target.split('.');
+    if (target[0] === '#') {
+      return getStateNodeByPath(
+        resolveStateId(stateNode.machine, segments[0].slice(1)),
+        segments.slice(1)
+      );
     }
 
-    const isInternalTarget = target[0] === stateNode.machine.delimiter;
-    // If internal target is defined on machine,
-    // do not include machine key on target
-    if (isInternalTarget && !stateNode.parent) {
-      return getStateNodeByPath(stateNode, target.slice(1));
-    }
-    const resolvedTarget = isInternalTarget ? stateNode.key + target : target;
-    if (stateNode.parent) {
-      try {
-        const targetStateNode = getStateNodeByPath(
-          stateNode.parent,
-          resolvedTarget
-        );
-        return targetStateNode;
-      } catch (err) {
-        throw new Error(
-          `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
-        );
-      }
-    } else {
+    if (!stateNode.parent) {
       throw new Error(
         `Invalid target: "${target}" is not a valid target from the root node. Did you mean ".${target}"?`
+      );
+    }
+    try {
+      const targetStateNode = getStateNodeByPath(stateNode.parent, segments);
+      return targetStateNode;
+    } catch (err) {
+      throw new Error(
+        `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
       );
     }
   });
 }
 
-function resolveHistoryTarget<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(stateNode: AnyStateNode & { type: 'history' }): Array<AnyStateNode> {
-  const normalizedTarget = normalizeTarget<TContext, TEvent>(stateNode.target);
-  if (!normalizedTarget) {
-    return stateNode.parent!.initial.target;
-  }
-  return normalizedTarget.map((t) =>
-    typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
-  );
+function resolveHistoryTarget(
+  stateNode: AnyStateNode & { type: 'history' }
+): Array<AnyStateNode> {
+  return normalizeTarget(stateNode.target)!.map((t) => stateNode.parent![t]);
 }
 
 function isHistoryNode(
@@ -652,9 +633,6 @@ export function getStateNode(
   stateNode: AnyStateNode,
   stateKey: string
 ): AnyStateNode {
-  if (isStateId(stateKey)) {
-    return stateNode.machine.getStateNodeById(stateKey);
-  }
   if (!stateNode.states) {
     throw new Error(
       `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
@@ -674,22 +652,11 @@ export function getStateNode(
  *
  * @param statePath The string or string array relative path to the state node.
  */
-export function getStateNodeByPath(
+function getStateNodeByPath(
   stateNode: AnyStateNode,
   statePath: string | string[]
 ): AnyStateNode {
-  if (typeof statePath === 'string' && isStateId(statePath)) {
-    try {
-      return stateNode.machine.getStateNodeById(statePath);
-    } catch (e) {
-      // try individual paths
-      // throw e;
-    }
-  }
-  const arrayStatePath = toStatePath(
-    statePath,
-    stateNode.machine.delimiter
-  ).slice();
+  const arrayStatePath = toStatePath(statePath).slice();
   let currentStateNode: AnyStateNode = stateNode;
   while (arrayStatePath.length) {
     const key = arrayStatePath.shift()!;
@@ -713,10 +680,7 @@ export function getStateNodes<
   stateNode: AnyStateNode,
   state: StateValue | State<TContext, TEvent>
 ): Array<AnyStateNode> {
-  const stateValue =
-    state instanceof State
-      ? state.value
-      : toStateValue(state, stateNode.machine.delimiter);
+  const stateValue = state instanceof State ? state.value : toStateValue(state);
 
   if (isString(stateValue)) {
     return [stateNode, stateNode.states[stateValue]];
@@ -1329,10 +1293,7 @@ function computeEntrySet(
   }
 }
 
-function addDescendantStatesToEnter<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+function addDescendantStatesToEnter(
   stateNode: AnyStateNode,
   historyValue: HistoryValue<any, any>,
   statesForDefaultEntry: Set<AnyStateNode>,
@@ -1362,7 +1323,7 @@ function addDescendantStatesToEnter<
         }
       }
     } else {
-      const targets = resolveHistoryTarget<TContext, TEvent>(stateNode);
+      const targets = resolveHistoryTarget(stateNode);
       for (const s of targets) {
         addDescendantStatesToEnter(
           s,

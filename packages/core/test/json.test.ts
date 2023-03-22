@@ -183,8 +183,6 @@ describe('json', () => {
     // 1. onDone
     // 2. onError
     // 3. EVENT
-    expect(revivedMachine.getStateNodeById('active').transitions.length).toBe(
-      3
-    );
+    expect(revivedMachine.states['active'].transitions.length).toBe(3);
   });
 });

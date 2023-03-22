@@ -504,19 +504,6 @@ describe('State', () => {
       expect(twoState.toStrings()).toEqual(['two', 'two.deep', 'two.deep.foo']);
     });
 
-    it('should respect `delimiter` option for deeply nested states', () => {
-      const twoState = exampleMachine.transition('one', {
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(twoState.toStrings(undefined, ':')).toEqual([
-        'two',
-        'two:deep',
-        'two:deep:foo'
-      ]);
-    });
-
     it('should keep reference to state instance after destructuring', () => {
       const { initialState } = exampleMachine;
       const { toStrings } = initialState;
