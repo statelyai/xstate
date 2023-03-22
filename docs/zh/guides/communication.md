@@ -131,15 +131,16 @@ const userMachine = createMachine({
 如果 Promise 拒绝，则将使用 `{ type: 'error.platform' }` 事件进行 `onError` 转换。 错误数据在事件的 `data` 属性中可用：
 
 ```js
-const search = (context, event) => new Promise((resolve, reject) => {
-  if (!event.query.length) {
-    return reject('No query specified');
-    // or:
-    // throw new Error('No query specified');
-  }
+const search = (context, event) =>
+  new Promise((resolve, reject) => {
+    if (!event.query.length) {
+      return reject('No query specified');
+      // or:
+      // throw new Error('No query specified');
+    }
 
-  return resolve(getSearchResults(event.query));
-});
+    return resolve(getSearchResults(event.query));
+  });
 
 // ...
 const searchMachine = createMachine({
@@ -147,7 +148,7 @@ const searchMachine = createMachine({
   initial: 'idle',
   context: {
     results: undefined,
-    errorMessage: undefined,
+    errorMessage: undefined
   },
   states: {
     idle: {
@@ -157,7 +158,7 @@ const searchMachine = createMachine({
     },
     searching: {
       invoke: {
-        id: 'search'
+        id: 'search',
         src: search,
         onError: {
           target: 'failure',
@@ -536,9 +537,12 @@ const pongMachine = createMachine({
       on: {
         PING: {
           // 向父状态机发送“PONG”事件
-          actions: sendParent('PONG', {
-            delay: 1000
-          })
+          actions: sendParent(
+            { type: 'PONG' },
+            {
+              delay: 1000
+            }
+          )
         }
       }
     }

@@ -1,16 +1,15 @@
-import type { StateNode } from './StateNode';
-import type { State } from './State';
-import type { Clock, Interpreter } from './interpreter';
-import type { StateMachine } from './StateMachine';
-import type { LifecycleSignal } from './behaviors';
-import type { Model } from './model.types';
+import type { StateNode } from './StateNode.js';
+import type { State } from './State.js';
+import type { ActorStatus, Clock, Interpreter } from './interpreter.js';
+import type { StateMachine } from './StateMachine.js';
+import type { LifecycleSignal } from './actors/index.js';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint,
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
-} from './typegenTypes';
+} from './typegenTypes.js';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -23,9 +22,12 @@ export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Merge<M, N> = Omit<M, keyof N> & N;
+// TODO: replace in v5 with:
+// export type IndexByType<T extends { type: string }> = { [E in T as E['type']]: E; };
 export type IndexByType<T extends { type: string }> = {
-  [K in T['type']]: Extract<T, { type: K }>;
+  [K in T['type']]: T extends any ? (K extends T['type'] ? T : never) : never;
 };
+
 export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   ? true
   : false) extends <A>() => A extends A1 ? true : false
@@ -60,6 +62,7 @@ export interface AnyEventObject extends EventObject {
 export interface BaseActionObject {
   type: string;
   params?: Record<string, any>;
+  execute?: (actorCtx: ActorContext<any, any>) => void;
 }
 
 export interface BuiltInActionObject {
@@ -69,6 +72,7 @@ export interface BuiltInActionObject {
 
 export interface BaseDynamicActionObject<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TResolvedAction extends BaseActionObject,
   TDynamicParams extends Record<string, any>
@@ -76,31 +80,26 @@ export interface BaseDynamicActionObject<
   type: `xstate.${string}`;
   params: TDynamicParams;
   resolve: (
-    dynamicAction: BaseDynamicActionObject<
-      TContext,
-      TEvent,
-      TResolvedAction,
-      TDynamicParams
-    >,
-    context: TContext,
-    _event: SCXML.Event<TEvent>,
+    _event: SCXML.Event<TExpressionEvent>,
     extra: {
-      machine: StateMachine<TContext, TEvent>;
       state: State<TContext, TEvent>;
       /**
        * The original action object
        */
       action: BaseActionObject;
+      actorContext: ActorContext<any, any> | undefined;
     }
-  ) => TResolvedAction;
+  ) => [AnyState, TResolvedAction];
+
+  /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
+  (
+    arg: TContext,
+    ev: TExpressionEvent,
+    meta: ActionMeta<TContext, TEvent, BaseActionObject>
+  ): void;
 }
 
 export type MachineContext = Record<string, any>;
-
-/**
- * The specified string event types or the specified event objects.
- */
-export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
 
 export interface ActionMeta<
   TContext extends MachineContext,
@@ -111,50 +110,61 @@ export interface ActionMeta<
   _event: SCXML.Event<TEvent>;
 }
 
-export type Spawner = <T extends Behavior<any, any>>(
+// TODO: do not accept machines without all implementations
+// we should also accept a raw machine as a behavior here
+// or just make machine a behavior
+export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
-  name?: string
-) => T extends Behavior<infer TActorEvent, infer TActorEmitted>
+  options?: Partial<{
+    id: string;
+    input: any;
+  }>
+) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>
   ? ActorRef<TActorEvent, TActorEmitted>
-  : never;
+  : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
 
 export interface AssignMeta<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 > {
-  state?: State<TContext, TEvent>;
+  state: State<TContext, TEvent>;
   action: BaseActionObject;
-  _event: SCXML.Event<TEvent>;
+  _event: SCXML.Event<TExpressionEvent>;
+  spawn: Spawner;
 }
 
 export type ActionFunction<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TExpressionEvent extends EventObject,
+  TAction extends BaseActionObject = BaseActionObject,
+  TEvent extends EventObject = TExpressionEvent
 > = {
   bivarianceHack(
     context: TContext,
-    event: TEvent,
+    event: TExpressionEvent,
     meta: ActionMeta<TContext, TEvent, TAction>
   ): void;
 }['bivarianceHack'];
 
 export interface ChooseCondition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 > {
   guard?: GuardConfig<TContext, TEvent>;
-  actions: Actions<TContext, TEvent>;
+  actions: Actions<TContext, TExpressionEvent, TEvent>;
 }
 
 export type Action<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 > =
   | ActionType
   | BaseActionObject
-  | ActionFunction<TContext, TEvent>
-  | BaseDynamicActionObject<TContext, TEvent, any, any>; // TODO: fix last param
+  | ActionFunction<TContext, TExpressionEvent, BaseActionObject, TEvent>
+  | BaseDynamicActionObject<TContext, TExpressionEvent, TEvent, any, any>; // TODO: fix last param
 
 /**
  * Extracts action objects that have no extra properties.
@@ -165,28 +175,32 @@ type SimpleActionsFrom<T extends BaseActionObject> = BaseActionObject extends T
 
 export type BaseAction<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TAction extends BaseActionObject
+  TExpressionEvent extends EventObject,
+  TAction extends BaseActionObject,
+  TEvent extends EventObject
 > =
   | BaseDynamicActionObject<
       TContext,
+      TExpressionEvent,
       TEvent,
-      BuiltInActionObject | TAction,
+      any, // TODO: at the very least this should include TAction, but probably at a covariant position or something, we really need to rethink how action objects are typed
       any
     >
   | TAction
   | SimpleActionsFrom<TAction>['type']
-  | ActionFunction<TContext, TEvent>;
+  | ActionFunction<TContext, TExpressionEvent, TAction, TEvent>;
 
 export type BaseActions<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TAction extends BaseActionObject
-> = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
+> = SingleOrArray<BaseAction<TContext, TExpressionEvent, TAction, TEvent>>;
 
 export type Actions<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 > = SingleOrArray<Action<TContext, TEvent>>;
 
 export type StateKey = string | AnyState;
@@ -286,24 +300,18 @@ export interface BooleanGuardDefinition<
   };
 }
 
-export type TransitionTarget<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = SingleOrArray<string | StateNode<TContext, TEvent>>;
-
-export type TransitionTargets<TContext extends MachineContext> = Array<
-  string | StateNode<TContext, any>
->;
+export type TransitionTarget = SingleOrArray<string>;
 
 export interface TransitionConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent,
   TAction extends BaseActionObject = BaseActionObject
 > {
-  guard?: GuardConfig<TContext, TEvent>;
-  actions?: BaseActions<TContext, TEvent, TAction>;
-  internal?: boolean;
-  target?: TransitionTarget<TContext, TEvent> | undefined;
+  guard?: GuardConfig<TContext, TExpressionEvent>;
+  actions?: BaseActions<TContext, TExpressionEvent, TEvent, TAction>;
+  external?: boolean;
+  target?: TransitionTarget | undefined;
   meta?: Record<string, any>;
   description?: string;
 }
@@ -312,7 +320,7 @@ export interface TargetTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends TransitionConfig<TContext, TEvent> {
-  target: TransitionTarget<TContext, TEvent>; // TODO: just make this non-optional
+  target: TransitionTarget; // TODO: just make this non-optional
 }
 
 export type ConditionalTransitionConfig<
@@ -325,7 +333,7 @@ export interface InitialTransitionConfig<
   TEvent extends EventObject
 > extends TransitionConfig<TContext, TEvent> {
   guard?: never;
-  target: TransitionTarget<TContext, TEvent>;
+  target: TransitionTarget;
 }
 
 export type Transition<
@@ -336,38 +344,11 @@ export type Transition<
   | TransitionConfig<TContext, TEvent>
   | ConditionalTransitionConfig<TContext, TEvent>;
 
-type ExcludeType<A> = { [K in Exclude<keyof A, 'type'>]: A[K] };
-
-type ExtractExtraParameters<A, T> = A extends { type: T }
-  ? ExcludeType<A>
-  : never;
-
 type ExtractWithSimpleSupport<T extends { type: string }> = T extends any
   ? { type: T['type'] } extends T
     ? T
     : never
   : never;
-
-type NeverIfEmpty<T> = {} extends T ? never : T;
-
-export interface PayloadSender<TEvent extends EventObject> {
-  /**
-   * Send an event object or just the event type, if the event has no other payload
-   */
-  (
-    event:
-      | SCXML.Event<TEvent>
-      | TEvent
-      | ExtractWithSimpleSupport<TEvent>['type']
-  ): void;
-  /**
-   * Send an event type and its payload
-   */
-  <K extends TEvent['type']>(
-    eventType: K,
-    payload: NeverIfEmpty<ExtractExtraParameters<TEvent, K>>
-  ): void;
-}
 
 export type Receiver<TEvent extends EventObject> = (
   listener: {
@@ -379,29 +360,30 @@ export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject
 > = (
-  callback: Sender<TSentEvent>,
-  onReceive: Receiver<TEvent>
+  sendBack: (event: TSentEvent) => void,
+  onReceive: Receiver<TEvent>,
+  { input }: { input: any }
 ) => (() => void) | Promise<any> | void;
 
-export type BehaviorCreator<
+export type ActorBehaviorCreator<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TEmitted = any
+  TActorBehavior extends AnyActorBehavior = AnyActorBehavior
 > = (
   context: TContext,
   event: TEvent,
   meta: {
     id: string;
     data?: any;
-    src: InvokeSourceDefinition;
+    src: string;
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
+    input: any;
   }
-) => Behavior<any, TEmitted>;
+) => TActorBehavior;
 
 export interface InvokeMeta {
-  data: any;
-  src: InvokeSourceDefinition;
+  src: string;
   meta: MetaObject | undefined;
 }
 
@@ -413,20 +395,15 @@ export interface InvokeDefinition<
   /**
    * The source of the actor's behavior to be invoked
    */
-  src: InvokeSourceDefinition;
+  src: string;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
    * Default: `false`
    */
   autoForward?: boolean;
-  /**
-   * Data from the parent machine's context to set as the (partial or full) context
-   * for the invoked child machine.
-   *
-   * Data should be mapped to match the child machine's context shape.
-   */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+
+  input?: Mapper<TContext, TEvent, any> | any;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -436,9 +413,11 @@ export interface InvokeDefinition<
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
-  onError?:
+  onError?: string | SingleOrArray<TransitionConfig<TContext, ErrorEvent<any>>>;
+
+  onSnapshot?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfig<TContext, SnapshotEvent<any>>>;
 
   toJSON: () => Omit<
     InvokeDefinition<TContext, TEvent>,
@@ -501,28 +480,23 @@ export type StatesDefinition<
   [K in string]: StateNodeDefinition<TContext, TEvent>;
 };
 
-export type TransitionConfigTarget<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = string | undefined | StateNode<TContext, TEvent>;
+export type TransitionConfigTarget = string | undefined;
 
 export type TransitionConfigOrTarget<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 > = SingleOrArray<
-  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
+  TransitionConfigTarget | TransitionConfig<TContext, TExpressionEvent, TEvent>
 >;
 
 export type TransitionsConfigMap<
   TContext extends MachineContext,
   TEvent extends EventObject
 > = {
-  [K in TEvent['type']]?: TransitionConfigOrTarget<
-    TContext,
-    TEvent extends { type: K } ? TEvent : never
-  >;
-} & {
-  '*'?: TransitionConfigOrTarget<TContext, TEvent>;
+  [K in TEvent['type'] | '' | '*']?: K extends '' | '*'
+    ? TransitionConfigOrTarget<TContext, TEvent>
+    : TransitionConfigOrTarget<TContext, ExtractEvent<TEvent, K>, TEvent>;
 };
 
 type TransitionsConfigArray<
@@ -543,11 +517,6 @@ export type TransitionsConfig<
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
-export interface InvokeSourceDefinition {
-  [key: string]: any;
-  type: string;
-}
-
 export interface InvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -560,32 +529,37 @@ export interface InvokeConfig<
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | InvokeSourceDefinition | BehaviorCreator<TContext, TEvent>;
+  src: string | ActorBehavior<any, any>; // TODO: fix types
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
    * Default: `false`
    */
   autoForward?: boolean;
-  /**
-   * Data from the parent machine's context to set as the (partial or full) context
-   * for the invoked child machine.
-   *
-   * Data should be mapped to match the child machine's context shape.
-   */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+
+  input?: Mapper<TContext, TEvent, any> | any;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
   onDone?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<
+        TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+      >;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
   onError?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<
+        TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+      >;
+
+  onSnapshot?:
+    | string
+    | SingleOrArray<
+        TransitionConfigOrTarget<TContext, SnapshotEvent<any>, TEvent>
+      >;
   /**
    * Meta data related to this invocation
    */
@@ -597,11 +571,6 @@ export interface StateNodeConfig<
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject
 > {
-  /**
-   * The relative key of the state node, which represents its location in the overall state value.
-   * This is automatically determined by the configuration shape via the key where it was defined.
-   */
-  key?: string;
   /**
    * The initial state transition.
    */
@@ -632,9 +601,7 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<
-    string | BehaviorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
-  >;
+  invoke?: SingleOrArray<string | InvokeConfig<TContext, TEvent>>;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -642,11 +609,11 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: BaseActions<TContext, TEvent, TAction>;
+  entry?: BaseActions<TContext, TEvent, TEvent, TAction>;
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: BaseActions<TContext, TEvent, TAction>;
+  exit?: BaseActions<TContext, TEvent, TEvent, TAction>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
@@ -701,16 +668,14 @@ export interface StateNodeConfig<
    */
   tags?: SingleOrArray<string>;
   /**
-   * Whether actions should be called in order.
-   * When `false` (default), `assign(...)` actions are prioritized before other actions.
-   *
-   * @default false
-   */
-  preserveActionOrder?: boolean;
-  /**
    * A text description of the state node
    */
   description?: string;
+
+  /**
+   * A default target for a history state
+   */
+  target?: string;
 }
 
 export interface StateNodeDefinition<
@@ -720,7 +685,6 @@ export interface StateNodeDefinition<
   id: string;
   version?: string | undefined;
   key: string;
-  context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
@@ -736,6 +700,15 @@ export interface StateNodeDefinition<
   description?: string;
   tags: string[];
 }
+
+export interface StateMachineDefinition<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> extends StateNodeDefinition<TContext, TEvent> {
+  context: TContext;
+}
+
+export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
@@ -786,7 +759,7 @@ export type ActionFunctionMap<
   TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in TAction['type']]?:
-    | BaseDynamicActionObject<TContext, TEvent, TAction, any>
+    | BaseDynamicActionObject<TContext, TEvent, TEvent, TAction, any>
     | ActionFunction<
         TContext,
         TEvent,
@@ -812,9 +785,12 @@ export interface MachineImplementationsSimplified<
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
-  actors: Record<string, BehaviorCreator<TContext, TEvent>>;
+  actors: Record<
+    string,
+    | AnyActorBehavior
+    | { src: AnyActorBehavior; input: Mapper<TContext, TEvent, any> | any }
+  >;
   delays: DelayFunctionMap<TContext, TEvent>;
-  context: MaybeLazy<Partial<TContext>>;
 }
 
 type MachineImplementationsActions<
@@ -824,20 +800,21 @@ type MachineImplementationsActions<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'eventsCausingActions'
   >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  TIndexedActions = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActions'>
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
   [K in keyof TEventsCausingActions]?:
     | BaseDynamicActionObject<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
+        Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>,
         any, // TODO: this should receive something like `Cast<Prop<TIndexedActions, K>, BaseActionObject>`, but at the moment builtin actions expect Resolved*Action here and this should be simplified somehow
         any
       >
     | ActionFunction<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
-        Cast<Prop<TIndexedActions, K>, BaseActionObject>
+        BaseActionObject, // TODO: when bringing back parametrized actions this should accept something like `Cast<Prop<TIndexedActions, K>, BaseActionObject>`. At the moment we need to keep this type argument consistent with what is provided to the fake callable signature within `BaseDynamicActionObject`
+        Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
       >;
 };
 
@@ -884,13 +861,19 @@ type MachineImplementationsActors<
     'invokeSrcNameMap'
   >
 > = {
-  [K in keyof TEventsCausingActors]?: BehaviorCreator<
-    TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
-    // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
-    // EventObject,
-    // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
-  >;
+  // TODO: this should require `{ src, input }` for required inputs
+  [K in keyof TEventsCausingActors]?:
+    | AnyActorBehavior
+    | {
+        src: AnyActorBehavior;
+        input:
+          | Mapper<
+              TContext,
+              Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>,
+              any
+            >
+          | any;
+      };
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
@@ -1009,7 +992,15 @@ export type MachineImplementations<
 
 type InitialContext<TContext extends MachineContext> =
   | TContext
-  | (() => TContext);
+  | ContextFactory<TContext>;
+
+export type ContextFactory<TContext extends MachineContext> = ({
+  spawn,
+  input
+}: {
+  spawn: Spawner;
+  input: any; // TODO: fix
+}) => TContext;
 
 export interface MachineConfig<
   TContext extends MachineContext,
@@ -1058,6 +1049,8 @@ export type HistoryValue<
   TEvent extends EventObject
 > = Record<string, Array<StateNode<TContext, TEvent>>>;
 
+export type AnyHistoryValue = HistoryValue<any, any>;
+
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends AnyStateMachine
@@ -1087,20 +1080,36 @@ export enum ActionTypes {
   ErrorCommunication = 'error.communication',
   ErrorPlatform = 'error.platform',
   ErrorCustom = 'xstate.error',
-  Update = 'xstate.update',
   Pure = 'xstate.pure',
   Choose = 'xstate.choose'
 }
 
-export interface RaiseActionObject<TEvent extends EventObject>
-  extends BuiltInActionObject {
+export interface RaiseActionObject<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
+> extends BaseActionObject {
   type: ActionTypes.Raise;
   params: {
+    event: TEvent;
     _event: SCXML.Event<TEvent>;
+    delay: RaiseActionOptions<TContext, TExpressionEvent>['delay'];
+    id: string | number;
   };
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
+  type: `done.invoke.${string}`;
+  data: TData;
+}
+
+export interface ErrorEvent<TErrorData> {
+  type: `error.${string}`;
+  data: TErrorData;
+}
+
+export interface SnapshotEvent<TData> {
+  type: `xstate.snapshot.${string}`;
   data: TData;
 }
 
@@ -1127,19 +1136,13 @@ export interface DoneEventObject extends EventObject {
   toString(): string;
 }
 
-export interface UpdateObject extends EventObject {
-  id: string | number;
-  state: AnyState;
-}
-
 export type DoneEvent = DoneEventObject & string;
 
 export interface InvokeAction {
   type: ActionTypes.Invoke;
-  src: InvokeSourceDefinition | ActorRef<any>;
+  src: string | ActorRef<any>;
   id: string;
   autoForward?: boolean;
-  data?: any;
   exec?: undefined;
   meta: MetaObject | undefined;
 }
@@ -1155,10 +1158,9 @@ export interface DynamicInvokeActionObject<
 export interface InvokeActionObject extends BaseActionObject {
   type: ActionTypes.Invoke;
   params: {
-    src: InvokeSourceDefinition | ActorRef<any>;
+    src: string | ActorRef<any>;
     id: string;
     autoForward?: boolean;
-    data?: any;
     exec?: undefined;
     ref?: ActorRef<any>;
     meta: MetaObject | undefined;
@@ -1167,18 +1169,21 @@ export interface InvokeActionObject extends BaseActionObject {
 
 export interface DynamicStopActionObject<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 > {
   type: ActionTypes.Stop;
   params: {
-    actor: string | Expr<TContext, TEvent, ActorRef<any>>;
+    actor:
+      | string
+      | ActorRef<any>
+      | Expr<TContext, TExpressionEvent, ActorRef<any> | string>;
   };
 }
 
 export interface StopActionObject {
   type: ActionTypes.Stop;
   params: {
-    actor: string | ActorRef<any>;
+    actor: ActorRef<any>;
   };
 }
 
@@ -1194,14 +1199,16 @@ export type LogExpr<
 
 export interface DynamicLogAction<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 > extends BaseDynamicActionObject<
     TContext,
+    TExpressionEvent,
     TEvent,
     LogActionObject,
     {
       label: string | undefined;
-      expr: string | LogExpr<TContext, TEvent>;
+      expr: string | LogExpr<TContext, TExpressionEvent>;
     }
   > {
   type: ActionTypes.Log;
@@ -1220,11 +1227,12 @@ export interface SendActionObject<
 > extends BaseActionObject {
   type: 'xstate.send';
   params: {
-    to: string | ActorRef<TSentEvent> | undefined;
+    to: ActorRef<TSentEvent> | undefined;
     _event: SCXML.Event<TSentEvent>;
     event: TSentEvent;
     delay?: number;
     id: string | number;
+    internal: boolean;
   };
 }
 
@@ -1254,13 +1262,27 @@ export enum SpecialTargets {
 export interface SendActionOptions<
   TContext extends MachineContext,
   TEvent extends EventObject
+> extends RaiseActionOptions<TContext, TEvent> {
+  to?:
+    | string
+    | ActorRef<any, any>
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any, any>>;
+}
+
+export interface RaiseActionOptions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
 > {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  to?:
-    | string
-    | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
-    | undefined;
+}
+
+export interface RaiseActionParams<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject
+> extends RaiseActionOptions<TContext, TExpressionEvent> {
+  event: TEvent | SendExpr<TContext, TExpressionEvent, TEvent>;
 }
 
 export interface SendActionParams<
@@ -1273,11 +1295,11 @@ export interface SendActionParams<
 
 export interface DynamicCancelActionObject<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 > {
   type: ActionTypes.Cancel;
   params: {
-    sendId: string | ExprWithMeta<TContext, TEvent, string>;
+    sendId: string | ExprWithMeta<TContext, TExpressionEvent, string>;
   };
 }
 
@@ -1290,28 +1312,33 @@ export interface CancelActionObject extends BaseActionObject {
 
 export type Assigner<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 > = (
   context: TContext,
-  event: TEvent,
-  meta: AssignMeta<TContext, TEvent>
+  event: TExpressionEvent,
+  meta: AssignMeta<TContext, TExpressionEvent, TEvent>
 ) => Partial<TContext>;
 
 export type PartialAssigner<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TKey extends keyof TContext
 > = (
   context: TContext,
-  event: TEvent,
-  meta: AssignMeta<TContext, TEvent>
+  event: TExpressionEvent,
+  meta: AssignMeta<TContext, TExpressionEvent, TEvent>
 ) => TContext[TKey];
 
 export type PropertyAssigner<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 > = {
-  [K in keyof TContext]?: PartialAssigner<TContext, TEvent, K> | TContext[K];
+  [K in keyof TContext]?:
+    | PartialAssigner<TContext, TExpressionEvent, TEvent, K>
+    | TContext[K];
 };
 
 export type Mapper<
@@ -1337,13 +1364,17 @@ export interface AnyAssignAction extends BaseActionObject {
 
 export type DynamicAssignAction<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 > = BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
-  AssignActionObject<TContext> | RaiseActionObject<TEvent>,
+  AssignActionObject<TContext> | RaiseActionObject<TContext, TExpressionEvent>,
   {
-    assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+    assignment:
+      | Assigner<TContext, TExpressionEvent, TEvent>
+      | PropertyAssigner<TContext, TExpressionEvent, TEvent>;
   }
 >;
 
@@ -1365,7 +1396,7 @@ export interface DynamicPureActionObject<
     get: (
       context: TContext,
       event: TEvent
-    ) => SingleOrArray<BaseActionObject> | undefined;
+    ) => SingleOrArray<BaseActionObject | BaseActionObject['type']> | undefined;
   };
 }
 
@@ -1396,10 +1427,11 @@ export interface ResolvedChooseAction extends BaseActionObject {
 export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends TransitionConfig<TContext, TEvent> {
+> extends Omit<TransitionConfig<TContext, TEvent>, 'target'> {
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: BaseActionObject[];
+  external: boolean;
   guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | '*';
   toJSON: () => {
@@ -1411,6 +1443,8 @@ export interface TransitionDefinition<
     meta?: Record<string, any>;
   };
 }
+
+export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 
 export interface InitialTransitionDefinition<
   TContext extends MachineContext,
@@ -1546,20 +1580,20 @@ export interface StateConfig<
   value: StateValue;
   context: TContext;
   _event: SCXML.Event<TEvent>;
-  _sessionid: string | null;
   historyValue?: HistoryValue<TContext, TEvent>;
-
   actions?: BaseActionObject[];
   meta?: any;
-  configuration: Array<StateNode<TContext, TEvent>>;
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
+  configuration?: Array<StateNode<TContext, TEvent>>;
+  transitions?: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
+  output?: any;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any>;
+  _internalQueue?: Array<SCXML.Event<TEvent>>;
 }
 
-export interface InterpreterOptions {
+export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
@@ -1594,9 +1628,24 @@ export interface InterpreterOptions {
   autoForward?: boolean;
 
   sync?: boolean;
+
+  /**
+   * The input data to pass to the actor.
+   */
+  input?: any;
+
+  // state?:
+  //   | PersistedStateFrom<TActorBehavior>
+  //   | InternalStateFrom<TActorBehavior>;
+  state?: any;
+
+  /**
+   * The source definition.
+   */
+  src?: string;
 }
 
-export type AnyInterpreter = Interpreter<any, any, any>;
+export type AnyInterpreter = Interpreter<any>;
 
 export declare namespace SCXML {
   // tslint:disable-next-line:no-shadowed-variable
@@ -1662,23 +1711,12 @@ export declare namespace SCXML {
   }
 }
 
-// Taken from RxJS
-export type Observer<T> =
-  | {
-      next: (value: T) => void;
-      error?: (err: any) => void;
-      complete?: () => void;
-    }
-  | {
-      next?: (value: T) => void;
-      error: (err: any) => void;
-      complete?: () => void;
-    }
-  | {
-      next?: (value: T) => void;
-      error?: (err: any) => void;
-      complete: () => void;
-    };
+// Based on RxJS types
+export type Observer<T> = {
+  next?: (value: T) => void;
+  error?: (err: any) => void;
+  complete?: () => void;
+};
 
 export interface Subscription {
   unsubscribe(): void;
@@ -1708,12 +1746,16 @@ export type Spawnable =
   | InvokeCallback
   | InteropObservable<any>
   | Subscribable<any>
-  | Behavior<any, any>;
+  | ActorBehavior<any, any>;
 
 export type ExtractEvent<
   TEvent extends EventObject,
   TEventType extends TEvent['type']
-> = TEvent extends { type: TEventType } ? TEvent : never;
+> = TEvent extends any
+  ? TEventType extends TEvent['type']
+    ? TEvent
+    : never
+  : never;
 
 export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
@@ -1721,21 +1763,32 @@ export interface BaseActorRef<TEvent extends EventObject> {
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>
   extends Subscribable<TCurrent> {
-  send: Sender<TEvent>;
+  send: (event: TEvent) => void;
 }
 
-export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
-
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted>,
-    InteropObservable<TEmitted> {
-  name: string;
+export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
+  extends Subscribable<TSnapshot>,
+    InteropObservable<TSnapshot> {
+  /**
+   * The unique identifier for this actor relative to its parent.
+   */
+  id: string;
+  sessionId: string;
   send: (event: TEvent) => void;
+  // TODO: should this be optional?
   start?: () => void;
-  getSnapshot: () => TEmitted | undefined;
+  getSnapshot: () => TSnapshot | undefined;
+  // TODO: this should return some sort of TPersistedState, not any
+  getPersistedState?: () => any;
   stop?: () => void;
   toJSON?: () => any;
+  // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
+  _parent?: ActorRef<any, any>;
+  status: ActorStatus;
+  src?: string;
 }
+
+export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -1756,9 +1809,9 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         >
       >
     : R extends Promise<infer U>
-    ? ActorRef<never, U>
-    : R extends Behavior<infer TEvent, infer TEmitted>
-    ? ActorRef<TEvent, TEmitted>
+    ? ActorRef<{ type: string }, U | undefined>
+    : R extends ActorBehavior<infer TEvent, infer TSnapshot>
+    ? ActorRef<TEvent, TSnapshot>
     : never
   : never;
 
@@ -1774,11 +1827,12 @@ export type InterpreterFrom<
   infer TResolvedTypesMeta
 >
   ? Interpreter<
-      TContext,
-      TEvent,
-      AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-        ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-        : TResolvedTypesMeta
+      ActorBehavior<
+        TEvent,
+        State<TContext, TEvent, TResolvedTypesMeta>,
+        State<TContext, TEvent, TResolvedTypesMeta>,
+        PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
+      >
     >
   : never;
 
@@ -1810,38 +1864,87 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   ? TResolvedTypesMeta
   : never;
 
-export type EventOfMachine<
-  TMachine extends AnyStateMachine
-> = TMachine extends StateMachine<any, infer E, any, any, any> ? E : never;
+export type EventOfMachine<TMachine extends AnyStateMachine> =
+  TMachine extends StateMachine<any, infer E, any, any, any> ? E : never;
 
-export interface ActorContext<TEvent extends EventObject, TEmitted> {
-  parent?: ActorRef<any, any>;
-  self: ActorRef<TEvent, TEmitted>;
-  name: string;
-  observers: Set<Observer<TEmitted>>;
-  _event: SCXML.Event<TEvent> | LifecycleSignal;
+export interface ActorContext<TEvent extends EventObject, TSnapshot> {
+  self: ActorRef<TEvent, TSnapshot>;
+  id: string;
+  sessionId: string;
+  logger: (...args: any[]) => void;
+  defer: (fn: () => void) => void;
 }
 
-export interface Behavior<TEvent extends EventObject, TEmitted = any> {
+export interface ActorBehavior<
+  TEvent extends EventObject,
+  TSnapshot = any,
+  TInternalState = any,
+  /**
+   * Serialized internal state used for persistence & restoration
+   */
+  TPersisted = TInternalState
+> {
   transition: (
-    state: TEmitted,
+    state: TInternalState,
     message: TEvent | LifecycleSignal,
-    ctx: ActorContext<TEvent, TEmitted>
-  ) => TEmitted;
-  initialState: TEmitted;
-  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
-  subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
+    ctx: ActorContext<TEvent, TSnapshot>
+  ) => TInternalState;
+  getInitialState: (
+    actorCtx: ActorContext<TEvent, TSnapshot>,
+    input: any
+  ) => TInternalState;
+  restoreState?: (
+    persistedState: TPersisted,
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => TInternalState;
+  getSnapshot?: (state: TInternalState) => TSnapshot;
+  getStatus?: (state: TInternalState) => { status: string; data?: any };
+  start?: (
+    state: TInternalState,
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => void;
+  /**
+   * @returns Persisted state
+   */
+  getPersistedState?: (state: TInternalState) => TPersisted;
 }
 
-export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TEmitted>
-    ? TEmitted
-    : R extends Behavior<infer _, infer TEmitted>
-    ? TEmitted
-    : R extends ActorContext<infer _, infer TEmitted>
-    ? TEmitted
+export type AnyActorBehavior = ActorBehavior<any, any, any, any>;
+
+export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends ActorRef<infer _, infer TSnapshot>
+    ? TSnapshot
+    : R extends Interpreter<infer TBehavior>
+    ? SnapshotFrom<TBehavior>
+    : R extends ActorBehavior<infer _, infer TSnapshot>
+    ? TSnapshot
+    : R extends ActorContext<infer _, infer TSnapshot>
+    ? TSnapshot
     : never
   : never;
+
+export type EventFromBehavior<TBehavior extends ActorBehavior<any, any>> =
+  TBehavior extends ActorBehavior<infer TEvent, infer _> ? TEvent : never;
+
+export type PersistedStateFrom<TBehavior extends ActorBehavior<any, any>> =
+  TBehavior extends ActorBehavior<
+    infer _TEvent,
+    infer _TSnapshot,
+    infer _TInternalState,
+    infer TPersisted
+  >
+    ? TPersisted
+    : never;
+
+export type InternalStateFrom<TBehavior extends ActorBehavior<any, any>> =
+  TBehavior extends ActorBehavior<
+    infer _TEvent,
+    infer _TSnapshot,
+    infer TInternalState,
+    infer _TPersisted
+  >
+    ? TInternalState
+    : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -1852,13 +1955,11 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer ____
     >
     ? TEvent
-    : R extends Model<infer _, infer TEvent, infer __, infer ___>
-    ? TEvent
     : R extends State<infer _, infer TEvent, infer __>
     ? TEvent
     : // TODO: the special case for Interpreter shouldn't be needed here as it implements ActorRef
     // however to drop it we'd have to remove ` | SCXML.Event<TEvent>` from its `send`'s accepted parameter
-    R extends Interpreter<infer _, infer TEvent, infer __>
+    R extends Interpreter<infer _, infer TEvent>
     ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
     ? TEvent
@@ -1868,15 +1969,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
 export type EventFrom<
   T,
   K extends Prop<TEvent, 'type'> = never,
-  TEvent = ResolveEventType<T>
-> = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
-
-/**
- * Events that do not require payload
- */
-export type SimpleEventsOf<
-  TEvent extends EventObject
-> = ExtractWithSimpleSupport<TEvent>;
+  TEvent extends EventObject = ResolveEventType<T>
+> = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -1887,15 +1981,36 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer ____
     >
     ? TContext
-    : R extends Model<infer TContext, infer _, infer __, infer ___>
-    ? TContext
     : R extends State<infer TContext, infer _, infer __>
     ? TContext
-    : R extends Interpreter<infer TContext, infer _, infer __>
-    ? TContext
+    : R extends Interpreter<infer TBehavior>
+    ? TBehavior extends StateMachine<infer TContext, infer _>
+      ? TContext
+      : never
     : never
   : never;
 
 export type InferEvent<E extends EventObject> = {
   [T in E['type']]: { type: T } & Extract<E, { type: T }>;
 }[E['type']];
+
+export type TODO = any;
+
+export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['matches']
+>[0];
+
+export type StateFromMachine<TMachine extends AnyStateMachine> =
+  TMachine['initialState'];
+
+export type PersistedMachineState<TState extends AnyState> = Pick<
+  TState,
+  'value' | 'output' | 'context' | '_event' | 'done' | 'historyValue'
+> & {
+  children: {
+    [K in keyof TState['children']]: {
+      state: any; // TODO: fix (should be state from actorref)
+      src?: string;
+    };
+  };
+};

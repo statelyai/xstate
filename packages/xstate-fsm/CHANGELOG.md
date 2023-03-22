@@ -1,5 +1,30 @@
 # @xstate/fsm
 
+## 3.0.0-alpha.0
+
+### Major Changes
+
+- [#3455](https://github.com/statelyai/xstate/pull/3455) [`ec39214c8`](https://github.com/statelyai/xstate/commit/ec39214c8eba11d75f6af72bae51ddb65ce003a0) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `.send(...)` method on `interpreter.send(...)` now requires the first argument (the event to send) to be an _object_, e.g. `{ type: 'someEvent' }`.
+
+  ```diff
+  -actor.send('SOME_EVENT')
+  +actor.send({ type: 'SOME_EVENT' })
+  ```
+
+### Minor Changes
+
+- [#3727](https://github.com/statelyai/xstate/pull/3727) [`5fb3c683d`](https://github.com/statelyai/xstate/commit/5fb3c683d9a9bdc06637b3a13a5b575059aebadd) Thanks [@Andarist](https://github.com/Andarist)! - `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+
+## 2.0.0
+
+### Major Changes
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `.start()` (when called without any argument) now always starts from the initial state of the machine. This matches the behavior of XState itself.
+
+### Patch Changes
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - A bunch of TypeScript helpers has been added: `StateMachine.AnyMachine`, `StateMachine.AnyService`, `ContextFrom`, `EventFrom`, `StateFrom` and `ServiceFrom`.
+
 ## 1.6.5
 
 ### Patch Changes
@@ -122,7 +147,7 @@
 
   </details>
 
-* [`3c10215`](https://github.com/statelyai/xstate/commit/3c102158d24d3f12aa671bc39dea0a2e98e3c34f) [#811](https://github.com/statelyai/xstate/pull/811) Thanks [@ghengeveld](https://github.com/ghengeveld)! - A `config` property got exposed on created machines. It's the same object which got passed in as argument.
+- [`3c10215`](https://github.com/statelyai/xstate/commit/3c102158d24d3f12aa671bc39dea0a2e98e3c34f) [#811](https://github.com/statelyai/xstate/pull/811) Thanks [@ghengeveld](https://github.com/ghengeveld)! - A `config` property got exposed on created machines. It's the same object which got passed in as argument.
 
 ### Patch Changes
 

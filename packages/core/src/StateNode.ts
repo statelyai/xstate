@@ -1,16 +1,13 @@
 import {
-  getEventType,
   mapValues,
   flatten,
   toArray,
   isString,
   toInvokeConfig,
-  toInvokeSource,
-  isFunction,
-  toTransitionConfigArray
-} from './utils';
+  toTransitionConfigArray,
+  createInvokeId
+} from './utils.js';
 import type {
-  Event,
   EventObject,
   HistoryStateNodeConfig,
   StateNodeDefinition,
@@ -28,20 +25,20 @@ import type {
   InitialTransitionDefinition,
   MachineContext,
   BaseActionObject
-} from './types';
-import type { State } from './State';
-import * as actionTypes from './actionTypes';
-import { toActionObject } from './actions';
-import { formatInitialTransition, formatTransition } from './stateUtils';
+} from './types.js';
+import type { State } from './State.js';
+import * as actionTypes from './actionTypes.js';
+import { toActionObjects } from './actions.js';
+import { formatInitialTransition, formatTransition } from './stateUtils.js';
 import {
   getDelayedTransitions,
   formatTransitions,
   getCandidates
-} from './stateUtils';
-import { evaluateGuard } from './guards';
-import type { StateMachine } from './StateMachine';
-import { memo } from './memo';
-import { NULL_EVENT } from './constants';
+} from './stateUtils.js';
+import { evaluateGuard } from './guards.js';
+import type { StateMachine } from './StateMachine.js';
+import { memo } from './memo.js';
+import { NULL_EVENT } from './constants.js';
 
 const EMPTY_OBJECT = {};
 
@@ -136,12 +133,12 @@ export class StateNode<
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
-    this.key = this.config.key || options._key;
+    this.key = options._key;
     this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||
-      [this.machine.key, ...this.path].join(this.machine.delimiter);
+      [this.machine.id, ...this.path].join(this.machine.delimiter);
     this.type =
       this.config.type ||
       (this.config.states && Object.keys(this.config.states).length
@@ -154,19 +151,21 @@ export class StateNode<
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
 
-    this.states = (this.config.states
-      ? mapValues(
-          this.config.states,
-          (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
-            const stateNode = new StateNode(stateConfig, {
-              _parent: this,
-              _key: key as string,
-              _machine: this.machine
-            });
-            return stateNode;
-          }
-        )
-      : EMPTY_OBJECT) as StateNodesConfig<TContext, TEvent>;
+    this.states = (
+      this.config.states
+        ? mapValues(
+            this.config.states,
+            (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
+              const stateNode = new StateNode(stateConfig, {
+                _parent: this,
+                _key: key as string,
+                _machine: this.machine
+              });
+              return stateNode;
+            }
+          )
+        : EMPTY_OBJECT
+    ) as StateNodesConfig<TContext, TEvent>;
 
     if (this.type === 'compound' && !this.config.initial) {
       throw new Error(
@@ -182,13 +181,9 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry).map((action) =>
-      toActionObject(action, this.machine.options.actions)
-    );
+    this.entry = toActionObjects(this.config.entry);
+    this.exit = toActionObjects(this.config.exit);
 
-    this.exit = toArray(this.config.exit).map((action) =>
-      toActionObject(action, this.machine.options.actions)
-    );
     this.meta = this.config.meta;
     this.doneData =
       this.type === 'final'
@@ -200,10 +195,9 @@ export class StateNode<
   public _initialize() {
     this.transitions = formatTransitions(this);
     if (this.config.always) {
-      this.always = toTransitionConfigArray(
-        NULL_EVENT,
-        this.config.always
-      ).map((t) => formatTransition(this, t));
+      this.always = toTransitionConfigArray(NULL_EVENT, this.config.always).map(
+        (t) => formatTransition(this, t)
+      );
     }
 
     Object.keys(this.states).forEach((key) => {
@@ -219,7 +213,6 @@ export class StateNode<
       id: this.id,
       key: this.key,
       version: this.machine.version,
-      context: this.machine.context,
       type: this.type,
       initial: this.initial
         ? {
@@ -227,6 +220,7 @@ export class StateNode<
             source: this,
             actions: this.initial.actions,
             eventType: null as any,
+            external: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
@@ -262,26 +256,26 @@ export class StateNode<
   public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
-        const id = `${this.id}:invocation[${i}]`;
+        const generatedId = createInvokeId(this.id, i);
+        const invokeConfig = toInvokeConfig(invocable, generatedId);
+        const resolvedId = invokeConfig.id || generatedId;
+        const { src } = invokeConfig;
 
-        const invokeConfig = toInvokeConfig(invocable, id);
-        const resolvedId = invokeConfig.id || id;
-
-        const resolvedSrc = toInvokeSource(
-          isString(invokeConfig.src)
-            ? invokeConfig.src
-            : typeof invokeConfig.src === 'object' && invokeConfig.src !== null
-            ? invokeConfig.src
-            : resolvedId
-        );
+        const resolvedSrc = isString(src)
+          ? src
+          : !('type' in src)
+          ? resolvedId
+          : src;
 
         if (
-          !this.machine.options.actors[resolvedSrc.type] &&
-          isFunction(invokeConfig.src)
+          !this.machine.options.actors[resolvedId] &&
+          typeof src !== 'string' &&
+          !('type' in src)
         ) {
           this.machine.options.actors = {
             ...this.machine.options.actors,
-            [resolvedSrc.type]: invokeConfig.src
+            // TODO: this should accept `src` as-is
+            [resolvedId]: src
           };
         }
 
@@ -334,13 +328,14 @@ export class StateNode<
    *
    * @param event The event in question
    */
-  public handles(event: Event<TEvent>): boolean {
-    const eventType = getEventType<TEvent>(event);
-
-    return this.events.includes(eventType);
+  public handles(event: TEvent): boolean {
+    return this.events.includes(event.type);
   }
 
-  public next(state: State<TContext, TEvent>, _event: SCXML.Event<TEvent>) {
+  public next(
+    state: State<TContext, TEvent>,
+    _event: SCXML.Event<TEvent>
+  ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
 
@@ -370,8 +365,7 @@ export class StateNode<
             guard,
             resolvedContext,
             _event,
-            state,
-            this.machine
+            state
           );
       } catch (err) {
         throw new Error(
@@ -456,7 +450,7 @@ export class StateNode<
           return !(
             !transition.target &&
             !transition.actions.length &&
-            transition.internal
+            !transition.external
           );
         })
         .map((transition) => transition.eventType)

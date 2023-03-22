@@ -41,10 +41,6 @@ const lightMachine = createMachine({
 
 const { initialState } = lightMachine;
 
-let nextState = lightMachine.transition(initialState, 'TIMER'); // 字符串事件
-console.log(nextState.value);
-// => 'yellow'
-
 nextState = lightMachine.transition(nextState, { type: 'TIMER' }); // 事件对象
 console.log(nextState.value);
 // => 'red'
@@ -103,7 +99,7 @@ const skipMachine = createMachine({
 });
 
 const { initialState } = skipMachine;
-const nextState = skipMachine.transition(initialState, 'CLICK');
+const nextState = skipMachine.transition(initialState, { type: 'CLICK' });
 
 console.log(nextState.value);
 // => 'three'

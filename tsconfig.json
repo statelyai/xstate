@@ -3,7 +3,7 @@
     "allowSyntheticDefaultImports": true,
     "target": "esnext",
     "isolatedModules": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Node16",
     "noEmit": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -12,8 +12,8 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "jsx": "react",
-    "lib": ["es6", "dom"],
+    "jsx": "react-jsx",
+    "lib": ["es2019", "dom"],
     "strictPropertyInitialization": true
   },
   "exclude": ["examples"]

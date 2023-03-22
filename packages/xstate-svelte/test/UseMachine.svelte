@@ -1,25 +1,25 @@
 <script lang="ts">
   export let persistedState: AnyState | undefined = undefined;
 
-  import { useMachine } from '../src';
+  import { useMachine } from '../src/index.js';
   import { fetchMachine } from './fetchMachine';
   import type { AnyState } from 'xstate';
-  import { invokePromise } from 'xstate/invoke';
+  import { fromPromise } from 'xstate/actors';
 
   const onFetch = () =>
     new Promise((res) => setTimeout(() => res('some data'), 50));
 
   const { state, send } = useMachine(fetchMachine, {
+    state: persistedState,
     actors: {
-      fetchData: invokePromise(onFetch)
-    },
-    state: persistedState
+      fetchData: fromPromise(onFetch)
+    }
   });
 </script>
 
 <div>
   {#if $state.matches('idle')}
-    <button on:click={() => send('FETCH')}>Fetch</button>
+    <button on:click={() => send({ type: 'FETCH' })}>Fetch</button>
   {:else if $state.matches('loading')}
     <div>Loading...</div>
   {:else if $state.matches('success')}

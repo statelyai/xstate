@@ -1,5 +1,5 @@
 import { toggle, sequence } from '../src/patterns';
-import { createMachine } from '../src';
+import { createMachine } from '../src/index.js';
 
 describe('patterns', () => {
   describe('toggle pattern', () => {
@@ -20,15 +20,21 @@ describe('patterns', () => {
         ...sequence(seq)
       });
 
-      expect(sequenceMachine.transition(seq[0], 'NEXT').value).toEqual(seq[1]);
-
-      expect(sequenceMachine.transition(seq[1], 'PREV').value).toEqual(seq[0]);
+      expect(
+        sequenceMachine.transition(seq[0], { type: 'NEXT' }).value
+      ).toEqual(seq[1]);
 
       expect(
-        sequenceMachine.transition(seq[seq.length - 1], 'NEXT').value
+        sequenceMachine.transition(seq[1], { type: 'PREV' }).value
+      ).toEqual(seq[0]);
+
+      expect(
+        sequenceMachine.transition(seq[seq.length - 1], { type: 'NEXT' }).value
       ).toEqual(seq[seq.length - 1]);
 
-      expect(sequenceMachine.transition(seq[0], 'PREV').value).toEqual(seq[0]);
+      expect(
+        sequenceMachine.transition(seq[0], { type: 'PREV' }).value
+      ).toEqual(seq[0]);
     });
 
     it('should customize the next/prev events', () => {
@@ -37,20 +43,26 @@ describe('patterns', () => {
       const sequenceMachine = createMachine({
         id: 'sequence',
         ...sequence(seq, {
-          nextEvent: 'FORWARD',
-          prevEvent: 'BACK'
+          nextEvent: { type: 'FORWARD' },
+          prevEvent: { type: 'BACK' }
         })
       });
 
-      expect(sequenceMachine.transition(seq[0], 'NEXT').value).toEqual(seq[0]);
+      expect(
+        sequenceMachine.transition(seq[0], { type: 'NEXT' }).value
+      ).toEqual(seq[0]);
 
-      expect(sequenceMachine.transition(seq[1], 'PREV').value).toEqual(seq[1]);
+      expect(
+        sequenceMachine.transition(seq[1], { type: 'PREV' }).value
+      ).toEqual(seq[1]);
 
-      expect(sequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(
-        seq[1]
-      );
+      expect(
+        sequenceMachine.transition(seq[0], { type: 'FORWARD' }).value
+      ).toEqual(seq[1]);
 
-      expect(sequenceMachine.transition(seq[1], 'BACK').value).toEqual(seq[0]);
+      expect(
+        sequenceMachine.transition(seq[1], { type: 'BACK' }).value
+      ).toEqual(seq[0]);
     });
 
     it('should allow next/prev events to be undefined', () => {
@@ -59,32 +71,34 @@ describe('patterns', () => {
       const sequenceMachine = createMachine({
         id: 'sequence',
         ...sequence(seq, {
-          nextEvent: 'FORWARD',
+          nextEvent: { type: 'FORWARD' },
           prevEvent: undefined
         })
       });
 
-      expect(sequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(
-        seq[1]
-      );
+      expect(
+        sequenceMachine.transition(seq[0], { type: 'FORWARD' }).value
+      ).toEqual(seq[1]);
 
-      expect(sequenceMachine.transition(seq[1], 'BACK').value).toEqual(seq[1]);
+      expect(
+        sequenceMachine.transition(seq[1], { type: 'BACK' }).value
+      ).toEqual(seq[1]);
 
       const backSequenceMachine = createMachine({
         id: 'backSequence',
         ...sequence(seq, {
           nextEvent: undefined,
-          prevEvent: 'BACK'
+          prevEvent: { type: 'BACK' }
         })
       });
 
-      expect(backSequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(
-        seq[0]
-      );
+      expect(
+        backSequenceMachine.transition(seq[0], { type: 'FORWARD' }).value
+      ).toEqual(seq[0]);
 
-      expect(backSequenceMachine.transition(seq[1], 'BACK').value).toEqual(
-        seq[0]
-      );
+      expect(
+        backSequenceMachine.transition(seq[1], { type: 'BACK' }).value
+      ).toEqual(seq[0]);
     });
   });
 });

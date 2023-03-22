@@ -1,4 +1,4 @@
-import { interpret, State, createMachine } from '../src';
+import { interpret, State, createMachine, actions } from '../src/index.js';
 import { and, not, or } from '../src/guards';
 
 describe('guard conditions', () => {
@@ -16,7 +16,6 @@ describe('guard conditions', () => {
 
   const lightMachine = createMachine<LightMachineCtx, LightMachineEvents>(
     {
-      key: 'light',
       initial: 'green',
       states: {
         green: {
@@ -71,19 +70,27 @@ describe('guard conditions', () => {
   it('should transition only if condition is met', () => {
     expect(
       lightMachine.transition(
-        State.from('green', {
-          elapsed: 50
-        }),
-        'TIMER'
+        State.from(
+          'green',
+          {
+            elapsed: 50
+          },
+          lightMachine
+        ),
+        { type: 'TIMER', elapsed: 0 }
       ).value
     ).toEqual('green');
 
     expect(
       lightMachine.transition(
-        State.from('green', {
-          elapsed: 120
-        }),
-        'TIMER'
+        State.from(
+          'green',
+          {
+            elapsed: 120
+          },
+          lightMachine
+        ),
+        { type: 'TIMER', elapsed: 0 }
       ).value
     ).toEqual('yellow');
   });
@@ -108,11 +115,15 @@ describe('guard conditions', () => {
   it('should not transition if no condition is met', () => {
     const nextState = lightMachine.transition(
       lightMachine.resolveState(
-        State.from('green', {
-          elapsed: 9000
-        })
+        State.from(
+          'green',
+          {
+            elapsed: 9000
+          },
+          lightMachine
+        )
       ),
-      'TIMER'
+      { type: 'TIMER', elapsed: 10 }
     );
     expect(nextState.value).toEqual('green');
     expect(nextState.actions).toEqual([]);
@@ -121,11 +132,15 @@ describe('guard conditions', () => {
   it('should work with defined string transitions', () => {
     const nextState = lightMachine.transition(
       lightMachine.resolveState(
-        State.from('yellow', {
-          elapsed: 150
-        })
+        State.from(
+          'yellow',
+          {
+            elapsed: 150
+          },
+          lightMachine
+        )
       ),
-      'TIMER'
+      { type: 'TIMER', elapsed: 10 }
     );
     expect(nextState.value).toEqual('red');
   });
@@ -133,11 +148,15 @@ describe('guard conditions', () => {
   it('should work with guard objects', () => {
     const nextState = lightMachine.transition(
       lightMachine.resolveState(
-        State.from('yellow', {
-          elapsed: 150
-        })
+        State.from(
+          'yellow',
+          {
+            elapsed: 150
+          },
+          lightMachine
+        )
       ),
-      'TIMER_COND_OBJ'
+      { type: 'TIMER_COND_OBJ' }
     );
     expect(nextState.value).toEqual('red');
   });
@@ -145,23 +164,28 @@ describe('guard conditions', () => {
   it('should work with defined string transitions (condition not met)', () => {
     const nextState = lightMachine.transition(
       lightMachine.resolveState(
-        State.from('yellow', {
-          elapsed: 10
-        })
+        State.from(
+          'yellow',
+          {
+            elapsed: 10
+          },
+          lightMachine
+        )
       ),
-      'TIMER'
+      { type: 'TIMER', elapsed: 10 }
     );
     expect(nextState.value).toEqual('yellow');
   });
 
   it('should throw if string transition is not defined', () => {
-    expect(() => lightMachine.transition('red', 'BAD_COND')).toThrow();
+    expect(() =>
+      lightMachine.transition('red', { type: 'BAD_COND' })
+    ).toThrow();
   });
 });
 
 describe('guard conditions', () => {
   const machine = createMachine({
-    key: 'microsteps',
     type: 'parallel',
     states: {
       A: {
@@ -235,24 +259,60 @@ describe('guard conditions', () => {
   });
 
   it('should guard against transition', () => {
-    expect(machine.transition({ A: 'A2', B: 'B0' }, 'T1').value).toEqual({
+    expect(
+      machine.transition({ A: 'A2', B: 'B0' }, { type: 'T1' }).value
+    ).toEqual({
       A: 'A2',
       B: 'B0'
     });
   });
 
   it('should allow a matching transition', () => {
-    expect(machine.transition({ A: 'A2', B: 'B0' }, 'T2').value).toEqual({
+    expect(
+      machine.transition({ A: 'A2', B: 'B0' }, { type: 'T2' }).value
+    ).toEqual({
       A: 'A2',
       B: 'B2'
     });
   });
 
   it('should check guards with interim states', () => {
-    expect(machine.transition({ A: 'A2', B: 'B0' }, 'A').value).toEqual({
+    expect(
+      machine.transition({ A: 'A2', B: 'B0' }, { type: 'A' }).value
+    ).toEqual({
       A: 'A5',
       B: 'B4'
     });
+  });
+
+  it('should be able to check source state tags when checking', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            MACRO: 'b'
+          }
+        },
+        b: {
+          entry: actions.raise({ type: 'MICRO' }),
+          tags: 'theTag',
+          on: {
+            MICRO: {
+              guard: (_ctx: any, _event: any, { state }: any) =>
+                state.hasTag('theTag'),
+              target: 'c'
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'MACRO' });
+
+    expect(service.getSnapshot().value).toBe('c');
   });
 });
 
@@ -389,7 +449,7 @@ describe('referencing guards', () => {
     });
 
     expect(() => {
-      machine.transition(machine.initialState, 'EVENT');
+      machine.transition(machine.initialState, { type: 'EVENT' });
     }).toThrow();
   });
 });
@@ -410,9 +470,9 @@ describe('guards - other', () => {
     });
 
     const service = interpret(machine).start();
-    service.send('EVENT');
+    service.send({ type: 'EVENT' });
 
-    expect(service.state.value).toBe('c');
+    expect(service.getSnapshot().value).toBe('c');
   });
 });
 
@@ -461,7 +521,7 @@ describe('guards with child guards', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
     expect(nextState.matches('b')).toBeTruthy();
   });
 });
@@ -483,7 +543,7 @@ describe('not() guard', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -511,7 +571,7 @@ describe('not() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -541,7 +601,7 @@ describe('not() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -570,7 +630,7 @@ describe('not() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -593,7 +653,7 @@ describe('and() guard', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -621,7 +681,7 @@ describe('and() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -654,7 +714,7 @@ describe('and() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -687,7 +747,7 @@ describe('and() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -710,7 +770,7 @@ describe('or() guard', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -739,7 +799,7 @@ describe('or() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -772,7 +832,7 @@ describe('or() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });
@@ -805,7 +865,7 @@ describe('or() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.matches('b')).toBeTruthy();
   });

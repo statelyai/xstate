@@ -1,48 +1,49 @@
-import { EventObject, ChooseCondition, MachineContext } from '../types';
-import * as actionTypes from '../actionTypes';
-import { toArray } from '../utils';
-import { createDynamicAction } from '../../actions/dynamicAction';
-import { evaluateGuard, toGuardDefinition } from '../guards';
+import { EventObject, ChooseCondition, MachineContext } from '../types.js';
+import * as actionTypes from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
+import { evaluateGuard, toGuardDefinition } from '../guards.js';
 import {
   BaseDynamicActionObject,
   ChooseAction,
   ResolvedChooseAction
-} from '..';
-import { toActionObject } from '../actions';
+} from '../index.js';
+import { toActionObjects } from '../actions.js';
 
 export function choose<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
-  guards: Array<ChooseCondition<TContext, TEvent>>
+  guards: Array<ChooseCondition<TContext, TExpressionEvent>>
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   ResolvedChooseAction,
-  ChooseAction<TContext, TEvent>['params']
+  ChooseAction<TContext, TExpressionEvent>['params']
 > {
   return createDynamicAction(
-    actionTypes.choose,
-    { guards },
-    ({ params }, context, _event, { machine, state }) => {
-      const matchedActions = params.guards.find((condition) => {
+    { type: actionTypes.choose, params: { guards } },
+    (_event, { state }) => {
+      const matchedActions = guards.find((condition) => {
         const guard =
           condition.guard &&
           toGuardDefinition(
             condition.guard,
-            (guardType) => machine.options.guards[guardType]
+            (guardType) => state.machine.options.guards[guardType]
           );
-        return !guard || evaluateGuard(guard, context, _event, state, machine);
+        return !guard || evaluateGuard(guard, state.context, _event, state);
       })?.actions;
 
-      return {
-        type: actionTypes.choose,
-        params: {
-          actions: toArray(matchedActions).map((chosenAction) =>
-            toActionObject(chosenAction)
-          )
+      return [
+        state,
+        {
+          type: actionTypes.choose,
+          params: {
+            actions: toActionObjects(matchedActions)
+          }
         }
-      };
+      ];
     }
   );
 }

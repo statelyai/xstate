@@ -1,4 +1,4 @@
-import { interpret, createMachine } from '../src';
+import { interpret, createMachine } from '../src/index.js';
 
 const config = {
   initial: 'a',
@@ -73,7 +73,7 @@ describe('Initial states', () => {
       }
     });
     const service = interpret(machine).start();
-    expect(service.state.value).toEqual({ foo: 'deep' });
+    expect(service.getSnapshot().value).toEqual({ foo: 'deep' });
   });
 
   it('should resolve multiple deep initial states', () => {
@@ -106,7 +106,7 @@ describe('Initial states', () => {
       }
     });
     const service = interpret(machine).start();
-    expect(service.state.value).toEqual({
+    expect(service.getSnapshot().value).toEqual({
       root: {
         foo: 'foo_deep',
         bar: 'bar_deep'

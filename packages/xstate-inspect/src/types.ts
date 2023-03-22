@@ -3,10 +3,11 @@ import type {
   AnyInterpreter,
   AnyState,
   AnyStateMachine,
-  SCXML
+  SCXML,
+  StateConfig
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { InspectMachineEvent } from './inspectMachine';
+import { InspectMachineEvent } from './inspectMachine.js';
 
 export type MaybeLazy<T> = T | (() => T);
 
@@ -60,7 +61,7 @@ export type ParsedReceiverEvent =
   | {
       type: 'service.register';
       machine: AnyStateMachine;
-      state: AnyState;
+      state: StateConfig<any, any>;
       id: string;
       sessionId: string;
       parent?: string;
@@ -69,7 +70,7 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: AnyState;
+      state: StateConfig<any, any>;
       sessionId: string;
     }
   | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };

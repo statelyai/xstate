@@ -1,12 +1,13 @@
-import { EventObject, ExprWithMeta, MachineContext } from '../types';
-import { cancel as cancelActionType } from '../actionTypes';
-import { isFunction } from '../utils';
+import { EventObject, ExprWithMeta, MachineContext } from '../types.js';
+import { cancel as cancelActionType } from '../actionTypes.js';
+import { isFunction } from '../utils.js';
 import {
+  AnyInterpreter,
   BaseDynamicActionObject,
   CancelActionObject,
   DynamicCancelActionObject
-} from '..';
-import { createDynamicAction } from '../../actions/dynamicAction';
+} from '../index.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -18,33 +19,45 @@ import { createDynamicAction } from '../../actions/dynamicAction';
 
 export function cancel<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
-  sendId: string | ExprWithMeta<TContext, TEvent, string>
+  sendId: string | ExprWithMeta<TContext, TExpressionEvent, string>
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   CancelActionObject,
-  DynamicCancelActionObject<TContext, TEvent>['params']
+  DynamicCancelActionObject<TContext, TExpressionEvent>['params']
 > {
   return createDynamicAction(
-    cancelActionType,
     {
-      sendId
+      type: cancelActionType,
+      params: {
+        sendId
+      }
     },
-    ({ params, type }, ctx, _event) => {
-      const resolvedSendId = isFunction(params.sendId)
-        ? params.sendId(ctx, _event.data, {
+    (_event, { state }) => {
+      const resolvedSendId = isFunction(sendId)
+        ? sendId(state.context, _event.data, {
             _event
           })
-        : params.sendId;
+        : sendId;
 
-      return {
-        type,
-        params: {
-          sendId: resolvedSendId
-        }
-      } as CancelActionObject;
+      return [
+        state,
+        {
+          type: 'xstate.cancel',
+          params: {
+            sendId: resolvedSendId
+          },
+          execute: (actorCtx) => {
+            const interpreter = actorCtx.self as AnyInterpreter;
+
+            interpreter.cancel(resolvedSendId);
+          }
+        } as CancelActionObject
+      ];
     }
   );
 }

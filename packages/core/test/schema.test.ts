@@ -1,4 +1,4 @@
-import { createMachine, createSchema } from '../src';
+import { createMachine, createSchema } from '../src/index.js';
 import { JSONSchema6 } from 'json-schema';
 
 export interface JSONSchemaObject<TK extends string> extends JSONSchema6 {
@@ -54,15 +54,15 @@ describe('schema', () => {
       }
     });
 
-    noop(m.context.foo);
-    noop(m.context.baz.one);
-    m.transition('active', 'BAR');
+    noop(m.getContext().foo);
+    noop(m.getContext().baz.one);
+    m.transition('active', { type: 'BAR' });
 
     // @ts-expect-error
-    noop(m.context.something);
+    noop(m.getContext().something);
 
     // @ts-expect-error
-    m.transition('active', 'INVALID');
+    m.transition('active', { type: 'INVALID' });
   });
 
   it('schema should be present in the machine definition', () => {

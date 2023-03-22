@@ -8,9 +8,8 @@
 </template>
 
 <script lang="ts">
-import { useMachine, useActor } from '../src';
+import { useMachine, useActor } from '../src/index.js';
 import { createMachine, sendParent } from 'xstate';
-import { invokeMachine } from 'xstate/invoke';
 import { defineComponent } from 'vue';
 
 const childMachine = createMachine({
@@ -19,7 +18,7 @@ const childMachine = createMachine({
   states: {
     active: {
       on: {
-        FINISH: { actions: sendParent('FINISH') }
+        FINISH: { actions: sendParent({ type: 'FINISH' }) }
       }
     }
   }
@@ -28,7 +27,7 @@ const machine = createMachine({
   initial: 'active',
   invoke: {
     id: 'child',
-    src: invokeMachine(childMachine)
+    src: childMachine
   },
   states: {
     active: {

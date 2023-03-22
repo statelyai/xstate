@@ -1,75 +1,118 @@
+import { EventObject, InvokeDefinition, MachineContext } from '../types.js';
+import { invoke as invokeActionType } from '../actionTypes.js';
+import { isActorRef } from '../actors/index.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
 import {
-  EventObject,
-  InvokeDefinition,
-  BehaviorCreator,
-  MachineContext
-} from '../types';
-import { invoke as invokeActionType } from '../actionTypes';
-import { isActorRef } from '../actor';
-import { ObservableActorRef } from '../ObservableActorRef';
-import { createDynamicAction } from '../../actions/dynamicAction';
-import {
+  AnyInterpreter,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
   InvokeActionObject
-} from '..';
-import { actionTypes } from '../actions';
+} from '../index.js';
+import { actionTypes, error } from '../actions.js';
+import { resolveReferencedActor, warn } from '../utils.js';
+import { ActorStatus, interpret } from '../interpreter.js';
+import { cloneState } from '../State.js';
+import { IS_PRODUCTION } from '../environment.js';
 
 export function invoke<
   TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
   invokeDef: InvokeDefinition<TContext, TEvent>
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   InvokeActionObject,
   DynamicInvokeActionObject<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    invokeActionType,
-    invokeDef,
-    ({ params }, context, _event, { machine }) => {
+    { type: invokeActionType, params: invokeDef },
+    (_event, { state, actorContext }) => {
       const type = actionTypes.invoke;
-      const { id, data, src, meta } = params;
+      const { id, src } = invokeDef;
+
+      let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
-        return {
+        resolvedInvokeAction = {
           type,
           params: {
-            ...params,
+            ...invokeDef,
             ref: src
           }
         } as InvokeActionObject;
+      } else {
+        const referenced = resolveReferencedActor(
+          state.machine.options.actors[src]
+        );
+
+        if (!referenced) {
+          resolvedInvokeAction = {
+            type,
+            params: invokeDef
+          } as InvokeActionObject;
+        } else {
+          const input =
+            'input' in invokeDef ? invokeDef.input : referenced.input;
+          const ref = interpret(referenced.src, {
+            id,
+            src,
+            parent: actorContext?.self,
+            input:
+              typeof input === 'function'
+                ? input(state.context, _event.data as any)
+                : input
+          });
+
+          resolvedInvokeAction = {
+            type,
+            params: {
+              ...invokeDef,
+              ref
+            }
+          } as InvokeActionObject;
+        }
       }
 
-      const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-        machine.options.actors[src.type];
-
-      if (!behaviorCreator) {
-        return {
-          type,
-          params
-        } as InvokeActionObject;
-      }
-
-      const behavior = behaviorCreator(context, _event.data, {
-        id,
-        data,
-        src,
-        _event,
-        meta
+      const actorRef = resolvedInvokeAction.params.ref!;
+      const invokedState = cloneState(state, {
+        children: {
+          ...state.children,
+          [id]: actorRef
+        }
       });
 
-      return {
-        type,
-        params: {
-          ...params,
-          id: params.id,
-          src: params.src,
-          ref: new ObservableActorRef(behavior, id),
-          meta
+      resolvedInvokeAction.execute = (actorCtx) => {
+        const interpreter = actorCtx.self as AnyInterpreter;
+        const { id, autoForward, ref } = resolvedInvokeAction.params;
+        if (!ref) {
+          if (!IS_PRODUCTION) {
+            warn(
+              false,
+              `Actor type '${resolvedInvokeAction.params.src}' not found in machine '${actorCtx.id}'.`
+            );
+          }
+          return;
         }
-      } as InvokeActionObject;
+        actorCtx.defer(() => {
+          if (actorRef.status === ActorStatus.Stopped) {
+            return;
+          }
+          try {
+            if (autoForward) {
+              interpreter._forwardTo.add(actorRef);
+            }
+
+            actorRef.start?.();
+          } catch (err) {
+            interpreter.send(error(id, err));
+            return;
+          }
+        });
+      };
+
+      return [invokedState, resolvedInvokeAction];
     }
   );
 }

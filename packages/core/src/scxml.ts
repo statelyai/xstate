@@ -1,22 +1,21 @@
 import { Element as XMLElement, xml2js } from 'xml-js';
-import { assign } from './actions/assign';
-import { cancel } from './actions/cancel';
-import { choose } from './actions/choose';
-import { log } from './actions/log';
-import { raise } from './actions/raise';
-import { send } from './actions/send';
-import { NULL_EVENT } from './constants';
-import { not, stateIn } from './guards';
-import { AnyStateMachine, BaseActionObject, createMachine } from './index';
-import { invokeMachine } from './invoke';
+import { assign } from './actions/assign.js';
+import { cancel } from './actions/cancel.js';
+import { choose } from './actions/choose.js';
+import { log } from './actions/log.js';
+import { raise } from './actions/raise.js';
+import { send } from './actions/send.js';
+import { NULL_EVENT } from './constants.js';
+import { not, stateIn } from './guards.js';
+import { AnyStateMachine, BaseActionObject, createMachine } from './index.js';
 import {
   ChooseCondition,
   DelayExpr,
   EventObject,
   SCXMLEventMeta,
   SendExpr
-} from './types';
-import { flatten, isString, mapValues } from './utils';
+} from './types.js';
+import { flatten, isString, mapValues } from './utils.js';
 
 function getAttribute(
   element: XMLElement,
@@ -141,7 +140,9 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return raise<TEvent>(element.attributes!.event! as string);
+      return raise<TContext, TEvent, TEvent>({
+        type: element.attributes!.event!
+      } as TEvent);
     }
     case 'assign': {
       return assign<TContext, TEvent>((context, e, meta) => {
@@ -169,7 +170,7 @@ return ${element.attributes!.sendidexpr};
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
+      let convertedEvent: TEvent | SendExpr<TContext, TEvent>;
       let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
 
       const params =
@@ -184,7 +185,7 @@ return ${element.attributes!.sendidexpr};
         }, '');
 
       if (event && !params) {
-        convertedEvent = event as TEvent['type'];
+        convertedEvent = { type: event } as TEvent;
       } else {
         convertedEvent = (context, _ev, meta) => {
           const fnBody = `
@@ -216,7 +217,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
     case 'log': {
       const label = element.attributes!.label;
 
-      return log<TContext, TEvent>(
+      return log<TContext, any>(
         (context, e, meta) => {
           const fnBody = `
 return ${element.attributes!.expr};
@@ -403,7 +404,7 @@ function toConfig(
           target: getTargets(targets),
           ...(value.elements ? executableContent(value.elements) : undefined),
           ...guardObject,
-          internal
+          external: !internal
         };
 
         if (eventType === NULL_EVENT) {
@@ -444,7 +445,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: invokeMachine(scxmlToMachine(content, options)),
+        src: scxmlToMachine(content, options),
         autoForward: element.attributes!.autoforward === 'true'
       };
     });

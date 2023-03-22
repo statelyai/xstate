@@ -1,7 +1,6 @@
 import { createMachine, interpret, assign } from '../src/index';
 
 const wordMachine = createMachine({
-  key: 'word',
   type: 'parallel',
   states: {
     direction: {
@@ -20,14 +19,14 @@ const wordMachine = createMachine({
         RIGHT_CLICK: '.right',
         RIGHT_CLICK_EXTERNAL: {
           target: '.right',
-          internal: false
+          external: true
         },
         CENTER_CLICK: '.center',
         JUSTIFY_CLICK: '.justify',
         RESET: 'direction', // explicit self-transition
         RESET_TO_CENTER: {
           target: 'direction.center',
-          internal: false
+          external: true
         }
       }
     }
@@ -56,20 +55,18 @@ const topLevelMachine = createMachine({
 
 describe('internal transitions', () => {
   it('parent state should enter child state without re-entering self', () => {
-    const nextState = wordMachine.transition(
-      wordMachine.initialState,
-      'RIGHT_CLICK'
-    );
+    const nextState = wordMachine.transition(wordMachine.initialState, {
+      type: 'RIGHT_CLICK'
+    });
 
     expect(nextState.value).toEqual({ direction: 'right' });
     expect(nextState.actions.length).toBe(0);
   });
 
   it('parent state should re-enter self upon transitioning to child state if internal is false', () => {
-    const nextState = wordMachine.transition(
-      wordMachine.initialState,
-      'RIGHT_CLICK_EXTERNAL'
-    );
+    const nextState = wordMachine.transition(wordMachine.initialState, {
+      type: 'RIGHT_CLICK_EXTERNAL'
+    });
 
     expect(nextState.value).toEqual({ direction: 'right' });
     expect(nextState.actions.length).toBe(2);
@@ -80,7 +77,9 @@ describe('internal transitions', () => {
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition', () => {
-    const resetState = wordMachine.transition('direction.center', 'RESET');
+    const resetState = wordMachine.transition('direction.center', {
+      type: 'RESET'
+    });
 
     expect(resetState.value).toEqual({ direction: 'left' });
     expect(resetState.actions.map((a) => a.type)).toEqual([
@@ -90,10 +89,9 @@ describe('internal transitions', () => {
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition (to child)', () => {
-    const resetState = wordMachine.transition(
-      'direction.right',
-      'RESET_TO_CENTER'
-    );
+    const resetState = wordMachine.transition('direction.right', {
+      type: 'RESET_TO_CENTER'
+    });
 
     expect(resetState.value).toEqual({ direction: 'center' });
     expect(resetState.actions.map((a) => a.type)).toEqual([
@@ -103,40 +101,49 @@ describe('internal transitions', () => {
   });
 
   it('should listen to events declared at top state', () => {
-    const actualState = topLevelMachine.transition('Failure', 'CLICKED_CLOSE');
+    const actualState = topLevelMachine.transition('Failure', {
+      type: 'CLICKED_CLOSE'
+    });
 
     expect(actualState.value).toEqual('Hidden');
   });
 
   it('should work with targetless transitions (in conditional array)', () => {
-    const sameState = topLevelMachine.transition('Hidden', 'TARGETLESS_ARRAY');
+    const sameState = topLevelMachine.transition('Hidden', {
+      type: 'TARGETLESS_ARRAY'
+    });
 
     expect(sameState.actions.map((a) => a.type)).toEqual(['doSomething']);
   });
 
   it('should work with targetless transitions (in object)', () => {
-    const sameState = topLevelMachine.transition('Hidden', 'TARGETLESS_OBJECT');
+    const sameState = topLevelMachine.transition('Hidden', {
+      type: 'TARGETLESS_OBJECT'
+    });
 
     expect(sameState.actions.map((a) => a.type)).toEqual(['doSomething']);
   });
 
   it('should work on parent with targetless transitions (in conditional array)', () => {
-    const sameState = topLevelMachine.transition('Failure', 'TARGETLESS_ARRAY');
+    const sameState = topLevelMachine.transition('Failure', {
+      type: 'TARGETLESS_ARRAY'
+    });
 
     expect(sameState.actions.map((a) => a.type)).toEqual(['doSomethingParent']);
   });
 
   it('should work with targetless transitions (in object)', () => {
-    const sameState = topLevelMachine.transition(
-      'Failure',
-      'TARGETLESS_OBJECT'
-    );
+    const sameState = topLevelMachine.transition('Failure', {
+      type: 'TARGETLESS_OBJECT'
+    });
 
     expect(sameState.actions.map((a) => a.type)).toEqual(['doSomethingParent']);
   });
 
   it('should maintain the child state when targetless transition is handled by parent', () => {
-    const hiddenState = topLevelMachine.transition('Hidden', 'PARENT_EVENT');
+    const hiddenState = topLevelMachine.transition('Hidden', {
+      type: 'PARENT_EVENT'
+    });
 
     expect(hiddenState.value).toEqual('Hidden');
   });
@@ -185,9 +192,9 @@ describe('internal transitions', () => {
 
     const service = interpret(machine).start();
 
-    service.send('REENTER');
+    service.send({ type: 'REENTER' });
 
-    expect(service.state.context).toEqual({
+    expect(service.getSnapshot().context).toEqual({
       sourceStateEntries: 1,
       directDescendantEntries: 2,
       deepDescendantEntries: 2
@@ -236,9 +243,9 @@ describe('internal transitions', () => {
 
     const service = interpret(machine).start();
 
-    service.send('REENTER');
+    service.send({ type: 'REENTER' });
 
-    expect(service.state.context).toEqual({
+    expect(service.getSnapshot().context).toEqual({
       sourceStateExits: 0,
       directDescendantExits: 1,
       deepDescendantExits: 1

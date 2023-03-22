@@ -5,7 +5,6 @@ import UseActorCreateSimple from './UseActorCreateSimple.vue';
 import UseActorComponentProp from './UseActorComponentProp.vue';
 
 import { createMachine, interpret, sendParent } from 'xstate';
-import { invokeMachine } from 'xstate/invoke';
 
 describe('useActor composable function', () => {
   it('initial invoked actor should be immediately available', async () => {
@@ -25,7 +24,7 @@ describe('useActor composable function', () => {
       states: {
         active: {
           on: {
-            FINISH: { actions: sendParent('FINISH') }
+            FINISH: { actions: sendParent({ type: 'FINISH' }) }
           }
         }
       }
@@ -34,7 +33,7 @@ describe('useActor composable function', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: invokeMachine(childMachine)
+        src: childMachine
       },
       states: {
         active: {
@@ -47,13 +46,15 @@ describe('useActor composable function', () => {
     const serviceMachine = interpret(machine).start();
 
     const { getByTestId } = render(UseActorComponentProp, {
-      props: { actor: serviceMachine.state.children.child }
+      props: { actor: serviceMachine.getSnapshot().children.child }
     });
 
     const actorStateEl = getByTestId('actor-state');
     expect(actorStateEl.textContent).toBe('active');
 
-    await waitFor(() => expect(serviceMachine.state.value).toBe('success'));
+    await waitFor(() =>
+      expect(serviceMachine.getSnapshot().value).toBe('success')
+    );
   });
 
   it('actor should provide snapshot value immediately', () => {

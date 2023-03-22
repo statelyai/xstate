@@ -93,7 +93,7 @@ A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduc
 
 ### `useActor(actor, getSnapshot)`
 
-A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
+A [Vue composition function](https://vuejs.org/guide/extras/composition-api-faq.html) that provides access to an existing [actor](https://xstate.js.org/docs/guides/actors.html).
 
 _Since 0.5.0_
 
@@ -101,7 +101,7 @@ _Since 0.5.0_
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist.
 
 ```js
 import { useActor } from '@xstate/vue';
@@ -113,6 +113,12 @@ export default {
     return { state, send };
   }
 };
+```
+
+To subscribe to changes on the an actor whilst retaining reactivity from props or another reactive variable, Vue's [computed](https://vuejs.org/api/reactivity-core.html#computed) can be used.
+
+```js
+const { state, send } = useActor(computed(() => props.someSpawnedActor));
 ```
 
 ### `useInterpret(machine, options?, observer?)`
@@ -256,7 +262,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 ```vue
 <template>
   <template v-if="state.value === 'idle'">
-    <button @click="send('FETCH', { query: 'something' })">
+    <button @click="send({ type: 'FETCH', query: 'something' })">
       Search for something
     </button>
   </template>

@@ -1,5 +1,5 @@
-import { State } from '../State';
-import { DevToolsAdapter } from '../types';
+import { State } from '../State.js';
+import { DevToolsAdapter } from '../types.js';
 
 interface ReduxDevToolsOptions {
   [key: string]: any;
@@ -12,7 +12,7 @@ export const createReduxDevTools = (
     if ((window as any).__REDUX_DEVTOOLS_EXTENSION__) {
       const devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
         {
-          name: service.name,
+          name: service.id,
           autoPause: true,
           stateSanitizer: (state: State<any, any>): object => {
             return {
@@ -28,7 +28,7 @@ export const createReduxDevTools = (
             ...(options ? options.features : undefined)
           }
         },
-        service.machine
+        service.behavior
       );
 
       service.subscribe((state) => {

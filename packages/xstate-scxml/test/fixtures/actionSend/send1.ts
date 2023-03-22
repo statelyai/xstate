@@ -8,14 +8,18 @@ export default createMachine({
       on: {
         t: {
           target: '#b',
-          actions: actions.raise('s')
+          actions: actions.raise({ type: 's' }),
+          external: true
         }
       }
     },
     b: {
       id: 'b',
       on: {
-        s: '#c'
+        s: {
+          target: '#c',
+          external: true
+        }
       }
     },
     c: {

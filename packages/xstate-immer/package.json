@@ -1,6 +1,6 @@
 {
   "name": "@xstate/immer",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "XState with Immer",
   "keywords": [
     "immer",
@@ -14,6 +14,13 @@
   "license": "MIT",
   "main": "dist/xstate-immer.cjs.js",
   "module": "dist/xstate-immer.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-immer.esm.js",
+      "default": "./dist/xstate-immer.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"
@@ -29,12 +36,10 @@
   "dependencies": {},
   "peerDependencies": {
     "immer": "^9.0.6",
-    "xstate": "^4.30.6"
+    "xstate": "^5.0.0-alpha.1"
   },
   "devDependencies": {
     "immer": "^9.0.6",
-    "lerna-alias": "3.0.3-0",
-    "typescript": "^4.5.2",
-    "xstate": "*"
+    "xstate": "5.0.0-alpha.1"
   }
 }

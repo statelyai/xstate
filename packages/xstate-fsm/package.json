@@ -1,6 +1,6 @@
 {
   "name": "@xstate/fsm",
-  "version": "1.6.5",
+  "version": "3.0.0-alpha.0",
   "description": "XState for finite state machines",
   "keywords": [
     "state",
@@ -19,6 +19,13 @@
   "license": "MIT",
   "main": "dist/xstate-fsm.cjs.js",
   "module": "dist/xstate-fsm.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-fsm.esm.js",
+      "default": "./dist/xstate-fsm.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"

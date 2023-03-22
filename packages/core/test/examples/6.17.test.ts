@@ -106,7 +106,7 @@ describe('Jump to ID', () => {
     }
   });
 
-  const expected = {
+  const expected: Record<string, Record<string, StateValue>> = {
     '{"Y":{"B":"G"}}': {
       kill: 'X'
     },

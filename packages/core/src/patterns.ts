@@ -1,11 +1,9 @@
 import {
   AtomicStateNodeConfig,
   StatesConfig,
-  Event,
   EventObject,
   StateNodeConfig
-} from './types';
-import { toEventObject } from './utils';
+} from './types.js';
 
 export function toggle<TEventType extends string = string>(
   onState: string,
@@ -23,13 +21,13 @@ export function toggle<TEventType extends string = string>(
 }
 
 interface SequencePatternOptions<TEvent extends EventObject> {
-  nextEvent: Event<TEvent> | undefined;
-  prevEvent: Event<TEvent> | undefined;
+  nextEvent: TEvent | undefined;
+  prevEvent: TEvent | undefined;
 }
 
 const defaultSequencePatternOptions = {
-  nextEvent: 'NEXT',
-  prevEvent: 'PREV'
+  nextEvent: { type: 'NEXT' },
+  prevEvent: { type: 'PREV' }
 };
 
 export function sequence<TEvent extends EventObject>(
@@ -44,11 +42,11 @@ export function sequence<TEvent extends EventObject>(
   const nextEventObject =
     resolvedOptions.nextEvent === undefined
       ? undefined
-      : toEventObject(resolvedOptions.nextEvent);
+      : resolvedOptions.nextEvent;
   const prevEventObject =
     resolvedOptions.prevEvent === undefined
       ? undefined
-      : toEventObject(resolvedOptions.prevEvent);
+      : resolvedOptions.prevEvent;
 
   items.forEach((item, i) => {
     const state: StateNodeConfig<TEvent, TEvent> = {

@@ -305,6 +305,6 @@ const machine = createMachine({
 machine.initialState.hasTag('loading');
 // => false
 
-machine.transition(machine.initialState, 'FETCH').hasTag('loading');
+machine.transition(machine.initialState, { type: 'FETCH' }).hasTag('loading');
 // => true
 ```

@@ -140,39 +140,39 @@ describe('json', () => {
     const revivedMachine = createMachine(machineObject);
 
     expect(revivedMachine.states.active.transitions).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "actions": Array [],
+      [
+        {
+          "actions": [],
           "event": "done.invoke.active:invocation[0]",
           "eventType": "done.invoke.active:invocation[0]",
+          "external": false,
           "guard": undefined,
-          "internal": false,
           "source": "#active",
-          "target": Array [
+          "target": [
             "#(machine).foo",
           ],
           "toJSON": [Function],
         },
-        Object {
-          "actions": Array [],
+        {
+          "actions": [],
           "event": "error.platform.active:invocation[0]",
           "eventType": "error.platform.active:invocation[0]",
+          "external": false,
           "guard": undefined,
-          "internal": false,
           "source": "#active",
-          "target": Array [
+          "target": [
             "#(machine).bar",
           ],
           "toJSON": [Function],
         },
-        Object {
-          "actions": Array [],
+        {
+          "actions": [],
           "event": "EVENT",
           "eventType": "EVENT",
+          "external": false,
           "guard": undefined,
-          "internal": false,
           "source": "#active",
-          "target": Array [
+          "target": [
             "#(machine).foo",
           ],
           "toJSON": [Function],

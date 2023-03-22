@@ -311,8 +311,8 @@ service.clock.increment(1000);
 states: {
   green: {
     entry: [
-      send(after(1000, 'light.green'), { delay: 1000 }),
-      send(after(2000, 'light.green'), { delay: 2000 })
+      send({ type: after(1000, 'light.green') }, { delay: 1000 }),
+      send({ type: after(2000, 'light.green') }, { delay: 2000 })
     ],
     onExit: [
       cancel(after(1000, 'light.green')),

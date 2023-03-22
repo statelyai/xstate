@@ -1,24 +1,17 @@
 import {
-  Event,
   EventObject,
   SendActionParams,
   SpecialTargets,
   SendExpr,
   AnyEventObject,
   MachineContext
-} from '../types';
-import { send as sendActionType } from '../actionTypes';
+} from '../types.js';
+import { send as sendActionType } from '../actionTypes.js';
+import { isFunction, isString, toSCXMLEvent } from '../utils.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
 import {
-  getEventType,
-  isFunction,
-  isString,
-  toEventObject,
-  toSCXMLEvent
-} from '../utils';
-import { createDynamicAction } from '../../actions/dynamicAction';
-import {
-  ActionTypes,
-  ActorRef,
+  AnyActorRef,
+  AnyInterpreter,
   BaseDynamicActionObject,
   Cast,
   EventFrom,
@@ -26,14 +19,16 @@ import {
   InferEvent,
   SendActionObject,
   SendActionOptions
-} from '..';
-import { actionTypes } from '../actions';
+} from '../index.js';
+import { actionTypes, error } from '../actions.js';
 
 /**
  * Sends an event. This returns an action that will be read by an interpreter to
  * send the event in the next step, after the current step is finished executing.
  *
- * @param event The event to send.
+ * @deprecated Use the `sendTo(...)` action creator instead.
+ *
+ * @param eventOrExpr The event to send.
  * @param options Options to pass into the send event:
  *  - `id` - The unique send event identifier (used with `cancel()`).
  *  - `delay` - The number of milliseconds to delay the sending of the event.
@@ -44,46 +39,59 @@ export function send<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  eventOrExpr: TSentEvent | SendExpr<TContext, TEvent, AnyEventObject>,
   options?: SendActionOptions<TContext, TEvent>
 ): BaseDynamicActionObject<
   TContext,
   TEvent,
+  TEvent,
   SendActionObject<AnyEventObject>,
   SendActionParams<TContext, TEvent>
 > {
-  const eventOrExpr = isFunction(event)
-    ? event
-    : toEventObject<TSentEvent>(event);
-
   return createDynamicAction<
     TContext,
     TEvent,
+    AnyEventObject,
     SendActionObject<AnyEventObject>,
     SendActionParams<TContext, TEvent>
   >(
-    sendActionType,
     {
-      to: options ? options.to : undefined,
-      delay: options ? options.delay : undefined,
-      event: eventOrExpr,
-      id:
-        options && options.id !== undefined
-          ? options.id
-          : isFunction(event)
-          ? event.name
-          : (getEventType<TSentEvent>(event) as string)
+      type: sendActionType,
+      params: {
+        to: options ? options.to : undefined,
+        delay: options ? options.delay : undefined,
+        event: eventOrExpr,
+        id:
+          options && options.id !== undefined
+            ? options.id
+            : isFunction(eventOrExpr)
+            ? eventOrExpr.name
+            : eventOrExpr.type
+      }
     },
-    ({ params }, ctx, _event, { machine }) => {
+    (_event, { actorContext, state }) => {
+      const params = {
+        to: options ? options.to : undefined,
+        delay: options ? options.delay : undefined,
+        event: eventOrExpr,
+        // TODO: don't auto-generate IDs here like that
+        // there is too big chance of the ID collision
+        id:
+          options && options.id !== undefined
+            ? options.id
+            : isFunction(eventOrExpr)
+            ? eventOrExpr.name
+            : eventOrExpr.type
+      };
       const meta = {
         _event
       };
-      const delaysMap = machine.options.delays;
+      const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
         isFunction(eventOrExpr)
-          ? eventOrExpr(ctx, _event.data, meta)
+          ? eventOrExpr(state.context, _event.data, meta)
           : eventOrExpr
       );
 
@@ -91,49 +99,77 @@ export function send<
       if (isString(params.delay)) {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay = isFunction(configDelay)
-          ? configDelay(ctx, _event.data, meta)
+          ? configDelay(state.context, _event.data, meta)
           : configDelay;
       } else {
         resolvedDelay = isFunction(params.delay)
-          ? params.delay(ctx, _event.data, meta)
+          ? params.delay(state.context, _event.data, meta)
           : params.delay;
       }
 
-      let resolvedTarget = isFunction(params.to)
-        ? params.to(ctx, _event.data, meta)
+      const resolvedTarget = isFunction(params.to)
+        ? params.to(state.context, _event.data, meta)
         : params.to;
-      resolvedTarget =
-        isString(resolvedTarget) &&
-        resolvedTarget !== SpecialTargets.Parent &&
-        resolvedTarget !== SpecialTargets.Internal &&
-        resolvedTarget.startsWith('#_')
-          ? resolvedTarget.slice(2)
-          : resolvedTarget;
+      let targetActorRef: AnyActorRef | undefined;
 
-      return {
+      if (typeof resolvedTarget === 'string') {
+        if (resolvedTarget === SpecialTargets.Parent) {
+          targetActorRef = actorContext?.self._parent;
+        } else if (resolvedTarget === SpecialTargets.Internal) {
+          targetActorRef = actorContext?.self;
+        } else if (resolvedTarget.startsWith('#_')) {
+          // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
+          // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
+          targetActorRef = state.children[resolvedTarget.slice(2)];
+        } else {
+          targetActorRef = state.children[resolvedTarget];
+        }
+        if (!targetActorRef) {
+          throw new Error(
+            `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
+          );
+        }
+      } else {
+        targetActorRef = resolvedTarget || actorContext?.self;
+      }
+
+      const resolvedAction: SendActionObject = {
         type: actionTypes.send,
         params: {
-          id: '', // TODO: generate?
           ...params,
-          to: resolvedTarget,
+          to: targetActorRef,
           _event: resolvedEvent,
           event: resolvedEvent.data,
-          delay: resolvedDelay
+          delay: resolvedDelay,
+          internal: resolvedTarget === SpecialTargets.Internal
+        },
+        execute: (actorCtx) => {
+          const sendAction = resolvedAction as SendActionObject;
+
+          if (typeof sendAction.params.delay === 'number') {
+            (actorCtx.self as AnyInterpreter).delaySend(sendAction);
+            return;
+          } else {
+            const target = sendAction.params.to!;
+            const { _event } = sendAction.params;
+            actorCtx.defer(() => {
+              const origin = actorCtx.self;
+              const resolvedEvent: typeof _event = {
+                ..._event,
+                name:
+                  _event.name === actionTypes.error
+                    ? `${error(origin.id)}`
+                    : _event.name,
+                origin: origin
+              };
+              target.send(resolvedEvent);
+            });
+          }
         }
       };
-    }
-  );
-}
 
-/**
- * Sends an update event to this machine's parent.
- */
-export function sendUpdate<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->() {
-  return sendParent<TContext, TEvent, { type: ActionTypes.Update }>(
-    actionTypes.update
+      return [state, resolvedAction];
+    }
   );
 }
 
@@ -148,7 +184,7 @@ export function sendParent<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
 ) {
   return send<TContext, TEvent, TSentEvent>(event, {
@@ -168,7 +204,7 @@ export function respond<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: Event<TEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  event: TEvent | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
 ) {
   return send<TContext, TEvent>(event, {
@@ -192,6 +228,24 @@ export function forwardTo<
   target: Required<SendActionParams<TContext, TEvent>>['to'],
   options?: SendActionOptions<TContext, TEvent>
 ) {
+  if (
+    process.env.NODE_END !== 'production' &&
+    (!target || typeof target === 'function')
+  ) {
+    const originalTarget = target;
+    target = (...args) => {
+      const resolvedTarget =
+        typeof originalTarget === 'function'
+          ? originalTarget(...args)
+          : originalTarget;
+      if (!resolvedTarget) {
+        throw new Error(
+          `Attempted to forward event to undefined actor. This risks an infinite loop in the sender.`
+        );
+      }
+      return resolvedTarget;
+    };
+  }
   return send<TContext, TEvent>((_, event) => event, {
     ...options,
     to: target
@@ -240,9 +294,9 @@ export function escalate<
 export function sendTo<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ActorRef<EventObject>
+  TActor extends AnyActorRef
 >(
-  actor: (ctx: TContext) => TActor,
+  actor: TActor | string | ((ctx: TContext, event: TEvent) => TActor | string),
   event:
     | EventFrom<TActor>
     | SendExpr<

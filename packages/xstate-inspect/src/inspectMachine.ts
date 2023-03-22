@@ -1,7 +1,8 @@
 import { ActorRef, assign, createMachine, Interpreter, SCXML } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { stringifyMachine, stringifyState } from './serialize';
-import { ReceiverEvent, Replacer } from './types';
+import { stringifyMachine, stringifyState } from './serialize.js';
+
+import { ReceiverEvent, Replacer } from './types.js';
 
 export type InspectMachineEvent =
   | ReceiverEvent
@@ -52,7 +53,7 @@ export function createInspectMachine(
             actions: (_, e) => {
               const { event } = e;
               const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
-              const service = serviceMap.get(scxmlEventObject.origin?.name!);
+              const service = serviceMap.get(scxmlEventObject.origin?.id!);
               service?.send(scxmlEventObject);
             }
           },
@@ -85,9 +86,9 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               ctx.client?.send({
                 type: 'service.register',
-                machine: stringifyMachine(service.machine, options?.serialize),
+                machine: stringifyMachine(service.behavior, options?.serialize),
                 state: stringifyState(
-                  service.state || service.initialState,
+                  service.getSnapshot(),
                   options?.serialize
                 ),
                 sessionId: service.sessionId

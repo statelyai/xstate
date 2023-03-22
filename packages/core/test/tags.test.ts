@@ -1,4 +1,4 @@
-import { createMachine } from '../src';
+import { createMachine } from '../src/index.js';
 
 describe('tags', () => {
   it('supports tagging states', () => {
@@ -21,7 +21,9 @@ describe('tags', () => {
     });
 
     expect(machine.initialState.hasTag('go')).toBeTruthy();
-    expect(machine.transition('yellow', 'TIMER').hasTag('go')).toBeFalsy();
+    expect(
+      machine.transition('yellow', { type: 'TIMER' }).hasTag('go')
+    ).toBeFalsy();
   });
 
   it('supports tags in compound states', () => {
@@ -87,7 +89,7 @@ describe('tags', () => {
     let state = machine.initialState;
 
     expect(state.tags).toEqual(new Set(['yes']));
-    state = machine.transition(state, 'DEACTIVATE');
+    state = machine.transition(state, { type: 'DEACTIVATE' });
     expect(state.tags).toEqual(new Set(['yes', 'no']));
   });
 

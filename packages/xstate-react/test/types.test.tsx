@@ -1,7 +1,6 @@
 import { render } from '@testing-library/react';
-import * as React from 'react';
-import { ActorRefFrom, assign, createMachine, spawnMachine } from 'xstate';
-import { useActor, useMachine } from '../src';
+import { ActorRefFrom, assign, createMachine } from 'xstate';
+import { useActor, useMachine } from '../src/index.js';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -58,12 +57,12 @@ describe('useMachine', () => {
       }
     );
 
-    const m = createMachine<{ actor: ActorRefFrom<typeof child> | null }>(
+    const m = createMachine(
       {
         initial: 'ready',
         context: {
           actor: null
-        },
+        } as { actor: ActorRefFrom<typeof child> | null },
         states: {
           ready: {
             entry: 'spawnActor'
@@ -73,7 +72,7 @@ describe('useMachine', () => {
       {
         actions: {
           spawnActor: assign({
-            actor: () => spawnMachine(child)
+            actor: (_, __, { spawn }) => spawn(child)
           })
         }
       }

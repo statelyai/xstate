@@ -2,7 +2,6 @@ import { createMachine } from '../src/index';
 
 describe('multiple', () => {
   const machine = createMachine({
-    key: 'machine',
     initial: 'simple',
     states: {
       simple: {
@@ -138,8 +137,8 @@ describe('multiple', () => {
 
   describe('transitions to parallel states', () => {
     const stateSimple = machine.initialState;
-    const stateInitial = machine.transition(stateSimple, 'INITIAL');
-    const stateM = machine.transition(stateSimple, 'DEEP_M');
+    const stateInitial = machine.transition(stateSimple, { type: 'INITIAL' });
+    const stateM = machine.transition(stateSimple, { type: 'DEEP_M' });
 
     it('should enter initial states of parallel states', () => {
       expect(stateInitial.value).toEqual({
@@ -152,48 +151,48 @@ describe('multiple', () => {
     });
 
     it('should enter specific states in all regions', () => {
-      const stateCMR = machine.transition(stateSimple, 'DEEP_CMR');
+      const stateCMR = machine.transition(stateSimple, { type: 'DEEP_CMR' });
       expect(stateCMR.value).toEqual({ para: { A: 'C', K: 'M', P: 'R' } });
     });
 
     it('should enter specific states in some regions', () => {
-      const stateMR = machine.transition(stateSimple, 'DEEP_MR');
+      const stateMR = machine.transition(stateSimple, { type: 'DEEP_MR' });
       expect(stateMR.value).toEqual({ para: { A: 'B', K: 'M', P: 'R' } });
     });
 
     it.skip('should reject two targets in the same region', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_SAME_REGION')
+        machine.transition(stateSimple, { type: 'BROKEN_SAME_REGION' })
       ).toThrow();
     });
 
     it.skip('should reject targets inside and outside a region', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS')
+        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS' })
       ).toThrow();
     });
 
     it.skip('should reject two targets in different regions', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_2')
+        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS_2' })
       ).toThrow();
     });
 
     it.skip('should reject two targets in different regions at different levels', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')
+        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS_3' })
       ).toThrow();
     });
 
     it.skip('should reject two deep targets in different regions at top level', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')
+        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS_3' })
       ).toThrow();
     });
 
     it.skip('should reject two deep targets in different regions at different levels', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_4')
+        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS_4' })
       ).toThrow();
     });
   });

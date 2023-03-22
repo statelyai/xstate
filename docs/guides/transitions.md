@@ -2,6 +2,10 @@
 
 Transitions define how the machine reacts to [events](./events.md). To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
 
+:::tip Check out our new docs!
+🆕 Find more about [transitions in XState](https://stately.ai/docs/xstate/basics/what-is-a-statechart#transitions-and-events) as well as a [no-code introduction to transitions](https://stately.ai/docs/state-machines-and-statecharts#transitions-and-events).
+:::
+
 ## API
 
 State transitions are defined on state nodes, in the `on` property:
@@ -168,7 +172,7 @@ Other event descriptors include:
 
 A self-transition is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
 
-- An **internal transition** will not exit nor re-enter itself, but may enter different child states.
+- An **internal transition** will neither exit nor re-enter itself, but may enter different child states.
 - An **external transition** will exit and re-enter itself, and may also exit/enter child states.
 
 By default, all transitions with a specified target are external.
@@ -327,7 +331,7 @@ const gameService = interpret(gameMachine)
 // When 'AWARD_POINTS' is sent, a self-transition to 'PLAYING' occurs.
 // The transient transition to 'win' is taken because the 'didPlayerWin'
 // condition is satisfied.
-gameService.send('AWARD_POINTS');
+gameService.send({ type: 'AWARD_POINTS' });
 // => 'win'
 ```
 

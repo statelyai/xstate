@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "1.0.0",
+  "version": "3.0.0-alpha.1",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -17,6 +17,17 @@
   "license": "MIT",
   "main": "dist/xstate-vue.cjs.js",
   "module": "dist/xstate-vue.esm.js",
+  "exports": {
+    "./fsm": {
+      "module": "./fsm/dist/xstate-vue-fsm.esm.js",
+      "default": "./fsm/dist/xstate-vue-fsm.cjs.js"
+    },
+    ".": {
+      "module": "./dist/xstate-vue.esm.js",
+      "default": "./dist/xstate-vue.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist",
@@ -31,9 +42,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.6.5",
+    "@xstate/fsm": "^3.0.0-alpha.0",
     "vue": "^3.0.0",
-    "xstate": "^4.30.6"
+    "xstate": "^5.0.0-alpha.1"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -44,12 +55,12 @@
     }
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.11.9",
-    "@testing-library/vue": "^6.4.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/vue": "^6.6.1",
     "@vue/compiler-sfc": "^3.0.11",
-    "@xstate/fsm": "*",
+    "@xstate/fsm": "3.0.0-alpha.0",
     "vue": "^3.0.11",
-    "xstate": "*"
+    "xstate": "5.0.0-alpha.1"
   },
   "preconstruct": {
     "entrypoints": [

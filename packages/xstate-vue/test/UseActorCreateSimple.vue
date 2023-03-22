@@ -10,31 +10,29 @@
 
 <script lang="ts">
 import { ActorRef } from 'xstate';
-import { toActorRef } from 'xstate/actor';
 import { defineComponent, shallowRef } from 'vue';
 
-import { useActor } from '../src';
+import { useActor } from '../src/index.js';
+import { interpret } from 'xstate/src';
 
-const createSimpleActor = (
-  value: number
-): ActorRef<any, number> & { latestValue: number } => toActorRef({
-  send: () => {
-    /* ... */
-  },
-  latestValue: value,
-  subscribe: () => {
-    return {
-      unsubscribe: () => {
-        /* ... */
-      }
-    };
-  }
-});
+const createSimpleActor = (value: number): ActorRef<any, number> =>
+  interpret({
+    transition: (s) => s,
+    getSnapshot: () => value,
+    getInitialState: () => value,
+    subscribe: () => {
+      return {
+        unsubscribe: () => {
+          /* ... */
+        }
+      };
+    }
+  });
 
 export default defineComponent({
   setup() {
     const actor = shallowRef(createSimpleActor(42));
-    const { state } = useActor(actor, (a) => a.latestValue);
+    const { state } = useActor(actor);
 
     return { actor, state, createSimpleActor };
   }

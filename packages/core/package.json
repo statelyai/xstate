@@ -1,9 +1,33 @@
 {
   "name": "xstate",
-  "version": "4.30.6",
+  "version": "5.0.0-alpha.1",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
+  "umd:main": "dist/xstate.umd.min.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate.esm.js",
+      "default": "./dist/xstate.cjs.js"
+    },
+    "./guards": {
+      "module": "./guards/dist/xstate-guards.esm.js",
+      "default": "./guards/dist/xstate-guards.cjs.js"
+    },
+    "./actions": {
+      "module": "./actions/dist/xstate-actions.esm.js",
+      "default": "./actions/dist/xstate-actions.cjs.js"
+    },
+    "./dev": {
+      "module": "./dev/dist/xstate-dev.esm.js",
+      "default": "./dev/dist/xstate-dev.cjs.js"
+    },
+    "./actors": {
+      "module": "./actors/dist/xstate-actors.esm.js",
+      "default": "./actors/dist/xstate-actors.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "funding": {
     "type": "opencollective",
@@ -11,13 +35,11 @@
   },
   "files": [
     "dist",
-    "actor",
+    "actors",
     "actions",
     "invoke",
-    "behaviors",
     "guards",
-    "dev",
-    "model"
+    "dev"
   ],
   "keywords": [
     "statechart",
@@ -44,18 +66,15 @@
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "pkg-up": "^3.1.0",
-    "rxjs": "^7.1.0",
+    "rxjs": "^7.8.0",
     "xml-js": "^1.6.11"
   },
   "preconstruct": {
     "umdName": "XState",
     "entrypoints": [
       "./index.ts",
-      "./actor.ts",
       "./actions.ts",
-      "./invoke.ts",
-      "./behaviors.ts",
-      "./model.ts",
+      "./actors/index.ts",
       "./guards.ts",
       "./dev/index.ts"
     ]

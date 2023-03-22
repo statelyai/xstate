@@ -1,5 +1,5 @@
 import { testAll } from './utils';
-import { createMachine } from '../src';
+import { createMachine } from '../src/index.js';
 
 const idMachine = createMachine({
   initial: 'A',
@@ -98,7 +98,7 @@ describe('State node IDs', () => {
       }
     });
 
-    expect(brokenMachine.transition('foo', 'ACTION').value).toEqual({
+    expect(brokenMachine.transition('foo', { type: 'ACTION' }).value).toEqual({
       bar: { qux: 'quux' }
     });
   });

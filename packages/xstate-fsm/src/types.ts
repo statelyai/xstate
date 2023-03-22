@@ -1,3 +1,6 @@
+type AnyFunction = (...args: any[]) => any;
+type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
+
 export enum InterpreterStatus {
   NotStarted = 0,
   Running = 1,
@@ -10,6 +13,42 @@ export interface EventObject {
 }
 
 export type InitEvent = { type: 'xstate.init' };
+
+export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine.Machine<infer TContext, any, any>
+    ? TContext
+    : R extends StateMachine.Service<infer TContext, any, any>
+    ? TContext
+    : never
+  : never;
+
+export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine.Machine<any, infer TEvent, any>
+    ? TEvent
+    : R extends StateMachine.Service<any, infer TEvent, any>
+    ? TEvent
+    : never
+  : never;
+
+export type StateFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine.Machine<infer TContext, infer TEvent, infer TState>
+    ? StateMachine.State<TContext, TEvent, TState>
+    : R extends StateMachine.Service<infer TContext, infer TEvent, infer TState>
+    ? StateMachine.State<TContext, TEvent, TState>
+    : never
+  : never;
+
+export type ServiceFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine.Machine<infer TContext, infer TEvent, infer TState>
+    ? StateMachine.Service<TContext, TEvent, TState>
+    : never
+  : never;
+
+export type MachineImplementationsFrom<
+  TMachine extends StateMachine.AnyMachine
+> = {
+  actions?: StateMachine.ActionMap<ContextFrom<TMachine>, EventFrom<TMachine>>;
+};
 
 export declare namespace StateMachine {
   export type Action<TContext extends object, TEvent extends EventObject> =
@@ -75,6 +114,10 @@ export declare namespace StateMachine {
       : never;
   }
 
+  export type AnyMachine = StateMachine.Machine<any, any, any>;
+
+  export type AnyService = StateMachine.Service<any, any, any>;
+
   export type AnyState = State<any, any, any>;
 
   export interface Config<
@@ -107,7 +150,7 @@ export declare namespace StateMachine {
     initialState: State<TContext, TEvent, TState>;
     transition: (
       state: string | State<TContext, TEvent, TState>,
-      event: TEvent['type'] | TEvent
+      event: TEvent
     ) => State<TContext, TEvent, TState>;
   }
 
@@ -118,7 +161,7 @@ export declare namespace StateMachine {
     TEvent extends EventObject,
     TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
-    send: (event: TEvent | TEvent['type']) => void;
+    send: (event: TEvent) => void;
     subscribe: (
       listener: StateListener<State<TContext, TEvent, TState>>
     ) => {

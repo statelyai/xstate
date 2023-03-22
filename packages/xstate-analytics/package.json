@@ -16,6 +16,13 @@
   "license": "MIT",
   "main": "dist/xstate-analytics.cjs.js",
   "module": "dist/xstate-analytics.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-analytics.esm.js",
+      "default": "./dist/xstate-analytics.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"
@@ -29,10 +36,10 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.30.6"
+    "xstate": "^5.0.0-alpha.1"
   },
   "devDependencies": {
-    "xstate": "*"
+    "xstate": "5.0.0-alpha.1"
   },
   "dependencies": {}
 }

@@ -2,11 +2,14 @@ import {
   assign,
   ContextFrom,
   createMachine,
+  SnapshotFrom,
   EventFrom,
   interpret,
-  MachineImplementationsFrom
-} from '../src';
-import { createModel } from '../src/model';
+  MachineImplementationsFrom,
+  StateValueFrom,
+  ActorBehavior,
+  ActorRefFrom
+} from '../src/index.js';
 import { TypegenMeta } from '../src/typegenTypes';
 
 describe('ContextFrom', () => {
@@ -127,62 +130,6 @@ describe('EventFrom', () => {
       // @ts-expect-error
       type: 'UNKNOWN_EVENT'
     });
-  });
-
-  it('should return events for createModel', () => {
-    const userModel = createModel(
-      {},
-      {
-        events: {
-          updateName: (value: string) => ({ value }),
-          updateAge: (value: number) => ({ value }),
-          anotherEvent: () => ({})
-        }
-      }
-    );
-
-    type UserModelEvent = EventFrom<typeof userModel>;
-
-    const acceptUserModelEvent = (_event: UserModelEvent) => {};
-
-    acceptUserModelEvent({ type: 'updateName', value: 'test' });
-    acceptUserModelEvent({ type: 'updateAge', value: 12 });
-    acceptUserModelEvent({ type: 'anotherEvent' });
-    acceptUserModelEvent({
-      // @ts-expect-error
-      type: 'eventThatDoesNotExist'
-    });
-  });
-
-  it('should narrow events down to the specified types', () => {
-    const userModel = createModel(
-      {},
-      {
-        events: {
-          updateName: (value: string) => ({ value }),
-          updateAge: (value: number) => ({ value }),
-          anotherEvent: () => ({})
-        }
-      }
-    );
-
-    type UserModelEventSubset = EventFrom<
-      typeof userModel,
-      'updateName' | 'updateAge'
-    >;
-
-    const acceptUserModelEventSubset = (
-      _userModelEventSubset: UserModelEventSubset
-    ) => {
-      /* empty */
-    };
-
-    acceptUserModelEventSubset({ type: 'updateName', value: 'test' });
-    acceptUserModelEventSubset({ type: 'updateAge', value: 12 });
-    // @ts-expect-error
-    acceptUserModelEventSubset({ type: 'anotherEvent' });
-    // @ts-expect-error
-    acceptUserModelEventSubset({ type: 'eventThatDoesNotExist' });
   });
 });
 
@@ -326,5 +273,89 @@ describe('MachineImplementationsFrom', () => {
     });
     // @ts-expect-error
     acceptMachineImplementations(100);
+  });
+});
+
+describe('StateValueFrom', () => {
+  it('should return possible state values from a typegened machine', () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | 'b' | 'c';
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta
+    });
+
+    function matches(_value: StateValueFrom<typeof machine>) {}
+
+    matches('a');
+    matches('b');
+    // @ts-expect-error
+    matches('unknown');
+  });
+
+  it('should return any from a typegenless machine', () => {
+    const machine = createMachine({});
+
+    function matches(_value: StateValueFrom<typeof machine>) {}
+
+    matches('just anything');
+  });
+});
+
+describe('SnapshotFrom', () => {
+  it('should return state type from a service that has concrete event type', () => {
+    const service = interpret(
+      createMachine({
+        schema: {
+          events: {} as { type: 'FOO' }
+        }
+      })
+    );
+
+    function acceptState(_state: SnapshotFrom<typeof service>) {}
+
+    acceptState(service.getSnapshot());
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a machine without context', () => {
+    const machine = createMachine({});
+
+    function acceptState(_state: SnapshotFrom<typeof machine>) {}
+
+    acceptState(machine.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a machine with context', () => {
+    const machine = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    function acceptState(_state: SnapshotFrom<typeof machine>) {}
+
+    acceptState(machine.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+});
+
+describe('ActorRefFrom', () => {
+  it('should return `ActorRef` based on a `Behavior`', () => {
+    const behavior: ActorBehavior<{ type: 'TEST' }> = {
+      transition: () => {},
+      getInitialState: () => undefined
+    };
+
+    function acceptActorRef(actorRef: ActorRefFrom<typeof behavior>) {
+      actorRef.send({ type: 'TEST' });
+    }
+
+    acceptActorRef(interpret(behavior).start());
   });
 });

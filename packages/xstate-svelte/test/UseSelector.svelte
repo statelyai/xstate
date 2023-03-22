@@ -1,32 +1,27 @@
 <script lang="ts">
-  import { interpret } from 'xstate';
-  import { createModel } from 'xstate/model';
-  import { useSelector } from '../src';
+  import { interpret, createMachine, assign } from 'xstate';
+  import { useSelector } from '../src/index.js';
 
-  const model = createModel(
-    {
+  const machine = createMachine({
+    initial: 'idle',
+    schema: {
+      context: {} as {
+        count: number;
+        anotherCount: number;
+      }
+    },
+    context: {
       count: 0,
       anotherCount: 0
     },
-    {
-      events: {
-        INCREMENT: () => ({}),
-        INCREMENT_ANOTHER: () => ({})
-      }
-    }
-  );
-
-  const machine = model.createMachine({
-    initial: 'idle',
-    context: model.initialContext,
     states: {
       idle: {
         on: {
           INCREMENT: {
-            actions: model.assign({ count: ({ count }) => count + 1 })
+            actions: assign({ count: ({ count }) => count + 1 })
           },
           INCREMENT_ANOTHER: {
-            actions: model.assign({
+            actions: assign({
               anotherCount: ({ anotherCount }) => anotherCount + 1
             })
           }
@@ -45,10 +40,12 @@
   $: $service.context.count && withoutSelector++;
 </script>
 
-<button data-testid="count" on:click={() => service.send('INCREMENT')}
+<button data-testid="count" on:click={() => service.send({ type: 'INCREMENT' })}
   >Increment count</button
 >
-<button data-testid="another" on:click={() => service.send('INCREMENT_ANOTHER')}
+<button
+  data-testid="another"
+  on:click={() => service.send({ type: 'INCREMENT_ANOTHER' })}
   >Increment another count</button
 >
 

@@ -1,8 +1,7 @@
-// TODO: create preconstruct entrypoint or something
-import { inspect } from '@xstate/inspect/src/server';
+import { inspect } from '@xstate/inspect/server';
 import WebSocket from 'ws';
 import { createMachine, interpret, send, toSCXMLEvent } from 'xstate';
-import { invokeCallback } from 'xstate/invoke';
+import { fromCallback } from 'xstate/actors';
 
 inspect({
   server: new WebSocket.Server({
@@ -14,7 +13,7 @@ const machine = createMachine({
   initial: 'inactive',
   invoke: {
     id: 'ponger',
-    src: invokeCallback(() => (cb, receive) => {
+    src: fromCallback((cb, receive) => {
       receive((event) => {
         if (event.type === 'PING') {
           cb(
@@ -34,7 +33,7 @@ const machine = createMachine({
       }
     },
     active: {
-      entry: send('PING', { to: 'ponger', delay: 1000 }),
+      entry: send({ type: 'PING' }, { to: 'ponger', delay: 1000 }),
       on: {
         PONG: 'inactive'
       }

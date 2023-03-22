@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "1.4.2",
+  "version": "2.0.0-alpha.0",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -15,6 +15,13 @@
   "license": "MIT",
   "main": "dist/xstate-graph.cjs.js",
   "module": "dist/xstate-graph.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-graph.esm.js",
+      "default": "./dist/xstate-graph.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"
@@ -28,10 +35,10 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.30.6"
+    "xstate": "^5.0.0-alpha.1"
   },
   "devDependencies": {
-    "xstate": "*"
+    "xstate": "5.0.0-alpha.1"
   },
   "dependencies": {}
 }

@@ -1,12 +1,12 @@
 import {
-  StateMachine,
   EventObject,
-  Typestate,
+  InitEvent,
   InterpreterStatus,
-  InitEvent
-} from './types';
+  StateMachine,
+  Typestate
+} from './types.js';
 
-export * from './types';
+export * from './types.js';
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
@@ -54,12 +54,6 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 function createMatcher(value: string) {
   return (stateValue) => value === stateValue;
-}
-
-function toEventObject<TEvent extends EventObject>(
-  event: TEvent['type'] | TEvent
-): TEvent {
-  return (typeof event === 'string' ? { type: event } : event) as TEvent;
 }
 
 function createUnchangedState<
@@ -118,7 +112,7 @@ export function createMachine<
   TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
-  options: {
+  implementations: {
     actions?: StateMachine.ActionMap<TContext, TEvent>;
   } = {}
 ): StateMachine.Machine<TContext, TEvent, TState> {
@@ -133,7 +127,7 @@ export function createMachine<
 
   const [initialActions, initialContext] = handleActions(
     toArray(fsmConfig.states[fsmConfig.initial].entry).map((action) =>
-      toActionObject(action, options.actions)
+      toActionObject(action, implementations.actions)
     ),
     fsmConfig.context!,
     INIT_EVENT as TEvent
@@ -141,7 +135,7 @@ export function createMachine<
 
   const machine = {
     config: fsmConfig,
-    _options: options,
+    _options: implementations,
     initialState: {
       value: fsmConfig.initial,
       actions: initialActions,
@@ -149,14 +143,13 @@ export function createMachine<
       matches: createMatcher(fsmConfig.initial)
     },
     transition: (
-      state: string | StateMachine.State<TContext, TEvent, TState>,
-      event: TEvent | TEvent['type']
+      state: StateMachine.State<TContext, TEvent, TState>,
+      event: TEvent
     ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
         typeof state === 'string'
           ? { value: state, context: fsmConfig.context! }
           : state;
-      const eventObject = toEventObject<TEvent>(event);
       const stateConfig = fsmConfig.states[value];
 
       if (!IS_PRODUCTION && !stateConfig) {
@@ -168,7 +161,7 @@ export function createMachine<
       if (stateConfig.on) {
         const transitions: Array<
           StateMachine.Transition<TContext, TEvent>
-        > = toArray(stateConfig.on[eventObject.type]);
+        > = toArray(stateConfig.on[event.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
@@ -197,7 +190,7 @@ export function createMachine<
             );
           }
 
-          if (!guard || guard?.(context, eventObject)) {
+          if (!guard || guard?.(context, event)) {
             const allActions = (isTargetless
               ? toArray(actions)
               : ([] as any[])
@@ -210,7 +203,7 @@ export function createMachine<
             const [nonAssignActions, nextContext, assigned] = handleActions(
               allActions,
               context,
-              eventObject
+              event
             );
 
             const resolvedTarget = target ?? value;
@@ -256,12 +249,12 @@ export function interpret<
 
   const service = {
     _machine: machine,
-    send: (event: TEvent | TEvent['type']): void => {
+    send: (event: TEvent): void => {
       if (status !== InterpreterStatus.Running) {
         return;
       }
       state = machine.transition(state, event);
-      executeStateActions(state, toEventObject(event));
+      executeStateActions(state, event);
       listeners.forEach((listener) => listener(state));
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {
@@ -300,6 +293,8 @@ export function interpret<
             );
           }
         }
+      } else {
+        state = machine.initialState;
       }
       status = InterpreterStatus.Running;
       executeStateActions(state, INIT_EVENT);

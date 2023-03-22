@@ -6,13 +6,13 @@ import {
   ActorMap,
   InternalMachineImplementations,
   BaseActionObject
-} from './types';
+} from './types.js';
 import {
   TypegenConstraint,
   TypegenDisabled,
   ResolveTypegenMeta
-} from './typegenTypes';
-import { StateMachine } from './StateMachine';
+} from './typegenTypes.js';
+import { StateMachine } from './StateMachine.js';
 
 export function createMachine<
   TContext extends MachineContext,

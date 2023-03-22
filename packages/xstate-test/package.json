@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.5.1",
+  "version": "1.0.0-alpha.0",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -19,8 +19,17 @@
   "main": "dist/xstate-test.cjs.js",
   "module": "dist/xstate-test.esm.js",
   "browser": {
-    "./dist/xstate-test.cjs.js": "./dist/xstate-test.browser.cjs.js",
     "./dist/xstate-test.esm.js": "./dist/xstate-test.browser.esm.js"
+  },
+  "exports": {
+    ".": {
+      "module": {
+        "browser": "./dist/xstate-test.browser.esm.js",
+        "default": "./dist/xstate-test.esm.js"
+      },
+      "default": "./dist/xstate-test.cjs.js"
+    },
+    "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
@@ -35,14 +44,20 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.30.6"
+    "xstate": "^5.0.0-alpha.1"
   },
   "devDependencies": {
     "strip-ansi": "^5.2.0",
-    "xstate": "*"
+    "xstate": "5.0.0-alpha.1"
   },
   "dependencies": {
-    "@xstate/graph": "^1.4.2",
-    "chalk": "^2.4.2"
+    "@xstate/graph": "^2.0.0-alpha.0"
+  },
+  "preconstruct": {
+    "exports": {
+      "envConditions": [
+        "browser"
+      ]
+    }
   }
 }

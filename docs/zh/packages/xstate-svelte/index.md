@@ -205,10 +205,10 @@ A function that returns [Svelte store](https://svelte.dev/docs#svelte_store) rep
   $: $service.context.count && withoutSelector++;
 </script>
 
-<button data-testid="count" on:click={() => service.send('INCREMENT')}
+<button data-testid="count" on:click={() => service.send({ type: 'INCREMENT' })}
   >Increment count</button
 >
-<button data-testid="another" on:click={() => service.send('INCREMENT_ANOTHER')}
+<button data-testid="another" on:click={() => service.send({ type: 'INCREMENT_ANOTHER' })}
   >Increment another count</button
 >
 
@@ -283,7 +283,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 </script>
 
 {#if $state.value === 'idle'}
-  <button on:click={() => send('FETCH', { query: 'something' })}>
+  <button on:click={() => send({ type: 'FETCH', query: 'something' })}>
     Search for something
   </button>
 {:else if $state.value === 'loading'}
@@ -362,7 +362,7 @@ export const toggleService = interpret(toggleMachine).start();
   import { toggleService } from './service';
 </script>
 
-<button on:click={() => toggleService.send('TOGGLE')}>
+<button on:click={() => toggleService.send({ type: 'TOGGLE' })}>
   {$toggleService.value === 'inactive'
     ? 'Click to activate'
     : 'Active! Click to deactivate'}

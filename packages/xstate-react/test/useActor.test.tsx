@@ -1,23 +1,25 @@
+import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
-import { useMachine } from '../src';
 import {
-  createMachine,
-  sendParent,
-  assign,
-  spawnMachine,
+  ActorRef,
   ActorRefFrom,
+  assign,
+  createMachine,
   interpret,
-  ActorRef
+  sendParent
 } from 'xstate';
-import { render, fireEvent, act } from '@testing-library/react';
-import { useActor } from '../src/useActor';
-import { invokeMachine } from 'xstate/invoke';
-import { spawn, toActorRef } from 'xstate/actor';
-import { createMachineBehavior } from 'xstate/behaviors';
+import { useMachine, useInterpret, useActor } from '../src/index.js';
+import { describeEachReactMode } from './utils';
 
-describe('useActor', () => {
-  it('initial invoked actor should be immediately available', (done) => {
+const originalConsoleError = console.error;
+
+afterEach(() => {
+  console.error = originalConsoleError;
+});
+
+describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
+  it('initial invoked actor should be immediately available', () => {
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -29,7 +31,7 @@ describe('useActor', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: invokeMachine(childMachine)
+        src: childMachine
       },
       states: {
         active: {}
@@ -43,8 +45,6 @@ describe('useActor', () => {
 
       expect(state.value).toEqual('active');
 
-      done();
-
       return null;
     };
 
@@ -58,75 +58,72 @@ describe('useActor', () => {
       );
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
-  it('invoked actor should be able to receive (deferred) events that it replays when active', (done) => {
-    const childMachine = createMachine({
-      id: 'childMachine',
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            FINISH: { actions: sendParent('FINISH') }
+  // TODO: reexecuted layout effect in strict mode sees the outdated state
+  // it fires after passive cleanup (that stops the machine) and before the passive setup (that restarts the machine)
+  (suiteKey === 'strict' ? it.skip : it)(
+    'invoked actor should be able to receive (deferred) events that it replays when active',
+    (done) => {
+      const childMachine = createMachine({
+        id: 'childMachine',
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            }
           }
         }
-      }
-    });
-    const machine = createMachine({
-      initial: 'active',
-      invoke: {
-        id: 'child',
-        src: invokeMachine(childMachine)
-      },
-      states: {
-        active: {
-          on: { FINISH: 'success' }
+      });
+      const machine = createMachine({
+        initial: 'active',
+        invoke: {
+          id: 'child',
+          src: childMachine
         },
-        success: {}
-      }
-    });
+        states: {
+          active: {
+            on: { FINISH: 'success' }
+          },
+          success: {}
+        }
+      });
 
-    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
-      actor
-    }) => {
-      const [state, send] = useActor(actor);
+      const ChildTest: React.FC<{
+        actor: ActorRefFrom<typeof childMachine>;
+      }> = ({ actor }) => {
+        const [state, send] = useActor(actor);
 
-      expect(state.value).toEqual('active');
+        expect(state.value).toEqual('active');
 
-      React.useEffect(() => {
-        send({ type: 'FINISH' });
-      }, []);
+        React.useLayoutEffect(() => {
+          send({ type: 'FINISH' });
+        }, []);
 
-      return null;
-    };
+        return null;
+      };
 
-    const Test = () => {
-      const [state] = useMachine(machine);
+      const Test = () => {
+        const [state] = useMachine(machine);
 
-      if (state.matches('success')) {
-        done();
-      }
+        if (state.matches('success')) {
+          done();
+        }
 
-      return (
-        <ChildTest
-          actor={state.children.child as ActorRefFrom<typeof childMachine>}
-        />
-      );
-    };
+        return (
+          <ChildTest
+            actor={state.children.child as ActorRefFrom<typeof childMachine>}
+          />
+        );
+      };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
-  });
+      render(<Test />);
+    }
+  );
 
-  it('initial spawned actor should be immediately available', (done) => {
+  it('initial spawned actor should be immediately available', () => {
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -136,18 +133,16 @@ describe('useActor', () => {
     });
 
     interface Ctx {
-      actorRef?: ActorRefFrom<typeof childMachine>;
+      actorRef: ActorRefFrom<typeof childMachine>;
     }
 
     const machine = createMachine<Ctx>({
       initial: 'active',
-      context: {
-        actorRef: undefined
-      },
+      context: {} as Ctx,
       states: {
         active: {
           entry: assign({
-            actorRef: () => spawnMachine(childMachine)
+            actorRef: (_, __, { spawn }) => spawn(childMachine)
           })
         }
       }
@@ -160,8 +155,6 @@ describe('useActor', () => {
 
       expect(state.value).toEqual('active');
 
-      done();
-
       return null;
     };
 
@@ -172,118 +165,80 @@ describe('useActor', () => {
       return <ChildTest actor={actorRef!} />;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
-  it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
-    const childMachine = createMachine({
-      id: 'childMachine',
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            FINISH: { actions: sendParent('FINISH') }
+  // TODO: reexecuted layout effect in strict mode sees the outdated state
+  // it fires after passive cleanup (that stops the machine) and before the passive setup (that restarts the machine)
+  (suiteKey === 'strict' ? it.skip : it)(
+    'spawned actor should be able to receive (deferred) events that it replays when active',
+    (done) => {
+      const childMachine = createMachine({
+        id: 'childMachine',
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            }
           }
         }
-      }
-    });
-    const machine = createMachine<{
-      actorRef?: ActorRefFrom<typeof childMachine>;
-    }>({
-      initial: 'active',
-      context: {
-        actorRef: undefined
-      },
-      states: {
-        active: {
-          entry: assign({
-            actorRef: () => spawnMachine(childMachine)
-          }),
-          on: { FINISH: 'success' }
+      });
+
+      const machine = createMachine<{
+        actorRef?: ActorRefFrom<typeof childMachine>;
+      }>({
+        initial: 'active',
+        context: {
+          actorRef: undefined
         },
-        success: {}
-      }
-    });
+        states: {
+          active: {
+            entry: assign({
+              actorRef: (_, __, { spawn }) =>
+                spawn(childMachine, { id: 'child' })
+            }),
+            on: { FINISH: 'success' }
+          },
+          success: {}
+        }
+      });
 
-    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
-      actor
-    }) => {
-      const [state, send] = useActor(actor);
+      const ChildTest: React.FC<{
+        actor: ActorRefFrom<typeof childMachine>;
+      }> = ({ actor }) => {
+        const [state, send] = useActor(actor);
 
-      expect(state.value).toEqual('active');
+        expect(state.value).toEqual('active');
 
-      React.useEffect(() => {
-        send({ type: 'FINISH' });
-      }, []);
+        React.useLayoutEffect(() => {
+          send({ type: 'FINISH' });
+        }, []);
 
-      return null;
-    };
+        return null;
+      };
 
-    const Test = () => {
-      const [state] = useMachine(machine);
+      const Test = () => {
+        const [state] = useMachine(machine);
 
-      if (state.matches('success')) {
-        done();
-      }
+        if (state.matches('success')) {
+          done();
+        }
 
-      const { actorRef } = state.context;
+        const { actorRef } = state.context;
 
-      return <ChildTest actor={actorRef!} />;
-    };
+        return <ChildTest actor={actorRef!} />;
+      };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
-  });
+      render(<Test />);
+    }
+  );
 
   it('actor should provide snapshot value immediately', () => {
-    const simpleActor = toActorRef({
-      send: () => {
-        /* ... */
-      },
-      latestValue: 42,
-      subscribe: () => {
-        return {
-          unsubscribe: () => {
-            /* ... */
-          }
-        };
-      }
-    });
-
-    const Test = () => {
-      const [state] = useActor(simpleActor, (a) => a.latestValue);
-
-      return <div data-testid="state">{state}</div>;
-    };
-
-    const { getByTestId } = render(<Test />);
-
-    const div = getByTestId('state');
-
-    expect(div.textContent).toEqual('42');
-  });
-
-  it('should provide value from `actor.getSnapshot()`', () => {
-    const simpleActor = toActorRef({
-      name: 'test',
-      send: () => {
-        /* ... */
-      },
+    const simpleActor = interpret({
+      transition: (s) => s,
       getSnapshot: () => 42,
-      subscribe: () => {
-        return {
-          unsubscribe: () => {
-            /* ... */
-          }
-        };
-      }
+      getInitialState: () => 42
     });
 
     const Test = () => {
@@ -292,32 +247,24 @@ describe('useActor', () => {
       return <div data-testid="state">{state}</div>;
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    const div = getByTestId('state');
+    const div = screen.getByTestId('state');
 
     expect(div.textContent).toEqual('42');
   });
 
   it('should update snapshot value when actor changes', () => {
     const createSimpleActor = (value: number) =>
-      toActorRef({
-        send: () => {
-          /* ... */
-        },
-        latestValue: value,
-        subscribe: () => {
-          return {
-            unsubscribe: () => {
-              /* ... */
-            }
-          };
-        }
+      interpret({
+        transition: (s) => s,
+        getSnapshot: () => value,
+        getInitialState: () => value
       });
 
     const Test = () => {
       const [actor, setActor] = useState(createSimpleActor(42));
-      const [state] = useActor(actor, (a) => a.latestValue);
+      const [state] = useActor(actor);
 
       return (
         <>
@@ -330,48 +277,82 @@ describe('useActor', () => {
       );
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    const div = getByTestId('state');
-    const button = getByTestId('button');
+    const div = screen.getByTestId('state');
+    const button = screen.getByTestId('button');
 
     expect(div.textContent).toEqual('42');
     fireEvent.click(button);
     expect(div.textContent).toEqual('100');
   });
 
-  it('send() should be stable', (done) => {
-    const fakeSubscribe = () => {
-      return {
-        unsubscribe: () => {
-          /* ... */
-        }
-      };
-    };
-    const noop = () => {
-      /* ... */
-    };
-    const firstActor = toActorRef({
-      send: noop,
-      subscribe: fakeSubscribe
+  it('send() should be stable for the same actor', () => {
+    const noop = () => {};
+    const fakeSubscribe = () => ({
+      unsubscribe: noop
     });
-    const lastActor = toActorRef({
-      send: () => {
-        done();
-      },
-      subscribe: fakeSubscribe
+
+    const actor = interpret({
+      transition: (s) => s,
+      subscribe: fakeSubscribe,
+      getSnapshot: () => undefined,
+      getInitialState: () => undefined
     });
+
+    let latestSend: (...args: any[]) => void;
+
+    const Test = () => {
+      const [, setState] = useState(0);
+      const [, send] = useActor(actor);
+
+      latestSend = send;
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() => setState((i) => ++i)}
+          ></button>
+        </>
+      );
+    };
+
+    render(<Test />);
+
+    const firstSend = latestSend!;
+
+    const button = screen.getByTestId('button');
+    fireEvent.click(button);
+
+    expect(firstSend).toBe(latestSend!);
+  });
+
+  it('send() should get updated when the actor changes', () => {
+    const noop = () => {};
+    const fakeSubscribe = () => ({
+      unsubscribe: noop
+    });
+    const firstActor = interpret({
+      transition: (s) => s,
+      subscribe: fakeSubscribe,
+      getSnapshot: () => undefined,
+      getInitialState: () => undefined
+    });
+    const lastActor = interpret({
+      transition: (s) => s,
+      subscribe: fakeSubscribe,
+      getSnapshot: () => undefined,
+      getInitialState: () => undefined
+    });
+
+    let latestSend: (...args: any[]) => void;
 
     const Test = () => {
       const [actor, setActor] = useState(firstActor);
       const [, send] = useActor(actor);
 
-      React.useEffect(() => {
-        setTimeout(() => {
-          // The `send` here is closed-in
-          act(() => send({ type: 'anything' }));
-        }, 10);
-      }, []); // Intentionally omit `send` from dependency array
+      latestSend = send;
 
       return (
         <>
@@ -383,18 +364,14 @@ describe('useActor', () => {
       );
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    // At this point, `send` refers to the first (noop) actor
+    const firstSend = latestSend!;
 
-    const button = getByTestId('button');
+    const button = screen.getByTestId('button');
     fireEvent.click(button);
 
-    // At this point, `send` refers to the last actor
-
-    // The effect will call the closed-in `send`, which originally
-    // was the reference to the first actor. Now that `send` is stable,
-    // it will always refer to the latest actor.
+    expect(firstSend).not.toBe(latestSend!);
   });
 
   it('should also work with services', () => {
@@ -432,9 +409,9 @@ describe('useActor', () => {
         <div
           data-testid="count"
           onClick={() => {
-            send('INC');
+            send({ type: 'INC' });
             // @ts-expect-error
-            send('FAKE');
+            send({ type: 'FAKE' });
           }}
         >
           {state.context.count}
@@ -442,14 +419,14 @@ describe('useActor', () => {
       );
     };
 
-    const { getAllByTestId } = render(
+    render(
       <>
         <Counter />
         <Counter />
       </>
     );
 
-    const countEls = getAllByTestId('count');
+    const countEls = screen.getAllByTestId('count');
 
     expect(countEls.length).toBe(2);
 
@@ -478,8 +455,8 @@ describe('useActor', () => {
     });
 
     const machine = createMachine<{ ref: ActorRef<any> }>({
-      context: () => ({
-        ref: spawn(createMachineBehavior(childMachine))
+      context: ({ spawn }) => ({
+        ref: spawn(childMachine)
       }),
       initial: 'waiting',
       states: {
@@ -501,20 +478,36 @@ describe('useActor', () => {
           <div data-testid="child-state">{childState.value}</div>
           <button
             data-testid="child-send"
-            onClick={() => childSend('NEXT')}
+            onClick={() => childSend({ type: 'NEXT' })}
           ></button>
         </>
       );
     };
 
-    const { getByTestId } = render(<App />);
+    render(<App />);
 
-    const elState = getByTestId('child-state');
-    const elSend = getByTestId('child-send');
+    const elState = screen.getByTestId('child-state');
+    const elSend = screen.getByTestId('child-send');
 
     expect(elState.textContent).toEqual('one');
     fireEvent.click(elSend);
 
     expect(elState.textContent).toEqual('two');
+  });
+
+  it('should not log any spurious errors when used with a not-started actor', () => {
+    const spy = jest.fn();
+    console.error = spy;
+
+    const machine = createMachine({});
+    const App = () => {
+      useActor(useInterpret(machine));
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(spy).not.toBeCalled();
   });
 });

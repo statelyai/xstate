@@ -1,40 +1,51 @@
-import { EventObject, SingleOrArray, MachineContext } from '../types';
-import { pure as pureActionType } from '../actionTypes';
-import { createDynamicAction } from '../../actions/dynamicAction';
+import { EventObject, SingleOrArray, MachineContext } from '../types.js';
+import { pure as pureActionType } from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
 import {
   BaseActionObject,
   BaseDynamicActionObject,
   DynamicPureActionObject,
   PureActionObject
 } from '..';
-import { toArray } from '../utils';
+import { toArray } from '../utils.js';
+import { toActionObjects } from '../actions.js';
 
 export function pure<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 >(
   getActions: (
     context: TContext,
-    event: TEvent
-  ) => SingleOrArray<BaseActionObject> | undefined
+    event: TExpressionEvent
+  ) => SingleOrArray<BaseActionObject | string> | undefined
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   PureActionObject,
-  DynamicPureActionObject<TContext, TEvent>['params']
+  DynamicPureActionObject<TContext, TExpressionEvent>['params']
 > {
   return createDynamicAction(
-    pureActionType,
     {
-      get: getActions
+      type: pureActionType,
+      params: {
+        get: getActions
+      }
     },
-    ({ params }, ctx, _event) => {
-      return {
-        type: pureActionType,
-        params: {
-          actions: toArray(params.get(ctx, _event.data)) ?? []
+    (_event, { state }) => {
+      return [
+        state,
+        {
+          type: pureActionType,
+          params: {
+            actions:
+              toArray(
+                toActionObjects(getActions(state.context, _event.data))
+              ) ?? []
+          }
         }
-      };
+      ];
     }
   );
 }

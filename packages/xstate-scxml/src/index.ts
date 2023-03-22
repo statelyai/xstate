@@ -26,19 +26,21 @@ export function functionToExpr(fn: Function): string {
   return fn.toString();
 }
 
-function raiseActionToSCXML(raiseAction: RaiseActionObject<any>): XMLElement {
+function raiseActionToSCXML(
+  raiseAction: RaiseActionObject<any, any>
+): XMLElement {
   return {
     type: 'element',
     name: 'raise',
     attributes: {
-      event: raiseAction.params._event.name
+      event: raiseAction.params.event.type
     }
   };
 }
 
 function actionToSCXML(action: BaseActionObject): XMLElement {
   if (action.type === 'xstate.raise') {
-    return raiseActionToSCXML(action as RaiseActionObject<any>);
+    return raiseActionToSCXML(action as RaiseActionObject<any, any>);
   }
 
   return {
@@ -69,7 +71,7 @@ export function transitionToSCXML(
       target: (transition.target || [])
         .map((stateNode) => stateNode.id)
         .join(' '),
-      type: transition.internal ? 'internal' : undefined
+      type: !transition.external ? 'internal' : undefined
     }),
     elements: elements.length ? elements : undefined
   };

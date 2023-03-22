@@ -3,10 +3,10 @@ import {
   LogExpr,
   MachineContext,
   LogActionObject
-} from '../types';
-import { log as logActionType } from '../actionTypes';
-import { createDynamicAction } from '../../actions/dynamicAction';
-import { BaseDynamicActionObject, DynamicLogAction } from '..';
+} from '../types.js';
+import { log as logActionType } from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
+import { BaseDynamicActionObject, DynamicLogAction } from '../index.js';
 
 const defaultLogExpr = <TContext, TEvent extends EventObject>(
   context: TContext,
@@ -27,30 +27,42 @@ const defaultLogExpr = <TContext, TEvent extends EventObject>(
 
 export function log<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
 >(
-  expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
+  expr: string | LogExpr<TContext, TExpressionEvent> = defaultLogExpr,
   label?: string
 ): BaseDynamicActionObject<
   TContext,
+  TExpressionEvent,
   TEvent,
   LogActionObject,
-  DynamicLogAction<TContext, TEvent>['params']
+  DynamicLogAction<TContext, TExpressionEvent, TEvent>['params']
 > {
   return createDynamicAction(
-    logActionType,
-    { label, expr },
-    ({ type }, ctx, _event) => {
-      return {
-        type,
-        params: {
-          label,
-          value:
-            typeof expr === 'function'
-              ? expr(ctx, _event.data, { _event })
-              : expr
-        }
-      } as LogActionObject;
+    { type: logActionType, params: { label, expr } },
+    (_event, { state }) => {
+      const resolvedValue =
+        typeof expr === 'function'
+          ? expr(state.context, _event.data, { _event })
+          : expr;
+      return [
+        state,
+        {
+          type: 'xstate.log',
+          params: {
+            label,
+            value: resolvedValue
+          },
+          execute: (actorCtx) => {
+            if (label) {
+              actorCtx.logger?.(label, resolvedValue);
+            } else {
+              actorCtx.logger?.(resolvedValue);
+            }
+          }
+        } as LogActionObject
+      ];
     }
   );
 }

@@ -1,5 +1,9 @@
 # Events
 
+:::tip Check out our new docs!
+🆕 Find more about [events in XState](https://stately.ai/docs/xstate/basics/what-is-a-statechart#transitions-and-events) as well as a [no-code introduction to events and transitions featuring puppies](https://stately.ai/docs/xstate/basics/what-is-a-statechart#transitions-and-events).
+:::
+
 An event is what causes a state machine to [transition](./transitions.md) from its current [state](./states.md) to its next state. To learn more, read [the events section in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
 
 ## API
@@ -41,11 +45,7 @@ const lightMachine = createMachine({
 
 const { initialState } = lightMachine;
 
-let nextState = lightMachine.transition(initialState, 'TIMER'); // string event
-console.log(nextState.value);
-// => 'yellow'
-
-nextState = lightMachine.transition(nextState, { type: 'TIMER' }); // event object
+nextState = lightMachine.transition(nextState, { type: 'TIMER' });
 console.log(nextState.value);
 // => 'red'
 ```
@@ -104,7 +104,7 @@ const skipMachine = createMachine({
 });
 
 const { initialState } = skipMachine;
-const nextState = skipMachine.transition(initialState, 'CLICK');
+const nextState = skipMachine.transition(initialState, { type: 'CLICK' });
 
 console.log(nextState.value);
 // => 'three'

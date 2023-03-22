@@ -1,7 +1,9 @@
 <template>
   <div>
     Hallo
-    <button v-if="state.matches('idle')" @click="send('FETCH')">Fetch</button>
+    <button v-if="state.matches('idle')" @click="send({ type: 'FETCH' })">
+      Fetch
+    </button>
     <div v-else-if="state.matches('loading')">Loading...</div>
     <div v-else-if="state.matches('success')">
       Success! Data:
@@ -12,9 +14,9 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
-import { useMachine } from '../src';
+import { useMachine } from '../src/index.js';
 import { createMachine, assign, AnyState } from 'xstate';
-import { invokePromise } from 'xstate/invoke';
+import { fromPromise } from 'xstate/actors';
 
 const context = {
   data: undefined
@@ -57,10 +59,10 @@ export default defineComponent({
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
     const { state, send, service } = useMachine(fetchMachine, {
+      state: persistedState,
       actors: {
-        fetchData: invokePromise(onFetch)
+        fetchData: fromPromise(onFetch)
       },
-      state: persistedState
     });
     return { state, send, service };
   }

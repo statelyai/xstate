@@ -1,4 +1,4 @@
-import { createMachine, interpret, StateValue } from '../src';
+import { createMachine, interpret, StateValue } from '../src/index.js';
 import { assign } from '../src/actions/assign';
 import { raise } from '../src/actions/raise';
 import { testMultiTransition } from './utils';
@@ -313,21 +313,21 @@ const raisingParallelMachine = createMachine({
       initial: 'C',
       states: {
         A: {
-          entry: [raise('TURN_OFF')],
+          entry: [raise({ type: 'TURN_OFF' })],
           on: {
             EVENT_OUTER1_B: 'B',
             EVENT_OUTER1_C: 'C'
           }
         },
         B: {
-          entry: [raise('TURN_ON')],
+          entry: [raise({ type: 'TURN_ON' })],
           on: {
             EVENT_OUTER1_A: 'A',
             EVENT_OUTER1_C: 'C'
           }
         },
         C: {
-          entry: [raise('CLEAR')],
+          entry: [raise({ type: 'CLEAR' })],
           on: {
             EVENT_OUTER1_A: 'A',
             EVENT_OUTER1_B: 'B'
@@ -562,13 +562,17 @@ describe('parallel states', () => {
   });
 
   it('should have all parallel states represented in the state value', () => {
-    const nextState = wakMachine.transition(wakMachine.initialState, 'WAK1');
+    const nextState = wakMachine.transition(wakMachine.initialState, {
+      type: 'WAK1'
+    });
 
     expect(nextState.value).toEqual({ wak1: 'wak1sonB', wak2: 'wak2sonA' });
   });
 
   it('should have all parallel states represented in the state value (2)', () => {
-    const nextState = wakMachine.transition(wakMachine.initialState, 'WAK2');
+    const nextState = wakMachine.transition(wakMachine.initialState, {
+      type: 'WAK2'
+    });
 
     expect(nextState.value).toEqual({ wak1: 'wak1sonA', wak2: 'wak2sonB' });
   });
@@ -584,7 +588,7 @@ describe('parallel states', () => {
   it('should work with regions without states', () => {
     const nextState = flatParallelMachine.transition(
       flatParallelMachine.initialState,
-      'E'
+      { type: 'E' }
     );
     expect(nextState.value).toEqual({
       foo: {},
@@ -594,10 +598,9 @@ describe('parallel states', () => {
   });
 
   it('should properly transition to relative substate', () => {
-    const nextState = composerMachine.transition(
-      composerMachine.initialState,
-      'singleClickActivity'
-    );
+    const nextState = composerMachine.transition(composerMachine.initialState, {
+      type: 'singleClickActivity'
+    });
 
     expect(nextState.value).toEqual({
       ReadOnly: {
@@ -622,7 +625,7 @@ describe('parallel states', () => {
   it('should properly transition when raising events for a parallel state', () => {
     const nextState = raisingParallelMachine.transition(
       raisingParallelMachine.initialState,
-      'EVENT_OUTER1_B'
+      { type: 'EVENT_OUTER1_B' }
     );
 
     expect(nextState.value).toEqual({
@@ -675,7 +678,7 @@ describe('parallel states', () => {
 
     const savedState = simultaneousMachine.transition(
       simultaneousMachine.initialState,
-      'SAVE'
+      { type: 'SAVE' }
     );
     const unsavedState = simultaneousMachine.transition(savedState, {
       type: 'CHANGE',
@@ -694,20 +697,17 @@ describe('parallel states', () => {
 
   describe('transitions with nested parallel states', () => {
     const initialState = nestedParallelState.initialState;
-    const simpleNextState = nestedParallelState.transition(
-      initialState,
-      'EVENT_SIMPLE'
-    );
-    const complexNextState = nestedParallelState.transition(
-      initialState,
-      'EVENT_COMPLEX'
-    );
+    const simpleNextState = nestedParallelState.transition(initialState, {
+      type: 'EVENT_SIMPLE'
+    });
+    const complexNextState = nestedParallelState.transition(initialState, {
+      type: 'EVENT_COMPLEX'
+    });
 
     it('should properly transition when in a simple nested state', () => {
-      const nextState = nestedParallelState.transition(
-        simpleNextState,
-        'EVENT_STATE_NTJ0_WORK'
-      );
+      const nextState = nestedParallelState.transition(simpleNextState, {
+        type: 'EVENT_STATE_NTJ0_WORK'
+      });
 
       expect(nextState.value).toEqual({
         OUTER1: {
@@ -721,10 +721,9 @@ describe('parallel states', () => {
     });
 
     it('should properly transition when in a complex nested state', () => {
-      const nextState = nestedParallelState.transition(
-        complexNextState,
-        'EVENT_STATE_NTJ0_WORK'
-      );
+      const nextState = nestedParallelState.transition(complexNextState, {
+        type: 'EVENT_STATE_NTJ0_WORK'
+      });
 
       expect(nextState.value).toEqual({
         OUTER1: {
@@ -767,7 +766,7 @@ describe('parallel states', () => {
     });
 
     it('should represent the flat nested parallel states in the state value', () => {
-      const result = machine.transition(machine.initialState, 'to-B');
+      const result = machine.transition(machine.initialState, { type: 'to-B' });
 
       expect(result.value).toEqual({
         B: {
@@ -782,10 +781,10 @@ describe('parallel states', () => {
     it('should properly evaluate deep flat parallel states', () => {
       const state1 = deepFlatParallelMachine.transition(
         deepFlatParallelMachine.initialState,
-        'a'
+        { type: 'a' }
       );
-      const state2 = deepFlatParallelMachine.transition(state1, 'c');
-      const state3 = deepFlatParallelMachine.transition(state2, 'b');
+      const state2 = deepFlatParallelMachine.transition(state1, { type: 'c' });
+      const state3 = deepFlatParallelMachine.transition(state2, { type: 'b' });
       expect(state3.value).toEqual({
         V: {
           B: {
@@ -827,7 +826,7 @@ describe('parallel states', () => {
       });
 
       expect(() => {
-        machine.transition(machine.initialState, 'UPDATE');
+        machine.transition(machine.initialState, { type: 'UPDATE' });
       }).not.toThrow();
     });
   });
@@ -882,15 +881,13 @@ describe('parallel states', () => {
         }
       });
 
-      const openMenuState = testMachine.transition(
-        testMachine.initialState,
-        'toggle'
-      );
+      const openMenuState = testMachine.transition(testMachine.initialState, {
+        type: 'toggle'
+      });
 
-      const dashboardState = testMachine.transition(
-        openMenuState,
-        'go to dashboard'
-      );
+      const dashboardState = testMachine.transition(openMenuState, {
+        type: 'go to dashboard'
+      });
 
       expect(
         dashboardState.matches({ Menu: 'Opened', Pages: 'Dashboard' })
@@ -924,11 +921,10 @@ describe('parallel states', () => {
         }
       });
 
-      const run1 = testMachine.transition(
-        testMachine.initialState,
-        'GOTO_FOOBAZ'
-      );
-      const run2 = testMachine.transition(run1, 'GOTO_FOOBAZ');
+      const run1 = testMachine.transition(testMachine.initialState, {
+        type: 'GOTO_FOOBAZ'
+      });
+      const run2 = testMachine.transition(run1, { type: 'GOTO_FOOBAZ' });
 
       expect(run2.context.log.length).toBe(2);
     });
@@ -996,6 +992,61 @@ describe('parallel states', () => {
       })
       .start();
 
-    service.send('FINISH');
+    service.send({ type: 'FINISH' });
+  });
+
+  it('should raise a "done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
+    const machine = createMachine({
+      initial: 'parallelSteps',
+      states: {
+        parallelSteps: {
+          type: 'parallel',
+          states: {
+            hist: {
+              type: 'history'
+            },
+            one: {
+              initial: 'wait_one',
+              states: {
+                wait_one: {
+                  on: {
+                    finish_one: {
+                      target: 'done'
+                    }
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            },
+            two: {
+              initial: 'wait_two',
+              states: {
+                wait_two: {
+                  on: {
+                    finish_two: {
+                      target: 'done'
+                    }
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            }
+          },
+          onDone: 'finished'
+        },
+        finished: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'finish_one' });
+    service.send({ type: 'finish_two' });
+
+    expect(service.getSnapshot().value).toBe('finished');
   });
 });

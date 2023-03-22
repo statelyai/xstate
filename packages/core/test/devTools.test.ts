@@ -1,4 +1,4 @@
-import { interpret, DevToolsAdapter, createMachine } from '../src';
+import { interpret, DevToolsAdapter, createMachine } from '../src/index.js';
 
 describe('devTools', () => {
   it('should register services with a custom devTools adapter', (done) => {
@@ -27,6 +27,6 @@ describe('devTools', () => {
     });
 
     service.start();
-    service.send('TOGGLE');
+    service.send({ type: 'TOGGLE' });
   });
 });

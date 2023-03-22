@@ -5,8 +5,8 @@
 </template>
 
 <script lang="ts">
-import { useActor, useSpawn } from '../src';
-import { fromReducer } from 'xstate/src/behaviors';
+import { useActor, useSpawn } from '../src/index.js';
+import { fromReducer } from 'xstate/actors';
 import { defineComponent } from 'vue';
 
 const reducer = (state: number, event: { type: 'INC' }): number => {

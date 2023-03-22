@@ -1,15 +1,13 @@
-import { errorExecution, errorPlatform } from './actionTypes';
-import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
-import { IS_PRODUCTION } from './environment';
-import type { StateNode } from './StateNode';
+import { AnyActorBehavior, AnyState } from '.';
+import { errorExecution, errorPlatform } from './actionTypes.js';
+import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.js';
+import { IS_PRODUCTION } from './environment.js';
+import type { StateNode } from './StateNode.js';
 import type {
-  Behavior,
-  BehaviorCreator,
-  Event,
+  ActorBehavior,
   EventObject,
   EventType,
   InvokeConfig,
-  InvokeSourceDefinition,
   MachineContext,
   Mapper,
   Observer,
@@ -22,8 +20,7 @@ import type {
   Subscribable,
   TransitionConfig,
   TransitionConfigTarget
-} from './types';
-import { AnyStateMachine } from './types';
+} from './types.js';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -59,20 +56,6 @@ export function matchesState(
   });
 }
 
-export function getEventType<TEvent extends EventObject = EventObject>(
-  event: Event<TEvent>
-): TEvent['type'] {
-  try {
-    return isString(event) || typeof event === 'number'
-      ? `${event}`
-      : (event as TEvent).type;
-  } catch (e) {
-    throw new Error(
-      'Events must be strings or objects with a string event.type property.'
-    );
-  }
-}
-
 export function toStatePath(
   stateId: string | string[],
   delimiter: string
@@ -88,7 +71,7 @@ export function toStatePath(
   }
 }
 
-export function isStateLike(state: any): state is StateLike<any> {
+export function isStateLike(state: any): state is AnyState {
   return (
     typeof state === 'object' &&
     'value' in state &&
@@ -292,7 +275,7 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   return false;
 }
 
-export function isBehavior(value: any): value is Behavior<any, any> {
+export function isBehavior(value: any): value is ActorBehavior<any, any> {
   return (
     value !== null &&
     typeof value === 'object' &&
@@ -363,14 +346,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export const symbolObservable: typeof Symbol.observable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) ||
-  '@@observable')() as any;
-
-export function isStateMachine(value: any): value is AnyStateMachine {
-  return !!value && '__xstatenode' in value;
-}
-
 export const uniqueId = (() => {
   let currentId = 0;
 
@@ -380,42 +355,32 @@ export const uniqueId = (() => {
   };
 })();
 
-export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>,
-  payload?: Record<string, any>
-): TEvent {
-  if (isString(event)) {
-    return { type: event, ...payload } as TEvent;
-  }
-
-  return event;
-}
-
 export function isSCXMLEvent<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent>
+  event: TEvent | SCXML.Event<TEvent>
 ): event is SCXML.Event<TEvent> {
-  return !isString(event) && '$$type' in event && event.$$type === 'scxml';
+  return '$$type' in event && event.$$type === 'scxml';
 }
 
 export function isSCXMLErrorEvent(
   event: SCXML.Event<any>
 ): event is SCXMLErrorEvent {
-  return event.name === errorExecution || event.name.startsWith(errorPlatform);
+  return (
+    typeof event.name === 'string' &&
+    (event.name === errorExecution || event.name.startsWith(errorPlatform))
+  );
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent>,
+  event: TEvent | SCXML.Event<TEvent>,
   scxmlEvent?: Partial<SCXML.Event<TEvent>>
 ): SCXML.Event<TEvent> {
   if (isSCXMLEvent(event)) {
     return event as SCXML.Event<TEvent>;
   }
 
-  const eventObject = toEventObject(event as Event<TEvent>);
-
   return {
-    name: eventObject.type,
-    data: eventObject,
+    name: event.type,
+    data: event,
     $$type: 'scxml',
     type: 'external',
     ...scxmlEvent
@@ -428,8 +393,7 @@ export function toTransitionConfigArray<
 >(
   event: TEvent['type'] | typeof NULL_EVENT | '*',
   configLike: SingleOrArray<
-    | TransitionConfig<TContext, TEvent>
-    | TransitionConfigTarget<TContext, TEvent>
+    TransitionConfig<TContext, TEvent> | TransitionConfigTarget
   >
 ): Array<
   TransitionConfig<TContext, TEvent> & {
@@ -439,8 +403,7 @@ export function toTransitionConfigArray<
   const transitions = toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
-      typeof transitionLike === 'string' ||
-      isStateMachine(transitionLike)
+      typeof transitionLike === 'string'
     ) {
       return { target: transitionLike, event };
     }
@@ -498,11 +461,7 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable:
-    | InvokeConfig<TContext, TEvent>
-    | string
-    | BehaviorCreator<TContext, TEvent>
-    | Behavior<any, any>,
+  invocable: InvokeConfig<TContext, TEvent> | string | ActorBehavior<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object') {
@@ -513,7 +472,7 @@ export function toInvokeConfig<
     if ('transition' in invocable) {
       return {
         id,
-        src: () => invocable
+        src: invocable
       };
     }
   }
@@ -524,34 +483,37 @@ export function toInvokeConfig<
   };
 }
 
-export function toInvokeSource(
-  src: string | InvokeSourceDefinition
-): InvokeSourceDefinition {
-  if (typeof src === 'string') {
-    return { type: src };
-  }
-
-  return src;
-}
-
 export function toObserver<T>(
-  nextHandler: Observer<T> | ((value: T) => void),
+  nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
 ): Observer<T> {
-  if (typeof nextHandler === 'object') {
-    return nextHandler;
-  }
-
-  const noop = () => void 0;
+  const noop = () => {};
+  const isObserver = typeof nextHandler === 'object';
+  const self = isObserver ? nextHandler : null;
 
   return {
-    next: nextHandler,
-    error: errorHandler || noop,
-    complete: completionHandler || noop
+    next: ((isObserver ? nextHandler.next : nextHandler) || noop).bind(self),
+    error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
+    complete: (
+      (isObserver ? nextHandler.complete : completionHandler) || noop
+    ).bind(self)
   };
 }
 
 export function createInvokeId(stateNodeId: string, index: number): string {
   return `${stateNodeId}:invocation[${index}]`;
+}
+
+export function resolveReferencedActor(
+  referenced:
+    | AnyActorBehavior
+    | { src: AnyActorBehavior; input: Mapper<any, any, any> | any }
+    | undefined
+) {
+  return referenced
+    ? 'transition' in referenced
+      ? { src: referenced, input: undefined }
+      : referenced
+    : undefined;
 }

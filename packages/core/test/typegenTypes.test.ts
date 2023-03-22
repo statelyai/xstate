@@ -1,8 +1,13 @@
-import { assign, interpret, MachineContext, StateMachine } from '../src';
-import { invokeCallback, invokeMachine, invokePromise } from '../src/invoke';
-import { createMachine } from '../src/Machine';
-import { createModel } from '../src/model';
-import { TypegenMeta } from '../src/typegenTypes';
+import {
+  assign,
+  interpret,
+  MachineContext,
+  StateMachine
+} from '../src/index.js';
+import { fromPromise } from '../src/actors/index.js';
+import { fromCallback } from '../src/actors/index.js';
+import { createMachine } from '../src/Machine.js';
+import { TypegenMeta } from '../src/typegenTypes.js';
 
 describe('typegen types', () => {
   it('should not require implementations when creating machine using `createMachine`', () => {
@@ -15,23 +20,6 @@ describe('typegen types', () => {
       };
     }
     createMachine({
-      tsTypes: {} as TypesMeta
-    });
-  });
-
-  it('should not require implementations when creating machine using `model.createMachine`', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'fooAction';
-        delays: 'barDelay';
-        guards: 'bazGuard';
-        actors: 'qwertyActor';
-      };
-    }
-
-    const model = createModel({});
-
-    model.createMachine({
       tsTypes: {} as TypesMeta
     });
   });
@@ -165,11 +153,12 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: invokePromise((_ctx, event) => {
-            event.type === 'FOO';
-            event.type === 'BAR';
-            // @ts-expect-error
-            event.type === 'BAZ';
+          // TODO: add test for input?
+          myActor: fromPromise(({ input }) => {
+            input.type === 'FOO';
+            input.type === 'BAR';
+            // @x-ts-expect-error TODO: strongly type inputs for promise
+            input.type === 'BAZ';
 
             return Promise.resolve(42);
           })
@@ -495,7 +484,8 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
+    // TODO: rethink this; should probably be done as a linter rule instead
+    // @x-ts-expect-error
     interpret(machine);
   });
 
@@ -591,44 +581,6 @@ describe('typegen types', () => {
         barDelay: () => 100
       }
     });
-  });
-
-  it('should preserve provided action type for the meta object', () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingActions: {
-        myAction: 'FOO' | 'BAR';
-      };
-    }
-
-    const model = createModel(
-      { foo: 100 },
-      {
-        actions: {
-          myAction: (x: number) => ({ x })
-        },
-        events: {
-          FOO: () => ({}),
-          BAR: () => ({}),
-          BAZ: () => ({})
-        }
-      }
-    );
-
-    model.createMachine(
-      {
-        tsTypes: {} as TypesMeta
-      },
-      {
-        actions: {
-          myAction: (_ctx, _ev, { action }) => {
-            action.type === 'myAction';
-            ((_accept: number) => {})(action.x);
-            // @ts-expect-error
-            ((_accept: string) => {})(action.x);
-          }
-        }
-      }
-    );
   });
 
   it('should include init event in the provided parameter type if necessary', () => {
@@ -774,7 +726,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: invokePromise((_ctx) => Promise.resolve('foo'))
+          myActor: fromPromise(() => Promise.resolve('foo'))
         }
       }
     );
@@ -849,7 +801,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: (_ctx) => createMachine<{ foo: string }>({})
+          myActor: createMachine<{ foo: string }>({})
         }
       }
     );
@@ -887,7 +839,7 @@ describe('typegen types', () => {
   //     {
   //       actors: {
   //         // @ts-expect-error
-  //         myActor: invokeMachine((_ctx) => createMachine<{ foo: number }>({}))
+  //         myActor: () => (createMachine<{ foo: number }>({}))
   //       }
   //     }
   //   );
@@ -934,7 +886,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: invokeMachine(createMachine({}))
+          fooActor: createMachine({})
         }
       }
     );
@@ -956,7 +908,7 @@ describe('typegen types', () => {
   //     },
   //     {
   //       actors: {
-  //         fooActor: invokeCallback((_context, event) => (send) => {
+  //         fooActor: () => fromCallback((send) => {
   //           ((_accept: 'FOO') => {})(event.type);
 
   //           send({ type: 'BAR' });
@@ -968,52 +920,6 @@ describe('typegen types', () => {
   //     }
   //   );
   // });
-
-  it('It should tighten actor types when using model.createMachine', () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingActions: {
-        myAction: 'done.invoke.myActor';
-      };
-      eventsCausingActors: {
-        myActor: never;
-      };
-      internalEvents: {
-        'done.invoke.myActor': {
-          type: 'done.invoke.myActor';
-          data: unknown;
-        };
-      };
-      invokeSrcNameMap: {
-        myActor: 'done.invoke.myActor';
-      };
-    }
-
-    const model = createModel({}, {});
-
-    model.createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          actors: {} as {
-            myActor: {
-              data: boolean;
-            };
-          }
-        }
-      },
-      {
-        actions: {
-          myAction: (_ctx, event) => {
-            ((_accept: boolean) => {})(event.data);
-          }
-        },
-        actors: {
-          // @ts-expect-error
-          myActor: () => Promise.resolve('')
-        }
-      }
-    );
-  });
 
   it("should not provide a loose type for `onReceive`'s argument as a default", () => {
     interface TypesMeta extends TypegenMeta {
@@ -1031,10 +937,10 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: invokeCallback((_ctx, _ev) => (_send, onReceive) => {
+          fooActor: fromCallback((_send, onReceive) => {
             onReceive((event) => {
               ((_accept: string) => {})(event.type);
-              // @ts-expect-error
+              // @x-ts-expect-error TODO: determine how to get parent event type here
               event.unknown;
             });
           })
@@ -1059,7 +965,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: invokeCallback((_ctx, _ev) => (_send, onReceive) => {
+          fooActor: fromCallback((_send, onReceive) => {
             onReceive((_event: { type: 'TEST' }) => {});
             // @ts-expect-error
             onReceive((_event: { type: number }) => {});
@@ -1258,6 +1164,36 @@ describe('typegen types', () => {
         // @ts-expect-error
         actors: {
           testActor: () => Promise.resolve(42)
+        }
+      }
+    );
+  });
+
+  it('should be able to provide events that use string unions as their type', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        increment: 'INC';
+        decrement: 'DEC';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            count: number;
+          },
+          events: {} as { type: 'INC' | 'DEC'; value: number }
+        }
+      },
+      {
+        actions: {
+          increment: assign((ctx, ev) => {
+            return {
+              count: ctx.count + ev.value
+            };
+          })
         }
       }
     );

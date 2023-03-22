@@ -4,14 +4,13 @@ import {
   EventObject,
   interpret,
   Observer,
-  toEventObject,
   toObserver,
   toSCXMLEvent
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { toActorRef } from 'xstate/actor';
-import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
-import { stringifyMachine, stringifyState } from './serialize';
+import { toActorRef } from 'xstate/actors';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine.js';
+import { stringifyMachine, stringifyState } from './serialize.js';
 import type {
   Inspector,
   InspectorOptions,
@@ -20,13 +19,13 @@ import type {
   ServiceListener,
   WebSocketReceiverOptions,
   WindowReceiverOptions
-} from './types';
+} from './types.js';
 import {
   getLazy,
   isReceiverEvent,
   parseReceiverEvent,
   stringify
-} from './utils';
+} from './utils.js';
 
 export const serviceMap = new Map<string, AnyInterpreter>();
 
@@ -41,9 +40,11 @@ export function createDevTools(): XStateDevInterface {
       serviceMap.set(service.sessionId, service);
       serviceListeners.forEach((listener) => listener(service));
 
-      service.onStop(() => {
-        services.delete(service);
-        serviceMap.delete(service.sessionId);
+      service.subscribe({
+        complete() {
+          services.delete(service);
+          serviceMap.delete(service.sessionId);
+        }
       });
     },
     unregister: (service) => {
@@ -64,7 +65,7 @@ export function createDevTools(): XStateDevInterface {
 }
 
 const defaultInspectorOptions = {
-  url: 'https://statecharts.io/inspect',
+  url: 'https://stately.ai/viz?inspect',
   iframe: () =>
     document.querySelector<HTMLIFrameElement>('iframe[data-xstate]'),
   devTools: () => {
@@ -84,6 +85,8 @@ const getFinalOptions = (options?: Partial<InspectorOptions>) => {
     devTools: getLazy(withDefaults.devTools)
   };
 };
+
+const patchedInterpreters = new Set<AnyInterpreter>();
 
 export function inspect(options?: InspectorOptions): Inspector | undefined {
   const { iframe, url, devTools } = getFinalOptions(options);
@@ -144,14 +147,14 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     stringify(value, options?.serialize);
 
   devTools.onRegister((service) => {
-    const state = service.state || service.initialState;
+    const state = service.getSnapshot();
     inspectService.send({
       type: 'service.register',
-      machine: stringifyMachine(service.machine, options?.serialize),
+      machine: stringifyMachine(service.behavior, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
-      parent: (service.parent as AnyInterpreter)?.sessionId
+      parent: (service._parent as AnyInterpreter)?.sessionId
     });
 
     inspectService.send({
@@ -160,22 +163,24 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       sessionId: service.sessionId
     });
 
-    // monkey-patch service.send so that we know when an event was sent
-    // to a service *before* it is processed, since other events might occur
-    // while the sent one is being processed, which throws the order off
-    const originalSend = service.send.bind(service);
+    if (!patchedInterpreters.has(service)) {
+      patchedInterpreters.add(service);
 
-    service.send = function inspectSend(event: EventObject, payload?: any) {
-      inspectService.send({
-        type: 'service.event',
-        event: stringifyWithSerializer(
-          toSCXMLEvent(toEventObject(event as EventObject, payload))
-        ),
-        sessionId: service.sessionId
-      });
+      // monkey-patch service.send so that we know when an event was sent
+      // to a service *before* it is processed, since other events might occur
+      // while the sent one is being processed, which throws the order off
+      const originalSend = service.send.bind(service);
 
-      return originalSend(event, payload);
-    };
+      service.send = function inspectSend(event: EventObject) {
+        inspectService.send({
+          type: 'service.event',
+          event: stringifyWithSerializer(toSCXMLEvent(event)),
+          sessionId: service.sessionId
+        });
+
+        return originalSend(event);
+      };
+    }
 
     service.subscribe((state) => {
       // filter out synchronous notification from within `.start()` call
@@ -191,11 +196,13 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       });
     });
 
-    service.onStop(() => {
-      inspectService.send({
-        type: 'service.stop',
-        sessionId: service.sessionId
-      });
+    service.subscribe({
+      complete() {
+        inspectService.send({
+          type: 'service.stop',
+          sessionId: service.sessionId
+        });
+      }
     });
   });
 
@@ -217,7 +224,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       const observer = toObserver(next, onError, onComplete);
 
       listeners.add(observer);
-      observer.next?.(inspectService.state);
+      observer.next?.(inspectService.getSnapshot());
 
       return {
         unsubscribe: () => {
@@ -226,7 +233,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       };
     },
     disconnect: () => {
-      inspectService.send('disconnect');
+      inspectService.send({ type: 'disconnect' });
       window.removeEventListener('message', messageHandler);
       sub.unsubscribe();
     }

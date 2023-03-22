@@ -315,7 +315,7 @@ const remoteMachine = createMachine({
     online: {
       after: {
         1000: {
-          actions: sendParent('REMOTE.ONLINE')
+          actions: sendParent({ type: 'REMOTE.ONLINE' })
         }
       }
     }
@@ -378,18 +378,6 @@ someService.onTransition((state) => {
   const { someRef } = state.context;
 
   console.log(someRef.getSnapshot());
-  // => State {
-  //   value: ...,
-  //   context: ...
-  // }
-});
-```
-
-```js
-someService.onTransition((state) => {
-  const { someRef } = state.context;
-
-  console.log(someRef.state);
   // => State {
   //   value: ...,
   //   context: ...

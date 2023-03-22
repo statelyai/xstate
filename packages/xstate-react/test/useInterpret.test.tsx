@@ -1,17 +1,19 @@
 import * as React from 'react';
-import { createMachine } from 'xstate';
-import { render, cleanup, fireEvent } from '@testing-library/react';
-import { useInterpret, useMachine } from '../src';
+import { ActorRefFrom, createMachine, sendTo } from 'xstate';
+import { fireEvent, screen } from '@testing-library/react';
+import { useActor, useInterpret, useMachine } from '../src/index.js';
+import { describeEachReactMode } from './utils';
 
 const originalConsoleWarn = console.warn;
 
 afterEach(() => {
-  cleanup();
   console.warn = originalConsoleWarn;
 });
 
-describe('useInterpret', () => {
-  it('observer should be called with initial state', (done) => {
+describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
+  it('observer should be called with initial state', () => {
+    let initialState: any;
+
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -29,8 +31,7 @@ describe('useInterpret', () => {
 
       React.useEffect(() => {
         service.subscribe((state) => {
-          expect(state.matches('inactive')).toBeTruthy();
-          done();
+          initialState ??= state;
         });
       }, [service]);
 
@@ -38,6 +39,8 @@ describe('useInterpret', () => {
     };
 
     render(<App />);
+
+    expect(initialState.matches('inactive')).toBeTruthy();
   });
 
   it('observer should be called with next state', (done) => {
@@ -68,14 +71,14 @@ describe('useInterpret', () => {
         <button
           data-testid="button"
           onClick={() => {
-            service.send('ACTIVATE');
+            service.send({ type: 'ACTIVATE' });
           }}
         ></button>
       );
     };
 
-    const { getByTestId } = render(<App />);
-    const button = getByTestId('button');
+    render(<App />);
+    const button = screen.getByTestId('button');
 
     fireEvent.click(button);
   });
@@ -104,7 +107,7 @@ describe('useInterpret', () => {
       });
 
       React.useLayoutEffect(() => {
-        service.send('EXEC_ACTION');
+        service.send({ type: 'EXEC_ACTION' });
       });
 
       return null;
@@ -112,9 +115,12 @@ describe('useInterpret', () => {
 
     const { rerender } = render(<App value={1} />);
 
+    expect(actual).toEqual(suiteKey === 'strict' ? [1, 1] : [1]);
+
+    actual.length = 0;
     rerender(<App value={42} />);
 
-    expect(actual).toEqual([1, 42]);
+    expect(actual).toEqual([42]);
   });
 
   it('should warn when machine reference is updated during the hook lifecycle', () => {
@@ -149,7 +155,7 @@ describe('useInterpret', () => {
           <button
             onClick={() => {
               setId(2);
-              send('CHECK');
+              send({ type: 'CHECK' });
             }}
           >
             update id
@@ -158,14 +164,132 @@ describe('useInterpret', () => {
       );
     };
 
-    const { getByRole } = render(<App />);
+    render(<App />);
 
-    getByRole('button').click();
+    fireEvent.click(screen.getByRole('button'));
 
-    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(console.warn).toHaveBeenCalledTimes(suiteKey === 'strict' ? 4 : 1);
     expect((console.warn as jest.Mock).mock.calls[0][0]).toMatchInlineSnapshot(`
       "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
       Please make sure that you pass the same Machine as argument each time."
     `);
+    if (suiteKey === 'strict') {
+      expect((console.warn as jest.Mock).mock.calls[1][0])
+        .toMatchInlineSnapshot(`
+        "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
+        Please make sure that you pass the same Machine as argument each time."
+      `);
+    }
+  });
+
+  it('should change state when started', async () => {
+    const childMachine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: 'received'
+          }
+        },
+        received: {}
+      }
+    });
+
+    const parentMachine = createMachine<{
+      childRef: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: ({ spawn }) => ({
+        childRef: spawn(childMachine)
+      }),
+      on: {
+        SEND_TO_CHILD: {
+          actions: sendTo((ctx) => ctx.childRef, { type: 'EVENT' })
+        }
+      }
+    });
+
+    const App = () => {
+      const parentActor = useInterpret(parentMachine);
+      const [parentState, parentSend] = useActor(parentActor);
+      const [childState] = useActor(parentState.context.childRef);
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() => parentSend({ type: 'SEND_TO_CHILD' })}
+          >
+            Send to child
+          </button>
+          <div data-testid="child-state">{childState.value}</div>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const button = screen.getByTestId('button');
+    const childState = screen.getByTestId('child-state');
+
+    expect(childState.textContent).toBe('waiting');
+
+    fireEvent.click(button);
+
+    expect(childState.textContent).toBe('received');
+  });
+
+  it('should change state when started (useMachine)', async () => {
+    const childMachine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: 'received'
+          }
+        },
+        received: {}
+      }
+    });
+
+    const parentMachine = createMachine<{
+      childRef: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: ({ spawn }) => ({
+        childRef: spawn(childMachine)
+      }),
+      on: {
+        SEND_TO_CHILD: {
+          actions: sendTo((ctx) => ctx.childRef, { type: 'EVENT' })
+        }
+      }
+    });
+
+    const App = () => {
+      const [parentState, parentSend] = useMachine(parentMachine);
+      const [childState] = useActor(parentState.context.childRef);
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() => parentSend({ type: 'SEND_TO_CHILD' })}
+          >
+            Send to child
+          </button>
+          <div data-testid="child-state">{childState.value}</div>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const button = screen.getByTestId('button');
+    const childState = screen.getByTestId('child-state');
+
+    expect(childState.textContent).toBe('waiting');
+
+    fireEvent.click(button);
+
+    expect(childState.textContent).toBe('received');
   });
 });

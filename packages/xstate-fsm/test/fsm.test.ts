@@ -1,4 +1,9 @@
-import { createMachine, assign, interpret, StateMachine } from '../src';
+import {
+  createMachine,
+  assign,
+  interpret,
+  StateMachine
+} from '../src/index.js';
 
 describe('@xstate/fsm', () => {
   interface LightContext {
@@ -114,7 +119,7 @@ describe('@xstate/fsm', () => {
     expect(initialState.actions).toEqual([{ type: 'foo' }]);
   });
   it('should transition correctly', () => {
-    const nextState = lightFSM.transition('green', 'TIMER');
+    const nextState = lightFSM.transition('green', { type: 'TIMER' });
     expect(nextState.value).toEqual('yellow');
     expect(nextState.actions.map((action) => action.type)).toEqual([
       'exitGreen',
@@ -129,14 +134,14 @@ describe('@xstate/fsm', () => {
   });
 
   it('should stay on the same state for undefined transitions', () => {
-    const nextState = lightFSM.transition('green', 'FAKE' as any);
+    const nextState = lightFSM.transition('green', { type: 'FAKE' } as any);
     expect(nextState.value).toBe('green');
     expect(nextState.actions).toEqual([]);
   });
 
   it('should throw an error for undefined states', () => {
     expect(() => {
-      lightFSM.transition('unknown', 'TIMER');
+      lightFSM.transition('unknown', { type: 'TIMER' });
     }).toThrow();
   });
 
@@ -156,14 +161,17 @@ describe('@xstate/fsm', () => {
     };
     const testMachine = createMachine(testConfig);
     expect(() => {
-      testMachine.transition('green', 'TARGET_INVALID');
+      testMachine.transition('green', { type: 'TARGET_INVALID' });
     }).toThrow(
       `State '${invalidState}' not found on machine ${testConfig.id ?? ''}`
     );
   });
 
   it('should work with guards', () => {
-    const yellowState = lightFSM.transition('yellow', 'EMERGENCY');
+    const yellowState = lightFSM.transition('yellow', {
+      type: 'EMERGENCY',
+      value: 0
+    });
     expect(yellowState.value).toEqual('yellow');
 
     const redState = lightFSM.transition('yellow', {
@@ -173,7 +181,7 @@ describe('@xstate/fsm', () => {
     expect(redState.value).toEqual('red');
     expect(redState.context.count).toBe(0);
 
-    const yellowOneState = lightFSM.transition('yellow', 'INC');
+    const yellowOneState = lightFSM.transition('yellow', { type: 'INC' });
     const redOneState = lightFSM.transition(yellowOneState, {
       type: 'EMERGENCY',
       value: 1
@@ -184,15 +192,17 @@ describe('@xstate/fsm', () => {
   });
 
   it('should be changed if state changes', () => {
-    expect(lightFSM.transition('green', 'TIMER').changed).toBe(true);
+    expect(lightFSM.transition('green', { type: 'TIMER' }).changed).toBe(true);
   });
 
   it('should be changed if any actions occur', () => {
-    expect(lightFSM.transition('yellow', 'INC').changed).toBe(true);
+    expect(lightFSM.transition('yellow', { type: 'INC' }).changed).toBe(true);
   });
 
   it('should not be changed on unknown transitions', () => {
-    expect(lightFSM.transition('yellow', 'UNKNOWN' as any).changed).toBe(false);
+    expect(
+      lightFSM.transition('yellow', { type: 'UNKNOWN' } as any).changed
+    ).toBe(false);
   });
 
   it('should match initialState', () => {
@@ -207,7 +217,7 @@ describe('@xstate/fsm', () => {
 
   it('should match transition states', () => {
     const { initialState } = lightFSM;
-    const nextState = lightFSM.transition(initialState, 'TIMER');
+    const nextState = lightFSM.transition(initialState, { type: 'TIMER' });
 
     expect(nextState.matches('yellow')).toBeTruthy();
 
@@ -247,7 +257,7 @@ describe('interpreter', () => {
       }
     });
 
-    toggleService.send('TOGGLE');
+    toggleService.send({ type: 'TOGGLE' });
   });
 
   it('should execute actions', (done) => {
@@ -278,79 +288,7 @@ describe('interpreter', () => {
       }
     });
 
-    actionService.send('TOGGLE');
-  });
-
-  describe('`start` method', () => {
-    it('should start the service with initial state by default', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: {
-              NEXT: 'bar'
-            }
-          },
-          bar: {}
-        }
-      });
-
-      const service = interpret(machine).start();
-
-      expect(service.state.value).toBe('foo');
-    });
-
-    it('should rehydrate the state if the state if provided', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: {
-              NEXT: 'bar'
-            }
-          },
-          bar: {
-            on: {
-              NEXT: 'baz'
-            }
-          },
-          baz: {}
-        }
-      });
-
-      const service = interpret(machine).start('bar');
-      expect(service.state.value).toBe('bar');
-
-      service.send('NEXT');
-      expect(service.state.matches('baz')).toBe(true);
-    });
-
-    it('should rehydrate the state and the context if both are provided', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: {
-              NEXT: 'bar'
-            }
-          },
-          bar: {
-            on: {
-              NEXT: 'baz'
-            }
-          },
-          baz: {}
-        }
-      });
-
-      const context = { hello: 'world' };
-      const service = interpret(machine).start({ value: 'bar', context });
-      expect(service.state.value).toBe('bar');
-      expect(service.state.context).toBe(context);
-
-      service.send('NEXT');
-      expect(service.state.matches('baz')).toBe(true);
-    });
+    actionService.send({ type: 'TOGGLE' });
   });
 
   it('should execute initial entry action', () => {
@@ -434,7 +372,7 @@ describe('interpreter', () => {
       }
     });
 
-    service.send('CHANGE');
+    service.send({ type: 'CHANGE' });
   });
 
   it('should not re-execute exit/entry actions for transitions with undefined targets', () => {
@@ -458,8 +396,154 @@ describe('interpreter', () => {
 
     expect(initialState.actions.map((a) => a.type)).toEqual(['entry']);
 
-    const nextState = machine.transition(initialState, 'EVENT');
+    const nextState = machine.transition(initialState, { type: 'EVENT' });
 
     expect(nextState.actions.map((a) => a.type)).toEqual(['action']);
+  });
+
+  describe('`start` method', () => {
+    it('should start the service with initial state by default', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              NEXT: 'bar'
+            }
+          },
+          bar: {}
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      expect(service.state.value).toBe('foo');
+    });
+
+    it('should rehydrate the state if the state if provided', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              NEXT: 'bar'
+            }
+          },
+          bar: {
+            on: {
+              NEXT: 'baz'
+            }
+          },
+          baz: {}
+        }
+      });
+
+      const service = interpret(machine).start('bar');
+      expect(service.state.value).toBe('bar');
+
+      service.send({ type: 'NEXT' });
+      expect(service.state.matches('baz')).toBe(true);
+    });
+
+    it('should rehydrate the state and the context if both are provided', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              NEXT: 'bar'
+            }
+          },
+          bar: {
+            on: {
+              NEXT: 'baz'
+            }
+          },
+          baz: {}
+        }
+      });
+
+      const context = { hello: 'world' };
+      const service = interpret(machine).start({ value: 'bar', context });
+      expect(service.state.value).toBe('bar');
+      expect(service.state.context).toBe(context);
+
+      service.send({ type: 'NEXT' });
+      expect(service.state.matches('baz')).toBe(true);
+    });
+
+    it('should execute initial actions when re-starting a service', () => {
+      let entryActionCalled = false;
+      const machine = createMachine({
+        initial: 'test',
+        states: {
+          test: {
+            entry: () => (entryActionCalled = true)
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.stop();
+
+      entryActionCalled = false;
+
+      service.start();
+
+      expect(entryActionCalled).toBe(true);
+    });
+
+    it('should execute initial actions when re-starting a service that transitioned to a different state', () => {
+      let entryActionCalled = false;
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            entry: () => (entryActionCalled = true),
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {}
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.send({ type: 'NEXT' });
+      service.stop();
+
+      entryActionCalled = false;
+
+      service.start();
+
+      expect(entryActionCalled).toBe(true);
+    });
+
+    it('should not execute actions of the last known non-initial state when re-starting a service', () => {
+      let entryActionCalled = false;
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {
+            entry: () => (entryActionCalled = true)
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.send({ type: 'NEXT' });
+      service.stop();
+
+      entryActionCalled = false;
+
+      service.start();
+
+      expect(entryActionCalled).toBe(false);
+    });
   });
 });

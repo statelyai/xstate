@@ -8,8 +8,8 @@ import {
   interpret,
   SimulatedClock
 } from 'xstate';
-import { toMachine } from 'xstate/src/scxml';
-import { toSCXML, transitionToSCXML } from '../src';
+import { toMachine } from '../src/scxml';
+import { toSCXML, transitionToSCXML } from '../src/index.js';
 
 interface SCIONTest {
   initialConfiguration: string[];
@@ -28,6 +28,7 @@ async function runTestToCompletion(
   let nextState: AnyState = machine.initialState;
 
   const service = interpret(machine, {
+    state: nextState,
     clock: new SimulatedClock()
   })
     .onTransition((state) => {
@@ -36,7 +37,7 @@ async function runTestToCompletion(
     .onDone(() => {
       done = true;
     })
-    .start(nextState);
+    .start();
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
@@ -45,7 +46,7 @@ async function runTestToCompletion(
     if (after) {
       (service.clock as SimulatedClock).increment(after);
     }
-    service.send(event.name);
+    service.send({ type: event.name });
 
     const stateIds = getStateNodes(machine.root, nextState).map(
       (stateNode) => stateNode.id
@@ -84,8 +85,8 @@ describe('scxml', () => {
 
   testGroupKeys.forEach((testGroupName) => {
     testGroups[testGroupName].forEach((testName) => {
-      const originalMachine = require(`./fixtures/${testGroupName}/${testName}`)
-        .default;
+      const originalMachine =
+        require(`./fixtures/${testGroupName}/${testName}`).default;
       const scxmlDefinition = toSCXML(originalMachine);
 
       const scxmlTest = JSON.parse(
@@ -168,7 +169,6 @@ const pedestrianStates = {
 };
 
 const lightMachine = createMachine({
-  key: 'light',
   initial: 'green',
   states: {
     green: {
@@ -209,8 +209,7 @@ const lightMachine = createMachine({
       on: {
         TIMER: 'green',
         POWER_OUTAGE: {
-          target: 'red',
-          internal: true
+          target: 'red'
         }
       },
       ...pedestrianStates
@@ -238,7 +237,6 @@ xdescribe('transition to SCXML', () => {
           on: {
             SOME_EVENT: {
               target: 'next',
-              internal: true,
               guard: () => true,
               actions: ['foo', 'bar']
             }
