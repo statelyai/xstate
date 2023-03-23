@@ -219,19 +219,6 @@ export class Interpreter<
     }
   }
 
-  /*
-   * Adds a listener that is notified whenever a state transition happens. The listener is called with
-   * the next state and the event object that caused the state transition.
-   *
-   * @param listener The state listener
-   * @deprecated Use .subscribe(listener) instead
-   */
-  public onTransition(listener: SnapshotListener<TBehavior>): this {
-    const observer = toObserver(listener);
-    this.observers.add(observer);
-    return this;
-  }
-
   public subscribe(observer: Observer<SnapshotFrom<TBehavior>>): Subscription;
   public subscribe(
     nextListener?: (state: SnapshotFrom<TBehavior>) => void,

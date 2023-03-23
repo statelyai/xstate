@@ -54,17 +54,6 @@ const lightMachine = createMachine({
 
 describe('interpreter', () => {
   describe('initial state', () => {
-    it('immediately notifies the listener with the initial state and event', (done) => {
-      const service = interpret(idMachine).onTransition((initialState) => {
-        expect(initialState).toBeInstanceOf(State);
-        expect(initialState.value).toEqual(idMachine.initialState.value);
-        expect(initialState.event.type).toEqual('xstate.init');
-        done();
-      });
-
-      service.start();
-    });
-
     it('.getSnapshot returns the initial state', () => {
       const service = interpret(idMachine);
 
@@ -210,15 +199,6 @@ describe('interpreter', () => {
 
       expect(spy).not.toHaveBeenCalled();
     });
-
-    it('should not notify subscribers of the current state upon subscription (onTransition)', () => {
-      const spy = jest.fn();
-      const service = interpret(machine).start();
-
-      service.onTransition(spy);
-
-      expect(spy).not.toHaveBeenCalled();
-    });
   });
 
   describe('send with delay', () => {
@@ -227,7 +207,8 @@ describe('interpreter', () => {
 
       const service = interpret(lightMachine, {
         clock: new SimulatedClock()
-      }).onTransition((state) => {
+      });
+      service.subscribe((state) => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
@@ -486,26 +467,21 @@ describe('interpreter', () => {
         }
       );
 
-      let state: any;
-
-      interpret(letterMachine, { clock })
-        .onTransition((s) => {
-          state = s;
-        })
+      const actor = interpret(letterMachine, { clock })
         .onDone(() => {
           done();
         })
         .start();
 
-      expect(state.value).toEqual('a');
+      expect(actor.getSnapshot().value).toEqual('a');
       clock.increment(100);
-      expect(state.value).toEqual('b');
+      expect(actor.getSnapshot().value).toEqual('b');
       clock.increment(100 + 50);
-      expect(state.value).toEqual('c');
+      expect(actor.getSnapshot().value).toEqual('c');
       clock.increment(20);
-      expect(state.value).toEqual('d');
+      expect(actor.getSnapshot().value).toEqual('d');
       clock.increment(100 + 200);
-      expect(state.value).toEqual('e');
+      expect(actor.getSnapshot().value).toEqual('e');
       clock.increment(100 + 50);
     });
   });
@@ -643,20 +619,18 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', () => {
-    let currentState: AnyState;
-
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition((state) => (currentState = state));
+    });
     const clock = service.clock as SimulatedClock;
     service.start();
 
     clock.increment(5);
     service.send({ type: 'KEEP_GOING' });
 
-    expect(currentState!.value).toEqual('green');
+    expect(service.getSnapshot().value).toEqual('green');
     clock.increment(10);
-    expect(currentState!.value).toEqual('green');
+    expect(service.getSnapshot().value).toEqual('green');
   });
 
   it('can cancel a delayed event using expression to resolve send id', (done) => {
@@ -760,11 +734,11 @@ describe('interpreter', () => {
     });
 
     let state: any;
-    const deferService = interpret(deferMachine)
-      .onTransition((s) => {
-        state = s;
-      })
-      .onDone(() => done());
+    const deferService = interpret(deferMachine).onDone(() => done());
+
+    deferService.subscribe((nextState) => {
+      state = nextState;
+    });
 
     // uninitialized
     deferService.send({ type: 'NEXT_A' });
@@ -803,20 +777,19 @@ describe('interpreter', () => {
   });
 
   it('should not update when stopped', () => {
-    let state = lightMachine.initialState;
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition((s) => (state = s));
+    });
 
     service.start();
     service.send({ type: 'TIMER' }); // yellow
-    expect(state.value).toEqual('yellow');
+    expect(service.getSnapshot().value).toEqual('yellow');
 
     service.stop();
     try {
       service.send({ type: 'TIMER' }); // red if interpreter is not stopped
     } catch (e) {
-      expect(state.value).toEqual('yellow');
+      expect(service.getSnapshot().value).toEqual('yellow');
     }
   });
 
@@ -1016,16 +989,10 @@ describe('interpreter', () => {
         }
       });
 
-      let state: AnyState;
-
-      interpret(raiseMachine)
-        .onTransition((s) => {
-          state = s;
-        })
-        .onDone(() => {
-          expect(state.value).toBe('pass');
-        })
-        .start();
+      const service = interpret(raiseMachine).start();
+      service.onDone(() => {
+        expect(service.getSnapshot().value).toBe('pass');
+      });
     });
   });
 
@@ -1072,16 +1039,15 @@ describe('interpreter', () => {
         }
       });
 
-      interpret(parentMachine)
-        .onTransition((state) => {
-          if (state.matches('start')) {
-            const childActor = state.children.child;
+      const actor = interpret(parentMachine);
+      actor.subscribe((state) => {
+        if (state.matches('start')) {
+          const childActor = state.children.child;
 
-            expect(typeof childActor!.send).toBe('function');
-          }
-        })
-        .onDone(() => done())
-        .start();
+          expect(typeof childActor!.send).toBe('function');
+        }
+      });
+      actor.onDone(() => done()).start();
     });
   });
 
@@ -1180,7 +1146,8 @@ describe('interpreter', () => {
 
     it('should initialize the service', (done) => {
       let state: any;
-      const startService = interpret(startMachine).onTransition((s) => {
+      const startService = interpret(startMachine);
+      startService.subscribe((s) => {
         state = s;
         expect(s).toBeDefined();
         expect(s.value).toEqual(startMachine.initialState.value);
@@ -1194,7 +1161,9 @@ describe('interpreter', () => {
 
     it('should not reinitialize a started service', () => {
       let stateCount = 0;
-      const startService = interpret(startMachine).onTransition(() => {
+      const startService = interpret(startMachine);
+
+      startService.subscribe(() => {
         stateCount++;
       });
 
@@ -1208,7 +1177,9 @@ describe('interpreter', () => {
     it('should be able to be initialized at a custom state', (done) => {
       const startService = interpret(startMachine, {
         state: State.from('bar', undefined, startMachine)
-      }).onTransition((state) => {
+      });
+
+      startService.subscribe((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
@@ -1220,7 +1191,9 @@ describe('interpreter', () => {
       const barState = startMachine.resolveStateValue('bar');
       const startService = interpret(startMachine, {
         state: barState
-      }).onTransition((state) => {
+      });
+
+      startService.subscribe((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
@@ -1231,7 +1204,8 @@ describe('interpreter', () => {
     it('should be able to resolve a custom initialized state', (done) => {
       const startService = interpret(startMachine, {
         state: startMachine.resolveStateValue('foo')
-      }).onTransition((state) => {
+      });
+      startService.subscribe((state) => {
         expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();
       });
@@ -1370,9 +1344,9 @@ describe('interpreter', () => {
       });
 
       const stateValues: StateValue[] = [];
-      const service = interpret(stateMachine)
-        .onTransition((current) => stateValues.push(current.value))
-        .start();
+      const service = interpret(stateMachine);
+      service.subscribe((current) => stateValues.push(current.value));
+      service.start();
       service.send({ type: 'START' });
 
       const expectedStateValues = ['idle', 'next'];
@@ -1407,9 +1381,9 @@ describe('interpreter', () => {
       );
 
       const stateValues: StateValue[] = [];
-      const service = interpret(stateMachine)
-        .onTransition((current) => stateValues.push(current.value))
-        .start();
+      const service = interpret(stateMachine);
+      service.subscribe((current) => stateValues.push(current.value));
+      service.start();
       service.send({ type: 'START' });
 
       const expectedStateValues = ['idle', 'next'];
@@ -1627,20 +1601,18 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine)
-        .onTransition((state) => {
-          const childActor = state.children.childActor;
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
+        done();
+      });
 
-          if (state.matches('active') && childActor) {
-            childActor.send({ type: 'FIRE' });
-          }
-        })
-        .onDone(() => {
-          expect(service.getSnapshot().children).not.toHaveProperty(
-            'childActor'
-          );
-          done();
-        });
+      service.subscribe((state) => {
+        const childActor = state.children.childActor;
+
+        if (state.matches('active') && childActor) {
+          childActor.send({ type: 'FIRE' });
+        }
+      });
 
       service.start();
     });
@@ -1680,21 +1652,19 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine)
-        .onTransition((state) => {
-          if (state.matches('active')) {
-            const childActor = state.children.childActor;
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.getSnapshot().matches('success')).toBeTruthy();
+        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
+        done();
+      });
 
-            expect(childActor).toHaveProperty('send');
-          }
-        })
-        .onDone(() => {
-          expect(service.getSnapshot().matches('success')).toBeTruthy();
-          expect(service.getSnapshot().children).not.toHaveProperty(
-            'childActor'
-          );
-          done();
-        });
+      service.subscribe((state) => {
+        if (state.matches('active')) {
+          const childActor = state.children.childActor;
+
+          expect(childActor).toHaveProperty('send');
+        }
+      });
 
       service.start();
     });
@@ -1723,18 +1693,16 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine)
-        .onTransition((state) => {
-          if (state.matches('active')) {
-            expect(state.children['childActor']).not.toBeUndefined();
-          }
-        })
-        .onDone(() => {
-          expect(service.getSnapshot().children).not.toHaveProperty(
-            'childActor'
-          );
-          done();
-        });
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
+        done();
+      });
+
+      service.subscribe((state) => {
+        if (state.matches('active')) {
+          expect(state.children['childActor']).not.toBeUndefined();
+        }
+      });
 
       service.start();
     });
@@ -1760,12 +1728,12 @@ describe('interpreter', () => {
         }
       });
 
-      interpret(formMachine)
-        .onTransition((state) => {
-          expect(state.children).toHaveProperty('child');
-          done();
-        })
-        .start();
+      const actor = interpret(formMachine);
+      actor.subscribe((state) => {
+        expect(state.children).toHaveProperty('child');
+        done();
+      });
+      actor.start();
     });
 
     it('stopped spawned actors should be cleaned up in parent', (done) => {
@@ -1884,12 +1852,11 @@ describe('interpreter', () => {
 
     const initialState = actor.getSnapshot();
 
-    actor
-      .onTransition((state) => {
-        expect(state).toBe(initialState);
-        done();
-      })
-      .start();
+    actor.subscribe((state) => {
+      expect(state).toBe(initialState);
+      done();
+    });
+    actor.start();
   });
 
   it('should call an onDone callback immediately if the service is already done', (done) => {
