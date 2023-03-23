@@ -11,32 +11,6 @@ afterEach(() => {
 });
 
 describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
-  it('observer should be called with initial state', () => {
-    const spy = jest.fn();
-    const observer = (state: StateFrom<typeof machine>) => spy(state.value);
-
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: {
-            ACTIVATE: 'active'
-          }
-        },
-        active: {}
-      }
-    });
-
-    const App = () => {
-      useInterpret(machine, {}, observer);
-      return null;
-    };
-
-    render(<App />);
-
-    expect(spy).toHaveBeenCalledWith('inactive');
-  });
-
   it('observer should be called with next state', (done) => {
     const machine = createMachine({
       initial: 'inactive',

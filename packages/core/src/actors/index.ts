@@ -53,6 +53,7 @@ export function toActorRef<
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
+    sessionId: '',
     getSnapshot: () => undefined,
     [symbolObservable]: function () {
       return this;

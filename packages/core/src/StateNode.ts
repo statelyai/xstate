@@ -4,7 +4,6 @@ import {
   toArray,
   isString,
   toInvokeConfig,
-  toInvokeSource,
   toTransitionConfigArray,
   createInvokeId
 } from './utils.js';
@@ -221,6 +220,7 @@ export class StateNode<
             source: this,
             actions: this.initial.actions,
             eventType: null as any,
+            external: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
@@ -261,9 +261,11 @@ export class StateNode<
         const resolvedId = invokeConfig.id || generatedId;
         const { src } = invokeConfig;
 
-        const resolvedSrc = toInvokeSource(
-          isString(src) ? src : !('type' in src) ? resolvedId : src
-        );
+        const resolvedSrc = isString(src)
+          ? src
+          : !('type' in src)
+          ? resolvedId
+          : src;
 
         if (
           !this.machine.options.actors[resolvedId] &&
@@ -273,7 +275,7 @@ export class StateNode<
           this.machine.options.actors = {
             ...this.machine.options.actors,
             // TODO: this should accept `src` as-is
-            [resolvedId]: typeof src === 'function' ? src : () => src
+            [resolvedId]: src
           };
         }
 
@@ -448,7 +450,7 @@ export class StateNode<
           return !(
             !transition.target &&
             !transition.actions.length &&
-            transition.internal
+            !transition.external
           );
         })
         .map((transition) => transition.eventType)

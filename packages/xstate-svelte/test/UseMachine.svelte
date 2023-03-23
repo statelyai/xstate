@@ -12,7 +12,7 @@
   const { state, send } = useMachine(fetchMachine, {
     state: persistedState,
     actors: {
-      fetchData: () => fromPromise(onFetch)
+      fetchData: fromPromise(onFetch)
     }
   });
 </script>
