@@ -49,7 +49,6 @@ export function fromObservable<T, TEvent extends EventObject>(
 
       switch (_event.name) {
         case nextEventType:
-          state.data = event.data.data;
           // match the exact timing of events sent by machines
           // send actions are not executed immediately
           defer(() => {
@@ -63,21 +62,33 @@ export function fromObservable<T, TEvent extends EventObject>(
               )
             );
           });
-          return state;
+          return {
+            ...state,
+            data: event.data.data
+          };
         case errorEventType:
-          state.status = 'error';
-          delete state.input;
-          state.data = _event.data.data;
-          return state;
+          return {
+            ...state,
+            status: 'error',
+            input: undefined,
+            data: _event.data.data,
+            subscription: undefined
+          };
         case completeEventType:
-          state.status = 'done';
-          delete state.input;
-          return state;
+          return {
+            ...state,
+            status: 'done',
+            input: undefined,
+            subscription: undefined
+          };
         case stopSignalType:
-          state.canceled = true;
-          delete state.input;
           state.subscription!.unsubscribe();
-          return state;
+          return {
+            ...state,
+            input: undefined,
+            canceled: true,
+            subscription: undefined
+          };
         default:
           return state;
       }

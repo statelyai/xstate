@@ -143,11 +143,9 @@ describe('input', () => {
       input: { count: 42 }
     });
 
-    const sub = observableActor.subscribe((state) => {
-      if (state?.count !== 42) return;
+    observableActor.subscribe((state) => {
       expect(state).toEqual({ count: 42 });
       done();
-      sub.unsubscribe();
     });
 
     observableActor.start();

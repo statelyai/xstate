@@ -174,6 +174,7 @@ export class Interpreter<
 
   private update(state: InternalStateFrom<TBehavior>): void {
     // Update state
+    const previousSnapshot = this.getSnapshot();
     this._state = state;
     const snapshot = this.getSnapshot();
 
@@ -184,8 +185,10 @@ export class Interpreter<
       deferredFn(state);
     }
 
-    for (const observer of this.observers) {
-      observer.next?.(snapshot);
+    if (previousSnapshot !== snapshot) {
+      for (const observer of this.observers) {
+        observer.next?.(snapshot);
+      }
     }
 
     const status = this.behavior.getStatus?.(state);
