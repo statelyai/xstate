@@ -355,7 +355,7 @@ export function sendTo<
 export function sendUpdate<TContext, TEvent extends EventObject>(): SendAction<
   TContext,
   TEvent,
-  AnyEventObject
+  any
 > {
   return sendParent(actionTypes.update);
 }
@@ -627,7 +627,7 @@ export function pure<
 export function forwardTo<TContext, TEvent extends EventObject>(
   target: Required<SendActionOptions<TContext, TEvent>>['to'],
   options?: SendActionOptions<TContext, TEvent>
-): SendAction<TContext, TEvent, AnyEventObject> {
+): SendAction<TContext, TEvent, any> {
   if (!IS_PRODUCTION && (!target || typeof target === 'function')) {
     const originalTarget = target;
     target = (...args) => {
@@ -663,7 +663,7 @@ export function escalate<
 >(
   errorData: TErrorData | ExprWithMeta<TContext, TEvent, TErrorData>,
   options?: SendActionOptions<TContext, TEvent>
-): SendAction<TContext, TEvent, AnyEventObject> {
+): SendAction<TContext, TEvent, any> {
   return sendParent<TContext, TEvent>(
     (context, event, meta) => {
       return {
@@ -759,7 +759,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
       }
       case actionTypes.send:
         const sendAction = resolveSend(
-          actionObject as SendAction<TContext, TEvent, AnyEventObject>,
+          actionObject as SendAction<TContext, TEvent, any>,
           updatedContext,
           _event,
           machine.options.delays as any
@@ -767,7 +767,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
 
         if (!IS_PRODUCTION) {
           const configuredDelay = (
-            actionObject as SendAction<TContext, TEvent, AnyEventObject>
+            actionObject as SendAction<TContext, TEvent, any>
           ).delay;
           // warn after resolving as we can create better contextual message here
           warn(
