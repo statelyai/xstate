@@ -143,8 +143,6 @@ describe('invoke', () => {
       }
     );
 
-    let count: number;
-
     const actor = interpret(someParentMachine).onDone(() => {
       // 1. The 'parent' machine will enter 'start' state
       // 2. The 'child' service will be run with ID 'someService'
@@ -155,9 +153,6 @@ describe('invoke', () => {
       done();
     });
 
-    actor.subscribe((state) => {
-      count = state.context.count;
-    });
     actor.start();
   });
 
@@ -1760,8 +1755,6 @@ describe('invoke', () => {
     });
 
     it('should call onDone when resolved (async)', (done) => {
-      let state: any;
-
       const asyncWithDoneMachine = createMachine<{ result?: any }>({
         id: 'async',
         initial: 'fetch',
