@@ -1,5 +1,11 @@
 # xstate
 
+## 4.37.1
+
+### Patch Changes
+
+- [#3913](https://github.com/statelyai/xstate/pull/3913) [`1c1874657`](https://github.com/statelyai/xstate/commit/1c187465797cd687f311d5a2e18c91738d17f194) Thanks [@Andarist](https://github.com/Andarist)! - Fixed `forwardTo`, `escalate` and `sendUpdate` to be compatible with required action types
+
 ## 4.37.0
 
 ### Minor Changes
