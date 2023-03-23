@@ -2,7 +2,7 @@
 import { createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { createService } from '../src/index.js';
-import { createEffect, onMount } from 'solid-js';
+import { createEffect } from 'solid-js';
 
 describe('createService', () => {
   it('observer should be called with next state', (done) => {
