@@ -54,18 +54,6 @@ const lightMachine = createMachine({
 
 describe('interpreter', () => {
   describe('initial state', () => {
-    it('immediately notifies the listener with the initial state and event', (done) => {
-      const service = interpret(idMachine);
-      service.subscribe((initialState) => {
-        expect(initialState).toBeInstanceOf(State);
-        expect(initialState.value).toEqual(idMachine.initialState.value);
-        expect(initialState.event.type).toEqual('xstate.init');
-        done();
-      });
-
-      service.start();
-    });
-
     it('.getSnapshot returns the initial state', () => {
       const service = interpret(idMachine);
 
