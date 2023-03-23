@@ -109,11 +109,13 @@ describe('@xstate/inspect', () => {
     const devTools = createDevTools();
 
     devTools.onRegister((inspectedService) => {
-      inspectedService.onTransition((state) => {
+      function checkState(state) {
         if (state.event.type === 'CIRCULAR') {
           done();
         }
-      });
+      }
+      inspectedService.subscribe(checkState);
+      checkState(inspectedService.getSnapshot());
     });
 
     inspect({
