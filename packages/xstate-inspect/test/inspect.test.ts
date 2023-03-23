@@ -123,12 +123,12 @@ describe('@xstate/inspect', () => {
 
     const service = interpret(machine).start();
 
+    expect(() => devTools.register(service)).not.toThrow();
+
     service.send({
       type: 'CIRCULAR',
       value: circularStructure
     });
-
-    expect(() => devTools.register(service)).not.toThrow();
   });
 
   it('should accept a serializer', () => {

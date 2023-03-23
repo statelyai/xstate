@@ -62,9 +62,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   let sub;
   onMounted(() => {
     if (observerOrListener) {
-      const observer = toObserver(observerOrListener as any);
-      observer.next?.(service.getSnapshot());
-      sub = service.subscribe(observer);
+      sub = service.subscribe(toObserver(observerOrListener as any));
     }
   });
 

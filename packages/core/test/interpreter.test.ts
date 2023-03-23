@@ -202,23 +202,22 @@ describe('interpreter', () => {
       }
     });
 
-    it('should not notify subscribers of the current state upon subscription (subscribe)', (done) => {
+    it('should not notify subscribers of the current state upon subscription (subscribe)', () => {
+      const spy = jest.fn();
       const service = interpret(machine).start();
 
-      service.subscribe(() => {
-        throw new Error('Should not be called');
-      });
+      service.subscribe(spy);
 
-      setTimeout(() => done(), 10);
+      expect(spy).not.toHaveBeenCalled();
     });
 
-    it('should notify subscribers of the current state upon subscription (onTransition)', (done) => {
+    it('should not notify subscribers of the current state upon subscription (onTransition)', () => {
+      const spy = jest.fn();
       const service = interpret(machine).start();
 
-      service.onTransition((state) => {
-        expect(state.value).toBe('active');
-        done();
-      });
+      service.onTransition(spy);
+
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 

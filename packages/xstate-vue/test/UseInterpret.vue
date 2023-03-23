@@ -27,10 +27,10 @@ const machine = createMachine({
 
 export default defineComponent({
   setup() {
-    const state = ref();
     const service = useInterpret(machine, {}, (nextState) => {
       state.value = nextState.value;
     });
+    const state = ref(service.getSnapshot().value);
 
     return { service, state };
   }
