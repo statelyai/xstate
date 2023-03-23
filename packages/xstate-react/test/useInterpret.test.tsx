@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActorRefFrom, createMachine, sendTo, StateFrom } from 'xstate';
+import { ActorRefFrom, createMachine, sendTo } from 'xstate';
 import { fireEvent, screen } from '@testing-library/react';
 import { useActor, useInterpret, useMachine } from '../src/index.js';
 import { describeEachReactMode } from './utils';
