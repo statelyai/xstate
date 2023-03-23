@@ -8,7 +8,6 @@ describe('useInterpret composable function', () => {
     const buttonEl = getByTestId('button');
 
     await waitFor(() => expect(buttonEl.textContent).toBe('Turn on'));
-    debugger;
     await fireEvent.click(buttonEl);
     await waitFor(() => expect(buttonEl.textContent).toBe('Turn off'));
   });
