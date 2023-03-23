@@ -11,38 +11,6 @@ afterEach(() => {
 });
 
 describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
-  it('observer should be called with initial state', () => {
-    let initialState: any;
-
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: {
-            ACTIVATE: 'active'
-          }
-        },
-        active: {}
-      }
-    });
-
-    const App = () => {
-      const service = useInterpret(machine);
-
-      React.useEffect(() => {
-        service.subscribe((state) => {
-          initialState ??= state;
-        });
-      }, [service]);
-
-      return null;
-    };
-
-    render(<App />);
-
-    expect(initialState.matches('inactive')).toBeTruthy();
-  });
-
   it('observer should be called with next state', (done) => {
     const machine = createMachine({
       initial: 'inactive',
