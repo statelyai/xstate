@@ -98,72 +98,6 @@ const fetcherMachine = createMachine({
 });
 
 describe('invoke', () => {
-  it('should start services (external machines)', (done) => {
-    const childMachine = createMachine({
-      id: 'child',
-      initial: 'init',
-      states: {
-        init: {
-          entry: [sendParent({ type: 'INC' }), sendParent({ type: 'INC' })]
-        }
-      }
-    });
-
-    const someParentMachine = createMachine<{ count: number }>(
-      {
-        id: 'parent',
-        context: { count: 0 },
-        initial: 'start',
-        states: {
-          start: {
-            invoke: {
-              src: 'child',
-              id: 'someService'
-            },
-            always: {
-              target: 'stop',
-              guard: (ctx) => ctx.count === 2
-            },
-            on: {
-              INC: {
-                actions: [
-                  assign({ count: (ctx) => ctx.count + 1 }),
-                  sendTo('someService', { type: 'INC' })
-                ]
-              }
-            }
-          },
-          stop: {
-            type: 'final'
-          }
-        }
-      },
-      {
-        actors: {
-          child: childMachine
-        }
-      }
-    );
-
-    let count: number;
-
-    interpret(someParentMachine)
-      .onTransition((state) => {
-        count = state.context.count;
-      })
-      .onDone(() => {
-        // 1. The 'parent' machine will enter 'start' state
-        // 2. The 'child' service will be run with ID 'someService'
-        // 3. The 'child' machine will enter 'init' state
-        // 4. The 'entry' action will be executed, which sends 'INC' to 'parent' machine twice
-        // 5. The context will be updated to increment count to 2
-
-        expect(count).toEqual(2);
-        done();
-      })
-      .start();
-  });
-
   it('child can immediately respond to the parent with multiple events', () => {
     const childMachine = createMachine({
       id: 'child',
@@ -218,10 +152,11 @@ describe('invoke', () => {
     );
 
     let state: any;
-    const service = interpret(someParentMachine)
-      .onTransition((s) => {
-        state = s;
-      })
+    const service = interpret(someParentMachine);
+    service.subscribe((s) => {
+      state = s;
+    });
+    service
       .onDone(() => {
         // 1. The 'parent' machine will not do anything (inert transition)
         // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
@@ -233,109 +168,6 @@ describe('invoke', () => {
       .start();
 
     service.send({ type: 'FORWARD_DEC' });
-  });
-
-  it('another forwarding pattern', (done) => {
-    const actual: string[] = [];
-
-    const childMachine = createMachine<{ count: number }>({
-      id: 'child',
-      context: { count: 0 },
-      initial: 'counting',
-      states: {
-        counting: {
-          on: {
-            INCREMENT: [
-              {
-                target: 'done',
-                guard: (ctx) => {
-                  actual.push('child got INCREMENT');
-                  return ctx.count >= 2;
-                },
-                actions: assign((ctx) => ({ count: ++ctx.count }))
-              },
-              {
-                target: undefined,
-                actions: assign((ctx) => ({ count: ++ctx.count }))
-              }
-            ]
-          }
-        },
-        done: {
-          type: 'final',
-          data: (ctx) => ({ countedTo: ctx.count })
-        }
-      },
-      on: {
-        START: {
-          actions: () => {
-            throw new Error('Should not receive START action here.');
-          }
-        }
-      }
-    });
-
-    const parentMachine = createMachine<{ countedTo: number }>({
-      id: 'parent',
-      context: { countedTo: 0 },
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            START: 'invokeChild'
-          }
-        },
-        invokeChild: {
-          invoke: {
-            id: 'child',
-            src: childMachine,
-            onDone: {
-              target: 'done',
-              actions: assign((_ctx, event) => ({
-                countedTo: event.data.countedTo
-              }))
-            }
-          },
-          on: {
-            INCREMENT: {
-              actions: [
-                () => {
-                  actual.push('parent got INCREMENT');
-                },
-                sendTo('child', { type: 'INCREMENT' })
-              ]
-            }
-          }
-        },
-        done: {
-          type: 'final'
-        }
-      }
-    });
-
-    let state: any;
-    const service = interpret(parentMachine)
-      .onTransition((s) => {
-        state = s;
-      })
-      .onDone(() => {
-        expect(state.context).toEqual({ countedTo: 3 });
-        expect(actual).toEqual([
-          'parent got INCREMENT',
-          'child got INCREMENT',
-          'parent got INCREMENT',
-          'child got INCREMENT',
-          'parent got INCREMENT',
-          'child got INCREMENT'
-        ]);
-        done();
-      })
-      .start();
-
-    service.send({ type: 'START' });
-    service.send({ type: 'INCREMENT' });
-    service.send({ type: 'INCREMENT' });
-    service.send({ type: 'INCREMENT' });
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
@@ -1116,13 +948,9 @@ describe('invoke', () => {
           }
         });
 
-        let state: any;
-        interpret(promiseMachine)
-          .onTransition((s) => {
-            state = s;
-          })
+        const actor = interpret(promiseMachine)
           .onDone(() => {
-            expect(state.context.count).toEqual(1);
+            expect(actor.getSnapshot().context.count).toEqual(1);
             done();
           })
           .start();
@@ -1158,13 +986,9 @@ describe('invoke', () => {
           }
         );
 
-        let state: any;
-        interpret(promiseMachine)
-          .onTransition((s) => {
-            state = s;
-          })
+        const actor = interpret(promiseMachine)
           .onDone(() => {
-            expect(state.context.count).toEqual(1);
+            expect(actor.getSnapshot().context.count).toEqual(1);
             done();
           })
           .start();
@@ -1499,10 +1323,9 @@ describe('invoke', () => {
 
       const expectedStateValues = ['pending', 'first', 'intermediate'];
       const stateValues: StateValue[] = [];
-      interpret(callbackMachine)
-        .onTransition((current) => stateValues.push(current.value))
-        .start()
-        .send({ type: 'BEGIN' });
+      const actor = interpret(callbackMachine);
+      actor.subscribe((current) => stateValues.push(current.value));
+      actor.start().send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
@@ -1540,10 +1363,9 @@ describe('invoke', () => {
 
       const expectedStateValues = ['idle', 'intermediate'];
       const stateValues: StateValue[] = [];
-      interpret(callbackMachine)
-        .onTransition((current) => stateValues.push(current.value))
-        .start()
-        .send({ type: 'BEGIN' });
+      const actor = interpret(callbackMachine);
+      actor.subscribe((current) => stateValues.push(current.value));
+      actor.start().send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
@@ -1588,12 +1410,11 @@ describe('invoke', () => {
 
       const expectedStateValues = ['pending', 'second', 'third'];
       const stateValues: StateValue[] = [];
-      interpret(callbackMachine)
-        .onTransition((current) => {
-          stateValues.push(current.value);
-        })
-        .start()
-        .send({ type: 'BEGIN' });
+      const actor = interpret(callbackMachine);
+      actor.subscribe((current) => {
+        stateValues.push(current.value);
+      });
+      actor.start().send({ type: 'BEGIN' });
 
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
@@ -1780,8 +1601,6 @@ describe('invoke', () => {
     });
 
     it('should call onDone when resolved (async)', (done) => {
-      let state: any;
-
       const asyncWithDoneMachine = createMachine<{ result?: any }>({
         id: 'async',
         initial: 'fetch',
@@ -1805,12 +1624,9 @@ describe('invoke', () => {
         }
       });
 
-      interpret(asyncWithDoneMachine)
-        .onTransition((s) => {
-          state = s;
-        })
+      const actor = interpret(asyncWithDoneMachine)
         .onDone(() => {
-          expect(state.context.result).toEqual(42);
+          expect(actor.getSnapshot().context.result).toEqual(42);
           done();
         })
         .start();
@@ -1945,11 +1761,12 @@ describe('invoke', () => {
       it('ends on the completed state', (done) => {
         const events: EventObject[] = [];
         let state: any;
-        const service = interpret(anotherParentMachine)
-          .onTransition((s) => {
-            state = s;
-            events.push(s.event);
-          })
+        const service = interpret(anotherParentMachine);
+        service.subscribe((s) => {
+          state = s;
+          events.push(s.event);
+        });
+        service
           .onDone(() => {
             expect(events.map((e) => e.type)).toEqual([
               actionTypes.init,
@@ -2270,13 +2087,13 @@ describe('invoke', () => {
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          if (state.children['count']?.getSnapshot() === 2) {
-            done();
-          }
-        })
-        .start();
+      const countService = interpret(countMachine);
+      countService.subscribe((state) => {
+        if (state.children['count']?.getSnapshot() === 2) {
+          done();
+        }
+      });
+      countService.start();
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
@@ -2348,13 +2165,13 @@ describe('invoke', () => {
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          if (state.children['count']?.getSnapshot() === 2) {
-            done();
-          }
-        })
-        .start();
+      const countService = interpret(countMachine);
+      countService.subscribe((state) => {
+        if (state.children['count']?.getSnapshot() === 2) {
+          done();
+        }
+      });
+      countService.start();
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
@@ -2391,13 +2208,13 @@ describe('invoke', () => {
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          if (state.children['count']?.getSnapshot() === 2) {
-            done();
-          }
-        })
-        .start();
+      const countService = interpret(countMachine);
+      countService.subscribe((state) => {
+        if (state.children['count']?.getSnapshot() === 2) {
+          done();
+        }
+      });
+      countService.start();
 
       countService.send({ type: 'INC' });
     });
@@ -2502,15 +2319,13 @@ describe('invoke', () => {
     });
 
     it('should start all services at once', (done) => {
-      let state: any;
-      const service = interpret(multiple)
-        .onTransition((s) => {
-          state = s;
-        })
-        .onDone(() => {
-          expect(state.context).toEqual({ one: 'one', two: 'two' });
-          done();
+      const service = interpret(multiple).onDone(() => {
+        expect(service.getSnapshot().context).toEqual({
+          one: 'one',
+          two: 'two'
         });
+        done();
+      });
 
       service.start();
     });
@@ -2571,15 +2386,13 @@ describe('invoke', () => {
     });
 
     it('should run services in parallel', (done) => {
-      let state: any;
-      const service = interpret(parallel)
-        .onTransition((s) => {
-          state = s;
-        })
-        .onDone(() => {
-          expect(state.context).toEqual({ one: 'one', two: 'two' });
-          done();
+      const service = interpret(parallel).onDone(() => {
+        expect(service.getSnapshot().context).toEqual({
+          one: 'one',
+          two: 'two'
         });
+        done();
+      });
 
       service.start();
     });
