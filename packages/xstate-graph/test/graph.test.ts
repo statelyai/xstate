@@ -1,5 +1,4 @@
 import {
-  Machine,
   StateNode,
   createMachine,
   State,
@@ -61,7 +60,7 @@ describe('@xstate/graph', () => {
     }
   };
 
-  const lightMachine = Machine({
+  const lightMachine = createMachine({
     key: 'light',
     initial: 'green',
     states: {
@@ -79,7 +78,7 @@ describe('@xstate/graph', () => {
       yellow: {
         on: {
           TIMER: 'red',
-          POWER_OUTAGE: '#light.red.flashing'
+          POWER_OUTAGE: 'red.flashing'
         }
       },
       red: {
