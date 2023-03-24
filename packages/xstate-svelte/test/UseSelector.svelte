@@ -32,12 +32,13 @@
 
   const service = interpret(machine).start();
 
+  const state = useSelector(service, (state) => state);
   const count = useSelector(service, (state) => state.context.count);
 
   let withSelector = 0;
   $: $count && withSelector++;
   let withoutSelector = 0;
-  $: $service.context.count && withoutSelector++;
+  $: $state.context.count && withoutSelector++;
 </script>
 
 <button data-testid="count" on:click={() => service.send({ type: 'INCREMENT' })}

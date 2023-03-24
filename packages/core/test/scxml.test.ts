@@ -350,13 +350,14 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
     let nextState: AnyState;
     let prevState: AnyState;
 
-    interpret(machine, {
+    const actor = interpret(machine, {
       logger: () => void 0
-    })
-      .onTransition((state) => {
-        prevState = nextState;
-        nextState = state;
-      })
+    });
+    actor.subscribe((state) => {
+      prevState = nextState;
+      nextState = state;
+    });
+    actor
       .onDone(() => {
         // Add 'final' for test230.txml which does not have a 'pass' state
         if (['final', 'pass'].includes(nextState.value as string)) {
@@ -390,11 +391,12 @@ async function runTestToCompletion(
 
   const service = interpret(machine, {
     clock: new SimulatedClock()
-  })
-    .onTransition((state) => {
-      prevState = nextState;
-      nextState = state;
-    })
+  });
+  service.subscribe((state) => {
+    prevState = nextState;
+    nextState = state;
+  });
+  service
     .onDone(() => {
       if (nextState.value === 'fail') {
         throw new Error(
