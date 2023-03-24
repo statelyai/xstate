@@ -7,7 +7,6 @@
   import { useMachine } from '@xstate/svelte';
 
   const { state, send, service } = useMachine(todosMachine, { devTools: true });
-  // service.onTransition((state) => console.log(state));
 
   $: ({ todo, todos, filter } = $state.context);
 
