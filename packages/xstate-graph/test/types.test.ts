@@ -1,5 +1,5 @@
 import { createMachine } from 'xstate';
-import { getMachineShortestPaths } from '../';
+import { getMachineShortestPaths } from '../src/shortestPaths';
 
 describe('types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
