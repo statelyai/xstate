@@ -187,12 +187,11 @@ describe('final states', () => {
       }
     });
 
-    let _context: any;
-
     const service = interpret(machine)
-      .onTransition((state) => (_context = state.context))
       .onDone(() => {
-        expect(_context).toEqual({ revealedSecret: 'the secret' });
+        expect(service.getSnapshot().context).toEqual({
+          revealedSecret: 'the secret'
+        });
         done();
       })
       .start();

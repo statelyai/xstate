@@ -398,18 +398,12 @@ describe('assign meta', () => {
       }
     });
 
-    let state: any;
-
-    const service = interpret(parentMachine)
-      .onTransition((s) => {
-        state = s;
-      })
-      .start();
+    const service = interpret(parentMachine).start();
 
     service.send({ type: 'PING_CHILD' });
     service.send({ type: 'PING_CHILD' });
 
-    expect(state.context).toMatchInlineSnapshot(`
+    expect(service.getSnapshot().context).toMatchInlineSnapshot(`
       {
         "eventLog": [
           {

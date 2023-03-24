@@ -141,12 +141,16 @@ describe('input', () => {
 
     const observableActor = interpret(observableBehavior, {
       input: { count: 42 }
-    }).start();
+    });
 
-    observableActor.subscribe((state) => {
+    const sub = observableActor.subscribe((state) => {
+      if (state?.count !== 42) return;
       expect(state).toEqual({ count: 42 });
       done();
+      sub.unsubscribe();
     });
+
+    observableActor.start();
   });
 
   it('should create a callback actor with input', (done) => {

@@ -65,13 +65,18 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
       sub?.unsubscribe();
     };
 
+    function checkEmitted(emitted: SnapshotFrom<TActorRef>) {
+      if (predicate(emitted)) {
+        dispose();
+        res(emitted);
+      }
+    }
+
+    // See if the current snapshot already matches the predicate
+    checkEmitted(actorRef.getSnapshot());
+
     const sub = actorRef.subscribe({
-      next: (emitted) => {
-        if (predicate(emitted)) {
-          dispose();
-          res(emitted);
-        }
-      },
+      next: checkEmitted,
       error: (err) => {
         dispose();
         rej(err);
