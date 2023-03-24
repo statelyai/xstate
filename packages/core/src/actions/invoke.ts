@@ -86,7 +86,7 @@ export function invoke<
 
       resolvedInvokeAction.execute = (actorCtx) => {
         const parent = actorCtx.self as AnyInterpreter;
-        const { id, autoForward, ref } = resolvedInvokeAction.params;
+        const { id, ref } = resolvedInvokeAction.params;
         if (!ref) {
           if (!IS_PRODUCTION) {
             warn(
@@ -101,10 +101,6 @@ export function invoke<
             return;
           }
           try {
-            if (autoForward) {
-              parent._forwardTo.add(actorRef);
-            }
-
             actorRef.start?.();
           } catch (err) {
             parent.send(error(id, err));

@@ -398,12 +398,6 @@ export interface InvokeDefinition<
    * The source of the actor's behavior to be invoked
    */
   src: string;
-  /**
-   * If `true`, events sent to the parent service will be forwarded to the invoked service.
-   *
-   * Default: `false`
-   */
-  autoForward?: boolean;
 
   input?: Mapper<TContext, TEvent, any> | any;
   /**
@@ -534,12 +528,6 @@ export interface InvokeConfig<
    * The source of the machine to be invoked, or the machine itself.
    */
   src: string | ActorBehavior<any, any>; // TODO: fix types
-  /**
-   * If `true`, events sent to the parent service will be forwarded to the invoked service.
-   *
-   * Default: `false`
-   */
-  autoForward?: boolean;
 
   input?: Mapper<TContext, TEvent, any> | any;
   /**
@@ -1146,7 +1134,6 @@ export interface InvokeAction {
   type: ActionTypes.Invoke;
   src: string | ActorRef<any>;
   id: string;
-  autoForward?: boolean;
   exec?: undefined;
   meta: MetaObject | undefined;
 }
@@ -1164,8 +1151,6 @@ export interface InvokeActionObject extends BaseActionObject {
   params: {
     src: string | ActorRef<any>;
     id: string;
-    key: string | undefined;
-    autoForward?: boolean;
     exec?: undefined;
     ref?: ActorRef<any>;
     meta: MetaObject | undefined;
@@ -1625,13 +1610,6 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
    * Default: `false`
    */
   devTools?: boolean | DevToolsAdapter; // TODO: add enhancer options
-
-  /**
-   * If `true`, events from the parent will be sent to this interpreter.
-   *
-   * Default: `false`
-   */
-  autoForward?: boolean;
 
   sync?: boolean;
 
