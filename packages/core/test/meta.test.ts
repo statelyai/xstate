@@ -120,16 +120,15 @@ describe('state meta data', () => {
 
     const secondState = machine.resolveStateValue('second');
 
-    const service = interpret(machine, { state: secondState }).onTransition(
-      (state) => {
-        expect(state.meta).toEqual({
-          'test.second': {
-            name: 'second state'
-          }
-        });
-        done();
-      }
-    );
+    const service = interpret(machine, { state: secondState });
+    service.subscribe((state) => {
+      expect(state.meta).toEqual({
+        'test.second': {
+          name: 'second state'
+        }
+      });
+      done();
+    });
     service.start();
   });
 });

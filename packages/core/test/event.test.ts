@@ -75,14 +75,14 @@ describe('SCXML events', () => {
       }
     });
 
-    interpret(machine)
-      .onTransition((state) => {
-        if (state.done) {
-          expect(state.context.childOrigin).toEqual('callback_child');
-          done();
-        }
-      })
-      .start();
+    const actor = interpret(machine);
+    actor.subscribe((state) => {
+      if (state.done) {
+        expect(state.context.childOrigin).toEqual('callback_child');
+        done();
+      }
+    });
+    actor.start();
   });
 
   it('respond() should be able to respond to sender', (done) => {
