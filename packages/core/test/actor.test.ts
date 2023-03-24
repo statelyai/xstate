@@ -734,11 +734,11 @@ describe('actors', () => {
       }
     });
 
-    interpret(startMachine)
-      .onTransition(() => {
-        expect(count).toEqual(1);
-      })
-      .start();
+    const actor = interpret(startMachine);
+    actor.subscribe(() => {
+      expect(count).toEqual(1);
+    });
+    actor.start();
   });
 
   it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
@@ -868,13 +868,13 @@ describe('actors', () => {
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          if (state.context.count?.getSnapshot() === 2) {
-            done();
-          }
-        })
-        .start();
+      const countService = interpret(countMachine);
+      countService.subscribe((state) => {
+        if (state.context.count?.getSnapshot() === 2) {
+          done();
+        }
+      });
+      countService.start();
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
