@@ -881,6 +881,7 @@ describe('interpreter', () => {
         {
           "event": "PONG",
           "origin": {
+            "$$type": "ActorRef",
             "id": "child",
           },
         },
@@ -891,6 +892,7 @@ describe('interpreter', () => {
         {
           "event": "PONG",
           "origin": {
+            "$$type": "ActorRef",
             "id": "child",
           },
         },

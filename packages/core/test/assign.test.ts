@@ -413,6 +413,7 @@ describe('assign meta', () => {
           {
             "event": "PONG",
             "origin": {
+              "$$type": "ActorRef",
               "id": "child",
             },
           },
@@ -423,6 +424,7 @@ describe('assign meta', () => {
           {
             "event": "PONG",
             "origin": {
+              "$$type": "ActorRef",
               "id": "child",
             },
           },
