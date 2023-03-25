@@ -482,6 +482,17 @@ export class StateMachine<
       }
     });
 
+    const context = JSON.parse(JSON.stringify(state.context), (_, value) => {
+      // if value is an object with $$type property, it is a reference to an actor
+      if (typeof value === 'object' && value && value.$$type === 'ActorRef') {
+        return children[value.id];
+      }
+
+      return value;
+    });
+
+    restoredState.context = context;
+
     return restoredState;
   }
 

@@ -1,6 +1,6 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { createMachine, interpret } from '../src/index.js';
+import { AnyActorRef, createMachine, interpret } from '../src/index.js';
 import {
   fromObservable,
   fromPromise,
@@ -501,5 +501,69 @@ describe('machine behavior', () => {
     expect(actor2.getSnapshot().children.child.getSnapshot().value).toBe(
       'inner'
     );
+  });
+
+  it('should persist a spawned actor with referenced src', () => {
+    const machine = createMachine({
+      schema: {
+        context: {} as {
+          ref: AnyActorRef;
+        }
+      },
+      context: ({ spawn }) => ({
+        ref: spawn('reducer', { id: 'child' })
+      })
+    }).provide({
+      actors: {
+        reducer: fromReducer((s) => s, { count: 42 })
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    const persistedState = actor.getPersistedState()!;
+
+    expect(persistedState.children.child.state).toEqual({ count: 42 });
+
+    const newActor = interpret(machine, {
+      state: persistedState
+    }).start();
+
+    const snapshot = newActor.getSnapshot();
+
+    expect(snapshot.context.ref).toBe(snapshot.children.child);
+
+    expect(snapshot.context.ref.getSnapshot().count).toBe(42);
+  });
+
+  it('should not persist a spawned actor with inline src', () => {
+    const machine = createMachine({
+      schema: {
+        context: {} as {
+          ref: AnyActorRef;
+        }
+      },
+      context: ({ spawn }) => ({
+        ref: spawn(
+          fromReducer((s) => s, { count: 42 }),
+          { id: 'child' }
+        )
+      })
+    });
+
+    const actor = interpret(machine).start();
+
+    const persistedState = actor.getPersistedState()!;
+
+    expect(persistedState.children.child.state).toEqual({ count: 42 });
+
+    const newActor = interpret(machine, {
+      state: persistedState
+    }).start();
+
+    const snapshot = newActor.getSnapshot();
+
+    // TODO: should this be a "dummy actor" so that the types are accurate?
+    expect(snapshot.context.ref).toBeUndefined();
   });
 });

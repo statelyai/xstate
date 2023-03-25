@@ -442,6 +442,8 @@ export class Interpreter<
   }
   public toJSON() {
     return {
+      // TODO: bikeshed
+      $$type: 'ActorRef',
       id: this.id
     };
   }

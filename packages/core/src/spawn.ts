@@ -34,7 +34,8 @@ export function createSpawner<
           id: resolvedName,
           parent: self,
           input:
-            typeof input === 'function' ? input(context, _event.data) : input
+            typeof input === 'function' ? input(context, _event.data) : input,
+          src
         });
 
         mutCapturedActions.push(
@@ -60,7 +61,8 @@ export function createSpawner<
       const actorRef = interpret(src, {
         id: options.id || 'anonymous',
         parent: self,
-        input: options.input
+        input: options.input,
+        src: undefined
       });
 
       mutCapturedActions.push(
