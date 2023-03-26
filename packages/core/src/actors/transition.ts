@@ -6,7 +6,7 @@ import { isSCXMLEvent } from '../utils';
  *
  * A transition function is a function that takes the current state and an event and returns the next state.
  *
- * @param transition The pure transition function that returns the next state given the current state and event.
+ * @param transition The transition function that returns the next state given the current state and event.
  * @param initialState The initial state of the transition function.
  * @returns An actor behavior
  */
