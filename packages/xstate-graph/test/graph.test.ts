@@ -25,9 +25,7 @@ function getPathsSnapshot(
   return paths.map((path) => getPathSnapshot(path));
 }
 
-function getPathSnapshot(
-  path: StatePath<any, any>
-): {
+function getPathSnapshot(path: StatePath<any, any>): {
   state: StateValue;
   steps: Array<{ state: StateValue; eventType: string }>;
 } {
@@ -499,7 +497,7 @@ describe('@xstate/graph', () => {
   });
 });
 
-it('simple paths for reducers', () => {
+it('simple paths for transition functions', () => {
   const a = getShortestPaths(
     {
       transition: (s, e) => {
@@ -525,7 +523,7 @@ it('simple paths for reducers', () => {
   expect(getPathsSnapshot(a)).toMatchSnapshot();
 });
 
-it('shortest paths for reducers', () => {
+it('shortest paths for transition functions', () => {
   const a = getSimplePaths(
     {
       transition: (s, e) => {

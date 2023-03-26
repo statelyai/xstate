@@ -5,7 +5,7 @@ import {
   fromCallback,
   fromObservable,
   fromPromise,
-  fromReducer
+  fromTransition
 } from '../src/actors';
 
 describe('input', () => {
@@ -123,17 +123,17 @@ describe('input', () => {
     expect(promiseActor.getSnapshot()).toEqual({ count: 42 });
   });
 
-  it('should create a reducer actor with input', () => {
-    const reducerBehavior = fromReducer(
+  it('should create a transition function actor with input', () => {
+    const transitionBehavior = fromTransition(
       (state) => state,
       ({ input }) => input
     );
 
-    const reducerActor = interpret(reducerBehavior, {
+    const transitionActor = interpret(transitionBehavior, {
       input: { count: 42 }
     }).start();
 
-    expect(reducerActor.getSnapshot()).toEqual({ count: 42 });
+    expect(transitionActor.getSnapshot()).toEqual({ count: 42 });
   });
 
   it('should create an observable actor with input', (done) => {

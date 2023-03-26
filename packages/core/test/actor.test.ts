@@ -20,7 +20,7 @@ import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { sendTo } from '../src/actions/send';
 import { EMPTY, interval, of } from 'rxjs';
-import { fromReducer } from '../src/actors/reducer';
+import { fromTransition } from '../src/actors/transition.js';
 import { fromObservable, fromEventObservable } from '../src/actors/observable';
 import { fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
@@ -842,8 +842,8 @@ describe('actors', () => {
   });
 
   describe('with behaviors', () => {
-    it('should work with a reducer behavior', (done) => {
-      const countBehavior = fromReducer((count: number, event: any) => {
+    it('should work with a transition function behavior', (done) => {
+      const countBehavior = fromTransition((count: number, event: any) => {
         if (event.type === 'INC') {
           return count + 1;
         } else if (event.type === 'DEC') {
