@@ -145,7 +145,7 @@ export class Interpreter<
       this.system.set(key, this);
     }
 
-    this.sessionId = this.system._register(this);
+    this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
@@ -286,6 +286,7 @@ export class Interpreter<
       return this;
     }
 
+    this.system._register(this.sessionId, this);
     this.status = ActorStatus.Running;
 
     if (this.behavior.start) {

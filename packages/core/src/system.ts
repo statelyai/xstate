@@ -1,14 +1,14 @@
 import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.js';
 
 export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
-  let sessionIdIndex = 0;
+  let sessionIdCounter = 0;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
 
   const system: ActorSystem<T> = {
-    _register: (actorRef) => {
-      const id = `x:${sessionIdIndex++}`;
+    _bookId: () => `x:${sessionIdCounter++}`,
+    _register: (id, actorRef) => {
       children.set(id, actorRef);
       return id;
     },
