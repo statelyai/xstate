@@ -136,13 +136,13 @@ export class Interpreter<
       ...options
     };
 
-    const { clock, logger, parent, id, key } = resolvedOptions;
+    const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
     this.system = parent?.system ?? createSystem();
 
-    if (key) {
-      this.system.set(key, this);
+    if (systemId) {
+      this.system._set(systemId, this);
     }
 
     this.sessionId = this.system._bookId();

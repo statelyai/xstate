@@ -27,7 +27,7 @@ describe('system', () => {
                   done();
                 });
               }),
-              key: 'receiver'
+              systemId: 'receiver'
             },
             {
               src: createMachine({
@@ -51,7 +51,7 @@ describe('system', () => {
 
   it('system can be accessed outside the actor', () => {
     const machine = createMachine({});
-    const actor = interpret(machine, { key: 'test' });
+    const actor = interpret(machine, { systemId: 'test' });
     const system = actor.system;
     const retrievedActor = system.get('test');
 
@@ -65,7 +65,7 @@ describe('system', () => {
         active: {
           invoke: {
             src: createMachine({}),
-            key: 'test'
+            systemId: 'test'
           },
           on: {
             toggle: 'inactive'
