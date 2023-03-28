@@ -14,19 +14,19 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
     },
     _unregister: (actorRef) => {
       children.delete(actorRef.sessionId);
-      const key = reverseKeyedActors.get(actorRef);
+      const systemId = reverseKeyedActors.get(actorRef);
 
-      if (key !== undefined) {
-        keyedActors.delete(key);
+      if (systemId !== undefined) {
+        keyedActors.delete(systemId);
         reverseKeyedActors.delete(actorRef);
       }
     },
-    get: (key) => {
-      return keyedActors.get(key) as T['actors'][any];
+    get: (systemId) => {
+      return keyedActors.get(systemId) as T['actors'][any];
     },
-    _set: (key, actorRef) => {
-      keyedActors.set(key, actorRef);
-      reverseKeyedActors.set(actorRef, key);
+    _set: (systemId, actorRef) => {
+      keyedActors.set(systemId, actorRef);
+      reverseKeyedActors.set(actorRef, systemId);
     }
   };
 
