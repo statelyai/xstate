@@ -24,7 +24,7 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
     get: (key) => {
       return keyedActors.get(key) as T['actors'][any];
     },
-    set: (key, actorRef) => {
+    _set: (key, actorRef) => {
       keyedActors.set(key, actorRef);
       reverseKeyedActors.set(actorRef, key);
     }

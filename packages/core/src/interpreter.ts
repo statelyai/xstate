@@ -142,7 +142,7 @@ export class Interpreter<
     this.system = parent?.system ?? createSystem();
 
     if (key) {
-      this.system.set(key, this);
+      this.system._set(key, this);
     }
 
     this.sessionId = this.system._register(this);

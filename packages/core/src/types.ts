@@ -2007,8 +2007,8 @@ export interface ActorSystemInfo {
 export interface ActorSystem<T extends ActorSystemInfo> {
   _register: (actorRef: AnyActorRef) => string;
   _unregister: (actorRef: AnyActorRef) => void;
+  _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
 }
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
