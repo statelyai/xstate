@@ -51,7 +51,7 @@ describe('system', () => {
 
   it('system can be accessed outside the actor', () => {
     const machine = createMachine({});
-    const actor = interpret(machine, { key: 'test' });
+    const actor = interpret(machine, { systemId: 'test' });
     const system = actor.system;
     const retrievedActor = system.get('test');
 

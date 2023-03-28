@@ -59,7 +59,7 @@ export function invoke<
             id,
             src,
             parent: actorContext?.self,
-            key: invokeDef.key,
+            systemId: invokeDef.systemId,
             input:
               typeof input === 'function'
                 ? input(state.context, _event.data as any)

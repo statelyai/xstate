@@ -393,7 +393,7 @@ export interface InvokeDefinition<
 > {
   id: string;
 
-  key: string | undefined;
+  systemId: string | undefined;
   /**
    * The source of the actor's behavior to be invoked
    */
@@ -1614,9 +1614,9 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   sync?: boolean;
 
   /**
-   * The receptionist key to register this actor under
+   * The system ID to register this actor under
    */
-  key?: string;
+  systemId?: string;
   /**
    * The input data to pass to the actor.
    */
