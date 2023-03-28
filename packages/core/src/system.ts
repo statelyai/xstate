@@ -8,12 +8,12 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
 
   const system: ActorSystem<T> = {
     _register: (actorRef) => {
-      const id = `x:${sessionIdIndex++}`;
-      children.set(id, actorRef);
-      return id;
+      const sessionId = `x:${sessionIdIndex++}`;
+      children.set(sessionId, actorRef);
+      return sessionId;
     },
     _unregister: (actorRef) => {
-      children.delete(actorRef.id);
+      children.delete(actorRef.sessionId);
       const key = reverseKeyedActors.get(actorRef);
 
       if (key !== undefined) {
