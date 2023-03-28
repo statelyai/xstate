@@ -27,7 +27,7 @@ describe('system', () => {
                   done();
                 });
               }),
-              key: 'receiver'
+              systemId: 'receiver'
             },
             {
               src: createMachine({
@@ -65,7 +65,7 @@ describe('system', () => {
         active: {
           invoke: {
             src: createMachine({}),
-            key: 'test'
+            systemId: 'test'
           },
           on: {
             toggle: 'inactive'

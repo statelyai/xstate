@@ -523,7 +523,7 @@ export interface InvokeConfig<
    */
   id?: string;
 
-  key?: string;
+  systemId?: string;
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
