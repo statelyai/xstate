@@ -25,6 +25,12 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
       return keyedActors.get(systemId) as T['actors'][any];
     },
     _set: (systemId, actorRef) => {
+      if (keyedActors.has(systemId)) {
+        throw new Error(
+          `Actor with system ID '${systemId as string}' already exists.`
+        );
+      }
+
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
     }

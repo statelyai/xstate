@@ -83,4 +83,37 @@ describe('system', () => {
 
     expect(actor.system.get('test')).toBeUndefined();
   });
+
+  it('should throw an error if an actor with the system ID already exists', () => {
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            toggle: 'active'
+          }
+        },
+        active: {
+          invoke: [
+            {
+              src: createMachine({}),
+              systemId: 'test'
+            },
+            {
+              src: createMachine({}),
+              systemId: 'test'
+            }
+          ]
+        }
+      }
+    });
+
+    const actor = interpret(machine, { systemId: 'test' }).start();
+
+    expect(() => {
+      actor.send({ type: 'toggle' });
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Actor with system ID 'test' already exists."`
+    );
+  });
 });
