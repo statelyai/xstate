@@ -27,7 +27,7 @@ describe('system', () => {
                   done();
                 });
               }),
-              key: 'receiver'
+              systemId: 'receiver'
             },
             {
               src: createMachine({
@@ -51,7 +51,7 @@ describe('system', () => {
 
   it('system can be accessed outside the actor', () => {
     const machine = createMachine({});
-    const actor = interpret(machine, { key: 'test' });
+    const actor = interpret(machine, { systemId: 'test' });
     const system = actor.system;
     const retrievedActor = system.get('test');
 
@@ -65,7 +65,7 @@ describe('system', () => {
         active: {
           invoke: {
             src: createMachine({}),
-            key: 'test'
+            systemId: 'test'
           },
           on: {
             toggle: 'inactive'
@@ -82,5 +82,38 @@ describe('system', () => {
     actor.send({ type: 'toggle' });
 
     expect(actor.system.get('test')).toBeUndefined();
+  });
+
+  it('should throw an error if an actor with the system ID already exists', () => {
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            toggle: 'active'
+          }
+        },
+        active: {
+          invoke: [
+            {
+              src: createMachine({}),
+              systemId: 'test'
+            },
+            {
+              src: createMachine({}),
+              systemId: 'test'
+            }
+          ]
+        }
+      }
+    });
+
+    const actor = interpret(machine, { systemId: 'test' }).start();
+
+    expect(() => {
+      actor.send({ type: 'toggle' });
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Actor with system ID 'test' already exists."`
+    );
   });
 });

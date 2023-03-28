@@ -393,7 +393,7 @@ export interface InvokeDefinition<
 > {
   id: string;
 
-  key: string | undefined;
+  systemId: string | undefined;
   /**
    * The source of the actor's behavior to be invoked
    */
@@ -523,7 +523,7 @@ export interface InvokeConfig<
    */
   id?: string;
 
-  key?: string;
+  systemId?: string;
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -1614,9 +1614,9 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   sync?: boolean;
 
   /**
-   * The receptionist key to register this actor under
+   * The system ID to register this actor under
    */
-  key?: string;
+  systemId?: string;
   /**
    * The input data to pass to the actor.
    */
@@ -2008,8 +2008,8 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _bookId: () => string;
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
   _unregister: (actorRef: AnyActorRef) => void;
+  _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
 }
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,

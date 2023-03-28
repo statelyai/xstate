@@ -13,20 +13,26 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
       return id;
     },
     _unregister: (actorRef) => {
-      children.delete(actorRef.id);
-      const key = reverseKeyedActors.get(actorRef);
+      children.delete(actorRef.sessionId);
+      const systemId = reverseKeyedActors.get(actorRef);
 
-      if (key !== undefined) {
-        keyedActors.delete(key);
+      if (systemId !== undefined) {
+        keyedActors.delete(systemId);
         reverseKeyedActors.delete(actorRef);
       }
     },
-    get: (key) => {
-      return keyedActors.get(key) as T['actors'][any];
+    get: (systemId) => {
+      return keyedActors.get(systemId) as T['actors'][any];
     },
-    set: (key, actorRef) => {
-      keyedActors.set(key, actorRef);
-      reverseKeyedActors.set(actorRef, key);
+    _set: (systemId, actorRef) => {
+      if (keyedActors.has(systemId)) {
+        throw new Error(
+          `Actor with system ID '${systemId as string}' already exists.`
+        );
+      }
+
+      keyedActors.set(systemId, actorRef);
+      reverseKeyedActors.set(actorRef, systemId);
     }
   };
 
