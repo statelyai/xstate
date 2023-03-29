@@ -2,8 +2,8 @@ import { createDynamicAction } from '../../actions/dynamicAction.js';
 import { stop as stopActionType } from '../actionTypes.js';
 import { ActorStatus } from '../interpreter.js';
 import {
-  ActorContext,
   ActorRef,
+  AnyActorContext,
   BaseDynamicActionObject,
   DynamicStopActionObject,
   EventObject,
@@ -58,7 +58,7 @@ export function stop<
         {
           type: 'xstate.stop',
           params: { actor: actorRef },
-          execute: (actorCtx: ActorContext<any, any>) => {
+          execute: (actorCtx: AnyActorContext) => {
             if (!actorRef) {
               return;
             }

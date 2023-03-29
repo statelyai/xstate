@@ -260,4 +260,29 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
 
     expect(childState.textContent).toBe('received');
   });
+
+  it('should deliver messages sent from an effect to the root actor registered in the system', () => {
+    const spy = jest.fn();
+    const m = createMachine({
+      on: {
+        PING: {
+          actions: spy
+        }
+      }
+    });
+
+    const App = () => {
+      const actor = useInterpret(m, { systemId: 'test' });
+
+      React.useEffect(() => {
+        actor.system.get('test')!.send({ type: 'PING' });
+      });
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
+  });
 });

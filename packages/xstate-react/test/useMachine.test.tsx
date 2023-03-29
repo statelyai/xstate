@@ -945,4 +945,40 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     expect(container.textContent).toBe('2');
   });
+
+  it('should deliver messages sent from an effect to an actor registered in the system', () => {
+    const spy = jest.fn();
+    const m = createMachine({
+      invoke: {
+        systemId: 'child',
+        src: createMachine({
+          on: {
+            PING: {
+              actions: spy
+            }
+          }
+        })
+      }
+    });
+
+    const App = () => {
+      const [_state, _send, actor] = useMachine(m);
+
+      React.useEffect(() => {
+        actor.system.get('child')!.send({ type: 'PING' });
+      });
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(spy).toHaveBeenCalledTimes(
+      suiteKey === 'strict'
+        ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
+          // but we don't rehydrate child actors right now, we just recreate the initial state and that leads to an extra render with strict effects
+          3
+        : 1
+    );
+  });
 });
