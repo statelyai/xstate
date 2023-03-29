@@ -91,22 +91,23 @@ export function toActionObject<
   if (typeof action === 'function') {
     const type = 'xstate.function';
     return createDynamicAction({ type, params: {} }, (_event, { state }) => {
-      const a: BaseActionObject = {
+      const actionObject: BaseActionObject = {
         type,
         params: {
           function: action
         },
         execute: (actorCtx) => {
           return action(state.context as TContext, _event.data as TEvent, {
-            action: a,
+            action: actionObject,
             _event: _event as SCXML.Event<TEvent>,
             state: state as AnyState,
-            self: actorCtx.self
+            self: actorCtx.self,
+            system: actorCtx.system
           });
         }
       };
 
-      return [state, a];
+      return [state, actionObject];
     });
   }
 

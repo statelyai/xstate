@@ -40,6 +40,7 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
+  AnyActorContext,
   PersistedMachineState
 } from './types.js';
 import {
@@ -266,7 +267,7 @@ export class StateMachine<
   public microstep(
     state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
     event: TEvent | SCXML.Event<TEvent>,
-    actorCtx?: ActorContext<any, any> | undefined
+    actorCtx?: AnyActorContext | undefined
   ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
     const scxmlEvent = toSCXMLEvent(event);
 
@@ -290,7 +291,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: ActorContext<any, any> | undefined,
+    actorCtx: AnyActorContext | undefined,
     input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions(actorCtx, input);
