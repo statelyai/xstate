@@ -7,14 +7,15 @@ import {
 import { isSCXMLEvent } from '../utils';
 
 /**
- * Returns an actor behavior from a reducer and its initial state.
+ * Returns an actor behavior from a transition function and its initial state.
  *
- * @param transition The pure reducer that returns the next state given the current state and event.
- * @param initialState The initial state of the reducer.
+ * A transition function is a function that takes the current state and an event and returns the next state.
+ *
+ * @param transition The transition function that returns the next state given the current state and event.
+ * @param initialState The initial state of the transition function.
  * @returns An actor behavior
  */
-
-export function fromReducer<
+export function fromTransition<
   TState,
   TEvent extends EventObject,
   TSystem extends ActorSystem<any>
