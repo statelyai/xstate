@@ -49,13 +49,24 @@ describe('system', () => {
     interpret(machine).start();
   });
 
-  it('system can be accessed outside the actor', () => {
+  it('system can be immediatelly accessed outside the actor', () => {
+    const machine = createMachine({
+      invoke: {
+        systemId: 'someChild',
+        src: createMachine({})
+      }
+    });
+
+    // no .start() here is important for the test
+    const actor = interpret(machine);
+
+    expect(actor.system.get('someChild')).toBeDefined();
+  });
+
+  it('root actor can be given the systemId', () => {
     const machine = createMachine({});
     const actor = interpret(machine, { systemId: 'test' });
-    const system = actor.system;
-    const retrievedActor = system.get('test');
-
-    expect(actor).toBe(retrievedActor);
+    expect(actor.system.get('test')).toBe(actor);
   });
 
   it('should remove actor from receptionist if stopped', () => {
