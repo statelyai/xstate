@@ -9,7 +9,7 @@ export function createSpawn<TState, TEvent extends EventObject>(
 
   if (!isServer) {
     actorRef.start?.();
-    onCleanup(() => actorRef!.system.stop?.());
+    onCleanup(() => actorRef!.stop?.());
   }
 
   return actorRef;

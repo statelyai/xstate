@@ -35,7 +35,7 @@ describe('rehydration', () => {
       const persistedState = JSON.stringify(machine.initialState);
       const restoredState = machine.createState(JSON.parse(persistedState));
 
-      interpret(machine, { state: restoredState }).start().system.stop();
+      interpret(machine, { state: restoredState }).start().stop();
 
       expect(actual).toEqual(['a', 'root']);
     });
@@ -98,7 +98,7 @@ describe('rehydration', () => {
 
       const activeState = machine.resolveStateValue('active');
 
-      interpret(machine, { state: activeState }).start().system.stop();
+      interpret(machine, { state: activeState }).start().stop();
 
       expect(actual).toEqual(['active', 'root']);
     });

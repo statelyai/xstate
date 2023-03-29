@@ -141,7 +141,7 @@ export class Interpreter<
     const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem(this);
+    this.system = parent?.system ?? createSystem();
 
     if (systemId) {
       this._systemId = systemId;
@@ -165,12 +165,13 @@ export class Interpreter<
         this._deferred.push(fn);
       },
       system: this.system,
-      stop: (child) => {
-        if (child._parent === this) {
-          child._stop?.();
-        } else {
-          throw new Error('no');
+      stopChild: (child) => {
+        if (child._parent !== this) {
+          throw new Error(
+            `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
+          );
         }
+        (child as any)._stop();
       }
     };
 
@@ -339,17 +340,14 @@ export class Interpreter<
         this.observers.forEach((observer) => {
           observer.error?.(err);
         });
-        this._stop();
+        this.stop();
       } else {
         throw err;
       }
     }
   }
 
-  /**
-   * Stops the interpreter and unsubscribe all listeners.
-   */
-  public _stop(): this {
+  private _stop(): this {
     if (this.status === ActorStatus.Stopped) {
       return this;
     }
@@ -361,6 +359,16 @@ export class Interpreter<
     this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
     return this;
+  }
+
+  /**
+   * Stops the interpreter and unsubscribe all listeners.
+   */
+  public stop(): this {
+    if (this._parent) {
+      throw new Error('A non-root actor cannot be stopped directly.');
+    }
+    return this._stop();
   }
   private _complete(): void {
     for (const observer of this.observers) {

@@ -67,7 +67,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   });
 
   onBeforeUnmount(() => {
-    service.system.stop();
+    service.stop();
     sub?.unsubscribe();
   });
 
