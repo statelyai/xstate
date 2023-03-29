@@ -10,7 +10,6 @@ import { isSCXMLEvent } from '../utils';
  * @param initialState The initial state of the transition function.
  * @returns An actor behavior
  */
-
 export function fromTransition<TState, TEvent extends EventObject>(
   transition: (
     state: TState,
