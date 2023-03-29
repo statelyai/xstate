@@ -111,6 +111,8 @@ export class Interpreter<
   // TODO: add typings for system
   private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>, any>;
 
+  private _systemId: string | undefined;
+
   /**
    * The globally unique process ID for this invocation.
    */
@@ -142,6 +144,7 @@ export class Interpreter<
     this.system = parent?.system ?? createSystem();
 
     if (systemId) {
+      this._systemId = systemId;
       this.system._set(systemId, this);
     }
 
@@ -287,6 +290,9 @@ export class Interpreter<
     }
 
     this.system._register(this.sessionId, this);
+    if (this._systemId) {
+      this.system._set(this._systemId, this);
+    }
     this.status = ActorStatus.Running;
 
     if (this.behavior.start) {

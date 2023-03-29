@@ -8,9 +8,9 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
 
   const system: ActorSystem<T> = {
     _bookId: () => `x:${sessionIdCounter++}`,
-    _register: (id, actorRef) => {
-      children.set(id, actorRef);
-      return id;
+    _register: (sessionId, actorRef) => {
+      children.set(sessionId, actorRef);
+      return sessionId;
     },
     _unregister: (actorRef) => {
       children.delete(actorRef.sessionId);
@@ -25,7 +25,8 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
       return keyedActors.get(systemId) as T['actors'][any];
     },
     _set: (systemId, actorRef) => {
-      if (keyedActors.has(systemId)) {
+      const existing = keyedActors.get(systemId);
+      if (existing && existing !== actorRef) {
         throw new Error(
           `Actor with system ID '${systemId as string}' already exists.`
         );
