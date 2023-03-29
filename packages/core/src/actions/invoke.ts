@@ -59,6 +59,7 @@ export function invoke<
             id,
             src,
             parent: actorContext?.self,
+            systemId: invokeDef.systemId,
             input:
               typeof input === 'function'
                 ? input(state.context, _event.data as any)
@@ -84,7 +85,7 @@ export function invoke<
       });
 
       resolvedInvokeAction.execute = (actorCtx) => {
-        const interpreter = actorCtx.self as AnyInterpreter;
+        const parent = actorCtx.self as AnyInterpreter;
         const { id, ref } = resolvedInvokeAction.params;
         if (!ref) {
           if (!IS_PRODUCTION) {
@@ -102,7 +103,7 @@ export function invoke<
           try {
             actorRef.start?.();
           } catch (err) {
-            interpreter.send(error(id, err));
+            parent.send(error(id, err));
             return;
           }
         });
