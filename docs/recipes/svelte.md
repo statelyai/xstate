@@ -1,6 +1,6 @@
 # Usage with Svelte
 
-In this section you find information for setting up XState in a Svelte project. Nowadays the Svelte docs recommend the usage of Vite for new Svelte or SvelteKit projects. The section directly below is intended for such projects. If you want to integrate XState into older projects that rely on rollup, conduct the section further below.
+In this section, we provide guidance on setting up XState in a Svelte project. For new Svelte or SvelteKit projects, we recommend using [Vite](https://vitejs.dev/guide/) as your build tool. This documentation is tailored to such projects. If you're working on an older project that relies on Rollup, please refer to the section further below.
 
 ## Svelte projects based on Vite
 
