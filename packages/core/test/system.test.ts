@@ -127,4 +127,39 @@ describe('system', () => {
       `"Actor with system ID 'test' already exists."`
     );
   });
+
+  it('should be accessible in inline custom actions', () => {
+    const machine = createMachine({
+      invoke: {
+        src: createMachine({}),
+        systemId: 'test'
+      },
+      entry: (_, __, { system }) => {
+        expect(system!.get('test')).toBeDefined();
+      }
+    });
+
+    interpret(machine).start();
+  });
+
+  it('should be accessible in referenced custom actions', () => {
+    const machine = createMachine(
+      {
+        invoke: {
+          src: createMachine({}),
+          systemId: 'test'
+        },
+        entry: 'myAction'
+      },
+      {
+        actions: {
+          myAction: (_, __, { system }) => {
+            expect(system!.get('test')).toBeDefined();
+          }
+        }
+      }
+    );
+
+    interpret(machine).start();
+  });
 });

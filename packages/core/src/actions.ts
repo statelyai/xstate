@@ -49,7 +49,7 @@ export function resolveActionObject(
 
   if (typeof dereferencedAction === 'function') {
     return createDynamicAction(
-      { type: 'xstate.expr', params: actionObject.params ?? {} },
+      { type: 'xstate.function', params: actionObject.params ?? {} },
       (_event, { state }) => {
         const a: BaseActionObject = {
           type: actionObject.type,
@@ -58,7 +58,8 @@ export function resolveActionObject(
             return dereferencedAction(state.context, state.event, {
               action: a,
               _event: state._event,
-              state
+              state,
+              system: _actorCtx.system
             });
           }
         };
