@@ -62,7 +62,9 @@ export function invoke<
             systemId: invokeDef.systemId,
             input:
               typeof input === 'function'
-                ? input(state.context, _event.data as any)
+                ? input(state.context, _event.data as any, {
+                    self: actorContext!.self
+                  })
                 : input
           });
 
