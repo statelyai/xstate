@@ -61,7 +61,7 @@ export interface AnyEventObject extends EventObject {
 
 export interface ParameterizedObject {
   type: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 export interface BaseActionObject extends ParameterizedObject {
