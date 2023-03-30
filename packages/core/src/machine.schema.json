@@ -292,10 +292,6 @@
         },
         "src": {
           "type": "string"
-        },
-        "autoForward": {
-          "type": "boolean",
-          "default": false
         }
       },
       "required": ["type", "id", "src"],
