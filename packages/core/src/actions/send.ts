@@ -19,6 +19,7 @@ import {
   InferEvent,
   SendActionObject,
   SendActionOptions,
+  State,
   StateMeta
 } from '../index.js';
 import { actionTypes, error } from '../actions.js';
@@ -84,9 +85,9 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta: StateMeta<any, TEvent> = {
+      const meta: StateMeta<TContext, TEvent> = {
         _event,
-        state: state as any, // TODO: fix
+        state: state as State<TContext, TEvent>,
         self: actorContext?.self ?? (null as any)
       };
       const delaysMap = state.machine.options.delays;
