@@ -1,6 +1,12 @@
-import { createMachine, sendParent, interpret, assign } from '../src/index.js';
+import {
+  createMachine,
+  sendParent,
+  interpret,
+  assign,
+  AnyActorRef
+} from '../src/index.js';
 import { respond } from '../src/actions';
-import { send } from '../src/actions/send';
+import { send, sendTo } from '../src/actions/send';
 import { fromCallback } from '../src/actors/callback';
 
 describe('SCXML events', () => {
@@ -117,6 +123,64 @@ describe('SCXML events', () => {
               to: 'auth-server'
             }
           ),
+          on: {
+            TOKEN: 'authorized'
+          }
+        },
+        authorized: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(authClientMachine)
+      .onDone(() => done())
+      .start();
+
+    service.send({ type: 'AUTH' });
+  });
+
+  it('should be able to respond to sender by sending self', (done) => {
+    const authServerMachine = createMachine({
+      schema: {
+        events: {} as { type: 'CODE'; sender: AnyActorRef }
+      },
+      id: 'authServer',
+      initial: 'waitingForCode',
+      states: {
+        waitingForCode: {
+          on: {
+            CODE: {
+              actions: sendTo(
+                (_ctx, ev) => {
+                  expect(ev.sender).toBeDefined();
+                  return ev.sender;
+                },
+                { type: 'TOKEN' },
+                { delay: 10 }
+              )
+            }
+          }
+        }
+      }
+    });
+
+    const authClientMachine = createMachine({
+      id: 'authClient',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { AUTH: 'authorizing' }
+        },
+        authorizing: {
+          invoke: {
+            id: 'auth-server',
+            src: authServerMachine
+          },
+          entry: sendTo('auth-server', (_ctx, _ev, { self }) => ({
+            type: 'CODE',
+            sender: self
+          })),
           on: {
             TOKEN: 'authorized'
           }

@@ -54,12 +54,13 @@ export function resolveActionObject(
         const a: BaseActionObject = {
           type: actionObject.type,
           params: actionObject.params,
-          execute: (_actorCtx) => {
+          execute: (actorCtx) => {
             return dereferencedAction(state.context, state.event, {
               action: a,
               _event: state._event,
               state,
-              system: _actorCtx.system
+              system: actorCtx.system,
+              self: actorCtx.self
             });
           }
         };
@@ -96,12 +97,13 @@ export function toActionObject<
         params: {
           function: action
         },
-        execute: (_actorCtx) => {
+        execute: (actorCtx) => {
           return action(state.context as TContext, _event.data as TEvent, {
             action: actionObject,
             _event: _event as SCXML.Event<TEvent>,
             state: state as AnyState,
-            system: _actorCtx.system
+            self: actorCtx.self,
+            system: actorCtx.system
           });
         }
       };

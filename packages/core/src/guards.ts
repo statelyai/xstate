@@ -45,8 +45,7 @@ export function not<
         meta.guard.children![0],
         ctx,
         meta._event,
-        meta.state,
-        meta.state.machine!
+        meta.state
       );
     }
   };
@@ -64,13 +63,7 @@ export function and<
     children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, _, meta) => {
       return meta.guard.children!.every((childGuard) => {
-        return meta.evaluate(
-          childGuard,
-          ctx,
-          meta._event,
-          meta.state,
-          meta.state.machine!
-        );
+        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
       });
     }
   };
@@ -85,13 +78,7 @@ export function or<TContext extends MachineContext, TEvent extends EventObject>(
     children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, _, meta) => {
       return meta.guard.children!.some((childGuard) => {
-        return meta.evaluate(
-          childGuard,
-          ctx,
-          meta._event,
-          meta.state,
-          meta.state.machine!
-        );
+        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
       });
     }
   };
@@ -152,9 +139,9 @@ export function toGuardDefinition<
   return {
     type: guardConfig.type,
     params: guardConfig.params || guardConfig,
-    children: (guardConfig.children as Array<
-      GuardConfig<TContext, TEvent>
-    >)?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
+    children: (
+      guardConfig.children as Array<GuardConfig<TContext, TEvent>>
+    )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
     predicate:
       getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
   };
