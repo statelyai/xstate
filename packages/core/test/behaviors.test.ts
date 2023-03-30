@@ -515,7 +515,7 @@ describe('machine behavior', () => {
       })
     }).provide({
       actors: {
-        reducer: fromReducer((s) => s, { count: 42 })
+        reducer: fromTransition((s) => s, { count: 42 })
       }
     });
 
@@ -545,7 +545,7 @@ describe('machine behavior', () => {
       },
       context: ({ spawn }) => ({
         ref: spawn(
-          fromReducer((s) => s, { count: 42 }),
+          fromTransition((s) => s, { count: 42 }),
           { id: 'child' }
         )
       })
