@@ -363,4 +363,43 @@ describe('input', () => {
 
     expect(spy).toHaveBeenCalledWith(100);
   });
+
+  it('should call the input factory with self when invoking', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      invoke: {
+        src: createMachine({}),
+        input: (_, __, { self }) => spy(self)
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(spy).toHaveBeenCalledWith(actor);
+  });
+
+  it('should call the input factory with self when spawning', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: assign((_ctx, _ev, { spawn }) => ({
+          childRef: spawn('child')
+        }))
+      },
+      {
+        actors: {
+          child: {
+            src: createMachine({}),
+            input: (_, __, { self }) => spy(self)
+          }
+        }
+      }
+    );
+
+    const actor = interpret(machine).start();
+
+    expect(spy).toHaveBeenCalledWith(actor);
+  });
 });

@@ -251,7 +251,9 @@ export type GuardEvaluator<
 export interface GuardMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateMeta<TContext, TEvent> {
+> {
+  state: State<TContext, TEvent, any>;
+  _event: SCXML.Event<TEvent>;
   guard: GuardDefinition<TContext, TEvent>;
   evaluate: GuardEvaluator<TContext, TEvent>;
 }
