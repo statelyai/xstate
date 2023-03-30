@@ -24,8 +24,7 @@ import type {
   TransitionDefinitionMap,
   InitialTransitionDefinition,
   MachineContext,
-  BaseActionObject,
-  ActorContext
+  BaseActionObject
 } from './types.js';
 import type { State } from './State.js';
 import * as actionTypes from './actionTypes.js';
