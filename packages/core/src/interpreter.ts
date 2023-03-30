@@ -164,7 +164,15 @@ export class Interpreter<
       defer: (fn) => {
         this._deferred.push(fn);
       },
-      system: this.system
+      system: this.system,
+      stopChild: (child) => {
+        if (child._parent !== this) {
+          throw new Error(
+            `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
+          );
+        }
+        (child as any)._stop();
+      }
     };
 
     // Ensure that the send method is bound to this interpreter instance
@@ -212,7 +220,7 @@ export class Interpreter<
           })
         );
 
-        this._stop();
+        this._stopProcedure();
         break;
       case 'error':
         this._parent?.send(
@@ -324,7 +332,7 @@ export class Interpreter<
       this.update(nextState);
 
       if (event.name === stopSignalType) {
-        this._stop();
+        this._stopProcedure();
       }
     } catch (err) {
       // TODO: properly handle errors
@@ -339,10 +347,7 @@ export class Interpreter<
     }
   }
 
-  /**
-   * Stops the interpreter and unsubscribe all listeners.
-   */
-  public stop(): this {
+  private _stop(): this {
     if (this.status === ActorStatus.Stopped) {
       return this;
     }
@@ -355,13 +360,23 @@ export class Interpreter<
 
     return this;
   }
+
+  /**
+   * Stops the interpreter and unsubscribe all listeners.
+   */
+  public stop(): this {
+    if (this._parent) {
+      throw new Error('A non-root actor cannot be stopped directly.');
+    }
+    return this._stop();
+  }
   private _complete(): void {
     for (const observer of this.observers) {
       observer.complete?.();
     }
     this.observers.clear();
   }
-  private _stop(): this {
+  private _stopProcedure(): this {
     this._complete();
 
     if (this.status !== ActorStatus.Running) {

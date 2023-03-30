@@ -1768,7 +1768,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   getSnapshot: () => TSnapshot | undefined;
   // TODO: this should return some sort of TPersistedState, not any
   getPersistedState?: () => any;
-  stop?: () => void;
+  stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
@@ -1867,6 +1867,7 @@ export interface ActorContext<
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
   system: TSystem;
+  stopChild: (child: AnyActorRef) => void;
 }
 
 export type AnyActorContext = ActorContext<any, any, any>;

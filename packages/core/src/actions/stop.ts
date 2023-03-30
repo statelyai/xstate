@@ -63,11 +63,11 @@ export function stop<
               return;
             }
             if (actorRef.status !== ActorStatus.Running) {
-              actorRef.stop?.();
+              actorCtx.stopChild(actorRef);
               return;
             }
             actorCtx.defer(() => {
-              actorRef.stop?.();
+              actorCtx.stopChild(actorRef);
             });
           }
         } as StopActionObject
