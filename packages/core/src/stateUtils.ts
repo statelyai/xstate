@@ -790,8 +790,7 @@ export function transitionParallelNode<
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent>,
-  actorCtx?: AnyActorContext
+  _event: SCXML.Event<TEvent>
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
@@ -807,8 +806,7 @@ export function transitionParallelNode<
       subStateNode,
       subStateValue,
       state,
-      _event,
-      actorCtx
+      _event
     );
     if (innerTransitions) {
       allInnerTransitions.push(...innerTransitions);
