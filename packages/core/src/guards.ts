@@ -7,8 +7,7 @@ import type {
   GuardMeta,
   SCXML,
   GuardPredicate,
-  MachineContext,
-  ActorContext
+  MachineContext
 } from './types.js';
 import { isStateId } from './stateUtils.js';
 import { isFunction, isString } from './utils.js';
