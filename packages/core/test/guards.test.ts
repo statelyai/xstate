@@ -869,21 +869,4 @@ describe('or() guard', () => {
 
     expect(nextState.matches('b')).toBeTruthy();
   });
-
-  it('guard meta should provide self', (done) => {
-    const machine = createMachine({
-      on: {
-        event: {
-          guard: (_ctx, _ev, { self }) => {
-            expect(self.send).toBeDefined();
-            done();
-            return true;
-          },
-          actions: 'doSomething'
-        }
-      }
-    });
-
-    interpret(machine).start().send({ type: 'event' });
-  });
 });

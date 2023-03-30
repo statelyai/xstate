@@ -92,19 +92,14 @@ export function evaluateGuard<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>,
-  actorContext?: ActorContext<any, any>
+  state: State<TContext, TEvent>
 ): boolean {
   const { machine } = state;
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     guard,
     _event,
-    evaluate: evaluateGuard,
-    // TODO: `self` should always be "defined", and developers should expect it to exist
-    // only when they're actually interpreting the machine.
-    // Trying to access `self` with an uninterpreted machine should fail correctly.
-    self: actorContext?.self ?? (null as any)
+    evaluate: evaluateGuard
   };
 
   const predicate = machine?.options?.guards?.[guard.type] ?? guard.predicate;

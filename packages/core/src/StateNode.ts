@@ -336,8 +336,7 @@ export class StateNode<
 
   public next(
     state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>,
-    actorCtx?: ActorContext<TEvent, any>
+    _event: SCXML.Event<TEvent>
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
@@ -368,8 +367,7 @@ export class StateNode<
             guard,
             resolvedContext,
             _event,
-            state,
-            actorCtx
+            state
           );
       } catch (err) {
         throw new Error(

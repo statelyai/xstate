@@ -749,10 +749,10 @@ export function transitionAtomicNode<
   actorCtx?: AnyActorContext
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
-  const next = childStateNode.next(state, _event, actorCtx);
+  const next = childStateNode.next(state, _event);
 
   if (!next || !next.length) {
-    return stateNode.next(state, _event, actorCtx);
+    return stateNode.next(state, _event);
   }
 
   return next;
@@ -780,7 +780,7 @@ export function transitionCompoundNode<
   );
 
   if (!next || !next.length) {
-    return stateNode.next(state, _event, actorCtx);
+    return stateNode.next(state, _event);
   }
 
   return next;
@@ -818,7 +818,7 @@ export function transitionParallelNode<
     }
   }
   if (!allInnerTransitions.length) {
-    return stateNode.next(state, _event, actorCtx);
+    return stateNode.next(state, _event);
   }
 
   return allInnerTransitions;
