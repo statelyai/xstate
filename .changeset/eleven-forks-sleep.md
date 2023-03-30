@@ -2,7 +2,7 @@
 'xstate': major
 ---
 
-The `self` actor reference is now available in all action and guard meta. This makes it easier to reference the "self" `ActorRef` so that actions such as `sendTo` can include it in the event payload:
+The `self` actor reference is now available in all action metas. This makes it easier to reference the "self" `ActorRef` so that actions such as `sendTo` can include it in the event payload:
 
 ```ts
 // Sender
