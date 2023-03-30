@@ -34,7 +34,11 @@ export function createSpawner<
           id: resolvedName,
           parent: self,
           input:
-            typeof input === 'function' ? input(context, _event.data) : input,
+            typeof input === 'function'
+              ? input(context, _event.data, {
+                  self
+                })
+              : input,
           src
         });
 

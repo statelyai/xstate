@@ -1,7 +1,7 @@
 import type { EventObject, ActorRef, BaseActorRef } from '../types.js';
 import { symbolObservable } from '../symbolObservable.js';
 import { ActorStatus } from '../interpreter.js';
-export { fromReducer } from './reducer.js';
+export { fromTransition } from './transition.js';
 export { fromPromise } from './promise.js';
 export { fromObservable, fromEventObservable } from './observable.js';
 export { fromCallback } from './callback.js';
@@ -59,6 +59,7 @@ export function toActorRef<
       return this;
     },
     status: ActorStatus.Running,
+    stop: () => void 0,
     ...actorRefLike
   };
 }

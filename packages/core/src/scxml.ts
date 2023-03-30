@@ -7,14 +7,13 @@ import { raise } from './actions/raise.js';
 import { send } from './actions/send.js';
 import { NULL_EVENT } from './constants.js';
 import { not, stateIn } from './guards.js';
-import { AnyStateMachine, BaseActionObject, createMachine } from './index.js';
 import {
-  ChooseCondition,
-  DelayExpr,
-  EventObject,
-  SCXMLEventMeta,
-  SendExpr
-} from './types.js';
+  AnyStateMachine,
+  BaseActionObject,
+  StateMeta,
+  createMachine
+} from './index.js';
+import { ChooseCondition, DelayExpr, EventObject, SendExpr } from './types.js';
 import { flatten, isString, mapValues } from './utils.js';
 
 function getAttribute(
@@ -104,7 +103,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   _ev: TEvent,
-  meta: SCXMLEventMeta<TEvent>,
+  meta: StateMeta<TContext, TEvent>,
   body: string
 ) => {
   const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
