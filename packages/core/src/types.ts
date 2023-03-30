@@ -62,7 +62,7 @@ export interface AnyEventObject extends EventObject {
 export interface BaseActionObject {
   type: string;
   params?: Record<string, any>;
-  execute?: (actorCtx: ActorContext<any, any>) => void;
+  execute?: (actorCtx: AnyActorContext) => void;
 }
 
 export interface BuiltInActionObject {
@@ -87,7 +87,7 @@ export interface BaseDynamicActionObject<
        * The original action object
        */
       action: BaseActionObject;
-      actorContext: ActorContext<any, any> | undefined;
+      actorContext: AnyActorContext | undefined;
     }
   ) => [AnyState, TResolvedAction];
 
@@ -126,9 +126,8 @@ export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: rea
 export interface AssignMeta<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> {
-  state: State<TContext, TEvent>;
+  _TEvent extends EventObject
+> extends StateMeta<TContext, TExpressionEvent> {
   action: BaseActionObject;
   _event: SCXML.Event<TExpressionEvent>;
   spawn: Spawner;
@@ -246,14 +245,15 @@ export type GuardEvaluator<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>,
-  machine: StateMachine<TContext, TEvent>
+  state: State<TContext, TEvent>
 ) => boolean;
 
 export interface GuardMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateMeta<TContext, TEvent> {
+> {
+  state: State<TContext, TEvent, any>;
+  _event: SCXML.Event<TEvent>;
   guard: GuardDefinition<TContext, TEvent>;
   evaluate: GuardEvaluator<TContext, TEvent>;
 }
@@ -392,6 +392,8 @@ export interface InvokeDefinition<
   TEvent extends EventObject
 > {
   id: string;
+
+  systemId: string | undefined;
   /**
    * The source of the actor's behavior to be invoked
    */
@@ -520,6 +522,8 @@ export interface InvokeConfig<
    * will be the machine's own `id`, or the URL (from `src`).
    */
   id?: string;
+
+  systemId?: string;
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -1232,7 +1236,7 @@ export type ExprWithMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (context: TContext, event: TEvent, meta: SCXMLEventMeta<TEvent>) => T;
+> = (context: TContext, event: TEvent, meta: StateMeta<TContext, TEvent>) => T;
 
 export type SendExpr<
   TContext extends MachineContext,
@@ -1540,16 +1544,14 @@ export interface ValueAdjacencyMap<
   [stateId: string]: Record<string, State<TContext, TEvent>>;
 }
 
-export interface SCXMLEventMeta<TEvent extends EventObject> {
-  _event: SCXML.Event<TEvent>;
-}
-
 export interface StateMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
   state: State<TContext, TEvent, any>;
   _event: SCXML.Event<TEvent>;
+  self: ActorRef<TEvent>;
+  system?: ActorSystem<any>;
 }
 
 export interface StateLike<TContext extends MachineContext> {
@@ -1608,6 +1610,10 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
 
   sync?: boolean;
 
+  /**
+   * The system ID to register this actor under
+   */
+  systemId?: string;
   /**
    * The input data to pass to the actor.
    */
@@ -1759,10 +1765,11 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   getSnapshot: () => TSnapshot | undefined;
   // TODO: this should return some sort of TPersistedState, not any
   getPersistedState?: () => any;
-  stop?: () => void;
+  stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
+  system?: ActorSystem<any>;
   status: ActorStatus;
   src?: string;
 }
@@ -1846,13 +1853,21 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
 export type EventOfMachine<TMachine extends AnyStateMachine> =
   TMachine extends StateMachine<any, infer E, any, any, any> ? E : never;
 
-export interface ActorContext<TEvent extends EventObject, TSnapshot> {
+export interface ActorContext<
+  TEvent extends EventObject,
+  TSnapshot,
+  TSystem extends ActorSystem<any> = ActorSystem<any>
+> {
   self: ActorRef<TEvent, TSnapshot>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
+  system: TSystem;
+  stopChild: (child: AnyActorRef) => void;
 }
+
+export type AnyActorContext = ActorContext<any, any, any>;
 
 export interface ActorBehavior<
   TEvent extends EventObject,
@@ -1861,15 +1876,16 @@ export interface ActorBehavior<
   /**
    * Serialized internal state used for persistence & restoration
    */
-  TPersisted = TInternalState
+  TPersisted = TInternalState,
+  TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   transition: (
     state: TInternalState,
     message: TEvent | LifecycleSignal,
-    ctx: ActorContext<TEvent, TSnapshot>
+    ctx: ActorContext<TEvent, TSnapshot, TSystem>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot>,
+    actorCtx: ActorContext<TEvent, TSnapshot, any>,
     input: any
   ) => TInternalState;
   restoreState?: (
@@ -1897,7 +1913,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? SnapshotFrom<TBehavior>
     : R extends ActorBehavior<infer _, infer TSnapshot>
     ? TSnapshot
-    : R extends ActorContext<infer _, infer TSnapshot>
+    : R extends ActorContext<infer _, infer TSnapshot, infer __>
     ? TSnapshot
     : never
   : never;
@@ -1982,6 +1998,17 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
 export type StateFromMachine<TMachine extends AnyStateMachine> =
   TMachine['initialState'];
 
+export interface ActorSystemInfo {
+  actors: Record<string, AnyActorRef>;
+}
+
+export interface ActorSystem<T extends ActorSystemInfo> {
+  _bookId: () => string;
+  _register: (sessionId: string, actorRef: AnyActorRef) => string;
+  _unregister: (actorRef: AnyActorRef) => void;
+  _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+}
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
   'value' | 'output' | 'context' | '_event' | 'done' | 'historyValue'

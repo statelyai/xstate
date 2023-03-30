@@ -9,7 +9,8 @@ import {
   SendExpr,
   AnyInterpreter,
   RaiseActionParams,
-  NoInfer
+  NoInfer,
+  StateMeta
 } from '../types.js';
 import { toSCXMLEvent } from '../utils.js';
 
@@ -50,7 +51,7 @@ export function raise<
             : eventOrExpr.type
       }
     },
-    (_event, { state }) => {
+    (_event, { state, actorContext }) => {
       const params = {
         delay: options ? options.delay : undefined,
         event: eventOrExpr,
@@ -61,8 +62,10 @@ export function raise<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta = {
-        _event
+      const meta: StateMeta<any, any> = {
+        _event,
+        state,
+        self: actorContext?.self ?? ({} as any)
       };
       const delaysMap = state.machine.options.delays;
 

@@ -11,7 +11,7 @@ import {
   SpecialTargets,
   toSCXMLEvent
 } from '../src/index.js';
-import { fromReducer } from '../src/actors/index.js';
+import { fromTransition } from '../src/actors/index.js';
 import { fromObservable, fromEventObservable } from '../src/actors/index.js';
 import { fromPromise } from '../src/actors/index.js';
 import { fromCallback } from '../src/actors/index.js';
@@ -2139,8 +2139,8 @@ describe('invoke', () => {
     });
   });
 
-  describe('with reducers', () => {
-    it('should work with a reducer', (done) => {
+  describe('with transition functions', () => {
+    it('should work with a transition function', (done) => {
       const countReducer = (
         count: number,
         event: { type: 'INC' } | { type: 'DEC' }
@@ -2156,7 +2156,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromReducer(countReducer, 0)
+          src: fromTransition(countReducer, 0)
         },
         on: {
           INC: {
@@ -2199,7 +2199,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromReducer(countReducer, 0)
+          src: fromTransition(countReducer, 0)
         },
         on: {
           INC: {
