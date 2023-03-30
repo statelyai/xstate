@@ -17,9 +17,9 @@ import {
   EventFrom,
   ExprWithMeta,
   InferEvent,
-  SCXMLEventMeta,
   SendActionObject,
-  SendActionOptions
+  SendActionOptions,
+  StateMeta
 } from '../index.js';
 import { actionTypes, error } from '../actions.js';
 
@@ -84,7 +84,7 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta: SCXMLEventMeta<TEvent> = {
+      const meta: StateMeta<any, TEvent> = {
         _event,
         state: state as any, // TODO: fix
         self: actorContext?.self ?? (null as any)

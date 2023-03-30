@@ -10,7 +10,7 @@ import {
   AnyInterpreter,
   RaiseActionParams,
   NoInfer,
-  SCXMLEventMeta
+  StateMeta
 } from '../types.js';
 import { toSCXMLEvent } from '../utils.js';
 
@@ -62,7 +62,7 @@ export function raise<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta: SCXMLEventMeta<any> = {
+      const meta: StateMeta<any, any> = {
         _event,
         state,
         self: actorContext?.self ?? ({} as any)
