@@ -103,4 +103,23 @@ describe('rehydration', () => {
       expect(actual).toEqual(['active', 'root']);
     });
   });
+
+  it('should not replay actions when starting from a persisted state', () => {
+    const entrySpy = jest.fn();
+    const machine = createMachine({
+      entry: entrySpy
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(entrySpy).toHaveBeenCalledTimes(1);
+
+    const persistedState = actor.getPersistedState();
+
+    actor.stop();
+
+    interpret(machine, { state: persistedState }).start();
+
+    expect(entrySpy).toHaveBeenCalledTimes(1);
+  });
 });
