@@ -129,9 +129,8 @@ export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: rea
 export interface AssignMeta<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> {
-  state: State<TContext, TEvent>;
+  _TEvent extends EventObject
+> extends StateMeta<TContext, TExpressionEvent> {
   action: BaseActionObject;
   _event: SCXML.Event<TExpressionEvent>;
   spawn: Spawner;
@@ -247,14 +246,15 @@ export type GuardEvaluator<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>,
-  machine: StateMachine<TContext, TEvent>
+  state: State<TContext, TEvent>
 ) => boolean;
 
 export interface GuardMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateMeta<TContext, TEvent> {
+> {
+  state: State<TContext, TEvent, any>;
+  _event: SCXML.Event<TEvent>;
   guard: GuardDefinition<TContext, TEvent>;
   evaluate: GuardEvaluator<TContext, TEvent>;
 }
@@ -1237,7 +1237,7 @@ export type ExprWithMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (context: TContext, event: TEvent, meta: SCXMLEventMeta<TEvent>) => T;
+> = (context: TContext, event: TEvent, meta: StateMeta<TContext, TEvent>) => T;
 
 export type SendExpr<
   TContext extends MachineContext,
@@ -1499,16 +1499,13 @@ export interface Segment<
   event: TEvent;
 }
 
-export interface SCXMLEventMeta<TEvent extends EventObject> {
-  _event: SCXML.Event<TEvent>;
-}
-
 export interface StateMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
   state: State<TContext, TEvent, any>;
   _event: SCXML.Event<TEvent>;
+  self: ActorRef<TEvent>;
   system?: ActorSystem<any>;
 }
 
