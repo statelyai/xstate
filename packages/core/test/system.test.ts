@@ -2,8 +2,10 @@ import { fromCallback } from '../src/actors/callback.js';
 import {
   ActorRef,
   ActorSystem,
+  assign,
   createMachine,
-  interpret
+  interpret,
+  sendTo
 } from '../src/index.js';
 
 describe('system', () => {
@@ -159,6 +161,38 @@ describe('system', () => {
         }
       }
     );
+
+    interpret(machine).start();
+  });
+
+  it('should be accessible in assign actions', () => {
+    const machine = createMachine({
+      invoke: {
+        src: createMachine({}),
+        systemId: 'test'
+      },
+      entry: assign((_, __, { system }) => {
+        expect(system!.get('test')).toBeDefined();
+      })
+    });
+
+    interpret(machine).start();
+  });
+
+  it('should be accessible in sendTo actions', () => {
+    const machine = createMachine({
+      invoke: {
+        src: createMachine({}),
+        systemId: 'test'
+      },
+      entry: sendTo(
+        (_, __, { system }) => {
+          expect(system!.get('test')).toBeDefined();
+          return system!.get('test');
+        },
+        { type: 'FOO' }
+      )
+    });
 
     interpret(machine).start();
   });

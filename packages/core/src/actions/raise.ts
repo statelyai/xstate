@@ -65,7 +65,8 @@ export function raise<
       const meta: StateMeta<any, any> = {
         _event,
         state,
-        self: actorContext?.self ?? ({} as any)
+        self: actorContext?.self ?? ({} as any),
+        system: actorContext?.system
       };
       const delaysMap = state.machine.options.delays;
 

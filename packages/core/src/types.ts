@@ -1551,7 +1551,7 @@ export interface StateMeta<
   state: State<TContext, TEvent, any>;
   _event: SCXML.Event<TEvent>;
   self: ActorRef<TEvent>;
-  system?: ActorSystem<any>;
+  system: ActorSystem<any> | undefined;
 }
 
 export interface StateLike<TContext extends MachineContext> {
