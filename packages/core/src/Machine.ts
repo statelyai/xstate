@@ -5,7 +5,7 @@ import {
   MachineContext,
   ActorMap,
   InternalMachineImplementations,
-  BaseActionObject
+  ParameterizedObject
 } from './types.js';
 import {
   TypegenConstraint,
@@ -23,21 +23,21 @@ export function createMachine<
   config: MachineConfig<
     TContext,
     TEvent,
-    BaseActionObject,
+    ParameterizedObject,
     TActorMap,
     TTypesMeta
   >,
   implementations?: InternalMachineImplementations<
     TContext,
     TEvent,
-    ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TActorMap>
+    ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActorMap>
   >
 ): StateMachine<
   TContext,
   TEvent,
-  BaseActionObject,
+  ParameterizedObject,
   TActorMap,
-  ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TActorMap>
+  ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActorMap>
 > {
   return new StateMachine<any, any, any, any, any>(
     config,
