@@ -25,7 +25,6 @@ import type {
 import type {
   ActorContext,
   ActorMap,
-  BaseActionObject,
   ActorBehavior,
   EventObject,
   InternalMachineImplementations,
@@ -41,7 +40,8 @@ import type {
   StateValue,
   TransitionDefinition,
   AnyActorContext,
-  PersistedMachineState
+  PersistedMachineState,
+  ParameterizedObject
 } from './types.js';
 import {
   isSCXMLErrorEvent,
@@ -66,7 +66,7 @@ function createDefaultOptions() {
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
+  TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
