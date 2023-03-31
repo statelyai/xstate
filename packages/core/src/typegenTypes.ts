@@ -1,5 +1,4 @@
 import {
-  BaseActionObject,
   EventObject,
   IndexByType,
   IsNever,
@@ -7,7 +6,8 @@ import {
   Values,
   IsAny,
   ActorMap,
-  Cast
+  Cast,
+  ParameterizedObject
 } from './types.js';
 
 export interface TypegenDisabled {
@@ -90,7 +90,7 @@ export interface TypegenMeta extends TypegenEnabled {
 
 export interface ResolvedTypegenMeta extends TypegenMeta {
   resolved: TypegenMeta & {
-    indexedActions: Record<string, BaseActionObject>;
+    indexedActions: Record<string, ParameterizedObject>;
     indexedEvents: Record<string, EventObject>;
   };
 }
@@ -108,11 +108,9 @@ export type AreAllImplementationsAssumedToBeProvided<
   ? true
   : TResolvedTypesMeta extends TypegenEnabled
   ? IsNever<
-      Values<
-        {
-          [K in keyof TMissingImplementations]: TMissingImplementations[K];
-        }
-      >
+      Values<{
+        [K in keyof TMissingImplementations]: TMissingImplementations[K];
+      }>
     > extends true
     ? true
     : false
@@ -175,7 +173,7 @@ type AllowAllEvents = {
 export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
-  TAction extends BaseActionObject,
+  TAction extends ParameterizedObject,
   TActorMap extends ActorMap
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];

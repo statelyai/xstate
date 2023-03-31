@@ -89,7 +89,7 @@ export interface BaseDynamicActionObject<
       /**
        * The original action object
        */
-      action: BaseActionObject;
+      action: ParameterizedObject;
       actorContext: AnyActorContext | undefined;
     }
   ) => [AnyState, TResolvedAction];
@@ -98,7 +98,7 @@ export interface BaseDynamicActionObject<
   (
     arg: TContext,
     ev: TExpressionEvent,
-    meta: ActionMeta<TContext, TEvent, BaseActionObject>
+    meta: ActionMeta<TContext, TEvent, ParameterizedObject>
   ): void;
 }
 
@@ -107,7 +107,7 @@ export type MachineContext = Record<string, any>;
 export interface ActionMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends ParameterizedObject = ParameterizedObject
 > extends StateMeta<TContext, TEvent> {
   action: TAction;
   _event: SCXML.Event<TEvent>;
@@ -139,7 +139,7 @@ export interface AssignMeta<
 export type ActionFunction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
+  TAction extends ParameterizedObject = ParameterizedObject,
   TEvent extends EventObject = TExpressionEvent
 > = {
   bivarianceHack(
@@ -164,21 +164,22 @@ export type Action<
   TEvent extends EventObject = TExpressionEvent
 > =
   | ActionType
-  | BaseActionObject
-  | ActionFunction<TContext, TExpressionEvent, BaseActionObject, TEvent>
+  | ParameterizedObject
+  | ActionFunction<TContext, TExpressionEvent, ParameterizedObject, TEvent>
   | BaseDynamicActionObject<TContext, TExpressionEvent, TEvent, any, any>; // TODO: fix last param
 
 /**
  * Extracts action objects that have no extra properties.
  */
-type SimpleActionsFrom<T extends BaseActionObject> = BaseActionObject extends T
-  ? T // If actions are unspecified, all action types are allowed (unsafe)
-  : ExtractWithSimpleSupport<T>;
+type SimpleActionsFrom<T extends ParameterizedObject> =
+  ParameterizedObject extends T
+    ? T // If actions are unspecified, all action types are allowed (unsafe)
+    : ExtractWithSimpleSupport<T>;
 
 export type BaseAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TAction extends BaseActionObject,
+  TAction extends ParameterizedObject,
   TEvent extends EventObject
 > =
   | BaseDynamicActionObject<
@@ -196,7 +197,7 @@ export type BaseActions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TAction extends BaseActionObject
+  TAction extends ParameterizedObject
 > = SingleOrArray<BaseAction<TContext, TExpressionEvent, TAction, TEvent>>;
 
 export type Actions<
@@ -307,7 +308,7 @@ export interface TransitionConfig<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends ParameterizedObject = ParameterizedObject
 > {
   guard?: GuardConfig<TContext, TExpressionEvent>;
   actions?: BaseActions<TContext, TExpressionEvent, TEvent, TAction>;
@@ -465,7 +466,7 @@ export type StateNodesConfig<
 export type StatesConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends ParameterizedObject = ParameterizedObject
 > = {
   [K in string]: StateNodeConfig<TContext, TEvent, TAction>;
 };
@@ -562,7 +563,7 @@ export interface InvokeConfig<
 export interface StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends ParameterizedObject = ParameterizedObject
 > {
   /**
    * The initial state transition.
@@ -749,7 +750,7 @@ export type SimpleOrStateNodeConfig<
 export type ActionFunctionMap<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends ParameterizedObject = ParameterizedObject
 > = {
   [K in TAction['type']]?:
     | BaseDynamicActionObject<TContext, TEvent, TEvent, TAction, any>
@@ -774,7 +775,7 @@ export type DelayConfig<
 export interface MachineImplementationsSimplified<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends ParameterizedObject = ParameterizedObject
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
@@ -800,13 +801,13 @@ type MachineImplementationsActions<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
         Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>,
-        any, // TODO: this should receive something like `Cast<Prop<TIndexedActions, K>, BaseActionObject>`, but at the moment builtin actions expect Resolved*Action here and this should be simplified somehow
+        any, // TODO: this should receive something like `Cast<Prop<TIndexedActions, K>, ParameterizedObject>`, but at the moment builtin actions expect Resolved*Action here and this should be simplified somehow
         any
       >
     | ActionFunction<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
-        BaseActionObject, // TODO: when bringing back parametrized actions this should accept something like `Cast<Prop<TIndexedActions, K>, BaseActionObject>`. At the moment we need to keep this type argument consistent with what is provided to the fake callable signature within `BaseDynamicActionObject`
+        ParameterizedObject, // TODO: when bringing back parametrized actions this should accept something like `Cast<Prop<TIndexedActions, K>, ParameterizedObject>`. At the moment we need to keep this type argument consistent with what is provided to the fake callable signature within `BaseDynamicActionObject`
         Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
       >;
 };
@@ -974,7 +975,7 @@ export type InternalMachineImplementations<
 export type MachineImplementations<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
+  TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
@@ -998,7 +999,7 @@ export type ContextFactory<TContext extends MachineContext> = ({
 export interface MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
+  TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
   TTypesMeta = TypegenDisabled
 > extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
