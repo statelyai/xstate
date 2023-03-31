@@ -88,7 +88,8 @@ export function send<
       const meta: StateMeta<TContext, TEvent> = {
         _event,
         state: state as State<TContext, TEvent>,
-        self: actorContext?.self ?? (null as any)
+        self: actorContext?.self ?? (null as any),
+        system: actorContext?.system
       };
       const delaysMap = state.machine.options.delays;
 
@@ -300,7 +301,7 @@ export function sendTo<
   TEvent extends EventObject,
   TActor extends AnyActorRef
 >(
-  actor: TActor | string | ((ctx: TContext, event: TEvent) => TActor | string),
+  actor: TActor | string | ExprWithMeta<TContext, TEvent, TActor | string>,
   event:
     | EventFrom<TActor>
     | SendExpr<
