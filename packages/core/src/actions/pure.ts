@@ -15,10 +15,10 @@ export function pure<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 >(
-  getActions: (
-    context: TContext,
-    event: TExpressionEvent
-  ) => SingleOrArray<BaseActionObject | string> | undefined
+  getActions: (arg: {
+    context: TContext;
+    event: TExpressionEvent;
+  }) => SingleOrArray<BaseActionObject | string> | undefined
 ): BaseDynamicActionObject<
   TContext,
   TExpressionEvent,
@@ -41,7 +41,9 @@ export function pure<
           params: {
             actions:
               toArray(
-                toActionObjects(getActions(state.context, _event.data))
+                toActionObjects(
+                  getActions({ context: state.context, event: _event.data })
+                )
               ) ?? []
           }
         }

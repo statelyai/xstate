@@ -2083,35 +2083,35 @@ describe('purely defined actions', () => {
       idle: {
         on: {
           SINGLE: {
-            actions: pure<any, any>((ctx, e) => {
-              if (ctx.items.length > 0) {
+            actions: pure(({ context, event }) => {
+              if (context.items.length > 0) {
                 return {
                   type: 'SINGLE_EVENT',
-                  params: { length: ctx.items.length, id: e.id }
+                  params: { length: context.items.length, id: event.id }
                 };
               }
             })
           },
           NONE: {
-            actions: pure<any, any>((ctx, e) => {
-              if (ctx.items.length > 5) {
+            actions: pure(({ context, event }) => {
+              if (context.items.length > 5) {
                 return {
                   type: 'SINGLE_EVENT',
-                  params: { length: ctx.items.length, id: e.id }
+                  params: { length: context.items.length, id: event.id }
                 };
               }
             })
           },
           EACH: {
-            actions: pure<any, any>((ctx) =>
-              ctx.items.map((item: any, index: number) => ({
+            actions: pure(({ context }) =>
+              context.items.map((item: any, index: number) => ({
                 type: 'EVENT',
                 params: { item, index }
               }))
             )
           },
           AS_STRINGS: {
-            actions: pure<any, any>(() => ['SOME_ACTION'])
+            actions: pure(() => ['SOME_ACTION'])
           }
         }
       }
@@ -2803,13 +2803,8 @@ describe('sendTo', () => {
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
-      entry: pure<
-        {
-          child: ActorRefFrom<typeof childMachine>;
-        },
-        any
-      >((ctx) => {
-        return [sendTo(ctx.child, { type: 'EVENT' })];
+      entry: pure(({ context }) => {
+        return [sendTo(context.child, { type: 'EVENT' })];
       })
     });
 

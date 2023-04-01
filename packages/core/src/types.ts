@@ -1413,10 +1413,12 @@ export interface DynamicPureActionObject<
 > {
   type: ActionTypes.Pure;
   params: {
-    get: (
-      context: TContext,
-      event: TEvent
-    ) => SingleOrArray<BaseActionObject | BaseActionObject['type']> | undefined;
+    get: (arg: {
+      context: TContext;
+      event: TEvent;
+    }) =>
+      | SingleOrArray<BaseActionObject | BaseActionObject['type']>
+      | undefined;
   };
 }
 
