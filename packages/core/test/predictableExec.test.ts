@@ -114,8 +114,8 @@ describe('predictableExec', () => {
           on: {
             RAISED: {
               target: 'c',
-              actions: assign((_ctx, ev) => {
-                eventArg = ev;
+              actions: assign(({ event }) => {
+                eventArg = event;
                 return {};
               })
             }
@@ -280,7 +280,7 @@ describe('predictableExec', () => {
                   return context.actorRef;
                 }),
                 assign({
-                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
+                  actorRef: ({ meta: { spawn } }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -340,7 +340,7 @@ describe('predictableExec', () => {
               actions: [
                 stop(({ context }) => context.actorRef),
                 assign({
-                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
+                  actorRef: ({ meta: { spawn } }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -400,7 +400,7 @@ describe('predictableExec', () => {
               actions: [
                 stop('my_name'),
                 assign({
-                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
+                  actorRef: ({ meta: { spawn } }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -410,7 +410,7 @@ describe('predictableExec', () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      'my_name'
+                      { id: 'my_name' }
                     );
                   }
                 })
@@ -460,7 +460,7 @@ describe('predictableExec', () => {
               actions: [
                 stop(() => 'my_name'),
                 assign({
-                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
+                  actorRef: ({ meta: { spawn } }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -470,7 +470,7 @@ describe('predictableExec', () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      'my_name'
+                      { id: 'my_name' }
                     );
                   }
                 })

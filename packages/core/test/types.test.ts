@@ -434,7 +434,7 @@ describe('events', () => {
       {
         actions: {
           addNumber: assign({
-            numbers: (context, event) => {
+            numbers: ({ context, event }) => {
               ((_accept: number) => {})(event.number);
               // @ts-expect-error
               ((_accept: string) => {})(event.number);
@@ -556,10 +556,10 @@ describe('actions', () => {
       context: {
         count: 0
       },
-      entry: assign((ctx) => {
-        ((_accept: number) => {})(ctx.count);
+      entry: assign(({ context }) => {
+        ((_accept: number) => {})(context.count);
         // @ts-expect-error
-        ((_accept: "ain't any") => {})(ctx.count);
+        ((_accept: "ain't any") => {})(context.count);
         return {};
       })
     });
@@ -576,10 +576,10 @@ describe('actions', () => {
       },
       on: {
         FOO: {
-          actions: assign((ctx) => {
-            ((_accept: number) => {})(ctx.count);
+          actions: assign(({ context }) => {
+            ((_accept: number) => {})(context.count);
             // @ts-expect-error
-            ((_accept: "ain't any") => {})(ctx.count);
+            ((_accept: "ain't any") => {})(context.count);
             return {};
           })
         }
@@ -594,10 +594,10 @@ describe('actions', () => {
       },
       entry: [
         'foo',
-        assign((ctx) => {
-          ((_accept: number) => {})(ctx.count);
+        assign(({ context }) => {
+          ((_accept: number) => {})(context.count);
           // @ts-expect-error
-          ((_accept: "ain't any") => {})(ctx.count);
+          ((_accept: "ain't any") => {})(context.count);
           return {};
         })
       ]
@@ -613,10 +613,10 @@ describe('actions', () => {
         FOO: {
           actions: [
             'foo',
-            assign((ctx) => {
-              ((_accept: number) => {})(ctx.count);
+            assign(({ context }) => {
+              ((_accept: number) => {})(context.count);
               // @ts-expect-error
-              ((_accept: "ain't any") => {})(ctx.count);
+              ((_accept: "ain't any") => {})(context.count);
               return {};
             })
           ]
@@ -756,7 +756,7 @@ describe('actions', () => {
         skip: true
       },
       entry: assign({
-        count: (context) => context.count + 1,
+        count: ({ context }) => context.count + 1,
         skip: true
       })
     });

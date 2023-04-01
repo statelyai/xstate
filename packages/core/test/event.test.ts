@@ -62,7 +62,7 @@ describe('SCXML events', () => {
             EVENT: {
               target: 'success',
               actions: assign({
-                childOrigin: (_, __, { _event }) => {
+                childOrigin: ({ meta: { _event } }) => {
                   return _event.origin?.id;
                 }
               })
@@ -248,7 +248,7 @@ const authMachine = createMachine<SignInContext, ChangePassword>(
   {
     actions: {
       assignPassword: assign<SignInContext, ChangePassword>({
-        password: (_, event) => event.password
+        password: ({ event }) => event.password
       })
     }
   }

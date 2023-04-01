@@ -72,7 +72,7 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: (_, __, { spawn }) => {
+              actor: ({ meta: { spawn } }) => {
                 return spawn(
                   fromPromise(
                     () =>
@@ -805,7 +805,7 @@ describe('interpreter', () => {
           on: {
             LOG: {
               actions: [
-                assign({ count: (ctx) => ctx.count + 1 }),
+                assign({ count: ({ context }) => context.count + 1 }),
                 log(({ context }) => context)
               ]
             }
@@ -1408,7 +1408,7 @@ describe('interpreter', () => {
           after: {
             10: {
               target: 'active',
-              actions: assign({ count: (ctx) => ctx.count + 1 })
+              actions: assign({ count: ({ context }) => context.count + 1 })
             }
           },
           always: {
@@ -1471,7 +1471,7 @@ describe('interpreter', () => {
             },
             on: {
               INC: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
+                actions: assign({ count: ({ context }) => context.count + 1 })
               }
             }
           },
@@ -1723,7 +1723,7 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: (_, __, { spawn }) =>
+          firstNameRef: ({ meta: { spawn } }) =>
             spawn(childMachine, { id: 'child' })
         }),
         states: {
@@ -1756,9 +1756,9 @@ describe('interpreter', () => {
           observableRef: ActorRef<any, any>;
         },
         entry: assign({
-          machineRef: (_, __, { spawn }) =>
+          machineRef: ({ meta: { spawn } }) =>
             spawn(childMachine, { id: 'machineChild' }),
-          promiseRef: (_, __, { spawn }) =>
+          promiseRef: ({ meta: { spawn } }) =>
             spawn(
               fromPromise(
                 () =>
@@ -1768,7 +1768,7 @@ describe('interpreter', () => {
               ),
               { id: 'promiseChild' }
             ),
-          observableRef: (_, __, { spawn }) =>
+          observableRef: ({ meta: { spawn } }) =>
             spawn(
               fromObservable(() => interval(1000)),
               { id: 'observableChild' }

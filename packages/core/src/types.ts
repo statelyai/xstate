@@ -1332,22 +1332,22 @@ export type Assigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
-> = (
-  context: TContext,
-  event: TExpressionEvent,
-  meta: AssignMeta<TContext, TExpressionEvent, TEvent>
-) => Partial<TContext>;
+> = (arg: {
+  context: TContext;
+  event: TExpressionEvent;
+  meta: AssignMeta<TContext, TExpressionEvent, TEvent>;
+}) => Partial<TContext>;
 
 export type PartialAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TKey extends keyof TContext
-> = (
-  context: TContext,
-  event: TExpressionEvent,
-  meta: AssignMeta<TContext, TExpressionEvent, TEvent>
-) => TContext[TKey];
+> = (arg: {
+  context: TContext;
+  event: TExpressionEvent;
+  meta: AssignMeta<TContext, TExpressionEvent, TEvent>;
+}) => TContext[TKey];
 
 export type PropertyAssigner<
   TContext extends MachineContext,

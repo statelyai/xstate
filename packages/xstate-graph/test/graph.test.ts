@@ -406,7 +406,7 @@ describe('@xstate/graph', () => {
             on: {
               INC: {
                 actions: assign({
-                  count: (context) => context.count + 1
+                  count: ({ context }) => context.count + 1
                 })
               }
             }
@@ -559,7 +559,7 @@ describe('filtering', () => {
           on: {
             INC: {
               actions: assign({
-                count: (ctx) => ctx.count + 1
+                count: ({ context }) => context.count + 1
               })
             }
           }

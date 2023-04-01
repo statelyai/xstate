@@ -196,8 +196,8 @@ describe('useMachine', () => {
       setup: () => {
         useMachine(machine, {
           actions: {
-            fooAction: assign((_context, _event) => {
-              ((_accept: 'FOO') => {})(_event.type);
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
               // @ts-expect-error
               ((_accept: "test that this isn't any") => {})(_event.type);
             })
@@ -402,10 +402,10 @@ describe('useInterpret', () => {
       setup: () => {
         useInterpret(machine, {
           actions: {
-            fooAction: assign((_context, _event) => {
-              ((_accept: 'FOO') => {})(_event.type);
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
               // @ts-expect-error
-              ((_accept: "test that this isn't any") => {})(_event.type);
+              ((_accept: "test that this isn't any") => {})(event.type);
             })
           }
         });

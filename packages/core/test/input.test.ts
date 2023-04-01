@@ -101,7 +101,7 @@ describe('input', () => {
     });
 
     const machine = createMachine({
-      entry: assign((_ctx, _ev, { spawn }) => {
+      entry: assign(({ meta: { spawn } }) => {
         return {
           ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
         };
@@ -281,7 +281,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign((_ctx, _ev, { spawn }) => ({
+        entry: assign(({ meta: { spawn } }) => ({
           childRef: spawn('child')
         }))
       },
@@ -340,7 +340,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign((_ctx, _ev, { spawn }) => ({
+        entry: assign(({ meta: { spawn } }) => ({
           childRef: spawn('child', { input: 100 })
         }))
       },
@@ -384,7 +384,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign((_ctx, _ev, { spawn }) => ({
+        entry: assign(({ meta: { spawn } }) => ({
           childRef: spawn('child')
         }))
       },

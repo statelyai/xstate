@@ -550,7 +550,7 @@ describe('transient states (eventless transitions)', () => {
         first: {
           on: {
             ADD: {
-              actions: assign({ count: (ctx) => ctx.count + 1 })
+              actions: assign({ count: ({ context }) => context.count + 1 })
             }
           }
         },
@@ -586,7 +586,7 @@ describe('transient states (eventless transitions)', () => {
         first: {
           on: {
             ADD: {
-              actions: assign({ count: (ctx) => ctx.count + 1 })
+              actions: assign({ count: ({ context }) => context.count + 1 })
             }
           }
         },

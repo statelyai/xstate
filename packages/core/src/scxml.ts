@@ -152,7 +152,7 @@ function mapAction<
       } as TEvent);
     }
     case 'assign': {
-      return assign<TContext, TEvent>((context, e, meta) => {
+      return assign<TContext, TEvent>(({ context, event, meta }) => {
         const fnBody = `
 
 ${element.attributes!.location};
@@ -160,7 +160,7 @@ ${element.attributes!.location};
 return {'${element.attributes!.location}': ${element.attributes!.expr}};
           `;
 
-        return evaluateExecutableContent(context, e, meta, fnBody);
+        return evaluateExecutableContent(context, event, meta, fnBody);
       });
     }
     case 'cancel':

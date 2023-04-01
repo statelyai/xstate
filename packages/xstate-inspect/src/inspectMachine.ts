@@ -77,10 +77,7 @@ export function createInspectMachine(
         target: '.connected',
         actions: [
           assign({
-            client: (
-              _,
-              e: InspectMachineEvent & { type: 'xstate.inspecting' }
-            ) => e.client
+            client: ({ event }) => event.client
           }),
           ({ context }) => {
             devTools.services.forEach((service) => {

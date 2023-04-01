@@ -861,7 +861,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          actionName: assign((_context, event) => {
+          actionName: assign(({ event }) => {
             ((_accept: 'BAR') => {})(event.type);
             return {};
           })
@@ -1189,9 +1189,9 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          increment: assign((ctx, ev) => {
+          increment: assign(({ context, event }) => {
             return {
-              count: ctx.count + ev.value
+              count: context.count + event.value
             };
           })
         }

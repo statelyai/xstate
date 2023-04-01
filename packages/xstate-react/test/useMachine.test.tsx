@@ -43,7 +43,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           onDone: {
             target: 'success',
             actions: assign({
-              data: (_, e) => e.data
+              data: ({ event }) => event.data
             }),
             guard: ({ event }) => event.data.length
           }
@@ -198,7 +198,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       states: {
         start: {
           entry: assign({
-            ref: (_, __, { spawn }) =>
+            ref: ({ meta: { spawn } }) =>
               spawn(
                 fromPromise(() => {
                   return new Promise((res) => res(42));
@@ -420,7 +420,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       {
         actions: {
           setup: assign({
-            stuff: (context: any) => [...context.stuff, 4]
+            stuff: ({ context }) => [...context.stuff, 4]
           })
         }
       }
@@ -465,10 +465,10 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       {
         actions: {
           setup: assign({
-            stuff: (context: any) => [...context.stuff, 4]
+            stuff: ({ context }) => [...context.stuff, 4]
           }),
           increase: assign({
-            counter: (context: any) => ++context.counter
+            counter: ({ context }) => ++context.counter
           })
         }
       }
@@ -926,7 +926,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       on: {
         INC: {
           actions: [
-            assign({ count: (ctx) => ctx.count + 1 }),
+            assign({ count: ({ context }) => context.count + 1 }),
             send({ type: 'UNHANDLED' })
           ]
         }

@@ -19,7 +19,7 @@ export const fetchMachine = createMachine<typeof context, any>({
         onDone: {
           target: 'success',
           actions: assign({
-            data: (_, event) => event.data
+            data: ({ event }) => event.data
           }),
           guard: ({ event }) => event.data.length
         }

@@ -25,7 +25,7 @@ export default createMachine<any>({
           },
           actions: [
             assign({
-              i: (ctx) => ctx.i + 1
+              i: ({ context }) => context.i + 1
             }),
             log()
           ]

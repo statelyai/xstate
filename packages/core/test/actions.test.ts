@@ -1448,7 +1448,7 @@ describe('entry/exit actions', () => {
         }),
         on: {
           STOP_CHILD: {
-            actions: stop((ctx: any) => ctx.child)
+            actions: stop(({ context }) => context.child)
           },
           EXIT: {
             actions: () => {
@@ -1614,7 +1614,7 @@ describe('entry/exit actions', () => {
         id: 'parent',
         context: {},
         exit: assign({
-          actorRef: (_ctx: any, _ev: any, { spawn }: any) => spawn(grandchild)
+          actorRef: ({ meta: { spawn } }) => spawn(grandchild)
         })
       });
 
@@ -1654,14 +1654,20 @@ describe('entry/exit actions', () => {
           exit: [
             'referencedAction',
             assign({
-              executedAssigns: (ctx: any) => [...ctx.executedAssigns, 'inline']
+              executedAssigns: ({ context }) => [
+                ...context.executedAssigns,
+                'inline'
+              ]
             })
           ]
         },
         {
           actions: {
             referencedAction: assign({
-              executedAssigns: (ctx) => [...ctx.executedAssigns, 'referenced']
+              executedAssigns: ({ context }) => [
+                ...context.executedAssigns,
+                'referenced'
+              ]
             })
           }
         }
@@ -2242,7 +2248,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: (_, __, { spawn }) => spawn(child, { id: 'x' })
+            child: ({ meta: { spawn } }) => spawn(child, { id: 'x' })
           }),
           on: {
             EVENT: {
@@ -3119,9 +3125,9 @@ describe('assign action order', () => {
       context: { count: 0 },
       entry: [
         ({ context }) => captured.push(context.count), // 0
-        assign({ count: (context) => context.count + 1 }),
+        assign({ count: ({ context }) => context.count + 1 }),
         ({ context }) => captured.push(context.count), // 1
-        assign({ count: (context) => context.count + 1 }),
+        assign({ count: ({ context }) => context.count + 1 }),
         ({ context }) => captured.push(context.count) // 2
       ]
     });
@@ -3145,9 +3151,9 @@ describe('assign action order', () => {
           ({ context }) => captured.push(context.count), // 0
           pure(() => {
             return [
-              assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
+              assign<CountCtx>({ count: ({ context }) => context.count + 1 }),
               { type: 'capture' }, // 1
-              assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
+              assign<CountCtx>({ count: ({ context }) => context.count + 1 })
             ];
           }),
           ({ context }) => captured.push(context.count) // 2
@@ -3175,7 +3181,7 @@ describe('assign action order', () => {
       on: {
         EV: {
           actions: [
-            assign({ counter: (ctx) => ctx.counter + 1 }),
+            assign({ counter: ({ context }) => context.counter + 1 }),
             ({ context }) => captured.push(context.counter)
           ]
         }
@@ -3210,28 +3216,28 @@ describe('types', () => {
         // @ts-expect-error
         assign({ count: () => 'string' }),
 
-        assign({ count: (ctx) => ctx.count + 31 }),
+        assign({ count: ({ context }) => context.count + 31 }),
         // @ts-expect-error
-        assign({ count: (ctx) => ctx.text + 31 }),
+        assign({ count: ({ context }) => context.text + 31 }),
 
         assign(() => ({ count: 31 })),
         // @ts-expect-error
         assign(() => ({ count: 'string' })),
 
-        assign((ctx) => ({ count: ctx.count + 31 })),
+        assign(({ context }) => ({ count: context.count + 31 })),
         // @ts-expect-error
-        assign((ctx) => ({ count: ctx.text + 31 }))
+        assign(({ context }) => ({ count: context.text + 31 }))
       ],
       on: {
         say: {
           actions: [
-            assign({ text: (_, e) => e.value }),
+            assign({ text: ({ event }) => event.value }),
             // @ts-expect-error
-            assign({ count: (_, e) => e.value }),
+            assign({ count: ({ event }) => event.value }),
 
-            assign((_, e) => ({ text: e.value })),
+            assign(({ event }) => ({ text: event.value })),
             // @ts-expect-error
-            assign((_, e) => ({ count: e.value }))
+            assign(({ event }) => ({ count: event.value }))
           ]
         }
       }
@@ -3256,28 +3262,42 @@ describe('types', () => {
         // @ts-expect-error
         choose([{ actions: assign({ count: () => 'string' }) }]),
 
-        choose([{ actions: assign({ count: (ctx) => ctx.count + 31 }) }]),
-        // @ts-expect-error
-        choose([{ actions: assign({ count: (ctx) => ctx.text + 31 }) }]),
+        choose([
+          { actions: assign({ count: ({ context }) => context.count + 31 }) }
+        ]),
+        choose([
+          // @ts-expect-error
+          { actions: assign({ count: ({ context }) => context.text + 31 }) }
+        ]),
 
         choose([{ actions: assign(() => ({ count: 31 })) }]),
         // @ts-expect-error
         choose([{ actions: assign(() => ({ count: 'string' })) }]),
 
-        choose([{ actions: assign((ctx) => ({ count: ctx.count + 31 })) }]),
-        // @ts-expect-error
-        choose([{ actions: assign((ctx) => ({ count: ctx.text + 31 })) }])
+        choose([
+          { actions: assign(({ context }) => ({ count: context.count + 31 })) }
+        ]),
+        choose([
+          // @ts-expect-error
+          { actions: assign(({ context }) => ({ count: context.text + 31 })) }
+        ])
       ],
       on: {
         say: {
           actions: [
-            choose([{ actions: assign({ text: (_, e) => e.value }) }]),
-            // @ts-expect-error
-            choose([{ actions: assign({ count: (_, e) => e.value }) }]),
+            choose([{ actions: assign({ text: ({ event }) => event.value }) }]),
+            choose([
+              // @ts-expect-error
+              { actions: assign({ count: ({ event }) => event.value }) }
+            ]),
 
-            choose([{ actions: assign((_, e) => ({ text: e.value })) }]),
-            // @ts-expect-error
-            choose([{ actions: assign((_, e) => ({ count: e.value })) }])
+            choose([
+              { actions: assign(({ event }) => ({ text: event.value })) }
+            ]),
+            choose([
+              // @ts-expect-error
+              { actions: assign(({ event }) => ({ count: event.value })) }
+            ])
           ]
         }
       }

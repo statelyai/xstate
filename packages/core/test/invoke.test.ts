@@ -133,7 +133,9 @@ describe('invoke', () => {
               guard: ({ context }) => context.count === -3
             },
             on: {
-              DEC: { actions: assign({ count: (ctx) => ctx.count - 1 }) },
+              DEC: {
+                actions: assign({ count: ({ context }) => context.count - 1 })
+              },
               FORWARD_DEC: {
                 actions: sendTo('child', { type: 'FORWARD_DEC' })
               }
@@ -938,7 +940,7 @@ describe('invoke', () => {
                 ),
                 onDone: {
                   target: 'success',
-                  actions: assign({ count: (_, e) => e.data.count })
+                  actions: assign({ count: ({ event }) => event.data.count })
                 }
               }
             },
@@ -968,7 +970,7 @@ describe('invoke', () => {
                   src: 'somePromise',
                   onDone: {
                     target: 'success',
-                    actions: assign({ count: (_, e) => e.data.count })
+                    actions: assign({ count: ({ event }) => event.data.count })
                   }
                 }
               },
@@ -1146,8 +1148,8 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
-                            actions: assign((_ctx, ev) => ({
-                              result1: ev.data.result
+                            actions: assign(({ event }) => ({
+                              result1: event.data.result
                             }))
                           }
                         }
@@ -1165,8 +1167,8 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
-                            actions: assign((_ctx, ev) => ({
-                              result2: ev.data.result
+                            actions: assign(({ event }) => ({
+                              result2: event.data.result
                             }))
                           }
                         }
@@ -1447,7 +1449,9 @@ describe('invoke', () => {
               guard: ({ context }) => context.count === 3
             },
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) }
+              INC: {
+                actions: assign({ count: ({ context }) => context.count + 1 })
+              }
             }
           },
           finished: {
@@ -1618,7 +1622,7 @@ describe('invoke', () => {
               }),
               onDone: {
                 target: 'success',
-                actions: assign((_, { data: result }) => ({ result }))
+                actions: assign(({ event: { data: result } }) => ({ result }))
               }
             }
           },
@@ -1802,7 +1806,7 @@ describe('invoke', () => {
             invoke: {
               src: fromObservable(() => interval(10)),
               onSnapshot: {
-                actions: assign({ count: (_, e) => e.data })
+                actions: assign({ count: ({ event }) => event.data })
               }
             },
             always: {
@@ -1844,7 +1848,7 @@ describe('invoke', () => {
               src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
-                  count: (_, e) => e.data
+                  count: ({ event }) => event.data
                 })
               },
               onDone: {
@@ -1893,7 +1897,7 @@ describe('invoke', () => {
                 )
               ),
               onSnapshot: {
-                actions: assign({ count: (_, e) => e.data })
+                actions: assign({ count: ({ event }) => event.data })
               },
               onError: {
                 target: 'success',
@@ -1939,7 +1943,7 @@ describe('invoke', () => {
             },
             on: {
               COUNT: {
-                actions: assign({ count: (_, e) => e.value })
+                actions: assign({ count: ({ event }) => event.value })
               }
             },
             always: {
@@ -1992,7 +1996,7 @@ describe('invoke', () => {
             on: {
               COUNT: {
                 actions: assign({
-                  count: (_, e) => e.value
+                  count: ({ event }) => event.value
                 })
               }
             }
@@ -2048,7 +2052,7 @@ describe('invoke', () => {
             },
             on: {
               COUNT: {
-                actions: assign({ count: (_, e) => e.value })
+                actions: assign({ count: ({ event }) => event.value })
               }
             }
           },
@@ -2555,7 +2559,7 @@ describe('invoke', () => {
             ]
           },
           inactive: {
-            entry: assign({ counter: (ctx) => ++ctx.counter }),
+            entry: assign({ counter: ({ context }) => ++context.counter }),
             always: 'active'
           }
         }

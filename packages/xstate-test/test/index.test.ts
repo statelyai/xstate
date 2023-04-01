@@ -160,7 +160,7 @@ describe('state limiting', () => {
           on: {
             INC: {
               actions: assign({
-                count: (ctx) => ctx.count + 1
+                count: ({ context }) => context.count + 1
               })
             }
           }
@@ -189,7 +189,7 @@ it('prevents infinite recursion based on a provided limit', () => {
     },
     on: {
       TOGGLE: {
-        actions: assign({ count: (ctx) => ctx.count + 1 })
+        actions: assign({ count: ({ context }) => context.count + 1 })
       }
     }
   });

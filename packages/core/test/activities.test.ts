@@ -420,8 +420,8 @@ describe('invocations (activities)', () => {
           },
           on: {
             INC: {
-              actions: assign((ctx) => ({
-                counter: ctx.counter + 1
+              actions: assign(({ context }) => ({
+                counter: context.counter + 1
               }))
             }
           }

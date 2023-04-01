@@ -16,7 +16,7 @@ export default createMachine<any>({
             return context.x === 99;
           },
           actions: assign({
-            x: (ctx) => ctx.x + 1
+            x: ({ context }) => context.x + 1
           })
         }
       }
@@ -26,7 +26,7 @@ export default createMachine<any>({
       //   ctx.x *= 2;
       // },
       entry: assign({
-        x: (ctx) => ctx.x * 2
+        x: ({ context }) => context.x * 2
       }),
       always: [
         {
