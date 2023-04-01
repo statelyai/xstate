@@ -47,7 +47,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      data: { user: (_: any, e: any) => e.user }
+      data: { user: ({ event }) => event.user }
     },
     failure: {
       entry: sendParent({ type: 'REJECT' })
@@ -72,9 +72,9 @@ const fetcherMachine = createMachine({
     waiting: {
       invoke: {
         src: fetchMachine,
-        input: {
-          userId: (ctx: any) => ctx.selectedUserId
-        },
+        input: ({ context }) => ({
+          userId: context.selectedUserId
+        }),
         onDone: {
           target: 'received',
           guard: ({ event }) => {
@@ -193,7 +193,7 @@ describe('invoke', () => {
         },
         success: {
           type: 'final',
-          data: { user: (_: any, e: any) => e.user }
+          data: { user: ({ event }) => event.user }
         },
         failure: {
           entry: sendParent({ type: 'REJECT' })
@@ -217,9 +217,9 @@ describe('invoke', () => {
         waiting: {
           invoke: {
             src: childMachine,
-            input: {
-              userId: (ctx: any) => ctx.selectedUserId
-            },
+            input: ({ context }) => ({
+              userId: context.selectedUserId
+            }),
             onDone: {
               target: 'received',
               guard: ({ event }) => {
@@ -744,7 +744,7 @@ describe('invoke', () => {
                   }
                 })
               ),
-              input: (ctx) => ctx,
+              input: ({ context }) => context,
               onDone: {
                 target: 'success',
                 guard: ({ context, event }) => {
@@ -1093,9 +1093,9 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
-                  input: (ctx, ev) => ({
-                    foo: ctx.foo,
-                    event: ev
+                  input: ({ context, event }) => ({
+                    foo: context.foo,
+                    event: event
                   }),
                   onDone: 'last'
                 }
@@ -1242,9 +1242,9 @@ describe('invoke', () => {
             first: {
               invoke: {
                 src: 'someCallback',
-                input: (ctx, ev) => ({
-                  foo: ctx.foo,
-                  event: ev
+                input: ({ context, event }) => ({
+                  foo: context.foo,
+                  event: event
                 })
               },
               on: {
@@ -2704,7 +2704,7 @@ describe('invoke', () => {
           searching: {
             invoke: {
               src: 'search',
-              input: (context) => ({ endpoint: context.url }),
+              input: ({ context }) => ({ endpoint: context.url }),
               onDone: 'success'
             }
           },
@@ -3096,9 +3096,9 @@ describe('actors option', () => {
           pending: {
             invoke: {
               src: 'stringService',
-              input: (ctx) => ({
+              input: ({ context }) => ({
                 staticVal: 'hello',
-                newCount: ctx.count * 2 // TODO: types
+                newCount: context.count * 2 // TODO: types
               }),
               onDone: 'success'
             }

@@ -1365,7 +1365,7 @@ export type Mapper<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TParams extends {}
-> = (context: TContext, event: TEvent) => TParams;
+> = (args: { context: TContext; event: TEvent }) => TParams;
 
 export type PropertyMapper<
   TContext extends MachineContext,
@@ -1373,7 +1373,7 @@ export type PropertyMapper<
   TParams extends {}
 > = {
   [K in keyof TParams]?:
-    | ((context: TContext, event: TEvent) => TParams[K])
+    | ((args: { context: TContext; event: TEvent }) => TParams[K])
     | TParams[K];
 };
 
