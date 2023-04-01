@@ -171,7 +171,7 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: assign(({ meta: { system } }) => {
+      entry: assign(({ system }) => {
         expect(system!.get('test')).toBeDefined();
       })
     });

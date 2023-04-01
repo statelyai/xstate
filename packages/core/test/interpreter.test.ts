@@ -72,7 +72,7 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: ({ meta: { spawn } }) => {
+              actor: ({ spawn }) => {
                 return spawn(
                   fromPromise(
                     () =>
@@ -1723,8 +1723,7 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: ({ meta: { spawn } }) =>
-            spawn(childMachine, { id: 'child' })
+          firstNameRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
         }),
         states: {
           idle: {}
@@ -1756,9 +1755,9 @@ describe('interpreter', () => {
           observableRef: ActorRef<any, any>;
         },
         entry: assign({
-          machineRef: ({ meta: { spawn } }) =>
+          machineRef: ({ spawn }) =>
             spawn(childMachine, { id: 'machineChild' }),
-          promiseRef: ({ meta: { spawn } }) =>
+          promiseRef: ({ spawn }) =>
             spawn(
               fromPromise(
                 () =>
@@ -1768,7 +1767,7 @@ describe('interpreter', () => {
               ),
               { id: 'promiseChild' }
             ),
-          observableRef: ({ meta: { spawn } }) =>
+          observableRef: ({ spawn }) =>
             spawn(
               fromObservable(() => interval(1000)),
               { id: 'observableChild' }

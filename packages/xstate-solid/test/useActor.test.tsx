@@ -220,7 +220,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: ({ meta: { spawn } }) => spawn(childMachine)
+            actorRef: ({ spawn }) => spawn(childMachine)
           }),
           on: { FINISH: 'success' }
         },
@@ -303,7 +303,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: ({ meta: { spawn } }) => spawn(childMachine)
+            actorRef: ({ spawn }) => spawn(childMachine)
           })
         }
       }
@@ -602,7 +602,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: ({ meta: { spawn } }) => spawn(childMachine)
+            actorRef: ({ spawn }) => spawn(childMachine)
           }),
           on: { FINISH: 'success' }
         },

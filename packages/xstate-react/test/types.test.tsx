@@ -72,7 +72,7 @@ describe('useMachine', () => {
       {
         actions: {
           spawnActor: assign({
-            actor: ({ meta: { spawn } }) => spawn(child)
+            actor: ({ spawn }) => spawn(child)
           })
         }
       }

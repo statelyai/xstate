@@ -1614,7 +1614,7 @@ describe('entry/exit actions', () => {
         id: 'parent',
         context: {},
         exit: assign({
-          actorRef: ({ meta: { spawn } }) => spawn(grandchild)
+          actorRef: ({ spawn }) => spawn(grandchild)
         })
       });
 
@@ -2248,7 +2248,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: ({ meta: { spawn } }) => spawn(child, { id: 'x' })
+            child: ({ spawn }) => spawn(child, { id: 'x' })
           }),
           on: {
             EVENT: {

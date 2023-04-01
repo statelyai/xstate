@@ -757,7 +757,7 @@ describe('State', () => {
           a: {
             on: {
               SPAWN: {
-                actions: assign(({ meta: { spawn } }) => ({
+                actions: assign(({ spawn }) => ({
                   ref: spawn(
                     fromCallback(() => {
                       spawned = true;

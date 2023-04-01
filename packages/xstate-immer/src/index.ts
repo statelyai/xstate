@@ -32,7 +32,7 @@ function immerAssign<
   TEvent extends EventObject = TExpressionEvent
 >(recipe: ImmerAssigner<TContext, TExpressionEvent, TEvent>) {
   return xstateAssign<TContext, TExpressionEvent, TEvent>(
-    ({ context, event, meta }) => {
+    ({ context, event, ...meta }) => {
       return produce(context, (draft) => void recipe(draft, event, meta));
     }
   );

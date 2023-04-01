@@ -73,7 +73,7 @@ export function assign<
         partialUpdate = assignment({
           context: state.context,
           event: _event.data,
-          meta
+          ...meta
         });
       } else {
         for (const key of Object.keys(assignment)) {
@@ -82,7 +82,7 @@ export function assign<
             ? propAssignment({
                 context: state.context,
                 event: _event.data,
-                meta
+                ...meta
               })
             : propAssignment;
         }

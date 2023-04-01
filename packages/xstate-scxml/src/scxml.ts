@@ -174,7 +174,7 @@ function mapAction<
       } as TEvent);
     }
     case 'assign': {
-      return actions.assign<TContext, TEvent>(({ context, event, meta }) => {
+      return actions.assign<TContext, TEvent>(({ context, event, ...meta }) => {
         const fnBody = `
             return {'${element.attributes!.location}': ${
           element.attributes!.expr

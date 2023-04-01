@@ -198,7 +198,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       states: {
         start: {
           entry: assign({
-            ref: ({ meta: { spawn } }) =>
+            ref: ({ spawn }) =>
               spawn(
                 fromPromise(() => {
                   return new Promise((res) => res(42));

@@ -82,7 +82,7 @@ describe('spawning machines', () => {
       init: {
         entry: [
           assign({
-            server: ({ meta: { spawn } }) => spawn(serverMachine)
+            server: ({ spawn }) => spawn(serverMachine)
           }),
           raise({ type: 'SUCCESS' })
         ],
@@ -141,7 +141,7 @@ describe('spawning machines', () => {
       on: {
         ADD: {
           actions: assign({
-            todoRefs: ({ context, event, meta: { spawn } }) => ({
+            todoRefs: ({ context, event, spawn }) => ({
               ...context.todoRefs,
               [event.id]: spawn(todoMachine)
             })
@@ -183,7 +183,7 @@ describe('spawning machines', () => {
         states: {
           waiting: {
             entry: assign({
-              ref: ({ meta: { spawn } }) => spawn('child')
+              ref: ({ spawn }) => spawn('child')
             }),
             on: {
               DONE: 'success'
@@ -228,7 +228,7 @@ describe('spawning promises', () => {
       states: {
         idle: {
           entry: assign({
-            promiseRef: ({ meta: { spawn } }) => {
+            promiseRef: ({ spawn }) => {
               const ref = spawn(
                 fromPromise(
                   () =>
@@ -273,7 +273,7 @@ describe('spawning promises', () => {
         states: {
           idle: {
             entry: assign({
-              promiseRef: ({ meta: { spawn } }) =>
+              promiseRef: ({ spawn }) =>
                 spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
@@ -319,7 +319,7 @@ describe('spawning callbacks', () => {
       states: {
         idle: {
           entry: assign({
-            callbackRef: ({ meta: { spawn } }) =>
+            callbackRef: ({ spawn }) =>
               spawn(
                 fromCallback((cb, receive) => {
                   receive((event) => {
@@ -368,7 +368,7 @@ describe('spawning observables', () => {
       states: {
         idle: {
           entry: assign({
-            observableRef: ({ meta: { spawn } }) => {
+            observableRef: ({ spawn }) => {
               const ref = spawn(observableBehavior, { id: 'int' });
 
               return ref;
@@ -405,8 +405,7 @@ describe('spawning observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: ({ meta: { spawn } }) =>
-                spawn('interval', { id: 'int' })
+              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
             }),
             on: {
               'xstate.snapshot.int': {
@@ -445,7 +444,7 @@ describe('spawning observables', () => {
       states: {
         idle: {
           entry: assign({
-            observableRef: ({ meta: { spawn } }) => {
+            observableRef: ({ spawn }) => {
               const ref = spawn(observableBehavior, { id: 'int' });
 
               return ref;
@@ -492,7 +491,7 @@ describe('spawning event observables', () => {
       states: {
         idle: {
           entry: assign({
-            observableRef: ({ meta: { spawn } }) => {
+            observableRef: ({ spawn }) => {
               const ref = spawn(eventObservableBehavior, { id: 'int' });
 
               return ref;
@@ -529,8 +528,7 @@ describe('spawning event observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: ({ meta: { spawn } }) =>
-                spawn('interval', { id: 'int' })
+              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
             }),
             on: {
               COUNT: {
@@ -731,7 +729,7 @@ describe('actors', () => {
       states: {
         start: {
           entry: assign({
-            refs: ({ context, meta: { spawn } }) => {
+            refs: ({ context, spawn }) => {
               count++;
               const c = context.items.map((item) =>
                 spawn(fromPromise(() => new Promise((res) => res(item))))
@@ -764,7 +762,7 @@ describe('actors', () => {
       states: {
         bar: {
           entry: assign<TestContext>({
-            promise: ({ meta: { spawn } }) => {
+            promise: ({ spawn }) => {
               return spawn(
                 fromPromise(() => {
                   spawnCounter++;
@@ -838,8 +836,7 @@ describe('actors', () => {
       states: {
         foo: {
           entry: assign({
-            ref: ({ meta: { spawn } }) =>
-              spawn(fromPromise(() => Promise.resolve(42)))
+            ref: ({ spawn }) => spawn(fromPromise(() => Promise.resolve(42)))
           })
         }
       }
@@ -869,7 +866,7 @@ describe('actors', () => {
           count: undefined
         },
         entry: assign({
-          count: ({ meta: { spawn } }) => spawn(countBehavior)
+          count: ({ spawn }) => spawn(countBehavior)
         }),
         on: {
           INC: {
@@ -898,7 +895,7 @@ describe('actors', () => {
           count: undefined
         },
         entry: assign({
-          count: ({ meta: { spawn } }) =>
+          count: ({ spawn }) =>
             spawn(
               fromPromise(
                 () =>
@@ -992,7 +989,7 @@ describe('actors', () => {
           ponger: undefined
         },
         entry: assign({
-          ponger: ({ meta: { spawn } }) => spawn(pongBehavior)
+          ponger: ({ spawn }) => spawn(pongBehavior)
         }),
         states: {
           waiting: {
@@ -1102,7 +1099,7 @@ describe('actors', () => {
       {
         actions: {
           setup: assign({
-            child: ({ meta: { spawn } }) => spawn(childMachine)
+            child: ({ spawn }) => spawn(childMachine)
           })
         }
       }
@@ -1121,7 +1118,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: ({ meta: { spawn } }) =>
+        child: ({ spawn }) =>
           spawn(fromPromise(() => ({ then: (fn: any) => fn(null) } as any)))
       })
     });
@@ -1147,8 +1144,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: ({ meta: { spawn } }) =>
-          spawn(fromObservable(createEmptyObservable))
+        child: ({ spawn }) => spawn(fromObservable(createEmptyObservable))
       })
     });
     const service = interpret(parentMachine);
@@ -1165,7 +1161,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: ({ meta: { spawn } }) =>
+        child: ({ spawn }) =>
           spawn(
             fromObservable(() => EMPTY),
             { id: 'myactor' }

@@ -269,7 +269,7 @@ describe('assign meta', () => {
     states: {
       start: {
         entry: assign({
-          count: ({ meta: { state } }) => {
+          count: ({ state }) => {
             return state === undefined ? 1 : -1;
           }
         }),
@@ -278,20 +278,20 @@ describe('assign meta', () => {
           NEXT: {
             target: 'two',
             actions: assign({
-              count: ({ meta: { state } }) => {
+              count: ({ state }) => {
                 return state ? state.meta['assign.start'].test : -1;
               }
             })
           },
           NEXT_FN: {
             target: 'two',
-            actions: assign(({ meta: { state } }) => ({
+            actions: assign(({ state }) => ({
               count: state ? state.meta['assign.start'].test : -1
             }))
           },
           NEXT_ASSIGNER: {
             target: 'two',
-            actions: assign(({ meta: { action } }) => ({
+            actions: assign(({ action }) => ({
               count: action.params?.assignment ? 5 : -1
             }))
           }
@@ -337,7 +337,7 @@ describe('assign meta', () => {
       states: {
         start: {
           entry: assign({
-            count: ({ meta: { state } }) => {
+            count: ({ state }) => {
               receivedCount = state.context.count;
               return 0;
             }
@@ -356,10 +356,10 @@ describe('assign meta', () => {
       eventLog: Array<{ event: string; origin?: ActorRef<any> }>;
     }
 
-    const assignEventLog = assign<Ctx>(({ context, event, meta }) => ({
+    const assignEventLog = assign<Ctx>(({ context, event, _event }) => ({
       eventLog: context.eventLog.concat({
         event: event.type,
-        origin: meta._event.origin
+        origin: _event.origin
       })
     }));
 
@@ -448,7 +448,7 @@ describe('assign meta', () => {
         },
         {
           actions: {
-            inc: assign(({ context, meta: { action } }) => {
+            inc: assign(({ context, action }) => {
               expect(action).toEqual({ type: 'inc', params: { value: 5 } });
               done();
               return context;

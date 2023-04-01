@@ -151,7 +151,7 @@ describe('usage of selectors with reactive service state', () => {
       childActor: ActorRefFrom<typeof childMachine>;
     }>({
       entry: assign({
-        childActor: ({ meta: { spawn } }) => spawn(childMachine)
+        childActor: ({ spawn }) => spawn(childMachine)
       })
     });
 
@@ -201,7 +201,7 @@ describe('usage of selectors with reactive service state', () => {
       childActor: ActorRefFrom<typeof childMachine>;
     }>({
       entry: assign({
-        childActor: ({ meta: { spawn } }) => spawn(childMachine)
+        childActor: ({ spawn }) => spawn(childMachine)
       })
     });
     const [prop, setProp] = createSignal('first');
@@ -244,13 +244,13 @@ describe('usage of selectors with reactive service state', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: ({ meta: { spawn } }) => spawn(childMachine(1))
+            actorRef: ({ spawn }) => spawn(childMachine(1))
           }),
           on: {
             CHANGE: {
               actions: [
                 assign({
-                  actorRef: ({ meta: { spawn } }) => spawn(childMachine(0))
+                  actorRef: ({ spawn }) => spawn(childMachine(0))
                 })
               ]
             }
@@ -303,7 +303,7 @@ describe('usage of selectors with reactive service state', () => {
       childActor: ActorRefFrom<typeof childMachine>;
     }>({
       entry: assign({
-        childActor: ({ meta: { spawn } }) => spawn(childMachine)
+        childActor: ({ spawn }) => spawn(childMachine)
       })
     });
     const [prop, setProp] = createSignal('first');

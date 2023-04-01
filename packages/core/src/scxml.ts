@@ -152,7 +152,7 @@ function mapAction<
       } as TEvent);
     }
     case 'assign': {
-      return assign<TContext, TEvent>(({ context, event, meta }) => {
+      return assign<TContext, TEvent>(({ context, event, ...meta }) => {
         const fnBody = `
 
 ${element.attributes!.location};

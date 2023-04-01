@@ -208,7 +208,7 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: ({ meta: { spawn } }) =>
+            ref: ({ spawn }) =>
               spawn(
                 fromPromise(() => new Promise((res) => res(42))),
                 { id: 'my-promise' }

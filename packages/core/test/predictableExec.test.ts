@@ -280,7 +280,7 @@ describe('predictableExec', () => {
                   return context.actorRef;
                 }),
                 assign({
-                  actorRef: ({ meta: { spawn } }) => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -340,7 +340,7 @@ describe('predictableExec', () => {
               actions: [
                 stop(({ context }) => context.actorRef),
                 assign({
-                  actorRef: ({ meta: { spawn } }) => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -400,7 +400,7 @@ describe('predictableExec', () => {
               actions: [
                 stop('my_name'),
                 assign({
-                  actorRef: ({ meta: { spawn } }) => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -460,7 +460,7 @@ describe('predictableExec', () => {
               actions: [
                 stop(() => 'my_name'),
                 assign({
-                  actorRef: ({ meta: { spawn } }) => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(

@@ -62,7 +62,7 @@ describe('SCXML events', () => {
             EVENT: {
               target: 'success',
               actions: assign({
-                childOrigin: ({ meta: { _event } }) => {
+                childOrigin: ({ _event }) => {
                   return _event.origin?.id;
                 }
               })
