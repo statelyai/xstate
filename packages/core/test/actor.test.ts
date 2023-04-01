@@ -245,7 +245,7 @@ describe('spawning promises', () => {
           on: {
             [doneInvoke('my-promise')]: {
               target: 'success',
-              guard: (_, e) => e.data === 'response'
+              guard: ({ event }) => event.data === 'response'
             }
           }
         },
@@ -279,7 +279,7 @@ describe('spawning promises', () => {
             on: {
               [doneInvoke('my-promise')]: {
                 target: 'success',
-                guard: (_, e) => e.data === 'response'
+                guard: ({ event }) => event.data === 'response'
               }
             }
           },
@@ -377,7 +377,7 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: (_, e) => e.data === 5
+              guard: ({ event }) => event.data === 5
             }
           }
         },
@@ -411,7 +411,7 @@ describe('spawning observables', () => {
             on: {
               'xstate.snapshot.int': {
                 target: 'success',
-                guard: (_, e) => e.data === 5
+                guard: ({ event }) => event.data === 5
               }
             }
           },
@@ -454,8 +454,10 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: (ctx: any, e: any) => {
-                return e.data === 1 && ctx.observableRef.getSnapshot() === 1;
+              guard: ({ context, event }) => {
+                return (
+                  event.data === 1 && context.observableRef.getSnapshot() === 1
+                );
               }
             }
           }
@@ -499,7 +501,7 @@ describe('spawning event observables', () => {
           on: {
             COUNT: {
               target: 'success',
-              guard: (_: any, e: any) => e.val === 5
+              guard: ({ event }) => event.val === 5
             }
           }
         },
@@ -533,7 +535,7 @@ describe('spawning event observables', () => {
             on: {
               COUNT: {
                 target: 'success',
-                guard: (_: any, e: any) => e.val === 5
+                guard: ({ event }) => event.val === 5
               }
             }
           },
@@ -913,7 +915,7 @@ describe('actors', () => {
             on: {
               'done.invoke.test': {
                 target: 'success',
-                guard: (_, e) => e.data === 42
+                guard: ({ event }) => event.data === 42
               }
             }
           },
@@ -951,8 +953,8 @@ describe('actors', () => {
             on: {
               [error('test')]: {
                 target: 'success',
-                guard: (_, e) => {
-                  return e.data === errorMessage;
+                guard: ({ event }) => {
+                  return event.data === errorMessage;
                 }
               }
             }
@@ -971,7 +973,7 @@ describe('actors', () => {
 
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: ActorBehavior<EventObject, undefined> = {
-        transition: (_, event, { self }) => {
+        transition: (_state, event, { self }) => {
           const _event = toSCXMLEvent(event);
           if (_event.name === 'PING') {
             self._parent?.send({ type: 'PONG' });

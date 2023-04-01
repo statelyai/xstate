@@ -47,7 +47,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -81,7 +81,7 @@ describe('typegen types', () => {
       },
       {
         delays: {
-          myDelay: (_ctx, event) => {
+          myDelay: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -117,7 +117,7 @@ describe('typegen types', () => {
       },
       {
         guards: {
-          myGuard: (_ctx, event) => {
+          myGuard: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -602,7 +602,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             event.type === 'xstate.init';
           }
         }
@@ -636,7 +636,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             if (event.type === 'FOO') {
               return;
             }
@@ -682,7 +682,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             if (event.type === 'FOO') {
               return;
             }

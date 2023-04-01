@@ -23,16 +23,17 @@ describe('guard conditions', () => {
             TIMER: [
               {
                 target: 'green',
-                guard: ({ elapsed }) => elapsed < 100
+                guard: ({ context: { elapsed } }) => elapsed < 100
               },
               {
                 target: 'yellow',
-                guard: ({ elapsed }) => elapsed >= 100 && elapsed < 200
+                guard: ({ context: { elapsed } }) =>
+                  elapsed >= 100 && elapsed < 200
               }
             ],
             EMERGENCY: {
               target: 'red',
-              guard: (_, event) => !!event.isEmergency
+              guard: ({ event }) => !!event.isEmergency
             }
           }
         },
@@ -62,7 +63,8 @@ describe('guard conditions', () => {
     },
     {
       guards: {
-        minTimeElapsed: ({ elapsed }) => elapsed >= 100 && elapsed < 200
+        minTimeElapsed: ({ context: { elapsed } }) =>
+          elapsed >= 100 && elapsed < 200
       }
     }
   );
@@ -222,29 +224,26 @@ describe('guard conditions', () => {
             always: [
               {
                 target: 'B4',
-                guard: (_state, _event, { state: s }) => s.matches('A.A4')
+                guard: ({ meta: { state: s } }) => s.matches('A.A4')
               }
             ],
             on: {
               T1: [
                 {
                   target: 'B1',
-                  guard: (_state: any, _event: any, { state: s }: any) =>
-                    s.matches('A.A1')
+                  guard: ({ meta: { state: s } }) => s.matches('A.A1')
                 }
               ],
               T2: [
                 {
                   target: 'B2',
-                  guard: (_state: any, _event: any, { state: s }: any) =>
-                    s.matches('A.A2')
+                  guard: ({ meta: { state: s } }) => s.matches('A.A2')
                 }
               ],
               T3: [
                 {
                   target: 'B3',
-                  guard: (_state: any, _event: any, { state: s }: any) =>
-                    s.matches('A.A3')
+                  guard: ({ meta: { state: s } }) => s.matches('A.A3')
                 }
               ]
             }
@@ -299,8 +298,7 @@ describe('guard conditions', () => {
           tags: 'theTag',
           on: {
             MICRO: {
-              guard: (_ctx: any, _event: any, { state }: any) =>
-                state.hasTag('theTag'),
+              guard: ({ meta: { state } }) => state.hasTag('theTag'),
               target: 'c'
             }
           }
@@ -348,10 +346,12 @@ describe('custom guards', () => {
     },
     {
       guards: {
-        custom: (ctx, e: Extract<Events, { type: 'EVENT' }>, meta) => {
+        custom: ({ context, event, meta }) => {
           const { prop, compare, op } = meta.guard.params;
           if (op === 'greaterThan') {
-            return ctx[prop as keyof typeof ctx] + e.value > compare;
+            return (
+              context[prop as keyof typeof context] + event.value > compare
+            );
           }
 
           return false;
@@ -497,7 +497,7 @@ describe('guards with child guards', () => {
                     },
                     { type: 'customGuard' }
                   ],
-                  predicate: (_: any, __: any, { guard }: any) => {
+                  predicate: ({ meta: { guard } }) => {
                     expect(guard.children).toHaveLength(2);
                     expect(
                       guard.children?.find(
@@ -594,7 +594,7 @@ describe('not() guard', () => {
       },
       {
         guards: {
-          greaterThan10: (_, __, { guard }) => {
+          greaterThan10: ({ meta: { guard } }) => {
             return guard.params.value > 10;
           }
         }
@@ -707,7 +707,7 @@ describe('and() guard', () => {
       },
       {
         guards: {
-          greaterThan10: (_, __, { guard }) => {
+          greaterThan10: ({ meta: { guard } }) => {
             return guard.params.value > 10;
           }
         }
@@ -825,7 +825,7 @@ describe('or() guard', () => {
       },
       {
         guards: {
-          greaterThan10: (_, __, { guard }) => {
+          greaterThan10: ({ meta: { guard } }) => {
             return guard.params.value > 10;
           }
         }

@@ -415,7 +415,7 @@ describe('invocations (activities)', () => {
             })
           },
           always: {
-            guard: (ctx) => ctx.counter !== 0,
+            guard: ({ context }) => context.counter !== 0,
             target: 'b'
           },
           on: {

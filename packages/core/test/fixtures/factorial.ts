@@ -11,7 +11,7 @@ const factorialMachine = createMachine<{ n: number; fac: number }>({
         ITERATE: [
           {
             target: 'iteration',
-            guard: (xs) => xs.n > 0,
+            guard: ({ context: xs }) => xs.n > 0,
             actions: [
               assign({
                 fac: (xs) => xs.n * xs.fac,
@@ -24,7 +24,7 @@ const factorialMachine = createMachine<{ n: number; fac: number }>({
       }
     },
     done: {
-      entry: [(xs) => console.log(`The answer is ${xs.fac}`)]
+      entry: [({ context: xs }) => console.log(`The answer is ${xs.fac}`)]
     }
   }
 });
@@ -39,11 +39,11 @@ const testMachine = createMachine<{ count: number }>({
         ADD: [
           {
             target: 'one',
-            guard: (xs) => xs.count === 1
+            guard: ({ context: xs }) => xs.count === 1
           },
           {
             target: 'init',
-            guard: (xs) => xs.count % 2 === 0,
+            guard: ({ context: xs }) => xs.count % 2 === 0,
             actions: [
               assign({
                 count: (xs) => xs.count / 2

@@ -165,7 +165,7 @@ describe('useMachine', () => {
         useMachine(machine, {
           actions: {
             // it's important to use `event` here somehow to make this a possible source of information for inference
-            fooAction: (_context, _event) => {}
+            fooAction: ({ event: _event }) => {}
           }
         });
       }
@@ -370,7 +370,8 @@ describe('useInterpret', () => {
         useInterpret(machine, {
           actions: {
             // it's important to use `event` here somehow to make this a possible source of information for inference
-            fooAction: (_context, _event) => {}
+            // TODO: is it though?
+            fooAction: () => {}
           }
         });
       }

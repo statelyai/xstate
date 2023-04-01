@@ -41,7 +41,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
       on: {
         RESOLVE: {
           target: 'success',
-          guard: (ctx) => ctx.userId !== undefined
+          guard: ({ context }) => context.userId !== undefined
         }
       }
     },
@@ -77,9 +77,9 @@ const fetcherMachine = createMachine({
         },
         onDone: {
           target: 'received',
-          guard: (_, e) => {
+          guard: ({ event }) => {
             // Should receive { user: { name: 'David' } } as event data
-            return e.data.user.name === 'David';
+            return event.data.user.name === 'David';
           }
         }
       }
@@ -130,7 +130,7 @@ describe('invoke', () => {
             },
             always: {
               target: 'stop',
-              guard: (ctx) => ctx.count === -3
+              guard: ({ context }) => context.count === -3
             },
             on: {
               DEC: { actions: assign({ count: (ctx) => ctx.count - 1 }) },
@@ -183,8 +183,8 @@ describe('invoke', () => {
           on: {
             RESOLVE: {
               target: 'success',
-              guard: (ctx) => {
-                return ctx.userId !== undefined;
+              guard: ({ context }) => {
+                return context.userId !== undefined;
               }
             }
           }
@@ -220,9 +220,9 @@ describe('invoke', () => {
             },
             onDone: {
               target: 'received',
-              guard: (_, e) => {
+              guard: ({ event }) => {
                 // Should receive { user: { name: 'David' } } as event data
-                return e.data.user.name === 'David';
+                return event.data.user.name === 'David';
               }
             }
           }
@@ -273,8 +273,8 @@ describe('invoke', () => {
           on: {
             SUCCESS: {
               target: 'success',
-              guard: (_, e) => {
-                return e.data === 42;
+              guard: ({ event }) => {
+                return event.data === 42;
               }
             }
           }
@@ -324,8 +324,8 @@ describe('invoke', () => {
       on: {
         SUCCESS: {
           target: 'success',
-          guard: (_, e) => {
-            return e.data === 42;
+          guard: ({ event }) => {
+            return event.data === 42;
           }
         }
       }
@@ -524,7 +524,7 @@ describe('invoke', () => {
                   src: pongMachine,
                   onDone: {
                     target: 'success',
-                    guard: (_, e) => e.data.secret === 'pingpong'
+                    guard: ({ event }) => event.data.secret === 'pingpong'
                   }
                 }
               },
@@ -745,8 +745,8 @@ describe('invoke', () => {
               input: (ctx) => ctx,
               onDone: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  return e.data === ctx.id;
+                guard: ({ context, event }) => {
+                  return event.data === context.id;
                 }
               },
               onError: 'failure'
@@ -1248,7 +1248,7 @@ describe('invoke', () => {
               on: {
                 CALLBACK: {
                   target: 'last',
-                  guard: (_, e) => e.data === 42
+                  guard: ({ event }) => event.data === 42
                 }
               }
             },
@@ -1444,7 +1444,7 @@ describe('invoke', () => {
             },
             always: {
               target: 'finished',
-              guard: (ctx) => ctx.count === 3
+              guard: ({ context }) => context.count === 3
             },
             on: {
               INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) }
@@ -1529,8 +1529,10 @@ describe('invoke', () => {
               }),
               onError: {
                 target: 'failed',
-                guard: (_, e) => {
-                  return e.data instanceof Error && e.data.message === 'test';
+                guard: ({ event }) => {
+                  return (
+                    event.data instanceof Error && event.data.message === 'test'
+                  );
                 }
               }
             }
@@ -1583,8 +1585,10 @@ describe('invoke', () => {
               }),
               onError: {
                 target: 'failed',
-                guard: (_, e) => {
-                  return e.data instanceof Error && e.data.message === 'test';
+                guard: ({ event }) => {
+                  return (
+                    event.data instanceof Error && event.data.message === 'test'
+                  );
                 }
               }
             }
@@ -1803,7 +1807,7 @@ describe('invoke', () => {
             },
             always: {
               target: 'counted',
-              guard: (ctx) => ctx.count === 5
+              guard: ({ context }) => context.count === 5
             }
           },
           counted: {
@@ -1845,7 +1849,7 @@ describe('invoke', () => {
               },
               onDone: {
                 target: 'counted',
-                guard: (ctx) => ctx.count === 4
+                guard: ({ context }) => context.count === 4
               }
             }
           },
@@ -1893,9 +1897,11 @@ describe('invoke', () => {
               },
               onError: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  expect(e.data.message).toEqual('some error');
-                  return ctx.count === 4 && e.data.message === 'some error';
+                guard: ({ context, event }) => {
+                  expect(event.data.message).toEqual('some error');
+                  return (
+                    context.count === 4 && event.data.message === 'some error'
+                  );
                 }
               }
             }
@@ -1938,7 +1944,7 @@ describe('invoke', () => {
             },
             always: {
               target: 'counted',
-              guard: (ctx) => ctx.count === 5
+              guard: ({ context }) => context.count === 5
             }
           },
           counted: {
@@ -1980,7 +1986,7 @@ describe('invoke', () => {
               ),
               onDone: {
                 target: 'counted',
-                guard: (ctx) => ctx.count === 4
+                guard: ({ context }) => context.count === 4
               }
             },
             on: {
@@ -2032,9 +2038,11 @@ describe('invoke', () => {
               ),
               onError: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  expect(e.data.message).toEqual('some error');
-                  return ctx.count === 4 && e.data.message === 'some error';
+                guard: ({ context, event }) => {
+                  expect(event.data.message).toEqual('some error');
+                  return (
+                    context.count === 4 && event.data.message === 'some error'
+                  );
                 }
               }
             },
@@ -2541,7 +2549,7 @@ describe('invoke', () => {
             },
             always: [
               {
-                guard: (ctx) => ctx.counter === 0,
+                guard: ({ context }) => context.counter === 0,
                 target: 'inactive'
               }
             ]
@@ -2583,7 +2591,7 @@ describe('invoke', () => {
               src: child,
               onError: {
                 target: 'two',
-                guard: (_, event) => event.data === 'oops'
+                guard: ({ event }) => event.data === 'oops'
               }
             }
           },
@@ -2625,7 +2633,7 @@ describe('invoke', () => {
               src: child,
               onError: {
                 target: 'two',
-                guard: (_, event) => {
+                guard: ({ event }) => {
                   expect(event.data).toEqual(42);
                   return true;
                 }
@@ -2692,7 +2700,7 @@ describe('invoke', () => {
           searching: {
             invoke: {
               src: 'search',
-              input: (ctx) => ({ endpoint: ctx.url }),
+              input: (context) => ({ endpoint: context.url }),
               onDone: 'success'
             }
           },
@@ -2760,11 +2768,11 @@ describe('invoke', () => {
             invoke: {
               src: 'someSrc',
               onDone: {
-                guard: (_, e) => {
+                guard: ({ event }) => {
                   // invoke ID should not be 'someSrc'
                   const expectedType = 'done.invoke.(machine).a:invocation[0]';
-                  expect(e.type).toEqual(expectedType);
-                  return e.type === expectedType;
+                  expect(event.type).toEqual(expectedType);
+                  return event.type === expectedType;
                 },
                 target: 'b'
               }

@@ -128,8 +128,16 @@ function createGuard<
   TContext extends object,
   TEvent extends EventObject = EventObject
 >(guard: string) {
-  return (context: TContext, _event: TEvent, meta) => {
-    return evaluateExecutableContent(context, _event, meta, `return ${guard};`);
+  return ({
+    context,
+    event,
+    meta
+  }: {
+    context: TContext;
+    event: TEvent;
+    meta;
+  }) => {
+    return evaluateExecutableContent(context, event, meta, `return ${guard};`);
   };
 }
 

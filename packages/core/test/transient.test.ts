@@ -11,8 +11,8 @@ const greetingMachine = createMachine<typeof greetingContext>({
   states: {
     pending: {
       always: [
-        { target: 'morning', guard: (ctx) => ctx.hour < 12 },
-        { target: 'afternoon', guard: (ctx) => ctx.hour < 18 },
+        { target: 'morning', guard: ({ context }) => context.hour < 12 },
+        { target: 'afternoon', guard: ({ context }) => context.hour < 18 },
         { target: 'evening' }
       ]
     },
@@ -35,9 +35,9 @@ describe('transient states (eventless transitions)', () => {
       },
       E: {
         always: [
-          { target: 'D', guard: ({ data }) => !data }, // no data returned
-          { target: 'B', guard: ({ status }) => status === 'Y' },
-          { target: 'C', guard: ({ status }) => status === 'X' },
+          { target: 'D', guard: ({ context: { data } }) => !data }, // no data returned
+          { target: 'B', guard: ({ context: { status } }) => status === 'Y' },
+          { target: 'C', guard: ({ context: { status } }) => status === 'X' },
           { target: 'F' } // default, or just the string 'F'
         ]
       },
@@ -561,8 +561,8 @@ describe('transient states (eventless transitions)', () => {
       always: [
         {
           target: '.success',
-          guard: (ctx) => {
-            return ctx.count > 0;
+          guard: ({ context }) => {
+            return context.count > 0;
           }
         }
       ]
@@ -598,8 +598,8 @@ describe('transient states (eventless transitions)', () => {
       always: [
         {
           target: '.success',
-          guard: (ctx) => {
-            return ctx.count > 0;
+          guard: ({ context }) => {
+            return context.count > 0;
           }
         }
       ]
@@ -628,7 +628,7 @@ describe('transient states (eventless transitions)', () => {
           always: [
             {
               target: `finished`,
-              guard: (ctx) => ctx.duration < 1000
+              guard: ({ context }) => context.duration < 1000
             },
             {
               target: `active`
@@ -732,9 +732,9 @@ describe('transient states (eventless transitions)', () => {
         },
         c: {
           always: {
-            guard: (_, e) => {
-              expect(e.type).toEqual('EVENT');
-              return e.type === 'EVENT';
+            guard: ({ event }) => {
+              expect(event.type).toEqual('EVENT');
+              return event.type === 'EVENT';
             },
             target: 'd'
           }

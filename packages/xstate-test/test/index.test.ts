@@ -31,7 +31,7 @@ describe('events', () => {
             SUBMIT: [
               {
                 target: 'thanks',
-                guard: (_, e) => !!e.value.length
+                guard: ({ event }) => !!event.value.length
               },
               {
                 target: '.invalid'
@@ -99,9 +99,9 @@ describe('events', () => {
         a: {
           on: {
             EVENT: [
-              { guard: (_, e) => e.value === 1, target: 'b' },
-              { guard: (_, e) => e.value === 2, target: 'c' },
-              { guard: (_, e) => e.value === 3, target: 'd' }
+              { guard: ({ event }) => event.value === 1, target: 'b' },
+              { guard: ({ event }) => event.value === 2, target: 'c' },
+              { guard: ({ event }) => event.value === 3, target: 'd' }
             ]
           }
         },

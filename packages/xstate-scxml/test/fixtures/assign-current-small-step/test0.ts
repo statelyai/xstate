@@ -12,8 +12,8 @@ export default createMachine<any>({
       on: {
         t: {
           target: 'b',
-          guard: (ctx) => {
-            return ctx.x === 99;
+          guard: ({ context }) => {
+            return context.x === 99;
           },
           actions: assign({
             x: (ctx) => ctx.x + 1
@@ -31,7 +31,7 @@ export default createMachine<any>({
       always: [
         {
           target: 'c',
-          guard: (ctx) => ctx.x === 200
+          guard: ({ context }) => context.x === 200
         },
         { target: 'f' }
       ]

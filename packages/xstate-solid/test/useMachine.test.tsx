@@ -53,7 +53,7 @@ describe('useMachine hook', () => {
             actions: assign({
               data: (_, e) => e.data
             }),
-            guard: (_, e) => e.data.length
+            guard: ({ event }) => event.data.length
           }
         }
       },
@@ -1485,7 +1485,7 @@ describe('useMachine hook', () => {
           }))
         },
         guards: {
-          isAwesome: (ctx) => !!ctx.isAwesome
+          isAwesome: ({ context }) => !!context.isAwesome
         }
       }
     );

@@ -20,7 +20,7 @@ export function stateIn<
   return {
     type: 'xstate.guard:in',
     params: { stateValue },
-    predicate: (_, __, { state }) => {
+    predicate: ({ meta: { state } }) => {
       if (isString(stateValue) && isStateId(stateValue)) {
         return state.configuration.some((sn) => sn.id === stateValue.slice(1));
       }
@@ -40,10 +40,10 @@ export function not<
     type: 'xstate.boolean',
     params: { op: 'not' },
     children: [toGuardDefinition(guard)],
-    predicate: (ctx, _, meta) => {
+    predicate: ({ context, meta }) => {
       return !meta.evaluate(
         meta.guard.children![0],
-        ctx,
+        context,
         meta._event,
         meta.state
       );
@@ -61,9 +61,9 @@ export function and<
     type: 'xstate.boolean',
     params: { op: 'and' },
     children: guards.map((guard) => toGuardDefinition(guard)),
-    predicate: (ctx, _, meta) => {
+    predicate: ({ context, meta }) => {
       return meta.guard.children!.every((childGuard) => {
-        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
+        return meta.evaluate(childGuard, context, meta._event, meta.state);
       });
     }
   };
@@ -76,9 +76,9 @@ export function or<TContext extends MachineContext, TEvent extends EventObject>(
     type: 'xstate.boolean',
     params: { op: 'or' },
     children: guards.map((guard) => toGuardDefinition(guard)),
-    predicate: (ctx, _, meta) => {
+    predicate: ({ context, meta }) => {
       return meta.guard.children!.some((childGuard) => {
-        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
+        return meta.evaluate(childGuard, context, meta._event, meta.state);
       });
     }
   };
@@ -107,7 +107,7 @@ export function evaluateGuard<
     throw new Error(`Guard '${guard.type}' is not implemented.'.`);
   }
 
-  return predicate(context, _event.data, guardMeta);
+  return predicate({ context, event: _event.data, meta: guardMeta });
 }
 
 export function toGuardDefinition<

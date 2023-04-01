@@ -105,7 +105,7 @@ export interface BaseDynamicActionObject<
   /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
   (arg: {
     context: TContext;
-    e: TExpressionEvent;
+    event: TExpressionEvent;
     meta: ActionMeta<TContext, TEvent, ParameterizedObject>;
   }): void;
 }
@@ -246,11 +246,11 @@ export type StateValue = string | StateValueMap;
 export type GuardPredicate<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = (
-  context: TContext,
-  event: TEvent,
-  meta: GuardMeta<TContext, TEvent>
-) => boolean;
+> = (arg: {
+  context: TContext;
+  event: TEvent;
+  meta: GuardMeta<TContext, TEvent>;
+}) => boolean;
 
 export interface DefaultGuardObject<
   TContext extends MachineContext,

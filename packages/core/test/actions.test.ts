@@ -2178,7 +2178,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent({ type: 'SUCCESS' }),
-              guard: (_, e) => e.value === 42
+              guard: ({ event }) => event.value === 42
             }
           }
         }
@@ -2223,7 +2223,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent({ type: 'SUCCESS' }),
-              guard: (_, e) => e.value === 42
+              guard: ({ event }) => event.value === 42
             }
           }
         }
@@ -2498,7 +2498,7 @@ describe('choose', () => {
         foo: {
           entry: choose([
             {
-              guard: (ctx) => ctx.counter > 100,
+              guard: ({ context }) => context.counter > 100,
               actions: assign<Ctx>({ answer: 42 })
             }
           ])
@@ -2530,7 +2530,7 @@ describe('choose', () => {
               target: 'bar',
               actions: choose([
                 {
-                  guard: (_, event) => event.counter > 100,
+                  guard: ({ event }) => event.counter > 100,
                   actions: assign({ answer: 42 })
                 }
               ])
@@ -2565,7 +2565,7 @@ describe('choose', () => {
             answering: {
               entry: choose([
                 {
-                  guard: (_, __, { state }) => state.matches('bar'),
+                  guard: ({ meta: { state } }) => state.matches('bar'),
                   actions: assign({ answer: 42 })
                 }
               ])
@@ -3003,7 +3003,7 @@ describe('raise', () => {
         a: {
           on: {
             NEXT: {
-              actions: raise<MachineContext, any>(({ context }) => ({
+              actions: raise(({ context }) => ({
                 type: context.eventType
               }))
             },

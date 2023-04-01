@@ -7,7 +7,6 @@ import {
   send,
   sendParent,
   StateValue,
-  AnyEventObject,
   createMachine,
   AnyState,
   InterpreterStatus,
@@ -954,7 +953,7 @@ describe('interpreter', () => {
           on: {
             NEXT: {
               target: 'finish',
-              guard: (_, e) => e.password === 'foo'
+              guard: ({ event }) => event.password === 'foo'
             }
           }
         },
@@ -1033,7 +1032,7 @@ describe('interpreter', () => {
             on: {
               NEXT: {
                 target: 'finish',
-                guard: (_, e) => e.password === 'foo'
+                guard: ({ event }) => event.password === 'foo'
               }
             }
           },
@@ -1064,7 +1063,7 @@ describe('interpreter', () => {
           on: {
             EVENT: {
               target: 'active',
-              guard: (_: any, e: any) => e.id === 42 // TODO: fix unknown event type
+              guard: ({ event }) => event.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }
@@ -1414,7 +1413,7 @@ describe('interpreter', () => {
           },
           always: {
             target: 'finished',
-            guard: (ctx) => ctx.count >= 5
+            guard: ({ context }) => context.count >= 5
           }
         },
         finished: {
@@ -1468,7 +1467,7 @@ describe('interpreter', () => {
           active: {
             always: {
               target: 'finished',
-              guard: (ctx) => ctx.count >= 5
+              guard: ({ context }) => context.count >= 5
             },
             on: {
               INC: {
@@ -1639,8 +1638,8 @@ describe('interpreter', () => {
               onDone: [
                 {
                   target: 'success',
-                  guard: (_, e) => {
-                    return e.data === 42;
+                  guard: ({ event }) => {
+                    return event.data === 42;
                   }
                 },
                 { target: 'failure' }
@@ -1685,8 +1684,8 @@ describe('interpreter', () => {
               src: fromObservable(() => interval$),
               onSnapshot: {
                 target: 'success',
-                guard: (_: unknown, e: AnyEventObject) => {
-                  return e.data === 3;
+                guard: ({ event }) => {
+                  return event.data === 3;
                 }
               }
             }

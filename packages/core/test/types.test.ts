@@ -61,11 +61,8 @@ describe('StateSchema', () => {
             on: {
               PED_COUNTDOWN: {
                 target: 'stop',
-                guard: (
-                  ctx,
-                  e: { type: 'PED_COUNTDOWN'; duration: number }
-                ) => {
-                  return e.duration === 0 && ctx.elapsed > 0;
+                guard: ({ context, event }) => {
+                  return event.duration === 0 && context.elapsed > 0;
                 }
               }
             }
@@ -198,10 +195,10 @@ describe('Raise events', () => {
       },
       on: {
         FOO: {
-          actions: raise((_ctx, ev) => {
-            ((_arg: 'FOO') => {})(ev.type);
+          actions: raise(({ event }) => {
+            ((_arg: 'FOO') => {})(event.type);
             // @ts-expect-error
-            ((_arg: 'BAR') => {})(ev.type);
+            ((_arg: 'BAR') => {})(event.type);
 
             return {
               type: 'BAR'
@@ -265,10 +262,10 @@ describe('context', () => {
       },
       {
         actions: {
-          someAction: (ctx) => {
-            ((_accept: string) => {})(ctx.foo);
+          someAction: ({ context }) => {
+            ((_accept: string) => {})(context.foo);
             // @ts-expect-error
-            ((_accept: number) => {})(ctx.foo);
+            ((_accept: number) => {})(context.foo);
           }
         }
       }
@@ -287,10 +284,10 @@ describe('context', () => {
       },
       {
         actions: {
-          someAction: (ctx) => {
-            ((_accept: number) => {})(ctx.count);
+          someAction: ({ context }) => {
+            ((_accept: number) => {})(context.count);
             // @ts-expect-error
-            ((_accept: string) => {})(ctx.count);
+            ((_accept: string) => {})(context.count);
           }
         }
       }
@@ -347,7 +344,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: (_ctx, _ev: any) => {}
+      entry: () => {}
     });
 
     const service = interpret(machine).start();
@@ -389,7 +386,7 @@ describe('events', () => {
       },
       on: {
         EVENT_WITH_FLAG: {
-          actions: (_context, event) => {
+          actions: ({ event }) => {
             ((_accept: 'EVENT_WITH_FLAG') => {})(event.type);
             ((_accept: boolean) => {})(event.flag);
             // @ts-expect-error
@@ -414,7 +411,7 @@ describe('events', () => {
       },
       on: {
         '*': {
-          actions: (_context, event) => {
+          actions: ({ event }) => {
             ((_accept: 'EVENT_WITH_FLAG' | 'EVENT_WITHOUT_FLAG') => {})(
               event.type
             );
@@ -458,7 +455,7 @@ describe('events', () => {
       },
       on: {
         FOO: {
-          actions: (_context, event) => {
+          actions: ({ event }) => {
             ((_accept: string) => {})(event.type);
           }
         }
@@ -643,11 +640,11 @@ describe('actions', () => {
           childRef: ActorRefFrom<typeof childMachine>;
         }
       },
-      entry: stop((ctx) => {
-        ((_accept: number) => {})(ctx.count);
+      entry: stop(({ context }) => {
+        ((_accept: number) => {})(context.count);
         // @ts-expect-error
-        ((_accept: "ain't any") => {})(ctx.count);
-        return ctx.childRef;
+        ((_accept: "ain't any") => {})(context.count);
+        return context.childRef;
       })
     });
   });
@@ -669,11 +666,11 @@ describe('actions', () => {
       },
       on: {
         FOO: {
-          actions: stop((ctx) => {
-            ((_accept: number) => {})(ctx.count);
+          actions: stop(({ context }) => {
+            ((_accept: number) => {})(context.count);
             // @ts-expect-error
-            ((_accept: "ain't any") => {})(ctx.count);
-            return ctx.childRef;
+            ((_accept: "ain't any") => {})(context.count);
+            return context.childRef;
           })
         }
       }
@@ -689,8 +686,8 @@ describe('actions', () => {
       },
       entry: stop(
         // @ts-expect-error
-        (ctx) => {
-          return ctx.count;
+        ({ context }) => {
+          return context.count;
         }
       )
     });
@@ -708,17 +705,17 @@ describe('actions', () => {
         }
       },
       entry: [
-        stop((ctx) => {
-          ((_accept: number) => {})(ctx.count);
+        stop(({ context }) => {
+          ((_accept: number) => {})(context.count);
           // @ts-expect-error
-          ((_accept: "ain't any") => {})(ctx.count);
-          return ctx.childRef;
+          ((_accept: "ain't any") => {})(context.count);
+          return context.childRef;
         }),
-        stop((ctx) => {
-          ((_accept: number) => {})(ctx.count);
+        stop(({ context }) => {
+          ((_accept: number) => {})(context.count);
           // @ts-expect-error
-          ((_accept: "ain't any") => {})(ctx.count);
-          return ctx.promiseRef;
+          ((_accept: "ain't any") => {})(context.count);
+          return context.promiseRef;
         })
       ]
     });

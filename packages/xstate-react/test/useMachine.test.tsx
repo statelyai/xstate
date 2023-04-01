@@ -45,7 +45,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
             actions: assign({
               data: (_, e) => e.data
             }),
-            guard: (_, e) => e.data.length
+            guard: ({ event }) => event.data.length
           }
         }
       },

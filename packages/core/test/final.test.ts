@@ -33,7 +33,7 @@ const finalMachine = createMachine({
             }
           },
           onDone: {
-            guard: (_, e) => e.data.signal === 'stop',
+            guard: ({ event }) => event.data.signal === 'stop',
             actions: 'stopCrosswalk1'
           }
         },

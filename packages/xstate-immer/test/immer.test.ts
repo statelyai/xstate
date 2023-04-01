@@ -186,8 +186,8 @@ describe('@xstate/immer', () => {
         submitting: {
           always: {
             target: 'success',
-            guard: (ctx) => {
-              return ctx.name === 'David' && ctx.age === 0;
+            guard: ({ context }) => {
+              return context.name === 'David' && context.age === 0;
             }
           }
         },

@@ -150,8 +150,16 @@ function createGuard<
   TContext extends object,
   TEvent extends EventObject = EventObject
 >(guard: string) {
-  return (context: TContext, _event: TEvent, meta) => {
-    return evaluateExecutableContent(context, _event, meta, `return ${guard};`);
+  return ({
+    context,
+    event,
+    meta
+  }: {
+    context: TContext;
+    event: TEvent;
+    meta;
+  }) => {
+    return evaluateExecutableContent(context, event, meta, `return ${guard};`);
   };
 }
 
@@ -180,12 +188,12 @@ function mapAction<
       if ('sendid' in element.attributes!) {
         return actions.cancel(element.attributes!.sendid! as string);
       }
-      return actions.cancel((context, e, meta) => {
+      return actions.cancel(({ context, event, meta }) => {
         const fnBody = `
             return ${element.attributes!.sendidexpr};
           `;
 
-        return evaluateExecutableContent(context, e, meta, fnBody);
+        return evaluateExecutableContent(context, event, meta, fnBody);
       });
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
@@ -207,26 +215,26 @@ function mapAction<
       if (event && !params) {
         convertedEvent = { type: event } as TEvent;
       } else {
-        convertedEvent = (context, _ev, meta) => {
+        convertedEvent = ({ context, event, meta }) => {
           const fnBody = `
               return { type: ${event ? `"${event}"` : eventexpr}, ${
             params ? params : ''
           } }
             `;
 
-          return evaluateExecutableContent(context, _ev, meta, fnBody);
+          return evaluateExecutableContent(context, event, meta, fnBody);
         };
       }
 
       if ('delay' in element.attributes!) {
         convertedDelay = delayToMs(element.attributes!.delay);
       } else if (element.attributes!.delayexpr) {
-        convertedDelay = (context, _ev, meta) => {
+        convertedDelay = ({ context, event, meta }) => {
           const fnBody = `
               return (${delayToMs})(${element.attributes!.delayexpr});
             `;
 
-          return evaluateExecutableContent(context, _ev, meta, fnBody);
+          return evaluateExecutableContent(context, event, meta, fnBody);
         };
       }
 
@@ -240,12 +248,12 @@ function mapAction<
       const label = element.attributes!.label;
 
       return actions.log<TContext, any, any>(
-        (context, e, meta) => {
+        ({ context, event, meta }) => {
           const fnBody = `
               return ${element.attributes!.expr};
             `;
 
-          return evaluateExecutableContent(context, e, meta, fnBody);
+          return evaluateExecutableContent(context, event, meta, fnBody);
         },
         label !== undefined ? String(label) : undefined
       );

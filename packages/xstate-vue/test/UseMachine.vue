@@ -38,7 +38,7 @@ const fetchMachine = createMachine<typeof context, any>({
           actions: assign({
             data: (_, e) => e.data
           }),
-          guard: (_, e) => e.data.length
+          guard: ({event}) => event.data.length
         }
       }
     },

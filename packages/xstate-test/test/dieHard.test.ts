@@ -104,7 +104,7 @@ describe('die hard example', () => {
       },
       {
         guards: {
-          weHave4Gallons: (ctx) => ctx.five === 4
+          weHave4Gallons: ({ context }) => context.five === 4
         }
       }
     );
