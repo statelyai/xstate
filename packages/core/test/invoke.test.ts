@@ -1009,8 +1009,8 @@ describe('invoke', () => {
                 ),
                 onDone: {
                   target: 'success',
-                  actions: (_, e) => {
-                    count = e.data.count;
+                  actions: ({ event }) => {
+                    count = event.data.count;
                   }
                 }
               }
@@ -1042,8 +1042,8 @@ describe('invoke', () => {
                   src: 'somePromise',
                   onDone: {
                     target: 'success',
-                    actions: (_, e) => {
-                      count = e.data.count;
+                    actions: ({ event }) => {
+                      count = event.data.count;
                     }
                   }
                 }
@@ -2610,7 +2610,7 @@ describe('invoke', () => {
         context: { id: 42 },
         states: {
           die: {
-            entry: escalate((ctx) => ctx.id)
+            entry: escalate(({ context }) => context.id)
           }
         }
       });
@@ -2929,8 +2929,8 @@ describe('invoke', () => {
       },
       on: {
         '*': {
-          actions: (_ctx, ev) => {
-            actual.push(ev.type);
+          actions: ({ event }) => {
+            actual.push(event.type);
           }
         }
       }

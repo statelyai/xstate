@@ -96,7 +96,7 @@ export function send<
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
         isFunction(eventOrExpr)
-          ? eventOrExpr(state.context, _event.data, meta)
+          ? eventOrExpr({ context: state.context, event: _event.data, meta })
           : eventOrExpr
       );
 
@@ -104,16 +104,16 @@ export function send<
       if (isString(params.delay)) {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay = isFunction(configDelay)
-          ? configDelay(state.context, _event.data, meta)
+          ? configDelay({ context: state.context, event: _event.data, meta })
           : configDelay;
       } else {
         resolvedDelay = isFunction(params.delay)
-          ? params.delay(state.context, _event.data, meta)
+          ? params.delay({ context: state.context, event: _event.data, meta })
           : params.delay;
       }
 
       const resolvedTarget = isFunction(params.to)
-        ? params.to(state.context, _event.data, meta)
+        ? params.to({ context: state.context, event: _event.data, meta })
         : params.to;
       let targetActorRef: AnyActorRef | undefined;
 
@@ -214,7 +214,7 @@ export function respond<
 ) {
   return send<TContext, TEvent>(event, {
     ...options,
-    to: (_, __, { _event }) => {
+    to: ({ meta: { _event } }) => {
       return _event.origin!; // TODO: handle when _event.origin is undefined
     }
   });
@@ -251,7 +251,7 @@ export function forwardTo<
       return resolvedTarget;
     };
   }
-  return send<TContext, TEvent>((_, event) => event, {
+  return send<TContext, TEvent>(({ event }) => event, {
     ...options,
     to: target
   });
@@ -273,11 +273,11 @@ export function escalate<
   options?: SendActionParams<TContext, TEvent>
 ) {
   return sendParent<TContext, TEvent>(
-    (context, event, meta) => {
+    ({ context, event, meta }) => {
       return {
         type: actionTypes.error,
         data: isFunction(errorData)
-          ? errorData(context, event, meta)
+          ? errorData({ context, event, meta })
           : errorData
       };
     },

@@ -84,7 +84,7 @@ describe('predictableExec', () => {
           on: {
             RAISED: {
               target: 'c',
-              actions: (_ctx, ev) => (eventArg = ev)
+              actions: ({ event }) => (eventArg = event)
             }
           },
           entry: raise({ type: 'RAISED' })
@@ -237,7 +237,7 @@ describe('predictableExec', () => {
         b: {
           entry: [
             assign({ counter: 1 }),
-            (context) => (calledWith = context.counter),
+            ({ context }) => (calledWith = context.counter),
             assign({ counter: 2 })
           ]
         }
@@ -276,8 +276,8 @@ describe('predictableExec', () => {
           on: {
             update: {
               actions: [
-                stop((ctx) => {
-                  return ctx.actorRef;
+                stop(({ context }) => {
+                  return context.actorRef;
                 }),
                 assign({
                   actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
@@ -338,7 +338,7 @@ describe('predictableExec', () => {
           on: {
             update: {
               actions: [
-                stop((ctx) => ctx.actorRef),
+                stop(({ context }) => context.actorRef),
                 assign({
                   actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
                     const localId = ++invokeCounter;
@@ -543,11 +543,11 @@ describe('predictableExec', () => {
     const machine = createMachine({
       context: { count: 0 },
       entry: [
-        (ctx) => actual.push(ctx.count),
+        ({ context }) => actual.push(context.count),
         assign({ count: 1 }),
-        (ctx) => actual.push(ctx.count),
+        ({ context }) => actual.push(context.count),
         assign({ count: 2 }),
-        (ctx) => actual.push(ctx.count)
+        ({ context }) => actual.push(context.count)
       ]
     });
 

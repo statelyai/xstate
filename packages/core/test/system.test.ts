@@ -34,7 +34,7 @@ describe('system', () => {
             {
               src: createMachine({
                 id: 'childmachine',
-                entry: (_ctx, _ev, { system }) => {
+                entry: ({ meta: { system } }) => {
                   const receiver = (system as MySystem)?.get('receiver');
 
                   if (receiver) {
@@ -136,7 +136,7 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: (_, __, { system }) => {
+      entry: ({ meta: { system } }) => {
         expect(system!.get('test')).toBeDefined();
       }
     });
@@ -155,7 +155,7 @@ describe('system', () => {
       },
       {
         actions: {
-          myAction: (_, __, { system }) => {
+          myAction: ({ meta: { system } }) => {
             expect(system!.get('test')).toBeDefined();
           }
         }
@@ -186,7 +186,7 @@ describe('system', () => {
         systemId: 'test'
       },
       entry: sendTo(
-        (_, __, { system }) => {
+        ({ meta: { system } }) => {
           expect(system!.get('test')).toBeDefined();
           return system!.get('test');
         },

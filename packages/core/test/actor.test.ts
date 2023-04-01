@@ -92,7 +92,7 @@ describe('spawning machines', () => {
       },
       sendPing: {
         entry: [
-          sendTo((ctx) => ctx.server!, { type: 'PING' }),
+          sendTo(({ context }) => context.server!, { type: 'PING' }),
           raise({ type: 'SUCCESS' })
         ],
         on: {
@@ -149,8 +149,10 @@ describe('spawning machines', () => {
         },
         SET_COMPLETE: {
           actions: sendTo(
-            (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-              return ctx.todoRefs[e.id];
+            ({ context, event }) => {
+              return context.todoRefs[
+                (event as Extract<TodoEvent, { type: 'SET_COMPLETE' }>).id
+              ];
             },
             { type: 'SET_COMPLETE' }
           )
@@ -332,7 +334,9 @@ describe('spawning callbacks', () => {
           }),
           on: {
             START_CB: {
-              actions: sendTo((ctx) => ctx.callbackRef!, { type: 'START' })
+              actions: sendTo(({ context }) => context.callbackRef!, {
+                type: 'START'
+              })
             },
             SEND_BACK: 'success'
           }
@@ -590,7 +594,9 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: sendTo((ctx) => ctx.existingRef!, { type: 'ACTIVATE' })
+              actions: sendTo(({ context }) => context.existingRef!, {
+                type: 'ACTIVATE'
+              })
             }
           }
         },
@@ -686,7 +692,9 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: sendTo((ctx) => ctx.existingRef, { type: 'ACTIVATE' })
+              actions: sendTo(({ context }) => context.existingRef, {
+                type: 'ACTIVATE'
+              })
             }
           }
         },
@@ -863,7 +871,7 @@ describe('actors', () => {
         }),
         on: {
           INC: {
-            actions: forwardTo((ctx) => ctx.count!)
+            actions: forwardTo(({ context }) => context.count!)
           }
         }
       });
@@ -986,7 +994,7 @@ describe('actors', () => {
         }),
         states: {
           waiting: {
-            entry: sendTo((ctx) => ctx.ponger!, { type: 'PING' }),
+            entry: sendTo(({ context }) => context.ponger!, { type: 'PING' }),
             invoke: {
               id: 'ponger',
               src: pongBehavior

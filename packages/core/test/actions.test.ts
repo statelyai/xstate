@@ -1366,8 +1366,8 @@ describe('entry/exit actions', () => {
     it('an exit action executed when an interpreter gets stopped should receive `xstate.stop` event', () => {
       let receivedEvent;
       const machine = createMachine({
-        exit: (_ctx, ev) => {
-          receivedEvent = ev;
+        exit: ({ event }) => {
+          receivedEvent = event;
         }
       });
 
@@ -1391,8 +1391,8 @@ describe('entry/exit actions', () => {
             type: 'final'
           }
         },
-        exit: (_ctx, ev) => {
-          receivedEvent = ev;
+        exit: ({ event }) => {
+          receivedEvent = event;
         }
       });
 
@@ -1488,7 +1488,7 @@ describe('entry/exit actions', () => {
         }),
         on: {
           FINISH_CHILD: {
-            actions: sendTo((ctx: any) => ctx.child, { type: 'FINISH' })
+            actions: sendTo(({ context }) => context.child, { type: 'FINISH' })
           },
           CHILD_DONE: {
             actions: () => {
@@ -2043,7 +2043,7 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: (_, __, meta) => {
+          entryAction: ({ meta }) => {
             expect(meta.state.value).toEqual('foo');
             expect(meta.action.type).toEqual('entryAction');
             expect(meta.action.params?.value).toEqual('something');
@@ -2246,7 +2246,7 @@ describe('forwardTo()', () => {
           }),
           on: {
             EVENT: {
-              actions: forwardTo((ctx) => ctx.child!)
+              actions: forwardTo(({ context }) => context.child!)
             },
             SUCCESS: 'last'
           }
@@ -2293,7 +2293,7 @@ describe('log()', () => {
         entry: log('some string', 'string label'),
         on: {
           EXPR: {
-            actions: log((ctx) => `expr ${ctx.count}`, 'expr label')
+            actions: log(({ context }) => `expr ${context.count}`, 'expr label')
           }
         }
       }
@@ -2689,7 +2689,7 @@ describe('sendTo', () => {
         ({
           child: spawn(childMachine)
         } as { child: ActorRefFrom<typeof childMachine> }),
-      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
+      entry: sendTo(({ context }) => context.child, { type: 'EVENT' })
     });
 
     interpret(parentMachine).start();
@@ -2717,8 +2717,8 @@ describe('sendTo', () => {
         };
       },
       entry: sendTo(
-        (ctx) => ctx.child,
-        (ctx) => ({ type: 'EVENT', count: ctx.count })
+        ({ context }) => context.child,
+        ({ context }) => ({ type: 'EVENT', count: context.count })
       )
     });
 
@@ -2743,7 +2743,7 @@ describe('sendTo', () => {
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
-      entry: sendTo((ctx) => ctx.child, {
+      entry: sendTo(({ context }) => context.child, {
         // @ts-expect-error
         type: 'UNKNOWN'
       })
@@ -2827,7 +2827,9 @@ describe('sendTo', () => {
         a: {
           on: {
             EVENT: {
-              actions: sendTo((ctx, e) => ctx[e.value], { type: 'EVENT' })
+              actions: sendTo(({ context, event }) => context[event.value], {
+                type: 'EVENT'
+              })
             }
           }
         }
@@ -3001,8 +3003,8 @@ describe('raise', () => {
         a: {
           on: {
             NEXT: {
-              actions: raise<MachineContext, any>((ctx: any) => ({
-                type: ctx.eventType
+              actions: raise<MachineContext, any>(({ context }) => ({
+                type: context.eventType
               }))
             },
             RAISED: 'b'
@@ -3116,11 +3118,11 @@ describe('assign action order', () => {
     const machine = createMachine<{ count: number }>({
       context: { count: 0 },
       entry: [
-        (ctx) => captured.push(ctx.count), // 0
-        assign({ count: (ctx) => ctx.count + 1 }),
-        (ctx) => captured.push(ctx.count), // 1
-        assign({ count: (ctx) => ctx.count + 1 }),
-        (ctx) => captured.push(ctx.count) // 2
+        ({ context }) => captured.push(context.count), // 0
+        assign({ count: (context) => context.count + 1 }),
+        ({ context }) => captured.push(context.count), // 1
+        assign({ count: (context) => context.count + 1 }),
+        ({ context }) => captured.push(context.count) // 2
       ]
     });
 
@@ -3140,7 +3142,7 @@ describe('assign action order', () => {
       {
         context: { count: 0 },
         entry: [
-          (ctx) => captured.push(ctx.count), // 0
+          ({ context }) => captured.push(context.count), // 0
           pure(() => {
             return [
               assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
@@ -3148,12 +3150,12 @@ describe('assign action order', () => {
               assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
             ];
           }),
-          (ctx) => captured.push(ctx.count) // 2
+          ({ context }) => captured.push(context.count) // 2
         ]
       },
       {
         actions: {
-          capture: (ctx) => captured.push(ctx.count)
+          capture: ({ context }) => captured.push(context.count)
         }
       }
     );
@@ -3174,7 +3176,7 @@ describe('assign action order', () => {
         EV: {
           actions: [
             assign({ counter: (ctx) => ctx.counter + 1 }),
-            (ctx) => captured.push(ctx.counter)
+            ({ context }) => captured.push(context.counter)
           ]
         }
       }
@@ -3292,7 +3294,7 @@ describe('action meta', () => {
     expect.assertions(1);
 
     const machine = createMachine({
-      entry: (_ctx, _ev, meta) => {
+      entry: ({ meta }) => {
         expect(meta.self.send).toBeDefined();
       }
     });

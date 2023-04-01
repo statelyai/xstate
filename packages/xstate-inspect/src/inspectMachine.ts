@@ -38,19 +38,19 @@ export function createInspectMachine(
       connected: {
         on: {
           'service.state': {
-            actions: (ctx, e) => ctx.client!.send(e)
+            actions: ({ context, event }) => context.client!.send(event)
           },
           'service.event': {
-            actions: (ctx, e) => ctx.client!.send(e)
+            actions: ({ context, event }) => context.client!.send(event)
           },
           'service.register': {
-            actions: (ctx, e) => ctx.client!.send(e)
+            actions: ({ context, event }) => context.client!.send(event)
           },
           'service.stop': {
-            actions: (ctx, e) => ctx.client!.send(e)
+            actions: ({ context, event }) => context.client!.send(event)
           },
           'xstate.event': {
-            actions: (_, e) => {
+            actions: ({ event: e }) => {
               const { event } = e;
               const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
               const service = serviceMap.get(scxmlEventObject.origin?.id!);
@@ -58,8 +58,8 @@ export function createInspectMachine(
             }
           },
           unload: {
-            actions: (ctx) => {
-              ctx.client!.send({ type: 'xstate.disconnect' });
+            actions: ({ context }) => {
+              context.client!.send({ type: 'xstate.disconnect' });
             }
           },
           disconnect: 'disconnected'
@@ -82,9 +82,9 @@ export function createInspectMachine(
               e: InspectMachineEvent & { type: 'xstate.inspecting' }
             ) => e.client
           }),
-          (ctx) => {
+          ({ context }) => {
             devTools.services.forEach((service) => {
-              ctx.client?.send({
+              context.client?.send({
                 type: 'service.register',
                 machine: stringifyMachine(service.behavior, options?.serialize),
                 state: stringifyState(

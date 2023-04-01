@@ -16,8 +16,8 @@ describe('input', () => {
       context: ({ input }) => ({
         count: input.startCount
       }),
-      entry: (ctx) => {
-        spy(ctx.count);
+      entry: ({ context }) => {
+        spy(context.count);
       }
     });
 
@@ -28,8 +28,8 @@ describe('input', () => {
 
   it('initial event should have input property', (done) => {
     const machine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
@@ -76,8 +76,8 @@ describe('input', () => {
 
   it('should provide input data to invoked machines', (done) => {
     const invokedMachine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
@@ -94,8 +94,8 @@ describe('input', () => {
 
   it('should provide input data to spawned machines', (done) => {
     const spawnedMachine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });

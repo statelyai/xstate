@@ -762,16 +762,16 @@ describe('transient states (eventless transitions)', () => {
         b: {
           always: {
             target: 'c',
-            actions: (_, event) => {
+            actions: ({ event }) => {
               expect(event).toEqual({ type: 'EVENT', value: 42 });
             }
           },
-          exit: (_, event) => {
+          exit: ({ event }) => {
             expect(event).toEqual({ type: 'EVENT', value: 42 });
           }
         },
         c: {
-          entry: (_, event) => {
+          entry: ({ event }) => {
             expect(event).toEqual({ type: 'EVENT', value: 42 });
           }
         }

@@ -73,7 +73,7 @@ export function raise<
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
         typeof eventOrExpr === 'function'
-          ? eventOrExpr(state.context, _event.data, meta)
+          ? eventOrExpr({ context: state.context, event: _event.data, meta })
           : eventOrExpr
       );
 
@@ -82,12 +82,12 @@ export function raise<
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay =
           typeof configDelay === 'function'
-            ? configDelay(state.context, _event.data, meta)
+            ? configDelay({ context: state.context, event: _event.data, meta })
             : configDelay;
       } else {
         resolvedDelay =
           typeof params.delay === 'function'
-            ? params.delay(state.context, _event.data, meta)
+            ? params.delay({ context: state.context, event: _event.data, meta })
             : params.delay;
       }
 

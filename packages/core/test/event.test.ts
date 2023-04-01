@@ -152,9 +152,9 @@ describe('SCXML events', () => {
           on: {
             CODE: {
               actions: sendTo(
-                (_ctx, ev) => {
-                  expect(ev.sender).toBeDefined();
-                  return ev.sender;
+                ({ event }) => {
+                  expect(event.sender).toBeDefined();
+                  return event.sender;
                 },
                 { type: 'TOKEN' },
                 { delay: 10 }
@@ -177,7 +177,7 @@ describe('SCXML events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: sendTo('auth-server', (_ctx, _ev, { self }) => ({
+          entry: sendTo('auth-server', ({ meta: { self } }) => ({
             type: 'CODE',
             sender: self
           })),

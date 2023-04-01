@@ -73,6 +73,14 @@ export interface BuiltInActionObject extends ParameterizedObject {
   params: Record<string, any>;
 }
 
+export interface UnifiedArg<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
+  context: TContext;
+  event: TEvent;
+}
+
 export interface BaseDynamicActionObject<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -95,11 +103,11 @@ export interface BaseDynamicActionObject<
   ) => [AnyState, TResolvedAction];
 
   /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
-  (
-    arg: TContext,
-    ev: TExpressionEvent,
-    meta: ActionMeta<TContext, TEvent, ParameterizedObject>
-  ): void;
+  (arg: {
+    context: TContext;
+    e: TExpressionEvent;
+    meta: ActionMeta<TContext, TEvent, ParameterizedObject>;
+  }): void;
 }
 
 export type MachineContext = Record<string, any>;
@@ -141,13 +149,11 @@ export type ActionFunction<
   TExpressionEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TEvent extends EventObject = TExpressionEvent
-> = {
-  bivarianceHack(
-    context: TContext,
-    event: TExpressionEvent,
-    meta: ActionMeta<TContext, TEvent, TAction>
-  ): void;
-}['bivarianceHack'];
+> = (arg: {
+  context: TContext;
+  event: TExpressionEvent;
+  meta: ActionMeta<TContext, TEvent, TAction>;
+}) => void;
 
 export interface ChooseCondition<
   TContext extends MachineContext,
@@ -199,6 +205,23 @@ export type BaseActions<
   TEvent extends EventObject,
   TAction extends ParameterizedObject
 > = SingleOrArray<BaseAction<TContext, TExpressionEvent, TAction, TEvent>>;
+
+export type BaseActions2<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TAction extends ParameterizedObject
+> = SingleOrArray<
+  | TAction
+  | ((arg: { context: TContext; event: TExpressionEvent }) => void)
+  | BaseDynamicActionObject<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      any, // TODO: at the very least this should include TAction, but probably at a covariant position or something, we really need to rethink how action objects are typed
+      any
+    >
+>;
 
 export type Actions<
   TContext extends MachineContext,
@@ -1232,13 +1255,16 @@ export type Expr<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (context: TContext, event: TEvent) => T;
+> = (arg: UnifiedArg<TContext, TEvent>) => T;
 
 export type ExprWithMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (context: TContext, event: TEvent, meta: StateMeta<TContext, TEvent>) => T;
+  // > = (context: TContext, event: TEvent, meta: StateMeta<TContext, TEvent>) => T;
+> = (
+  args: UnifiedArg<TContext, TEvent> & { meta: StateMeta<TContext, TEvent> }
+) => T;
 
 export type SendExpr<
   TContext extends MachineContext,

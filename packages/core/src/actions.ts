@@ -55,12 +55,16 @@ export function resolveActionObject(
           type: actionObject.type,
           params: actionObject.params,
           execute: (actorCtx) => {
-            return dereferencedAction(state.context, state.event, {
-              action: a,
-              _event: state._event,
-              state,
-              system: actorCtx.system,
-              self: actorCtx.self
+            return dereferencedAction({
+              context: state.context,
+              event: state.event,
+              meta: {
+                action: a,
+                _event: state._event,
+                state,
+                system: actorCtx.system,
+                self: actorCtx.self
+              }
             });
           }
         };
@@ -98,13 +102,18 @@ export function toActionObject<
           function: action
         },
         execute: (actorCtx) => {
-          return action(state.context as TContext, _event.data as TEvent, {
-            action: actionObject,
-            _event: _event as SCXML.Event<TEvent>,
-            state: state as AnyState,
-            self: actorCtx.self,
-            system: actorCtx.system
-          });
+          const arg = {
+            context: state.context as TContext,
+            event: _event.data as TEvent,
+            meta: {
+              action: actionObject,
+              _event: _event as SCXML.Event<TEvent>,
+              state: state as AnyState,
+              self: actorCtx.self,
+              system: actorCtx.system
+            }
+          };
+          return action(arg);
         }
       };
 

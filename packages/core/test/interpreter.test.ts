@@ -283,11 +283,11 @@ describe('interpreter', () => {
             entry: send(
               { type: 'FINISH' },
               {
-                delay: (ctx, e) =>
-                  ctx.initialDelay +
-                  ('wait' in e
+                delay: ({ context, event }) =>
+                  context.initialDelay +
+                  ('wait' in event
                     ? (
-                        e as Extract<
+                        event as Extract<
                           DelayExpMachineEvents,
                           { type: 'ACTIVATE' }
                         >
@@ -362,8 +362,8 @@ describe('interpreter', () => {
             entry: send(
               { type: 'FINISH' },
               {
-                delay: (ctx, _, { _event }) =>
-                  ctx.initialDelay +
+                delay: ({ context, meta: { _event } }) =>
+                  context.initialDelay +
                   (
                     _event.data as Extract<
                       DelayExpMachineEvents,
@@ -421,7 +421,7 @@ describe('interpreter', () => {
             a: {
               after: [
                 {
-                  delay: (ctx) => ctx.delay,
+                  delay: ({ context }) => context.delay,
                   target: 'b'
                 }
               ]
@@ -440,7 +440,8 @@ describe('interpreter', () => {
             d: {
               after: [
                 {
-                  delay: (ctx, e) => ctx.delay + (e as any).value,
+                  delay: ({ context, event }) =>
+                    context.delay + (event as any).value,
                   target: 'e'
                 }
               ]
@@ -460,8 +461,8 @@ describe('interpreter', () => {
         },
         {
           delays: {
-            someDelay: (ctx) => {
-              return ctx.delay + 50;
+            someDelay: ({ context }) => {
+              return context.delay + 50;
             }
           }
         }
@@ -806,7 +807,7 @@ describe('interpreter', () => {
             LOG: {
               actions: [
                 assign({ count: (ctx) => ctx.count + 1 }),
-                log((ctx) => ctx)
+                log(({ context }) => context)
               ]
             }
           }
@@ -827,7 +828,7 @@ describe('interpreter', () => {
 
   it('should be able to log event origin (log action)', () => {
     const logs: any[] = [];
-    const logAction = log((_ctx, event, meta) => ({
+    const logAction = log(({ event, meta }) => ({
       event: event.type,
       origin: meta._event.origin
     }));
@@ -900,7 +901,7 @@ describe('interpreter', () => {
 
   it('should receive correct _event (log action)', () => {
     const logs: any[] = [];
-    const logAction = log((_ctx, _ev, meta) => meta._event.data.type);
+    const logAction = log(({ meta }) => meta._event.data.type);
 
     const parentMachine = createMachine({
       initial: 'foo',
@@ -946,7 +947,10 @@ describe('interpreter', () => {
       },
       states: {
         start: {
-          entry: send((ctx) => ({ type: 'NEXT', password: ctx.password })),
+          entry: raise(({ context }) => ({
+            type: 'NEXT',
+            password: context.password
+          })),
           on: {
             NEXT: {
               target: 'finish',
@@ -1006,8 +1010,8 @@ describe('interpreter', () => {
         }),
         states: {
           start: {
-            entry: sendParent((ctx) => {
-              return { type: 'NEXT', password: ctx.password };
+            entry: sendParent(({ context }) => {
+              return { type: 'NEXT', password: context.password };
             })
           }
         }
@@ -1777,9 +1781,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx) => ctx.machineRef),
-                  stop((ctx) => ctx.promiseRef),
-                  stop((ctx) => ctx.observableRef)
+                  stop(({ context }) => context.machineRef),
+                  stop(({ context }) => context.promiseRef),
+                  stop(({ context }) => context.observableRef)
                 ]
               }
             }
