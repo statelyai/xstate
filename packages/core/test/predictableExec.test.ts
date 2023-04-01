@@ -290,7 +290,7 @@ describe('predictableExec', () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      'callback-2'
+                      { id: 'callback-2' }
                     );
                   }
                 })
@@ -350,7 +350,7 @@ describe('predictableExec', () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      'my_name'
+                      { id: 'my_name' }
                     );
                   }
                 })
