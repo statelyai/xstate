@@ -764,7 +764,7 @@ describe('typegen types', () => {
       {
         actors: {
           // @ts-expect-error
-          myActor: (_ctx) => Promise.resolve(42)
+          myActor: () => Promise.resolve(42)
         }
       }
     );

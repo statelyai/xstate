@@ -42,12 +42,10 @@ export function cancel<
         ? sendId({
             context: state.context,
             event: _event.data,
-            meta: {
-              _event,
-              state: state as any, // TODO: fix types,
-              self: actorContext?.self ?? ({} as any),
-              system: actorContext?.system
-            }
+            _event,
+            state: state as any, // TODO: fix types,
+            self: actorContext?.self ?? ({} as any),
+            system: actorContext?.system
           })
         : sendId;
 

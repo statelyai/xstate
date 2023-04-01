@@ -192,7 +192,7 @@ function mapAction<
       if ('sendid' in element.attributes!) {
         return actions.cancel(element.attributes!.sendid! as string);
       }
-      return actions.cancel(({ context, event, meta }) => {
+      return actions.cancel(({ context, event, ...meta }) => {
         const fnBody = `
             return ${element.attributes!.sendidexpr};
           `;
@@ -219,7 +219,7 @@ function mapAction<
       if (event && !params) {
         convertedEvent = { type: event } as TEvent;
       } else {
-        convertedEvent = ({ context, event, meta }) => {
+        convertedEvent = ({ context, event, ...meta }) => {
           const fnBody = `
               return { type: ${event ? `"${event}"` : eventexpr}, ${
             params ? params : ''
@@ -233,7 +233,7 @@ function mapAction<
       if ('delay' in element.attributes!) {
         convertedDelay = delayToMs(element.attributes!.delay);
       } else if (element.attributes!.delayexpr) {
-        convertedDelay = ({ context, event, meta }) => {
+        convertedDelay = ({ context, event, ...meta }) => {
           const fnBody = `
               return (${delayToMs})(${element.attributes!.delayexpr});
             `;
@@ -252,7 +252,7 @@ function mapAction<
       const label = element.attributes!.label;
 
       return actions.log<TContext, any, any>(
-        ({ context, event, meta }) => {
+        ({ context, event, ...meta }) => {
           const fnBody = `
               return ${element.attributes!.expr};
             `;

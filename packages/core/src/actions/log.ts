@@ -50,12 +50,10 @@ export function log<
           ? expr({
               context: state.context,
               event: _event.data,
-              meta: {
-                _event,
-                state: state as any,
-                self: actorContext?.self ?? ({} as any),
-                system: actorContext?.system
-              }
+              _event,
+              state: state as any,
+              self: actorContext?.self ?? ({} as any),
+              system: actorContext?.system
             })
           : expr;
       return [

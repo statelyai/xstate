@@ -2049,10 +2049,10 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ meta }) => {
-            expect(meta.state.value).toEqual('foo');
-            expect(meta.action.type).toEqual('entryAction');
-            expect(meta.action.params?.value).toEqual('something');
+          entryAction: ({ state, action }) => {
+            expect(state.value).toEqual('foo');
+            expect(action.type).toEqual('entryAction');
+            expect(action.params?.value).toEqual('something');
             done();
           }
         }
@@ -3314,8 +3314,8 @@ describe('action meta', () => {
     expect.assertions(1);
 
     const machine = createMachine({
-      entry: ({ meta }) => {
-        expect(meta.self.send).toBeDefined();
+      entry: ({ self }) => {
+        expect(self.send).toBeDefined();
       }
     });
 

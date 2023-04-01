@@ -177,7 +177,7 @@ describe('SCXML events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: sendTo('auth-server', ({ meta: { self } }) => ({
+          entry: sendTo('auth-server', ({ self }) => ({
             type: 'CODE',
             sender: self
           })),

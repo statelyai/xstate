@@ -280,7 +280,7 @@ describe('context', () => {
             count: number;
           }
         },
-        entry: (_ctx: any) => {}
+        entry: () => {}
       },
       {
         actions: {

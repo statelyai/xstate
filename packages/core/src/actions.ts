@@ -58,13 +58,11 @@ export function resolveActionObject(
             return dereferencedAction({
               context: state.context,
               event: state.event,
-              meta: {
-                action: a,
-                _event: state._event,
-                state,
-                system: actorCtx.system,
-                self: actorCtx.self
-              }
+              action: a,
+              _event: state._event,
+              state,
+              system: actorCtx.system,
+              self: actorCtx.self
             });
           }
         };
@@ -105,13 +103,11 @@ export function toActionObject<
           const arg = {
             context: state.context as TContext,
             event: _event.data as TEvent,
-            meta: {
-              action: actionObject,
-              _event: _event as SCXML.Event<TEvent>,
-              state: state as AnyState,
-              self: actorCtx.self,
-              system: actorCtx.system
-            }
+            action: actionObject,
+            _event: _event as SCXML.Event<TEvent>,
+            state: state as AnyState,
+            self: actorCtx.self,
+            system: actorCtx.system
           };
           return action(arg);
         }

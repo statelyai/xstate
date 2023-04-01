@@ -361,7 +361,7 @@ describe('interpreter', () => {
             entry: send(
               { type: 'FINISH' },
               {
-                delay: ({ context, meta: { _event } }) =>
+                delay: ({ context, _event }) =>
                   context.initialDelay +
                   (
                     _event.data as Extract<
@@ -827,9 +827,9 @@ describe('interpreter', () => {
 
   it('should be able to log event origin (log action)', () => {
     const logs: any[] = [];
-    const logAction = log(({ event, meta }) => ({
+    const logAction = log(({ event, _event }) => ({
       event: event.type,
-      origin: meta._event.origin
+      origin: _event.origin
     }));
 
     const childMachine = createMachine({
@@ -900,7 +900,7 @@ describe('interpreter', () => {
 
   it('should receive correct _event (log action)', () => {
     const logs: any[] = [];
-    const logAction = log(({ meta }) => meta._event.data.type);
+    const logAction = log(({ _event }) => _event.data.type);
 
     const parentMachine = createMachine({
       initial: 'foo',

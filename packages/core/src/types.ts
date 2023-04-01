@@ -103,11 +103,12 @@ export interface BaseDynamicActionObject<
   ) => [AnyState, TResolvedAction];
 
   /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
-  (arg: {
-    context: TContext;
-    event: TExpressionEvent;
-    meta: ActionMeta<TContext, TEvent, ParameterizedObject>;
-  }): void;
+  (
+    arg: {
+      context: TContext;
+      event: TExpressionEvent;
+    } & ActionMeta<TContext, TEvent, ParameterizedObject>
+  ): void;
 }
 
 export type MachineContext = Record<string, any>;
@@ -149,11 +150,12 @@ export type ActionFunction<
   TExpressionEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TEvent extends EventObject = TExpressionEvent
-> = (arg: {
-  context: TContext;
-  event: TExpressionEvent;
-  meta: ActionMeta<TContext, TEvent, TAction>;
-}) => void;
+> = (
+  arg: {
+    context: TContext;
+    event: TExpressionEvent;
+  } & ActionMeta<TContext, TEvent, TAction>
+) => void;
 
 export interface ChooseCondition<
   TContext extends MachineContext,
@@ -1262,10 +1264,7 @@ export type ExprWithMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-  // > = (context: TContext, event: TEvent, meta: StateMeta<TContext, TEvent>) => T;
-> = (
-  args: UnifiedArg<TContext, TEvent> & { meta: StateMeta<TContext, TEvent> }
-) => T;
+> = (args: UnifiedArg<TContext, TEvent> & StateMeta<TContext, TEvent>) => T;
 
 export type SendExpr<
   TContext extends MachineContext,
