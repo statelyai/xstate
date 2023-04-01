@@ -243,10 +243,13 @@ describe('@xstate/inspect', () => {
   it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {
     const machine = createMachine({
       context: {},
+      schema: {} as {
+        events: { type: 'EV'; value: any };
+      },
       on: {
         EV: {
           actions: assign({
-            value: (_ctx, ev: any) => ev.value
+            value: ({ event }) => event.value
           })
         }
       }
@@ -304,7 +307,10 @@ describe('@xstate/inspect', () => {
 
     // this is important because this moves the previous `state` to `state.history` (this was the case in v4)
     // and serializing a `state` with a `state.history` containing unsafe value should still work
-    service.send({ type: 'UNKNOWN' });
+    service.send({
+      // @ts-expect-error
+      type: 'UNKNOWN'
+    });
 
     expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
       [
