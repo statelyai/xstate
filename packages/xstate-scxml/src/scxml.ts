@@ -153,13 +153,17 @@ function createGuard<
   return ({
     context,
     event,
-    meta
+    ...meta
   }: {
     context: TContext;
     event: TEvent;
-    meta;
   }) => {
-    return evaluateExecutableContent(context, event, meta, `return ${guard};`);
+    return evaluateExecutableContent(
+      context,
+      event,
+      meta as any,
+      `return ${guard};`
+    );
   };
 }
 

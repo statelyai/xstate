@@ -31,7 +31,7 @@ describe('SCXML events', () => {
           on: {
             EVENT: {
               target: 'success',
-              guard: ({ meta: { _event } }: any) => {
+              guard: ({ _event }) => {
                 return !!_event.origin;
               }
             }

@@ -2571,7 +2571,7 @@ describe('choose', () => {
             answering: {
               entry: choose([
                 {
-                  guard: ({ meta: { state } }) => state.matches('bar'),
+                  guard: ({ state }) => state.matches('bar'),
                   actions: assign({ answer: 42 })
                 }
               ])

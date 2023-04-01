@@ -246,11 +246,12 @@ export type StateValue = string | StateValueMap;
 export type GuardPredicate<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = (arg: {
-  context: TContext;
-  event: TEvent;
-  meta: GuardMeta<TContext, TEvent>;
-}) => boolean;
+> = (
+  arg: {
+    context: TContext;
+    event: TEvent;
+  } & GuardMeta<TContext, TEvent>
+) => boolean;
 
 export interface DefaultGuardObject<
   TContext extends MachineContext,

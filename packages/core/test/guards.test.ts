@@ -224,26 +224,26 @@ describe('guard conditions', () => {
             always: [
               {
                 target: 'B4',
-                guard: ({ meta: { state: s } }) => s.matches('A.A4')
+                guard: ({ state }) => state.matches('A.A4')
               }
             ],
             on: {
               T1: [
                 {
                   target: 'B1',
-                  guard: ({ meta: { state: s } }) => s.matches('A.A1')
+                  guard: ({ state }) => state.matches('A.A1')
                 }
               ],
               T2: [
                 {
                   target: 'B2',
-                  guard: ({ meta: { state: s } }) => s.matches('A.A2')
+                  guard: ({ state }) => state.matches('A.A2')
                 }
               ],
               T3: [
                 {
                   target: 'B3',
-                  guard: ({ meta: { state: s } }) => s.matches('A.A3')
+                  guard: ({ state }) => state.matches('A.A3')
                 }
               ]
             }
@@ -298,7 +298,7 @@ describe('guard conditions', () => {
           tags: 'theTag',
           on: {
             MICRO: {
-              guard: ({ meta: { state } }) => state.hasTag('theTag'),
+              guard: ({ state }) => state.hasTag('theTag'),
               target: 'c'
             }
           }
@@ -346,8 +346,8 @@ describe('custom guards', () => {
     },
     {
       guards: {
-        custom: ({ context, event, meta }) => {
-          const { prop, compare, op } = meta.guard.params;
+        custom: ({ context, event, guard }) => {
+          const { prop, compare, op } = guard.params;
           if (op === 'greaterThan') {
             return (
               context[prop as keyof typeof context] + event.value > compare
@@ -497,7 +497,7 @@ describe('guards with child guards', () => {
                     },
                     { type: 'customGuard' }
                   ],
-                  predicate: ({ meta: { guard } }) => {
+                  predicate: ({ guard }) => {
                     expect(guard.children).toHaveLength(2);
                     expect(
                       guard.children?.find(
@@ -594,7 +594,7 @@ describe('not() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ meta: { guard } }) => {
+          greaterThan10: ({ guard }) => {
             return guard.params.value > 10;
           }
         }
@@ -707,7 +707,7 @@ describe('and() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ meta: { guard } }) => {
+          greaterThan10: ({ guard }) => {
             return guard.params.value > 10;
           }
         }
@@ -825,7 +825,7 @@ describe('or() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ meta: { guard } }) => {
+          greaterThan10: ({ guard }) => {
             return guard.params.value > 10;
           }
         }
