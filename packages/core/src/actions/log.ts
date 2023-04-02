@@ -47,7 +47,8 @@ export function log<
           ? expr(state.context, _event.data, {
               _event,
               state: state as any,
-              self: actorContext?.self ?? ({} as any)
+              self: actorContext?.self ?? ({} as any),
+              system: actorContext?.system
             })
           : expr;
       return [

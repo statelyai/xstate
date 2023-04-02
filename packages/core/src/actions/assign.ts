@@ -64,7 +64,8 @@ export function assign<
           _event,
           capturedActions
         ),
-        self: actorContext?.self ?? ({} as any)
+        self: actorContext?.self ?? ({} as any),
+        system: actorContext?.system
       };
 
       let partialUpdate: Partial<TContext> = {};
