@@ -15,12 +15,14 @@ import type {
   BaseActionObject,
   EventObject,
   HistoryValue,
+  MachineConfig,
   MachineContext,
   PersistedMachineState,
   Prop,
   SCXML,
   StateConfig,
   StateValue,
+  StateValueFrom2,
   TransitionDefinition
 } from './types.js';
 import {
@@ -49,11 +51,12 @@ export const isState = isStateConfig;
 export class State<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypesMeta = TypegenDisabled,
+  TConfig extends MachineConfig<any, any, any, any, any> = any
 > {
   public tags: Set<string>;
 
-  public value: StateValue;
+  public value: StateValueFrom2<TConfig>;
   /**
    * Indicates whether the state is a final state.
    */
@@ -107,7 +110,7 @@ export class State<
       if (stateValue.context !== context) {
         return new State<TContext, TEvent>(
           {
-            value: stateValue.value,
+            value: stateValue.value as StateValue,
             context,
             _event: stateValue._event,
             actions: [],
@@ -167,7 +170,10 @@ export class State<
     this.transitions = config.transitions as any;
     this.children = config.children;
 
-    this.value = getStateValue(machine.root, this.configuration);
+    this.value = getStateValue(
+      machine.root,
+      this.configuration
+    ) as StateValueFrom2<TConfig>;
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
     this.done = config.done ?? false;
     this.output = config.output;
@@ -206,12 +212,8 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<
-    TSV extends TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
-      : StateValue
-  >(parentStateValue: TSV): boolean {
-    return matchesState(parentStateValue as any, this.value);
+  public matches(parentStateValue: StateValueFrom2<TConfig>): boolean {
+    return matchesState(parentStateValue as any, this.value as any);
   }
 
   /**

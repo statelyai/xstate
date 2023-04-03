@@ -73,12 +73,19 @@ export class StateMachine<
     NoInfer<TEvent>,
     TAction,
     TActorMap
-  >
+  >,
+  TConfig extends MachineConfig<
+    TContext,
+    TEvent,
+    ParameterizedObject,
+    TActorMap,
+    TResolvedTypesMeta
+  > = any
 > implements
     ActorBehavior<
       TEvent | SCXML.Event<TEvent>,
-      State<TContext, TEvent, TResolvedTypesMeta>,
-      State<TContext, TEvent, TResolvedTypesMeta>,
+      State<TContext, TEvent, TResolvedTypesMeta, TConfig>,
+      State<TContext, TEvent, TResolvedTypesMeta, TConfig>,
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     >
 {
@@ -238,7 +245,7 @@ export class StateMachine<
       .initialState,
     event: TEvent | SCXML.Event<TEvent>,
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TResolvedTypesMeta, TConfig> {
     const currentState =
       state instanceof State ? state : this.resolveStateValue(state);
     // TODO: handle error events in a better way
@@ -326,7 +333,12 @@ export class StateMachine<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+  public get initialState(): State<
+    TContext,
+    TEvent,
+    TResolvedTypesMeta,
+    TConfig
+  > {
     return this.getInitialState();
   }
 
