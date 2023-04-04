@@ -582,7 +582,7 @@ exports[`@xstate/graph toDirectedGraph should represent a statechart as a direct
 }
 `;
 
-exports[`shortest paths for reducers 1`] = `
+exports[`shortest paths for transition functions 1`] = `
 [
   {
     "state": 0,
@@ -899,7 +899,7 @@ exports[`shortest paths for reducers 1`] = `
 ]
 `;
 
-exports[`simple paths for reducers 1`] = `
+exports[`simple paths for transition functions 1`] = `
 [
   {
     "state": 0,

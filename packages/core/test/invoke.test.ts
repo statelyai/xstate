@@ -11,7 +11,7 @@ import {
   SpecialTargets,
   toSCXMLEvent
 } from '../src/index.js';
-import { fromReducer } from '../src/actors/index.js';
+import { fromTransition } from '../src/actors/index.js';
 import { fromObservable, fromEventObservable } from '../src/actors/index.js';
 import { fromPromise } from '../src/actors/index.js';
 import { fromCallback } from '../src/actors/index.js';
@@ -98,65 +98,7 @@ const fetcherMachine = createMachine({
 });
 
 describe('invoke', () => {
-  it('should start services (external machines)', (done) => {
-    const childMachine = createMachine({
-      id: 'child',
-      initial: 'init',
-      states: {
-        init: {
-          entry: [sendParent({ type: 'INC' }), sendParent({ type: 'INC' })]
-        }
-      }
-    });
-
-    const someParentMachine = createMachine<{ count: number }>(
-      {
-        id: 'parent',
-        context: { count: 0 },
-        initial: 'start',
-        states: {
-          start: {
-            invoke: {
-              src: 'child',
-              id: 'someService',
-              autoForward: true
-            },
-            always: {
-              target: 'stop',
-              guard: (ctx) => ctx.count === 2
-            },
-            on: {
-              INC: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
-              }
-            }
-          },
-          stop: {
-            type: 'final'
-          }
-        }
-      },
-      {
-        actors: {
-          child: childMachine
-        }
-      }
-    );
-
-    const actor = interpret(someParentMachine).onDone(() => {
-      // 1. The 'parent' machine will enter 'start' state
-      // 2. The 'child' service will be run with ID 'someService'
-      // 3. The 'child' machine will enter 'init' state
-      // 4. The 'entry' action will be executed, which sends 'INC' to 'parent' machine twice
-      // 5. The context will be updated to increment count to 2
-      expect(actor.getSnapshot().context.count).toEqual(2);
-      done();
-    });
-
-    actor.start();
-  });
-
-  it('should forward events to services if autoForward: true', () => {
+  it('child can immediately respond to the parent with multiple events', () => {
     const childMachine = createMachine({
       id: 'child',
       initial: 'init',
@@ -184,8 +126,7 @@ describe('invoke', () => {
           start: {
             invoke: {
               src: 'child',
-              id: 'someService',
-              autoForward: true
+              id: 'someService'
             },
             always: {
               target: 'stop',
@@ -193,7 +134,9 @@ describe('invoke', () => {
             },
             on: {
               DEC: { actions: assign({ count: (ctx) => ctx.count - 1 }) },
-              FORWARD_DEC: undefined
+              FORWARD_DEC: {
+                actions: sendTo('child', { type: 'FORWARD_DEC' })
+              }
             }
           },
           stop: {
@@ -216,7 +159,7 @@ describe('invoke', () => {
     service
       .onDone(() => {
         // 1. The 'parent' machine will not do anything (inert transition)
-        // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (autoForward: true)
+        // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
         // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
         // 4. The context of the 'parent' machine will be updated from 2 to -1
 
@@ -225,102 +168,6 @@ describe('invoke', () => {
       .start();
 
     service.send({ type: 'FORWARD_DEC' });
-  });
-
-  it('should forward events to services if autoForward: true before processing them', (done) => {
-    const actual: string[] = [];
-
-    const childMachine = createMachine<{ count: number }>({
-      id: 'child',
-      context: { count: 0 },
-      initial: 'counting',
-      states: {
-        counting: {
-          on: {
-            INCREMENT: [
-              {
-                target: 'done',
-                guard: (ctx) => {
-                  actual.push('child got INCREMENT');
-                  return ctx.count >= 2;
-                },
-                actions: assign((ctx) => ({ count: ++ctx.count }))
-              },
-              {
-                target: undefined,
-                actions: assign((ctx) => ({ count: ++ctx.count }))
-              }
-            ]
-          }
-        },
-        done: {
-          type: 'final',
-          data: (ctx) => ({ countedTo: ctx.count })
-        }
-      },
-      on: {
-        START: {
-          actions: () => {
-            throw new Error('Should not receive START action here.');
-          }
-        }
-      }
-    });
-
-    const parentMachine = createMachine<{ countedTo: number }>({
-      id: 'parent',
-      context: { countedTo: 0 },
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            START: 'invokeChild'
-          }
-        },
-        invokeChild: {
-          invoke: {
-            src: childMachine,
-            autoForward: true,
-            onDone: {
-              target: 'done',
-              actions: assign((_ctx, event) => ({
-                countedTo: event.data.countedTo
-              }))
-            }
-          },
-          on: {
-            INCREMENT: {
-              actions: () => {
-                actual.push('parent got INCREMENT');
-              }
-            }
-          }
-        },
-        done: {
-          type: 'final'
-        }
-      }
-    });
-
-    const service = interpret(parentMachine)
-      .onDone(() => {
-        expect(service.getSnapshot().context).toEqual({ countedTo: 3 });
-        expect(actual).toEqual([
-          'child got INCREMENT',
-          'parent got INCREMENT',
-          'child got INCREMENT',
-          'parent got INCREMENT',
-          'child got INCREMENT',
-          'parent got INCREMENT'
-        ]);
-        done();
-      })
-      .start();
-
-    service.send({ type: 'START' });
-    service.send({ type: 'INCREMENT' });
-    service.send({ type: 'INCREMENT' });
-    service.send({ type: 'INCREMENT' });
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
@@ -507,8 +354,7 @@ describe('invoke', () => {
           start: {
             invoke: {
               src: 'child',
-              id: 'someService',
-              autoForward: true
+              id: 'someService'
             },
             on: {
               STOP: 'stop'
@@ -2293,8 +2139,8 @@ describe('invoke', () => {
     });
   });
 
-  describe('with reducers', () => {
-    it('should work with a reducer', (done) => {
+  describe('with transition functions', () => {
+    it('should work with a transition function', (done) => {
       const countReducer = (
         count: number,
         event: { type: 'INC' } | { type: 'DEC' }
@@ -2310,7 +2156,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromReducer(countReducer, 0)
+          src: fromTransition(countReducer, 0)
         },
         on: {
           INC: {
@@ -2353,7 +2199,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromReducer(countReducer, 0)
+          src: fromTransition(countReducer, 0)
         },
         on: {
           INC: {

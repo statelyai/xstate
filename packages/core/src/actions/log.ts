@@ -41,10 +41,15 @@ export function log<
 > {
   return createDynamicAction(
     { type: logActionType, params: { label, expr } },
-    (_event, { state }) => {
+    (_event, { state, actorContext }) => {
       const resolvedValue =
         typeof expr === 'function'
-          ? expr(state.context, _event.data, { _event })
+          ? expr(state.context, _event.data, {
+              _event,
+              state: state as any,
+              self: actorContext?.self ?? ({} as any),
+              system: actorContext?.system
+            })
           : expr;
       return [
         state,

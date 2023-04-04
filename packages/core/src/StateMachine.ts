@@ -25,7 +25,6 @@ import type {
 import type {
   ActorContext,
   ActorMap,
-  BaseActionObject,
   ActorBehavior,
   EventObject,
   InternalMachineImplementations,
@@ -40,7 +39,9 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState
+  AnyActorContext,
+  PersistedMachineState,
+  ParameterizedObject
 } from './types.js';
 import {
   isSCXMLErrorEvent,
@@ -65,7 +66,7 @@ function createDefaultOptions() {
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
+  TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
@@ -266,7 +267,7 @@ export class StateMachine<
   public microstep(
     state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
     event: TEvent | SCXML.Event<TEvent>,
-    actorCtx?: ActorContext<any, any> | undefined
+    actorCtx?: AnyActorContext | undefined
   ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
     const scxmlEvent = toSCXMLEvent(event);
 
@@ -287,7 +288,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: ActorContext<any, any> | undefined,
+    actorCtx: AnyActorContext | undefined,
     input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions(actorCtx, input);

@@ -3287,4 +3287,16 @@ describe('action meta', () => {
   it.todo(
     'base action objects should have meta.action as the same base action object'
   );
+
+  it('should provide self', () => {
+    expect.assertions(1);
+
+    const machine = createMachine({
+      entry: (_ctx, _ev, meta) => {
+        expect(meta.self.send).toBeDefined();
+      }
+    });
+
+    interpret(machine).start();
+  });
 });

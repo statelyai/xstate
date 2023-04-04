@@ -1,5 +1,192 @@
 # xstate
 
+## 5.0.0-alpha.2
+
+### Major Changes
+
+- [#3837](https://github.com/statelyai/xstate/pull/3837) [`61553600b`](https://github.com/statelyai/xstate/commit/61553600b5f32b501a26e3d69a224eeab8d940f7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors are now always part of a "system", which is a collection of actors that can communicate with each other. Systems are implicitly created, and can be used to get and set references to any actor in the system via the `key` prop:
+
+  ```js
+  const machine = createMachine({
+    // ...
+    invoke: {
+      src: emailMachine,
+      // Registers `emailMachine` as `emailer` on the system
+      key: 'emailer'
+    }
+  });
+  ```
+
+  ```js
+  const machine = createMachine({
+    // ...
+    entry: assign({
+      emailer: (ctx, ev, { spawn }) => spawn(emailMachine, { key: 'emailer' })
+    })
+  });
+  ```
+
+  Any invoked/spawned actor that is part of a system will be able to reference that actor:
+
+  ```js
+  const anotherMachine = createMachine({
+    // ...
+    entry: sendTo(
+      (ctx, ev, { system }) => {
+        return system.get('emailer');
+      },
+      { type: 'SEND_EMAIL', subject: 'Hello', body: 'World' }
+    )
+  });
+  ```
+
+  Each top-level `interpret(...)` call creates a separate implicit system. In this example example, `actor1` and `actor2` are part of different systems and are unrelated:
+
+  ```js
+  // Implicit system
+  const actor1 = interpret(machine).start();
+
+  // Another implicit system
+  const actor2 = interpret(machine).start();
+  ```
+
+- [#3911](https://github.com/statelyai/xstate/pull/3911) [`d638a0001`](https://github.com/statelyai/xstate/commit/d638a0001d3e073e8c8d0414003b42fba74ad04a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `self` actor reference is now available in all action metas. This makes it easier to reference the "self" `ActorRef` so that actions such as `sendTo` can include it in the event payload:
+
+  ```ts
+  // Sender
+  actions: sendTo('somewhere', (ctx, ev, { self }) => ({
+    type: 'EVENT',
+    ref: self
+  })),
+
+  // ...
+
+  // Responder
+  actions: sendTo((ctx, ev) => ev.ref, ...)
+  ```
+
+- [#3743](https://github.com/statelyai/xstate/pull/3743) [`30c561e94`](https://github.com/statelyai/xstate/commit/30c561e94f0dde770a2f73a656ba295f1686ef19) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Restoring persisted state is now done by passing the state into the `state: ...` property of the `interpret` options argument:
+
+  ```diff
+  -interpret(machine).start(state);
+  +interpret(machine, { state }).start();
+  ```
+
+  The persisted state is obtained from an actor by calling `actor.getPersistedState()`:
+
+  ```ts
+  const actor = interpret(machine).start();
+
+  const persistedState = actor.getPersistedState();
+
+  // ...
+
+  const restoredActor = interpret(machine, {
+    state: persistedState
+  }).start();
+  ```
+
+- [#3889](https://github.com/statelyai/xstate/pull/3889) [`b394cf188`](https://github.com/statelyai/xstate/commit/b394cf18885e687910c62f03192952081b1548a5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Autoforwarding events is no longer supported and the `autoForward` property has been removed.
+
+  Instead of autoforwarding, events should be explicitly sent to actors:
+
+  ```diff
+  invoke: {
+    id: 'child',
+    src: 'someSrc',
+  - autoForward: true
+  },
+  // ...
+  on: {
+    // ...
+  + EVENT_TO_FORWARD: {
+  +   actions: sendTo('child', (_, event) => event)
+  + }
+  }
+  ```
+
+- [#3815](https://github.com/statelyai/xstate/pull/3815) [`66bc88a68`](https://github.com/statelyai/xstate/commit/66bc88a687482132d179aafd0ac09d1e890e3b04) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `interpret(...)` function now accepts `input` in the second argument, which passes input data in the `"xstate.init"` event:
+
+  ```js
+  const greetMachine = createMachine({
+    context: ({ input }) => ({
+      greeting: `Hello ${input.name}!`
+    }),
+    entry: (_, event) => {
+      event.type; // 'xstate.init'
+      event.input; // { name: 'David' }
+    }
+    // ...
+  });
+
+  const actor = interpret(greetMachine, {
+    // Pass input data to the machine
+    input: { name: 'David' }
+  }).start();
+  ```
+
+- [#3743](https://github.com/statelyai/xstate/pull/3743) [`30c561e94`](https://github.com/statelyai/xstate/commit/30c561e94f0dde770a2f73a656ba295f1686ef19) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Invoked actors can now be deeply persisted and restored. When the persisted state of an actor is obtained via `actor.getPersistedState()`, the states of all invoked actors are also persisted, if possible. This state can be restored by passing the persisted state into the `state: ...` property of the `interpret` options argument:
+
+  ```diff
+  -interpret(machine).start(state);
+  +interpret(machine, { state }).start();
+  ```
+
+- [#3915](https://github.com/statelyai/xstate/pull/3915) [`9e18af130`](https://github.com/statelyai/xstate/commit/9e18af13057faf0671c77400d710de3433ebfde5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `actor.onTransition(...)` method has been removed in favor of `.subscribe(...)`
+
+  ```diff
+   const actor = interpret(machine)
+  -  .onTransition(...)
+  -  .start();
+  +actor.subscribe(...);
+  +actor.start();
+  ```
+
+- [#3877](https://github.com/statelyai/xstate/pull/3877) [`1269470bd`](https://github.com/statelyai/xstate/commit/1269470bd9bf35d2020b36ddd47b722be5cd0ef6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Observing an actor via `actor.subscribe(...)` no longer immediately receives the current snapshot. Instead, the current snapshot can be read from `actor.getSnapshot()`, and observers will receive snapshots only when a transition in the actor occurs.
+
+  ```ts
+  const actor = interpret(machine);
+  actor.start();
+
+  // Late subscription; will not receive the current snapshot
+  actor.subscribe((state) => {
+    // Only called when the actor transitions
+    console.log(state);
+  });
+
+  // Instead, current snapshot can be read at any time
+  console.log(actor.getSnapshot());
+  ```
+
+- [#3878](https://github.com/statelyai/xstate/pull/3878) [`bb9103714`](https://github.com/statelyai/xstate/commit/bb9103714c72aa4d60cfeef5b1c5a58b5720c2dc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can no longer be stopped directly by calling ~~`actor.stop()`~~. They can only be stopped from its parent internally (which might happen when you use `stop` action or automatically when a machine leaves the invoking state). The root actor can still be stopped since it has no parent.
+
+- [#3884](https://github.com/statelyai/xstate/pull/3884) [`aa80811e5`](https://github.com/statelyai/xstate/commit/aa80811e508c574954b894317477a35a9e7a341e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Custom action objects and guard objects are now expected to put extra parameters on the `params` property:
+
+  ```diff
+  actions: {
+    type: 'sendMessage',
+  - message: 'hello'
+  + params: {
+  +   message: 'hello'
+  + }
+  }
+  guard: {
+    type: 'exists',
+  - prop: 'user'
+  + params: {
+  +   prop: 'user'
+  + }
+  }
+  ```
+
+- [#3924](https://github.com/statelyai/xstate/pull/3924) [`c4e58c88d`](https://github.com/statelyai/xstate/commit/c4e58c88d04da0c2255431b2c6d6dd98b1f9ba2d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `fromReducer(...)` function is now called `fromTransition(...)`.
+
+- [#3890](https://github.com/statelyai/xstate/pull/3890) [`326937415`](https://github.com/statelyai/xstate/commit/326937415f20a7e1020832f09a1d30f3b379fd46) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `state._sessionid` property has been removed. It should be obtained directly from the actor: `actor.sessionId`.
+
+- [#3756](https://github.com/statelyai/xstate/pull/3756) [`67d576190`](https://github.com/statelyai/xstate/commit/67d57619015803a6a7cf9f3b6dd98c10c064faff) Thanks [@Andarist](https://github.com/Andarist)! - All transitions became internal by default. The style of the `target` pattern (`.child`, `sibling`, `#id`) has now no effect on the transition type.
+
+  Internal transitions don't reenter their source state when the target lies within it. You can still create external transitions (ones that reenter the source state under the mentioned circumstances) by explicitly setting `external: true` on the given transition.
+
 ## 4.36.0
 
 ### Minor Changes

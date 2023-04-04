@@ -1,13 +1,13 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
 import {
   EventObject,
-  SCXMLEventMeta,
   SendExpr,
   DelayExpr,
   ChooseCondition,
   createMachine,
   BaseActionObject,
-  AnyStateMachine
+  AnyStateMachine,
+  StateMeta
 } from 'xstate';
 import * as actions from 'xstate/actions';
 import { not, stateIn } from 'xstate/guards';
@@ -122,7 +122,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   _ev: TEvent,
-  meta: SCXMLEventMeta<TEvent>,
+  meta: StateMeta<TContext, TEvent>,
   body: string
 ) => {
   const datamodel = context
@@ -460,8 +460,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: scxmlToMachine(content, options),
-        autoForward: element.attributes!.autoforward === 'true'
+        src: scxmlToMachine(content, options)
       };
     });
 

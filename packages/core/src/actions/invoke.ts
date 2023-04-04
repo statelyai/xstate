@@ -59,9 +59,12 @@ export function invoke<
             id,
             src,
             parent: actorContext?.self,
+            systemId: invokeDef.systemId,
             input:
               typeof input === 'function'
-                ? input(state.context, _event.data as any)
+                ? input(state.context, _event.data as any, {
+                    self: actorContext!.self
+                  })
                 : input
           });
 
@@ -84,8 +87,8 @@ export function invoke<
       });
 
       resolvedInvokeAction.execute = (actorCtx) => {
-        const interpreter = actorCtx.self as AnyInterpreter;
-        const { id, autoForward, ref } = resolvedInvokeAction.params;
+        const parent = actorCtx.self as AnyInterpreter;
+        const { id, ref } = resolvedInvokeAction.params;
         if (!ref) {
           if (!IS_PRODUCTION) {
             warn(
@@ -100,13 +103,9 @@ export function invoke<
             return;
           }
           try {
-            if (autoForward) {
-              interpreter._forwardTo.add(actorRef);
-            }
-
             actorRef.start?.();
           } catch (err) {
-            interpreter.send(error(id, err));
+            parent.send(error(id, err));
             return;
           }
         });
