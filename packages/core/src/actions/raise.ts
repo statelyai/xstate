@@ -63,7 +63,7 @@ export function raise<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const arg: UnifiedArg<TContext, TExpressionEvent> &
+      const args: UnifiedArg<TContext, TExpressionEvent> &
         StateMeta<TContext, TExpressionEvent> = {
         context: state.context,
         event: _event.data,
@@ -76,17 +76,19 @@ export function raise<
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
-        typeof eventOrExpr === 'function' ? eventOrExpr(arg) : eventOrExpr
+        typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr
       );
 
       let resolvedDelay: number | undefined;
       if (typeof params.delay === 'string') {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay =
-          typeof configDelay === 'function' ? configDelay(arg) : configDelay;
+          typeof configDelay === 'function' ? configDelay(args) : configDelay;
       } else {
         resolvedDelay =
-          typeof params.delay === 'function' ? params.delay(arg) : params.delay;
+          typeof params.delay === 'function'
+            ? params.delay(args)
+            : params.delay;
       }
 
       const resolvedAction: RaiseActionObject<
