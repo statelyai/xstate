@@ -2,7 +2,7 @@
 'xstate': major
 ---
 
-Action arguments are now consolidated into a single object argument. This is a breaking change for all actions that are called with arguments.
+Action/actor/delay/guard arguments are now consolidated into a single object argument. This is a breaking change for all of those things that are called with arguments.
 
 ```diff
 assign({
