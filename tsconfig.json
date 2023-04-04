@@ -3,7 +3,7 @@
     "allowSyntheticDefaultImports": true,
     "target": "esnext",
     "isolatedModules": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "node16",
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "noUnusedLocals": true,

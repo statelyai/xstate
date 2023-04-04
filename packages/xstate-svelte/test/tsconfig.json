@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "types": ["jest"],
-    "moduleResolution": "bundler",
+    "moduleResolution": "node16",
     "allowImportingTsExtensions": true
   }
 }
