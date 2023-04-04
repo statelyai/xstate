@@ -15,7 +15,10 @@ export function pure<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 >(
-  getActions: (arg: {
+  getActions: ({
+    context,
+    event
+  }: {
     context: TContext;
     event: TExpressionEvent;
   }) => SingleOrArray<BaseActionObject | string> | undefined

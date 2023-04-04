@@ -86,7 +86,7 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const arg: UnifiedArg<TContext, TEvent> & StateMeta<TContext, TEvent> = {
+      const args: UnifiedArg<TContext, TEvent> & StateMeta<TContext, TEvent> = {
         context: state.context,
         event: _event.data,
         _event,
@@ -98,22 +98,24 @@ export function send<
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
-        isFunction(eventOrExpr) ? eventOrExpr(arg) : eventOrExpr
+        isFunction(eventOrExpr) ? eventOrExpr(args) : eventOrExpr
       );
 
       let resolvedDelay: number | undefined;
       if (isString(params.delay)) {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay = isFunction(configDelay)
-          ? configDelay(arg)
+          ? configDelay(args)
           : configDelay;
       } else {
         resolvedDelay = isFunction(params.delay)
-          ? params.delay(arg)
+          ? params.delay(args)
           : params.delay;
       }
 
-      const resolvedTarget = isFunction(params.to) ? params.to(arg) : params.to;
+      const resolvedTarget = isFunction(params.to)
+        ? params.to(args)
+        : params.to;
       let targetActorRef: AnyActorRef | undefined;
 
       if (typeof resolvedTarget === 'string') {

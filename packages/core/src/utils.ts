@@ -242,12 +242,13 @@ export function mapContext<
   }
 
   const result = {} as any;
+  const args = { context, event: _event.data };
 
   for (const key of Object.keys(mapper)) {
     const subMapper = mapper[key];
 
     if (isFunction(subMapper)) {
-      result[key] = subMapper({ context, event: _event.data });
+      result[key] = subMapper(args);
     } else {
       result[key] = subMapper;
     }

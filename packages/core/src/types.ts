@@ -104,7 +104,7 @@ export interface BaseDynamicActionObject<
 
   /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
   (
-    arg: {
+    args: {
       context: TContext;
       event: TExpressionEvent;
     } & ActionMeta<TContext, TEvent, ParameterizedObject>
@@ -151,7 +151,7 @@ export type ActionFunction<
   TAction extends ParameterizedObject = ParameterizedObject,
   TEvent extends EventObject = TExpressionEvent
 > = (
-  arg: {
+  args: {
     context: TContext;
     event: TExpressionEvent;
   } & ActionMeta<TContext, TEvent, TAction>
@@ -208,23 +208,6 @@ export type BaseActions<
   TAction extends ParameterizedObject
 > = SingleOrArray<BaseAction<TContext, TExpressionEvent, TAction, TEvent>>;
 
-export type BaseActions2<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject,
-  TAction extends ParameterizedObject
-> = SingleOrArray<
-  | TAction
-  | ((arg: { context: TContext; event: TExpressionEvent }) => void)
-  | BaseDynamicActionObject<
-      TContext,
-      TExpressionEvent,
-      TEvent,
-      any, // TODO: at the very least this should include TAction, but probably at a covariant position or something, we really need to rethink how action objects are typed
-      any
-    >
->;
-
 export type Actions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -249,7 +232,7 @@ export type GuardPredicate<
   TContext extends MachineContext,
   TEvent extends EventObject
 > = (
-  arg: {
+  args: {
     context: TContext;
     event: TEvent;
   } & GuardMeta<TContext, TEvent>
@@ -1333,7 +1316,7 @@ export type Assigner<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 > = (
-  arg: {
+  args: {
     context: TContext;
     event: TExpressionEvent;
   } & AssignMeta<TContext, TExpressionEvent, TEvent>
@@ -1345,7 +1328,7 @@ export type PartialAssigner<
   TEvent extends EventObject,
   TKey extends keyof TContext
 > = (
-  arg: {
+  args: {
     context: TContext;
     event: TExpressionEvent;
   } & AssignMeta<TContext, TExpressionEvent, TEvent>
@@ -1413,7 +1396,7 @@ export interface DynamicPureActionObject<
 > {
   type: ActionTypes.Pure;
   params: {
-    get: (arg: {
+    get: (args: {
       context: TContext;
       event: TEvent;
     }) =>

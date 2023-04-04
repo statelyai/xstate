@@ -100,7 +100,7 @@ export function toActionObject<
           function: action
         },
         execute: (actorCtx) => {
-          const arg = {
+          return action({
             context: state.context as TContext,
             event: _event.data as TEvent,
             action: actionObject,
@@ -108,8 +108,7 @@ export function toActionObject<
             state: state as AnyState,
             self: actorCtx.self,
             system: actorCtx.system
-          };
-          return action(arg);
+          });
         }
       };
 

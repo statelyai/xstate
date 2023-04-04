@@ -53,7 +53,12 @@ export function assign<
         );
       }
 
-      const meta: AssignMeta<TContext, TExpressionEvent, TEvent> = {
+      const args: AssignMeta<TContext, TExpressionEvent, TEvent> & {
+        context: TContext;
+        event: TExpressionEvent;
+      } = {
+        context: state.context,
+        event: _event.data,
         state: state as any,
         action,
         _event,
@@ -70,20 +75,12 @@ export function assign<
 
       let partialUpdate: Partial<TContext> = {};
       if (isFunction(assignment)) {
-        partialUpdate = assignment({
-          context: state.context,
-          event: _event.data,
-          ...meta
-        });
+        partialUpdate = assignment(args);
       } else {
         for (const key of Object.keys(assignment)) {
           const propAssignment = assignment[key];
           partialUpdate[key as keyof TContext] = isFunction(propAssignment)
-            ? propAssignment({
-                context: state.context,
-                event: _event.data,
-                ...meta
-              })
+            ? propAssignment(args)
             : propAssignment;
         }
       }
