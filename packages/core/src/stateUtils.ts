@@ -467,6 +467,14 @@ export function formatTransitions<
         )
       );
     }
+    if (invokeDef.on) {
+      const t = Object.entries(toArray(invokeDef.on));
+
+      t.forEach(([key, value]) => {
+        const tca = toTransitionConfigArray(key, value);
+        settleTransitions.push(...tca);
+      });
+    }
     return settleTransitions;
   });
   const delayedTransitions = stateNode.after;

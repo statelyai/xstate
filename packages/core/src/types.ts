@@ -426,6 +426,8 @@ export interface InvokeDefinition<
     | string
     | SingleOrArray<TransitionConfig<TContext, SnapshotEvent<any>>>;
 
+  on?: string | SingleOrArray<TransitionConfig<TContext, AnyEventObject>>;
+
   toJSON: () => Omit<
     InvokeDefinition<TContext, TEvent>,
     'onDone' | 'onError' | 'toJSON'
@@ -563,6 +565,9 @@ export interface InvokeConfig<
     | SingleOrArray<
         TransitionConfigOrTarget<TContext, SnapshotEvent<any>, TEvent>
       >;
+
+  on?: string | TransitionsConfig<TContext, TEvent>;
+
   /**
    * Meta data related to this invocation
    */
