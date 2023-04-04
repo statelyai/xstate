@@ -165,7 +165,7 @@ describe('useMachine', () => {
         useMachine(machine, {
           actions: {
             // it's important to use `event` here somehow to make this a possible source of information for inference
-            fooAction: (_context, _event) => {}
+            fooAction: ({ event: _event }) => {}
           }
         });
       }
@@ -196,8 +196,8 @@ describe('useMachine', () => {
       setup: () => {
         useMachine(machine, {
           actions: {
-            fooAction: assign((_context, _event) => {
-              ((_accept: 'FOO') => {})(_event.type);
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
               // @ts-expect-error
               ((_accept: "test that this isn't any") => {})(_event.type);
             })
@@ -370,7 +370,8 @@ describe('useInterpret', () => {
         useInterpret(machine, {
           actions: {
             // it's important to use `event` here somehow to make this a possible source of information for inference
-            fooAction: (_context, _event) => {}
+            // TODO: is it though?
+            fooAction: () => {}
           }
         });
       }
@@ -401,10 +402,10 @@ describe('useInterpret', () => {
       setup: () => {
         useInterpret(machine, {
           actions: {
-            fooAction: assign((_context, _event) => {
-              ((_accept: 'FOO') => {})(_event.type);
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
               // @ts-expect-error
-              ((_accept: "test that this isn't any") => {})(_event.type);
+              ((_accept: "test that this isn't any") => {})(event.type);
             })
           }
         });

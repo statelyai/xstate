@@ -73,6 +73,14 @@ export interface BuiltInActionObject extends ParameterizedObject {
   params: Record<string, any>;
 }
 
+export interface UnifiedArg<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
+  context: TContext;
+  event: TEvent;
+}
+
 export interface BaseDynamicActionObject<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -96,9 +104,10 @@ export interface BaseDynamicActionObject<
 
   /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
   (
-    arg: TContext,
-    ev: TExpressionEvent,
-    meta: ActionMeta<TContext, TEvent, ParameterizedObject>
+    args: {
+      context: TContext;
+      event: TExpressionEvent;
+    } & ActionMeta<TContext, TEvent, ParameterizedObject>
   ): void;
 }
 
@@ -141,13 +150,12 @@ export type ActionFunction<
   TExpressionEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TEvent extends EventObject = TExpressionEvent
-> = {
-  bivarianceHack(
-    context: TContext,
-    event: TExpressionEvent,
-    meta: ActionMeta<TContext, TEvent, TAction>
-  ): void;
-}['bivarianceHack'];
+> = (
+  args: {
+    context: TContext;
+    event: TExpressionEvent;
+  } & ActionMeta<TContext, TEvent, TAction>
+) => void;
 
 export interface ChooseCondition<
   TContext extends MachineContext,
@@ -224,9 +232,10 @@ export type GuardPredicate<
   TContext extends MachineContext,
   TEvent extends EventObject
 > = (
-  context: TContext,
-  event: TEvent,
-  meta: GuardMeta<TContext, TEvent>
+  args: {
+    context: TContext;
+    event: TEvent;
+  } & GuardMeta<TContext, TEvent>
 ) => boolean;
 
 export interface DefaultGuardObject<
@@ -1232,13 +1241,13 @@ export type Expr<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (context: TContext, event: TEvent) => T;
+> = (arg: UnifiedArg<TContext, TEvent>) => T;
 
 export type ExprWithMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (context: TContext, event: TEvent, meta: StateMeta<TContext, TEvent>) => T;
+> = (args: UnifiedArg<TContext, TEvent> & StateMeta<TContext, TEvent>) => T;
 
 export type SendExpr<
   TContext extends MachineContext,
@@ -1307,9 +1316,10 @@ export type Assigner<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 > = (
-  context: TContext,
-  event: TExpressionEvent,
-  meta: AssignMeta<TContext, TExpressionEvent, TEvent>
+  args: {
+    context: TContext;
+    event: TExpressionEvent;
+  } & AssignMeta<TContext, TExpressionEvent, TEvent>
 ) => Partial<TContext>;
 
 export type PartialAssigner<
@@ -1318,9 +1328,10 @@ export type PartialAssigner<
   TEvent extends EventObject,
   TKey extends keyof TContext
 > = (
-  context: TContext,
-  event: TExpressionEvent,
-  meta: AssignMeta<TContext, TExpressionEvent, TEvent>
+  args: {
+    context: TContext;
+    event: TExpressionEvent;
+  } & AssignMeta<TContext, TExpressionEvent, TEvent>
 ) => TContext[TKey];
 
 export type PropertyAssigner<
@@ -1337,7 +1348,7 @@ export type Mapper<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TParams extends {}
-> = (context: TContext, event: TEvent) => TParams;
+> = (args: { context: TContext; event: TEvent }) => TParams;
 
 export type PropertyMapper<
   TContext extends MachineContext,
@@ -1345,7 +1356,7 @@ export type PropertyMapper<
   TParams extends {}
 > = {
   [K in keyof TParams]?:
-    | ((context: TContext, event: TEvent) => TParams[K])
+    | ((args: { context: TContext; event: TEvent }) => TParams[K])
     | TParams[K];
 };
 
@@ -1385,10 +1396,12 @@ export interface DynamicPureActionObject<
 > {
   type: ActionTypes.Pure;
   params: {
-    get: (
-      context: TContext,
-      event: TEvent
-    ) => SingleOrArray<BaseActionObject | BaseActionObject['type']> | undefined;
+    get: (args: {
+      context: TContext;
+      event: TEvent;
+    }) =>
+      | SingleOrArray<BaseActionObject | BaseActionObject['type']>
+      | undefined;
   };
 }
 

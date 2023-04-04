@@ -47,7 +47,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -81,7 +81,7 @@ describe('typegen types', () => {
       },
       {
         delays: {
-          myDelay: (_ctx, event) => {
+          myDelay: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -117,7 +117,7 @@ describe('typegen types', () => {
       },
       {
         guards: {
-          myGuard: (_ctx, event) => {
+          myGuard: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -602,7 +602,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             event.type === 'xstate.init';
           }
         }
@@ -636,7 +636,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             if (event.type === 'FOO') {
               return;
             }
@@ -682,7 +682,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             if (event.type === 'FOO') {
               return;
             }
@@ -764,7 +764,7 @@ describe('typegen types', () => {
       {
         actors: {
           // @ts-expect-error
-          myActor: (_ctx) => Promise.resolve(42)
+          myActor: () => Promise.resolve(42)
         }
       }
     );
@@ -861,7 +861,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          actionName: assign((_context, event) => {
+          actionName: assign(({ event }) => {
             ((_accept: 'BAR') => {})(event.type);
             return {};
           })
@@ -1189,9 +1189,9 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          increment: assign((ctx, ev) => {
+          increment: assign(({ context, event }) => {
             return {
-              count: ctx.count + ev.value
+              count: context.count + event.value
             };
           })
         }
