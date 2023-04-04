@@ -16,8 +16,8 @@ describe('input', () => {
       context: ({ input }) => ({
         count: input.startCount
       }),
-      entry: (ctx) => {
-        spy(ctx.count);
+      entry: ({ context }) => {
+        spy(context.count);
       }
     });
 
@@ -28,8 +28,8 @@ describe('input', () => {
 
   it('initial event should have input property', (done) => {
     const machine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
@@ -76,8 +76,8 @@ describe('input', () => {
 
   it('should provide input data to invoked machines', (done) => {
     const invokedMachine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
@@ -94,14 +94,14 @@ describe('input', () => {
 
   it('should provide input data to spawned machines', (done) => {
     const spawnedMachine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
 
     const machine = createMachine({
-      entry: assign((_ctx, _ev, { spawn }) => {
+      entry: assign(({ spawn }) => {
         return {
           ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
         };
@@ -198,7 +198,9 @@ describe('input', () => {
       {
         invoke: {
           src: 'child',
-          input: (_, { input }) => input + 100
+          input: ({ event }) => {
+            return event.input + 100;
+          }
         }
       },
       {
@@ -265,7 +267,7 @@ describe('input', () => {
                 return {};
               }
             }),
-            input: (_, { input }) => input + 100
+            input: ({ event }) => event.input + 100
           }
         }
       }
@@ -281,7 +283,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign((_ctx, _ev, { spawn }) => ({
+        entry: assign(({ spawn }) => ({
           childRef: spawn('child')
         }))
       },
@@ -294,7 +296,7 @@ describe('input', () => {
                 return {};
               }
             }),
-            input: (_, { input }) => input + 100
+            input: ({ event }) => event.input + 100
           }
         }
       }
@@ -340,7 +342,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign((_ctx, _ev, { spawn }) => ({
+        entry: assign(({ spawn }) => ({
           childRef: spawn('child', { input: 100 })
         }))
       },
@@ -370,7 +372,7 @@ describe('input', () => {
     const machine = createMachine({
       invoke: {
         src: createMachine({}),
-        input: (_, __, { self }) => spy(self)
+        input: ({ self }) => spy(self)
       }
     });
 
@@ -384,7 +386,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign((_ctx, _ev, { spawn }) => ({
+        entry: assign(({ spawn }) => ({
           childRef: spawn('child')
         }))
       },
@@ -392,7 +394,7 @@ describe('input', () => {
         actors: {
           child: {
             src: createMachine({}),
-            input: (_, __, { self }) => spy(self)
+            input: ({ self }) => spy(self)
           }
         }
       }

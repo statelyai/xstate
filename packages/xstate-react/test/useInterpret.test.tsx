@@ -171,7 +171,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
       }),
       on: {
         SEND_TO_CHILD: {
-          actions: sendTo((ctx) => ctx.childRef, { type: 'EVENT' })
+          actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
         }
       }
     });
@@ -227,7 +227,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
       }),
       on: {
         SEND_TO_CHILD: {
-          actions: sendTo((ctx) => ctx.childRef, { type: 'EVENT' })
+          actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
         }
       }
     });

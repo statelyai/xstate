@@ -14,7 +14,7 @@ describe('@xstate/immer', () => {
         active: {
           on: {
             INC: {
-              actions: assign<typeof context>((ctx) => ctx.count++)
+              actions: assign<typeof context>(({ context }) => context.count++)
             }
           }
         }
@@ -51,7 +51,7 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          increment: assign<typeof context>((ctx) => ctx.count++)
+          increment: assign<typeof context>(({ context }) => context.count++)
         }
       }
     );
@@ -88,7 +88,9 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          pushBaz: assign<typeof context>((ctx) => ctx.foo.bar.baz.push(0))
+          pushBaz: assign<typeof context>(({ context }) =>
+            context.foo.bar.baz.push(0)
+          )
         }
       }
     );
@@ -112,8 +114,8 @@ describe('@xstate/immer', () => {
     const bazUpdater = createUpdater<
       typeof context,
       ImmerUpdateEvent<'UPDATE_BAZ', number>
-    >('UPDATE_BAZ', (ctx, { input }) => {
-      ctx.foo.bar.baz.push(input);
+    >('UPDATE_BAZ', ({ context, event }) => {
+      context.foo.bar.baz.push(event.input);
     });
 
     const countMachine = createMachine<typeof context>({
@@ -150,15 +152,15 @@ describe('@xstate/immer', () => {
 
     const nameUpdater = createUpdater<FormContext, NameUpdateEvent>(
       'UPDATE_NAME',
-      (ctx, { input }) => {
-        ctx.name = input;
+      ({ context, event }) => {
+        context.name = event.input;
       }
     );
 
     const ageUpdater = createUpdater<FormContext, AgeUpdateEvent>(
       'UPDATE_AGE',
-      (ctx, { input }) => {
-        ctx.age = input;
+      ({ context, event }) => {
+        context.age = event.input;
       }
     );
 
@@ -186,8 +188,8 @@ describe('@xstate/immer', () => {
         submitting: {
           always: {
             target: 'success',
-            guard: (ctx) => {
-              return ctx.name === 'David' && ctx.age === 0;
+            guard: ({ context }) => {
+              return context.name === 'David' && context.age === 0;
             }
           }
         },

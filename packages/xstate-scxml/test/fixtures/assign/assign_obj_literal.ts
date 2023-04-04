@@ -12,7 +12,7 @@ export default createMachine({
         '*': {
           target: '#fail',
           actions: actions.log(
-            (_, e) => `unhandled input ${JSON.stringify(e)}`,
+            ({ event }) => `unhandled input ${JSON.stringify(event)}`,
             'TEST'
           )
         }

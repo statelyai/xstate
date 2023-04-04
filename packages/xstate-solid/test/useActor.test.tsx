@@ -187,7 +187,10 @@ describe('useActor', () => {
             FINISH: {
               actions: [
                 assign({
-                  item: (ctx) => ({ ...ctx.item, total: ctx.item.total + 1 })
+                  item: ({ context }) => ({
+                    ...context.item,
+                    total: context.item.total + 1
+                  })
                 }),
 
                 sendParent({ type: 'FINISH' })
@@ -196,7 +199,10 @@ describe('useActor', () => {
             COUNT: {
               actions: [
                 assign({
-                  item: (ctx) => ({ ...ctx.item, count: ctx.item.count + 1 })
+                  item: ({ context }) => ({
+                    ...context.item,
+                    count: context.item.count + 1
+                  })
                 })
               ]
             }
@@ -214,7 +220,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: (_, __, { spawn }) => spawn(childMachine)
+            actorRef: ({ spawn }) => spawn(childMachine)
           }),
           on: { FINISH: 'success' }
         },
@@ -297,7 +303,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: (_, __, { spawn }) => spawn(childMachine)
+            actorRef: ({ spawn }) => spawn(childMachine)
           })
         }
       }
@@ -596,7 +602,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: (_, __, { spawn }) => spawn(childMachine)
+            actorRef: ({ spawn }) => spawn(childMachine)
           }),
           on: { FINISH: 'success' }
         },
@@ -806,8 +812,8 @@ describe('useActor', () => {
           on: {
             CHANGE: {
               actions: [
-                assign((ctx, event) => {
-                  const newCtx = { ...ctx };
+                assign(({ context, event }) => {
+                  const newCtx = { ...context };
                   newCtx.arr = [...newCtx.arr];
                   newCtx.arr[event.index] = {
                     ...newCtx.arr[event.index],
@@ -1092,7 +1098,9 @@ describe('useActor', () => {
         states: {
           active: {
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+              INC: {
+                actions: assign({ count: ({ context }) => context.count + 1 })
+              },
               SOMETHING: { actions: 'doSomething' }
             }
           }
@@ -1164,7 +1172,7 @@ describe('useActor', () => {
           on: {
             INC: {
               actions: assign({
-                counter: (ctx) => ctx.counter + 1
+                counter: ({ context }) => context.counter + 1
               })
             }
           }
@@ -1214,7 +1222,9 @@ describe('useActor', () => {
       states: {
         active: {
           on: {
-            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+            INC: {
+              actions: assign({ count: ({ context }) => context.count + 1 })
+            },
             SOMETHING: { actions: 'doSomething' }
           }
         }
@@ -1275,13 +1285,13 @@ describe('useActor', () => {
           on: {
             INC: {
               actions: assign({
-                subCount: (ctx) => ({
-                  ...ctx.subCount,
+                subCount: ({ context }) => ({
+                  ...context.subCount,
                   subCount1: {
-                    ...ctx.subCount.subCount1,
+                    ...context.subCount.subCount1,
                     subCount2: {
-                      ...ctx.subCount.subCount1.subCount2,
-                      count: ctx.subCount.subCount1.subCount2.count + 1
+                      ...context.subCount.subCount1.subCount2,
+                      count: context.subCount.subCount1.subCount2.count + 1
                     }
                   }
                 })
@@ -1350,13 +1360,13 @@ describe('useActor', () => {
           on: {
             INC: {
               actions: assign({
-                subCount: (ctx) => ({
-                  ...ctx.subCount,
+                subCount: ({ context }) => ({
+                  ...context.subCount,
                   subCount1: {
-                    ...ctx.subCount.subCount1,
+                    ...context.subCount.subCount1,
                     subCount2: {
-                      ...ctx.subCount.subCount1.subCount2,
-                      count: ctx.subCount.subCount1.subCount2.count + 1
+                      ...context.subCount.subCount1.subCount2,
+                      count: context.subCount.subCount1.subCount2.count + 1
                     }
                   }
                 })
@@ -1425,8 +1435,8 @@ describe('useActor', () => {
             INC: {
               actions: [
                 assign({
-                  latestValue: (ctx: Context) => ({
-                    value: ctx.latestValue.value + 1
+                  latestValue: ({ context }) => ({
+                    value: context.latestValue.value + 1
                   })
                 })
               ]

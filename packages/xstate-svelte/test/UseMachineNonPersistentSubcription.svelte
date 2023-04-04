@@ -15,7 +15,7 @@
     on: {
       INC: {
         actions: assign({
-          count: (ctx: { count: number }) => ++ctx.count
+          count: ({ context }) => ++context.count
         })
       }
     }

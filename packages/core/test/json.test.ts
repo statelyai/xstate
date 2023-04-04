@@ -51,7 +51,7 @@ describe('json', () => {
           on: {
             TO_FOO: {
               target: ['foo', 'bar'],
-              guard: (ctx) => !!ctx.string
+              guard: ({ context }) => !!context.string
             }
           },
           after: {

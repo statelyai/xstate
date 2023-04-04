@@ -107,14 +107,14 @@ describe('@xstate/graph', () => {
           EVENT: [
             {
               target: 'foo',
-              guard: (_, e) => e.id === 'foo'
+              guard: ({ event }) => event.id === 'foo'
             },
             { target: 'bar' }
           ],
           STATE: [
             {
               target: 'foo',
-              guard: (s) => s.id === 'foo'
+              guard: ({ context }) => context.id === 'foo'
             },
             { target: 'bar' }
           ]
@@ -227,14 +227,14 @@ describe('@xstate/graph', () => {
               EVENT: [
                 {
                   target: 'foo',
-                  guard: (_, e) => e.id === 'foo'
+                  guard: ({ event }) => event.id === 'foo'
                 },
                 { target: 'bar' }
               ],
               STATE: [
                 {
                   target: 'foo',
-                  guard: (s) => s.id === 'foo'
+                  guard: ({ context }) => context.id === 'foo'
                 },
                 { target: 'bar' }
               ]
@@ -401,12 +401,12 @@ describe('@xstate/graph', () => {
           start: {
             always: {
               target: 'finish',
-              guard: (ctx) => ctx.count === 3
+              guard: ({ context }) => context.count === 3
             },
             on: {
               INC: {
                 actions: assign({
-                  count: (ctx) => ctx.count + 1
+                  count: ({ context }) => context.count + 1
                 })
               }
             }
@@ -559,7 +559,7 @@ describe('filtering', () => {
           on: {
             INC: {
               actions: assign({
-                count: (ctx) => ctx.count + 1
+                count: ({ context }) => context.count + 1
               })
             }
           }

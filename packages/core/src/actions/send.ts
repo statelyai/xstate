@@ -20,7 +20,8 @@ import {
   SendActionObject,
   SendActionOptions,
   State,
-  StateMeta
+  StateMeta,
+  UnifiedArg
 } from '../index.js';
 import { actionTypes, error } from '../actions.js';
 
@@ -85,7 +86,9 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta: StateMeta<TContext, TEvent> = {
+      const args: UnifiedArg<TContext, TEvent> & StateMeta<TContext, TEvent> = {
+        context: state.context,
+        event: _event.data,
         _event,
         state: state as State<TContext, TEvent>,
         self: actorContext?.self ?? (null as any),
@@ -95,25 +98,23 @@ export function send<
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
-        isFunction(eventOrExpr)
-          ? eventOrExpr(state.context, _event.data, meta)
-          : eventOrExpr
+        isFunction(eventOrExpr) ? eventOrExpr(args) : eventOrExpr
       );
 
       let resolvedDelay: number | undefined;
       if (isString(params.delay)) {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay = isFunction(configDelay)
-          ? configDelay(state.context, _event.data, meta)
+          ? configDelay(args)
           : configDelay;
       } else {
         resolvedDelay = isFunction(params.delay)
-          ? params.delay(state.context, _event.data, meta)
+          ? params.delay(args)
           : params.delay;
       }
 
       const resolvedTarget = isFunction(params.to)
-        ? params.to(state.context, _event.data, meta)
+        ? params.to(args)
         : params.to;
       let targetActorRef: AnyActorRef | undefined;
 
@@ -214,7 +215,7 @@ export function respond<
 ) {
   return send<TContext, TEvent>(event, {
     ...options,
-    to: (_, __, { _event }) => {
+    to: ({ _event }) => {
       return _event.origin!; // TODO: handle when _event.origin is undefined
     }
   });
@@ -251,7 +252,7 @@ export function forwardTo<
       return resolvedTarget;
     };
   }
-  return send<TContext, TEvent>((_, event) => event, {
+  return send<TContext, TEvent>(({ event }) => event, {
     ...options,
     to: target
   });
@@ -273,12 +274,10 @@ export function escalate<
   options?: SendActionParams<TContext, TEvent>
 ) {
   return sendParent<TContext, TEvent>(
-    (context, event, meta) => {
+    (arg) => {
       return {
         type: actionTypes.error,
-        data: isFunction(errorData)
-          ? errorData(context, event, meta)
-          : errorData
+        data: isFunction(errorData) ? errorData(arg) : errorData
       };
     },
     {

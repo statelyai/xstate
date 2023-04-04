@@ -18,11 +18,11 @@
       idle: {
         on: {
           INCREMENT: {
-            actions: assign({ count: ({ count }) => count + 1 })
+            actions: assign({ count: ({ context: { count } }) => count + 1 })
           },
           INCREMENT_ANOTHER: {
             actions: assign({
-              anotherCount: ({ anotherCount }) => anotherCount + 1
+              anotherCount: ({ context: { anotherCount } }) => anotherCount + 1
             })
           }
         }
