@@ -442,7 +442,7 @@ describe('machine', () => {
         context: { value: 42 },
         on: {
           INC: {
-            actions: assign({ value: (ctx) => ctx.value + 1 })
+            actions: assign({ value: ({ context }) => context.value + 1 })
           }
         }
       });

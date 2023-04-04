@@ -24,10 +24,10 @@ const machine = createMachine<{ count: number; other: number }>({
   },
   on: {
     OTHER: {
-      actions: assign({ other: (ctx) => ctx.other + 1 })
+      actions: assign({ other: ({context}) => context.other + 1 })
     },
     INCREMENT: {
-      actions: assign({ count: (ctx) => ctx.count + 1 })
+      actions: assign({ count: ({context}) => context.count + 1 })
     }
   }
 });

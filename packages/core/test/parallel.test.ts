@@ -650,7 +650,7 @@ describe('parallel states', () => {
           on: {
             CHANGE: {
               actions: assign({
-                value: (_, e) => e.value
+                value: ({ event }) => event.value
               })
             }
           }
@@ -910,7 +910,9 @@ describe('parallel states', () => {
                 }
               },
               foobaz: {
-                entry: assign({ log: (ctx) => [...ctx.log, 'entered foobaz'] }),
+                entry: assign({
+                  log: ({ context }) => [...context.log, 'entered foobaz']
+                }),
                 on: {
                   GOTO_FOOBAZ: 'foobaz'
                 }
