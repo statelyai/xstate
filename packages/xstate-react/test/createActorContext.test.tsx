@@ -137,15 +137,15 @@ describe('createActorContext', () => {
       },
       on: {
         INC: {
-          actions: assign<MachineContext>((ctx) => ({
+          actions: assign<MachineContext>(({ context }) => ({
             obj: {
-              counter: ctx.obj.counter + 1
+              counter: context.obj.counter + 1
             }
           }))
         },
         PUSH: {
-          actions: assign<MachineContext>((ctx) => ({
-            arr: [...ctx.arr, Math.random().toString(36).slice(2)]
+          actions: assign<MachineContext>(({ context }) => ({
+            arr: [...context.arr, Math.random().toString(36).slice(2)]
           }))
         }
       }

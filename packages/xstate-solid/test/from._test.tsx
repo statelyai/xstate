@@ -125,8 +125,8 @@ describe("usage of interpret from core with Solid's from", () => {
             INC: {
               actions: [
                 assign({
-                  latestValue: (ctx: Context) => ({
-                    value: ctx.latestValue.value + 1
+                  latestValue: ({ context }) => ({
+                    value: context.latestValue.value + 1
                   })
                 })
               ]

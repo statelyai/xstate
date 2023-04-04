@@ -160,16 +160,16 @@ describe('MachineImplementationsFrom', () => {
     });
     acceptMachineImplementations({
       actions: {
-        foo: assign((ctx) => {
-          ((_accept: number) => {})(ctx.count);
+        foo: assign(({ context }) => {
+          ((_accept: number) => {})(context.count);
           return {};
         })
       }
     });
     acceptMachineImplementations({
       actions: {
-        foo: assign((_ctx, ev) => {
-          ((_accept: 'FOO' | 'BAR') => {})(ev.type);
+        foo: assign(({ event }) => {
+          ((_accept: 'FOO' | 'BAR') => {})(event.type);
           return {};
         })
       }
@@ -215,9 +215,9 @@ describe('MachineImplementationsFrom', () => {
     });
     acceptMachineImplementations({
       actions: {
-        myAction: assign((ctx, ev) => {
-          ((_accept: number) => {})(ctx.count);
-          ((_accept: 'FOO') => {})(ev.type);
+        myAction: assign(({ context, event }) => {
+          ((_accept: number) => {})(context.count);
+          ((_accept: 'FOO') => {})(event.type);
           return {};
         })
       }
@@ -264,9 +264,9 @@ describe('MachineImplementationsFrom', () => {
     });
     acceptMachineImplementations({
       actions: {
-        myAction: assign((ctx, ev) => {
-          ((_accept: number) => {})(ctx.count);
-          ((_accept: 'FOO') => {})(ev.type);
+        myAction: assign(({ context, event }) => {
+          ((_accept: number) => {})(context.count);
+          ((_accept: 'FOO') => {})(event.type);
           return {};
         })
       }

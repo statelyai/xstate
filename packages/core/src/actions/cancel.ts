@@ -39,7 +39,9 @@ export function cancel<
     },
     (_event, { state, actorContext }) => {
       const resolvedSendId = isFunction(sendId)
-        ? sendId(state.context, _event.data, {
+        ? sendId({
+            context: state.context,
+            event: _event.data,
             _event,
             state: state as any, // TODO: fix types,
             self: actorContext?.self ?? ({} as any),

@@ -10,7 +10,8 @@ import {
   AnyInterpreter,
   RaiseActionParams,
   NoInfer,
-  StateMeta
+  StateMeta,
+  UnifiedArg
 } from '../types.js';
 import { toSCXMLEvent } from '../utils.js';
 
@@ -62,9 +63,12 @@ export function raise<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta: StateMeta<any, any> = {
+      const args: UnifiedArg<TContext, TExpressionEvent> &
+        StateMeta<TContext, TExpressionEvent> = {
+        context: state.context,
+        event: _event.data,
         _event,
-        state,
+        state: state as any, // TODO: fix
         self: actorContext?.self ?? ({} as any),
         system: actorContext?.system
       };
@@ -72,22 +76,18 @@ export function raise<
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
-        typeof eventOrExpr === 'function'
-          ? eventOrExpr(state.context, _event.data, meta)
-          : eventOrExpr
+        typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr
       );
 
       let resolvedDelay: number | undefined;
       if (typeof params.delay === 'string') {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay =
-          typeof configDelay === 'function'
-            ? configDelay(state.context, _event.data, meta)
-            : configDelay;
+          typeof configDelay === 'function' ? configDelay(args) : configDelay;
       } else {
         resolvedDelay =
           typeof params.delay === 'function'
-            ? params.delay(state.context, _event.data, meta)
+            ? params.delay(args)
             : params.delay;
       }
 
