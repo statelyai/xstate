@@ -128,8 +128,20 @@ function createGuard<
   TContext extends object,
   TEvent extends EventObject = EventObject
 >(guard: string) {
-  return (context: TContext, _event: TEvent, meta) => {
-    return evaluateExecutableContent(context, _event, meta, `return ${guard};`);
+  return ({
+    context,
+    event,
+    ...meta
+  }: {
+    context: TContext;
+    event: TEvent;
+  }) => {
+    return evaluateExecutableContent(
+      context,
+      event,
+      meta as any,
+      `return ${guard};`
+    );
   };
 }
 
@@ -144,7 +156,7 @@ function mapAction<
       } as TEvent);
     }
     case 'assign': {
-      return assign<TContext, TEvent>((context, e, meta) => {
+      return assign<TContext, TEvent>(({ context, event, ...meta }) => {
         const fnBody = `
 
 ${element.attributes!.location};
@@ -152,19 +164,19 @@ ${element.attributes!.location};
 return {'${element.attributes!.location}': ${element.attributes!.expr}};
           `;
 
-        return evaluateExecutableContent(context, e, meta, fnBody);
+        return evaluateExecutableContent(context, event, meta, fnBody);
       });
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
         return cancel(element.attributes!.sendid! as string);
       }
-      return cancel((context, e, meta) => {
+      return cancel(({ context, event, ...meta }) => {
         const fnBody = `
 return ${element.attributes!.sendidexpr};
           `;
 
-        return evaluateExecutableContent(context, e, meta, fnBody);
+        return evaluateExecutableContent(context, event, meta, fnBody);
       });
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
@@ -186,7 +198,7 @@ return ${element.attributes!.sendidexpr};
       if (event && !params) {
         convertedEvent = { type: event } as TEvent;
       } else {
-        convertedEvent = (context, _ev, meta) => {
+        convertedEvent = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
 return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
             `;
@@ -198,7 +210,7 @@ return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
       if ('delay' in element.attributes!) {
         convertedDelay = delayToMs(element.attributes!.delay);
       } else if (element.attributes!.delayexpr) {
-        convertedDelay = (context, _ev, meta) => {
+        convertedDelay = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
 return (${delayToMs})(${element.attributes!.delayexpr});
             `;
@@ -217,12 +229,12 @@ return (${delayToMs})(${element.attributes!.delayexpr});
       const label = element.attributes!.label;
 
       return log<TContext, any>(
-        (context, e, meta) => {
+        ({ context, event, ...meta }) => {
           const fnBody = `
 return ${element.attributes!.expr};
             `;
 
-          return evaluateExecutableContent(context, e, meta, fnBody);
+          return evaluateExecutableContent(context, event, meta, fnBody);
         },
         label !== undefined ? String(label) : undefined
       );

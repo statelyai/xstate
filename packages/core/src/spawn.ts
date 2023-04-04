@@ -35,7 +35,9 @@ export function createSpawner<
           parent: self,
           input:
             typeof input === 'function'
-              ? input(context, _event.data, {
+              ? input({
+                  context,
+                  event: _event.data,
                   self
                 })
               : input,

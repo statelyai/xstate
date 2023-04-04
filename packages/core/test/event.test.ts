@@ -31,7 +31,7 @@ describe('SCXML events', () => {
           on: {
             EVENT: {
               target: 'success',
-              guard: (_: any, __: any, { _event }: any) => {
+              guard: ({ _event }) => {
                 return !!_event.origin;
               }
             }
@@ -62,7 +62,7 @@ describe('SCXML events', () => {
             EVENT: {
               target: 'success',
               actions: assign({
-                childOrigin: (_, __, { _event }) => {
+                childOrigin: ({ _event }) => {
                   return _event.origin?.id;
                 }
               })
@@ -152,9 +152,9 @@ describe('SCXML events', () => {
           on: {
             CODE: {
               actions: sendTo(
-                (_ctx, ev) => {
-                  expect(ev.sender).toBeDefined();
-                  return ev.sender;
+                ({ event }) => {
+                  expect(event.sender).toBeDefined();
+                  return event.sender;
                 },
                 { type: 'TOKEN' },
                 { delay: 10 }
@@ -177,7 +177,7 @@ describe('SCXML events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: sendTo('auth-server', (_ctx, _ev, { self }) => ({
+          entry: sendTo('auth-server', ({ self }) => ({
             type: 'CODE',
             sender: self
           })),
@@ -232,7 +232,7 @@ const authMachine = createMachine<SignInContext, ChangePassword>(
         on: {
           changePassword: [
             {
-              guard: (_, event) => event.password.length >= 10,
+              guard: ({ event }) => event.password.length >= 10,
               target: '.invalid',
               actions: ['assignPassword']
             },
@@ -248,7 +248,7 @@ const authMachine = createMachine<SignInContext, ChangePassword>(
   {
     actions: {
       assignPassword: assign<SignInContext, ChangePassword>({
-        password: (_, event) => event.password
+        password: ({ event }) => event.password
       })
     }
   }
