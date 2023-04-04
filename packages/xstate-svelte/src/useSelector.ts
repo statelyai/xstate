@@ -1,7 +1,9 @@
 import { readable } from 'svelte/store';
 import type { ActorRef, SnapshotFrom, Subscription } from 'xstate';
 
-const defaultCompare = (a, b) => a === b;
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
+}
 
 export const useSelector = <TActor extends ActorRef<any, any>, T>(
   actor: TActor,
