@@ -114,8 +114,8 @@ describe('@xstate/immer', () => {
     const bazUpdater = createUpdater<
       typeof context,
       ImmerUpdateEvent<'UPDATE_BAZ', number>
-    >('UPDATE_BAZ', ({ context, input }) => {
-      context.foo.bar.baz.push(input);
+    >('UPDATE_BAZ', ({ context, event }) => {
+      context.foo.bar.baz.push(event.input);
     });
 
     const countMachine = createMachine<typeof context>({
@@ -152,15 +152,15 @@ describe('@xstate/immer', () => {
 
     const nameUpdater = createUpdater<FormContext, NameUpdateEvent>(
       'UPDATE_NAME',
-      ({ context, input }) => {
-        context.name = input;
+      ({ context, event }) => {
+        context.name = event.input;
       }
     );
 
     const ageUpdater = createUpdater<FormContext, AgeUpdateEvent>(
       'UPDATE_AGE',
-      ({ context, input }) => {
-        context.age = input;
+      ({ context, event }) => {
+        context.age = event.input;
       }
     );
 
