@@ -82,9 +82,7 @@ export function createUpdater<
 
   return {
     update,
-    action: immerAssign<TContext, TEvent>((ctx, event, meta) => {
-      recipe(ctx, event, meta);
-    }),
+    action: immerAssign<TContext, TEvent>(recipe),
     type
   };
 }
