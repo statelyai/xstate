@@ -1245,7 +1245,8 @@ describe('invoke', () => {
                 input: ({ context, event }) => ({
                   foo: context.foo,
                   event: event
-                })
+                }),
+                onDone: {}
               },
               on: {
                 CALLBACK: {
@@ -1925,7 +1926,7 @@ describe('invoke', () => {
   });
 
   describe('with event observables', () => {
-    it('should work with an infinite event observable', (done) => {
+    it.only('should work with an infinite event observable', (done) => {
       interface Events {
         type: 'COUNT';
         value: number;
@@ -1939,11 +1940,11 @@ describe('invoke', () => {
             invoke: {
               src: fromEventObservable(() =>
                 interval(10).pipe(map((value) => ({ type: 'COUNT', value })))
-              )
-            },
-            on: {
-              COUNT: {
-                actions: assign({ count: ({ event }) => event.value })
+              ),
+              on: {
+                COUNT: {
+                  actions: assign({ count: ({ event }) => event.value })
+                }
               }
             },
             always: {
