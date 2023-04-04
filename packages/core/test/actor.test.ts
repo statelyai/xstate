@@ -15,15 +15,18 @@ import {
   respond,
   forwardTo,
   error
-} from '../src/actions';
+} from '../src/actions.ts';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { sendTo } from '../src/actions/send';
 import { EMPTY, interval, of } from 'rxjs';
-import { fromTransition } from '../src/actors/transition.js';
-import { fromObservable, fromEventObservable } from '../src/actors/observable';
-import { fromPromise } from '../src/actors/promise';
-import { fromCallback } from '../src/actors/callback';
+import { fromTransition } from '../src/actors/transition.ts';
+import {
+  fromObservable,
+  fromEventObservable
+} from '../src/actors/observable.ts';
+import { fromPromise } from '../src/actors/promise.ts';
+import { fromCallback } from '../src/actors/callback.ts';
 import { map } from 'rxjs/operators';
 
 describe('spawning machines', () => {
