@@ -9,7 +9,9 @@ import {
   SendExpr,
   AnyInterpreter,
   RaiseActionParams,
-  NoInfer
+  NoInfer,
+  UnifiedArg,
+  StateMeta
 } from '../types.ts';
 import { toSCXMLEvent } from '../utils.ts';
 
@@ -50,7 +52,7 @@ export function raise<
             : eventOrExpr.type
       }
     },
-    (_event, { state }) => {
+    (_event, { state, actorContext }) => {
       const params = {
         delay: options ? options.delay : undefined,
         event: eventOrExpr,
@@ -61,29 +63,31 @@ export function raise<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta = {
-        _event
+      const args: UnifiedArg<TContext, TExpressionEvent> &
+        StateMeta<TContext, TExpressionEvent> = {
+        context: state.context,
+        event: _event.data,
+        _event,
+        state: state as any, // TODO: fix
+        self: actorContext?.self ?? ({} as any),
+        system: actorContext?.system
       };
       const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
-        typeof eventOrExpr === 'function'
-          ? eventOrExpr(state.context, _event.data, meta)
-          : eventOrExpr
+        typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr
       );
 
       let resolvedDelay: number | undefined;
       if (typeof params.delay === 'string') {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay =
-          typeof configDelay === 'function'
-            ? configDelay(state.context, _event.data, meta)
-            : configDelay;
+          typeof configDelay === 'function' ? configDelay(args) : configDelay;
       } else {
         resolvedDelay =
           typeof params.delay === 'function'
-            ? params.delay(state.context, _event.data, meta)
+            ? params.delay(args)
             : params.delay;
       }
 

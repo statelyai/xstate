@@ -20,7 +20,7 @@ import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { sendTo } from '../src/actions/send';
 import { EMPTY, interval, of } from 'rxjs';
-import { fromReducer } from '../src/actors/reducer';
+import { fromTransition } from '../src/actors/transition.js';
 import { fromObservable, fromEventObservable } from '../src/actors/observable';
 import { fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
@@ -82,7 +82,7 @@ describe('spawning machines', () => {
       init: {
         entry: [
           assign({
-            server: (_, __, { spawn }) => spawn(serverMachine)
+            server: ({ spawn }) => spawn(serverMachine)
           }),
           raise({ type: 'SUCCESS' })
         ],
@@ -92,7 +92,7 @@ describe('spawning machines', () => {
       },
       sendPing: {
         entry: [
-          sendTo((ctx) => ctx.server!, { type: 'PING' }),
+          sendTo(({ context }) => context.server!, { type: 'PING' }),
           raise({ type: 'SUCCESS' })
         ],
         on: {
@@ -141,16 +141,18 @@ describe('spawning machines', () => {
       on: {
         ADD: {
           actions: assign({
-            todoRefs: (ctx, e, { spawn }) => ({
-              ...ctx.todoRefs,
-              [e.id]: spawn(todoMachine)
+            todoRefs: ({ context, event, spawn }) => ({
+              ...context.todoRefs,
+              [event.id]: spawn(todoMachine)
             })
           })
         },
         SET_COMPLETE: {
           actions: sendTo(
-            (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-              return ctx.todoRefs[e.id];
+            ({ context, event }) => {
+              return context.todoRefs[
+                (event as Extract<TodoEvent, { type: 'SET_COMPLETE' }>).id
+              ];
             },
             { type: 'SET_COMPLETE' }
           )
@@ -181,7 +183,7 @@ describe('spawning machines', () => {
         states: {
           waiting: {
             entry: assign({
-              ref: (_, __, { spawn }) => spawn('child')
+              ref: ({ spawn }) => spawn('child')
             }),
             on: {
               DONE: 'success'
@@ -226,7 +228,7 @@ describe('spawning promises', () => {
       states: {
         idle: {
           entry: assign({
-            promiseRef: (_, __, { spawn }) => {
+            promiseRef: ({ spawn }) => {
               const ref = spawn(
                 fromPromise(
                   () =>
@@ -243,7 +245,7 @@ describe('spawning promises', () => {
           on: {
             [doneInvoke('my-promise')]: {
               target: 'success',
-              guard: (_, e) => e.data === 'response'
+              guard: ({ event }) => event.data === 'response'
             }
           }
         },
@@ -271,13 +273,13 @@ describe('spawning promises', () => {
         states: {
           idle: {
             entry: assign({
-              promiseRef: (_, __, { spawn }) =>
+              promiseRef: ({ spawn }) =>
                 spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
               [doneInvoke('my-promise')]: {
                 target: 'success',
-                guard: (_, e) => e.data === 'response'
+                guard: ({ event }) => event.data === 'response'
               }
             }
           },
@@ -317,7 +319,7 @@ describe('spawning callbacks', () => {
       states: {
         idle: {
           entry: assign({
-            callbackRef: (_, __, { spawn }) =>
+            callbackRef: ({ spawn }) =>
               spawn(
                 fromCallback((cb, receive) => {
                   receive((event) => {
@@ -332,7 +334,9 @@ describe('spawning callbacks', () => {
           }),
           on: {
             START_CB: {
-              actions: sendTo((ctx) => ctx.callbackRef!, { type: 'START' })
+              actions: sendTo(({ context }) => context.callbackRef!, {
+                type: 'START'
+              })
             },
             SEND_BACK: 'success'
           }
@@ -364,7 +368,7 @@ describe('spawning observables', () => {
       states: {
         idle: {
           entry: assign({
-            observableRef: (_, __, { spawn }) => {
+            observableRef: ({ spawn }) => {
               const ref = spawn(observableBehavior, { id: 'int' });
 
               return ref;
@@ -373,7 +377,7 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: (_, e) => e.data === 5
+              guard: ({ event }) => event.data === 5
             }
           }
         },
@@ -401,13 +405,12 @@ describe('spawning observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: (_, __, { spawn }) =>
-                spawn('interval', { id: 'int' })
+              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
             }),
             on: {
               'xstate.snapshot.int': {
                 target: 'success',
-                guard: (_, e) => e.data === 5
+                guard: ({ event }) => event.data === 5
               }
             }
           },
@@ -441,7 +444,7 @@ describe('spawning observables', () => {
       states: {
         idle: {
           entry: assign({
-            observableRef: (_, __, { spawn }) => {
+            observableRef: ({ spawn }) => {
               const ref = spawn(observableBehavior, { id: 'int' });
 
               return ref;
@@ -450,8 +453,10 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: (ctx: any, e: any) => {
-                return e.data === 1 && ctx.observableRef.getSnapshot() === 1;
+              guard: ({ context, event }) => {
+                return (
+                  event.data === 1 && context.observableRef.getSnapshot() === 1
+                );
               }
             }
           }
@@ -486,7 +491,7 @@ describe('spawning event observables', () => {
       states: {
         idle: {
           entry: assign({
-            observableRef: (_, __, { spawn }) => {
+            observableRef: ({ spawn }) => {
               const ref = spawn(eventObservableBehavior, { id: 'int' });
 
               return ref;
@@ -495,7 +500,7 @@ describe('spawning event observables', () => {
           on: {
             COUNT: {
               target: 'success',
-              guard: (_: any, e: any) => e.val === 5
+              guard: ({ event }) => event.val === 5
             }
           }
         },
@@ -523,13 +528,12 @@ describe('spawning event observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: (_, __, { spawn }) =>
-                spawn('interval', { id: 'int' })
+              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
             }),
             on: {
               COUNT: {
                 target: 'success',
-                guard: (_: any, e: any) => e.val === 5
+                guard: ({ event }) => event.val === 5
               }
             }
           },
@@ -583,14 +587,16 @@ describe('communicating with spawned actors', () => {
           entry: assign({
             // No need to spawn an existing service:
             // existingRef: () => spawn(existingService)
-            existingRef: existingService.ref
+            existingRef: existingService
           }),
           on: {
             'EXISTING.DONE': 'success'
           },
           after: {
             100: {
-              actions: sendTo((ctx) => ctx.existingRef!, { type: 'ACTIVATE' })
+              actions: sendTo(({ context }) => context.existingRef!, {
+                type: 'ACTIVATE'
+              })
             }
           }
         },
@@ -686,7 +692,9 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: sendTo((ctx) => ctx.existingRef, { type: 'ACTIVATE' })
+              actions: sendTo(({ context }) => context.existingRef, {
+                type: 'ACTIVATE'
+              })
             }
           }
         },
@@ -721,9 +729,9 @@ describe('actors', () => {
       states: {
         start: {
           entry: assign({
-            refs: (ctx, _, { spawn }) => {
+            refs: ({ context, spawn }) => {
               count++;
-              const c = ctx.items.map((item) =>
+              const c = context.items.map((item) =>
                 spawn(fromPromise(() => new Promise((res) => res(item))))
               );
 
@@ -734,11 +742,11 @@ describe('actors', () => {
       }
     });
 
-    interpret(startMachine)
-      .onTransition(() => {
-        expect(count).toEqual(1);
-      })
-      .start();
+    const actor = interpret(startMachine);
+    actor.subscribe(() => {
+      expect(count).toEqual(1);
+    });
+    actor.start();
   });
 
   it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
@@ -754,7 +762,7 @@ describe('actors', () => {
       states: {
         bar: {
           entry: assign<TestContext>({
-            promise: (_, __, { spawn }) => {
+            promise: ({ spawn }) => {
               return spawn(
                 fromPromise(() => {
                   spawnCounter++;
@@ -828,8 +836,7 @@ describe('actors', () => {
       states: {
         foo: {
           entry: assign({
-            ref: (_, __, { spawn }) =>
-              spawn(fromPromise(() => Promise.resolve(42)))
+            ref: ({ spawn }) => spawn(fromPromise(() => Promise.resolve(42)))
           })
         }
       }
@@ -842,8 +849,8 @@ describe('actors', () => {
   });
 
   describe('with behaviors', () => {
-    it('should work with a reducer behavior', (done) => {
-      const countBehavior = fromReducer((count: number, event: any) => {
+    it('should work with a transition function behavior', (done) => {
+      const countBehavior = fromTransition((count: number, event: any) => {
         if (event.type === 'INC') {
           return count + 1;
         } else if (event.type === 'DEC') {
@@ -859,22 +866,22 @@ describe('actors', () => {
           count: undefined
         },
         entry: assign({
-          count: (_, __, { spawn }) => spawn(countBehavior)
+          count: ({ spawn }) => spawn(countBehavior)
         }),
         on: {
           INC: {
-            actions: forwardTo((ctx) => ctx.count!)
+            actions: forwardTo(({ context }) => context.count!)
           }
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          if (state.context.count?.getSnapshot() === 2) {
-            done();
-          }
-        })
-        .start();
+      const countService = interpret(countMachine);
+      countService.subscribe((state) => {
+        if (state.context.count?.getSnapshot() === 2) {
+          done();
+        }
+      });
+      countService.start();
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
@@ -888,7 +895,7 @@ describe('actors', () => {
           count: undefined
         },
         entry: assign({
-          count: (_, __, { spawn }) =>
+          count: ({ spawn }) =>
             spawn(
               fromPromise(
                 () =>
@@ -905,7 +912,7 @@ describe('actors', () => {
             on: {
               'done.invoke.test': {
                 target: 'success',
-                guard: (_, e) => e.data === 42
+                guard: ({ event }) => event.data === 42
               }
             }
           },
@@ -943,8 +950,8 @@ describe('actors', () => {
             on: {
               [error('test')]: {
                 target: 'success',
-                guard: (_, e) => {
-                  return e.data === errorMessage;
+                guard: ({ event }) => {
+                  return event.data === errorMessage;
                 }
               }
             }
@@ -963,7 +970,7 @@ describe('actors', () => {
 
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: ActorBehavior<EventObject, undefined> = {
-        transition: (_, event, { self }) => {
+        transition: (_state, event, { self }) => {
           const _event = toSCXMLEvent(event);
           if (_event.name === 'PING') {
             self._parent?.send({ type: 'PONG' });
@@ -982,11 +989,11 @@ describe('actors', () => {
           ponger: undefined
         },
         entry: assign({
-          ponger: (_, __, { spawn }) => spawn(pongBehavior)
+          ponger: ({ spawn }) => spawn(pongBehavior)
         }),
         states: {
           waiting: {
-            entry: sendTo((ctx) => ctx.ponger!, { type: 'PING' }),
+            entry: sendTo(({ context }) => context.ponger!, { type: 'PING' }),
             invoke: {
               id: 'ponger',
               src: pongBehavior
@@ -1092,7 +1099,7 @@ describe('actors', () => {
       {
         actions: {
           setup: assign({
-            child: (_, __, { spawn }) => spawn(childMachine)
+            child: ({ spawn }) => spawn(childMachine)
           })
         }
       }
@@ -1111,7 +1118,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: (_, __, { spawn }) =>
+        child: ({ spawn }) =>
           spawn(fromPromise(() => ({ then: (fn: any) => fn(null) } as any)))
       })
     });
@@ -1137,8 +1144,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: (_, __, { spawn }) =>
-          spawn(fromObservable(createEmptyObservable))
+        child: ({ spawn }) => spawn(fromObservable(createEmptyObservable))
       })
     });
     const service = interpret(parentMachine);
@@ -1155,7 +1161,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: (_, __, { spawn }) =>
+        child: ({ spawn }) =>
           spawn(
             fromObservable(() => EMPTY),
             { id: 'myactor' }

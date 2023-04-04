@@ -220,6 +220,7 @@ export class StateNode<
             source: this,
             actions: this.initial.actions,
             eventType: null as any,
+            external: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
@@ -258,7 +259,7 @@ export class StateNode<
         const generatedId = createInvokeId(this.id, i);
         const invokeConfig = toInvokeConfig(invocable, generatedId);
         const resolvedId = invokeConfig.id || generatedId;
-        const { src } = invokeConfig;
+        const { src, systemId } = invokeConfig;
 
         const resolvedSrc = isString(src)
           ? src
@@ -283,6 +284,7 @@ export class StateNode<
           ...invokeConfig,
           src: resolvedSrc,
           id: resolvedId,
+          systemId: systemId,
           toJSON() {
             const { onDone, onError, ...invokeDefValues } = invokeConfig;
             return {
@@ -449,7 +451,7 @@ export class StateNode<
           return !(
             !transition.target &&
             !transition.actions.length &&
-            transition.internal
+            !transition.external
           );
         })
         .map((transition) => transition.eventType)

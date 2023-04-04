@@ -45,7 +45,7 @@ import { evaluateGuard, toGuardDefinition } from './guards.ts';
 import type { StateNode } from './StateNode.ts';
 import { isDynamicAction } from '../actions/dynamicAction.ts';
 import {
-  ActorContext,
+  AnyActorContext,
   AnyEventObject,
   AnyHistoryValue,
   AnyState,
@@ -363,17 +363,7 @@ export function formatTransition<
   }
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
-  const internal =
-    stateNode === stateNode.machine.root
-      ? true // always internal for root
-      : 'internal' in transitionConfig
-      ? transitionConfig.internal
-      : normalizedTarget
-      ? normalizedTarget.some(
-          (_target) =>
-            isString(_target) && _target[0] === stateNode.machine.delimiter
-        )
-      : true;
+  const external = transitionConfig.external ?? false;
   const { guards } = stateNode.machine.options;
   const target = resolveTarget(stateNode, normalizedTarget);
 
@@ -394,7 +384,7 @@ export function formatTransition<
       : undefined,
     target,
     source: stateNode,
-    internal,
+    external,
     eventType: transitionConfig.event,
     toJSON: () => ({
       ...transition,
@@ -537,6 +527,7 @@ export function formatInitialTransition<
       source: stateNode,
       actions: [],
       eventType: null as any,
+      external: false,
       target: resolvedTarget!,
       toJSON: () => ({
         ...transition,
@@ -996,7 +987,7 @@ function getTransitionDomain(
   }
 
   if (
-    transition.internal &&
+    !transition.external &&
     transition.source.type === 'compound' &&
     targetStates.every((targetStateNode) =>
       isDescendant(targetStateNode, transition.source)
@@ -1047,7 +1038,7 @@ export function microstep<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
-  actorCtx: ActorContext<any, any> | undefined,
+  actorCtx: AnyActorContext | undefined,
   scxmlEvent: SCXML.Event<TEvent>
 ): State<TContext, TEvent, any> {
   const { machine } = currentState;
@@ -1075,6 +1066,7 @@ export function microstep<
           {
             target: [...currentState.configuration].filter(isAtomicStateNode),
             source: machine.root,
+            external: true,
             actions: [],
             eventType: null as any,
             toJSON: null as any // TODO: fix
@@ -1135,7 +1127,7 @@ function microstepProcedure(
   currentState: AnyState,
   mutConfiguration: Set<AnyStateNode>,
   scxmlEvent: SCXML.Event<AnyEventObject>,
-  actorCtx: ActorContext<any, any> | undefined
+  actorCtx: AnyActorContext | undefined
 ): typeof currentState {
   const { machine } = currentState;
   const actions: BaseActionObject[] = [];
@@ -1498,7 +1490,7 @@ export function resolveActionsAndContext<
   actions: BaseActionObject[],
   scxmlEvent: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any>,
-  actorCtx: ActorContext<any, any> | undefined
+  actorCtx: AnyActorContext | undefined
 ): {
   nextState: AnyState;
 } {
@@ -1572,7 +1564,7 @@ export function resolveActionsAndContext<
 export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
   scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
-  actorCtx: ActorContext<any, any> | undefined
+  actorCtx: AnyActorContext | undefined
 ): {
   state: typeof state;
   microstates: Array<typeof state>;
@@ -1658,7 +1650,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 function stopStep(
   scxmlEvent: SCXML.Event<any>,
   nextState: AnyState,
-  actorCtx: ActorContext<any, any> | undefined
+  actorCtx: AnyActorContext | undefined
 ): AnyState {
   const actions: BaseActionObject[] = [];
 

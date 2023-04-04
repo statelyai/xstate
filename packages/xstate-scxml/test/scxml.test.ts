@@ -30,10 +30,11 @@ async function runTestToCompletion(
   const service = interpret(machine, {
     state: nextState,
     clock: new SimulatedClock()
-  })
-    .onTransition((state) => {
-      nextState = state;
-    })
+  });
+  service.subscribe((state) => {
+    nextState = state;
+  });
+  service
     .onDone(() => {
       done = true;
     })
@@ -209,8 +210,7 @@ const lightMachine = createMachine({
       on: {
         TIMER: 'green',
         POWER_OUTAGE: {
-          target: 'red',
-          internal: true
+          target: 'red'
         }
       },
       ...pedestrianStates
@@ -238,7 +238,6 @@ xdescribe('transition to SCXML', () => {
           on: {
             SOME_EVENT: {
               target: 'next',
-              internal: true,
               guard: () => true,
               actions: ['foo', 'bar']
             }

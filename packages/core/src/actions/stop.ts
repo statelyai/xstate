@@ -2,8 +2,8 @@ import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import { stop as stopActionType } from '../actionTypes.ts';
 import { ActorStatus } from '../interpreter.ts';
 import {
-  ActorContext,
   ActorRef,
+  AnyActorContext,
   BaseDynamicActionObject,
   DynamicStopActionObject,
   EventObject,
@@ -46,7 +46,7 @@ export function stop<
     },
     (_event, { state }) => {
       const actorRefOrString = isFunction(actor)
-        ? actor(state.context, _event.data)
+        ? actor({ context: state.context, event: _event.data })
         : actor;
       const actorRef =
         typeof actorRefOrString === 'string'
@@ -58,16 +58,16 @@ export function stop<
         {
           type: 'xstate.stop',
           params: { actor: actorRef },
-          execute: (actorCtx: ActorContext<any, any>) => {
+          execute: (actorCtx: AnyActorContext) => {
             if (!actorRef) {
               return;
             }
             if (actorRef.status !== ActorStatus.Running) {
-              actorRef.stop?.();
+              actorCtx.stopChild(actorRef);
               return;
             }
             actorCtx.defer(() => {
-              actorRef.stop?.();
+              actorCtx.stopChild(actorRef);
             });
           }
         } as StopActionObject

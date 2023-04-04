@@ -59,7 +59,8 @@ describe('action creators', () => {
       >(
         { type: 'RECEIVED' },
         {
-          delay: (ctx, e) => ctx.delay + ('value' in e ? e.value : 0)
+          delay: ({ context, event }) =>
+            context.delay + ('value' in event ? event.value : 0)
         }
       );
 
@@ -75,10 +76,9 @@ describe('action creators', () => {
             context: { delay: 100 },
             value: {},
             _event: {} as any,
-            _sessionid: '',
             transitions: [],
             children: {}
-          }),
+          }) as any, // TODO: fix
           action,
           actorContext: undefined
         }

@@ -238,16 +238,17 @@ export function mapContext<
   _event: SCXML.Event<TEvent>
 ): any {
   if (isFunction(mapper)) {
-    return mapper(context, _event.data);
+    return mapper({ context, event: _event.data });
   }
 
   const result = {} as any;
+  const args = { context, event: _event.data };
 
   for (const key of Object.keys(mapper)) {
     const subMapper = mapper[key];
 
     if (isFunction(subMapper)) {
-      result[key] = subMapper(context, _event.data);
+      result[key] = subMapper(args);
     } else {
       result[key] = subMapper;
     }

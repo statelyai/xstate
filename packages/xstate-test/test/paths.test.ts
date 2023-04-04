@@ -162,7 +162,7 @@ describe('transition coverage', () => {
       },
       {
         guards: {
-          valid: (_, event) => {
+          valid: ({ event }) => {
             return event.value > 10;
           }
         }

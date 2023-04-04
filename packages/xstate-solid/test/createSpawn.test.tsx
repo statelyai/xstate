@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import { useActor, createSpawn } from '../src';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { fromReducer } from 'xstate/actors';
+import { fromTransition } from 'xstate/actors';
 
 describe("usage with core's spawnBehavior", () => {
   it('should be able to spawn an actor from a behavior', () => {
@@ -14,7 +14,7 @@ describe("usage with core's spawnBehavior", () => {
     };
 
     const Test = () => {
-      const actorRef = createSpawn(fromReducer(reducer, 0));
+      const actorRef = createSpawn(fromTransition(reducer, 0));
       const [count, send] = useActor(() => actorRef);
 
       return (

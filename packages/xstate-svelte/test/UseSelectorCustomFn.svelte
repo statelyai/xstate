@@ -12,7 +12,7 @@
     },
     on: {
       CHANGE: {
-        actions: assign({ name: (_, e) => e.value })
+        actions: assign({ name: ({ event }) => event.value })
       }
     }
   });

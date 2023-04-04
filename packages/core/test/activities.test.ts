@@ -371,7 +371,7 @@ describe('invocations (activities)', () => {
             on: {
               NEXT: {
                 target: 'a',
-                internal: false
+                external: true
               }
             }
           }
@@ -415,13 +415,13 @@ describe('invocations (activities)', () => {
             })
           },
           always: {
-            guard: (ctx) => ctx.counter !== 0,
+            guard: ({ context }) => context.counter !== 0,
             target: 'b'
           },
           on: {
             INC: {
-              actions: assign((ctx) => ({
-                counter: ctx.counter + 1
+              actions: assign(({ context }) => ({
+                counter: context.counter + 1
               }))
             }
           }

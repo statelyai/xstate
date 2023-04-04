@@ -4,7 +4,7 @@ import { createMachine, interpret } from '../src/index.ts';
 import {
   fromObservable,
   fromPromise,
-  fromReducer
+  fromTransition
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
 import { raise, sendTo } from '../src/actions.ts';
@@ -169,9 +169,9 @@ describe('promise behavior (fromPromise)', () => {
   });
 });
 
-describe('reducer behavior (fromReducer)', () => {
-  it('should interpret a reducer', () => {
-    const reducerBehavior = fromReducer(
+describe('transition function behavior (fromTransition)', () => {
+  it('should interpret a transition function', () => {
+    const transitionBehavior = fromTransition(
       (state, event) => {
         if (event.type === 'toggle') {
           return {
@@ -188,7 +188,7 @@ describe('reducer behavior (fromReducer)', () => {
       { status: 'active' as 'inactive' | 'active' }
     );
 
-    const actor = interpret(reducerBehavior).start();
+    const actor = interpret(transitionBehavior).start();
 
     expect(actor.getSnapshot().status).toBe('active');
 
@@ -197,8 +197,8 @@ describe('reducer behavior (fromReducer)', () => {
     expect(actor.getSnapshot().status).toBe('inactive');
   });
 
-  it('should persist a reducer', () => {
-    const behavior = fromReducer(
+  it('should persist a transition function', () => {
+    const behavior = fromTransition(
       (state, event) => {
         if (event.type === 'activate') {
           return { status: 'active' as const };
@@ -310,7 +310,7 @@ describe('machine behavior', () => {
         start: {
           invoke: {
             id: 'reducer',
-            src: fromReducer((s) => s, { status: 'active' })
+            src: fromTransition((s) => s, { status: 'active' })
           }
         }
       }

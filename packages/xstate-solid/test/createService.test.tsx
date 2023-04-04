@@ -2,38 +2,9 @@
 import { createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { createService } from '../src/index.ts';
-import { createEffect, onMount } from 'solid-js';
+import { createEffect } from 'solid-js';
 
 describe('createService', () => {
-  it('observer should be called with initial state', (done) => {
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: {
-            ACTIVATE: 'active'
-          }
-        },
-        active: {}
-      }
-    });
-
-    const App = () => {
-      const service = createService(machine);
-
-      onMount(() => {
-        service.subscribe((state) => {
-          expect(state.matches('inactive')).toBeTruthy();
-          done();
-        });
-      });
-
-      return null;
-    };
-
-    render(() => <App />);
-  });
-
   it('observer should be called with next state', (done) => {
     const machine = createMachine({
       initial: 'inactive',

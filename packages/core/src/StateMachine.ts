@@ -25,7 +25,6 @@ import type {
 import type {
   ActorContext,
   ActorMap,
-  BaseActionObject,
   ActorBehavior,
   EventObject,
   InternalMachineImplementations,
@@ -40,7 +39,9 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState
+  PersistedMachineState,
+  ParameterizedObject,
+  AnyActorContext
 } from './types.ts';
 import {
   isSCXMLErrorEvent,
@@ -65,7 +66,7 @@ function createDefaultOptions() {
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
+  TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
@@ -266,7 +267,7 @@ export class StateMachine<
   public microstep(
     state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
     event: TEvent | SCXML.Event<TEvent>,
-    actorCtx?: ActorContext<any, any> | undefined
+    actorCtx?: AnyActorContext | undefined
   ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
     const scxmlEvent = toSCXMLEvent(event);
 
@@ -287,7 +288,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: ActorContext<any, any> | undefined,
+    actorCtx: AnyActorContext | undefined,
     input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions(actorCtx, input);
@@ -296,8 +297,7 @@ export class StateMachine<
       this.createState({
         value: {}, // TODO: this is computed in state constructor
         context,
-        _event: createInitEvent({}) as unknown as SCXML.Event<TEvent>, // TODO: fix
-        _sessionid: actorCtx?.sessionId ?? undefined,
+        _event: createInitEvent({}) as unknown as SCXML.Event<TEvent>,
         actions: [],
         meta: undefined,
         configuration: config,

@@ -548,7 +548,7 @@ describe('entry/exit actions', () => {
       expect(called).toBe(true);
     });
 
-    it('root entry/exit actions should not be called on root external transitions', () => {
+    it('root entry/exit actions should be called on root external transitions', () => {
       let entrySpy = jest.fn();
       let exitSpy = jest.fn();
 
@@ -559,7 +559,7 @@ describe('entry/exit actions', () => {
         on: {
           EVENT: {
             target: '#two',
-            internal: false
+            external: true
           }
         },
         initial: 'one',
@@ -578,8 +578,8 @@ describe('entry/exit actions', () => {
 
       service.send({ type: 'EVENT' });
 
-      expect(entrySpy).not.toHaveBeenCalled();
-      expect(exitSpy).not.toHaveBeenCalled();
+      expect(entrySpy).toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalled();
     });
 
     describe('should ignore same-parent state actions (sparse)', () => {
@@ -781,7 +781,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should enter all descendents when target is a descendent of current', () => {
+    it('should enter all descendents when target is a descendent of the source when using an external transition', () => {
       const machine = createMachine({
         initial: 'A',
         states: {
@@ -789,7 +789,7 @@ describe('entry/exit actions', () => {
             initial: 'A1',
             on: {
               NEXT: {
-                internal: false,
+                external: true,
                 target: '.A2'
               }
             },
@@ -1366,8 +1366,8 @@ describe('entry/exit actions', () => {
     it('an exit action executed when an interpreter gets stopped should receive `xstate.stop` event', () => {
       let receivedEvent;
       const machine = createMachine({
-        exit: (_ctx, ev) => {
-          receivedEvent = ev;
+        exit: ({ event }) => {
+          receivedEvent = event;
         }
       });
 
@@ -1391,8 +1391,8 @@ describe('entry/exit actions', () => {
             type: 'final'
           }
         },
-        exit: (_ctx, ev) => {
-          receivedEvent = ev;
+        exit: ({ event }) => {
+          receivedEvent = event;
         }
       });
 
@@ -1448,7 +1448,7 @@ describe('entry/exit actions', () => {
         }),
         on: {
           STOP_CHILD: {
-            actions: stop((ctx: any) => ctx.child)
+            actions: stop(({ context }) => context.child)
           },
           EXIT: {
             actions: () => {
@@ -1488,7 +1488,7 @@ describe('entry/exit actions', () => {
         }),
         on: {
           FINISH_CHILD: {
-            actions: sendTo((ctx: any) => ctx.child, { type: 'FINISH' })
+            actions: sendTo(({ context }) => context.child, { type: 'FINISH' })
           },
           CHILD_DONE: {
             actions: () => {
@@ -1614,7 +1614,7 @@ describe('entry/exit actions', () => {
         id: 'parent',
         context: {},
         exit: assign({
-          actorRef: (_ctx: any, _ev: any, { spawn }: any) => spawn(grandchild)
+          actorRef: ({ spawn }) => spawn(grandchild)
         })
       });
 
@@ -1654,14 +1654,20 @@ describe('entry/exit actions', () => {
           exit: [
             'referencedAction',
             assign({
-              executedAssigns: (ctx: any) => [...ctx.executedAssigns, 'inline']
+              executedAssigns: ({ context }) => [
+                ...context.executedAssigns,
+                'inline'
+              ]
             })
           ]
         },
         {
           actions: {
             referencedAction: assign({
-              executedAssigns: (ctx) => [...ctx.executedAssigns, 'referenced']
+              executedAssigns: ({ context }) => [
+                ...context.executedAssigns,
+                'referenced'
+              ]
             })
           }
         }
@@ -2043,10 +2049,10 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: (_, __, meta) => {
-            expect(meta.state.value).toEqual('foo');
-            expect(meta.action.type).toEqual('entryAction');
-            expect(meta.action.params?.value).toEqual('something');
+          entryAction: ({ state, action }) => {
+            expect(state.value).toEqual('foo');
+            expect(action.type).toEqual('entryAction');
+            expect(action.params?.value).toEqual('something');
             done();
           }
         }
@@ -2077,35 +2083,35 @@ describe('purely defined actions', () => {
       idle: {
         on: {
           SINGLE: {
-            actions: pure<any, any>((ctx, e) => {
-              if (ctx.items.length > 0) {
+            actions: pure(({ context, event }) => {
+              if (context.items.length > 0) {
                 return {
                   type: 'SINGLE_EVENT',
-                  params: { length: ctx.items.length, id: e.id }
+                  params: { length: context.items.length, id: event.id }
                 };
               }
             })
           },
           NONE: {
-            actions: pure<any, any>((ctx, e) => {
-              if (ctx.items.length > 5) {
+            actions: pure(({ context, event }) => {
+              if (context.items.length > 5) {
                 return {
                   type: 'SINGLE_EVENT',
-                  params: { length: ctx.items.length, id: e.id }
+                  params: { length: context.items.length, id: event.id }
                 };
               }
             })
           },
           EACH: {
-            actions: pure<any, any>((ctx) =>
-              ctx.items.map((item: any, index: number) => ({
+            actions: pure(({ context }) =>
+              context.items.map((item: any, index: number) => ({
                 type: 'EVENT',
                 params: { item, index }
               }))
             )
           },
           AS_STRINGS: {
-            actions: pure<any, any>(() => ['SOME_ACTION'])
+            actions: pure(() => ['SOME_ACTION'])
           }
         }
       }
@@ -2178,7 +2184,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent({ type: 'SUCCESS' }),
-              guard: (_, e) => e.value === 42
+              guard: ({ event }) => event.value === 42
             }
           }
         }
@@ -2223,7 +2229,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent({ type: 'SUCCESS' }),
-              guard: (_, e) => e.value === 42
+              guard: ({ event }) => event.value === 42
             }
           }
         }
@@ -2242,11 +2248,11 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: (_, __, { spawn }) => spawn(child, { id: 'x' })
+            child: ({ spawn }) => spawn(child, { id: 'x' })
           }),
           on: {
             EVENT: {
-              actions: forwardTo((ctx) => ctx.child!)
+              actions: forwardTo(({ context }) => context.child!)
             },
             SUCCESS: 'last'
           }
@@ -2293,7 +2299,7 @@ describe('log()', () => {
         entry: log('some string', 'string label'),
         on: {
           EXPR: {
-            actions: log((ctx) => `expr ${ctx.count}`, 'expr label')
+            actions: log(({ context }) => `expr ${context.count}`, 'expr label')
           }
         }
       }
@@ -2498,7 +2504,7 @@ describe('choose', () => {
         foo: {
           entry: choose([
             {
-              guard: (ctx) => ctx.counter > 100,
+              guard: ({ context }) => context.counter > 100,
               actions: assign<Ctx>({ answer: 42 })
             }
           ])
@@ -2530,7 +2536,7 @@ describe('choose', () => {
               target: 'bar',
               actions: choose([
                 {
-                  guard: (_, event) => event.counter > 100,
+                  guard: ({ event }) => event.counter > 100,
                   actions: assign({ answer: 42 })
                 }
               ])
@@ -2565,7 +2571,7 @@ describe('choose', () => {
             answering: {
               entry: choose([
                 {
-                  guard: (_, __, { state }) => state.matches('bar'),
+                  guard: ({ state }) => state.matches('bar'),
                   actions: assign({ answer: 42 })
                 }
               ])
@@ -2689,7 +2695,7 @@ describe('sendTo', () => {
         ({
           child: spawn(childMachine)
         } as { child: ActorRefFrom<typeof childMachine> }),
-      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
+      entry: sendTo(({ context }) => context.child, { type: 'EVENT' })
     });
 
     interpret(parentMachine).start();
@@ -2717,8 +2723,8 @@ describe('sendTo', () => {
         };
       },
       entry: sendTo(
-        (ctx) => ctx.child,
-        (ctx) => ({ type: 'EVENT', count: ctx.count })
+        ({ context }) => context.child,
+        ({ context }) => ({ type: 'EVENT', count: context.count })
       )
     });
 
@@ -2743,7 +2749,7 @@ describe('sendTo', () => {
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
-      entry: sendTo((ctx) => ctx.child, {
+      entry: sendTo(({ context }) => context.child, {
         // @ts-expect-error
         type: 'UNKNOWN'
       })
@@ -2797,13 +2803,8 @@ describe('sendTo', () => {
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
-      entry: pure<
-        {
-          child: ActorRefFrom<typeof childMachine>;
-        },
-        any
-      >((ctx) => {
-        return [sendTo(ctx.child, { type: 'EVENT' })];
+      entry: pure(({ context }) => {
+        return [sendTo(context.child, { type: 'EVENT' })];
       })
     });
 
@@ -2827,7 +2828,9 @@ describe('sendTo', () => {
         a: {
           on: {
             EVENT: {
-              actions: sendTo((ctx, e) => ctx[e.value], { type: 'EVENT' })
+              actions: sendTo(({ context, event }) => context[event.value], {
+                type: 'EVENT'
+              })
             }
           }
         }
@@ -3001,8 +3004,8 @@ describe('raise', () => {
         a: {
           on: {
             NEXT: {
-              actions: raise<MachineContext, any>((ctx: any) => ({
-                type: ctx.eventType
+              actions: raise(({ context }) => ({
+                type: context.eventType
               }))
             },
             RAISED: 'b'
@@ -3116,11 +3119,11 @@ describe('assign action order', () => {
     const machine = createMachine<{ count: number }>({
       context: { count: 0 },
       entry: [
-        (ctx) => captured.push(ctx.count), // 0
-        assign({ count: (ctx) => ctx.count + 1 }),
-        (ctx) => captured.push(ctx.count), // 1
-        assign({ count: (ctx) => ctx.count + 1 }),
-        (ctx) => captured.push(ctx.count) // 2
+        ({ context }) => captured.push(context.count), // 0
+        assign({ count: ({ context }) => context.count + 1 }),
+        ({ context }) => captured.push(context.count), // 1
+        assign({ count: ({ context }) => context.count + 1 }),
+        ({ context }) => captured.push(context.count) // 2
       ]
     });
 
@@ -3140,20 +3143,20 @@ describe('assign action order', () => {
       {
         context: { count: 0 },
         entry: [
-          (ctx) => captured.push(ctx.count), // 0
+          ({ context }) => captured.push(context.count), // 0
           pure(() => {
             return [
-              assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
+              assign<CountCtx>({ count: ({ context }) => context.count + 1 }),
               { type: 'capture' }, // 1
-              assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
+              assign<CountCtx>({ count: ({ context }) => context.count + 1 })
             ];
           }),
-          (ctx) => captured.push(ctx.count) // 2
+          ({ context }) => captured.push(context.count) // 2
         ]
       },
       {
         actions: {
-          capture: (ctx) => captured.push(ctx.count)
+          capture: ({ context }) => captured.push(context.count)
         }
       }
     );
@@ -3173,8 +3176,8 @@ describe('assign action order', () => {
       on: {
         EV: {
           actions: [
-            assign({ counter: (ctx) => ctx.counter + 1 }),
-            (ctx) => captured.push(ctx.counter)
+            assign({ counter: ({ context }) => context.counter + 1 }),
+            ({ context }) => captured.push(context.counter)
           ]
         }
       }
@@ -3208,28 +3211,28 @@ describe('types', () => {
         // @ts-expect-error
         assign({ count: () => 'string' }),
 
-        assign({ count: (ctx) => ctx.count + 31 }),
+        assign({ count: ({ context }) => context.count + 31 }),
         // @ts-expect-error
-        assign({ count: (ctx) => ctx.text + 31 }),
+        assign({ count: ({ context }) => context.text + 31 }),
 
         assign(() => ({ count: 31 })),
         // @ts-expect-error
         assign(() => ({ count: 'string' })),
 
-        assign((ctx) => ({ count: ctx.count + 31 })),
+        assign(({ context }) => ({ count: context.count + 31 })),
         // @ts-expect-error
-        assign((ctx) => ({ count: ctx.text + 31 }))
+        assign(({ context }) => ({ count: context.text + 31 }))
       ],
       on: {
         say: {
           actions: [
-            assign({ text: (_, e) => e.value }),
+            assign({ text: ({ event }) => event.value }),
             // @ts-expect-error
-            assign({ count: (_, e) => e.value }),
+            assign({ count: ({ event }) => event.value }),
 
-            assign((_, e) => ({ text: e.value })),
+            assign(({ event }) => ({ text: event.value })),
             // @ts-expect-error
-            assign((_, e) => ({ count: e.value }))
+            assign(({ event }) => ({ count: event.value }))
           ]
         }
       }
@@ -3254,28 +3257,42 @@ describe('types', () => {
         // @ts-expect-error
         choose([{ actions: assign({ count: () => 'string' }) }]),
 
-        choose([{ actions: assign({ count: (ctx) => ctx.count + 31 }) }]),
-        // @ts-expect-error
-        choose([{ actions: assign({ count: (ctx) => ctx.text + 31 }) }]),
+        choose([
+          { actions: assign({ count: ({ context }) => context.count + 31 }) }
+        ]),
+        choose([
+          // @ts-expect-error
+          { actions: assign({ count: ({ context }) => context.text + 31 }) }
+        ]),
 
         choose([{ actions: assign(() => ({ count: 31 })) }]),
         // @ts-expect-error
         choose([{ actions: assign(() => ({ count: 'string' })) }]),
 
-        choose([{ actions: assign((ctx) => ({ count: ctx.count + 31 })) }]),
-        // @ts-expect-error
-        choose([{ actions: assign((ctx) => ({ count: ctx.text + 31 })) }])
+        choose([
+          { actions: assign(({ context }) => ({ count: context.count + 31 })) }
+        ]),
+        choose([
+          // @ts-expect-error
+          { actions: assign(({ context }) => ({ count: context.text + 31 })) }
+        ])
       ],
       on: {
         say: {
           actions: [
-            choose([{ actions: assign({ text: (_, e) => e.value }) }]),
-            // @ts-expect-error
-            choose([{ actions: assign({ count: (_, e) => e.value }) }]),
+            choose([{ actions: assign({ text: ({ event }) => event.value }) }]),
+            choose([
+              // @ts-expect-error
+              { actions: assign({ count: ({ event }) => event.value }) }
+            ]),
 
-            choose([{ actions: assign((_, e) => ({ text: e.value })) }]),
-            // @ts-expect-error
-            choose([{ actions: assign((_, e) => ({ count: e.value })) }])
+            choose([
+              { actions: assign(({ event }) => ({ text: event.value })) }
+            ]),
+            choose([
+              // @ts-expect-error
+              { actions: assign(({ event }) => ({ count: event.value })) }
+            ])
           ]
         }
       }
@@ -3287,4 +3304,16 @@ describe('action meta', () => {
   it.todo(
     'base action objects should have meta.action as the same base action object'
   );
+
+  it('should provide self', () => {
+    expect.assertions(1);
+
+    const machine = createMachine({
+      entry: ({ self }) => {
+        expect(self.send).toBeDefined();
+      }
+    });
+
+    interpret(machine).start();
+  });
 });

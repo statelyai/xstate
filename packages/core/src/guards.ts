@@ -4,7 +4,6 @@ import type {
   BooleanGuardDefinition,
   GuardConfig,
   GuardDefinition,
-  GuardMeta,
   SCXML,
   GuardPredicate,
   MachineContext
@@ -20,7 +19,7 @@ export function stateIn<
   return {
     type: 'xstate.guard:in',
     params: { stateValue },
-    predicate: (_, __, { state }) => {
+    predicate: ({ state }) => {
       if (isString(stateValue) && isStateId(stateValue)) {
         return state.configuration.some((sn) => sn.id === stateValue.slice(1));
       }
@@ -40,14 +39,8 @@ export function not<
     type: 'xstate.boolean',
     params: { op: 'not' },
     children: [toGuardDefinition(guard)],
-    predicate: (ctx, _, meta) => {
-      return !meta.evaluate(
-        meta.guard.children![0],
-        ctx,
-        meta._event,
-        meta.state,
-        meta.state.machine!
-      );
+    predicate: ({ evaluate, guard, context, _event, state }) => {
+      return !evaluate(guard.children![0], context, _event, state);
     }
   };
 }
@@ -62,15 +55,9 @@ export function and<
     type: 'xstate.boolean',
     params: { op: 'and' },
     children: guards.map((guard) => toGuardDefinition(guard)),
-    predicate: (ctx, _, meta) => {
-      return meta.guard.children!.every((childGuard) => {
-        return meta.evaluate(
-          childGuard,
-          ctx,
-          meta._event,
-          meta.state,
-          meta.state.machine!
-        );
+    predicate: ({ evaluate, guard, context, _event, state }) => {
+      return guard.children!.every((childGuard) => {
+        return evaluate(childGuard, context, _event, state);
       });
     }
   };
@@ -83,15 +70,9 @@ export function or<TContext extends MachineContext, TEvent extends EventObject>(
     type: 'xstate.boolean',
     params: { op: 'or' },
     children: guards.map((guard) => toGuardDefinition(guard)),
-    predicate: (ctx, _, meta) => {
-      return meta.guard.children!.some((childGuard) => {
-        return meta.evaluate(
-          childGuard,
-          ctx,
-          meta._event,
-          meta.state,
-          meta.state.machine!
-        );
+    predicate: ({ evaluate, guard, context, _event, state }) => {
+      return guard.children!.some((childGuard) => {
+        return evaluate(childGuard, context, _event, state);
       });
     }
   };
@@ -107,12 +88,6 @@ export function evaluateGuard<
   state: State<TContext, TEvent>
 ): boolean {
   const { machine } = state;
-  const guardMeta: GuardMeta<TContext, TEvent> = {
-    state,
-    guard,
-    _event,
-    evaluate: evaluateGuard
-  };
 
   const predicate = machine?.options?.guards?.[guard.type] ?? guard.predicate;
 
@@ -120,7 +95,14 @@ export function evaluateGuard<
     throw new Error(`Guard '${guard.type}' is not implemented.'.`);
   }
 
-  return predicate(context, _event.data, guardMeta);
+  return predicate({
+    context,
+    event: _event.data,
+    state,
+    guard,
+    _event,
+    evaluate: evaluateGuard
+  });
 }
 
 export function toGuardDefinition<

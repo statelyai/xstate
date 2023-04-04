@@ -35,10 +35,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       },
       on: {
         OTHER: {
-          actions: assign({ other: (ctx) => ctx.other + 1 })
+          actions: assign({ other: ({ context }) => context.other + 1 })
         },
         INCREMENT: {
-          actions: assign({ count: (ctx) => ctx.count + 1 })
+          actions: assign({ count: ({ context }) => context.count + 1 })
         }
       }
     });
@@ -98,7 +98,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       },
       on: {
         CHANGE: {
-          actions: assign({ name: (_, e) => e.value })
+          actions: assign({ name: ({ event }) => event.value })
         }
       }
     });
@@ -238,7 +238,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       on: {
         UPDATE_COUNT: {
           actions: assign({
-            count: (ctx) => ctx.count + 1
+            count: ({ context }) => context.count + 1
           })
         }
       }
@@ -329,7 +329,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       on: {
         INC: {
           actions: assign({
-            count: (ctx) => ctx.count + 1
+            count: ({ context }) => context.count + 1
           })
         }
       }
@@ -373,7 +373,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       on: {
         INC: {
           actions: assign({
-            count: (ctx) => ctx.count + 1
+            count: ({ context }) => context.count + 1
           })
         }
       }
@@ -538,7 +538,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       on: {
         INC: {
           actions: assign({
-            foo: (context) => ++context.foo
+            foo: ({ context }) => ++context.foo
           })
         }
       }

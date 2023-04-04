@@ -142,7 +142,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
       states: {
         active: {
           entry: assign({
-            actorRef: (_, __, { spawn }) => spawn(childMachine)
+            actorRef: ({ spawn }) => spawn(childMachine)
           })
         }
       }
@@ -195,8 +195,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         states: {
           active: {
             entry: assign({
-              actorRef: (_, __, { spawn }) =>
-                spawn(childMachine, { id: 'child' })
+              actorRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
             }),
             on: { FINISH: 'success' }
           },
@@ -386,7 +385,9 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         states: {
           active: {
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+              INC: {
+                actions: assign({ count: ({ context }) => context.count + 1 })
+              },
               SOMETHING: { actions: 'doSomething' }
             }
           }

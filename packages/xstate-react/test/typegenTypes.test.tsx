@@ -167,7 +167,7 @@ describe('useMachine', () => {
       useMachine(machine, {
         actions: {
           // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: (_context, _event) => {}
+          fooAction: () => {}
         }
       });
       return null;
@@ -199,10 +199,10 @@ describe('useMachine', () => {
     function App() {
       useMachine(machine, {
         actions: {
-          fooAction: assign((_context, _event) => {
-            ((_accept: 'FOO') => {})(_event.type);
+          fooAction: assign(({ event }) => {
+            ((_accept: 'FOO') => {})(event.type);
             // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(_event.type);
+            ((_accept: "test that this isn't any") => {})(event.type);
           })
         }
       });
@@ -378,7 +378,7 @@ describe('useInterpret', () => {
       useInterpret(machine, {
         actions: {
           // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: (_context, _event) => {}
+          fooAction: () => {}
         }
       });
       return null;
@@ -410,10 +410,10 @@ describe('useInterpret', () => {
     function App() {
       useInterpret(machine, {
         actions: {
-          fooAction: assign((_context, _event) => {
-            ((_accept: 'FOO') => {})(_event.type);
+          fooAction: assign(({ event }) => {
+            ((_accept: 'FOO') => {})(event.type);
             // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(_event.type);
+            ((_accept: "test that this isn't any") => {})(event.type);
           })
         }
       });
@@ -734,7 +734,7 @@ describe('createActorContext', () => {
           options={{
             actions: {
               // it's important to use `event` here somehow to make this a possible source of information for inference
-              fooAction: (_context, _event) => {}
+              fooAction: () => {}
             }
           }}
         >
@@ -773,10 +773,10 @@ describe('createActorContext', () => {
         <Context.Provider
           options={{
             actions: {
-              fooAction: assign((_context, _event) => {
-                ((_accept: 'FOO') => {})(_event.type);
+              fooAction: assign(({ event }) => {
+                ((_accept: 'FOO') => {})(event.type);
                 // @ts-expect-error
-                ((_accept: "test that this isn't any") => {})(_event.type);
+                ((_accept: "test that this isn't any") => {})(event.type);
               })
             }
           }}

@@ -130,7 +130,10 @@ describe('history states', () => {
       states: {
         a: {
           on: {
-            REENTER: '#b_hist'
+            REENTER: {
+              target: '#b_hist',
+              external: true
+            }
           },
           initial: 'a1',
           states: {

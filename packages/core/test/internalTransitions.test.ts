@@ -19,14 +19,14 @@ const wordMachine = createMachine({
         RIGHT_CLICK: '.right',
         RIGHT_CLICK_EXTERNAL: {
           target: '.right',
-          internal: false
+          external: true
         },
         CENTER_CLICK: '.center',
         JUSTIFY_CLICK: '.justify',
         RESET: 'direction', // explicit self-transition
         RESET_TO_CENTER: {
           target: 'direction.center',
-          internal: false
+          external: true
         }
       }
     }
@@ -164,20 +164,20 @@ describe('internal transitions', () => {
         a1: {
           initial: 'a11',
           entry: assign({
-            sourceStateEntries: (ctx) => ctx.sourceStateEntries + 1
+            sourceStateEntries: ({ context }) => context.sourceStateEntries + 1
           }),
           states: {
             a11: {
               initial: 'a111',
               entry: assign({
-                directDescendantEntries: (ctx) =>
-                  ctx.directDescendantEntries + 1
+                directDescendantEntries: ({ context }) =>
+                  context.directDescendantEntries + 1
               }),
               states: {
                 a111: {
                   entry: assign({
-                    deepDescendantEntries: (ctx) =>
-                      ctx.deepDescendantEntries + 1
+                    deepDescendantEntries: ({ context }) =>
+                      context.deepDescendantEntries + 1
                   })
                 }
               }
@@ -217,18 +217,20 @@ describe('internal transitions', () => {
         a1: {
           initial: 'a11',
           exit: assign({
-            sourceStateExits: (ctx) => ctx.sourceStateExits + 1
+            sourceStateExits: ({ context }) => context.sourceStateExits + 1
           }),
           states: {
             a11: {
               initial: 'a111',
               exit: assign({
-                directDescendantExits: (ctx) => ctx.directDescendantExits + 1
+                directDescendantExits: ({ context }) =>
+                  context.directDescendantExits + 1
               }),
               states: {
                 a111: {
                   exit: assign({
-                    deepDescendantExits: (ctx) => ctx.deepDescendantExits + 1
+                    deepDescendantExits: ({ context }) =>
+                      context.deepDescendantExits + 1
                   })
                 }
               }

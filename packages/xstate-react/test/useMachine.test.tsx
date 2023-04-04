@@ -43,9 +43,9 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           onDone: {
             target: 'success',
             actions: assign({
-              data: (_, e) => e.data
+              data: ({ event }) => event.data
             }),
-            guard: (_, e) => e.data.length
+            guard: ({ event }) => event.data.length
           }
         }
       },
@@ -198,7 +198,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       states: {
         start: {
           entry: assign({
-            ref: (_, __, { spawn }) =>
+            ref: ({ spawn }) =>
               spawn(
                 fromPromise(() => {
                   return new Promise((res) => res(42));
@@ -420,7 +420,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       {
         actions: {
           setup: assign({
-            stuff: (context: any) => [...context.stuff, 4]
+            stuff: ({ context }) => [...context.stuff, 4]
           })
         }
       }
@@ -465,10 +465,10 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       {
         actions: {
           setup: assign({
-            stuff: (context: any) => [...context.stuff, 4]
+            stuff: ({ context }) => [...context.stuff, 4]
           }),
           increase: assign({
-            counter: (context: any) => ++context.counter
+            counter: ({ context }) => ++context.counter
           })
         }
       }
@@ -926,7 +926,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       on: {
         INC: {
           actions: [
-            assign({ count: (ctx) => ctx.count + 1 }),
+            assign({ count: ({ context }) => context.count + 1 }),
             send({ type: 'UNHANDLED' })
           ]
         }
@@ -944,5 +944,41 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const { container } = render(<App />);
 
     expect(container.textContent).toBe('2');
+  });
+
+  it('should deliver messages sent from an effect to an actor registered in the system', () => {
+    const spy = jest.fn();
+    const m = createMachine({
+      invoke: {
+        systemId: 'child',
+        src: createMachine({
+          on: {
+            PING: {
+              actions: spy
+            }
+          }
+        })
+      }
+    });
+
+    const App = () => {
+      const [_state, _send, actor] = useMachine(m);
+
+      React.useEffect(() => {
+        actor.system.get('child')!.send({ type: 'PING' });
+      });
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(spy).toHaveBeenCalledTimes(
+      suiteKey === 'strict'
+        ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
+          // but we don't rehydrate child actors right now, we just recreate the initial state and that leads to an extra render with strict effects
+          3
+        : 1
+    );
   });
 });

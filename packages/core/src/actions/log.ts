@@ -8,10 +8,13 @@ import { log as logActionType } from '../actionTypes.ts';
 import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import { BaseDynamicActionObject, DynamicLogAction } from '../index.ts';
 
-const defaultLogExpr = <TContext, TEvent extends EventObject>(
-  context: TContext,
-  event: TEvent
-) => ({
+const defaultLogExpr = <TContext, TEvent extends EventObject>({
+  context,
+  event
+}: {
+  context: TContext;
+  event: TEvent;
+}) => ({
   context,
   event
 });
@@ -41,10 +44,17 @@ export function log<
 > {
   return createDynamicAction(
     { type: logActionType, params: { label, expr } },
-    (_event, { state }) => {
+    (_event, { state, actorContext }) => {
       const resolvedValue =
         typeof expr === 'function'
-          ? expr(state.context, _event.data, { _event })
+          ? expr({
+              context: state.context,
+              event: _event.data,
+              _event,
+              state: state as any,
+              self: actorContext?.self ?? ({} as any),
+              system: actorContext?.system
+            })
           : expr;
       return [
         state,

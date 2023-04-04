@@ -1,7 +1,7 @@
 import type { EventObject, ActorRef, BaseActorRef } from '../types.ts';
 import { symbolObservable } from '../symbolObservable.ts';
 import { ActorStatus } from '../interpreter.ts';
-export { fromReducer } from './reducer.ts';
+export { fromTransition } from './transition.ts';
 export { fromPromise } from './promise.ts';
 export { fromObservable, fromEventObservable } from './observable.ts';
 export { fromCallback } from './callback.ts';
@@ -53,11 +53,13 @@ export function toActorRef<
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
+    sessionId: '',
     getSnapshot: () => undefined,
     [symbolObservable]: function () {
       return this;
     },
     status: ActorStatus.Running,
+    stop: () => void 0,
     ...actorRefLike
   };
 }

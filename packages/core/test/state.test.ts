@@ -29,7 +29,7 @@ const exampleMachine = createMachine<any, Events>({
       on: {
         EXTERNAL: {
           target: 'one',
-          internal: false
+          external: true
         },
         INERT: {},
         INTERNAL: {
@@ -200,7 +200,7 @@ describe('State', () => {
           same: {
             on: {
               EVENT: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
+                actions: assign({ count: ({ context }) => context.count + 1 })
               }
             }
           }
@@ -238,8 +238,8 @@ describe('State', () => {
             on: {
               CHANGE: {
                 actions: assign({
-                  value: (_, e) => {
-                    return e.value;
+                  value: ({ event }) => {
+                    return event.value;
                   }
                 })
               }
@@ -455,74 +455,6 @@ describe('State', () => {
           }
         )
       );
-    });
-
-    describe('_sessionid', () => {
-      it('_sessionid should be null for non-invoked machines', () => {
-        const testMachine = createMachine({
-          initial: 'active',
-          states: {
-            active: {}
-          }
-        });
-
-        expect(testMachine.initialState._sessionid).toBeUndefined();
-      });
-
-      it('_sessionid should be the service sessionId for invoked machines', (done) => {
-        const testMachine = createMachine({
-          initial: 'active',
-          states: {
-            active: {
-              on: {
-                TOGGLE: 'inactive'
-              }
-            },
-            inactive: {
-              type: 'final'
-            }
-          }
-        });
-
-        const service = interpret(testMachine);
-
-        service
-          .onTransition((state) => {
-            expect(state._sessionid).toEqual(service.sessionId);
-          })
-          .onDone(() => {
-            done();
-          })
-          .start();
-
-        service.send({ type: 'TOGGLE' });
-      });
-
-      it('_sessionid should persist through states (manual)', () => {
-        const testMachine = createMachine({
-          initial: 'active',
-          states: {
-            active: {
-              on: {
-                TOGGLE: 'inactive'
-              }
-            },
-            inactive: {
-              type: 'final'
-            }
-          }
-        });
-
-        const { initialState } = testMachine;
-
-        initialState._sessionid = 'somesessionid';
-
-        const nextState = testMachine.transition(initialState, {
-          type: 'TOGGLE'
-        });
-
-        expect(nextState._sessionid).toEqual('somesessionid');
-      });
     });
   });
 
@@ -825,7 +757,7 @@ describe('State', () => {
           a: {
             on: {
               SPAWN: {
-                actions: assign((_, __, { spawn }) => ({
+                actions: assign(({ spawn }) => ({
                   ref: spawn(
                     fromCallback(() => {
                       spawned = true;

@@ -19,10 +19,10 @@ describe('json', () => {
         number: 0,
         string: 'hello'
       },
-      invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
+      invoke: [{ id: 'invokeId', src: 'invokeSrc' }],
       states: {
         testActions: {
-          invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
+          invoke: [{ id: 'invokeId', src: 'invokeSrc' }],
           entry: [
             'stringActionType',
             {
@@ -51,7 +51,7 @@ describe('json', () => {
           on: {
             TO_FOO: {
               target: ['foo', 'bar'],
-              guard: (ctx) => !!ctx.string
+              guard: ({ context }) => !!context.string
             }
           },
           after: {
@@ -145,8 +145,8 @@ describe('json', () => {
           "actions": [],
           "event": "done.invoke.active:invocation[0]",
           "eventType": "done.invoke.active:invocation[0]",
+          "external": false,
           "guard": undefined,
-          "internal": false,
           "source": "#active",
           "target": [
             "#(machine).foo",
@@ -157,8 +157,8 @@ describe('json', () => {
           "actions": [],
           "event": "error.platform.active:invocation[0]",
           "eventType": "error.platform.active:invocation[0]",
+          "external": false,
           "guard": undefined,
-          "internal": false,
           "source": "#active",
           "target": [
             "#(machine).bar",
@@ -169,8 +169,8 @@ describe('json', () => {
           "actions": [],
           "event": "EVENT",
           "eventType": "EVENT",
+          "external": false,
           "guard": undefined,
-          "internal": false,
           "source": "#active",
           "target": [
             "#(machine).foo",
