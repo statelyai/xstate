@@ -167,19 +167,28 @@ export function fromEventObservable<T extends EventObject>(
 
       switch (_event.name) {
         case errorEventType:
-          state.status = 'error';
-          delete state.input;
-          state.data = _event.data.data;
-          return state;
+          return {
+            ...state,
+            status: 'error',
+            input: undefined,
+            data: _event.data.data,
+            subscription: undefined
+          };
         case completeEventType:
-          state.status = 'done';
-          delete state.input;
-          return state;
+          return {
+            ...state,
+            status: 'done',
+            input: undefined,
+            subscription: undefined
+          };
         case stopSignalType:
-          state.canceled = true;
-          delete state.input;
           state.subscription!.unsubscribe();
-          return state;
+          return {
+            ...state,
+            canceled: true,
+            input: undefined,
+            subscription: undefined
+          };
         default:
           return state;
       }

@@ -41,19 +41,25 @@ export function fromPromise<T>(
 
       switch (_event.name) {
         case resolveEventType:
-          state.status = 'done';
-          state.data = eventObject.data;
-          delete state.input;
-          return state;
+          return {
+            ...state,
+            status: 'done',
+            data: eventObject.data,
+            input: undefined
+          };
         case rejectEventType:
-          state.status = 'error';
-          state.data = eventObject.data;
-          delete state.input;
-          return state;
+          return {
+            ...state,
+            status: 'error',
+            data: eventObject.data,
+            input: undefined
+          };
         case stopSignalType:
-          state.canceled = true;
-          delete state.input;
-          return state;
+          return {
+            ...state,
+            canceled: true,
+            input: undefined
+          };
         default:
           return state;
       }
