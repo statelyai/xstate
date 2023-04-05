@@ -11,14 +11,14 @@ import {
   TypegenDisabled,
   MachineContext
 } from 'xstate';
-import { TestModel } from './TestModel.js';
+import { TestModel } from './TestModel.ts';
 import {
   TestMachineConfig,
   TestMachineOptions,
   TestModelOptions
-} from './types.js';
-import { flatten, simpleStringify } from './utils.js';
-import { validateMachine } from './validateMachine.js';
+} from './types.ts';
+import { flatten, simpleStringify } from './utils.ts';
+import { validateMachine } from './validateMachine.ts';
 
 export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {

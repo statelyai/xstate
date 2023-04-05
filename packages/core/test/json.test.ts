@@ -19,10 +19,10 @@ describe('json', () => {
         number: 0,
         string: 'hello'
       },
-      invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
+      invoke: [{ id: 'invokeId', src: 'invokeSrc' }],
       states: {
         testActions: {
-          invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
+          invoke: [{ id: 'invokeId', src: 'invokeSrc' }],
           entry: [
             'stringActionType',
             {
@@ -51,7 +51,7 @@ describe('json', () => {
           on: {
             TO_FOO: {
               target: ['foo', 'bar'],
-              guard: (ctx) => !!ctx.string
+              guard: ({ context }) => !!context.string
             }
           },
           after: {

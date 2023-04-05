@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index.js';
+import { createMachine, interpret } from '../src/index.ts';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {

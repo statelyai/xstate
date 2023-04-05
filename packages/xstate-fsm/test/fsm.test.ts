@@ -3,7 +3,7 @@ import {
   assign,
   interpret,
   StateMachine
-} from '../src/index.js';
+} from '../src/index.ts';
 
 describe('@xstate/fsm', () => {
   interface LightContext {

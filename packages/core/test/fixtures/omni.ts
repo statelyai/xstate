@@ -63,15 +63,26 @@ const omniMachine = createMachine({
             two: {
               after: {
                 2000: [
-                  { target: 'three', guard: (ctx) => ctx.count === 3 },
-                  { target: 'four', guard: (ctx) => ctx.count === 4 },
+                  {
+                    target: 'three',
+                    guard: ({ context }) => context.count === 3
+                  },
+                  {
+                    target: 'four',
+                    guard: ({ context }) => context.count === 4
+                  },
                   { target: 'one' }
                 ]
               }
             },
             three: {
               after: {
-                1000: [{ target: 'one', guard: (ctx) => ctx.count === -1 }],
+                1000: [
+                  {
+                    target: 'one',
+                    guard: ({ context }) => context.count === -1
+                  }
+                ],
                 2000: 'four'
               }
             },
@@ -86,8 +97,11 @@ const omniMachine = createMachine({
             },
             transientCond: {
               always: [
-                { target: 'two', guard: (ctx) => ctx.count === 2 },
-                { target: 'three', guard: (ctx) => ctx.count === 3 },
+                { target: 'two', guard: ({ context }) => context.count === 2 },
+                {
+                  target: 'three',
+                  guard: ({ context }) => context.count === 3
+                },
                 { target: 'one' }
               ]
             },

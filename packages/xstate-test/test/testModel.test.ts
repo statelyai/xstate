@@ -1,4 +1,4 @@
-import { TestModel } from '../src/index.js';
+import { TestModel } from '../src/index.ts';
 import { testUtils } from './testUtils';
 
 describe('custom test models', () => {

@@ -1,5 +1,5 @@
 import { createMachine } from 'xstate';
-import { createTestModel } from '../src/index.js';
+import { createTestModel } from '../src/index.ts';
 
 describe('types', () => {
   it('`EventExecutor` should be passed event with type that corresponds to its key', () => {

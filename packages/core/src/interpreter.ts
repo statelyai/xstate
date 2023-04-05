@@ -1,21 +1,23 @@
+import { Mailbox } from './Mailbox.ts';
+import { doneInvoke, error } from './actions.ts';
+import { stopSignalType } from './actors/index.ts';
+import { devToolsAdapter } from './dev/index.ts';
+import { IS_PRODUCTION } from './environment.ts';
+import { symbolObservable } from './symbolObservable.ts';
+import { createSystem } from './system.ts';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.ts';
 import type {
-  ActorContext,
-  AnyActorRef,
-  AnyStateMachine,
   ActorBehavior,
+  ActorContext,
+  ActorSystem,
+  AnyActorBehavior,
+  AnyStateMachine,
   EventFromBehavior,
   InterpreterFrom,
   PersistedStateFrom,
-  SnapshotFrom,
-  AnyActorBehavior,
-  RaiseActionObject
-} from './types.js';
-import { stopSignalType } from './actors/index.js';
-import { devToolsAdapter } from './dev/index.js';
-import { IS_PRODUCTION } from './environment.js';
-import { Mailbox } from './Mailbox.js';
-import { registry } from './registry.js';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.js';
+  RaiseActionObject,
+  SnapshotFrom
+} from './types.ts';
 import {
   ActorRef,
   DoneEvent,
@@ -26,10 +28,8 @@ import {
   SCXML,
   SendActionObject,
   Subscription
-} from './types.js';
-import { toObserver, toSCXMLEvent, warn } from './utils.js';
-import { symbolObservable } from './symbolObservable.js';
-import { doneInvoke, error } from './actions.js';
+} from './types.ts';
+import { toObserver, toSCXMLEvent, warn } from './utils.ts';
 
 export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>
@@ -108,16 +108,17 @@ export class Interpreter<
   // Actor Ref
   public _parent?: ActorRef<any>;
   public ref: ActorRef<TEvent>;
-  private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>>;
+  // TODO: add typings for system
+  private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>, any>;
+
+  private _systemId: string | undefined;
 
   /**
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
 
-  // TODO: remove
-  public _forwardTo: Set<AnyActorRef> = new Set();
-
+  public system: ActorSystem<any>;
   private _doneEvent?: DoneEvent;
 
   public src?: string;
@@ -137,11 +138,17 @@ export class Interpreter<
       ...options
     };
 
-    const { clock, logger, parent, id } = resolvedOptions;
+    const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
-    // TODO: this should come from a "system"
-    this.sessionId = registry.bookId();
+    this.system = parent?.system ?? createSystem();
+
+    if (systemId) {
+      this._systemId = systemId;
+      this.system._set(systemId, this);
+    }
+
+    this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
@@ -156,6 +163,15 @@ export class Interpreter<
       logger: this.logger,
       defer: (fn) => {
         this._deferred.push(fn);
+      },
+      system: this.system,
+      stopChild: (child) => {
+        if (child._parent !== this) {
+          throw new Error(
+            `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
+          );
+        }
+        (child as any)._stop();
       }
     };
 
@@ -204,7 +220,7 @@ export class Interpreter<
           })
         );
 
-        this._stop();
+        this._stopProcedure();
         break;
       case 'error':
         this._parent?.send(
@@ -281,7 +297,10 @@ export class Interpreter<
       return this;
     }
 
-    registry.register(this.sessionId, this.ref);
+    this.system._register(this.sessionId, this);
+    if (this._systemId) {
+      this.system._set(this._systemId, this);
+    }
     this.status = ActorStatus.Running;
 
     if (this.behavior.start) {
@@ -303,8 +322,6 @@ export class Interpreter<
   }
 
   private _process(event: SCXML.Event<TEvent>) {
-    this.forward(event);
-
     try {
       const nextState = this.behavior.transition(
         this._state,
@@ -315,7 +332,7 @@ export class Interpreter<
       this.update(nextState);
 
       if (event.name === stopSignalType) {
-        this._stop();
+        this._stopProcedure();
       }
     } catch (err) {
       // TODO: properly handle errors
@@ -330,10 +347,7 @@ export class Interpreter<
     }
   }
 
-  /**
-   * Stops the interpreter and unsubscribe all listeners.
-   */
-  public stop(): this {
+  private _stop(): this {
     if (this.status === ActorStatus.Stopped) {
       return this;
     }
@@ -346,13 +360,23 @@ export class Interpreter<
 
     return this;
   }
+
+  /**
+   * Stops the interpreter and unsubscribe all listeners.
+   */
+  public stop(): this {
+    if (this._parent) {
+      throw new Error('A non-root actor cannot be stopped directly.');
+    }
+    return this._stop();
+  }
   private _complete(): void {
     for (const observer of this.observers) {
       observer.complete?.();
     }
     this.observers.clear();
   }
-  private _stop(): this {
+  private _stopProcedure(): this {
     this._complete();
 
     if (this.status !== ActorStatus.Running) {
@@ -374,7 +398,7 @@ export class Interpreter<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = ActorStatus.Stopped;
-    registry.free(this.sessionId);
+    this.system._unregister(this);
 
     return this;
   }
@@ -416,14 +440,6 @@ export class Interpreter<
     }
 
     this.mailbox.enqueue(_event);
-  }
-
-  // TODO: remove
-  private forward(event: SCXML.Event<TEvent>): void {
-    // The _forwardTo set will be empty for non-machine actors anyway
-    for (const child of this._forwardTo) {
-      child.send(event);
-    }
   }
 
   // TODO: make private (and figure out a way to do this within the machine)

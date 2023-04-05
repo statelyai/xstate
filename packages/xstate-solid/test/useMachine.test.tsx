@@ -51,9 +51,9 @@ describe('useMachine hook', () => {
           onDone: {
             target: 'success',
             actions: assign({
-              data: (_, e) => e.data
+              data: ({ event }) => event.data
             }),
-            guard: (_, e) => e.data.length
+            guard: ({ event }) => event.data.length
           }
         }
       },
@@ -208,7 +208,7 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: (_, __, { spawn }) =>
+            ref: ({ spawn }) =>
               spawn(
                 fromPromise(() => new Promise((res) => res(42))),
                 { id: 'my-promise' }
@@ -410,11 +410,11 @@ describe('useMachine hook', () => {
             COUNT: {
               actions: [
                 assign({
-                  item: (ctx) => ({
-                    ...ctx.item,
+                  item: ({ context }) => ({
+                    ...context.item,
                     counts: [
-                      ...ctx.item.counts,
-                      { value: ctx.item.counts.length + 1 }
+                      ...context.item.counts,
+                      { value: context.item.counts.length + 1 }
                     ]
                   })
                 })
@@ -423,11 +423,11 @@ describe('useMachine hook', () => {
             TOTAL: {
               actions: [
                 assign({
-                  item: (ctx) => ({
-                    ...ctx.item,
+                  item: ({ context }) => ({
+                    ...context.item,
                     totals: [
-                      ...ctx.item.totals,
-                      { value: ctx.item.totals.length + 1 }
+                      ...context.item.totals,
+                      { value: context.item.totals.length + 1 }
                     ]
                   })
                 })
@@ -480,13 +480,13 @@ describe('useMachine hook', () => {
           on: {
             INC: {
               actions: assign({
-                subCount: (ctx) => ({
-                  ...ctx.subCount,
+                subCount: ({ context }) => ({
+                  ...context.subCount,
                   subCount1: {
-                    ...ctx.subCount.subCount1,
+                    ...context.subCount.subCount1,
                     subCount2: {
-                      ...ctx.subCount.subCount1.subCount2,
-                      count: ctx.subCount.subCount1.subCount2.count + 1
+                      ...context.subCount.subCount1.subCount2,
+                      count: context.subCount.subCount1.subCount2.count + 1
                     }
                   }
                 })
@@ -556,14 +556,20 @@ describe('useMachine hook', () => {
             COUNT: {
               actions: [
                 assign({
-                  item: (ctx) => ({ ...ctx.item, count: ctx.item.count + 1 })
+                  item: ({ context }) => ({
+                    ...context.item,
+                    count: context.item.count + 1
+                  })
                 })
               ]
             },
             TOTAL: {
               actions: [
                 assign({
-                  item: (ctx) => ({ ...ctx.item, total: ctx.item.total + 1 })
+                  item: ({ context }) => ({
+                    ...context.item,
+                    total: context.item.total + 1
+                  })
                 })
               ]
             }
@@ -948,7 +954,7 @@ describe('useMachine hook', () => {
           on: {
             INC: {
               actions: assign({
-                counter: (ctx) => ctx.counter + 1
+                counter: ({ context }) => context.counter + 1
               })
             }
           }
@@ -1278,7 +1284,7 @@ describe('useMachine hook', () => {
       on: {
         INC: {
           actions: [
-            assign({ count: (ctx) => ++ctx.count }),
+            assign({ count: ({ context }) => ++context.count }),
             xsend({ type: 'UNHANDLED' })
           ]
         }
@@ -1352,8 +1358,8 @@ describe('useMachine hook', () => {
             INC: {
               actions: [
                 assign({
-                  latestValue: (ctx: Context) => ({
-                    value: ctx.latestValue.value + 1
+                  latestValue: ({ context }) => ({
+                    value: context.latestValue.value + 1
                   })
                 })
               ]
@@ -1479,13 +1485,15 @@ describe('useMachine hook', () => {
       },
       {
         actions: {
-          toggleIsAwesome: assign((ctx) => ({ isAwesome: !ctx.isAwesome })),
-          toggleIsNotAwesome: assign((ctx) => ({
-            isNotAwesome: !ctx.isNotAwesome
+          toggleIsAwesome: assign(({ context }) => ({
+            isAwesome: !context.isAwesome
+          })),
+          toggleIsNotAwesome: assign(({ context }) => ({
+            isNotAwesome: !context.isNotAwesome
           }))
         },
         guards: {
-          isAwesome: (ctx) => !!ctx.isAwesome
+          isAwesome: ({ context }) => !!context.isAwesome
         }
       }
     );

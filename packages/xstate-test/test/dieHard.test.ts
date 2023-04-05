@@ -1,5 +1,5 @@
 import { assign, createMachine } from 'xstate';
-import { createTestModel } from '../src/index.js';
+import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
 
@@ -9,20 +9,20 @@ describe('die hard example', () => {
     five: number;
   }
 
-  const pour3to5 = assign<DieHardContext>((ctx) => {
-    const poured = Math.min(5 - ctx.five, ctx.three);
+  const pour3to5 = assign<DieHardContext>(({ context }) => {
+    const poured = Math.min(5 - context.five, context.three);
 
     return {
-      three: ctx.three - poured,
-      five: ctx.five + poured
+      three: context.three - poured,
+      five: context.five + poured
     };
   });
-  const pour5to3 = assign<DieHardContext>((ctx) => {
-    const poured = Math.min(3 - ctx.three, ctx.five);
+  const pour5to3 = assign<DieHardContext>(({ context }) => {
+    const poured = Math.min(3 - context.three, context.five);
 
     const res = {
-      three: ctx.three + poured,
-      five: ctx.five - poured
+      three: context.three + poured,
+      five: context.five - poured
     };
 
     return res;
@@ -104,7 +104,7 @@ describe('die hard example', () => {
       },
       {
         guards: {
-          weHave4Gallons: (ctx) => ctx.five === 4
+          weHave4Gallons: ({ context }) => context.five === 4
         }
       }
     );

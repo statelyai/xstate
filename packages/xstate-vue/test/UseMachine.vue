@@ -14,7 +14,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
-import { useMachine } from '../src/index.js';
+import { useMachine } from '../src/index.ts';
 import { createMachine, assign, AnyState } from 'xstate';
 import { fromPromise } from 'xstate/actors';
 
@@ -36,9 +36,9 @@ const fetchMachine = createMachine<typeof context, any>({
         onDone: {
           target: 'success',
           actions: assign({
-            data: (_, e) => e.data
+            data: ({event}) => event.data
           }),
-          guard: (_, e) => e.data.length
+          guard: ({event}) => event.data.length
         }
       }
     },

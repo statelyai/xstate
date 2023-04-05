@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import { ActorRefFrom, AnyState, assign, createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { useActor, createService, useMachine } from '../src/index.js';
+import { useActor, createService, useMachine } from '../src/index.ts';
 import { createMemo, createSignal, from } from 'solid-js';
 
 describe('usage of selectors with reactive service state', () => {
@@ -18,10 +18,10 @@ describe('usage of selectors with reactive service state', () => {
       },
       on: {
         OTHER: {
-          actions: assign({ other: (ctx) => ctx.other + 1 })
+          actions: assign({ other: ({ context }) => context.other + 1 })
         },
         INCREMENT: {
-          actions: assign({ count: (ctx) => ctx.count + 1 })
+          actions: assign({ count: ({ context }) => context.count + 1 })
         }
       }
     });
@@ -83,7 +83,7 @@ describe('usage of selectors with reactive service state', () => {
       },
       on: {
         CHANGE: {
-          actions: assign({ name: (_, e) => e.value })
+          actions: assign({ name: ({ event }) => event.value })
         }
       }
     });
@@ -141,7 +141,7 @@ describe('usage of selectors with reactive service state', () => {
       on: {
         UPDATE_COUNT: {
           actions: assign({
-            count: (ctx) => ctx.count + 1
+            count: ({ context }) => context.count + 1
           })
         }
       }
@@ -151,7 +151,7 @@ describe('usage of selectors with reactive service state', () => {
       childActor: ActorRefFrom<typeof childMachine>;
     }>({
       entry: assign({
-        childActor: (_, __, { spawn }) => spawn(childMachine)
+        childActor: ({ spawn }) => spawn(childMachine)
       })
     });
 
@@ -191,7 +191,7 @@ describe('usage of selectors with reactive service state', () => {
       on: {
         INC: {
           actions: assign({
-            count: (ctx) => ctx.count + 1
+            count: ({ context }) => context.count + 1
           })
         }
       }
@@ -201,7 +201,7 @@ describe('usage of selectors with reactive service state', () => {
       childActor: ActorRefFrom<typeof childMachine>;
     }>({
       entry: assign({
-        childActor: (_, __, { spawn }) => spawn(childMachine)
+        childActor: ({ spawn }) => spawn(childMachine)
       })
     });
     const [prop, setProp] = createSignal('first');
@@ -244,13 +244,13 @@ describe('usage of selectors with reactive service state', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: (_, __, { spawn }) => spawn(childMachine(1))
+            actorRef: ({ spawn }) => spawn(childMachine(1))
           }),
           on: {
             CHANGE: {
               actions: [
                 assign({
-                  actorRef: (_, __, { spawn }) => spawn(childMachine(0))
+                  actorRef: ({ spawn }) => spawn(childMachine(0))
                 })
               ]
             }
@@ -293,7 +293,7 @@ describe('usage of selectors with reactive service state', () => {
       on: {
         INC: {
           actions: assign({
-            count: (ctx) => ctx.count + 1
+            count: ({ context }) => context.count + 1
           })
         }
       }
@@ -303,7 +303,7 @@ describe('usage of selectors with reactive service state', () => {
       childActor: ActorRefFrom<typeof childMachine>;
     }>({
       entry: assign({
-        childActor: (_, __, { spawn }) => spawn(childMachine)
+        childActor: ({ spawn }) => spawn(childMachine)
       })
     });
     const [prop, setProp] = createSignal('first');

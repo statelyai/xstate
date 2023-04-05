@@ -1,6 +1,6 @@
 <script lang="ts">
   import { interpret, createMachine, assign } from 'xstate';
-  import { useSelector } from '../src/index.js';
+  import { useSelector } from '../src/index.ts';
 
   const machine = createMachine({
     initial: 'idle',
@@ -18,11 +18,11 @@
       idle: {
         on: {
           INCREMENT: {
-            actions: assign({ count: ({ count }) => count + 1 })
+            actions: assign({ count: ({ context: { count } }) => count + 1 })
           },
           INCREMENT_ANOTHER: {
             actions: assign({
-              anotherCount: ({ anotherCount }) => anotherCount + 1
+              anotherCount: ({ context: { anotherCount } }) => anotherCount + 1
             })
           }
         }

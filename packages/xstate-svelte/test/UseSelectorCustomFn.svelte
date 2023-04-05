@@ -1,6 +1,6 @@
 <script lang="ts">
   import { interpret, createMachine, assign } from 'xstate';
-  import { useSelector } from '../src/index.js';
+  import { useSelector } from '../src/index.ts';
 
   const machine = createMachine<{ name: string }>({
     initial: 'active',
@@ -12,7 +12,7 @@
     },
     on: {
       CHANGE: {
-        actions: assign({ name: (_, e) => e.value })
+        actions: assign({ name: ({ event }) => event.value })
       }
     }
   });

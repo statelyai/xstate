@@ -1,4 +1,4 @@
-import { matchesState, createMachine } from '../src/index.js';
+import { matchesState, createMachine } from '../src/index.ts';
 
 describe('matchesState()', () => {
   it('should return true if two states are equivalent', () => {

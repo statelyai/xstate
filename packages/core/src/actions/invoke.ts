@@ -1,18 +1,18 @@
-import { EventObject, InvokeDefinition, MachineContext } from '../types.js';
-import { invoke as invokeActionType } from '../actionTypes.js';
-import { isActorRef } from '../actors/index.js';
-import { createDynamicAction } from '../../actions/dynamicAction.js';
+import { EventObject, InvokeDefinition, MachineContext } from '../types.ts';
+import { invoke as invokeActionType } from '../actionTypes.ts';
+import { isActorRef } from '../actors/index.ts';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import {
   AnyInterpreter,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
   InvokeActionObject
-} from '../index.js';
-import { actionTypes, error } from '../actions.js';
-import { resolveReferencedActor, warn } from '../utils.js';
-import { ActorStatus, interpret } from '../interpreter.js';
-import { cloneState } from '../State.js';
-import { IS_PRODUCTION } from '../environment.js';
+} from '../index.ts';
+import { actionTypes, error } from '../actions.ts';
+import { resolveReferencedActor, warn } from '../utils.ts';
+import { ActorStatus, interpret } from '../interpreter.ts';
+import { cloneState } from '../State.ts';
+import { IS_PRODUCTION } from '../environment.ts';
 
 export function invoke<
   TContext extends MachineContext,
@@ -59,9 +59,14 @@ export function invoke<
             id,
             src,
             parent: actorContext?.self,
+            systemId: invokeDef.systemId,
             input:
               typeof input === 'function'
-                ? input(state.context, _event.data as any)
+                ? input({
+                    context: state.context,
+                    event: _event.data as any,
+                    self: actorContext?.self
+                  })
                 : input
           });
 
@@ -84,8 +89,8 @@ export function invoke<
       });
 
       resolvedInvokeAction.execute = (actorCtx) => {
-        const interpreter = actorCtx.self as AnyInterpreter;
-        const { id, autoForward, ref } = resolvedInvokeAction.params;
+        const parent = actorCtx.self as AnyInterpreter;
+        const { id, ref } = resolvedInvokeAction.params;
         if (!ref) {
           if (!IS_PRODUCTION) {
             warn(
@@ -100,13 +105,9 @@ export function invoke<
             return;
           }
           try {
-            if (autoForward) {
-              interpreter._forwardTo.add(actorRef);
-            }
-
             actorRef.start?.();
           } catch (err) {
-            interpreter.send(error(id, err));
+            parent.send(error(id, err));
             return;
           }
         });

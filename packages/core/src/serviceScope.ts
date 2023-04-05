@@ -1,4 +1,4 @@
-import { AnyInterpreter } from './types.js';
+import { AnyInterpreter } from './types.ts';
 
 /**
  * Maintains a stack of the current service in scope.

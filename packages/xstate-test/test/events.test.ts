@@ -1,4 +1,4 @@
-import { createTestModel } from '../src/index.js';
+import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
 

@@ -1,5 +1,5 @@
 import { assign, createMachine, interpret } from 'xstate';
-import { createDevTools, inspect } from '../src/index.js';
+import { createDevTools, inspect } from '../src/index.ts';
 
 // mute the warning about this not being implemented by jsdom
 window.open = () => null;
@@ -243,10 +243,13 @@ describe('@xstate/inspect', () => {
   it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {
     const machine = createMachine({
       context: {},
+      schema: {} as {
+        events: { type: 'EV'; value: any };
+      },
       on: {
         EV: {
           actions: assign({
-            value: (_ctx, ev: any) => ev.value
+            value: ({ event }) => event.value
           })
         }
       }
@@ -291,11 +294,11 @@ describe('@xstate/inspect', () => {
       [
         {
           "event": "{"name":"EV","data":{"type":"EV","value":{"unsafe":"[unsafe]"}},"$$type":"scxml","type":"external"}",
-          "sessionId": "x:7",
+          "sessionId": "x:0",
           "type": "service.event",
         },
         {
-          "sessionId": "x:7",
+          "sessionId": "x:0",
           "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[{"type":"xstate.assign","params":{"context":{"value":{"unsafe":"[unsafe]"}},"actions":[]}}],"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_event":{"name":"EV","data":{"type":"EV","value":{"unsafe":"[unsafe]"}},"$$type":"scxml","type":"external"},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","external":false,"eventType":"EV"}],"children":{},"tags":[]}",
           "type": "service.state",
         },
@@ -304,17 +307,20 @@ describe('@xstate/inspect', () => {
 
     // this is important because this moves the previous `state` to `state.history` (this was the case in v4)
     // and serializing a `state` with a `state.history` containing unsafe value should still work
-    service.send({ type: 'UNKNOWN' });
+    service.send({
+      // @ts-expect-error
+      type: 'UNKNOWN'
+    });
 
     expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
       [
         {
           "event": "{"name":"UNKNOWN","data":{"type":"UNKNOWN"},"$$type":"scxml","type":"external"}",
-          "sessionId": "x:7",
+          "sessionId": "x:0",
           "type": "service.event",
         },
         {
-          "sessionId": "x:7",
+          "sessionId": "x:0",
           "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[],"event":{"type":"UNKNOWN"},"_event":{"name":"UNKNOWN","data":{"type":"UNKNOWN"},"$$type":"scxml","type":"external"},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
           "type": "service.state",
         },

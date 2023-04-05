@@ -1,5 +1,5 @@
-import { IS_PRODUCTION } from '../environment.js';
-import { AnyInterpreter, DevToolsAdapter } from '../types.js';
+import { IS_PRODUCTION } from '../environment.ts';
+import { AnyInterpreter, DevToolsAdapter } from '../types.ts';
 
 interface DevInterface {
   services: Set<AnyInterpreter>;
@@ -11,9 +11,7 @@ type ServiceListener = (service: AnyInterpreter) => void;
 export interface XStateDevInterface {
   register: (service: AnyInterpreter) => void;
   unregister: (service: AnyInterpreter) => void;
-  onRegister: (
-    listener: ServiceListener
-  ) => {
+  onRegister: (listener: ServiceListener) => {
     unsubscribe: () => void;
   };
   services: Set<AnyInterpreter>;
