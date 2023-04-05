@@ -640,7 +640,6 @@ export interface StateNodeConfig<
    * @private
    */
   parent?: StateNode<TContext, TEvent>;
-  strict?: boolean | undefined;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
