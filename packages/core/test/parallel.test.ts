@@ -1,4 +1,4 @@
-import { createMachine, interpret, StateValue } from '../src/index.js';
+import { createMachine, interpret, StateValue } from '../src/index.ts';
 import { assign } from '../src/actions/assign';
 import { raise } from '../src/actions/raise';
 import { testMultiTransition } from './utils';
@@ -650,7 +650,7 @@ describe('parallel states', () => {
           on: {
             CHANGE: {
               actions: assign({
-                value: (_, e) => e.value
+                value: ({ event }) => event.value
               })
             }
           }
@@ -910,7 +910,9 @@ describe('parallel states', () => {
                 }
               },
               foobaz: {
-                entry: assign({ log: (ctx) => [...ctx.log, 'entered foobaz'] }),
+                entry: assign({
+                  log: ({ context }) => [...context.log, 'entered foobaz']
+                }),
                 on: {
                   GOTO_FOOBAZ: 'foobaz'
                 }

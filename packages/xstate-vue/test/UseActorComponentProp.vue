@@ -9,7 +9,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, PropType } from 'vue';
-import { useActor } from '../src/index.js';
+import { useActor } from '../src/index.ts';
 import { ActorRefFrom, AnyStateMachine } from 'xstate';
 
 export default defineComponent({

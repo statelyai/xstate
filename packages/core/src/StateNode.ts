@@ -6,7 +6,7 @@ import {
   toInvokeConfig,
   toTransitionConfigArray,
   createInvokeId
-} from './utils.js';
+} from './utils.ts';
 import type {
   EventObject,
   HistoryStateNodeConfig,
@@ -25,20 +25,20 @@ import type {
   InitialTransitionDefinition,
   MachineContext,
   BaseActionObject
-} from './types.js';
-import type { State } from './State.js';
-import * as actionTypes from './actionTypes.js';
-import { toActionObjects } from './actions.js';
-import { formatInitialTransition, formatTransition } from './stateUtils.js';
+} from './types.ts';
+import type { State } from './State.ts';
+import * as actionTypes from './actionTypes.ts';
+import { toActionObjects } from './actions.ts';
+import { formatInitialTransition, formatTransition } from './stateUtils.ts';
 import {
   getDelayedTransitions,
   formatTransitions,
   getCandidates
-} from './stateUtils.js';
-import { evaluateGuard } from './guards.js';
-import type { StateMachine } from './StateMachine.js';
-import { memo } from './memo.js';
-import { NULL_EVENT } from './constants.js';
+} from './stateUtils.ts';
+import { evaluateGuard } from './guards.ts';
+import type { StateMachine } from './StateMachine.ts';
+import { memo } from './memo.ts';
+import { NULL_EVENT } from './constants.ts';
 
 const EMPTY_OBJECT = {};
 
@@ -259,7 +259,7 @@ export class StateNode<
         const generatedId = createInvokeId(this.id, i);
         const invokeConfig = toInvokeConfig(invocable, generatedId);
         const resolvedId = invokeConfig.id || generatedId;
-        const { src } = invokeConfig;
+        const { src, systemId } = invokeConfig;
 
         const resolvedSrc = isString(src)
           ? src
@@ -284,6 +284,7 @@ export class StateNode<
           ...invokeConfig,
           src: resolvedSrc,
           id: resolvedId,
+          systemId: systemId,
           toJSON() {
             const { onDone, onError, ...invokeDefValues } = invokeConfig;
             return {

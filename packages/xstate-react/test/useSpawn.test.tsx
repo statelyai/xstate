@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { fromReducer } from 'xstate/actors';
-import { useActor, useSpawn } from '../src/index.js';
+import { fromTransition } from 'xstate/actors';
+import { useActor, useSpawn } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 
 describeEachReactMode('useSpawn (%s)', ({ render }) => {
@@ -13,7 +13,7 @@ describeEachReactMode('useSpawn (%s)', ({ render }) => {
       return state;
     };
 
-    const behavior = fromReducer(reducer, 0);
+    const behavior = fromTransition(reducer, 0);
 
     const Test = () => {
       const actorRef = useSpawn(behavior);

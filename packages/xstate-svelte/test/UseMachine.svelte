@@ -1,7 +1,7 @@
 <script lang="ts">
   export let persistedState: AnyState | undefined = undefined;
 
-  import { useMachine } from '../src/index.js';
+  import { useMachine } from '../src/index.ts';
   import { fetchMachine } from './fetchMachine';
   import type { AnyState } from 'xstate';
   import { fromPromise } from 'xstate/actors';

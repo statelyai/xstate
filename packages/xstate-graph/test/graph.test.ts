@@ -25,9 +25,7 @@ function getPathsSnapshot(
   return paths.map((path) => getPathSnapshot(path));
 }
 
-function getPathSnapshot(
-  path: StatePath<any, any>
-): {
+function getPathSnapshot(path: StatePath<any, any>): {
   state: StateValue;
   steps: Array<{ state: StateValue; eventType: string }>;
 } {
@@ -109,14 +107,14 @@ describe('@xstate/graph', () => {
           EVENT: [
             {
               target: 'foo',
-              guard: (_, e) => e.id === 'foo'
+              guard: ({ event }) => event.id === 'foo'
             },
             { target: 'bar' }
           ],
           STATE: [
             {
               target: 'foo',
-              guard: (s) => s.id === 'foo'
+              guard: ({ context }) => context.id === 'foo'
             },
             { target: 'bar' }
           ]
@@ -229,14 +227,14 @@ describe('@xstate/graph', () => {
               EVENT: [
                 {
                   target: 'foo',
-                  guard: (_, e) => e.id === 'foo'
+                  guard: ({ event }) => event.id === 'foo'
                 },
                 { target: 'bar' }
               ],
               STATE: [
                 {
                   target: 'foo',
-                  guard: (s) => s.id === 'foo'
+                  guard: ({ context }) => context.id === 'foo'
                 },
                 { target: 'bar' }
               ]
@@ -403,12 +401,12 @@ describe('@xstate/graph', () => {
           start: {
             always: {
               target: 'finish',
-              guard: (ctx) => ctx.count === 3
+              guard: ({ context }) => context.count === 3
             },
             on: {
               INC: {
                 actions: assign({
-                  count: (ctx) => ctx.count + 1
+                  count: ({ context }) => context.count + 1
                 })
               }
             }
@@ -499,7 +497,7 @@ describe('@xstate/graph', () => {
   });
 });
 
-it('simple paths for reducers', () => {
+it('simple paths for transition functions', () => {
   const a = getShortestPaths(
     {
       transition: (s, e) => {
@@ -525,7 +523,7 @@ it('simple paths for reducers', () => {
   expect(getPathsSnapshot(a)).toMatchSnapshot();
 });
 
-it('shortest paths for reducers', () => {
+it('shortest paths for transition functions', () => {
   const a = getSimplePaths(
     {
       transition: (s, e) => {
@@ -561,7 +559,7 @@ describe('filtering', () => {
           on: {
             INC: {
               actions: assign({
-                count: (ctx) => ctx.count + 1
+                count: ({ context }) => context.count + 1
               })
             }
           }

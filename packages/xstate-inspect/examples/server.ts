@@ -41,6 +41,6 @@ const machine = createMachine({
   }
 });
 
-interpret(machine, { devTools: true })
-  .onTransition((s) => console.log(s.value))
-  .start();
+const actor = interpret(machine, { devTools: true });
+actor.subscribe((s) => console.log(s.value));
+actor.start();

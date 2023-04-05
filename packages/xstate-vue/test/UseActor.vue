@@ -8,7 +8,7 @@
 </template>
 
 <script lang="ts">
-import { useMachine, useActor } from '../src/index.js';
+import { useMachine, useActor } from '../src/index.ts';
 import { createMachine, sendParent } from 'xstate';
 import { defineComponent } from 'vue';
 

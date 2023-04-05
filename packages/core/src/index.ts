@@ -7,33 +7,33 @@ import {
   respond,
   sendParent,
   sendTo
-} from './actions.js';
-import { assign } from './actions/assign.js';
-import { cancel } from './actions/cancel.js';
-import { choose } from './actions/choose.js';
-import { log } from './actions/log.js';
-import { pure } from './actions/pure.js';
-import { raise } from './actions/raise.js';
-import { send } from './actions/send.js';
-import { stop } from './actions/stop.js';
-import { interpret, Interpreter, ActorStatus } from './interpreter.js';
-import { createMachine } from './Machine.js';
-import { mapState } from './mapState.js';
-import { State } from './State.js';
-import { StateNode } from './StateNode.js';
-export { createSchema, t } from './schema.js';
-export { SimulatedClock } from './SimulatedClock.js';
-export { StateMachine } from './StateMachine.js';
-export { getStateNodes } from './stateUtils.js';
-export * from './typegenTypes.js';
-export * from './types.js';
+} from './actions.ts';
+import { assign } from './actions/assign.ts';
+import { cancel } from './actions/cancel.ts';
+import { choose } from './actions/choose.ts';
+import { log } from './actions/log.ts';
+import { pure } from './actions/pure.ts';
+import { raise } from './actions/raise.ts';
+import { send } from './actions/send.ts';
+import { stop } from './actions/stop.ts';
+import { interpret, Interpreter, ActorStatus } from './interpreter.ts';
+import { createMachine } from './Machine.ts';
+import { mapState } from './mapState.ts';
+import { State } from './State.ts';
+import { StateNode } from './StateNode.ts';
+export { createSchema, t } from './schema.ts';
+export { SimulatedClock } from './SimulatedClock.ts';
+export { StateMachine } from './StateMachine.ts';
+export { getStateNodes } from './stateUtils.ts';
+export * from './typegenTypes.ts';
+export * from './types.ts';
 // TODO: decide from where those should be exported
 export {
   matchesState,
   pathToStateValue,
   toObserver,
   toSCXMLEvent
-} from './utils.js';
+} from './utils.ts';
 export {
   StateNode,
   State,

@@ -4,8 +4,8 @@ import {
   interpret,
   sendParent,
   sendTo
-} from '../src/index.js';
-import { ActorRef } from '../src/types.js';
+} from '../src/index.ts';
+import { ActorRef } from '../src/types.ts';
 
 interface CounterContext {
   count: number;
@@ -23,8 +23,8 @@ const createCounterMachine = (context: Partial<CounterContext> = {}) =>
           INC: [
             {
               target: 'counting',
-              actions: assign((ctx) => ({
-                count: ctx.count + 1
+              actions: assign(({ context }) => ({
+                count: context.count + 1
               }))
             }
           ],
@@ -33,7 +33,7 @@ const createCounterMachine = (context: Partial<CounterContext> = {}) =>
               target: 'counting',
               actions: [
                 assign({
-                  count: (ctx) => ctx.count - 1
+                  count: ({ context }) => context.count - 1
                 })
               ]
             }
@@ -247,7 +247,7 @@ describe('assign', () => {
           on: {
             INC: {
               actions: assign({
-                count: (_, event) => event.value
+                count: ({ event }) => event.value
               })
             }
           }
@@ -269,7 +269,7 @@ describe('assign meta', () => {
     states: {
       start: {
         entry: assign({
-          count: (_, __, { state }) => {
+          count: ({ state }) => {
             return state === undefined ? 1 : -1;
           }
         }),
@@ -278,20 +278,20 @@ describe('assign meta', () => {
           NEXT: {
             target: 'two',
             actions: assign({
-              count: (_, __, { state }) => {
+              count: ({ state }) => {
                 return state ? state.meta['assign.start'].test : -1;
               }
             })
           },
           NEXT_FN: {
             target: 'two',
-            actions: assign((_, __, { state }) => ({
+            actions: assign(({ state }) => ({
               count: state ? state.meta['assign.start'].test : -1
             }))
           },
           NEXT_ASSIGNER: {
             target: 'two',
-            actions: assign((_, __, { action }) => ({
+            actions: assign(({ action }) => ({
               count: action.params?.assignment ? 5 : -1
             }))
           }
@@ -337,7 +337,7 @@ describe('assign meta', () => {
       states: {
         start: {
           entry: assign({
-            count: (_, __, { state }) => {
+            count: ({ state }) => {
               receivedCount = state.context.count;
               return 0;
             }
@@ -356,10 +356,10 @@ describe('assign meta', () => {
       eventLog: Array<{ event: string; origin?: ActorRef<any> }>;
     }
 
-    const assignEventLog = assign<Ctx>((ctx, event, meta) => ({
-      eventLog: ctx.eventLog.concat({
+    const assignEventLog = assign<Ctx>(({ context, event, _event }) => ({
+      eventLog: context.eventLog.concat({
         event: event.type,
-        origin: meta._event.origin
+        origin: _event.origin
       })
     }));
 
@@ -398,18 +398,12 @@ describe('assign meta', () => {
       }
     });
 
-    let state: any;
-
-    const service = interpret(parentMachine)
-      .onTransition((s) => {
-        state = s;
-      })
-      .start();
+    const service = interpret(parentMachine).start();
 
     service.send({ type: 'PING_CHILD' });
     service.send({ type: 'PING_CHILD' });
 
-    expect(state.context).toMatchInlineSnapshot(`
+    expect(service.getSnapshot().context).toMatchInlineSnapshot(`
       {
         "eventLog": [
           {
@@ -454,10 +448,10 @@ describe('assign meta', () => {
         },
         {
           actions: {
-            inc: assign((_, __, { action }) => {
+            inc: assign(({ context, action }) => {
               expect(action).toEqual({ type: 'inc', params: { value: 5 } });
               done();
-              return _;
+              return context;
             })
           }
         }

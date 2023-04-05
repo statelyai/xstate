@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { ActorRefFrom, assign, createMachine } from 'xstate';
-import { useActor, useMachine } from '../src/index.js';
+import { useActor, useMachine } from '../src/index.ts';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -72,7 +72,7 @@ describe('useMachine', () => {
       {
         actions: {
           spawnActor: assign({
-            actor: (_, __, { spawn }) => spawn(child)
+            actor: ({ spawn }) => spawn(child)
           })
         }
       }

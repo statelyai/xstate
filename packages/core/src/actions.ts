@@ -12,13 +12,13 @@ import {
   BaseActionObject,
   SCXML,
   AnyState
-} from './types.js';
-import * as actionTypes from './actionTypes.js';
-import { toSCXMLEvent, isArray } from './utils.js';
+} from './types.ts';
+import * as actionTypes from './actionTypes.ts';
+import { toSCXMLEvent, isArray } from './utils.ts';
 import {
   createDynamicAction,
   isDynamicAction
-} from '../actions/dynamicAction.js';
+} from '../actions/dynamicAction.ts';
 export {
   send,
   sendTo,
@@ -26,14 +26,14 @@ export {
   respond,
   forwardTo,
   escalate
-} from './actions/send.js';
+} from './actions/send.ts';
 
-export { stop } from './actions/stop.js';
-export { log } from './actions/log.js';
-export { cancel } from './actions/cancel.js';
-export { assign } from './actions/assign.js';
-export { raise } from './actions/raise.js';
-export { choose } from './actions/choose.js';
+export { stop } from './actions/stop.ts';
+export { log } from './actions/log.ts';
+export { cancel } from './actions/cancel.ts';
+export { assign } from './actions/assign.ts';
+export { raise } from './actions/raise.ts';
+export { choose } from './actions/choose.ts';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
@@ -49,16 +49,20 @@ export function resolveActionObject(
 
   if (typeof dereferencedAction === 'function') {
     return createDynamicAction(
-      { type: 'xstate.expr', params: actionObject.params ?? {} },
+      { type: 'xstate.function', params: actionObject.params ?? {} },
       (_event, { state }) => {
         const a: BaseActionObject = {
           type: actionObject.type,
           params: actionObject.params,
-          execute: (_actorCtx) => {
-            return dereferencedAction(state.context, state.event, {
+          execute: (actorCtx) => {
+            return dereferencedAction({
+              context: state.context,
+              event: state.event,
               action: a,
               _event: state._event,
-              state
+              state,
+              system: actorCtx.system,
+              self: actorCtx.self
             });
           }
         };
@@ -90,21 +94,25 @@ export function toActionObject<
   if (typeof action === 'function') {
     const type = 'xstate.function';
     return createDynamicAction({ type, params: {} }, (_event, { state }) => {
-      const a: BaseActionObject = {
+      const actionObject: BaseActionObject = {
         type,
         params: {
           function: action
         },
-        execute: (_actorCtx) => {
-          return action(state.context as TContext, _event.data as TEvent, {
-            action: a,
+        execute: (actorCtx) => {
+          return action({
+            context: state.context as TContext,
+            event: _event.data as TEvent,
+            action: actionObject,
             _event: _event as SCXML.Event<TEvent>,
-            state: state as AnyState
+            state: state as AnyState,
+            self: actorCtx.self,
+            system: actorCtx.system
           });
         }
       };
 
-      return [state, a];
+      return [state, actionObject];
     });
   }
 

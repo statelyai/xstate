@@ -8,12 +8,12 @@ import type {
   AssignMeta,
   InvokeActionObject,
   LowInfer
-} from '../types.js';
-import * as actionTypes from '../actionTypes.js';
-import { createDynamicAction } from '../../actions/dynamicAction.js';
-import { isFunction } from '../utils.js';
-import { createSpawner } from '../spawn.js';
-import { cloneState } from '../State.js';
+} from '../types.ts';
+import * as actionTypes from '../actionTypes.ts';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import { isFunction } from '../utils.ts';
+import { createSpawner } from '../spawn.ts';
+import { cloneState } from '../State.ts';
 
 /**
  * Updates the current context of the machine.
@@ -53,8 +53,13 @@ export function assign<
         );
       }
 
-      const meta: AssignMeta<TContext, TExpressionEvent, TEvent> = {
-        state,
+      const args: AssignMeta<TContext, TExpressionEvent, TEvent> & {
+        context: TContext;
+        event: TExpressionEvent;
+      } = {
+        context: state.context,
+        event: _event.data,
+        state: state as any,
         action,
         _event,
         spawn: createSpawner(
@@ -63,17 +68,19 @@ export function assign<
           state.context,
           _event,
           capturedActions
-        )
+        ),
+        self: actorContext?.self ?? ({} as any),
+        system: actorContext?.system
       };
 
       let partialUpdate: Partial<TContext> = {};
       if (isFunction(assignment)) {
-        partialUpdate = assignment(state.context, _event.data, meta);
+        partialUpdate = assignment(args);
       } else {
         for (const key of Object.keys(assignment)) {
           const propAssignment = assignment[key];
           partialUpdate[key as keyof TContext] = isFunction(propAssignment)
-            ? propAssignment(state.context, _event.data, meta)
+            ? propAssignment(args)
             : propAssignment;
         }
       }
