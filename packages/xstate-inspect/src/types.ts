@@ -7,7 +7,7 @@ import type {
   StateConfig
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { InspectMachineEvent } from './inspectMachine.js';
+import { InspectMachineEvent } from './inspectMachine.ts';
 
 export type MaybeLazy<T> = T | (() => T);
 

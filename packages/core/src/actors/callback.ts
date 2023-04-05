@@ -11,8 +11,8 @@ import {
   isSCXMLEvent,
   isFunction
 } from '../utils';
-import { doneInvoke, error } from '../actions.js';
-import { startSignalType, stopSignalType, isSignal } from '../actors/index.js';
+import { doneInvoke, error } from '../actions.ts';
+import { startSignalType, stopSignalType, isSignal } from '../actors/index.ts';
 
 export interface CallbackInternalState {
   canceled: boolean;

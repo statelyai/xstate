@@ -3,7 +3,7 @@ import {
   interpret,
   assign,
   AnyEventObject
-} from '../src/index.js';
+} from '../src/index.ts';
 
 const finalMachine = createMachine({
   id: 'final',

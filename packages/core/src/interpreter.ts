@@ -1,21 +1,23 @@
+import { Mailbox } from './Mailbox.ts';
+import { doneInvoke, error } from './actions.ts';
+import { stopSignalType } from './actors/index.ts';
+import { devToolsAdapter } from './dev/index.ts';
+import { IS_PRODUCTION } from './environment.ts';
+import { symbolObservable } from './symbolObservable.ts';
+import { createSystem } from './system.ts';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.ts';
 import type {
-  ActorContext,
-  AnyStateMachine,
   ActorBehavior,
+  ActorContext,
+  ActorSystem,
+  AnyActorBehavior,
+  AnyStateMachine,
   EventFromBehavior,
   InterpreterFrom,
   PersistedStateFrom,
-  SnapshotFrom,
-  ActorSystem,
-  AnyActorBehavior,
-  RaiseActionObject
-} from './types.js';
-import { stopSignalType } from './actors/index.js';
-import { devToolsAdapter } from './dev/index.js';
-import { IS_PRODUCTION } from './environment.js';
-import { Mailbox } from './Mailbox.js';
-import { createSystem } from './system.js';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.js';
+  RaiseActionObject,
+  SnapshotFrom
+} from './types.ts';
 import {
   ActorRef,
   DoneEvent,
@@ -26,10 +28,8 @@ import {
   SCXML,
   SendActionObject,
   Subscription
-} from './types.js';
-import { toObserver, toSCXMLEvent, warn } from './utils.js';
-import { symbolObservable } from './symbolObservable.js';
-import { doneInvoke, error } from './actions.js';
+} from './types.ts';
+import { toObserver, toSCXMLEvent, warn } from './utils.ts';
 
 export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>

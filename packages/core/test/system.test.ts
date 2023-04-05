@@ -1,4 +1,4 @@
-import { fromCallback } from '../src/actors/callback.js';
+import { fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
   ActorSystem,
@@ -6,7 +6,7 @@ import {
   createMachine,
   interpret,
   sendTo
-} from '../src/index.js';
+} from '../src/index.ts';
 
 describe('system', () => {
   it('should register an actor (implicit system)', (done) => {

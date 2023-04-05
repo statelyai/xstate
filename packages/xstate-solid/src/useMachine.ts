@@ -1,9 +1,9 @@
 import type { AnyStateMachine, StateFrom, InterpreterFrom, Prop } from 'xstate';
-import type { CheckSnapshot, RestParams } from './types.js';
-import { createService } from './createService.js';
+import type { CheckSnapshot, RestParams } from './types.ts';
+import { createService } from './createService.ts';
 import { onCleanup, onMount } from 'solid-js';
-import { deriveServiceState } from './deriveServiceState.js';
-import { createImmutable } from './createImmutable.js';
+import { deriveServiceState } from './deriveServiceState.ts';
+import { createImmutable } from './createImmutable.ts';
 import { unwrap } from 'solid-js/store';
 
 type UseMachineReturn<

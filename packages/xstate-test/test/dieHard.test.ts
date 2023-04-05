@@ -1,5 +1,5 @@
 import { assign, createMachine } from 'xstate';
-import { createTestModel } from '../src/index.js';
+import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
 

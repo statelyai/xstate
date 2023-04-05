@@ -1,12 +1,12 @@
-import { ActorRef } from '../src/index.js';
-import { toActionObject } from '../src/actions.js';
-import { cancel } from '../src/actions/cancel.js';
-import { choose } from '../src/actions/choose.js';
-import { log } from '../src/actions/log.js';
-import { pure } from '../src/actions/pure.js';
-import { raise } from '../src/actions/raise.js';
-import { sendParent, sendTo } from '../src/actions/send.js';
-import { stop } from '../src/actions/stop.js';
+import { ActorRef } from '../src/index.ts';
+import { toActionObject } from '../src/actions.ts';
+import { cancel } from '../src/actions/cancel.ts';
+import { choose } from '../src/actions/choose.ts';
+import { log } from '../src/actions/log.ts';
+import { pure } from '../src/actions/pure.ts';
+import { raise } from '../src/actions/raise.ts';
+import { sendParent, sendTo } from '../src/actions/send.ts';
+import { stop } from '../src/actions/stop.ts';
 import {
   ActorRefFrom,
   AnyStateMachine,
@@ -15,8 +15,8 @@ import {
   forwardTo,
   interpret,
   StateNode
-} from '../src/index.js';
-import { fromCallback } from '../src/actors/callback.js';
+} from '../src/index.ts';
+import { fromCallback } from '../src/actors/callback.ts';
 
 const seen = new WeakSet<AnyStateMachine>();
 
