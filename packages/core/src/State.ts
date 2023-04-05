@@ -302,7 +302,6 @@ export function getPersistedState<TState extends AnyState>(
 
   return {
     ...jsonValues,
-    children: childrenJson,
-    actions: []
+    children: childrenJson
   } as PersistedMachineState<TState>;
 }
