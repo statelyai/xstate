@@ -65,7 +65,7 @@ export function useService<
   watch(
     serviceRef,
     (service, _, onCleanup) => {
-      state.value = getServiceValue(service);
+      state.value = service.state;
 
       const { unsubscribe } = service.subscribe((currentState) => {
         if (currentState.changed) {
