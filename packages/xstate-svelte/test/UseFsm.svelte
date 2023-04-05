@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useMachine } from '../src/fsm';
+  import { useMachine } from '../src/fsm.ts';
   import { createMachine, assign } from '@xstate/fsm';
 
   const context = {
