@@ -7,13 +7,12 @@ import {
   send,
   sendParent,
   StateValue,
-  AnyEventObject,
   createMachine,
   AnyState,
   InterpreterStatus,
   ActorRefFrom,
   ActorRef
-} from '../src/index.js';
+} from '../src/index.ts';
 import { State } from '../src/State';
 import { raise } from '../src/actions/raise';
 import { sendTo } from '../src/actions/send';
@@ -73,7 +72,7 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: (_, __, { spawn }) => {
+              actor: ({ spawn }) => {
                 return spawn(
                   fromPromise(
                     () =>
@@ -283,11 +282,11 @@ describe('interpreter', () => {
             entry: send(
               { type: 'FINISH' },
               {
-                delay: (ctx, e) =>
-                  ctx.initialDelay +
-                  ('wait' in e
+                delay: ({ context, event }) =>
+                  context.initialDelay +
+                  ('wait' in event
                     ? (
-                        e as Extract<
+                        event as Extract<
                           DelayExpMachineEvents,
                           { type: 'ACTIVATE' }
                         >
@@ -362,8 +361,8 @@ describe('interpreter', () => {
             entry: send(
               { type: 'FINISH' },
               {
-                delay: (ctx, _, { _event }) =>
-                  ctx.initialDelay +
+                delay: ({ context, _event }) =>
+                  context.initialDelay +
                   (
                     _event.data as Extract<
                       DelayExpMachineEvents,
@@ -421,7 +420,7 @@ describe('interpreter', () => {
             a: {
               after: [
                 {
-                  delay: (ctx) => ctx.delay,
+                  delay: ({ context }) => context.delay,
                   target: 'b'
                 }
               ]
@@ -440,7 +439,8 @@ describe('interpreter', () => {
             d: {
               after: [
                 {
-                  delay: (ctx, e) => ctx.delay + (e as any).value,
+                  delay: ({ context, event }) =>
+                    context.delay + (event as any).value,
                   target: 'e'
                 }
               ]
@@ -460,8 +460,8 @@ describe('interpreter', () => {
         },
         {
           delays: {
-            someDelay: (ctx) => {
-              return ctx.delay + 50;
+            someDelay: ({ context }) => {
+              return context.delay + 50;
             }
           }
         }
@@ -805,8 +805,8 @@ describe('interpreter', () => {
           on: {
             LOG: {
               actions: [
-                assign({ count: (ctx) => ctx.count + 1 }),
-                log((ctx) => ctx)
+                assign({ count: ({ context }) => context.count + 1 }),
+                log(({ context }) => context)
               ]
             }
           }
@@ -827,9 +827,9 @@ describe('interpreter', () => {
 
   it('should be able to log event origin (log action)', () => {
     const logs: any[] = [];
-    const logAction = log((_ctx, event, meta) => ({
+    const logAction = log(({ event, _event }) => ({
       event: event.type,
-      origin: meta._event.origin
+      origin: _event.origin
     }));
 
     const childMachine = createMachine({
@@ -900,7 +900,7 @@ describe('interpreter', () => {
 
   it('should receive correct _event (log action)', () => {
     const logs: any[] = [];
-    const logAction = log((_ctx, _ev, meta) => meta._event.data.type);
+    const logAction = log(({ _event }) => _event.data.type);
 
     const parentMachine = createMachine({
       initial: 'foo',
@@ -946,11 +946,14 @@ describe('interpreter', () => {
       },
       states: {
         start: {
-          entry: send((ctx) => ({ type: 'NEXT', password: ctx.password })),
+          entry: raise(({ context }) => ({
+            type: 'NEXT',
+            password: context.password
+          })),
           on: {
             NEXT: {
               target: 'finish',
-              guard: (_, e) => e.password === 'foo'
+              guard: ({ event }) => event.password === 'foo'
             }
           }
         },
@@ -1006,8 +1009,8 @@ describe('interpreter', () => {
         }),
         states: {
           start: {
-            entry: sendParent((ctx) => {
-              return { type: 'NEXT', password: ctx.password };
+            entry: sendParent(({ context }) => {
+              return { type: 'NEXT', password: context.password };
             })
           }
         }
@@ -1029,7 +1032,7 @@ describe('interpreter', () => {
             on: {
               NEXT: {
                 target: 'finish',
-                guard: (_, e) => e.password === 'foo'
+                guard: ({ event }) => event.password === 'foo'
               }
             }
           },
@@ -1060,7 +1063,7 @@ describe('interpreter', () => {
           on: {
             EVENT: {
               target: 'active',
-              guard: (_: any, e: any) => e.id === 42 // TODO: fix unknown event type
+              guard: ({ event }) => event.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }
@@ -1405,12 +1408,12 @@ describe('interpreter', () => {
           after: {
             10: {
               target: 'active',
-              actions: assign({ count: (ctx) => ctx.count + 1 })
+              actions: assign({ count: ({ context }) => context.count + 1 })
             }
           },
           always: {
             target: 'finished',
-            guard: (ctx) => ctx.count >= 5
+            guard: ({ context }) => context.count >= 5
           }
         },
         finished: {
@@ -1464,11 +1467,11 @@ describe('interpreter', () => {
           active: {
             always: {
               target: 'finished',
-              guard: (ctx) => ctx.count >= 5
+              guard: ({ context }) => context.count >= 5
             },
             on: {
               INC: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
+                actions: assign({ count: ({ context }) => context.count + 1 })
               }
             }
           },
@@ -1635,8 +1638,8 @@ describe('interpreter', () => {
               onDone: [
                 {
                   target: 'success',
-                  guard: (_, e) => {
-                    return e.data === 42;
+                  guard: ({ event }) => {
+                    return event.data === 42;
                   }
                 },
                 { target: 'failure' }
@@ -1681,8 +1684,8 @@ describe('interpreter', () => {
               src: fromObservable(() => interval$),
               onSnapshot: {
                 target: 'success',
-                guard: (_: unknown, e: AnyEventObject) => {
-                  return e.data === 3;
+                guard: ({ event }) => {
+                  return event.data === 3;
                 }
               }
             }
@@ -1720,8 +1723,7 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: (_, __, { spawn }) =>
-            spawn(childMachine, { id: 'child' })
+          firstNameRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
         }),
         states: {
           idle: {}
@@ -1753,9 +1755,9 @@ describe('interpreter', () => {
           observableRef: ActorRef<any, any>;
         },
         entry: assign({
-          machineRef: (_, __, { spawn }) =>
+          machineRef: ({ spawn }) =>
             spawn(childMachine, { id: 'machineChild' }),
-          promiseRef: (_, __, { spawn }) =>
+          promiseRef: ({ spawn }) =>
             spawn(
               fromPromise(
                 () =>
@@ -1765,7 +1767,7 @@ describe('interpreter', () => {
               ),
               { id: 'promiseChild' }
             ),
-          observableRef: (_, __, { spawn }) =>
+          observableRef: ({ spawn }) =>
             spawn(
               fromObservable(() => interval(1000)),
               { id: 'observableChild' }
@@ -1777,9 +1779,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx) => ctx.machineRef),
-                  stop((ctx) => ctx.promiseRef),
-                  stop((ctx) => ctx.observableRef)
+                  stop(({ context }) => context.machineRef),
+                  stop(({ context }) => context.promiseRef),
+                  stop(({ context }) => context.observableRef)
                 ]
               }
             }

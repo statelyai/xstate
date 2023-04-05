@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index.js';
+import { createMachine, interpret } from '../src/index.ts';
 import { after, actionTypes } from '../src/actions';
 
 const lightMachine = createMachine({
@@ -212,7 +212,7 @@ describe('delayed transitions', () => {
           inactive: {
             after: [
               {
-                delay: (ctx) => ctx.delay,
+                delay: ({ context }) => context.delay,
                 target: 'active'
               }
             ],
@@ -241,7 +241,8 @@ describe('delayed transitions', () => {
       },
       {
         delays: {
-          someDelay: (ctx, event) => ctx.delay + (event as any).delay
+          someDelay: ({ context, event }) =>
+            context.delay + (event as any).delay
         }
       }
     );

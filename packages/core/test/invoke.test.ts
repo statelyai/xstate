@@ -1,31 +1,33 @@
-import {
-  interpret,
-  assign,
-  sendParent,
-  send,
-  EventObject,
-  StateValue,
-  createMachine,
-  ActorContext,
-  ActorBehavior,
-  SpecialTargets,
-  toSCXMLEvent
-} from '../src/index.js';
-import { fromReducer } from '../src/actors/index.js';
-import { fromObservable, fromEventObservable } from '../src/actors/index.js';
-import { fromPromise } from '../src/actors/index.js';
-import { fromCallback } from '../src/actors/index.js';
+import { interval } from 'rxjs';
+import { map, take } from 'rxjs/operators';
 import {
   actionTypes,
-  done as _done,
   doneInvoke,
   escalate,
   forwardTo,
-  sendTo,
-  raise
-} from '../src/actions.js';
-import { interval } from 'rxjs';
-import { map, take } from 'rxjs/operators';
+  raise,
+  sendTo
+} from '../src/actions.ts';
+import {
+  fromCallback,
+  fromEventObservable,
+  fromObservable,
+  fromPromise,
+  fromTransition
+} from '../src/actors/index.ts';
+import {
+  ActorBehavior,
+  ActorContext,
+  EventObject,
+  SpecialTargets,
+  StateValue,
+  assign,
+  createMachine,
+  interpret,
+  send,
+  sendParent,
+  toSCXMLEvent
+} from '../src/index.ts';
 
 const user = { name: 'David' };
 
@@ -41,13 +43,13 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
       on: {
         RESOLVE: {
           target: 'success',
-          guard: (ctx) => ctx.userId !== undefined
+          guard: ({ context }) => context.userId !== undefined
         }
       }
     },
     success: {
       type: 'final',
-      data: { user: (_: any, e: any) => e.user }
+      data: { user: ({ event }) => event.user }
     },
     failure: {
       entry: sendParent({ type: 'REJECT' })
@@ -72,14 +74,14 @@ const fetcherMachine = createMachine({
     waiting: {
       invoke: {
         src: fetchMachine,
-        input: {
-          userId: (ctx: any) => ctx.selectedUserId
-        },
+        input: ({ context }) => ({
+          userId: context.selectedUserId
+        }),
         onDone: {
           target: 'received',
-          guard: (_, e) => {
+          guard: ({ event }) => {
             // Should receive { user: { name: 'David' } } as event data
-            return e.data.user.name === 'David';
+            return event.data.user.name === 'David';
           }
         }
       }
@@ -130,10 +132,12 @@ describe('invoke', () => {
             },
             always: {
               target: 'stop',
-              guard: (ctx) => ctx.count === -3
+              guard: ({ context }) => context.count === -3
             },
             on: {
-              DEC: { actions: assign({ count: (ctx) => ctx.count - 1 }) },
+              DEC: {
+                actions: assign({ count: ({ context }) => context.count - 1 })
+              },
               FORWARD_DEC: {
                 actions: sendTo('child', { type: 'FORWARD_DEC' })
               }
@@ -183,15 +187,15 @@ describe('invoke', () => {
           on: {
             RESOLVE: {
               target: 'success',
-              guard: (ctx) => {
-                return ctx.userId !== undefined;
+              guard: ({ context }) => {
+                return context.userId !== undefined;
               }
             }
           }
         },
         success: {
           type: 'final',
-          data: { user: (_: any, e: any) => e.user }
+          data: { user: ({ event }) => event.user }
         },
         failure: {
           entry: sendParent({ type: 'REJECT' })
@@ -215,14 +219,14 @@ describe('invoke', () => {
         waiting: {
           invoke: {
             src: childMachine,
-            input: {
-              userId: (ctx: any) => ctx.selectedUserId
-            },
+            input: ({ context }) => ({
+              userId: context.selectedUserId
+            }),
             onDone: {
               target: 'received',
-              guard: (_, e) => {
+              guard: ({ event }) => {
                 // Should receive { user: { name: 'David' } } as event data
-                return e.data.user.name === 'David';
+                return event.data.user.name === 'David';
               }
             }
           }
@@ -273,8 +277,8 @@ describe('invoke', () => {
           on: {
             SUCCESS: {
               target: 'success',
-              guard: (_, e) => {
-                return e.data === 42;
+              guard: ({ event }) => {
+                return event.data === 42;
               }
             }
           }
@@ -324,8 +328,8 @@ describe('invoke', () => {
       on: {
         SUCCESS: {
           target: 'success',
-          guard: (_, e) => {
-            return e.data === 42;
+          guard: ({ event }) => {
+            return event.data === 42;
           }
         }
       }
@@ -524,7 +528,7 @@ describe('invoke', () => {
                   src: pongMachine,
                   onDone: {
                     target: 'success',
-                    guard: (_, e) => e.data.secret === 'pingpong'
+                    guard: ({ event }) => event.data.secret === 'pingpong'
                   }
                 }
               },
@@ -742,11 +746,11 @@ describe('invoke', () => {
                   }
                 })
               ),
-              input: (ctx) => ctx,
+              input: ({ context }) => context,
               onDone: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  return e.data === ctx.id;
+                guard: ({ context, event }) => {
+                  return event.data === context.id;
                 }
               },
               onError: 'failure'
@@ -938,7 +942,7 @@ describe('invoke', () => {
                 ),
                 onDone: {
                   target: 'success',
-                  actions: assign({ count: (_, e) => e.data.count })
+                  actions: assign({ count: ({ event }) => event.data.count })
                 }
               }
             },
@@ -968,7 +972,7 @@ describe('invoke', () => {
                   src: 'somePromise',
                   onDone: {
                     target: 'success',
-                    actions: assign({ count: (_, e) => e.data.count })
+                    actions: assign({ count: ({ event }) => event.data.count })
                   }
                 }
               },
@@ -1009,8 +1013,8 @@ describe('invoke', () => {
                 ),
                 onDone: {
                   target: 'success',
-                  actions: (_, e) => {
-                    count = e.data.count;
+                  actions: ({ event }) => {
+                    count = event.data.count;
                   }
                 }
               }
@@ -1042,8 +1046,8 @@ describe('invoke', () => {
                   src: 'somePromise',
                   onDone: {
                     target: 'success',
-                    actions: (_, e) => {
-                      count = e.data.count;
+                    actions: ({ event }) => {
+                      count = event.data.count;
                     }
                   }
                 }
@@ -1091,9 +1095,9 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
-                  input: (ctx, ev) => ({
-                    foo: ctx.foo,
-                    event: ev
+                  input: ({ context, event }) => ({
+                    foo: context.foo,
+                    event: event
                   }),
                   onDone: 'last'
                 }
@@ -1146,8 +1150,8 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
-                            actions: assign((_ctx, ev) => ({
-                              result1: ev.data.result
+                            actions: assign(({ event }) => ({
+                              result1: event.data.result
                             }))
                           }
                         }
@@ -1165,8 +1169,8 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
-                            actions: assign((_ctx, ev) => ({
-                              result2: ev.data.result
+                            actions: assign(({ event }) => ({
+                              result2: event.data.result
                             }))
                           }
                         }
@@ -1240,15 +1244,15 @@ describe('invoke', () => {
             first: {
               invoke: {
                 src: 'someCallback',
-                input: (ctx, ev) => ({
-                  foo: ctx.foo,
-                  event: ev
+                input: ({ context, event }) => ({
+                  foo: context.foo,
+                  event: event
                 })
               },
               on: {
                 CALLBACK: {
                   target: 'last',
-                  guard: (_, e) => e.data === 42
+                  guard: ({ event }) => event.data === 42
                 }
               }
             },
@@ -1444,10 +1448,12 @@ describe('invoke', () => {
             },
             always: {
               target: 'finished',
-              guard: (ctx) => ctx.count === 3
+              guard: ({ context }) => context.count === 3
             },
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) }
+              INC: {
+                actions: assign({ count: ({ context }) => context.count + 1 })
+              }
             }
           },
           finished: {
@@ -1529,8 +1535,10 @@ describe('invoke', () => {
               }),
               onError: {
                 target: 'failed',
-                guard: (_, e) => {
-                  return e.data instanceof Error && e.data.message === 'test';
+                guard: ({ event }) => {
+                  return (
+                    event.data instanceof Error && event.data.message === 'test'
+                  );
                 }
               }
             }
@@ -1583,8 +1591,10 @@ describe('invoke', () => {
               }),
               onError: {
                 target: 'failed',
-                guard: (_, e) => {
-                  return e.data instanceof Error && e.data.message === 'test';
+                guard: ({ event }) => {
+                  return (
+                    event.data instanceof Error && event.data.message === 'test'
+                  );
                 }
               }
             }
@@ -1614,7 +1624,7 @@ describe('invoke', () => {
               }),
               onDone: {
                 target: 'success',
-                actions: assign((_, { data: result }) => ({ result }))
+                actions: assign(({ event: { data: result } }) => ({ result }))
               }
             }
           },
@@ -1798,12 +1808,12 @@ describe('invoke', () => {
             invoke: {
               src: fromObservable(() => interval(10)),
               onSnapshot: {
-                actions: assign({ count: (_, e) => e.data })
+                actions: assign({ count: ({ event }) => event.data })
               }
             },
             always: {
               target: 'counted',
-              guard: (ctx) => ctx.count === 5
+              guard: ({ context }) => context.count === 5
             }
           },
           counted: {
@@ -1840,12 +1850,12 @@ describe('invoke', () => {
               src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
-                  count: (_, e) => e.data
+                  count: ({ event }) => event.data
                 })
               },
               onDone: {
                 target: 'counted',
-                guard: (ctx) => ctx.count === 4
+                guard: ({ context }) => context.count === 4
               }
             }
           },
@@ -1889,13 +1899,15 @@ describe('invoke', () => {
                 )
               ),
               onSnapshot: {
-                actions: assign({ count: (_, e) => e.data })
+                actions: assign({ count: ({ event }) => event.data })
               },
               onError: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  expect(e.data.message).toEqual('some error');
-                  return ctx.count === 4 && e.data.message === 'some error';
+                guard: ({ context, event }) => {
+                  expect(event.data.message).toEqual('some error');
+                  return (
+                    context.count === 4 && event.data.message === 'some error'
+                  );
                 }
               }
             }
@@ -1933,12 +1945,12 @@ describe('invoke', () => {
             },
             on: {
               COUNT: {
-                actions: assign({ count: (_, e) => e.value })
+                actions: assign({ count: ({ event }) => event.value })
               }
             },
             always: {
               target: 'counted',
-              guard: (ctx) => ctx.count === 5
+              guard: ({ context }) => context.count === 5
             }
           },
           counted: {
@@ -1980,13 +1992,13 @@ describe('invoke', () => {
               ),
               onDone: {
                 target: 'counted',
-                guard: (ctx) => ctx.count === 4
+                guard: ({ context }) => context.count === 4
               }
             },
             on: {
               COUNT: {
                 actions: assign({
-                  count: (_, e) => e.value
+                  count: ({ event }) => event.value
                 })
               }
             }
@@ -2032,15 +2044,17 @@ describe('invoke', () => {
               ),
               onError: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  expect(e.data.message).toEqual('some error');
-                  return ctx.count === 4 && e.data.message === 'some error';
+                guard: ({ context, event }) => {
+                  expect(event.data.message).toEqual('some error');
+                  return (
+                    context.count === 4 && event.data.message === 'some error'
+                  );
                 }
               }
             },
             on: {
               COUNT: {
-                actions: assign({ count: (_, e) => e.value })
+                actions: assign({ count: ({ event }) => event.value })
               }
             }
           },
@@ -2139,8 +2153,8 @@ describe('invoke', () => {
     });
   });
 
-  describe('with reducers', () => {
-    it('should work with a reducer', (done) => {
+  describe('with transition functions', () => {
+    it('should work with a transition function', (done) => {
       const countReducer = (
         count: number,
         event: { type: 'INC' } | { type: 'DEC' }
@@ -2156,7 +2170,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromReducer(countReducer, 0)
+          src: fromTransition(countReducer, 0)
         },
         on: {
           INC: {
@@ -2199,7 +2213,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromReducer(countReducer, 0)
+          src: fromTransition(countReducer, 0)
         },
         on: {
           INC: {
@@ -2541,13 +2555,13 @@ describe('invoke', () => {
             },
             always: [
               {
-                guard: (ctx) => ctx.counter === 0,
+                guard: ({ context }) => context.counter === 0,
                 target: 'inactive'
               }
             ]
           },
           inactive: {
-            entry: assign({ counter: (ctx) => ++ctx.counter }),
+            entry: assign({ counter: ({ context }) => ++context.counter }),
             always: 'active'
           }
         }
@@ -2583,7 +2597,7 @@ describe('invoke', () => {
               src: child,
               onError: {
                 target: 'two',
-                guard: (_, event) => event.data === 'oops'
+                guard: ({ event }) => event.data === 'oops'
               }
             }
           },
@@ -2610,7 +2624,7 @@ describe('invoke', () => {
         context: { id: 42 },
         states: {
           die: {
-            entry: escalate((ctx) => ctx.id)
+            entry: escalate(({ context }) => context.id)
           }
         }
       });
@@ -2625,7 +2639,7 @@ describe('invoke', () => {
               src: child,
               onError: {
                 target: 'two',
-                guard: (_, event) => {
+                guard: ({ event }) => {
                   expect(event.data).toEqual(42);
                   return true;
                 }
@@ -2692,7 +2706,7 @@ describe('invoke', () => {
           searching: {
             invoke: {
               src: 'search',
-              input: (ctx) => ({ endpoint: ctx.url }),
+              input: ({ context }) => ({ endpoint: context.url }),
               onDone: 'success'
             }
           },
@@ -2760,11 +2774,11 @@ describe('invoke', () => {
             invoke: {
               src: 'someSrc',
               onDone: {
-                guard: (_, e) => {
+                guard: ({ event }) => {
                   // invoke ID should not be 'someSrc'
                   const expectedType = 'done.invoke.(machine).a:invocation[0]';
-                  expect(e.type).toEqual(expectedType);
-                  return e.type === expectedType;
+                  expect(event.type).toEqual(expectedType);
+                  return event.type === expectedType;
                 },
                 target: 'b'
               }
@@ -2929,8 +2943,8 @@ describe('invoke', () => {
       },
       on: {
         '*': {
-          actions: (_ctx, ev) => {
-            actual.push(ev.type);
+          actions: ({ event }) => {
+            actual.push(event.type);
           }
         }
       }
@@ -3084,9 +3098,9 @@ describe('actors option', () => {
           pending: {
             invoke: {
               src: 'stringService',
-              input: (ctx) => ({
+              input: ({ context }) => ({
                 staticVal: 'hello',
-                newCount: ctx.count * 2 // TODO: types
+                newCount: context.count * 2 // TODO: types
               }),
               onDone: 'success'
             }

@@ -7,7 +7,7 @@ import type {
 import { createMachine, interpret } from '@xstate/fsm';
 import type { Accessor } from 'solid-js';
 import { createMemo, onCleanup, createEffect } from 'solid-js';
-import { createImmutable } from './createImmutable.js';
+import { createImmutable } from './createImmutable.ts';
 import { isServer } from 'solid-js/web';
 import { unwrap } from 'solid-js/store';
 

@@ -3,7 +3,7 @@ import {
   interpret,
   assign,
   AnyEventObject
-} from '../src/index.js';
+} from '../src/index.ts';
 
 const finalMachine = createMachine({
   id: 'final',
@@ -33,7 +33,7 @@ const finalMachine = createMachine({
             }
           },
           onDone: {
-            guard: (_, e) => e.data.signal === 'stop',
+            guard: ({ event }) => event.data.signal === 'stop',
             actions: 'stopCrosswalk1'
           }
         },
@@ -175,7 +175,7 @@ describe('final states', () => {
           onDone: {
             target: 'success',
             actions: assign<Ctx, AnyEventObject>({
-              revealedSecret: (_, event) => {
+              revealedSecret: ({ event }) => {
                 return event.data.secret;
               }
             })

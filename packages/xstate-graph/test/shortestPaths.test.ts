@@ -30,7 +30,7 @@ describe('getMachineShortestPaths', () => {
             NEXT: {
               target: 'd',
               actions: assign({
-                count: (ctx) => ctx.count + 1
+                count: ({ context }) => context.count + 1
               })
             }
           }

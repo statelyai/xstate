@@ -20,19 +20,19 @@ export default createMachine<any>({
       always: [
         {
           target: 'b',
-          guard: (ctx) => {
-            return ctx.i < 10;
+          guard: ({ context }) => {
+            return context.i < 10;
           },
           actions: [
             assign({
-              i: (ctx) => ctx.i + 1
+              i: ({ context }) => context.i + 1
             }),
             log()
           ]
         },
         {
           target: '#c',
-          guard: (ctx) => ctx.i === 10
+          guard: ({ context }) => context.i === 10
         }
       ]
     },

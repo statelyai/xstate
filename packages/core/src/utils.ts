@@ -1,8 +1,8 @@
-import { AnyActorBehavior, AnyState } from '.';
-import { errorExecution, errorPlatform } from './actionTypes.js';
-import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.js';
-import { IS_PRODUCTION } from './environment.js';
-import type { StateNode } from './StateNode.js';
+import { AnyActorBehavior, AnyState } from './index.ts';
+import { errorExecution, errorPlatform } from './actionTypes.ts';
+import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
+import { IS_PRODUCTION } from './environment.ts';
+import type { StateNode } from './StateNode.ts';
 import type {
   ActorBehavior,
   EventObject,
@@ -20,7 +20,7 @@ import type {
   Subscribable,
   TransitionConfig,
   TransitionConfigTarget
-} from './types.js';
+} from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -238,16 +238,17 @@ export function mapContext<
   _event: SCXML.Event<TEvent>
 ): any {
   if (isFunction(mapper)) {
-    return mapper(context, _event.data);
+    return mapper({ context, event: _event.data });
   }
 
   const result = {} as any;
+  const args = { context, event: _event.data };
 
   for (const key of Object.keys(mapper)) {
     const subMapper = mapper[key];
 
     if (isFunction(subMapper)) {
-      result[key] = subMapper(context, _event.data);
+      result[key] = subMapper(args);
     } else {
       result[key] = subMapper;
     }

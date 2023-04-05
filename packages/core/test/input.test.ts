@@ -5,7 +5,7 @@ import {
   fromCallback,
   fromObservable,
   fromPromise,
-  fromReducer
+  fromTransition
 } from '../src/actors';
 
 describe('input', () => {
@@ -16,8 +16,8 @@ describe('input', () => {
       context: ({ input }) => ({
         count: input.startCount
       }),
-      entry: (ctx) => {
-        spy(ctx.count);
+      entry: ({ context }) => {
+        spy(context.count);
       }
     });
 
@@ -28,8 +28,8 @@ describe('input', () => {
 
   it('initial event should have input property', (done) => {
     const machine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
@@ -76,8 +76,8 @@ describe('input', () => {
 
   it('should provide input data to invoked machines', (done) => {
     const invokedMachine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
@@ -94,14 +94,14 @@ describe('input', () => {
 
   it('should provide input data to spawned machines', (done) => {
     const spawnedMachine = createMachine({
-      entry: (_, ev) => {
-        expect(ev.input.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
 
     const machine = createMachine({
-      entry: assign((_ctx, _ev, { spawn }) => {
+      entry: assign(({ spawn }) => {
         return {
           ref: spawn(spawnedMachine, { input: { greeting: 'hello' } })
         };
@@ -123,17 +123,17 @@ describe('input', () => {
     expect(promiseActor.getSnapshot()).toEqual({ count: 42 });
   });
 
-  it('should create a reducer actor with input', () => {
-    const reducerBehavior = fromReducer(
+  it('should create a transition function actor with input', () => {
+    const transitionBehavior = fromTransition(
       (state) => state,
       ({ input }) => input
     );
 
-    const reducerActor = interpret(reducerBehavior, {
+    const transitionActor = interpret(transitionBehavior, {
       input: { count: 42 }
     }).start();
 
-    expect(reducerActor.getSnapshot()).toEqual({ count: 42 });
+    expect(transitionActor.getSnapshot()).toEqual({ count: 42 });
   });
 
   it('should create an observable actor with input', (done) => {
@@ -196,7 +196,9 @@ describe('input', () => {
       {
         invoke: {
           src: 'child',
-          input: (_, { input }) => input + 100
+          input: ({ event }) => {
+            return event.input + 100;
+          }
         }
       },
       {
@@ -263,7 +265,7 @@ describe('input', () => {
                 return {};
               }
             }),
-            input: (_, { input }) => input + 100
+            input: ({ event }) => event.input + 100
           }
         }
       }
@@ -279,7 +281,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign((_ctx, _ev, { spawn }) => ({
+        entry: assign(({ spawn }) => ({
           childRef: spawn('child')
         }))
       },
@@ -292,7 +294,7 @@ describe('input', () => {
                 return {};
               }
             }),
-            input: (_, { input }) => input + 100
+            input: ({ event }) => event.input + 100
           }
         }
       }
@@ -338,7 +340,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign((_ctx, _ev, { spawn }) => ({
+        entry: assign(({ spawn }) => ({
           childRef: spawn('child', { input: 100 })
         }))
       },
@@ -360,5 +362,44 @@ describe('input', () => {
     interpret(machine).start();
 
     expect(spy).toHaveBeenCalledWith(100);
+  });
+
+  it('should call the input factory with self when invoking', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      invoke: {
+        src: createMachine({}),
+        input: ({ self }) => spy(self)
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(spy).toHaveBeenCalledWith(actor);
+  });
+
+  it('should call the input factory with self when spawning', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: assign(({ spawn }) => ({
+          childRef: spawn('child')
+        }))
+      },
+      {
+        actors: {
+          child: {
+            src: createMachine({}),
+            input: ({ self }) => spy(self)
+          }
+        }
+      }
+    );
+
+    const actor = interpret(machine).start();
+
+    expect(spy).toHaveBeenCalledWith(actor);
   });
 });

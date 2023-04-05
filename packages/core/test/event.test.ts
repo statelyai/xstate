@@ -1,6 +1,12 @@
-import { createMachine, sendParent, interpret, assign } from '../src/index.js';
+import {
+  createMachine,
+  sendParent,
+  interpret,
+  assign,
+  AnyActorRef
+} from '../src/index.ts';
 import { respond } from '../src/actions';
-import { send } from '../src/actions/send';
+import { send, sendTo } from '../src/actions/send';
 import { fromCallback } from '../src/actors/callback';
 
 describe('SCXML events', () => {
@@ -25,7 +31,7 @@ describe('SCXML events', () => {
           on: {
             EVENT: {
               target: 'success',
-              guard: (_: any, __: any, { _event }: any) => {
+              guard: ({ _event }) => {
                 return !!_event.origin;
               }
             }
@@ -56,7 +62,7 @@ describe('SCXML events', () => {
             EVENT: {
               target: 'success',
               actions: assign({
-                childOrigin: (_, __, { _event }) => {
+                childOrigin: ({ _event }) => {
                   return _event.origin?.id;
                 }
               })
@@ -133,6 +139,64 @@ describe('SCXML events', () => {
 
     service.send({ type: 'AUTH' });
   });
+
+  it('should be able to respond to sender by sending self', (done) => {
+    const authServerMachine = createMachine({
+      schema: {
+        events: {} as { type: 'CODE'; sender: AnyActorRef }
+      },
+      id: 'authServer',
+      initial: 'waitingForCode',
+      states: {
+        waitingForCode: {
+          on: {
+            CODE: {
+              actions: sendTo(
+                ({ event }) => {
+                  expect(event.sender).toBeDefined();
+                  return event.sender;
+                },
+                { type: 'TOKEN' },
+                { delay: 10 }
+              )
+            }
+          }
+        }
+      }
+    });
+
+    const authClientMachine = createMachine({
+      id: 'authClient',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { AUTH: 'authorizing' }
+        },
+        authorizing: {
+          invoke: {
+            id: 'auth-server',
+            src: authServerMachine
+          },
+          entry: sendTo('auth-server', ({ self }) => ({
+            type: 'CODE',
+            sender: self
+          })),
+          on: {
+            TOKEN: 'authorized'
+          }
+        },
+        authorized: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(authClientMachine)
+      .onDone(() => done())
+      .start();
+
+    service.send({ type: 'AUTH' });
+  });
 });
 
 interface SignInContext {
@@ -168,7 +232,7 @@ const authMachine = createMachine<SignInContext, ChangePassword>(
         on: {
           changePassword: [
             {
-              guard: (_, event) => event.password.length >= 10,
+              guard: ({ event }) => event.password.length >= 10,
               target: '.invalid',
               actions: ['assignPassword']
             },
@@ -184,7 +248,7 @@ const authMachine = createMachine<SignInContext, ChangePassword>(
   {
     actions: {
       assignPassword: assign<SignInContext, ChangePassword>({
-        password: (_, event) => event.password
+        password: ({ event }) => event.password
       })
     }
   }

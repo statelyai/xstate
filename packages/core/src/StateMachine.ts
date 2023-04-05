@@ -1,9 +1,9 @@
-import { error, createInitEvent, initEvent } from './actions.js';
-import { STATE_DELIMITER } from './constants.js';
-import { createSpawner } from './spawn.js';
-import { getPersistedState, State } from './State.js';
-import { StateNode } from './StateNode.js';
-import { interpret } from './interpreter.js';
+import { error, createInitEvent, initEvent } from './actions.ts';
+import { STATE_DELIMITER } from './constants.ts';
+import { createSpawner } from './spawn.ts';
+import { getPersistedState, State } from './State.ts';
+import { StateNode } from './StateNode.ts';
+import { interpret } from './interpreter.ts';
 import {
   getConfiguration,
   getInitialConfiguration,
@@ -15,17 +15,16 @@ import {
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode
-} from './stateUtils.js';
+} from './stateUtils.ts';
 import type {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
   TypegenDisabled
-} from './typegenTypes.js';
+} from './typegenTypes.ts';
 import type {
   ActorContext,
   ActorMap,
-  BaseActionObject,
   ActorBehavior,
   EventObject,
   InternalMachineImplementations,
@@ -40,13 +39,15 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState
-} from './types.js';
+  PersistedMachineState,
+  ParameterizedObject,
+  AnyActorContext
+} from './types.ts';
 import {
   isSCXMLErrorEvent,
   resolveReferencedActor,
   toSCXMLEvent
-} from './utils.js';
+} from './utils.ts';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -65,7 +66,7 @@ function createDefaultOptions() {
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
+  TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
@@ -266,7 +267,7 @@ export class StateMachine<
   public microstep(
     state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
     event: TEvent | SCXML.Event<TEvent>,
-    actorCtx?: ActorContext<any, any> | undefined
+    actorCtx?: AnyActorContext | undefined
   ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
     const scxmlEvent = toSCXMLEvent(event);
 
@@ -287,7 +288,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: ActorContext<any, any> | undefined,
+    actorCtx: AnyActorContext | undefined,
     input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions(actorCtx, input);
