@@ -1326,8 +1326,8 @@ describe('invoke', () => {
       );
 
       const expectedStateValues = ['pending', 'first', 'intermediate'];
-      const stateValues: StateValue[] = [];
       const actor = interpret(callbackMachine);
+      const stateValues: StateValue[] = [actor.getSnapshot().value];
       actor.subscribe((current) => stateValues.push(current.value));
       actor.start().send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
@@ -1366,8 +1366,8 @@ describe('invoke', () => {
       );
 
       const expectedStateValues = ['idle', 'intermediate'];
-      const stateValues: StateValue[] = [];
       const actor = interpret(callbackMachine);
+      const stateValues: StateValue[] = [actor.getSnapshot().value];
       actor.subscribe((current) => stateValues.push(current.value));
       actor.start().send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
@@ -1413,8 +1413,8 @@ describe('invoke', () => {
       );
 
       const expectedStateValues = ['pending', 'second', 'third'];
-      const stateValues: StateValue[] = [];
       const actor = interpret(callbackMachine);
+      const stateValues: StateValue[] = [actor.getSnapshot().value];
       actor.subscribe((current) => {
         stateValues.push(current.value);
       });
@@ -1779,7 +1779,6 @@ describe('invoke', () => {
         service
           .onDone(() => {
             expect(events.map((e) => e.type)).toEqual([
-              actionTypes.init,
               'STOPCHILD',
               doneInvoke('invoked.child').type
             ]);

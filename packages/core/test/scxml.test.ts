@@ -347,12 +347,11 @@ interface SCIONTest {
 
 async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    let nextState: AnyState;
-    let prevState: AnyState;
-
     const actor = interpret(machine, {
       logger: () => void 0
     });
+    let nextState: AnyState = actor.getSnapshot();
+    let prevState: AnyState;
     actor.subscribe((state) => {
       prevState = nextState;
       nextState = state;

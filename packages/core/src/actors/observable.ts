@@ -9,8 +9,7 @@ import { stopSignalType } from '../actors';
 
 export interface ObservableInternalState<T> {
   subscription: Subscription | undefined;
-  canceled: boolean;
-  status: 'active' | 'done' | 'error';
+  status: 'active' | 'done' | 'error' | 'canceled';
   data: T | undefined;
   input?: any;
 }
@@ -43,7 +42,7 @@ export function fromObservable<T, TEvent extends EventObject>(
     transition: (state, event, { self, id, defer }) => {
       const _event = toSCXMLEvent(event);
 
-      if (state.canceled) {
+      if (state.status !== 'active') {
         return state;
       }
 
@@ -85,8 +84,8 @@ export function fromObservable<T, TEvent extends EventObject>(
           state.subscription!.unsubscribe();
           return {
             ...state,
+            status: 'canceled',
             input: undefined,
-            canceled: true,
             subscription: undefined
           };
         default:
@@ -96,7 +95,6 @@ export function fromObservable<T, TEvent extends EventObject>(
     getInitialState: (_, input) => {
       return {
         subscription: undefined,
-        canceled: false,
         status: 'active',
         data: undefined,
         input
@@ -120,8 +118,7 @@ export function fromObservable<T, TEvent extends EventObject>(
       });
     },
     getSnapshot: (state) => state.data,
-    getPersistedState: ({ canceled, status, data, input }) => ({
-      canceled,
+    getPersistedState: ({ status, data, input }) => ({
       status,
       data,
       input
@@ -161,7 +158,7 @@ export function fromEventObservable<T extends EventObject>(
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 
-      if (state.canceled) {
+      if (state.status !== 'active') {
         return state;
       }
 
@@ -185,7 +182,7 @@ export function fromEventObservable<T extends EventObject>(
           state.subscription!.unsubscribe();
           return {
             ...state,
-            canceled: true,
+            status: 'canceled',
             input: undefined,
             subscription: undefined
           };
@@ -196,7 +193,6 @@ export function fromEventObservable<T extends EventObject>(
     getInitialState: () => {
       return {
         subscription: undefined,
-        canceled: false,
         status: 'active',
         data: undefined
       };
@@ -220,8 +216,7 @@ export function fromEventObservable<T extends EventObject>(
       });
     },
     getSnapshot: (_) => undefined,
-    getPersistedState: ({ canceled, status, data, input }) => ({
-      canceled,
+    getPersistedState: ({ status, data, input }) => ({
       status,
       data,
       input
