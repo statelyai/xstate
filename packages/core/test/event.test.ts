@@ -4,7 +4,7 @@ import {
   interpret,
   assign,
   AnyActorRef
-} from '../src/index.js';
+} from '../src/index.ts';
 import { respond } from '../src/actions';
 import { send, sendTo } from '../src/actions/send';
 import { fromCallback } from '../src/actors/callback';

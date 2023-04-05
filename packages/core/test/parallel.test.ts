@@ -1,4 +1,4 @@
-import { createMachine, interpret, StateValue } from '../src/index.js';
+import { createMachine, interpret, StateValue } from '../src/index.ts';
 import { assign } from '../src/actions/assign';
 import { raise } from '../src/actions/raise';
 import { testMultiTransition } from './utils';

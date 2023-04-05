@@ -9,7 +9,7 @@ import {
   SimulatedClock
 } from 'xstate';
 import { toMachine } from '../src/scxml';
-import { toSCXML, transitionToSCXML } from '../src/index.js';
+import { toSCXML, transitionToSCXML } from '../src/index.ts';
 
 interface SCIONTest {
   initialConfiguration: string[];

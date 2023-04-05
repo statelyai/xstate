@@ -1,6 +1,6 @@
 import { StatePath } from '@xstate/graph';
 import { EventObject } from 'xstate';
-import { simpleStringify } from './utils.js';
+import { simpleStringify } from './utils.ts';
 
 /**
  * Deduplicates your paths so that A -> B

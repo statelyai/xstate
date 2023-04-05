@@ -8,7 +8,7 @@ import {
   ActorMap,
   Cast,
   ParameterizedObject
-} from './types.js';
+} from './types.ts';
 
 export interface TypegenDisabled {
   '@@xstate/typegen': false;

@@ -1,4 +1,4 @@
-export { useActor } from './useActor.js';
-export { createService } from './createService.js';
-export { createSpawn } from './createSpawn.js';
-export { useMachine } from './useMachine.js';
+export { useActor } from './useActor.ts';
+export { createService } from './createService.ts';
+export { createSpawn } from './createSpawn.ts';
+export { useMachine } from './useMachine.ts';
