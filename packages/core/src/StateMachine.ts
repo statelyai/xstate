@@ -355,6 +355,7 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): void {
+    // TODO: do actions need to be resolved?
     state.actions.forEach((action) => {
       action.execute?.(actorCtx);
     });

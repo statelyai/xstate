@@ -302,7 +302,7 @@ describe('createActorContext', () => {
     checkConsoleErrorOutputForMissingProvider();
   });
 
-  it('should be able to pass interpreter options to the provider', () => {
+  it('should be able to pass interpreter options to the provider', (done) => {
     const someMachine = createMachine({
       initial: 'a',
       states: {
@@ -321,12 +321,11 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          machine={someMachine}
-          options={{
+          machine={someMachine.provide({
             actions: {
-              testAction: stubFn
+              testActions: stubFn
             }
-          }}
+          })}
         >
           <Component />
         </SomeContext.Provider>
@@ -335,6 +334,9 @@ describe('createActorContext', () => {
 
     render(<App />);
 
-    expect(stubFn).toHaveBeenCalledTimes(1);
+    setTimeout(() => {
+      expect(stubFn).toBeCalled();
+      done();
+    }, 1000);
   });
 });

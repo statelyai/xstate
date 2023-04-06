@@ -56,8 +56,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   function Provider({
     children,
-    machine: providedMachine = machine,
-    options
+    machine: providedMachine = machine
   }: {
     children: React.ReactNode;
     machine: TMachine | (() => TMachine);
@@ -65,7 +64,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   }) {
     const actor = useInterpret(
       providedMachine,
-      { ...interpreterOptions, ...options },
+      interpreterOptions,
       observerOrListener
     ) as ActorRefFrom<TMachine>;
 

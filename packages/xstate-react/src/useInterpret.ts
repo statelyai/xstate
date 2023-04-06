@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   AnyInterpreter,
   AnyStateMachine,
@@ -9,7 +8,6 @@ import {
   InterpreterFrom,
   InterpreterOptions,
   InterpreterStatus,
-  MachineImplementations,
   Observer,
   StateFrom,
   toObserver
@@ -19,8 +17,7 @@ import useConstant from './useConstant.ts';
 
 export function useIdleInterpreter(
   getMachine: MaybeLazy<AnyStateMachine>,
-  options: Partial<InterpreterOptions<AnyStateMachine>> &
-    Partial<MachineImplementations<any, never>>
+  options: Partial<InterpreterOptions<AnyStateMachine>>
 ): AnyInterpreter {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
@@ -32,7 +29,7 @@ export function useIdleInterpreter(
   ) {
     const [initialMachine] = useState(machine);
 
-    if (getMachine !== initialMachine) {
+    if (getMachine.config !== initialMachine.config) {
       console.warn(
         'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
           'Please make sure that you pass the same Machine as argument each time.'
@@ -40,32 +37,15 @@ export function useIdleInterpreter(
     }
   }
 
-  const { actors, guards, actions, delays, ...interpreterOptions } = options;
+  const { ...interpreterOptions } = options;
 
   const service = useConstant(() => {
-    const machineConfig = {
-      guards,
-      actions,
-      actors,
-      delays
-    };
-    const machineWithConfig = machine.provide(machineConfig as any);
-
-    return interpret(machineWithConfig as AnyStateMachine, interpreterOptions);
+    return interpret(machine as AnyStateMachine, interpreterOptions);
   });
 
-  // Make sure options are kept updated when they change.
-  // This mutation assignment is safe because the service instance is only used
-  // in one place -- this hook's caller.
-  useIsomorphicLayoutEffect(() => {
-    Object.assign(
-      (service.behavior as AnyStateMachine).options.actions,
-      actions
-    );
-    Object.assign((service.behavior as AnyStateMachine).options.guards, guards);
-    Object.assign((service.behavior as AnyStateMachine).options.actors, actors);
-    Object.assign((service.behavior as AnyStateMachine).options.delays, delays);
-  }, [actions, guards, actors, delays]);
+  if (typeof getMachine !== 'function') {
+    (service.behavior as AnyStateMachine).options = getMachine.options;
+  }
 
   return service as any;
 }

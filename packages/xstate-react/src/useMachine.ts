@@ -4,7 +4,6 @@ import {
   AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
   InterpreterStatus,
@@ -25,23 +24,8 @@ type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta'],
-            true
-          >
-      ]
-    : [
-        options?: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta']
-          >
-      ];
+    ? [options: InterpreterOptions<TMachine>]
+    : [options?: InterpreterOptions<TMachine>];
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
