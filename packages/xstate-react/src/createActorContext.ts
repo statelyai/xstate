@@ -5,9 +5,7 @@ import { useSelector as useSelectorUnbound } from './useSelector';
 import {
   ActorRefFrom,
   AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
   SnapshotFrom,
-  InternalMachineImplementations,
   InterpreterOptions,
   Observer,
   StateFrom
@@ -26,29 +24,10 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     compare?: (a: T, b: T) => boolean
   ) => T;
   useActorRef: () => ActorRefFrom<TMachine>;
-  Provider: (
-    props: {
-      children: React.ReactNode;
-      machine?: TMachine | (() => TMachine);
-    } & (AreAllImplementationsAssumedToBeProvided<
-      TMachine['__TResolvedTypesMeta']
-    > extends false
-      ? {
-          options: InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta'],
-            true
-          >;
-        }
-      : {
-          options?: InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta']
-          >;
-        })
-  ) => React.ReactElement<any, any>;
+  Provider: (props: {
+    children: React.ReactNode;
+    machine?: TMachine | (() => TMachine);
+  }) => React.ReactElement<any, any>;
 } {
   const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
 
@@ -60,7 +39,6 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   }: {
     children: React.ReactNode;
     machine: TMachine | (() => TMachine);
-    options?: any;
   }) {
     const actor = useInterpret(
       providedMachine,

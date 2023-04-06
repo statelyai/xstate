@@ -37,10 +37,8 @@ export function useIdleInterpreter(
     }
   }
 
-  const { ...interpreterOptions } = options;
-
   const service = useConstant(() => {
-    return interpret(machine as AnyStateMachine, interpreterOptions);
+    return interpret(machine as AnyStateMachine, options);
   });
 
   if (typeof getMachine !== 'function') {
