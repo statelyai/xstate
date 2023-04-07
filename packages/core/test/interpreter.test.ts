@@ -105,7 +105,6 @@ describe('interpreter', () => {
       }, 100);
     });
 
-    // https://github.com/statelyai/xstate/issues/1174
     it('does not execute actions from a restored state', () => {
       const reportSpy = jest.fn();
       const lightMachine = createMachine({
