@@ -1,5 +1,5 @@
 import { testAll } from './utils';
-import { createMachine } from '../src/index.js';
+import { createMachine } from '../src/index.ts';
 
 const idMachine = createMachine({
   initial: 'A',

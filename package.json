@@ -69,7 +69,6 @@
     "jest-config": "^29.3.1",
     "jest-environment-jsdom": "^29.3.1",
     "jest-regex-util": "^29.2.0",
-    "jest-ts-webcompat-resolver": "^1.0.0",
     "jest-watch-typeahead": "^2.2.1",
     "lerna-alias": "3.0.3-0",
     "lint-staged": "^8.2.1",
@@ -79,12 +78,13 @@
     "spawn-command": "0.0.2-1",
     "tslib": "^2.3.1",
     "tslint": "^5.11.0",
-    "typescript": "^4.9.4",
+    "typescript": "^5.0.2",
     "vue": "^3.0.11",
     "webpack-dev-middleware": "^3.6.0"
   },
   "resolutions": {
-    "**/tslib": "^2.3.1"
+    "**/tslib": "^2.3.1",
+    "**/typescript": "5.0.2"
   },
   "husky": {
     "hooks": {

@@ -1,31 +1,33 @@
-import {
-  interpret,
-  assign,
-  sendParent,
-  send,
-  EventObject,
-  StateValue,
-  createMachine,
-  ActorContext,
-  ActorBehavior,
-  SpecialTargets,
-  toSCXMLEvent
-} from '../src/index.js';
-import { fromTransition } from '../src/actors/index.js';
-import { fromObservable, fromEventObservable } from '../src/actors/index.js';
-import { fromPromise } from '../src/actors/index.js';
-import { fromCallback } from '../src/actors/index.js';
+import { interval } from 'rxjs';
+import { map, take } from 'rxjs/operators';
 import {
   actionTypes,
-  done as _done,
   doneInvoke,
   escalate,
   forwardTo,
-  sendTo,
-  raise
-} from '../src/actions.js';
-import { interval } from 'rxjs';
-import { map, take } from 'rxjs/operators';
+  raise,
+  sendTo
+} from '../src/actions.ts';
+import {
+  fromCallback,
+  fromEventObservable,
+  fromObservable,
+  fromPromise,
+  fromTransition
+} from '../src/actors/index.ts';
+import {
+  ActorBehavior,
+  ActorContext,
+  EventObject,
+  SpecialTargets,
+  StateValue,
+  assign,
+  createMachine,
+  interpret,
+  send,
+  sendParent,
+  toSCXMLEvent
+} from '../src/index.ts';
 
 const user = { name: 'David' };
 
@@ -810,13 +812,12 @@ describe('invoke', () => {
       });
 
       // tslint:disable-next-line:max-line-length
-      it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', (done) => {
+      it('should be invoked with a promise factory and stop on unhandled onError target', (done) => {
         const doneSpy = jest.fn();
 
         const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
-          strict: true,
           states: {
             pending: {
               invoke: {

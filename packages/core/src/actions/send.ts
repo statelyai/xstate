@@ -5,10 +5,10 @@ import {
   SendExpr,
   AnyEventObject,
   MachineContext
-} from '../types.js';
-import { send as sendActionType } from '../actionTypes.js';
-import { isFunction, isString, toSCXMLEvent } from '../utils.js';
-import { createDynamicAction } from '../../actions/dynamicAction.js';
+} from '../types.ts';
+import { send as sendActionType } from '../actionTypes.ts';
+import { isFunction, isString, toSCXMLEvent } from '../utils.ts';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import {
   AnyActorRef,
   AnyInterpreter,
@@ -22,8 +22,8 @@ import {
   State,
   StateMeta,
   UnifiedArg
-} from '../index.js';
-import { actionTypes, error } from '../actions.js';
+} from '../index.ts';
+import { actionTypes, error } from '../actions.ts';
 
 /**
  * Sends an event. This returns an action that will be read by an interpreter to

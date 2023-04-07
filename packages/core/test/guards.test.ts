@@ -1,4 +1,4 @@
-import { interpret, State, createMachine, actions } from '../src/index.js';
+import { interpret, State, createMachine, actions } from '../src/index.ts';
 import { and, not, or } from '../src/guards';
 
 describe('guard conditions', () => {

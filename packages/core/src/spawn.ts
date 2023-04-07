@@ -6,10 +6,10 @@ import {
   MachineContext,
   EventObject,
   SCXML
-} from '.';
-import { invoke } from './actions/invoke.js';
-import { interpret } from './interpreter.js';
-import { isString, resolveReferencedActor } from './utils.js';
+} from './index.ts';
+import { invoke } from './actions/invoke.ts';
+import { interpret } from './interpreter.ts';
+import { isString, resolveReferencedActor } from './utils.ts';
 
 export function createSpawner<
   TContext extends MachineContext,

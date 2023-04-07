@@ -4,8 +4,8 @@ import {
   interpret,
   sendParent,
   sendTo
-} from '../src/index.js';
-import { ActorRef } from '../src/types.js';
+} from '../src/index.ts';
+import { ActorRef } from '../src/types.ts';
 
 interface CounterContext {
   count: number;

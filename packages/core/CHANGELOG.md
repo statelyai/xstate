@@ -1,5 +1,29 @@
 # xstate
 
+## 5.0.0-alpha.3
+
+### Major Changes
+
+- [#3939](https://github.com/statelyai/xstate/pull/3939) [`91bc6fdd5`](https://github.com/statelyai/xstate/commit/91bc6fdd505fb519dce5cb1b72760de43263de26) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Action/actor/delay/guard arguments are now consolidated into a single object argument. This is a breaking change for all of those things that are called with arguments.
+
+  ```diff
+  assign({
+  - count: (context, event) => {
+  + count: ({ context, event }) => {
+      return context.count + event.value;
+    }
+  })
+  ```
+
+- [#3939](https://github.com/statelyai/xstate/pull/3939) [`91bc6fdd5`](https://github.com/statelyai/xstate/commit/91bc6fdd505fb519dce5cb1b72760de43263de26) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Guard arguments are now consolidated into a single object argument. This is a breaking change for all guards that are called with arguments.
+
+  ```diff
+  - guard: (context, event) => {
+  + guard: ({ context, event }) => {
+    return context.count + event.value > 10;
+  }
+  ```
+
 ## 5.0.0-alpha.2
 
 ### Major Changes

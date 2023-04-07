@@ -9,7 +9,7 @@ import {
   interpret,
   sendParent
 } from 'xstate';
-import { useMachine, useInterpret, useActor } from '../src/index.js';
+import { useMachine, useInterpret, useActor } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 
 const originalConsoleError = console.error;

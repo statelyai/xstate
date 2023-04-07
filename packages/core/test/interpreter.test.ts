@@ -12,7 +12,7 @@ import {
   InterpreterStatus,
   ActorRefFrom,
   ActorRef
-} from '../src/index.js';
+} from '../src/index.ts';
 import { State } from '../src/State';
 import { raise } from '../src/actions/raise';
 import { sendTo } from '../src/actions/send';

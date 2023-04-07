@@ -1,15 +1,15 @@
-import type { StateNode } from './StateNode.js';
-import type { State } from './State.js';
-import type { ActorStatus, Clock, Interpreter } from './interpreter.js';
-import type { StateMachine } from './StateMachine.js';
-import type { LifecycleSignal } from './actors/index.js';
+import type { StateNode } from './StateNode.ts';
+import type { State } from './State.ts';
+import type { ActorStatus, Clock, Interpreter } from './interpreter.ts';
+import type { StateMachine } from './StateMachine.ts';
+import type { LifecycleSignal } from './actors/index.ts';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint,
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
-} from './typegenTypes.js';
+} from './typegenTypes.ts';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -640,7 +640,6 @@ export interface StateNodeConfig<
    * @private
    */
   parent?: StateNode<TContext, TEvent>;
-  strict?: boolean | undefined;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
