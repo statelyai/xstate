@@ -1,5 +1,4 @@
 import { ActorRef } from '../src/index.ts';
-import { toActionObject } from '../src/actions.ts';
 import { cancel } from '../src/actions/cancel.ts';
 import { choose } from '../src/actions/choose.ts';
 import { log } from '../src/actions/log.ts';
@@ -9,388 +8,337 @@ import { sendParent, sendTo } from '../src/actions/send.ts';
 import { stop } from '../src/actions/stop.ts';
 import {
   ActorRefFrom,
-  AnyStateMachine,
   assign,
   createMachine,
   forwardTo,
-  interpret,
-  StateNode
+  interpret
 } from '../src/index.ts';
 import { fromCallback } from '../src/actors/callback.ts';
+import { trackEntries } from './utils.ts';
 
-const seen = new WeakSet<AnyStateMachine>();
+const originalConsoleLog = console.log;
 
-function trackEntries(machine: AnyStateMachine) {
-  if (seen.has(machine)) {
-    throw new Error(`This helper can't accept the same machine more than once`);
-  }
-  seen.add(machine);
-
-  let logs: string[] = [];
-
-  function addTrackingActions(
-    state: StateNode<any, any>,
-    stateDescription: string
-  ) {
-    state.entry.unshift(
-      toActionObject(function __testEntryTracker() {
-        logs.push(`enter: ${stateDescription}`);
-      })
-    );
-    state.exit.unshift(
-      toActionObject(function __testExitTracker() {
-        logs.push(`exit: ${stateDescription}`);
-      })
-    );
-  }
-
-  function addTrackingActionsRecursively(state: StateNode<any, any>) {
-    for (const child of Object.values(state.states)) {
-      addTrackingActions(child, child.path.join('.'));
-      addTrackingActionsRecursively(child);
-    }
-  }
-
-  addTrackingActions(machine.root, `__root__`);
-  addTrackingActionsRecursively(machine.root);
-
-  return () => {
-    const flushed = logs;
-    logs = [];
-    return flushed;
-  };
-}
+afterEach(() => {
+  console.log = originalConsoleLog;
+});
 
 describe('entry/exit actions', () => {
-  const pedestrianStates = {
-    initial: 'walk',
-    states: {
-      walk: {
-        on: {
-          PED_COUNTDOWN: 'wait'
-        },
-        entry: 'enter_walk',
-        exit: 'exit_walk'
-      },
-      wait: {
-        on: {
-          PED_COUNTDOWN: 'stop'
-        },
-        entry: 'enter_wait',
-        exit: 'exit_wait'
-      },
-      stop: {
-        entry: ['enter_stop'],
-        exit: ['exit_stop']
-      }
-    }
-  };
-
-  const lightMachine = createMachine({
-    initial: 'green',
-    states: {
-      green: {
-        on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red',
-          NOTHING: 'green'
-        },
-        entry: 'enter_green',
-        exit: 'exit_green'
-      },
-      yellow: {
-        on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red'
-        },
-        entry: 'enter_yellow',
-        exit: 'exit_yellow'
-      },
-      red: {
-        on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red',
-          NOTHING: 'red'
-        },
-        entry: 'enter_red',
-        exit: 'exit_red',
-        ...pedestrianStates
-      }
-    }
-  });
-
-  const newPedestrianStates = {
-    initial: 'walk',
-    states: {
-      walk: {
-        on: {
-          PED_COUNTDOWN: 'wait'
-        },
-        entry: 'enter_walk',
-        exit: 'exit_walk'
-      },
-      wait: {
-        on: {
-          PED_COUNTDOWN: 'stop'
-        },
-        entry: 'enter_wait',
-        exit: 'exit_wait'
-      },
-      stop: {
-        entry: ['enter_stop'],
-        exit: ['exit_stop']
-      }
-    }
-  };
-
-  const newLightMachine = createMachine({
-    initial: 'green',
-    states: {
-      green: {
-        on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red',
-          NOTHING: 'green'
-        },
-        entry: 'enter_green',
-        exit: 'exit_green'
-      },
-      yellow: {
-        on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red'
-        },
-        entry: 'enter_yellow',
-        exit: 'exit_yellow'
-      },
-      red: {
-        on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red',
-          NOTHING: 'red'
-        },
-        entry: 'enter_red',
-        exit: 'exit_red',
-        ...newPedestrianStates
-      }
-    }
-  });
-
-  const parallelMachine = createMachine({
-    type: 'parallel',
-    states: {
-      a: {
-        initial: 'a1',
-        states: {
-          a1: {
-            on: {
-              CHANGE: { target: 'a2', actions: ['do_a2', 'another_do_a2'] }
-            },
-            entry: 'enter_a1',
-            exit: 'exit_a1'
-          },
-          a2: { entry: 'enter_a2', exit: 'exit_a2' }
-        },
-        entry: 'enter_a',
-        exit: 'exit_a'
-      },
-      b: {
-        initial: 'b1',
-        states: {
-          b1: {
-            on: { CHANGE: { target: 'b2', actions: 'do_b2' } },
-            entry: 'enter_b1',
-            exit: 'exit_b1'
-          },
-          b2: { entry: 'enter_b2', exit: 'exit_b2' }
-        },
-        entry: 'enter_b',
-        exit: 'exit_b'
-      }
-    }
-  });
-
-  const deepMachine = createMachine({
-    initial: 'a',
-    states: {
-      a: {
-        initial: 'a1',
-        states: {
-          a1: {
-            on: {
-              NEXT: 'a2',
-              NEXT_FN: 'a3'
-            },
-            entry: 'enter_a1',
-            exit: 'exit_a1'
-          },
-          a2: {
-            entry: 'enter_a2',
-            exit: 'exit_a2'
-          },
-          a3: {
-            on: {
-              NEXT: {
-                target: 'a2',
-                actions: [
-                  function do_a3_to_a2() {
-                    return;
-                  }
-                ]
-              }
-            },
-            entry: function enter_a3_fn() {
-              return;
-            },
-            exit: function exit_a3_fn() {
-              return;
-            }
-          }
-        },
-        entry: 'enter_a',
-        exit: ['exit_a', 'another_exit_a'],
-        on: { CHANGE: 'b' }
-      },
-      b: {
-        entry: ['enter_b', 'another_enter_b'],
-        exit: 'exit_b',
-        initial: 'b1',
-        states: {
-          b1: {
-            entry: 'enter_b1',
-            exit: 'exit_b1'
-          }
-        }
-      }
-    }
-  });
-
-  const parallelMachine2 = createMachine({
-    initial: 'A',
-    states: {
-      A: {
-        on: {
-          'to-B': 'B'
-        }
-      },
-      B: {
-        type: 'parallel',
-        on: {
-          'to-A': 'A'
-        },
-        states: {
-          C: {
-            initial: 'C1',
-            states: {
-              C1: {},
-              C2: {}
-            }
-          },
-          D: {
-            initial: 'D1',
-            states: {
-              D1: {
-                on: {
-                  'to-D2': 'D2'
-                }
-              },
-              D2: {
-                entry: ['D2 Entry'],
-                exit: ['D2 Exit']
-              }
-            }
-          }
-        }
-      }
-    }
-  });
-
   describe('State.actions', () => {
     it('should return the entry actions of an initial state', () => {
-      expect(lightMachine.initialState.actions.map((a) => a.type)).toEqual([
-        'enter_green'
-      ]);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {}
+        }
+      });
+      const flushTracked = trackEntries(machine);
+      interpret(machine).start();
+
+      expect(flushTracked()).toEqual(['enter: __root__', 'enter: green']);
     });
 
     it('should return the entry actions of an initial state (deep)', () => {
-      expect(deepMachine.initialState.actions.map((a) => a.type)).toEqual([
-        'enter_a',
-        'enter_a1'
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  NEXT: 'a2'
+                }
+              },
+              a2: {}
+            },
+            on: { CHANGE: 'b' }
+          },
+          b: {}
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+      interpret(machine).start();
+
+      expect(flushTracked()).toEqual([
+        'enter: __root__',
+        'enter: a',
+        'enter: a.a1'
       ]);
     });
 
     it('should return the entry actions of an initial state (parallel)', () => {
-      expect(parallelMachine.initialState.actions.map((a) => a.type)).toEqual([
-        'enter_a',
-        'enter_a1',
-        'enter_b',
-        'enter_b1'
+      const machine = createMachine({
+        type: 'parallel',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {}
+            }
+          },
+          b: {
+            initial: 'b1',
+            states: {
+              b1: {}
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+      interpret(machine).start();
+
+      expect(flushTracked()).toEqual([
+        'enter: __root__',
+        'enter: a',
+        'enter: a.a1',
+        'enter: b',
+        'enter: b.b1'
       ]);
     });
 
     it('should return the entry and exit actions of a transition', () => {
-      expect(
-        lightMachine
-          .transition('green', { type: 'TIMER' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_green', 'enter_yellow']);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {}
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'TIMER' });
+
+      expect(flushTracked()).toEqual(['exit: green', 'enter: yellow']);
     });
 
     it('should return the entry and exit actions of a deep transition', () => {
-      expect(
-        lightMachine
-          .transition('yellow', { type: 'TIMER' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_yellow', 'enter_red', 'enter_walk']);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {
+            initial: 'speed_up',
+            states: {
+              speed_up: {}
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'TIMER' });
+
+      expect(flushTracked()).toEqual([
+        'exit: green',
+        'enter: yellow',
+        'enter: yellow.speed_up'
+      ]);
     });
 
     it('should return the entry and exit actions of a nested transition', () => {
-      expect(
-        lightMachine
-          .transition({ red: 'walk' }, { type: 'PED_COUNTDOWN' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_walk', 'enter_wait']);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            initial: 'walk',
+            states: {
+              walk: {
+                on: {
+                  PED_COUNTDOWN: 'wait'
+                }
+              },
+              wait: {}
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'PED_COUNTDOWN' });
+
+      expect(flushTracked()).toEqual(['exit: green.walk', 'enter: green.wait']);
     });
 
     it('should not have actions for unhandled events (shallow)', () => {
-      expect(
-        lightMachine
-          .transition('green', { type: 'FAKE' })
-          .actions.map((a) => a.type)
-      ).toEqual([]);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {}
+        }
+      });
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'FAKE' });
+
+      expect(flushTracked()).toEqual([]);
     });
 
     it('should not have actions for unhandled events (deep)', () => {
-      expect(
-        lightMachine
-          .transition('red', { type: 'FAKE' })
-          .actions.map((a) => a.type)
-      ).toEqual([]);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            initial: 'walk',
+            states: {
+              walk: {},
+              wait: {},
+              stop: {}
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'FAKE' });
+
+      expect(flushTracked()).toEqual([]);
     });
 
-    it('should exit and enter the state for self-transitions (shallow)', () => {
-      expect(
-        lightMachine
-          .transition('green', { type: 'NOTHING' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_green', 'enter_green']);
+    it('should exit and enter the state for reentering self-transitions (shallow)', () => {
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              RESTART: {
+                target: 'green',
+                external: true
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'RESTART' });
+
+      expect(flushTracked()).toEqual(['exit: green', 'enter: green']);
     });
 
-    it('should exit and enter the state for self-transitions (deep)', () => {
-      // 'red' state resolves to 'red.walk'
-      expect(
-        lightMachine
-          .transition('red', { type: 'NOTHING' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
+    it('should exit and enter the state for reentering self-transitions (deep)', () => {
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              RESTART: {
+                target: 'green',
+                external: true
+              }
+            },
+            initial: 'walk',
+            states: {
+              walk: {},
+              wait: {},
+              stop: {}
+            }
+          }
+        }
+      });
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+
+      flushTracked();
+      actor.send({ type: 'RESTART' });
+
+      expect(flushTracked()).toEqual([
+        'exit: green.walk',
+        'exit: green',
+        'enter: green',
+        'enter: green.walk'
+      ]);
     });
 
     it('should return actions for parallel machines', () => {
-      expect(
-        parallelMachine
-          .transition(parallelMachine.initialState, { type: 'CHANGE' })
-          .actions.map((a) => a.type)
-      ).toEqual([
+      const actual: string[] = [];
+      const machine = createMachine({
+        type: 'parallel',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  CHANGE: {
+                    target: 'a2',
+                    actions: [
+                      () => actual.push('do_a2'),
+                      () => actual.push('another_do_a2')
+                    ]
+                  }
+                },
+                entry: () => actual.push('enter_a1'),
+                exit: () => actual.push('exit_a1')
+              },
+              a2: {
+                entry: () => actual.push('enter_a2'),
+                exit: () => actual.push('exit_a2')
+              }
+            },
+            entry: () => actual.push('enter_a'),
+            exit: () => actual.push('exit_a')
+          },
+          b: {
+            initial: 'b1',
+            states: {
+              b1: {
+                on: {
+                  CHANGE: { target: 'b2', actions: () => actual.push('do_b2') }
+                },
+                entry: () => actual.push('enter_b1'),
+                exit: () => actual.push('exit_b1')
+              },
+              b2: {
+                entry: () => actual.push('enter_b2'),
+                exit: () => actual.push('exit_b2')
+              }
+            },
+            entry: () => actual.push('enter_b'),
+            exit: () => actual.push('exit_b')
+          }
+        }
+      });
+
+      const actor = interpret(machine).start();
+      actual.length = 0;
+
+      actor.send({ type: 'CHANGE' });
+
+      expect(actual).toEqual([
         'exit_b1', // reverse document order
         'exit_a1',
         'do_a2',
@@ -402,61 +350,164 @@ describe('entry/exit actions', () => {
     });
 
     it('should return nested actions in the correct (child to parent) order', () => {
-      expect(
-        deepMachine
-          .transition({ a: 'a1' }, { type: 'CHANGE' })
-          .actions.map((a) => a.type)
-      ).toEqual([
-        'exit_a1',
-        'exit_a',
-        'another_exit_a',
-        'enter_b',
-        'another_enter_b',
-        'enter_b1'
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {}
+            },
+            on: { CHANGE: 'b' }
+          },
+          b: {
+            initial: 'b1',
+            states: {
+              b1: {}
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+
+      flushTracked();
+      actor.send({ type: 'CHANGE' });
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a1',
+        'exit: a',
+        'enter: b',
+        'enter: b.b1'
       ]);
     });
 
     it('should ignore parent state actions for same-parent substates', () => {
-      expect(
-        deepMachine
-          .transition({ a: 'a1' }, { type: 'NEXT' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_a1', 'enter_a2']);
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  NEXT: 'a2'
+                }
+              },
+              a2: {}
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+
+      flushTracked();
+      actor.send({ type: 'NEXT' });
+
+      expect(flushTracked()).toEqual(['exit: a.a1', 'enter: a.a2']);
     });
 
     it('should work with function actions', () => {
-      const { actions } = deepMachine.transition(deepMachine.initialState, {
-        type: 'NEXT_FN'
+      const entrySpy = jest.fn();
+      const exitSpy = jest.fn();
+      const transitionSpy = jest.fn();
+
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  NEXT_FN: 'a3'
+                }
+              },
+              a2: {},
+              a3: {
+                on: {
+                  NEXT: {
+                    target: 'a2',
+                    actions: [transitionSpy]
+                  }
+                },
+                entry: entrySpy,
+                exit: exitSpy
+              }
+            }
+          }
+        }
       });
 
-      expect(
-        actions.map((action) =>
-          action.type === 'xstate.function'
-            ? action.params?.function?.name
-            : action.type
-        )
-      ).toEqual(['exit_a1', 'enter_a3_fn']);
+      const flushTracked = trackEntries(machine);
 
-      expect(
-        deepMachine
-          .transition({ a: 'a3' }, { type: 'NEXT' })
-          .actions.map((action) =>
-            action.type === 'xstate.function'
-              ? action.params?.function?.name
-              : action.type
-          )
-      ).toEqual(['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']);
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'NEXT_FN' });
+
+      expect(flushTracked()).toEqual(['exit: a.a1', 'enter: a.a3']);
+      expect(entrySpy).toHaveBeenCalled();
+
+      actor.send({ type: 'NEXT' });
+
+      expect(flushTracked()).toEqual(['exit: a.a3', 'enter: a.a2']);
+      expect(exitSpy).toHaveBeenCalled();
+      expect(transitionSpy).toHaveBeenCalled();
     });
 
     it('should exit children of parallel state nodes', () => {
-      const stateB = parallelMachine2.transition(
-        parallelMachine2.initialState,
-        { type: 'to-B' }
-      );
-      const stateD2 = parallelMachine2.transition(stateB, { type: 'to-D2' });
-      const stateA = parallelMachine2.transition(stateD2, { type: 'to-A' });
+      const machine = createMachine({
+        initial: 'B',
+        states: {
+          A: {
+            on: {
+              'to-B': 'B'
+            }
+          },
+          B: {
+            type: 'parallel',
+            on: {
+              'to-A': 'A'
+            },
+            states: {
+              C: {
+                initial: 'C1',
+                states: {
+                  C1: {}
+                }
+              },
+              D: {
+                initial: 'D1',
+                states: {
+                  D1: {}
+                }
+              }
+            }
+          }
+        }
+      });
 
-      expect(stateA.actions.map((action) => action.type)).toEqual(['D2 Exit']);
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+
+      flushTracked();
+      actor.send({ type: 'to-A' });
+
+      expect(flushTracked()).toEqual([
+        'exit: B.D.D1',
+        'exit: B.D',
+        'exit: B.C.C1',
+        'exit: B.C',
+        'exit: B',
+        'enter: A'
+      ]);
     });
 
     it("should reenter targeted ancestor (as it's a descendant of the transition domain)", () => {
@@ -479,10 +530,10 @@ describe('entry/exit actions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const service = interpret(machine).start();
+      const actor = interpret(machine).start();
 
       flushTracked();
-      service.send({ type: 'UPDATE' });
+      actor.send({ type: 'UPDATE' });
 
       expect(flushTracked()).toEqual([
         'exit: loaded.idle',
@@ -583,119 +634,253 @@ describe('entry/exit actions', () => {
     });
 
     describe('should ignore same-parent state actions (sparse)', () => {
-      const fooBar = {
-        initial: 'foo',
-        states: {
-          foo: {
-            on: {
-              TACK: 'bar',
-              ABSOLUTE_TACK: '#machine.ping.bar'
-            }
-          },
-          bar: {
-            on: {
-              TACK: 'foo'
-            }
-          }
-        }
-      };
-
-      const pingPong = createMachine({
-        id: 'machine',
-        initial: 'ping',
-        states: {
-          ping: {
-            entry: ['entryEvent'],
-            on: {
-              TICK: 'pong'
-            },
-            ...fooBar
-          },
-          pong: {
-            on: {
-              TICK: 'ping'
-            }
-          }
-        }
-      });
-
       it('with a relative transition', () => {
-        expect(
-          pingPong.transition({ ping: 'foo' }, { type: 'TACK' }).actions
-        ).toHaveLength(0);
+        const machine = createMachine({
+          initial: 'ping',
+          states: {
+            ping: {
+              initial: 'foo',
+              states: {
+                foo: {
+                  on: {
+                    TACK: 'bar'
+                  }
+                },
+                bar: {}
+              }
+            }
+          }
+        });
+
+        const flushTracked = trackEntries(machine);
+
+        const actor = interpret(machine).start();
+        flushTracked();
+
+        actor.send({ type: 'TACK' });
+
+        expect(flushTracked()).toEqual(['exit: ping.foo', 'enter: ping.bar']);
       });
 
       it('with an absolute transition', () => {
-        expect(
-          pingPong.transition({ ping: 'foo' }, { type: 'ABSOLUTE_TACK' })
-            .actions
-        ).toHaveLength(0);
+        const machine = createMachine({
+          id: 'root',
+          initial: 'ping',
+          states: {
+            ping: {
+              initial: 'foo',
+              states: {
+                foo: {
+                  on: {
+                    ABSOLUTE_TACK: '#root.ping.bar'
+                  }
+                },
+                bar: {}
+              }
+            },
+            pong: {}
+          }
+        });
+
+        const flushTracked = trackEntries(machine);
+
+        const actor = interpret(machine).start();
+        flushTracked();
+
+        actor.send({ type: 'ABSOLUTE_TACK' });
+
+        expect(flushTracked()).toEqual(['exit: ping.foo', 'enter: ping.bar']);
       });
     });
   });
 
-  describe('State.actions (with entry/exit)', () => {
+  describe('entry/exit actions', () => {
     it('should return the entry actions of an initial state', () => {
-      expect(newLightMachine.initialState.actions.map((a) => a.type)).toEqual([
-        'enter_green'
-      ]);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {}
+        }
+      });
+      const flushTracked = trackEntries(machine);
+      interpret(machine).start();
+
+      expect(flushTracked()).toEqual(['enter: __root__', 'enter: green']);
     });
 
     it('should return the entry and exit actions of a transition', () => {
-      expect(
-        newLightMachine
-          .transition('green', { type: 'TIMER' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_green', 'enter_yellow']);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {}
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'TIMER' });
+
+      expect(flushTracked()).toEqual(['exit: green', 'enter: yellow']);
     });
 
     it('should return the entry and exit actions of a deep transition', () => {
-      expect(
-        newLightMachine
-          .transition('yellow', { type: 'TIMER' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_yellow', 'enter_red', 'enter_walk']);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {
+            initial: 'speed_up',
+            states: {
+              speed_up: {}
+            }
+          }
+        }
+      });
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'TIMER' });
+
+      expect(flushTracked()).toEqual([
+        'exit: green',
+        'enter: yellow',
+        'enter: yellow.speed_up'
+      ]);
     });
 
     it('should return the entry and exit actions of a nested transition', () => {
-      expect(
-        newLightMachine
-          .transition({ red: 'walk' }, { type: 'PED_COUNTDOWN' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_walk', 'enter_wait']);
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            initial: 'walk',
+            states: {
+              walk: {
+                on: {
+                  PED_COUNTDOWN: 'wait'
+                }
+              },
+              wait: {}
+            }
+          }
+        }
+      });
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'PED_COUNTDOWN' });
+
+      expect(flushTracked()).toEqual(['exit: green.walk', 'enter: green.wait']);
     });
 
-    it('should not have actions for unhandled events (shallow)', () => {
-      expect(
-        newLightMachine
-          .transition('green', { type: 'FAKE' })
-          .actions.map((a) => a.type)
-      ).toEqual([]);
+    it('should keep the same state for unhandled events (shallow)', () => {
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {}
+        }
+      });
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'FAKE' });
+
+      expect(flushTracked()).toEqual([]);
     });
 
-    it('should not have actions for unhandled events (deep)', () => {
-      expect(
-        newLightMachine
-          .transition('red', { type: 'FAKE' })
-          .actions.map((a) => a.type)
-      ).toEqual([]);
+    it('should keep the same state for unhandled events (deep)', () => {
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            initial: 'walk',
+            states: {
+              walk: {}
+            }
+          }
+        }
+      });
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'FAKE' });
+
+      expect(flushTracked()).toEqual([]);
     });
 
-    it('should exit and enter the state for self-transitions (shallow)', () => {
-      expect(
-        newLightMachine
-          .transition('green', { type: 'NOTHING' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_green', 'enter_green']);
+    it('should exit and enter the state for reentering self-transitions (shallow)', () => {
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              RESTART: 'green'
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'RESTART' });
+
+      expect(flushTracked()).toEqual(['exit: green', 'enter: green']);
     });
 
-    it('should exit and enter the state for self-transitions (deep)', () => {
-      // 'red' state resolves to 'red.walk'
-      expect(
-        newLightMachine
-          .transition('red', { type: 'NOTHING' })
-          .actions.map((a) => a.type)
-      ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
+    it('should exit and enter the state for reentering self-transitions (deep)', () => {
+      const machine = createMachine({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              RESTART: {
+                target: 'green',
+                external: true
+              }
+            },
+            initial: 'walk',
+            states: {
+              walk: {}
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({ type: 'RESTART' });
+      expect(flushTracked()).toEqual([
+        'exit: green.walk',
+        'exit: green',
+        'enter: green',
+        'enter: green.walk'
+      ]);
     });
 
     it('should exit current node and enter target node when target is not a descendent or ancestor of current', () => {
@@ -967,9 +1152,7 @@ describe('entry/exit actions', () => {
 
   describe('parallel states', () => {
     it('should return entry action defined on parallel state', () => {
-      const parallelMachineWithEntry = createMachine({
-        id: 'fetch',
-        context: { attempts: 0 },
+      const machine = createMachine({
         initial: 'start',
         states: {
           start: {
@@ -977,14 +1160,11 @@ describe('entry/exit actions', () => {
           },
           p1: {
             type: 'parallel',
-            entry: 'enter_p1',
             states: {
               nested: {
                 initial: 'inner',
                 states: {
-                  inner: {
-                    entry: 'enter_inner'
-                  }
+                  inner: {}
                 }
               }
             }
@@ -992,11 +1172,19 @@ describe('entry/exit actions', () => {
         }
       });
 
-      expect(
-        parallelMachineWithEntry
-          .transition('start', { type: 'ENTER_PARALLEL' })
-          .actions.map((a) => a.type)
-      ).toEqual(['enter_p1', 'enter_inner']);
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+
+      flushTracked();
+      actor.send({ type: 'ENTER_PARALLEL' });
+
+      expect(flushTracked()).toEqual([
+        'exit: start',
+        'enter: p1',
+        'enter: p1.nested',
+        'enter: p1.nested.inner'
+      ]);
     });
 
     it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
@@ -1790,94 +1978,111 @@ describe('entry/exit actions', () => {
 });
 
 describe('initial actions', () => {
-  const machine = createMachine({
-    initial: {
-      target: 'a',
-      actions: 'initialA'
-    },
-    states: {
-      a: {
-        entry: 'entryA',
-        on: {
-          NEXT: 'b'
-        }
+  it('should support initial actions', () => {
+    const actual: string[] = [];
+    const machine = createMachine({
+      initial: {
+        target: 'a',
+        actions: () => actual.push('initialA')
       },
-      b: {
-        entry: 'entryB',
-        initial: {
-          target: 'foo',
-          actions: 'initialFoo'
-        },
-        states: {
-          foo: {
-            entry: 'entryFoo'
-          }
-        },
-        on: { NEXT: 'c' }
-      },
-      c: {
-        entry: 'entryC',
-        initial: {
-          target: '#bar',
-          actions: 'initialBar'
-        },
-        states: {
-          bar: {
-            id: 'bar',
-            entry: 'entryBar'
-          }
+      states: {
+        a: {
+          entry: () => actual.push('entryA')
         }
       }
-    }
-  });
-
-  it('should support initial actions', () => {
-    expect(machine.initialState.actions.map((a) => a.type)).toEqual([
-      'initialA',
-      'entryA'
-    ]);
+    });
+    interpret(machine).start();
+    expect(actual).toEqual(['initialA', 'entryA']);
   });
 
   it('should support initial actions from transition', () => {
-    const nextState = machine.transition(undefined, { type: 'NEXT' });
-    expect(nextState.actions.map((a) => a.type)).toEqual([
-      'entryB',
-      'initialFoo',
-      'entryFoo'
-    ]);
+    const actual: string[] = [];
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: () => actual.push('entryB'),
+          initial: {
+            target: 'foo',
+            actions: () => actual.push('initialFoo')
+          },
+          states: {
+            foo: {
+              entry: () => actual.push('entryFoo')
+            }
+          }
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'NEXT' });
+
+    expect(actual).toEqual(['entryB', 'initialFoo', 'entryFoo']);
   });
 
   it('should support initial actions from transition with target ID', () => {
-    const nextState = machine.transition('b', { type: 'NEXT' });
-    expect(nextState.actions.map((a) => a.type)).toEqual([
-      'entryC',
-      'initialBar',
-      'entryBar'
-    ]);
+    const actual: string[] = [];
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          entry: () => actual.push('entryC'),
+          initial: {
+            target: '#bar',
+            actions: () => actual.push('initialBar')
+          },
+          states: {
+            bar: {
+              id: 'bar',
+              entry: () => actual.push('entryBar')
+            }
+          }
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'NEXT' });
+
+    expect(actual).toEqual(['entryC', 'initialBar', 'entryBar']);
   });
 });
 
 describe('actions on invalid transition', () => {
-  const stopMachine = createMachine({
-    initial: 'idle',
-    states: {
-      idle: {
-        on: {
-          STOP: {
-            target: 'stop',
-            actions: ['action1']
-          }
-        }
-      },
-      stop: {}
-    }
-  });
-
   it('should not recall previous actions', () => {
-    const nextState = stopMachine.transition('idle', { type: 'STOP' });
-    expect(
-      stopMachine.transition(nextState, { type: 'INVALID' }).actions
-    ).toHaveLength(0);
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            STOP: {
+              target: 'stop',
+              actions: [spy]
+            }
+          }
+        },
+        stop: {}
+      }
+    });
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'STOP' });
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    actor.send({ type: 'INVALID' });
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1891,63 +2096,57 @@ describe('actions config', () => {
     count: number;
   }
 
-  // tslint:disable-next-line:no-empty
   const definedAction = () => {};
-  const simpleMachine = createMachine<Context, EventType>(
-    {
-      initial: 'a',
-      context: {
-        count: 0
-      },
-      states: {
-        a: {
-          entry: [
-            'definedAction',
-            { type: 'definedAction' },
-            'undefinedAction'
-          ],
-          on: {
-            EVENT: {
-              target: 'b',
-              actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
+
+  it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT: 'b'
             }
+          },
+          b: {
+            entry: [
+              'definedAction',
+              { type: 'definedAction' },
+              'undefinedAction'
+            ]
           }
-        },
-        b: {}
+        }
       },
-      on: {
-        E: 'a'
+      {
+        actions: {
+          definedAction: spy
+        }
       }
-    },
-    {
-      actions: {
-        definedAction,
-        updateContext: assign({ count: 10 })
-      }
-    }
-  );
-
-  it('should reference actions defined in actions parameter of machine options', () => {
-    const { initialState } = simpleMachine;
-    const nextState = simpleMachine.transition(initialState, { type: 'E' });
-
-    expect(nextState.actions.map((a) => a.type)).toEqual(
-      expect.arrayContaining(['definedAction', 'undefinedAction'])
     );
 
-    expect(nextState.actions).toEqual([
-      expect.objectContaining({ type: 'definedAction' }),
-      expect.objectContaining({ type: 'definedAction' }),
-      expect.objectContaining({ type: 'undefinedAction' })
-    ]);
+    const actor = interpret(machine).start();
+    actor.send({ type: 'EVENT' });
+
+    expect(spy).toHaveBeenCalledTimes(2);
   });
 
   it('should reference actions defined in actions parameter of machine options (initial state)', () => {
-    const { initialState } = simpleMachine;
-
-    expect(initialState.actions.map((a) => a.type)).toEqual(
-      expect.arrayContaining(['definedAction', 'undefinedAction'])
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
+      },
+      {
+        actions: {
+          definedAction: spy
+        }
+      }
     );
+
+    interpret(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(2);
   });
 
   it('should be able to reference action implementations from action objects', () => {
@@ -2063,113 +2262,96 @@ describe('action meta', () => {
 });
 
 describe('purely defined actions', () => {
-  interface Ctx {
-    items: Array<{ id: number }>;
-  }
-  type Events =
-    | { type: 'SINGLE'; id: number }
-    | { type: 'NONE'; id: number }
-    | { type: 'EACH' }
-    | { type: 'AS_STRINGS' };
-
-  const dynamicMachine = createMachine<Ctx, Events>({
-    id: 'dynamic',
-    initial: 'idle',
-    context: {
-      items: [{ id: 1 }, { id: 2 }, { id: 3 }]
-    },
-    states: {
-      idle: {
-        on: {
-          SINGLE: {
-            actions: pure(({ context, event }) => {
-              if (context.items.length > 0) {
-                return {
-                  type: 'SINGLE_EVENT',
-                  params: { length: context.items.length, id: event.id }
-                };
-              }
-            })
-          },
-          NONE: {
-            actions: pure(({ context, event }) => {
-              if (context.items.length > 5) {
-                return {
-                  type: 'SINGLE_EVENT',
-                  params: { length: context.items.length, id: event.id }
-                };
-              }
-            })
-          },
-          EACH: {
-            actions: pure(({ context }) =>
-              context.items.map((item: any, index: number) => ({
-                type: 'EVENT',
-                params: { item, index }
-              }))
-            )
-          },
-          AS_STRINGS: {
-            actions: pure(() => ['SOME_ACTION'])
-          }
+  it('should allow for a purely defined dynamic action', () => {
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        context: {
+          items: [{ id: 1 }, { id: 2 }, { id: 3 }]
+        },
+        entry: pure(({ context }) => {
+          return {
+            type: 'doSomething',
+            params: { length: context.items.length }
+          };
+        })
+      },
+      {
+        actions: {
+          doSomething: ({ action }) => spy(action.params)
         }
       }
-    }
-  });
+    );
 
-  it('should allow for a purely defined dynamic action', () => {
-    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
-      type: 'SINGLE',
-      id: 3
-    });
+    interpret(machine).start();
 
-    expect(nextState.actions).toEqual([
-      expect.objectContaining({
-        type: 'SINGLE_EVENT',
-        params: {
-          length: 3,
-          id: 3
-        }
-      })
-    ]);
+    expect(spy.mock.calls[0][0]).toEqual({ length: 3 });
   });
 
   it('should allow for purely defined lack of actions', () => {
-    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
-      type: 'NONE',
-      id: 3
+    const machine = createMachine({
+      context: {
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }]
+      },
+      entry: pure(({ context }) => {
+        if (context.items.length > 5) {
+          return {
+            type: 'doSomething',
+            params: { length: context.items.length }
+          };
+        }
+      })
     });
 
-    expect(nextState.actions).toEqual([]);
+    expect(() => interpret(machine).start()).not.toThrow();
   });
 
   it('should allow for purely defined dynamic actions', () => {
-    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
-      type: 'EACH'
-    });
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        context: {
+          items: [{ id: 1 }, { id: 2 }, { id: 3 }]
+        },
+        entry: pure(({ context }) =>
+          context.items.map((item: any, index: number) => ({
+            type: 'doSomething',
+            params: { item, index }
+          }))
+        )
+      },
+      {
+        actions: {
+          doSomething: ({ action }) => {
+            spy(action.params);
+          }
+        }
+      }
+    );
 
-    expect(nextState.actions).toEqual([
-      expect.objectContaining({
-        type: 'EVENT',
-        params: { item: { id: 1 }, index: 0 }
-      }),
-      expect.objectContaining({
-        type: 'EVENT',
-        params: { item: { id: 2 }, index: 1 }
-      }),
-      expect.objectContaining({
-        type: 'EVENT',
-        params: { item: { id: 3 }, index: 2 }
-      })
-    ]);
+    interpret(machine).start();
+
+    expect(spy.mock.calls[0][0]).toEqual({ item: { id: 1 }, index: 0 });
+    expect(spy.mock.calls[1][0]).toEqual({ item: { id: 2 }, index: 1 });
+    expect(spy.mock.calls[2][0]).toEqual({ item: { id: 3 }, index: 2 });
   });
 
   it('should allow for purely defined action type strings', () => {
-    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
-      type: 'AS_STRINGS'
-    });
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        entry: pure(() => ['SOME_ACTION'])
+      },
+      {
+        actions: {
+          SOME_ACTION: spy
+        }
+      }
+    );
 
-    expect(nextState.actions).toEqual([{ type: 'SOME_ACTION', params: {} }]);
+    interpret(machine).start();
+
+    expect(spy).toBeCalled();
   });
 });
 
@@ -2287,49 +2469,43 @@ describe('forwardTo()', () => {
 });
 
 describe('log()', () => {
-  const logMachine = createMachine<{ count: number }>({
-    id: 'log',
-    initial: 'string',
-    context: {
-      count: 42
-    },
-    states: {
-      string: {
-        entry: log('some string', 'string label'),
-        on: {
-          EXPR: {
-            actions: log(({ context }) => `expr ${context.count}`, 'expr label')
-          }
-        }
-      }
-    }
-  });
-
   it('should log a string', () => {
-    expect(logMachine.initialState.actions[0]).toEqual(
-      expect.objectContaining({
-        params: {
-          label: 'string label',
-          value: 'some string'
-        },
-        type: 'xstate.log'
-      })
-    );
+    const consoleSpy = jest.fn();
+    console.log = consoleSpy;
+    const machine = createMachine({
+      entry: log('some string', 'string label')
+    });
+    interpret(machine, { logger: consoleSpy }).start();
+
+    expect(consoleSpy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "string label",
+          "some string",
+        ],
+      ]
+    `);
   });
 
   it('should log an expression', () => {
-    const nextState = logMachine.transition(logMachine.initialState, {
-      type: 'EXPR'
+    const consoleSpy = jest.fn();
+    console.log = consoleSpy;
+    const machine = createMachine({
+      context: {
+        count: 42
+      },
+      entry: log(({ context }) => `expr ${context.count}`, 'expr label')
     });
-    expect(nextState.actions[0]).toEqual(
-      expect.objectContaining({
-        params: {
-          label: 'expr label',
-          value: 'expr 42'
-        },
-        type: 'xstate.log'
-      })
-    );
+    interpret(machine, { logger: consoleSpy }).start();
+
+    expect(consoleSpy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "expr label",
+          "expr 42",
+        ],
+      ]
+    `);
   });
 });
 
