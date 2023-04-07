@@ -483,6 +483,8 @@ export class StateMachine<
       }
     });
 
+    restoredState.actions = [];
+
     return restoredState;
   }
 
