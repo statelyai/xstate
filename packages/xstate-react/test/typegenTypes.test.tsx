@@ -77,25 +77,31 @@ describe('useMachine', () => {
 
     function App() {
       // @ts-expect-error
-      useMachine(machine, {});
-      useMachine(machine, {
+      useMachine(machine);
+      useMachine(
+        machine.provide({
+          // @ts-expect-error
+          actions: {}
+        })
+      );
+      useMachine(
         // @ts-expect-error
-        actions: {}
-      });
-      // @ts-expect-error
-      useMachine(machine, {
-        actions: {
-          myAction: () => {}
-        }
-      });
-      useMachine(machine, {
-        actions: {
-          myAction: () => {}
-        },
-        delays: {
-          myDelay: () => 42
-        }
-      });
+        machine.provide({
+          actions: {
+            myAction: () => {}
+          }
+        })
+      );
+      useMachine(
+        machine.provide({
+          actions: {
+            myAction: () => {}
+          },
+          delays: {
+            myDelay: () => 42
+          }
+        })
+      );
       return null;
     }
 
@@ -129,14 +135,16 @@ describe('useMachine', () => {
     );
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          fooAction: () => {}
-        },
-        delays: {
-          barDelay: () => 100
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            fooAction: () => {}
+          },
+          delays: {
+            barDelay: () => 100
+          }
+        })
+      );
       return null;
     }
 
@@ -164,12 +172,14 @@ describe('useMachine', () => {
     });
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: () => {}
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            // it's important to use `event` here somehow to make this a possible source of information for inference
+            fooAction: () => {}
+          }
+        })
+      );
       return null;
     }
 
@@ -197,15 +207,17 @@ describe('useMachine', () => {
     });
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          fooAction: assign(({ event }) => {
-            ((_accept: 'FOO') => {})(event.type);
-            // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(event.type);
-          })
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: "test that this isn't any") => {})(event.type);
+            })
+          }
+        })
+      );
       return null;
     }
 
@@ -408,15 +420,17 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(machine, {
-        actions: {
-          fooAction: assign(({ event }) => {
-            ((_accept: 'FOO') => {})(event.type);
-            // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(event.type);
-          })
-        }
-      });
+      useInterpret(
+        machine.provide({
+          actions: {
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: "test that this isn't any") => {})(event.type);
+            })
+          }
+        })
+      );
       return null;
     }
 
@@ -617,10 +631,10 @@ describe('createActorContext', () => {
       ret = <Context.Provider options={{}}>{null}</Context.Provider>;
       ret = (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             // @ts-expect-error
             actions: {}
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -639,14 +653,14 @@ describe('createActorContext', () => {
       );
       ret = (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             actions: {
               myAction: () => {}
             },
             delays: {
               myDelay: () => 42
             }
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -689,14 +703,14 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             actions: {
               fooAction: () => {}
             },
             delays: {
               barDelay: () => 100
             }
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -731,12 +745,12 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             actions: {
               // it's important to use `event` here somehow to make this a possible source of information for inference
               fooAction: () => {}
             }
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -771,7 +785,7 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             actions: {
               fooAction: assign(({ event }) => {
                 ((_accept: 'FOO') => {})(event.type);
@@ -779,7 +793,7 @@ describe('createActorContext', () => {
                 ((_accept: "test that this isn't any") => {})(event.type);
               })
             }
-          }}
+          })}
         >
           {null}
         </Context.Provider>
