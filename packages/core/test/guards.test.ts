@@ -1,5 +1,6 @@
 import { interpret, State, createMachine, actions } from '../src/index.ts';
 import { and, not, or } from '../src/guards';
+import { trackEntries } from './utils.ts';
 
 describe('guard conditions', () => {
   interface LightMachineCtx {
@@ -115,20 +116,36 @@ describe('guard conditions', () => {
   });
 
   it('should not transition if no condition is met', () => {
-    const nextState = lightMachine.transition(
-      lightMachine.resolveState(
-        State.from(
-          'green',
-          {
-            elapsed: 9000
-          },
-          lightMachine
-        )
-      ),
-      { type: 'TIMER', elapsed: 10 }
-    );
-    expect(nextState.value).toEqual('green');
-    expect(nextState.actions).toEqual([]);
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            TIMER: [
+              {
+                target: 'b',
+                guard: ({ event: { elapsed } }) => elapsed > 200
+              },
+              {
+                target: 'c',
+                guard: ({ event: { elapsed } }) => elapsed > 100
+              }
+            ]
+          }
+        },
+        b: {},
+        c: {}
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+    const actor = interpret(machine).start();
+    flushTracked();
+
+    actor.send({ type: 'TIMER', elapsed: 10 });
+
+    expect(actor.getSnapshot().value).toBe('a');
+    expect(flushTracked()).toEqual([]);
   });
 
   it('should work with defined string transitions', () => {

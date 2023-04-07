@@ -1,5 +1,5 @@
 import { createMachine, interpret } from '../src/index.ts';
-import { after, actionTypes } from '../src/actions';
+import { after } from '../src/actions';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -22,6 +22,10 @@ const lightMachine = createMachine({
       after: [{ delay: 1000, target: 'green' }]
     }
   }
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 describe('delayed transitions', () => {
@@ -107,18 +111,15 @@ describe('delayed transitions', () => {
       .start();
   });
 
-  it('should defer a single send event for a delayed transition with multiple conditions (#886)', () => {
-    type Events = { type: 'FOO' };
-
-    const machine = createMachine<{}, Events>({
+  it('should defer a single send event for a delayed conditional transition (#886)', () => {
+    jest.useFakeTimers();
+    const spy = jest.fn();
+    const machine = createMachine({
       initial: 'X',
       states: {
         X: {
-          on: {
-            FOO: 'X'
-          },
           after: {
-            1500: [
+            1: [
               {
                 target: 'Y',
                 guard: () => true
@@ -129,12 +130,21 @@ describe('delayed transitions', () => {
             ]
           }
         },
-        Y: {},
+        Y: {
+          on: {
+            '*': {
+              actions: spy
+            }
+          }
+        },
         Z: {}
       }
     });
 
-    expect(machine.initialState.actions.length).toBe(1);
+    interpret(machine).start();
+
+    jest.advanceTimersByTime(10);
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
@@ -198,96 +208,129 @@ describe('delayed transitions', () => {
   });
 
   describe('delay expressions', () => {
-    type Events =
-      | { type: 'ACTIVATE'; delay: number }
-      | { type: 'NOEXPR'; delay: number };
-    const delayExprMachine = createMachine<{ delay: number }, Events>(
-      {
-        id: 'delayExpr',
+    it('should evaluate the expression (function) to determine the delay', () => {
+      jest.useFakeTimers();
+      const spy = jest.fn();
+      const context = {
+        delay: 500
+      };
+      const machine = createMachine({
         initial: 'inactive',
-        context: {
-          delay: 1000
-        },
+        context,
         states: {
           inactive: {
             after: [
               {
-                delay: ({ context }) => context.delay,
+                delay: ({ context }) => {
+                  spy(context);
+                  return context.delay;
+                },
                 target: 'active'
               }
-            ],
-            on: {
-              ACTIVATE: 'active',
-              NOEXPR: 'activeNoExpr'
-            }
-          },
-          active: {
-            after: [
-              {
-                delay: 'someDelay',
-                target: 'inactive'
-              }
             ]
           },
-          activeNoExpr: {
-            after: [
-              {
-                delay: 'nonExistantDelay',
-                target: 'inactive'
-              }
-            ]
-          }
+          active: {}
         }
-      },
-      {
-        delays: {
-          someDelay: ({ context, event }) =>
-            context.delay + (event as any).delay
-        }
-      }
-    );
+      });
 
-    it('should evaluate the expression (function) to determine the delay', () => {
-      const { initialState } = delayExprMachine;
+      const actor = interpret(machine).start();
 
-      const sendActions = initialState.actions.filter(
-        (a) => a.type === actionTypes.send
-      );
+      expect(spy).toBeCalledWith(context);
+      expect(actor.getSnapshot().value).toBe('inactive');
 
-      expect(sendActions.length).toBe(1);
+      jest.advanceTimersByTime(300);
+      expect(actor.getSnapshot().value).toBe('inactive');
 
-      expect(sendActions[0].params?.delay).toEqual(1000);
+      jest.advanceTimersByTime(200);
+      expect(actor.getSnapshot().value).toBe('active');
     });
 
     it('should evaluate the expression (string) to determine the delay', () => {
-      const { initialState } = delayExprMachine;
-      const activeState = delayExprMachine.transition(initialState, {
-        type: 'ACTIVATE',
-        delay: 500
-      });
-
-      const sendActions = activeState.actions.filter(
-        (a) => a.type === actionTypes.send
+      jest.useFakeTimers();
+      const spy = jest.fn();
+      const machine = createMachine(
+        {
+          initial: 'inactive',
+          states: {
+            inactive: {
+              on: {
+                ACTIVATE: 'active'
+              }
+            },
+            active: {
+              after: [
+                {
+                  delay: 'someDelay',
+                  target: 'inactive'
+                }
+              ]
+            }
+          }
+        },
+        {
+          delays: {
+            someDelay: ({ event }) => {
+              spy(event);
+              return (event as any).delay;
+            }
+          }
+        }
       );
 
-      expect(sendActions.length).toBe(1);
+      const actor = interpret(machine).start();
 
-      expect(sendActions[0].params?.delay).toEqual(1000 + 500);
+      const event = {
+        type: 'ACTIVATE',
+        delay: 500
+      } as const;
+      actor.send(event);
+
+      expect(spy).toBeCalledWith(event);
+      expect(actor.getSnapshot().value).toBe('active');
+
+      jest.advanceTimersByTime(300);
+      expect(actor.getSnapshot().value).toBe('active');
+
+      jest.advanceTimersByTime(200);
+      expect(actor.getSnapshot().value).toBe('inactive');
     });
 
     it('should set delay to undefined if expression not found', () => {
-      const { initialState } = delayExprMachine;
-      const activeState = delayExprMachine.transition(initialState, {
+      const machine = createMachine(
+        {
+          initial: 'inactive',
+          states: {
+            inactive: {
+              on: {
+                NOEXPR: 'activeNoExpr'
+              }
+            },
+            activeNoExpr: {
+              after: [
+                {
+                  delay: 'nonExistantDelay',
+                  target: 'inactive'
+                }
+              ]
+            }
+          }
+        },
+        {
+          delays: {
+            someDelay: ({ context, event }) =>
+              context.delay + (event as any).delay
+          }
+        }
+      );
+      const { initialState } = machine;
+      const activeState = machine.transition(initialState, {
         type: 'NOEXPR',
         delay: 500
       });
-
       const sendActions = activeState.actions.filter(
-        (a) => a.type === actionTypes.send
+        (a) => a.type === 'xstate.send'
       );
-
       expect(sendActions.length).toBe(1);
-
       expect(sendActions[0].params?.delay).toEqual(undefined);
     });
   });
