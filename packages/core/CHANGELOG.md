@@ -1,5 +1,11 @@
 # xstate
 
+## 5.0.0-alpha.4
+
+### Major Changes
+
+- [#3950](https://github.com/statelyai/xstate/pull/3950) [`e5ee0a1e8`](https://github.com/statelyai/xstate/commit/e5ee0a1e8da3487c405021901e0642f773a7e75e) Thanks [@Andarist](https://github.com/Andarist)! - Actions are no longer called with `state`
+
 ## 5.0.0-alpha.3
 
 ### Major Changes
