@@ -2031,7 +2031,7 @@ describe('actions config', () => {
 });
 
 describe('action meta', () => {
-  it('should provide the original action and state to the exec function', (done) => {
+  it('should provide the original action', (done) => {
     const testMachine = createMachine(
       {
         id: 'test',
@@ -2049,8 +2049,7 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ state, action }) => {
-            expect(state.value).toEqual('foo');
+          entryAction: ({ action }) => {
             expect(action.type).toEqual('entryAction');
             expect(action.params?.value).toEqual('something');
             done();

@@ -53,13 +53,12 @@ export function assign<
         );
       }
 
-      const args: AssignMeta<TContext, TExpressionEvent, TEvent> & {
+      const args: AssignMeta<TExpressionEvent, TEvent> & {
         context: TContext;
         event: TExpressionEvent;
       } = {
         context: state.context,
         event: _event.data,
-        state: state as any,
         action,
         _event,
         spawn: createSpawner(

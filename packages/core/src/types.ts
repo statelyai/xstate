@@ -107,17 +107,16 @@ export interface BaseDynamicActionObject<
     args: {
       context: TContext;
       event: TExpressionEvent;
-    } & ActionMeta<TContext, TEvent, ParameterizedObject>
+    } & ActionMeta<TEvent, ParameterizedObject>
   ): void;
 }
 
 export type MachineContext = Record<string, any>;
 
 export interface ActionMeta<
-  TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject
-> extends StateMeta<TContext, TEvent> {
+> extends StateMeta<TEvent> {
   action: TAction;
   _event: SCXML.Event<TEvent>;
 }
@@ -136,10 +135,9 @@ export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: rea
   : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
 
 export interface AssignMeta<
-  TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   _TEvent extends EventObject
-> extends StateMeta<TContext, TExpressionEvent> {
+> extends StateMeta<TExpressionEvent> {
   action: BaseActionObject;
   _event: SCXML.Event<TExpressionEvent>;
   spawn: Spawner;
@@ -154,7 +152,7 @@ export type ActionFunction<
   args: {
     context: TContext;
     event: TExpressionEvent;
-  } & ActionMeta<TContext, TEvent, TAction>
+  } & ActionMeta<TEvent, TAction>
 ) => void;
 
 export interface ChooseCondition<
@@ -1246,7 +1244,7 @@ export type ExprWithMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (args: UnifiedArg<TContext, TEvent> & StateMeta<TContext, TEvent>) => T;
+> = (args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent>) => T;
 
 export type SendExpr<
   TContext extends MachineContext,
@@ -1318,7 +1316,7 @@ export type Assigner<
   args: {
     context: TContext;
     event: TExpressionEvent;
-  } & AssignMeta<TContext, TExpressionEvent, TEvent>
+  } & AssignMeta<TExpressionEvent, TEvent>
 ) => Partial<TContext>;
 
 export type PartialAssigner<
@@ -1330,7 +1328,7 @@ export type PartialAssigner<
   args: {
     context: TContext;
     event: TExpressionEvent;
-  } & AssignMeta<TContext, TExpressionEvent, TEvent>
+  } & AssignMeta<TExpressionEvent, TEvent>
 ) => TContext[TKey];
 
 export type PropertyAssigner<
@@ -1512,11 +1510,7 @@ export interface Segment<
   event: TEvent;
 }
 
-export interface StateMeta<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  state: State<TContext, TEvent, any>;
+export interface StateMeta<TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
   self: ActorRef<TEvent>;
   system: ActorSystem<any>;
