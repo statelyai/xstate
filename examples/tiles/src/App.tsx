@@ -69,8 +69,6 @@ function Tile({
 
 function App() {
   const [state, send] = useMachine(tilesMachine);
-  console.log(state.value, state.event.type);
-  console.log(state.context);
 
   return (
     <div className="App">
@@ -112,7 +110,12 @@ function App() {
           );
         })}
       </TileGrid>
-      <button onClick={() => send({ type: 'shuffle' })}>Shuffle</button>
+      <button
+        onClick={() => send({ type: 'shuffle' })}
+        disabled={!state.can({ type: 'shuffle' })}
+      >
+        Shuffle
+      </button>
     </div>
   );
 }

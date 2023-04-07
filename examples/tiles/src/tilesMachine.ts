@@ -28,7 +28,11 @@ export const tilesMachine = createMachine({
   states: {
     start: {},
     gameOver: {
-      id: 'gameOver'
+      id: 'gameOver',
+      // make the game replayable
+      on: {
+        shuffle: { target: 'playing', actions: ['shuffleTiles'] }
+      }
     },
     playing: {
       on: {
@@ -73,13 +77,12 @@ export const tilesMachine = createMachine({
               target: '#selecting'
             }
           }
-          // always: {
-          //   cond: ({ tiles }) => tiles.every((tile, idx) => tile === idx),
-          //   target: '#gameOver'
-          // },
         }
       },
-
+      always: {
+        cond: 'allTilesInOrder',
+        target: '#gameOver'
+      },
       initial: 'selecting'
     }
   },
@@ -95,14 +98,12 @@ export const tilesMachine = createMachine({
       }
       const { x: hx, y: hy } = hovered;
       const { x: sx, y: sy } = selected;
-      return !(
-        hx < sx - 1 ||
-        hx > sx + 1 ||
-        hy < sy - 1 ||
-        hy > sy + 1 ||
-        (hx === sx && hy === sy)
+      return (
+        (hx === sx && Math.abs(hy - sy) === 1) ||
+        (hy === sy && Math.abs(hx - sx) === 1)
       );
-    }
+    },
+    allTilesInOrder: ({ tiles }) => tiles.every((tile, idx) => tile === idx)
   },
   actions: {
     clearSelectedTile: assign({
