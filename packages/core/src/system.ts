@@ -1,4 +1,4 @@
-import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.js';
+import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.ts';
 
 export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
   let sessionIdCounter = 0;

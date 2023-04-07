@@ -1,6 +1,6 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { AnyActorRef, createMachine, interpret } from '../src/index.js';
+import { AnyActorRef, createMachine, interpret } from '../src/index.ts';
 import {
   fromObservable,
   fromPromise,
