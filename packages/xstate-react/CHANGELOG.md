@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.0-alpha.2
+
+### Patch Changes
+
+- [#3944](https://github.com/statelyai/xstate/pull/3944) [`305a89001`](https://github.com/statelyai/xstate/commit/305a89001d229f43eb85cd7bd06e797c3fb4f78a) Thanks [@Andarist](https://github.com/Andarist)! - Releasing adjusted internals to make the alpha version of this module compatible with the current version of `xstate@alpha`
+
 ## 3.2.1
 
 ### Patch Changes

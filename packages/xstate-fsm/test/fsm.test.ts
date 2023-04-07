@@ -235,14 +235,14 @@ describe('interpreter', () => {
     }
   });
 
-  it('listeners should immediately get the initial state', (done) => {
-    const toggleService = interpret(toggleMachine).start();
+  it('listeners should not immediately get the initial state', () => {
+    const spy = jest.fn();
 
-    toggleService.subscribe((state) => {
-      if (state.matches('active')) {
-        done();
-      }
-    });
+    const toggleService = interpret(toggleMachine);
+    toggleService.subscribe(spy);
+    toggleService.start();
+
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('listeners should subscribe to state changes', (done) => {
