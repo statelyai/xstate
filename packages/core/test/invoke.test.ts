@@ -812,13 +812,12 @@ describe('invoke', () => {
       });
 
       // tslint:disable-next-line:max-line-length
-      it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', (done) => {
+      it('should be invoked with a promise factory and stop on unhandled onError target', (done) => {
         const doneSpy = jest.fn();
 
         const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
-          strict: true,
           states: {
             pending: {
               invoke: {
