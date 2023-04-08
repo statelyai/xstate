@@ -1,8 +1,5 @@
 ---
 'xstate': major
-'@xstate/fsm': major
-'@xstate/react': major
-'@xstate/vue': major
 ---
 
 The output data on final states is now specified as `.output` instead of `.data`:
