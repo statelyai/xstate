@@ -80,12 +80,9 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
       stateNode.type === 'final' && stateNode.parent === machine.root
   );
 
-  const doneData =
-    finalChildStateNode && finalChildStateNode.doneData
-      ? mapContext(finalChildStateNode.doneData, context, _event)
-      : undefined;
-
-  return doneData;
+  return finalChildStateNode && finalChildStateNode.output
+    ? mapContext(finalChildStateNode.output, context, _event)
+    : undefined;
 }
 
 const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
@@ -1272,9 +1269,9 @@ function enterStates(
         toSCXMLEvent(
           done(
             parent!.id,
-            stateNodeToEnter.doneData
+            stateNodeToEnter.output
               ? mapContext(
-                  stateNodeToEnter.doneData,
+                  stateNodeToEnter.output,
                   currentState.context,
                   currentState._event
                 )

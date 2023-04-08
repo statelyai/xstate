@@ -66,7 +66,7 @@ describe('json', () => {
         },
         testFinal: {
           type: 'final',
-          data: {
+          output: {
             something: 'else'
           }
         },
