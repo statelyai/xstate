@@ -566,6 +566,10 @@ export function resolveTarget(
     if (!isString(target)) {
       return target;
     }
+    if (isStateId(target)) {
+      return stateNode.machine.getStateNodeById(target);
+    }
+
     const isInternalTarget = target[0] === stateNode.machine.delimiter;
     // If internal target is defined on machine,
     // do not include machine key on target
@@ -586,7 +590,9 @@ export function resolveTarget(
         );
       }
     } else {
-      return getStateNodeByPath(stateNode, resolvedTarget);
+      throw new Error(
+        `Invalid target: "${target}" is not a valid target from the root node. Did you mean ".${target}"?`
+      );
     }
   });
 }
@@ -668,7 +674,7 @@ export function getStateNode(
  *
  * @param statePath The string or string array relative path to the state node.
  */
-function getStateNodeByPath(
+export function getStateNodeByPath(
   stateNode: AnyStateNode,
   statePath: string | string[]
 ): AnyStateNode {

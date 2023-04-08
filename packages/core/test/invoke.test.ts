@@ -327,7 +327,7 @@ describe('invoke', () => {
       },
       on: {
         SUCCESS: {
-          target: 'success',
+          target: '.success',
           guard: ({ event }) => {
             return event.data === 42;
           }

@@ -2100,30 +2100,26 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
     const spy = jest.fn();
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: 'b'
-            }
-          },
-          b: {
-            entry: [
-              'definedAction',
-              { type: 'definedAction' },
-              'undefinedAction'
-            ]
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: 'b'
           }
+        },
+        b: {
+          entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
         }
       },
-      {
-        actions: {
-          definedAction: spy
-        }
+      on: {
+        E: '.a'
       }
-    );
+    }).provide({
+      actions: {
+        definedAction: spy
+      }
+    });
 
     const actor = interpret(machine).start();
     actor.send({ type: 'EVENT' });
