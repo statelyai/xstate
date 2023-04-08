@@ -193,11 +193,11 @@ export interface ResolveTypegenMeta<
       AllowAllEvents & {
         indexedActions: IndexByType<TAction>;
         indexedEvents: Record<string, TEvent> & {
-          __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
+          __XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__: { output: any };
         };
         invokeSrcNameMap: Record<
           string,
-          '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'
+          '__XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__'
         >;
       };
   }[IsNever<TTypesMeta> extends true

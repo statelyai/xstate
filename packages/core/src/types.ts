@@ -1029,7 +1029,7 @@ export interface MachineConfig<
   tsTypes?: TTypesMeta;
 }
 
-export type ActorMap = Record<string, { data: any }>;
+export type ActorMap = Record<string, { output: any }>;
 export interface MachineSchema<
   TContext extends MachineContext,
   TEvent extends EventObject,
