@@ -1,13 +1,11 @@
 import {
   createMachine,
-  EventObject,
   interpret,
   InterpreterStatus,
   MachineImplementationsFrom,
   ServiceFrom,
   StateFrom,
-  StateMachine,
-  Typestate
+  StateMachine
 } from '@xstate/fsm';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
@@ -17,22 +15,6 @@ import useConstant from './useConstant.ts';
 function identity<T>(a: T): T {
   return a;
 }
-
-const getServiceState = <
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  service: StateMachine.Service<TContext, TEvent, TState>
-): StateMachine.State<TContext, TEvent, TState> => {
-  let currentValue: StateMachine.State<TContext, TEvent, TState>;
-  service
-    .subscribe((state) => {
-      currentValue = state;
-    })
-    .unsubscribe();
-  return currentValue!;
-};
 
 export function useMachine<TMachine extends StateMachine.AnyMachine>(
   stateMachine: TMachine,
@@ -102,7 +84,7 @@ const isEqual = (
 export function useService<TService extends StateMachine.AnyService>(
   service: TService
 ): [StateFrom<TService>, TService['send'], TService] {
-  const getSnapshot = useCallback(() => getServiceState(service), [service]);
+  const getSnapshot = useCallback(() => service.state, [service]);
 
   const subscribe = useCallback(
     (handleStoreChange) => {

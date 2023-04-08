@@ -493,6 +493,7 @@ export class StateMachine<
     });
 
     restoredState.context = context;
+    restoredState.actions = [];
 
     return restoredState;
   }

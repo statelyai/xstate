@@ -261,7 +261,6 @@ export function interpret<
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {
       listeners.add(listener);
-      listener(state);
 
       return {
         unsubscribe: () => listeners.delete(listener)

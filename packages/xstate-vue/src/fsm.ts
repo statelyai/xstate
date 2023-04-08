@@ -7,22 +7,6 @@ import {
   Typestate
 } from '@xstate/fsm';
 
-const getServiceValue = <
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  service: StateMachine.Service<TContext, TEvent, TState>
-): StateMachine.State<TContext, TEvent, TState> => {
-  let currentValue: StateMachine.State<TContext, TEvent, TState>;
-  service
-    .subscribe((state) => {
-      currentValue = state;
-    })
-    .unsubscribe();
-  return currentValue!;
-};
-
 export function useMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject
@@ -44,7 +28,7 @@ export function useMachine<
   ).start();
 
   const state = shallowRef<StateMachine.State<TContext, TEvent, any>>(
-    getServiceValue(service)
+    service.state
   );
 
   onMounted(() => {
@@ -81,7 +65,7 @@ export function useService<
   watch(
     serviceRef,
     (service, _, onCleanup) => {
-      state.value = getServiceValue(service);
+      state.value = service.state;
 
       const { unsubscribe } = service.subscribe((currentState) => {
         if (currentState.changed) {

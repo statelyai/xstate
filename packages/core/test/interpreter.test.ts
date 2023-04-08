@@ -105,43 +105,34 @@ describe('interpreter', () => {
       }, 100);
     });
 
-    // https://github.com/statelyai/xstate/issues/1174
-    it('executes actions from a restored state', (done) => {
-      const lightMachine = createMachine(
-        {
-          id: 'light',
-          initial: 'green',
-          states: {
-            green: {
-              on: {
-                TIMER: {
-                  target: 'yellow',
-                  actions: 'report'
-                }
-              }
-            },
-            yellow: {
-              on: {
-                TIMER: {
-                  target: 'red'
-                }
-              }
-            },
-            red: {
-              on: {
-                TIMER: 'green'
+    it('does not execute actions from a restored state', () => {
+      const reportSpy = jest.fn();
+      const lightMachine = createMachine({
+        id: 'light',
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: {
+                target: 'yellow',
+                actions: reportSpy
               }
             }
-          }
-        },
-        {
-          actions: {
-            report: () => {
-              done();
+          },
+          yellow: {
+            on: {
+              TIMER: {
+                target: 'red'
+              }
+            }
+          },
+          red: {
+            on: {
+              TIMER: 'green'
             }
           }
         }
-      );
+      });
 
       const currentState = 'green';
       const nextState = lightMachine.transition(currentState, {
@@ -154,6 +145,8 @@ describe('interpreter', () => {
 
       const service = interpret(lightMachine, { state: restoredState });
       service.start();
+
+      expect(reportSpy).not.toHaveBeenCalled();
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
