@@ -124,9 +124,9 @@ describe('final states', () => {
           },
           onDone: {
             target: 'success',
-            actions: assign<Ctx, AnyEventObject>({
+            actions: assign({
               revealedSecret: ({ event }) => {
-                return event.data.secret;
+                return event.output.secret;
               }
             })
           }

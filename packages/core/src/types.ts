@@ -553,7 +553,7 @@ export interface InvokeConfig<
   onError?:
     | string
     | SingleOrArray<
-        TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+        TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent>
       >;
 
   onSnapshot?:
@@ -1104,7 +1104,7 @@ export interface RaiseActionObject<
 
 export interface DoneInvokeEvent<TData> extends EventObject {
   type: `done.invoke.${string}`;
-  data: TData;
+  output: TData;
 }
 
 export interface ErrorEvent<TErrorData> {
@@ -1136,7 +1136,7 @@ export interface SCXMLErrorEvent extends SCXML.Event<any> {
 }
 
 export interface DoneEventObject extends EventObject {
-  data?: any;
+  output?: any;
   toString(): string;
 }
 
