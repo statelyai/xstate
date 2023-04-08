@@ -117,7 +117,7 @@ describe('final states', () => {
             },
             reveal: {
               type: 'final',
-              data: {
+              output: {
                 secret: () => 'the secret'
               }
             }
@@ -161,7 +161,7 @@ describe('final states', () => {
         },
         end: {
           type: 'final',
-          data: spy
+          output: spy
         }
       }
     });

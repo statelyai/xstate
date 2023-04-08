@@ -49,7 +49,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      data: { user: ({ event }) => event.user }
+      output: { user: ({ event }) => event.user }
     },
     failure: {
       entry: sendParent({ type: 'REJECT' })
@@ -195,7 +195,7 @@ describe('invoke', () => {
         },
         success: {
           type: 'final',
-          data: { user: ({ event }) => event.user }
+          output: { user: ({ event }) => event.user }
         },
         failure: {
           entry: sendParent({ type: 'REJECT' })
@@ -510,7 +510,7 @@ describe('invoke', () => {
         states: {
           active: {
             type: 'final',
-            data: { secret: 'pingpong' }
+            output: { secret: 'pingpong' }
           }
         }
       });

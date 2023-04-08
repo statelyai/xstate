@@ -187,7 +187,7 @@ export class StateNode<
     this.meta = this.config.meta;
     this.doneData =
       this.type === 'final'
-        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
+        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).output
         : undefined;
     this.tags = toArray(config.tags);
   }
@@ -239,7 +239,7 @@ export class StateNode<
       exit: this.exit,
       meta: this.meta,
       order: this.order || -1,
-      data: this.doneData,
+      output: this.doneData,
       invoke: this.invoke,
       description: this.description,
       tags: this.tags
