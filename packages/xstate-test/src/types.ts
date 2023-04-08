@@ -49,7 +49,7 @@ export interface TestStateNodeConfig<
     | 'exit'
     | 'meta'
     | 'always'
-    | 'data'
+    | 'output'
     | 'id'
     | 'tags'
     | 'description'
