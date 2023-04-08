@@ -254,44 +254,38 @@ describe('types', () => {
 
 describe('context', () => {
   it('should infer context type from `config.context` when there is no `schema.context`', () => {
-    createMachine(
-      {
-        context: {
-          foo: 'test'
-        }
-      },
-      {
-        actions: {
-          someAction: ({ context }) => {
-            ((_accept: string) => {})(context.foo);
-            // @ts-expect-error
-            ((_accept: number) => {})(context.foo);
-          }
+    createMachine({
+      context: {
+        foo: 'test'
+      }
+    }).provide({
+      actions: {
+        someAction: ({ context }) => {
+          ((_accept: string) => {})(context.foo);
+          // @ts-expect-error
+          ((_accept: number) => {})(context.foo);
         }
       }
-    );
+    });
   });
 
   it('should not use actions as possible inference sites', () => {
-    createMachine(
-      {
-        schema: {
-          context: {} as {
-            count: number;
-          }
-        },
-        entry: () => {}
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        }
       },
-      {
-        actions: {
-          someAction: ({ context }) => {
-            ((_accept: number) => {})(context.count);
-            // @ts-expect-error
-            ((_accept: string) => {})(context.count);
-          }
+      entry: () => {}
+    }).provide({
+      actions: {
+        someAction: ({ context }) => {
+          ((_accept: number) => {})(context.count);
+          // @ts-expect-error
+          ((_accept: string) => {})(context.count);
         }
       }
-    );
+    });
   });
 
   it('should work with generic context', () => {
@@ -424,26 +418,23 @@ describe('events', () => {
   });
 
   it('action objects used within implementations parameter should get access to the provided event type', () => {
-    createMachine(
-      {
-        schema: {
-          context: {} as { numbers: number[] },
-          events: {} as { type: 'ADD'; number: number }
-        }
-      },
-      {
-        actions: {
-          addNumber: assign({
-            numbers: ({ context, event }) => {
-              ((_accept: number) => {})(event.number);
-              // @ts-expect-error
-              ((_accept: string) => {})(event.number);
-              return context.numbers.concat(event.number);
-            }
-          })
-        }
+    createMachine({
+      schema: {
+        context: {} as { numbers: number[] },
+        events: {} as { type: 'ADD'; number: number }
       }
-    );
+    }).provide({
+      actions: {
+        addNumber: assign({
+          numbers: ({ context, event }) => {
+            ((_accept: number) => {})(event.number);
+            // @ts-expect-error
+            ((_accept: string) => {})(event.number);
+            return context.numbers.concat(event.number);
+          }
+        })
+      }
+    });
   });
 
   it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {

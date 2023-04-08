@@ -114,19 +114,16 @@ describe('useMachine', () => {
       eventsCausingDelays: { barDelay: 'BAR' };
     }
 
-    const machine = createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          barDelay: () => 42
-        }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      delays: {
+        barDelay: () => 42
+      }
+    });
 
     function App() {
       useMachine(machine, {
@@ -325,19 +322,16 @@ describe('useInterpret', () => {
       eventsCausingDelays: { barDelay: 'BAR' };
     }
 
-    const machine = createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          barDelay: () => 42
-        }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      delays: {
+        barDelay: () => 42
+      }
+    });
 
     function App() {
       useInterpret(machine, {
@@ -670,19 +664,16 @@ describe('createActorContext', () => {
       eventsCausingDelays: { barDelay: 'BAR' };
     }
 
-    const machine = createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          barDelay: () => 42
-        }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      delays: {
+        barDelay: () => 42
+      }
+    });
 
     const Context = createActorContext(machine);
 

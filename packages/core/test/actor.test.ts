@@ -177,32 +177,29 @@ describe('spawning machines', () => {
       entry: sendParent({ type: 'DONE' })
     });
 
-    const parentMachine = createMachine(
-      {
-        context: {
-          ref: null! as ActorRef<any, any>
-        },
-        initial: 'waiting',
-        states: {
-          waiting: {
-            entry: assign({
-              ref: ({ spawn }) => spawn('child')
-            }),
-            on: {
-              DONE: 'success'
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const parentMachine = createMachine({
+      context: {
+        ref: null! as ActorRef<any, any>
       },
-      {
-        actors: {
-          child: childMachine
+      initial: 'waiting',
+      states: {
+        waiting: {
+          entry: assign({
+            ref: ({ spawn }) => spawn('child')
+          }),
+          on: {
+            DONE: 'success'
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    }).provide({
+      actors: {
+        child: childMachine
+      }
+    });
 
     interpret(parentMachine)
       .onDone(() => {
@@ -266,42 +263,39 @@ describe('spawning promises', () => {
   });
 
   it('should be able to spawn a referenced promise', (done) => {
-    const promiseMachine = createMachine<{ promiseRef?: ActorRef<any> }>(
-      {
-        id: 'promise',
-        initial: 'idle',
-        context: {
-          promiseRef: undefined
-        },
-        states: {
-          idle: {
-            entry: assign({
-              promiseRef: ({ spawn }) =>
-                spawn('somePromise', { id: 'my-promise' })
-            }),
-            on: {
-              [doneInvoke('my-promise')]: {
-                target: 'success',
-                guard: ({ event }) => event.data === 'response'
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const promiseMachine = createMachine<{ promiseRef?: ActorRef<any> }>({
+      id: 'promise',
+      initial: 'idle',
+      context: {
+        promiseRef: undefined
       },
-      {
-        actors: {
-          somePromise: fromPromise(
-            () =>
-              new Promise((res) => {
-                res('response');
-              })
-          )
+      states: {
+        idle: {
+          entry: assign({
+            promiseRef: ({ spawn }) =>
+              spawn('somePromise', { id: 'my-promise' })
+          }),
+          on: {
+            [doneInvoke('my-promise')]: {
+              target: 'success',
+              guard: ({ event }) => event.data === 'response'
+            }
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    }).provide({
+      actors: {
+        somePromise: fromPromise(
+          () =>
+            new Promise((res) => {
+              res('response');
+            })
+        )
+      }
+    });
 
     const promiseService = interpret(promiseMachine).onDone(() => {
       done();
@@ -398,36 +392,33 @@ describe('spawning observables', () => {
   });
 
   it('should spawn a referenced observable', (done) => {
-    const observableMachine = createMachine(
-      {
-        id: 'observable',
-        initial: 'idle',
-        context: {
-          observableRef: undefined! as ActorRef<any, any>
-        },
-        states: {
-          idle: {
-            entry: assign({
-              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
-            }),
-            on: {
-              'xstate.snapshot.int': {
-                target: 'success',
-                guard: ({ event }) => event.data === 5
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const observableMachine = createMachine({
+      id: 'observable',
+      initial: 'idle',
+      context: {
+        observableRef: undefined! as ActorRef<any, any>
       },
-      {
-        actors: {
-          interval: fromObservable(() => interval(10))
+      states: {
+        idle: {
+          entry: assign({
+            observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
+          }),
+          on: {
+            'xstate.snapshot.int': {
+              target: 'success',
+              guard: ({ event }) => event.data === 5
+            }
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    }).provide({
+      actors: {
+        interval: fromObservable(() => interval(10))
+      }
+    });
 
     const observableService = interpret(observableMachine).onDone(() => {
       done();
@@ -521,38 +512,35 @@ describe('spawning event observables', () => {
   });
 
   it('should spawn a referenced event observable', (done) => {
-    const observableMachine = createMachine(
-      {
-        id: 'observable',
-        initial: 'idle',
-        context: {
-          observableRef: undefined! as ActorRef<any, any>
-        },
-        states: {
-          idle: {
-            entry: assign({
-              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
-            }),
-            on: {
-              COUNT: {
-                target: 'success',
-                guard: ({ event }) => event.val === 5
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const observableMachine = createMachine({
+      id: 'observable',
+      initial: 'idle',
+      context: {
+        observableRef: undefined! as ActorRef<any, any>
       },
-      {
-        actors: {
-          interval: fromEventObservable(() =>
-            interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
-          )
+      states: {
+        idle: {
+          entry: assign({
+            observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
+          }),
+          on: {
+            COUNT: {
+              target: 'success',
+              guard: ({ event }) => event.val === 5
+            }
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    }).provide({
+      actors: {
+        interval: fromEventObservable(() =>
+          interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+        )
+      }
+    });
 
     const observableService = interpret(observableMachine).onDone(() => {
       done();
@@ -1092,21 +1080,18 @@ describe('actors', () => {
 
     const parentMachine = createMachine<{
       child: ActorRefFrom<typeof childMachine> | null;
-    }>(
-      {
-        context: {
-          child: null
-        },
-        entry: 'setup'
+    }>({
+      context: {
+        child: null
       },
-      {
-        actions: {
-          setup: assign({
-            child: ({ spawn }) => spawn(childMachine)
-          })
-        }
+      entry: 'setup'
+    }).provide({
+      actions: {
+        setup: assign({
+          child: ({ spawn }) => spawn(childMachine)
+        })
       }
-    );
+    });
     const service = interpret(parentMachine);
     expect(() => {
       service.start();

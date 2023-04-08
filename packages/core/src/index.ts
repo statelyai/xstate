@@ -17,7 +17,7 @@ import { raise } from './actions/raise.ts';
 import { send } from './actions/send.ts';
 import { stop } from './actions/stop.ts';
 import { interpret, Interpreter, ActorStatus } from './interpreter.ts';
-import { createMachine } from './Machine.ts';
+import { createMachine } from './StateMachine.ts';
 import { mapState } from './mapState.ts';
 import { State } from './State.ts';
 import { StateNode } from './StateNode.ts';

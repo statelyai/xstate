@@ -65,49 +65,46 @@ describe('die hard example', () => {
   let jugs: Jugs;
 
   const createDieHardModel = () => {
-    const dieHardMachine = createMachine<DieHardContext>(
-      {
-        id: 'dieHard',
-        initial: 'pending',
-        context: { three: 0, five: 0 },
-        states: {
-          pending: {
-            always: {
-              target: 'success',
-              guard: 'weHave4Gallons'
-            },
-            on: {
-              POUR_3_TO_5: {
-                actions: pour3to5
-              },
-              POUR_5_TO_3: {
-                actions: pour5to3
-              },
-              FILL_3: {
-                actions: fill3
-              },
-              FILL_5: {
-                actions: fill5
-              },
-              EMPTY_3: {
-                actions: empty3
-              },
-              EMPTY_5: {
-                actions: empty5
-              }
-            }
+    const dieHardMachine = createMachine<DieHardContext>({
+      id: 'dieHard',
+      initial: 'pending',
+      context: { three: 0, five: 0 },
+      states: {
+        pending: {
+          always: {
+            target: 'success',
+            guard: 'weHave4Gallons'
           },
-          success: {
-            type: 'final'
+          on: {
+            POUR_3_TO_5: {
+              actions: pour3to5
+            },
+            POUR_5_TO_3: {
+              actions: pour5to3
+            },
+            FILL_3: {
+              actions: fill3
+            },
+            FILL_5: {
+              actions: fill5
+            },
+            EMPTY_3: {
+              actions: empty3
+            },
+            EMPTY_5: {
+              actions: empty5
+            }
           }
-        }
-      },
-      {
-        guards: {
-          weHave4Gallons: ({ context }) => context.five === 4
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    }).provide({
+      guards: {
+        weHave4Gallons: ({ context }) => context.five === 4
+      }
+    });
 
     const options = {
       states: {

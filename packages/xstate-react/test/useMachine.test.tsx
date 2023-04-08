@@ -405,26 +405,23 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   it('should only render once when initial microsteps are involved', () => {
     let rerenders = 0;
 
-    const m = createMachine<{ stuff: number[] }>(
-      {
-        initial: 'init',
-        context: { stuff: [1, 2, 3] },
-        states: {
-          init: {
-            entry: 'setup',
-            always: 'ready'
-          },
-          ready: {}
-        }
-      },
-      {
-        actions: {
-          setup: assign({
-            stuff: ({ context }) => [...context.stuff, 4]
-          })
-        }
+    const m = createMachine<{ stuff: number[] }>({
+      initial: 'init',
+      context: { stuff: [1, 2, 3] },
+      states: {
+        init: {
+          entry: 'setup',
+          always: 'ready'
+        },
+        ready: {}
       }
-    );
+    }).provide({
+      actions: {
+        setup: assign({
+          stuff: ({ context }) => [...context.stuff, 4]
+        })
+      }
+    });
 
     const App = () => {
       useMachine(m);
@@ -447,32 +444,29 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   it('should maintain the same reference for objects created when resolving initial state', () => {
     let effectsFired = 0;
 
-    const m = createMachine<{ counter: number; stuff: number[] }>(
-      {
-        initial: 'init',
-        context: { counter: 0, stuff: [1, 2, 3] },
-        states: {
-          init: {
-            entry: 'setup'
-          }
-        },
-        on: {
-          INC: {
-            actions: 'increase'
-          }
+    const m = createMachine<{ counter: number; stuff: number[] }>({
+      initial: 'init',
+      context: { counter: 0, stuff: [1, 2, 3] },
+      states: {
+        init: {
+          entry: 'setup'
         }
       },
-      {
-        actions: {
-          setup: assign({
-            stuff: ({ context }) => [...context.stuff, 4]
-          }),
-          increase: assign({
-            counter: ({ context }) => ++context.counter
-          })
+      on: {
+        INC: {
+          actions: 'increase'
         }
       }
-    );
+    }).provide({
+      actions: {
+        setup: assign({
+          stuff: ({ context }) => [...context.stuff, 4]
+        }),
+        increase: assign({
+          counter: ({ context }) => ++context.counter
+        })
+      }
+    });
 
     const App = () => {
       const [state, send] = useMachine(m);
@@ -534,20 +528,17 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   it('should be able to use an action provided outside of React', () => {
     let actionCalled = false;
 
-    const machine = createMachine(
-      {
-        on: {
-          EV: {
-            actions: 'foo'
-          }
-        }
-      },
-      {
-        actions: {
-          foo: () => (actionCalled = true)
+    const machine = createMachine({
+      on: {
+        EV: {
+          actions: 'foo'
         }
       }
-    );
+    }).provide({
+      actions: {
+        foo: () => (actionCalled = true)
+      }
+    });
 
     const App = () => {
       const [_state, send] = useMachine(machine);
@@ -565,30 +556,27 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   it('should be able to use a guard provided outside of React', () => {
     let guardCalled = false;
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: {
-                guard: 'isAwesome',
-                target: 'b'
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: {
+              guard: 'isAwesome',
+              target: 'b'
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          isAwesome: () => {
-            guardCalled = true;
-            return true;
           }
+        },
+        b: {}
+      }
+    }).provide({
+      guards: {
+        isAwesome: () => {
+          guardCalled = true;
+          return true;
         }
       }
-    );
+    });
 
     const App = () => {
       const [_state, send] = useMachine(machine);
@@ -606,31 +594,28 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   it('should be able to use a service provided outside of React', () => {
     let serviceCalled = false;
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            invoke: {
-              src: 'foo'
-            }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: 'foo'
           }
         }
-      },
-      {
-        actors: {
-          foo: fromPromise(() => {
-            serviceCalled = true;
-            return Promise.resolve();
-          })
-        }
       }
-    );
+    }).provide({
+      actors: {
+        foo: fromPromise(() => {
+          serviceCalled = true;
+          return Promise.resolve();
+        })
+      }
+    });
 
     const App = () => {
       const [_state, send] = useMachine(machine);
@@ -648,31 +633,28 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   it('should be able to use a delay provided outside of React', () => {
     jest.useFakeTimers();
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            after: {
-              myDelay: 'c'
-            }
-          },
-          c: {}
-        }
-      },
-      {
-        delays: {
-          myDelay: () => {
-            return 300;
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
           }
+        },
+        b: {
+          after: {
+            myDelay: 'c'
+          }
+        },
+        c: {}
+      }
+    }).provide({
+      delays: {
+        myDelay: () => {
+          return 300;
         }
       }
-    );
+    });
 
     const App = () => {
       const [state, send] = useMachine(machine);

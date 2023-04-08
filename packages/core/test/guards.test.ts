@@ -15,60 +15,57 @@ describe('guard conditions', () => {
     | { type: 'TIMER_COND_OBJ' }
     | { type: 'BAD_COND' };
 
-  const lightMachine = createMachine<LightMachineCtx, LightMachineEvents>(
-    {
-      initial: 'green',
-      states: {
-        green: {
-          on: {
-            TIMER: [
-              {
-                target: 'green',
-                guard: ({ context: { elapsed } }) => elapsed < 100
-              },
-              {
-                target: 'yellow',
-                guard: ({ context: { elapsed } }) =>
-                  elapsed >= 100 && elapsed < 200
-              }
-            ],
-            EMERGENCY: {
-              target: 'red',
-              guard: ({ event }) => !!event.isEmergency
-            }
-          }
-        },
-        yellow: {
-          on: {
-            TIMER: {
-              target: 'red',
-              guard: 'minTimeElapsed'
+  const lightMachine = createMachine<LightMachineCtx, LightMachineEvents>({
+    initial: 'green',
+    states: {
+      green: {
+        on: {
+          TIMER: [
+            {
+              target: 'green',
+              guard: ({ context: { elapsed } }) => elapsed < 100
             },
-            TIMER_COND_OBJ: {
-              target: 'red',
-              guard: {
-                type: 'minTimeElapsed'
-              }
+            {
+              target: 'yellow',
+              guard: ({ context: { elapsed } }) =>
+                elapsed >= 100 && elapsed < 200
             }
+          ],
+          EMERGENCY: {
+            target: 'red',
+            guard: ({ event }) => !!event.isEmergency
           }
-        },
-        red: {
-          on: {
-            BAD_COND: {
-              target: 'red',
-              guard: 'doesNotExist'
+        }
+      },
+      yellow: {
+        on: {
+          TIMER: {
+            target: 'red',
+            guard: 'minTimeElapsed'
+          },
+          TIMER_COND_OBJ: {
+            target: 'red',
+            guard: {
+              type: 'minTimeElapsed'
             }
           }
         }
-      }
-    },
-    {
-      guards: {
-        minTimeElapsed: ({ context: { elapsed } }) =>
-          elapsed >= 100 && elapsed < 200
+      },
+      red: {
+        on: {
+          BAD_COND: {
+            target: 'red',
+            guard: 'doesNotExist'
+          }
+        }
       }
     }
-  );
+  }).provide({
+    guards: {
+      minTimeElapsed: ({ context: { elapsed } }) =>
+        elapsed >= 100 && elapsed < 200
+    }
+  });
 
   it('should transition only if condition is met', () => {
     expect(
@@ -339,43 +336,38 @@ describe('custom guards', () => {
     type: 'EVENT';
     value: number;
   }
-  const machine = createMachine<Ctx, Events>(
-    {
-      id: 'custom',
-      initial: 'inactive',
-      context: {
-        count: 0
-      },
-      states: {
-        inactive: {
-          on: {
-            EVENT: {
-              target: 'active',
-              guard: {
-                type: 'custom',
-                params: { prop: 'count', op: 'greaterThan', compare: 3 }
-              }
+  const machine = createMachine<Ctx, Events>({
+    id: 'custom',
+    initial: 'inactive',
+    context: {
+      count: 0
+    },
+    states: {
+      inactive: {
+        on: {
+          EVENT: {
+            target: 'active',
+            guard: {
+              type: 'custom',
+              params: { prop: 'count', op: 'greaterThan', compare: 3 }
             }
           }
-        },
-        active: {}
-      }
-    },
-    {
-      guards: {
-        custom: ({ context, event, guard }) => {
-          const { prop, compare, op } = guard.params;
-          if (op === 'greaterThan') {
-            return (
-              context[prop as keyof typeof context] + event.value > compare
-            );
-          }
-
-          return false;
         }
+      },
+      active: {}
+    }
+  }).provide({
+    guards: {
+      custom: ({ context, event, guard }) => {
+        const { prop, compare, op } = guard.params;
+        if (op === 'greaterThan') {
+          return context[prop as keyof typeof context] + event.value > compare;
+        }
+
+        return false;
       }
     }
-  );
+  });
 
   it('should evaluate custom guards', () => {
     const passState = machine.transition(machine.initialState, {
@@ -396,37 +388,34 @@ describe('custom guards', () => {
 
 describe('referencing guards', () => {
   const stringGuardFn = () => true;
-  const guardsMachine = createMachine(
-    {
-      id: 'guards',
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            EVENT: [
-              { guard: 'string' },
-              {
-                guard: function guardFn() {
-                  return true;
-                }
-              },
-              {
-                guard: {
-                  type: 'object',
-                  params: { foo: 'bar' }
-                }
+  const guardsMachine = createMachine({
+    id: 'guards',
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          EVENT: [
+            { guard: 'string' },
+            {
+              guard: function guardFn() {
+                return true;
               }
-            ]
-          }
+            },
+            {
+              guard: {
+                type: 'object',
+                params: { foo: 'bar' }
+              }
+            }
+          ]
         }
       }
-    },
-    {
-      guards: {
-        string: stringGuardFn
-      }
     }
-  );
+  }).provide({
+    guards: {
+      string: stringGuardFn
+    }
+  });
 
   const def = guardsMachine.definition;
   const [stringGuard, functionGuard, objectGuard] = def.states.active.on.EVENT;
@@ -497,46 +486,43 @@ describe('guards with child guards', () => {
   it('guards can contain child guards', () => {
     expect.assertions(3);
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: {
-                  type: 'testGuard',
-                  children: [
-                    {
-                      type: 'customGuard',
-                      predicate: () => true
-                    },
-                    { type: 'customGuard' }
-                  ],
-                  predicate: ({ guard }) => {
-                    expect(guard.children).toHaveLength(2);
-                    expect(
-                      guard.children?.find(
-                        (childGuard: any) => childGuard.type === 'customGuard'
-                      )?.predicate
-                    ).toBeInstanceOf(Function);
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: {
+                type: 'testGuard',
+                children: [
+                  {
+                    type: 'customGuard',
+                    predicate: () => true
+                  },
+                  { type: 'customGuard' }
+                ],
+                predicate: ({ guard }) => {
+                  expect(guard.children).toHaveLength(2);
+                  expect(
+                    guard.children?.find(
+                      (childGuard: any) => childGuard.type === 'customGuard'
+                    )?.predicate
+                  ).toBeInstanceOf(Function);
 
-                    return true;
-                  }
+                  return true;
                 }
               }
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          customGuard: () => true
-        }
+          }
+        },
+        b: {}
       }
-    );
+    }).provide({
+      guards: {
+        customGuard: () => true
+      }
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
     expect(nextState.matches('b')).toBeTruthy();
@@ -566,27 +552,24 @@ describe('not() guard', () => {
   });
 
   it('should guard with string', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: not('falsy')
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: not('falsy')
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          falsy: () => false
-        }
+          }
+        },
+        b: {}
       }
-    );
+    }).provide({
+      guards: {
+        falsy: () => false
+      }
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
@@ -594,29 +577,26 @@ describe('not() guard', () => {
   });
 
   it('should guard with object', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: not({ type: 'greaterThan10', params: { value: 5 } })
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: not({ type: 'greaterThan10', params: { value: 5 } })
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
           }
+        },
+        b: {}
+      }
+    }).provide({
+      guards: {
+        greaterThan10: ({ guard }) => {
+          return guard.params.value > 10;
         }
       }
-    );
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
@@ -624,28 +604,25 @@ describe('not() guard', () => {
   });
 
   it('should guard with nested built-in guards', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: not(and([not('truthy'), 'truthy']))
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: not(and([not('truthy'), 'truthy']))
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          truthy: () => true,
-          falsy: () => false
-        }
+          }
+        },
+        b: {}
       }
-    );
+    }).provide({
+      guards: {
+        truthy: () => true,
+        falsy: () => false
+      }
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
@@ -676,27 +653,24 @@ describe('and() guard', () => {
   });
 
   it('should guard with string', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: and(['truthy', 'truthy'])
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: and(['truthy', 'truthy'])
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          truthy: () => true
-        }
+          }
+        },
+        b: {}
       }
-    );
+    }).provide({
+      guards: {
+        truthy: () => true
+      }
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
@@ -704,32 +678,29 @@ describe('and() guard', () => {
   });
 
   it('should guard with object', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: and([
-                  { type: 'greaterThan10', params: { value: 11 } },
-                  { type: 'greaterThan10', params: { value: 50 } }
-                ])
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: and([
+                { type: 'greaterThan10', params: { value: 11 } },
+                { type: 'greaterThan10', params: { value: 50 } }
+              ])
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
           }
+        },
+        b: {}
+      }
+    }).provide({
+      guards: {
+        greaterThan10: ({ guard }) => {
+          return guard.params.value > 10;
         }
       }
-    );
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
@@ -737,32 +708,29 @@ describe('and() guard', () => {
   });
 
   it('should guard with nested built-in guards', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: and([
-                  () => true,
-                  not('falsy'),
-                  and([not('falsy'), 'truthy'])
-                ])
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: and([
+                () => true,
+                not('falsy'),
+                and([not('falsy'), 'truthy'])
+              ])
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          truthy: () => true,
-          falsy: () => false
-        }
+          }
+        },
+        b: {}
       }
-    );
+    }).provide({
+      guards: {
+        truthy: () => true,
+        falsy: () => false
+      }
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
@@ -793,28 +761,25 @@ describe('or() guard', () => {
   });
 
   it('should guard with string', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: or(['falsy', 'truthy'])
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: or(['falsy', 'truthy'])
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          falsy: () => false,
-          truthy: () => true
-        }
+          }
+        },
+        b: {}
       }
-    );
+    }).provide({
+      guards: {
+        falsy: () => false,
+        truthy: () => true
+      }
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
@@ -822,32 +787,29 @@ describe('or() guard', () => {
   });
 
   it('should guard with object', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: or([
-                  { type: 'greaterThan10', params: { value: 4 } },
-                  { type: 'greaterThan10', params: { value: 50 } }
-                ])
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: or([
+                { type: 'greaterThan10', params: { value: 4 } },
+                { type: 'greaterThan10', params: { value: 50 } }
+              ])
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
           }
+        },
+        b: {}
+      }
+    }).provide({
+      guards: {
+        greaterThan10: ({ guard }) => {
+          return guard.params.value > 10;
         }
       }
-    );
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
@@ -855,32 +817,29 @@ describe('or() guard', () => {
   });
 
   it('should guard with nested built-in guards', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: or([
-                  () => false,
-                  not('truthy'),
-                  and([not('falsy'), 'truthy'])
-                ])
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              target: 'b',
+              guard: or([
+                () => false,
+                not('truthy'),
+                and([not('falsy'), 'truthy'])
+              ])
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          truthy: () => true,
-          falsy: () => false
-        }
+          }
+        },
+        b: {}
       }
-    );
+    }).provide({
+      guards: {
+        truthy: () => true,
+        falsy: () => false
+      }
+    });
 
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 

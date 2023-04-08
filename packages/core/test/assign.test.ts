@@ -263,22 +263,19 @@ describe('assign', () => {
 
 describe('assign meta', () => {
   it('should provide the parametrized action to the assigner', () => {
-    const machine = createMachine(
-      {
-        context: { count: 1 },
-        entry: {
-          type: 'inc',
-          params: { by: 10 }
-        }
-      },
-      {
-        actions: {
-          inc: assign(({ context, action }) => ({
-            count: context.count + action.params!.by
-          }))
-        }
+    const machine = createMachine({
+      context: { count: 1 },
+      entry: {
+        type: 'inc',
+        params: { by: 10 }
       }
-    );
+    }).provide({
+      actions: {
+        inc: assign(({ context, action }) => ({
+          count: context.count + action.params!.by
+        }))
+      }
+    });
 
     const actor = interpret(machine).start();
 
@@ -286,22 +283,19 @@ describe('assign meta', () => {
   });
 
   it('should provide the parametrized action to the partial assigner', () => {
-    const machine = createMachine(
-      {
-        context: { count: 1 },
-        entry: {
-          type: 'inc',
-          params: { by: 10 }
-        }
-      },
-      {
-        actions: {
-          inc: assign({
-            count: ({ context, action }) => context.count + action.params!.by
-          })
-        }
+    const machine = createMachine({
+      context: { count: 1 },
+      entry: {
+        type: 'inc',
+        params: { by: 10 }
       }
-    );
+    }).provide({
+      actions: {
+        inc: assign({
+          count: ({ context, action }) => context.count + action.params!.by
+        })
+      }
+    });
 
     const actor = interpret(machine).start();
 
@@ -392,27 +386,24 @@ describe('assign meta', () => {
     'a parameterized action that resolves to assign() should be provided the original' +
       'action in the action meta',
     (done) => {
-      const machine = createMachine(
-        {
-          on: {
-            EVENT: {
-              actions: {
-                type: 'inc',
-                params: { value: 5 }
-              }
+      const machine = createMachine({
+        on: {
+          EVENT: {
+            actions: {
+              type: 'inc',
+              params: { value: 5 }
             }
           }
-        },
-        {
-          actions: {
-            inc: assign(({ context, action }) => {
-              expect(action).toEqual({ type: 'inc', params: { value: 5 } });
-              done();
-              return context;
-            })
-          }
         }
-      );
+      }).provide({
+        actions: {
+          inc: assign(({ context, action }) => {
+            expect(action).toEqual({ type: 'inc', params: { value: 5 } });
+            done();
+            return context;
+          })
+        }
+      });
 
       const service = interpret(machine).start();
 

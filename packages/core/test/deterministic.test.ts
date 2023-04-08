@@ -1,5 +1,4 @@
-import { interpret } from '../src/index.ts';
-import { createMachine } from '../src/Machine.ts';
+import { interpret, createMachine } from '../src/index.ts';
 
 describe('deterministic machine', () => {
   const lightMachine = createMachine({

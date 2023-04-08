@@ -545,23 +545,20 @@ describe('entry/exit actions', () => {
 
     it("shouldn't use a referenced custom action over a builtin one when there is a naming conflict", () => {
       const spy = jest.fn();
-      const machine = createMachine(
-        {
-          context: {
-            assigned: false
-          },
-          on: {
-            EV: {
-              actions: assign({ assigned: true })
-            }
-          }
+      const machine = createMachine({
+        context: {
+          assigned: false
         },
-        {
-          actions: {
-            'xstate.assign': spy
+        on: {
+          EV: {
+            actions: assign({ assigned: true })
           }
         }
-      );
+      }).provide({
+        actions: {
+          'xstate.assign': spy
+        }
+      });
 
       const actor = interpret(machine).start();
       actor.send({ type: 'EV' });
@@ -574,23 +571,20 @@ describe('entry/exit actions', () => {
       const spy = jest.fn();
       let called = false;
 
-      const machine = createMachine(
-        {
-          on: {
-            EV: {
-              // it's important for this test to use a named function
-              actions: function myFn() {
-                called = true;
-              }
+      const machine = createMachine({
+        on: {
+          EV: {
+            // it's important for this test to use a named function
+            actions: function myFn() {
+              called = true;
             }
           }
-        },
-        {
-          actions: {
-            myFn: spy
-          }
         }
-      );
+      }).provide({
+        actions: {
+          myFn: spy
+        }
+      });
 
       const actor = interpret(machine).start();
       actor.send({ type: 'EV' });
@@ -1812,20 +1806,17 @@ describe('entry/exit actions', () => {
 
     it('should execute referenced custom actions correctly when stopping an interpreter', () => {
       let called = false;
-      const parent = createMachine(
-        {
-          id: 'parent',
-          context: {},
-          exit: 'referencedAction'
-        },
-        {
-          actions: {
-            referencedAction: () => {
-              called = true;
-            }
+      const parent = createMachine({
+        id: 'parent',
+        context: {},
+        exit: 'referencedAction'
+      }).provide({
+        actions: {
+          referencedAction: () => {
+            called = true;
           }
         }
-      );
+      });
 
       const interpreter = interpret(parent).start();
       interpreter.stop();
@@ -1834,32 +1825,29 @@ describe('entry/exit actions', () => {
     });
 
     it('should execute builtin actions correctly when stopping an interpreter', () => {
-      const machine = createMachine(
-        {
-          context: {
-            executedAssigns: [] as string[]
-          },
-          exit: [
-            'referencedAction',
-            assign({
-              executedAssigns: ({ context }) => [
-                ...context.executedAssigns,
-                'inline'
-              ]
-            })
-          ]
+      const machine = createMachine({
+        context: {
+          executedAssigns: [] as string[]
         },
-        {
-          actions: {
-            referencedAction: assign({
-              executedAssigns: ({ context }) => [
-                ...context.executedAssigns,
-                'referenced'
-              ]
-            })
-          }
+        exit: [
+          'referencedAction',
+          assign({
+            executedAssigns: ({ context }) => [
+              ...context.executedAssigns,
+              'inline'
+            ]
+          })
+        ]
+      }).provide({
+        actions: {
+          referencedAction: assign({
+            executedAssigns: ({ context }) => [
+              ...context.executedAssigns,
+              'referenced'
+            ]
+          })
         }
-      );
+      });
 
       const interpreter = interpret(machine).start();
       interpreter.stop();
@@ -2100,30 +2088,23 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
     const spy = jest.fn();
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: 'b'
-            }
-          },
-          b: {
-            entry: [
-              'definedAction',
-              { type: 'definedAction' },
-              'undefinedAction'
-            ]
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: 'b'
           }
-        }
-      },
-      {
-        actions: {
-          definedAction: spy
+        },
+        b: {
+          entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
         }
       }
-    );
+    }).provide({
+      actions: {
+        definedAction: spy
+      }
+    });
 
     const actor = interpret(machine).start();
     actor.send({ type: 'EVENT' });
@@ -2133,16 +2114,13 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options (initial state)', () => {
     const spy = jest.fn();
-    const machine = createMachine(
-      {
-        entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
-      },
-      {
-        actions: {
-          definedAction: spy
-        }
+    const machine = createMachine({
+      entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
+    }).provide({
+      actions: {
+        definedAction: spy
       }
-    );
+    });
 
     interpret(machine).start();
 
@@ -2150,36 +2128,33 @@ describe('actions config', () => {
   });
 
   it('should be able to reference action implementations from action objects', () => {
-    const machine = createMachine<Context, EventType>(
-      {
-        initial: 'a',
-        context: {
-          count: 0
-        },
-        states: {
-          a: {
-            entry: [
-              'definedAction',
-              { type: 'definedAction' },
-              'undefinedAction'
-            ],
-            on: {
-              EVENT: {
-                target: 'b',
-                actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
-              }
-            }
-          },
-          b: {}
-        }
+    const machine = createMachine<Context, EventType>({
+      initial: 'a',
+      context: {
+        count: 0
       },
-      {
-        actions: {
-          definedAction,
-          updateContext: assign({ count: 10 })
-        }
+      states: {
+        a: {
+          entry: [
+            'definedAction',
+            { type: 'definedAction' },
+            'undefinedAction'
+          ],
+          on: {
+            EVENT: {
+              target: 'b',
+              actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
+            }
+          }
+        },
+        b: {}
       }
-    );
+    }).provide({
+      actions: {
+        definedAction,
+        updateContext: assign({ count: 10 })
+      }
+    });
     const state = machine.transition('a', { type: 'EVENT' });
 
     // expect(state.actions).toEqual([
@@ -2231,31 +2206,28 @@ describe('actions config', () => {
 
 describe('action meta', () => {
   it('should provide the original action', (done) => {
-    const testMachine = createMachine(
-      {
-        id: 'test',
-        initial: 'foo',
-        states: {
-          foo: {
-            entry: {
-              type: 'entryAction',
-              params: {
-                value: 'something'
-              }
+    const testMachine = createMachine({
+      id: 'test',
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: {
+            type: 'entryAction',
+            params: {
+              value: 'something'
             }
           }
         }
-      },
-      {
-        actions: {
-          entryAction: ({ action }) => {
-            expect(action.type).toEqual('entryAction');
-            expect(action.params?.value).toEqual('something');
-            done();
-          }
+      }
+    }).provide({
+      actions: {
+        entryAction: ({ action }) => {
+          expect(action.type).toEqual('entryAction');
+          expect(action.params?.value).toEqual('something');
+          done();
         }
       }
-    );
+    });
 
     interpret(testMachine).start();
   });
@@ -2264,24 +2236,21 @@ describe('action meta', () => {
 describe('purely defined actions', () => {
   it('should allow for a purely defined dynamic action', () => {
     const spy = jest.fn();
-    const machine = createMachine(
-      {
-        context: {
-          items: [{ id: 1 }, { id: 2 }, { id: 3 }]
-        },
-        entry: pure(({ context }) => {
-          return {
-            type: 'doSomething',
-            params: { length: context.items.length }
-          };
-        })
+    const machine = createMachine({
+      context: {
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }]
       },
-      {
-        actions: {
-          doSomething: ({ action }) => spy(action.params)
-        }
+      entry: pure(({ context }) => {
+        return {
+          type: 'doSomething',
+          params: { length: context.items.length }
+        };
+      })
+    }).provide({
+      actions: {
+        doSomething: ({ action }) => spy(action.params)
       }
-    );
+    });
 
     interpret(machine).start();
 
@@ -2308,26 +2277,23 @@ describe('purely defined actions', () => {
 
   it('should allow for purely defined dynamic actions', () => {
     const spy = jest.fn();
-    const machine = createMachine(
-      {
-        context: {
-          items: [{ id: 1 }, { id: 2 }, { id: 3 }]
-        },
-        entry: pure(({ context }) =>
-          context.items.map((item: any, index: number) => ({
-            type: 'doSomething',
-            params: { item, index }
-          }))
-        )
+    const machine = createMachine({
+      context: {
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }]
       },
-      {
-        actions: {
-          doSomething: ({ action }) => {
-            spy(action.params);
-          }
+      entry: pure(({ context }) =>
+        context.items.map((item: any, index: number) => ({
+          type: 'doSomething',
+          params: { item, index }
+        }))
+      )
+    }).provide({
+      actions: {
+        doSomething: ({ action }) => {
+          spy(action.params);
         }
       }
-    );
+    });
 
     interpret(machine).start();
 
@@ -2338,16 +2304,13 @@ describe('purely defined actions', () => {
 
   it('should allow for purely defined action type strings', () => {
     const spy = jest.fn();
-    const machine = createMachine(
-      {
-        entry: pure(() => ['SOME_ACTION'])
-      },
-      {
-        actions: {
-          SOME_ACTION: spy
-        }
+    const machine = createMachine({
+      entry: pure(() => ['SOME_ACTION'])
+    }).provide({
+      actions: {
+        SOME_ACTION: spy
       }
-    );
+    });
 
     interpret(machine).start();
 
@@ -2768,25 +2731,22 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>(
-      {
-        context: {},
-        initial: 'foo',
-        states: {
-          foo: {
-            entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
-          }
-        }
-      },
-      {
-        guards: {
-          worstGuard: () => true
-        },
-        actions: {
-          revealAnswer: assign<Ctx>({ answer: 42 })
+    const machine = createMachine<Ctx>({
+      context: {},
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
         }
       }
-    );
+    }).provide({
+      guards: {
+        worstGuard: () => true
+      },
+      actions: {
+        revealAnswer: assign<Ctx>({ answer: 42 })
+      }
+    });
 
     const service = interpret(machine).start();
 
@@ -2798,28 +2758,25 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>(
-      {
-        context: {},
-        initial: 'foo',
-        states: {
-          foo: {
-            entry: 'conditionallyRevealAnswer'
-          }
-        }
-      },
-      {
-        guards: {
-          worstGuard: () => true
-        },
-        actions: {
-          revealAnswer: assign<Ctx>({ answer: 42 }),
-          conditionallyRevealAnswer: choose([
-            { guard: 'worstGuard', actions: 'revealAnswer' }
-          ])
+    const machine = createMachine<Ctx>({
+      context: {},
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: 'conditionallyRevealAnswer'
         }
       }
-    );
+    }).provide({
+      guards: {
+        worstGuard: () => true
+      },
+      actions: {
+        revealAnswer: assign<Ctx>({ answer: 42 }),
+        conditionallyRevealAnswer: choose([
+          { guard: 'worstGuard', actions: 'revealAnswer' }
+        ])
+      }
+    });
 
     const service = interpret(machine).start();
 
@@ -3314,27 +3271,24 @@ describe('assign action order', () => {
       count: number;
     }
 
-    const machine = createMachine<CountCtx>(
-      {
-        context: { count: 0 },
-        entry: [
-          ({ context }) => captured.push(context.count), // 0
-          pure(() => {
-            return [
-              assign<CountCtx>({ count: ({ context }) => context.count + 1 }),
-              { type: 'capture' }, // 1
-              assign<CountCtx>({ count: ({ context }) => context.count + 1 })
-            ];
-          }),
-          ({ context }) => captured.push(context.count) // 2
-        ]
-      },
-      {
-        actions: {
-          capture: ({ context }) => captured.push(context.count)
-        }
+    const machine = createMachine<CountCtx>({
+      context: { count: 0 },
+      entry: [
+        ({ context }) => captured.push(context.count), // 0
+        pure(() => {
+          return [
+            assign<CountCtx>({ count: ({ context }) => context.count + 1 }),
+            { type: 'capture' }, // 1
+            assign<CountCtx>({ count: ({ context }) => context.count + 1 })
+          ];
+        }),
+        ({ context }) => captured.push(context.count) // 2
+      ]
+    }).provide({
+      actions: {
+        capture: ({ context }) => captured.push(context.count)
       }
-    );
+    });
 
     interpret(machine).start();
 

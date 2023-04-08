@@ -316,40 +316,37 @@ describe('invocations (activities)', () => {
   it('should start a new actor when leaving an invoking state and entering a new one that invokes the same actor type', () => {
     let counter = 0;
     const actual: string[] = [];
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            invoke: {
-              src: 'fooActor'
-            },
-            on: {
-              NEXT: 'b'
-            }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: 'fooActor'
           },
-          b: {
-            invoke: {
-              src: 'fooActor'
-            }
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: 'fooActor'
           }
         }
-      },
-      {
-        actors: {
-          fooActor: fromCallback(() => {
-            let localId = counter;
-            counter++;
-
-            actual.push(`start ${localId}`);
-
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          })
-        }
       }
-    );
+    }).provide({
+      actors: {
+        fooActor: fromCallback(() => {
+          let localId = counter;
+          counter++;
+
+          actual.push(`start ${localId}`);
+
+          return () => {
+            actual.push(`stop ${localId}`);
+          };
+        })
+      }
+    });
     const service = interpret(machine).start();
 
     service.send({ type: 'NEXT' });
@@ -360,38 +357,35 @@ describe('invocations (activities)', () => {
   it('should start a new actor when reentering the invoking state during an external self transition', () => {
     let counter = 0;
     const actual: string[] = [];
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            invoke: {
-              src: 'fooActor'
-            },
-            on: {
-              NEXT: {
-                target: 'a',
-                external: true
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: 'fooActor'
+          },
+          on: {
+            NEXT: {
+              target: 'a',
+              external: true
             }
           }
         }
-      },
-      {
-        actors: {
-          fooActor: fromCallback(() => {
-            let localId = counter;
-            counter++;
-
-            actual.push(`start ${localId}`);
-
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          })
-        }
       }
-    );
+    }).provide({
+      actors: {
+        fooActor: fromCallback(() => {
+          let localId = counter;
+          counter++;
+
+          actual.push(`start ${localId}`);
+
+          return () => {
+            actual.push(`stop ${localId}`);
+          };
+        })
+      }
+    });
     const service = interpret(machine).start();
 
     service.send({ type: 'NEXT' });

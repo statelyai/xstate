@@ -34,27 +34,24 @@ describe('@xstate/immer', () => {
     const context = {
       count: 0
     };
-    const countMachine = createMachine<typeof context>(
-      {
-        id: 'count',
-        context,
-        initial: 'active',
-        states: {
-          active: {
-            on: {
-              INC_TWICE: {
-                actions: ['increment', 'increment']
-              }
+    const countMachine = createMachine<typeof context>({
+      id: 'count',
+      context,
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            INC_TWICE: {
+              actions: ['increment', 'increment']
             }
           }
         }
-      },
-      {
-        actions: {
-          increment: assign<typeof context>(({ context }) => context.count++)
-        }
       }
-    );
+    }).provide({
+      actions: {
+        increment: assign<typeof context>(({ context }) => context.count++)
+      }
+    });
 
     const zeroState = countMachine.initialState;
     const twoState = countMachine.transition(zeroState, { type: 'INC_TWICE' });
@@ -71,29 +68,26 @@ describe('@xstate/immer', () => {
         }
       }
     };
-    const countMachine = createMachine<typeof context>(
-      {
-        id: 'count',
-        context,
-        initial: 'active',
-        states: {
-          active: {
-            on: {
-              INC_TWICE: {
-                actions: ['pushBaz', 'pushBaz']
-              }
+    const countMachine = createMachine<typeof context>({
+      id: 'count',
+      context,
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            INC_TWICE: {
+              actions: ['pushBaz', 'pushBaz']
             }
           }
         }
-      },
-      {
-        actions: {
-          pushBaz: assign<typeof context>(({ context }) =>
-            context.foo.bar.baz.push(0)
-          )
-        }
       }
-    );
+    }).provide({
+      actions: {
+        pushBaz: assign<typeof context>(({ context }) =>
+          context.foo.bar.baz.push(0)
+        )
+      }
+    });
 
     const zeroState = countMachine.initialState;
     const twoState = countMachine.transition(zeroState, { type: 'INC_TWICE' });

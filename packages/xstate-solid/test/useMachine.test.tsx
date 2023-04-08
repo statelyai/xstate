@@ -1020,20 +1020,17 @@ describe('useMachine hook', () => {
   it('should be able to use an action provided outside of SolidJS', () => {
     let actionCalled = false;
 
-    const machine = createMachine(
-      {
-        on: {
-          EV: {
-            actions: 'foo'
-          }
-        }
-      },
-      {
-        actions: {
-          foo: () => (actionCalled = true)
+    const machine = createMachine({
+      on: {
+        EV: {
+          actions: 'foo'
         }
       }
-    );
+    }).provide({
+      actions: {
+        foo: () => (actionCalled = true)
+      }
+    });
 
     const App = () => {
       const [, send] = useMachine(machine);
@@ -1049,30 +1046,27 @@ describe('useMachine hook', () => {
   it('should be able to use a guard provided outside of SolidJS', () => {
     let guardCalled = false;
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: {
-                guard: 'isAwesome',
-                target: 'b'
-              }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: {
+              guard: 'isAwesome',
+              target: 'b'
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          isAwesome: () => {
-            guardCalled = true;
-            return true;
           }
+        },
+        b: {}
+      }
+    }).provide({
+      guards: {
+        isAwesome: () => {
+          guardCalled = true;
+          return true;
         }
       }
-    );
+    });
 
     const App = () => {
       const [_state, send] = useMachine(machine);
@@ -1088,31 +1082,28 @@ describe('useMachine hook', () => {
   it('should be able to use a service provided outside of SolidJS', () => {
     let serviceCalled = false;
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            invoke: {
-              src: 'foo'
-            }
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: 'foo'
           }
         }
-      },
-      {
-        actors: {
-          foo: fromPromise(() => {
-            serviceCalled = true;
-            return Promise.resolve();
-          })
-        }
       }
-    );
+    }).provide({
+      actors: {
+        foo: fromPromise(() => {
+          serviceCalled = true;
+          return Promise.resolve();
+        })
+      }
+    });
 
     const App = () => {
       const [, send] = useMachine(machine);
@@ -1128,31 +1119,28 @@ describe('useMachine hook', () => {
   it('should be able to use a delay provided outside of SolidJS', () => {
     jest.useFakeTimers();
 
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: 'b'
-            }
-          },
-          b: {
-            after: {
-              myDelay: 'c'
-            }
-          },
-          c: {}
-        }
-      },
-      {
-        delays: {
-          myDelay: () => {
-            return 300;
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
           }
+        },
+        b: {
+          after: {
+            myDelay: 'c'
+          }
+        },
+        c: {}
+      }
+    }).provide({
+      delays: {
+        myDelay: () => {
+          return 300;
         }
       }
-    );
+    });
 
     const App = () => {
       const [state, send] = useMachine(machine);
@@ -1458,45 +1446,42 @@ describe('useMachine hook', () => {
   });
 
   it('.can should trigger on context change', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        context: {
-          isAwesome: false,
-          isNotAwesome: true
-        },
-        states: {
-          a: {
-            on: {
-              TOGGLE: {
-                actions: 'toggleIsAwesome'
-              },
-              TOGGLE_NOT: {
-                actions: 'toggleIsNotAwesome'
-              },
-              EV: {
-                guard: 'isAwesome',
-                target: 'b'
-              }
-            }
-          },
-          b: {}
-        }
+    const machine = createMachine({
+      initial: 'a',
+      context: {
+        isAwesome: false,
+        isNotAwesome: true
       },
-      {
-        actions: {
-          toggleIsAwesome: assign(({ context }) => ({
-            isAwesome: !context.isAwesome
-          })),
-          toggleIsNotAwesome: assign(({ context }) => ({
-            isNotAwesome: !context.isNotAwesome
-          }))
+      states: {
+        a: {
+          on: {
+            TOGGLE: {
+              actions: 'toggleIsAwesome'
+            },
+            TOGGLE_NOT: {
+              actions: 'toggleIsNotAwesome'
+            },
+            EV: {
+              guard: 'isAwesome',
+              target: 'b'
+            }
+          }
         },
-        guards: {
-          isAwesome: ({ context }) => !!context.isAwesome
-        }
+        b: {}
       }
-    );
+    }).provide({
+      actions: {
+        toggleIsAwesome: assign(({ context }) => ({
+          isAwesome: !context.isAwesome
+        })),
+        toggleIsNotAwesome: assign(({ context }) => ({
+          isNotAwesome: !context.isNotAwesome
+        }))
+      },
+      guards: {
+        isAwesome: ({ context }) => !!context.isAwesome
+      }
+    });
 
     let count = 0;
 

@@ -145,22 +145,19 @@ describe('system', () => {
   });
 
   it('should be accessible in referenced custom actions', () => {
-    const machine = createMachine(
-      {
-        invoke: {
-          src: createMachine({}),
-          systemId: 'test'
-        },
-        entry: 'myAction'
+    const machine = createMachine({
+      invoke: {
+        src: createMachine({}),
+        systemId: 'test'
       },
-      {
-        actions: {
-          myAction: ({ system }) => {
-            expect(system!.get('test')).toBeDefined();
-          }
+      entry: 'myAction'
+    }).provide({
+      actions: {
+        myAction: ({ system }) => {
+          expect(system!.get('test')).toBeDefined();
         }
       }
-    );
+    });
 
     interpret(machine).start();
   });

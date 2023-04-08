@@ -112,19 +112,16 @@ describe('useMachine', () => {
       eventsCausingDelays: { barDelay: 'BAR' };
     }
 
-    const machine = createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          barDelay: () => 42
-        }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      delays: {
+        barDelay: () => 42
+      }
+    });
 
     defineComponent({
       setup: () => {
@@ -317,19 +314,16 @@ describe('useInterpret', () => {
       eventsCausingDelays: { barDelay: 'BAR' };
     }
 
-    const machine = createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          barDelay: () => 42
-        }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      delays: {
+        barDelay: () => 42
+      }
+    });
 
     defineComponent({
       setup: () => {

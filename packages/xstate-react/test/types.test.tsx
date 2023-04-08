@@ -57,26 +57,23 @@ describe('useMachine', () => {
       }
     );
 
-    const m = createMachine(
-      {
-        initial: 'ready',
-        context: {
-          actor: null
-        } as { actor: ActorRefFrom<typeof child> | null },
-        states: {
-          ready: {
-            entry: 'spawnActor'
-          }
-        }
-      },
-      {
-        actions: {
-          spawnActor: assign({
-            actor: ({ spawn }) => spawn(child)
-          })
+    const m = createMachine({
+      initial: 'ready',
+      context: {
+        actor: null
+      } as { actor: ActorRefFrom<typeof child> | null },
+      states: {
+        ready: {
+          entry: 'spawnActor'
         }
       }
-    );
+    }).provide({
+      actions: {
+        spawnActor: assign({
+          actor: ({ spawn }) => spawn(child)
+        })
+      }
+    });
 
     interface Props {
       myActor: ActorRefFrom<typeof child>;

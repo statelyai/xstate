@@ -402,63 +402,60 @@ describe('interpreter', () => {
 
     it('can send an event after a delay (delayed transitions)', (done) => {
       const clock = new SimulatedClock();
-      const letterMachine = createMachine(
-        {
-          id: 'letter',
-          context: {
-            delay: 100
-          },
-          initial: 'a',
-          states: {
-            a: {
-              after: [
-                {
-                  delay: ({ context }) => context.delay,
-                  target: 'b'
-                }
-              ]
-            },
-            b: {
-              after: {
-                someDelay: 'c'
-              }
-            },
-            c: {
-              entry: send({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
-              on: {
-                FIRE_DELAY: 'd'
-              }
-            },
-            d: {
-              after: [
-                {
-                  delay: ({ context, event }) =>
-                    context.delay + (event as any).value,
-                  target: 'e'
-                }
-              ]
-            },
-            e: {
-              after: [
-                {
-                  delay: 'someDelay',
-                  target: 'f'
-                }
-              ]
-            },
-            f: {
-              type: 'final'
-            }
-          }
+      const letterMachine = createMachine({
+        id: 'letter',
+        context: {
+          delay: 100
         },
-        {
-          delays: {
-            someDelay: ({ context }) => {
-              return context.delay + 50;
+        initial: 'a',
+        states: {
+          a: {
+            after: [
+              {
+                delay: ({ context }) => context.delay,
+                target: 'b'
+              }
+            ]
+          },
+          b: {
+            after: {
+              someDelay: 'c'
             }
+          },
+          c: {
+            entry: send({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
+            on: {
+              FIRE_DELAY: 'd'
+            }
+          },
+          d: {
+            after: [
+              {
+                delay: ({ context, event }) =>
+                  context.delay + (event as any).value,
+                target: 'e'
+              }
+            ]
+          },
+          e: {
+            after: [
+              {
+                delay: 'someDelay',
+                target: 'f'
+              }
+            ]
+          },
+          f: {
+            type: 'final'
           }
         }
-      );
+      }).provide({
+        delays: {
+          someDelay: ({ context }) => {
+            return context.delay + 50;
+          }
+        }
+      });
 
       const actor = interpret(letterMachine, { clock })
         .onDone(() => {
@@ -482,29 +479,26 @@ describe('interpreter', () => {
   describe('activities (deprecated)', () => {
     let activityState = 'off';
 
-    const activityMachine = createMachine(
-      {
-        id: 'activity',
-        initial: 'on',
-        states: {
+    const activityMachine = createMachine({
+      id: 'activity',
+      initial: 'on',
+      states: {
+        on: {
+          invoke: 'myActivity',
           on: {
-            invoke: 'myActivity',
-            on: {
-              TURN_OFF: 'off'
-            }
-          },
-          off: {}
-        }
-      },
-      {
-        actors: {
-          myActivity: fromCallback(() => {
-            activityState = 'on';
-            return () => (activityState = 'off');
-          })
-        }
+            TURN_OFF: 'off'
+          }
+        },
+        off: {}
       }
-    );
+    }).provide({
+      actors: {
+        myActivity: fromCallback(() => {
+          activityState = 'on';
+          return () => (activityState = 'off');
+        })
+      }
+    });
 
     it('should start activities', () => {
       const service = interpret(activityMachine);
@@ -529,29 +523,26 @@ describe('interpreter', () => {
     it('should stop activities upon stopping the service', () => {
       let stopActivityState: string;
 
-      const stopActivityMachine = createMachine(
-        {
-          id: 'stopActivity',
-          initial: 'on',
-          states: {
+      const stopActivityMachine = createMachine({
+        id: 'stopActivity',
+        initial: 'on',
+        states: {
+          on: {
+            invoke: 'myActivity',
             on: {
-              invoke: 'myActivity',
-              on: {
-                TURN_OFF: 'off'
-              }
-            },
-            off: {}
-          }
-        },
-        {
-          actors: {
-            myActivity: fromCallback(() => {
-              stopActivityState = 'on';
-              return () => (stopActivityState = 'off');
-            })
-          }
+              TURN_OFF: 'off'
+            }
+          },
+          off: {}
         }
-      );
+      }).provide({
+        actors: {
+          myActivity: fromCallback(() => {
+            stopActivityState = 'on';
+            return () => (stopActivityState = 'off');
+          })
+        }
+      });
 
       const stopActivityService = interpret(stopActivityMachine).start();
 
@@ -565,37 +556,34 @@ describe('interpreter', () => {
     it('should restart activities from a compound state', (done) => {
       let activityActive = false;
 
-      const toggleMachine = createMachine(
-        {
-          id: 'toggle',
-          initial: 'inactive',
-          states: {
-            inactive: {
-              on: { TOGGLE: 'active' }
-            },
-            active: {
-              invoke: 'blink',
-              on: { TOGGLE: 'inactive' },
-              initial: 'A',
-              states: {
-                A: { on: { SWITCH: 'B' } },
-                B: { on: { SWITCH: 'A' } }
-              }
+      const toggleMachine = createMachine({
+        id: 'toggle',
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: { TOGGLE: 'active' }
+          },
+          active: {
+            invoke: 'blink',
+            on: { TOGGLE: 'inactive' },
+            initial: 'A',
+            states: {
+              A: { on: { SWITCH: 'B' } },
+              B: { on: { SWITCH: 'A' } }
             }
           }
-        },
-        {
-          actors: {
-            blink: fromCallback(() => {
-              activityActive = true;
-
-              return () => {
-                activityActive = false;
-              };
-            })
-          }
         }
-      );
+      }).provide({
+        actors: {
+          blink: fromCallback(() => {
+            activityActive = true;
+
+            return () => {
+              activityActive = false;
+            };
+          })
+        }
+      });
 
       const activeState = toggleMachine.transition(toggleMachine.initialState, {
         type: 'TOGGLE'
@@ -1353,28 +1341,25 @@ describe('interpreter', () => {
     });
 
     it('should transition in correct order when there is a condition', () => {
-      const stateMachine = createMachine(
-        {
-          id: 'transient',
-          initial: 'idle',
-          states: {
-            idle: { on: { START: 'transient' } },
-            transient: {
-              always: [
-                { target: 'end', guard: 'alwaysFalse' },
-                { target: 'next' }
-              ]
-            },
-            next: { on: { FINISH: 'end' } },
-            end: { type: 'final' }
-          }
-        },
-        {
-          guards: {
-            alwaysFalse: () => false
-          }
+      const stateMachine = createMachine({
+        id: 'transient',
+        initial: 'idle',
+        states: {
+          idle: { on: { START: 'transient' } },
+          transient: {
+            always: [
+              { target: 'end', guard: 'alwaysFalse' },
+              { target: 'next' }
+            ]
+          },
+          next: { on: { FINISH: 'end' } },
+          end: { type: 'final' }
         }
-      );
+      }).provide({
+        guards: {
+          alwaysFalse: () => false
+        }
+      });
 
       const stateValues: StateValue[] = [];
       const service = interpret(stateMachine);
@@ -1539,25 +1524,22 @@ describe('interpreter', () => {
 
   describe('actors', () => {
     it("doesn't crash cryptically on undefined return from the actor creator", () => {
-      const machine = createMachine(
-        {
-          initial: 'initial',
-          states: {
-            initial: {
-              invoke: {
-                src: 'testService'
-              }
+      const machine = createMachine({
+        initial: 'initial',
+        states: {
+          initial: {
+            invoke: {
+              src: 'testService'
             }
           }
-        },
-        {
-          actors: {
-            testService: fromCallback(() => {
-              // nothing
-            })
-          }
         }
-      );
+      }).provide({
+        actors: {
+          testService: fromCallback(() => {
+            // nothing
+          })
+        }
+      });
 
       const service = interpret(machine);
       expect(() => service.start()).not.toThrow();

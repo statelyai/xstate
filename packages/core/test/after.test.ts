@@ -249,34 +249,31 @@ describe('delayed transitions', () => {
     it('should evaluate the expression (string) to determine the delay', () => {
       jest.useFakeTimers();
       const spy = jest.fn();
-      const machine = createMachine(
-        {
-          initial: 'inactive',
-          states: {
-            inactive: {
-              on: {
-                ACTIVATE: 'active'
+      const machine = createMachine({
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: {
+              ACTIVATE: 'active'
+            }
+          },
+          active: {
+            after: [
+              {
+                delay: 'someDelay',
+                target: 'inactive'
               }
-            },
-            active: {
-              after: [
-                {
-                  delay: 'someDelay',
-                  target: 'inactive'
-                }
-              ]
-            }
-          }
-        },
-        {
-          delays: {
-            someDelay: ({ event }) => {
-              spy(event);
-              return (event as any).delay;
-            }
+            ]
           }
         }
-      );
+      }).provide({
+        delays: {
+          someDelay: ({ event }) => {
+            spy(event);
+            return (event as any).delay;
+          }
+        }
+      });
 
       const actor = interpret(machine).start();
 
@@ -297,32 +294,29 @@ describe('delayed transitions', () => {
     });
 
     it('should set delay to undefined if expression not found', () => {
-      const machine = createMachine(
-        {
-          initial: 'inactive',
-          states: {
-            inactive: {
-              on: {
-                NOEXPR: 'activeNoExpr'
-              }
-            },
-            activeNoExpr: {
-              after: [
-                {
-                  delay: 'nonExistantDelay',
-                  target: 'inactive'
-                }
-              ]
+      const machine = createMachine({
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: {
+              NOEXPR: 'activeNoExpr'
             }
-          }
-        },
-        {
-          delays: {
-            someDelay: ({ context, event }) =>
-              context.delay + (event as any).delay
+          },
+          activeNoExpr: {
+            after: [
+              {
+                delay: 'nonExistantDelay',
+                target: 'inactive'
+              }
+            ]
           }
         }
-      );
+      }).provide({
+        delays: {
+          someDelay: ({ context, event }) =>
+            context.delay + (event as any).delay
+        }
+      });
       const { initialState } = machine;
       const activeState = machine.transition(initialState, {
         type: 'NOEXPR',

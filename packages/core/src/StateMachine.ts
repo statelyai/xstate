@@ -20,6 +20,7 @@ import type {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
+  TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes.ts';
 import type {
@@ -41,7 +42,8 @@ import type {
   TransitionDefinition,
   PersistedMachineState,
   ParameterizedObject,
-  AnyActorContext
+  AnyActorContext,
+  AnyEventObject
 } from './types.ts';
 import {
   isSCXMLErrorEvent,
@@ -498,4 +500,27 @@ export class StateMachine<
   __TActorMap!: TActorMap;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
+}
+
+export function createMachine<
+  TContext extends MachineContext,
+  TEvent extends EventObject = AnyEventObject,
+  TActorMap extends ActorMap = ActorMap,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+>(
+  config: MachineConfig<
+    TContext,
+    TEvent,
+    ParameterizedObject,
+    TActorMap,
+    TTypesMeta
+  >
+): StateMachine<
+  TContext,
+  TEvent,
+  ParameterizedObject,
+  TActorMap,
+  ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActorMap>
+> {
+  return new StateMachine<any, any, any, any, any>(config);
 }

@@ -209,50 +209,47 @@ interface ChangePassword {
   password: string;
 }
 
-const authMachine = createMachine<SignInContext, ChangePassword>(
-  {
-    context: { email: '', password: '' },
-    initial: 'passwordField',
-    states: {
-      passwordField: {
-        initial: 'hidden',
-        states: {
-          hidden: {
-            on: {
-              // We want to assign the new password but remain in the hidden
-              // state
-              changePassword: {
-                actions: 'assignPassword'
-              }
+const authMachine = createMachine<SignInContext, ChangePassword>({
+  context: { email: '', password: '' },
+  initial: 'passwordField',
+  states: {
+    passwordField: {
+      initial: 'hidden',
+      states: {
+        hidden: {
+          on: {
+            // We want to assign the new password but remain in the hidden
+            // state
+            changePassword: {
+              actions: 'assignPassword'
             }
-          },
-          valid: {},
-          invalid: {}
+          }
         },
-        on: {
-          changePassword: [
-            {
-              guard: ({ event }) => event.password.length >= 10,
-              target: '.invalid',
-              actions: ['assignPassword']
-            },
-            {
-              target: '.valid',
-              actions: ['assignPassword']
-            }
-          ]
-        }
+        valid: {},
+        invalid: {}
+      },
+      on: {
+        changePassword: [
+          {
+            guard: ({ event }) => event.password.length >= 10,
+            target: '.invalid',
+            actions: ['assignPassword']
+          },
+          {
+            target: '.valid',
+            actions: ['assignPassword']
+          }
+        ]
       }
     }
-  },
-  {
-    actions: {
-      assignPassword: assign<SignInContext, ChangePassword>({
-        password: ({ event }) => event.password
-      })
-    }
   }
-);
+}).provide({
+  actions: {
+    assignPassword: assign<SignInContext, ChangePassword>({
+      password: ({ event }) => event.password
+    })
+  }
+});
 
 describe('nested transitions', () => {
   it('only take the transition of the most inner matching event', () => {

@@ -2,11 +2,11 @@ import {
   assign,
   interpret,
   MachineContext,
-  StateMachine
+  StateMachine,
+  createMachine
 } from '../src/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 import { fromCallback } from '../src/actors/index.ts';
-import { createMachine } from '../src/Machine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
 
 describe('typegen types', () => {
@@ -37,25 +37,22 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        context: { foo: 100 },
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actions: {
-          myAction: ({ event }) => {
-            event.type === 'FOO';
-            event.type === 'BAR';
-            // @ts-expect-error
-            event.type === 'BAZ';
-          }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
+      }
+    }).provide({
+      actions: {
+        myAction: ({ event }) => {
+          event.type === 'FOO';
+          event.type === 'BAR';
+          // @ts-expect-error
+          event.type === 'BAZ';
         }
       }
-    );
+    });
   });
 
   it('should limit event type provided to a delay', () => {
@@ -71,27 +68,24 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        context: { foo: 100 },
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          myDelay: ({ event }) => {
-            event.type === 'FOO';
-            event.type === 'BAR';
-            // @ts-expect-error
-            event.type === 'BAZ';
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
+      }
+    }).provide({
+      delays: {
+        myDelay: ({ event }) => {
+          event.type === 'FOO';
+          event.type === 'BAR';
+          // @ts-expect-error
+          event.type === 'BAZ';
 
-            return 42;
-          }
+          return 42;
         }
       }
-    );
+    });
   });
 
   it('should limit event type provided to a guard', () => {
@@ -107,27 +101,24 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        context: { foo: 100 },
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        guards: {
-          myGuard: ({ event }) => {
-            event.type === 'FOO';
-            event.type === 'BAR';
-            // @ts-expect-error
-            event.type === 'BAZ';
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
+      }
+    }).provide({
+      guards: {
+        myGuard: ({ event }) => {
+          event.type === 'FOO';
+          event.type === 'BAR';
+          // @ts-expect-error
+          event.type === 'BAZ';
 
-            return true;
-          }
+          return true;
         }
       }
-    );
+    });
   });
 
   it('should limit event type provided to an actor', () => {
@@ -143,28 +134,25 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        context: { foo: 100 },
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actors: {
-          // TODO: add test for input?
-          myActor: fromPromise(({ input }) => {
-            input.type === 'FOO';
-            input.type === 'BAR';
-            // @x-ts-expect-error TODO: strongly type inputs for promise
-            input.type === 'BAZ';
-
-            return Promise.resolve(42);
-          })
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      actors: {
+        // TODO: add test for input?
+        myActor: fromPromise(({ input }) => {
+          input.type === 'FOO';
+          input.type === 'BAR';
+          // @x-ts-expect-error TODO: strongly type inputs for promise
+          input.type === 'BAZ';
+
+          return Promise.resolve(42);
+        })
+      }
+    });
   });
 
   it('should not allow an unknown action', () => {
@@ -180,21 +168,18 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        context: { foo: 100 },
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actions: {
-          // @ts-expect-error
-          unknownAction: () => {}
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      actions: {
+        // @ts-expect-error
+        unknownAction: () => {}
+      }
+    });
   });
 
   it('should not allow an unknown delay', () => {
@@ -210,21 +195,18 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        context: { foo: 100 },
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          // @ts-expect-error
-          unknownDelay: () => 42
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      delays: {
+        // @ts-expect-error
+        unknownDelay: () => 42
+      }
+    });
   });
 
   it('should not allow an unknown guard', () => {
@@ -240,21 +222,18 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        context: { foo: 100 },
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        guards: {
-          // @ts-expect-error
-          unknownGuard: () => true
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      guards: {
+        // @ts-expect-error
+        unknownGuard: () => true
+      }
+    });
   });
 
   it('should not allow an unknown actor', () => {
@@ -270,21 +249,18 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        context: { foo: 100 },
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actors: {
-          // @ts-expect-error
-          unknownActor: () => () => {}
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      actors: {
+        // @ts-expect-error
+        unknownActor: () => () => {}
+      }
+    });
   });
 
   it('should allow valid string `matches`', () => {
@@ -532,19 +508,16 @@ describe('typegen types', () => {
       eventsCausingActors: { qwertyActor: 'BAR' };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actions: {
-          fooAction: () => {}
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      actions: {
+        fooAction: () => {}
+      }
+    });
   });
 
   it('should allow to override already provided implementation using `withConfig`', () => {
@@ -559,19 +532,16 @@ describe('typegen types', () => {
       eventsCausingDelays: { barDelay: 'BAR' };
     }
 
-    const machine = createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          barDelay: () => 42
-        }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
-    );
+    }).provide({
+      delays: {
+        barDelay: () => 42
+      }
+    });
 
     machine.provide({
       actions: {
@@ -593,21 +563,18 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' }
-        }
-      },
-      {
-        actions: {
-          myAction: ({ event }) => {
-            event.type === 'xstate.init';
-          }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      }
+    }).provide({
+      actions: {
+        myAction: ({ event }) => {
+          event.type === 'xstate.init';
         }
       }
-    );
+    });
   });
 
   it('should include generated dynamic internal event in the provided parameter if schema.actors is not provided', () => {
@@ -627,28 +594,25 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' }
-        }
-      },
-      {
-        actions: {
-          myAction: ({ event }) => {
-            if (event.type === 'FOO') {
-              return;
-            }
-            event.type === 'done.invoke.myActor';
-            event.data;
-            // indirectly check that it's not any
-            // @ts-expect-error
-            ((_accept: string) => {})(event.data);
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      }
+    }).provide({
+      actions: {
+        myAction: ({ event }) => {
+          if (event.type === 'FOO') {
+            return;
           }
+          event.type === 'done.invoke.myActor';
+          event.data;
+          // indirectly check that it's not any
+          // @ts-expect-error
+          ((_accept: string) => {})(event.data);
         }
       }
-    );
+    });
   });
 
   it('should use an event generated based on schema.actors for a dynamic internal event over the generated fallback', () => {
@@ -668,31 +632,28 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' },
-          actors: {
-            myActor: {
-              data: {} as string
-            }
-          }
-        }
-      },
-      {
-        actions: {
-          myAction: ({ event }) => {
-            if (event.type === 'FOO') {
-              return;
-            }
-            event.type === 'done.invoke.myActor';
-            event.data;
-            ((_accept: string) => {})(event.data);
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' },
+        actors: {
+          myActor: {
+            data: {} as string
           }
         }
       }
-    );
+    }).provide({
+      actions: {
+        myAction: ({ event }) => {
+          if (event.type === 'FOO') {
+            return;
+          }
+          event.type === 'done.invoke.myActor';
+          event.data;
+          ((_accept: string) => {})(event.data);
+        }
+      }
+    });
   });
 
   it('should allow a promise actor returning the explicitly declared data in the given schema.actors', () => {
@@ -712,24 +673,21 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              data: {} as string
-            }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' },
+        actors: {
+          myActor: {
+            data: {} as string
           }
         }
-      },
-      {
-        actors: {
-          myActor: fromPromise(() => Promise.resolve('foo'))
-        }
       }
-    );
+    }).provide({
+      actors: {
+        myActor: fromPromise(() => Promise.resolve('foo'))
+      }
+    });
   });
 
   it('should not allow a promise actor returning a different type than the explicitly declared one in the given schema.actors', () => {
@@ -749,25 +707,22 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              data: {} as string
-            }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' },
+        actors: {
+          myActor: {
+            data: {} as string
           }
         }
-      },
-      {
-        actors: {
-          // @ts-expect-error
-          myActor: () => Promise.resolve(42)
-        }
       }
-    );
+    }).provide({
+      actors: {
+        // @ts-expect-error
+        myActor: () => Promise.resolve(42)
+      }
+    });
   });
 
   it('should allow a machine actor returning the explicitly declared data in the given schema.actors', () => {
@@ -787,24 +742,21 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              data: {} as { foo: string }
-            }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' },
+        actors: {
+          myActor: {
+            data: {} as { foo: string }
           }
         }
-      },
-      {
-        actors: {
-          myActor: createMachine<{ foo: string }>({})
-        }
       }
-    );
+    }).provide({
+      actors: {
+        myActor: createMachine<{ foo: string }>({})
+      }
+    });
   });
 
   // it('should not allow a machine actor returning a different type than the explicitly declared one in the given schema.actors', () => {
@@ -852,22 +804,19 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
-        }
-      },
-      {
-        actions: {
-          actionName: assign(({ event }) => {
-            ((_accept: 'BAR') => {})(event.type);
-            return {};
-          })
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
-    );
+    }).provide({
+      actions: {
+        actionName: assign(({ event }) => {
+          ((_accept: 'BAR') => {})(event.type);
+          return {};
+        })
+      }
+    });
   });
 
   it('should accept a machine as an actor', () => {
@@ -877,19 +826,16 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
-        }
-      },
-      {
-        actors: {
-          fooActor: createMachine({})
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
-    );
+    }).provide({
+      actors: {
+        fooActor: createMachine({})
+      }
+    });
   });
 
   // it('should be able to send all of the parent event types back to the parent from an invoked callback', () => {
@@ -928,25 +874,22 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' }
-        }
-      },
-      {
-        actors: {
-          fooActor: fromCallback((_send, onReceive) => {
-            onReceive((event) => {
-              ((_accept: string) => {})(event.type);
-              // @x-ts-expect-error TODO: determine how to get parent event type here
-              event.unknown;
-            });
-          })
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
-    );
+    }).provide({
+      actors: {
+        fooActor: fromCallback((_send, onReceive) => {
+          onReceive((event) => {
+            ((_accept: string) => {})(event.type);
+            // @x-ts-expect-error TODO: determine how to get parent event type here
+            event.unknown;
+          });
+        })
+      }
+    });
   });
 
   it("should allow specifying `onReceive`'s argument type manually", () => {
@@ -956,23 +899,20 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' }
-        }
-      },
-      {
-        actors: {
-          fooActor: fromCallback((_send, onReceive) => {
-            onReceive((_event: { type: 'TEST' }) => {});
-            // @ts-expect-error
-            onReceive((_event: { type: number }) => {});
-          })
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
-    );
+    }).provide({
+      actors: {
+        fooActor: fromCallback((_send, onReceive) => {
+          onReceive((_event: { type: 'TEST' }) => {});
+          // @ts-expect-error
+          onReceive((_event: { type: number }) => {});
+        })
+      }
+    });
   });
 
   // it('should error correctly for implementations called in response to internal events when there is no explicit event type', () => {
@@ -1081,22 +1021,19 @@ describe('typegen types', () => {
       eventsCausingActions: never;
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          context: {} as {
-            foo: string;
-          }
-        }
-      },
-      {
-        // @ts-expect-error
-        actions: {
-          testAction: () => {}
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        context: {} as {
+          foo: string;
         }
       }
-    );
+    }).provide({
+      // @ts-expect-error
+      actions: {
+        testAction: () => {}
+      }
+    });
   });
 
   it('should error on a provided delay where there are no inferred delays', () => {
@@ -1104,22 +1041,19 @@ describe('typegen types', () => {
       eventsCausingDelays: never;
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          context: {} as {
-            foo: string;
-          }
-        }
-      },
-      {
-        // @ts-expect-error
-        delays: {
-          testDelay: () => {}
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        context: {} as {
+          foo: string;
         }
       }
-    );
+    }).provide({
+      // @ts-expect-error
+      delays: {
+        testDelay: () => {}
+      }
+    });
   });
 
   it('should error on a provided guard where there are no inferred guards', () => {
@@ -1127,22 +1061,19 @@ describe('typegen types', () => {
       eventsCausingGuards: never;
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          context: {} as {
-            foo: string;
-          }
-        }
-      },
-      {
-        // @ts-expect-error
-        guards: {
-          testGuard: () => {}
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        context: {} as {
+          foo: string;
         }
       }
-    );
+    }).provide({
+      // @ts-expect-error
+      guards: {
+        testGuard: () => {}
+      }
+    });
   });
 
   it('should error on a provided actor where there are no declared actors', () => {
@@ -1151,22 +1082,19 @@ describe('typegen types', () => {
       invokeSrcNameMap: never;
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          context: {} as {
-            foo: string;
-          }
-        }
-      },
-      {
-        // @ts-expect-error
-        actors: {
-          testActor: () => Promise.resolve(42)
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        context: {} as {
+          foo: string;
         }
       }
-    );
+    }).provide({
+      // @ts-expect-error
+      actors: {
+        testActor: () => Promise.resolve(42)
+      }
+    });
   });
 
   it('should be able to provide events that use string unions as their type', () => {
@@ -1177,25 +1105,22 @@ describe('typegen types', () => {
       };
     }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          context: {} as {
-            count: number;
-          },
-          events: {} as { type: 'INC' | 'DEC'; value: number }
-        }
-      },
-      {
-        actions: {
-          increment: assign(({ context, event }) => {
-            return {
-              count: context.count + event.value
-            };
-          })
-        }
+    createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        context: {} as {
+          count: number;
+        },
+        events: {} as { type: 'INC' | 'DEC'; value: number }
       }
-    );
+    }).provide({
+      actions: {
+        increment: assign(({ context, event }) => {
+          return {
+            count: context.count + event.value
+          };
+        })
+      }
+    });
   });
 });

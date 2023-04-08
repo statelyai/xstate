@@ -44,37 +44,34 @@ const lightMachine = createMachine({
   }
 });
 
-const configMachine = createMachine(
-  {
-    id: 'config',
-    initial: 'foo',
-    context: {
-      foo: 'bar'
-    },
-    states: {
-      foo: {
-        entry: 'entryAction',
-        on: {
-          EVENT: {
-            target: 'bar',
-            guard: 'someCondition'
-          }
-        }
-      },
-      bar: {}
-    }
+const configMachine = createMachine({
+  id: 'config',
+  initial: 'foo',
+  context: {
+    foo: 'bar'
   },
-  {
-    actions: {
-      entryAction: () => {
-        throw new Error('original entry');
+  states: {
+    foo: {
+      entry: 'entryAction',
+      on: {
+        EVENT: {
+          target: 'bar',
+          guard: 'someCondition'
+        }
       }
     },
-    guards: {
-      someCondition: () => false
-    }
+    bar: {}
   }
-);
+}).provide({
+  actions: {
+    entryAction: () => {
+      throw new Error('original entry');
+    }
+  },
+  guards: {
+    someCondition: () => false
+  }
+});
 
 describe('machine', () => {
   describe('machine.states', () => {

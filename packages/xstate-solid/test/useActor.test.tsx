@@ -1090,30 +1090,27 @@ describe('useActor', () => {
     const counterMachine = createMachine<
       { count: number },
       { type: 'INC' } | { type: 'SOMETHING' }
-    >(
-      {
-        id: 'counter',
-        initial: 'active',
-        context: { count: 0 },
-        states: {
-          active: {
-            on: {
-              INC: {
-                actions: assign({ count: ({ context }) => context.count + 1 })
-              },
-              SOMETHING: { actions: 'doSomething' }
-            }
-          }
-        }
-      },
-      {
-        actions: {
-          doSomething: () => {
-            /* do nothing */
+    >({
+      id: 'counter',
+      initial: 'active',
+      context: { count: 0 },
+      states: {
+        active: {
+          on: {
+            INC: {
+              actions: assign({ count: ({ context }) => context.count + 1 })
+            },
+            SOMETHING: { actions: 'doSomething' }
           }
         }
       }
-    );
+    }).provide({
+      actions: {
+        doSomething: () => {
+          /* do nothing */
+        }
+      }
+    });
     const counterService = interpret(counterMachine).start();
 
     const Counter = () => {

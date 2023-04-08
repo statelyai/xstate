@@ -1,6 +1,5 @@
 import { of } from 'rxjs';
-import { assign, interpret } from '../src';
-import { createMachine } from '../src/Machine';
+import { assign, interpret, createMachine } from '../src';
 import {
   fromCallback,
   fromObservable,
