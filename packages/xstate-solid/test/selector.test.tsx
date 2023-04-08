@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import { ActorRefFrom, AnyState, assign, createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { useActor, createService, useMachine } from '../src/index.js';
+import { useActor, createService, useMachine } from '../src/index.ts';
 import { createMemo, createSignal, from } from 'solid-js';
 
 describe('usage of selectors with reactive service state', () => {

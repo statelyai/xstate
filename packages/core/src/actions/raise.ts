@@ -1,5 +1,5 @@
-import { createDynamicAction } from '../../actions/dynamicAction.js';
-import * as actionTypes from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import * as actionTypes from '../actionTypes.ts';
 import {
   EventObject,
   MachineContext,
@@ -10,10 +10,10 @@ import {
   AnyInterpreter,
   RaiseActionParams,
   NoInfer,
-  StateMeta,
-  UnifiedArg
-} from '../types.js';
-import { toSCXMLEvent } from '../utils.js';
+  UnifiedArg,
+  StateMeta
+} from '../types.ts';
+import { toSCXMLEvent } from '../utils.ts';
 
 /**
  * Raises an event. This places the event in the internal event queue, so that
@@ -64,11 +64,10 @@ export function raise<
             : eventOrExpr.type
       };
       const args: UnifiedArg<TContext, TExpressionEvent> &
-        StateMeta<TContext, TExpressionEvent> = {
+        StateMeta<TExpressionEvent> = {
         context: state.context,
         event: _event.data,
         _event,
-        state: state as any, // TODO: fix
         self: actorContext?.self ?? ({} as any),
         system: actorContext?.system
       };

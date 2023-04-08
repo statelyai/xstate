@@ -1,4 +1,4 @@
-import { createMachine } from '../src/index.js';
+import { createMachine } from '../src/index.ts';
 
 describe('definition', () => {
   it('should provide invoke definitions', () => {

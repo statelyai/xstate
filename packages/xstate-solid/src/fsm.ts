@@ -7,7 +7,7 @@ import type {
 import { createMachine, interpret } from '@xstate/fsm';
 import type { Accessor } from 'solid-js';
 import { createMemo, onCleanup, createEffect } from 'solid-js';
-import { createImmutable } from './createImmutable.js';
+import { createImmutable } from './createImmutable.ts';
 import { isServer } from 'solid-js/web';
 import { unwrap } from 'solid-js/store';
 
@@ -52,13 +52,21 @@ export function useService<TService extends StateMachine.AnyService>(
     deriveFSMState(serviceMemo().state as StateFrom<TService>)
   );
 
+  const setNewState = (currentState: StateFrom<TService>) => {
+    setState(deriveFSMState(currentState, unwrap(state)));
+  };
+
   createEffect(() => {
-    const { unsubscribe } = serviceMemo().subscribe((currentState) =>
-      setState(
-        deriveFSMState(currentState as StateFrom<TService>, unwrap(state))
-      )
-    );
+    const currentService = serviceMemo();
+    // this eager `setState` here is important because the state could change between render and effect's call
+    // however, it might also create some extra work that might not be necessary
+    // perhaps we should only do this if the state has changed
+    // we'd have to track the "original" state to check if the current one is different from it
+    // (for that purpose we can't use the derived one created by `createImmutable` as that's a copy of the original)
+    setNewState(currentService.state as StateFrom<TService>);
+    const { unsubscribe } = currentService.subscribe(setNewState);
     onCleanup(unsubscribe);
+    return false;
   });
 
   const send: TService['send'] = (event) => serviceMemo().send(event);

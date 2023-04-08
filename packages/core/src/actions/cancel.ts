@@ -1,13 +1,13 @@
-import { EventObject, ExprWithMeta, MachineContext } from '../types.js';
-import { cancel as cancelActionType } from '../actionTypes.js';
-import { isFunction } from '../utils.js';
+import { EventObject, ExprWithMeta, MachineContext } from '../types.ts';
+import { cancel as cancelActionType } from '../actionTypes.ts';
+import { isFunction } from '../utils.ts';
 import {
   AnyInterpreter,
   BaseDynamicActionObject,
   CancelActionObject,
   DynamicCancelActionObject
-} from '../index.js';
-import { createDynamicAction } from '../../actions/dynamicAction.js';
+} from '../index.ts';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -43,7 +43,6 @@ export function cancel<
             context: state.context,
             event: _event.data,
             _event,
-            state: state as any, // TODO: fix types,
             self: actorContext?.self ?? ({} as any),
             system: actorContext?.system
           })

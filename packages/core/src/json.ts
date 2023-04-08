@@ -3,8 +3,8 @@ import {
   GuardObject,
   InvokeDefinition,
   BaseActionObject
-} from './index.js';
-import { mapValues, isFunction } from './utils.js';
+} from './index.ts';
+import { mapValues, isFunction } from './utils.ts';
 
 interface JSONFunction {
   $function: string;

@@ -5,10 +5,10 @@ import {
   SendExpr,
   AnyEventObject,
   MachineContext
-} from '../types.js';
-import { send as sendActionType } from '../actionTypes.js';
-import { isFunction, isString, toSCXMLEvent } from '../utils.js';
-import { createDynamicAction } from '../../actions/dynamicAction.js';
+} from '../types.ts';
+import { send as sendActionType } from '../actionTypes.ts';
+import { isFunction, isString, toSCXMLEvent } from '../utils.ts';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import {
   AnyActorRef,
   AnyInterpreter,
@@ -19,11 +19,10 @@ import {
   InferEvent,
   SendActionObject,
   SendActionOptions,
-  State,
   StateMeta,
   UnifiedArg
-} from '../index.js';
-import { actionTypes, error } from '../actions.js';
+} from '../index.ts';
+import { actionTypes, error } from '../actions.ts';
 
 /**
  * Sends an event. This returns an action that will be read by an interpreter to
@@ -86,11 +85,10 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const args: UnifiedArg<TContext, TEvent> & StateMeta<TContext, TEvent> = {
+      const args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent> = {
         context: state.context,
         event: _event.data,
         _event,
-        state: state as State<TContext, TEvent>,
         self: actorContext?.self ?? (null as any),
         system: actorContext?.system
       };

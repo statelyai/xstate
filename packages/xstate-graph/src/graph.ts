@@ -16,7 +16,7 @@ import type {
   TraversalOptions,
   AnyStateNode,
   TraversalConfig
-} from './types.js';
+} from './types.ts';
 
 function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);

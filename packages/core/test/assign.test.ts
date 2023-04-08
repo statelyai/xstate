@@ -4,8 +4,8 @@ import {
   interpret,
   sendParent,
   sendTo
-} from '../src/index.js';
-import { ActorRef } from '../src/types.js';
+} from '../src/index.ts';
+import { ActorRef } from '../src/types.ts';
 
 interface CounterContext {
   count: number;
@@ -262,93 +262,50 @@ describe('assign', () => {
 });
 
 describe('assign meta', () => {
-  const machine = createMachine<{ count: number }>({
-    id: 'assign',
-    initial: 'start',
-    context: { count: 0 },
-    states: {
-      start: {
-        entry: assign({
-          count: ({ state }) => {
-            return state === undefined ? 1 : -1;
-          }
-        }),
-        meta: { test: 3 },
-        on: {
-          NEXT: {
-            target: 'two',
-            actions: assign({
-              count: ({ state }) => {
-                return state ? state.meta['assign.start'].test : -1;
-              }
-            })
-          },
-          NEXT_FN: {
-            target: 'two',
-            actions: assign(({ state }) => ({
-              count: state ? state.meta['assign.start'].test : -1
-            }))
-          },
-          NEXT_ASSIGNER: {
-            target: 'two',
-            actions: assign(({ action }) => ({
-              count: action.params?.assignment ? 5 : -1
-            }))
-          }
+  it('should provide the parametrized action to the assigner', () => {
+    const machine = createMachine(
+      {
+        context: { count: 1 },
+        entry: {
+          type: 'inc',
+          params: { by: 10 }
         }
       },
-      two: {}
-    }
+      {
+        actions: {
+          inc: assign(({ context, action }) => ({
+            count: context.count + action.params!.by
+          }))
+        }
+      }
+    );
+
+    const actor = interpret(machine).start();
+
+    expect(actor.getSnapshot().context.count).toEqual(11);
   });
 
-  it('should provide the state in regular transitions (prop assigner)', () => {
-    const { initialState } = machine;
-
-    const nextState = machine.transition(initialState, { type: 'NEXT' });
-
-    expect(nextState.context).toEqual({ count: 3 });
-  });
-
-  it('should provide the state in regular transitions (assigner)', () => {
-    const { initialState } = machine;
-
-    const nextState = machine.transition(initialState, { type: 'NEXT_FN' });
-
-    expect(nextState.context).toEqual({ count: 3 });
-  });
-
-  it('should provide the assign action', () => {
-    const { initialState } = machine;
-
-    const nextState = machine.transition(initialState, {
-      type: 'NEXT_ASSIGNER'
-    });
-
-    expect(nextState.context).toEqual({ count: 5 });
-  });
-
-  it('should provide the pre-initial state when executing initial state actions', () => {
-    let receivedCount = Infinity;
-
-    const machine = createMachine<{ count: number }>({
-      id: 'assign',
-      initial: 'start',
-      context: { count: 101 },
-      states: {
-        start: {
-          entry: assign({
-            count: ({ state }) => {
-              receivedCount = state.context.count;
-              return 0;
-            }
+  it('should provide the parametrized action to the partial assigner', () => {
+    const machine = createMachine(
+      {
+        context: { count: 1 },
+        entry: {
+          type: 'inc',
+          params: { by: 10 }
+        }
+      },
+      {
+        actions: {
+          inc: assign({
+            count: ({ context, action }) => context.count + action.params!.by
           })
         }
       }
-    });
+    );
 
-    interpret(machine).start();
+    const actor = interpret(machine).start();
 
-    expect(receivedCount).toBe(101);
+    expect(actor.getSnapshot().context.count).toEqual(11);
   });
 
   it('should provide meta._event to assigner', () => {
