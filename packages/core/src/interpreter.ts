@@ -288,6 +288,25 @@ export class Interpreter<
     return this;
   }
 
+  // thenable
+  public then(
+    resolve: (value: SnapshotFrom<TBehavior>) => void,
+    reject?: (error: any) => void
+  ): PromiseLike<SnapshotFrom<TBehavior>> {
+    return new Promise((resolvePromise, rejectPromise) => {
+      if (this._doneEvent) {
+        resolvePromise(this._doneEvent.data);
+        resolve(this._doneEvent.data);
+        return;
+      }
+
+      this.onDone(() => {
+        resolvePromise(this._doneEvent!.data);
+        resolve(this._doneEvent!.data);
+      });
+    });
+  }
+
   /**
    * Starts the interpreter from the initial state
    */

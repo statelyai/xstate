@@ -170,4 +170,49 @@ describe('final states', () => {
     service.send({ type: 'FINISH', value: 1 });
     expect(spy).toBeCalledTimes(1);
   });
+
+  it('should await actors', async () => {
+    const machine = createMachine({
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            RESOLVE: 'done'
+          }
+        },
+        done: {
+          type: 'final',
+          data: { count: 42 }
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    setTimeout(() => {
+      actor.send({ type: 'RESOLVE' });
+    }, 1);
+
+    const data = await actor;
+
+    expect(data).toEqual({ count: 42 });
+  });
+
+  it('should await already done actors', async () => {
+    const machine = createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          data: { count: 42 }
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    const data = await actor;
+
+    expect(data).toEqual({ count: 42 });
+  });
 });
