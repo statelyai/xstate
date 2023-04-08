@@ -81,8 +81,8 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   );
 
   const doneData =
-    finalChildStateNode && finalChildStateNode.doneData
-      ? mapContext(finalChildStateNode.doneData, context, _event)
+    finalChildStateNode && finalChildStateNode.output
+      ? mapContext(finalChildStateNode.output, context, _event)
       : undefined;
 
   return doneData;
@@ -1266,9 +1266,9 @@ function enterStates(
         toSCXMLEvent(
           done(
             parent!.id,
-            stateNodeToEnter.doneData
+            stateNodeToEnter.output
               ? mapContext(
-                  stateNodeToEnter.doneData,
+                  stateNodeToEnter.output,
                   currentState.context,
                   currentState._event
                 )

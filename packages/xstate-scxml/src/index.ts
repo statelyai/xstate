@@ -136,8 +136,8 @@ function stateNodeToSCXML(stateNode: StateNode<any, any>): XMLElement {
   elements.push(...transitionElements);
   elements.push(...childStates);
 
-  if (stateNode.type === 'final' && stateNode.doneData) {
-    elements.push(doneDataToSCXML(stateNode.doneData));
+  if (stateNode.type === 'final' && stateNode.output) {
+    elements.push(doneDataToSCXML(stateNode.output));
   }
 
   return {
