@@ -1,25 +1,7 @@
-import { createMachine } from '../src/Machine';
+import { interpret } from '../src/index.ts';
+import { createMachine } from '../src/Machine.ts';
 
 describe('deterministic machine', () => {
-  const pedestrianStates = {
-    initial: 'walk',
-    states: {
-      walk: {
-        on: {
-          PED_COUNTDOWN: 'wait',
-          TIMER: undefined // forbidden event
-        }
-      },
-      wait: {
-        on: {
-          PED_COUNTDOWN: 'stop',
-          TIMER: undefined // forbidden event
-        }
-      },
-      stop: {}
-    }
-  };
-
   const lightMachine = createMachine({
     initial: 'green',
     states: {
@@ -40,7 +22,22 @@ describe('deterministic machine', () => {
           TIMER: 'green',
           POWER_OUTAGE: 'red'
         },
-        ...pedestrianStates
+        initial: 'walk',
+        states: {
+          walk: {
+            on: {
+              PED_COUNTDOWN: 'wait',
+              TIMER: undefined // forbidden event
+            }
+          },
+          wait: {
+            on: {
+              PED_COUNTDOWN: 'stop',
+              TIMER: undefined // forbidden event
+            }
+          },
+          stop: {}
+        }
       }
     }
   });
@@ -61,28 +58,6 @@ describe('deterministic machine', () => {
         }
       },
       c: {}
-    }
-  });
-
-  const deepMachine = createMachine({
-    initial: 'a',
-    states: {
-      a1: {
-        initial: 'a2',
-        states: {
-          a2: {
-            initial: 'a3',
-            states: {
-              a3: {
-                initial: 'a4',
-                states: {
-                  a4: {}
-                }
-              }
-            }
-          }
-        }
-      }
     }
   });
 
@@ -108,12 +83,24 @@ describe('deterministic machine', () => {
     });
 
     it('should not transition states for illegal transitions', () => {
-      expect(lightMachine.transition('green', { type: 'FAKE' }).value).toEqual(
-        'green'
-      );
-      expect(
-        lightMachine.transition('green', { type: 'FAKE' }).actions
-      ).toHaveLength(0);
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: { NEXT: 'b' }
+          },
+          b: {}
+        }
+      });
+
+      const actor = interpret(machine).start();
+
+      actor.send({
+        type: 'FAKE'
+      });
+
+      expect(actor.getSnapshot().value).toBe('a');
+      expect(actor.getSnapshot().changed).toBe(false);
     });
 
     it('should throw an error if not given an event', () => {
@@ -178,21 +165,29 @@ describe('deterministic machine', () => {
     });
 
     it('should not transition from illegal events', () => {
-      expect(
-        lightMachine.transition({ red: 'walk' }, { type: 'FAKE' }).value
-      ).toEqual({
-        red: 'walk'
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'b',
+            states: {
+              b: {
+                on: { NEXT: 'c' }
+              },
+              c: {}
+            }
+          }
+        }
       });
-      expect(
-        lightMachine.transition({ red: 'walk' }, { type: 'FAKE' }).actions
-      ).toHaveLength(0);
 
-      expect(deepMachine.transition('a1', { type: 'FAKE' }).value).toEqual({
-        a1: { a2: { a3: 'a4' } }
+      const actor = interpret(machine).start();
+
+      actor.send({
+        type: 'FAKE'
       });
-      expect(
-        deepMachine.transition('a1', { type: 'FAKE' }).actions
-      ).toHaveLength(0);
+
+      expect(actor.getSnapshot().value).toEqual({ a: 'b' });
+      expect(actor.getSnapshot().changed).toBe(false);
     });
 
     it('should transition to the deepest initial state', () => {

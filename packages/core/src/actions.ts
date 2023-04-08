@@ -10,8 +10,7 @@ import {
   DoneEventObject,
   MachineContext,
   BaseActionObject,
-  SCXML,
-  AnyState
+  SCXML
 } from './types.ts';
 import * as actionTypes from './actionTypes.ts';
 import { toSCXMLEvent, isArray } from './utils.ts';
@@ -60,7 +59,6 @@ export function resolveActionObject(
               event: state.event,
               action: a,
               _event: state._event,
-              state,
               system: actorCtx.system,
               self: actorCtx.self
             });
@@ -105,7 +103,6 @@ export function toActionObject<
             event: _event.data as TEvent,
             action: actionObject,
             _event: _event as SCXML.Event<TEvent>,
-            state: state as AnyState,
             self: actorCtx.self,
             system: actorCtx.system
           });

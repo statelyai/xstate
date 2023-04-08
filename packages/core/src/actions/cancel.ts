@@ -43,7 +43,6 @@ export function cancel<
             context: state.context,
             event: _event.data,
             _event,
-            state: state as any, // TODO: fix types,
             self: actorContext?.self ?? ({} as any),
             system: actorContext?.system
           })

@@ -14,7 +14,6 @@ export type ImmerAssigner<
   TEvent extends EventObject
 > = (
   args: { context: Draft<TContext>; event: TExpressionEvent } & AssignMeta<
-    TContext,
     TExpressionEvent,
     TEvent
   >

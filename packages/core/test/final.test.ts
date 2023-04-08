@@ -5,118 +5,72 @@ import {
   AnyEventObject
 } from '../src/index.ts';
 
-const finalMachine = createMachine({
-  id: 'final',
-  initial: 'green',
-  states: {
-    green: {
-      on: {
-        TIMER: 'yellow'
-      }
-    },
-    yellow: { on: { TIMER: 'red' } },
-    red: {
-      type: 'parallel',
+describe('final states', () => {
+  it('should emit the "done.state.*" event when all nested states are in their final states', () => {
+    const onDoneSpy = jest.fn();
+
+    const machine = createMachine({
+      id: 'm',
+      initial: 'foo',
       states: {
-        crosswalk1: {
-          initial: 'walk',
+        foo: {
+          type: 'parallel',
           states: {
-            walk: {
-              on: { PED_WAIT: 'wait' }
+            first: {
+              initial: 'a',
+              states: {
+                a: {
+                  on: { NEXT_1: 'b' }
+                },
+                b: {
+                  type: 'final'
+                }
+              }
             },
-            wait: {
-              on: { PED_STOP: 'stop' }
-            },
-            stop: {
-              type: 'final',
-              data: { signal: 'stop' }
+            second: {
+              initial: 'a',
+              states: {
+                a: {
+                  on: { NEXT_2: 'b' }
+                },
+                b: {
+                  type: 'final'
+                }
+              }
             }
           },
           onDone: {
-            guard: ({ event }) => event.data.signal === 'stop',
-            actions: 'stopCrosswalk1'
+            target: 'bar',
+            actions: ({ event }) => {
+              onDoneSpy(event.type);
+            }
           }
         },
-        crosswalk2: {
-          initial: 'walk',
-          states: {
-            walk: {
-              on: { PED_WAIT: 'wait' }
-            },
-            wait: {
-              on: { PED_STOP: 'stop' }
-            },
-            stop: {
-              on: { PED_STOP: 'stop2' }
-            },
-            stop2: {
-              type: 'final'
-            }
-          },
-          onDone: {
-            actions: 'stopCrosswalk2'
-          }
-        }
-      },
-      onDone: {
-        target: 'green',
-        actions: 'prepareGreenLight'
-      }
-    }
-  },
-  onDone: {
-    // this action should never occur because final states are not direct children of machine
-    actions: 'shouldNeverOccur'
-  }
-});
-
-describe('final states', () => {
-  it('should emit the "done.state.final.red" event when all nested states are in their final states', () => {
-    const redState = finalMachine.transition('yellow', { type: 'TIMER' });
-    expect(redState.value).toEqual({
-      red: {
-        crosswalk1: 'walk',
-        crosswalk2: 'walk'
-      }
-    });
-    const waitState = finalMachine.transition(redState, { type: 'PED_WAIT' });
-    expect(waitState.value).toEqual({
-      red: {
-        crosswalk1: 'wait',
-        crosswalk2: 'wait'
-      }
-    });
-    const stopState = finalMachine.transition(waitState, { type: 'PED_STOP' });
-    expect(stopState.value).toEqual({
-      red: {
-        crosswalk1: 'stop',
-        crosswalk2: 'stop'
+        bar: {}
       }
     });
 
-    expect(stopState.actions).toEqual([
-      expect.objectContaining({ type: 'stopCrosswalk1' })
-    ]);
+    const actor = interpret(machine).start();
 
-    const stopState2 = finalMachine.transition(stopState, { type: 'PED_STOP' });
+    actor.send({
+      type: 'NEXT_1'
+    });
+    actor.send({
+      type: 'NEXT_2'
+    });
 
-    expect(stopState2.actions).toEqual([
-      expect.objectContaining({ type: 'stopCrosswalk2' }),
-      expect.objectContaining({ type: 'prepareGreenLight' })
-    ]);
-
-    const greenState = finalMachine.transition(stopState, { type: 'TIMER' });
-    expect(greenState.actions).toHaveLength(0);
+    expect(actor.getSnapshot().value).toBe('bar');
+    expect(onDoneSpy).toHaveBeenCalledWith('done.state.m.foo');
   });
 
   it('should execute final child state actions first', () => {
-    const nestedFinalMachine = createMachine({
-      id: 'nestedFinal',
+    const actual: string[] = [];
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
           initial: 'bar',
-          onDone: { actions: 'fooAction' },
+          onDone: { actions: () => actual.push('fooAction') },
           states: {
             bar: {
               initial: 'baz',
@@ -124,26 +78,22 @@ describe('final states', () => {
               states: {
                 baz: {
                   type: 'final',
-                  entry: 'bazAction'
+                  entry: () => actual.push('bazAction')
                 }
               }
             },
             barFinal: {
               type: 'final',
-              entry: 'barAction'
+              entry: () => actual.push('barAction')
             }
           }
         }
       }
     });
 
-    const { initialState } = nestedFinalMachine;
+    interpret(machine).start();
 
-    expect(initialState.actions.map((a) => a.type)).toEqual([
-      'bazAction',
-      'barAction',
-      'fooAction'
-    ]);
+    expect(actual).toEqual(['bazAction', 'barAction', 'fooAction']);
   });
 
   it('should call data expressions on nested final nodes', (done) => {
