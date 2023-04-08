@@ -1,5 +1,13 @@
 # xstate
 
+## 5.0.0-alpha.5
+
+### Major Changes
+
+- [#3926](https://github.com/statelyai/xstate/pull/3926) [`f9f692b2b`](https://github.com/statelyai/xstate/commit/f9f692b2b7f51311a41d6de13037c61bbcb9b7c2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Restored state will no longer contain actions, since they are assumed to have already been executed. Actions will not be replayed.
+
+  If you want to replay actions when restoring state, it is recommended to use an event sourcing approach.
+
 ## 5.0.0-alpha.4
 
 ### Major Changes
