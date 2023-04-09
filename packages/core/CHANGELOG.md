@@ -1,5 +1,11 @@
 # xstate
 
+## 5.0.0-beta.7
+
+### Major Changes
+
+- [#3900](https://github.com/statelyai/xstate/pull/3900) [`7d1a8ff09`](https://github.com/statelyai/xstate/commit/7d1a8ff097dc96526e4aba3700d34934133e6eeb) Thanks [@Andarist](https://github.com/Andarist)! - `external` property on transitions has been renamed to `reenter`
+
 ## 5.0.0-alpha.6
 
 ### Major Changes
