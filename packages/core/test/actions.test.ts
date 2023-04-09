@@ -231,7 +231,7 @@ describe('entry/exit actions', () => {
             on: {
               RESTART: {
                 target: 'green',
-                external: true
+                reenter: true
               }
             }
           }
@@ -256,7 +256,7 @@ describe('entry/exit actions', () => {
             on: {
               RESTART: {
                 target: 'green',
-                external: true
+                reenter: true
               }
             },
             initial: 'walk',
@@ -858,7 +858,7 @@ describe('entry/exit actions', () => {
             on: {
               RESTART: {
                 target: 'green',
-                external: true
+                reenter: true
               }
             },
             initial: 'walk',
