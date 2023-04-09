@@ -46,7 +46,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^3.0.0-alpha.1",
     "svelte": "^3.55.1",
-    "xstate": "^5.0.0-alpha.5"
+    "xstate": "^5.0.0-alpha.6"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -65,7 +65,7 @@
     "svelte-check": "^3.1.4",
     "svelte-jester": "^2.3.2",
     "svelte-preprocess": "^5.0.0",
-    "xstate": "5.0.0-alpha.5"
+    "xstate": "5.0.0-alpha.6"
   },
   "preconstruct": {
     "entrypoints": [

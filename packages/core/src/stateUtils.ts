@@ -80,12 +80,9 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
       stateNode.type === 'final' && stateNode.parent === machine.root
   );
 
-  const doneData =
-    finalChildStateNode && finalChildStateNode.doneData
-      ? mapContext(finalChildStateNode.doneData, context, _event)
-      : undefined;
-
-  return doneData;
+  return finalChildStateNode && finalChildStateNode.output
+    ? mapContext(finalChildStateNode.output, context, _event)
+    : undefined;
 }
 
 const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
@@ -566,6 +563,10 @@ export function resolveTarget(
     if (!isString(target)) {
       return target;
     }
+    if (isStateId(target)) {
+      return stateNode.machine.getStateNodeById(target);
+    }
+
     const isInternalTarget = target[0] === stateNode.machine.delimiter;
     // If internal target is defined on machine,
     // do not include machine key on target
@@ -586,7 +587,9 @@ export function resolveTarget(
         );
       }
     } else {
-      return getStateNodeByPath(stateNode, resolvedTarget);
+      throw new Error(
+        `Invalid target: "${target}" is not a valid target from the root node. Did you mean ".${target}"?`
+      );
     }
   });
 }
@@ -668,7 +671,7 @@ export function getStateNode(
  *
  * @param statePath The string or string array relative path to the state node.
  */
-function getStateNodeByPath(
+export function getStateNodeByPath(
   stateNode: AnyStateNode,
   statePath: string | string[]
 ): AnyStateNode {
@@ -1266,9 +1269,9 @@ function enterStates(
         toSCXMLEvent(
           done(
             parent!.id,
-            stateNodeToEnter.doneData
+            stateNodeToEnter.output
               ? mapContext(
-                  stateNodeToEnter.doneData,
+                  stateNodeToEnter.output,
                   currentState.context,
                   currentState._event
                 )

@@ -553,7 +553,7 @@ export interface InvokeConfig<
   onError?:
     | string
     | SingleOrArray<
-        TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+        TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent>
       >;
 
   onSnapshot?:
@@ -643,12 +643,14 @@ export interface StateNodeConfig<
    */
   meta?: any;
   /**
-   * The data sent with the "done.state._id_" event if this is a final state node.
+   * The output data sent with the "done.state._id_" event if this is a final state node.
    *
-   * The data will be evaluated with the current `context` and placed on the `.data` property
+   * The output data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
    */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  output?:
+    | Mapper<TContext, TEvent, any>
+    | PropertyMapper<TContext, TEvent, any>;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.
@@ -695,7 +697,7 @@ export interface StateNodeDefinition<
   exit: BaseActionObject[];
   meta: any;
   order: number;
-  data?: FinalStateNodeConfig<TContext, TEvent>['data'];
+  output?: FinalStateNodeConfig<TContext, TEvent>['output'];
   invoke: Array<InvokeDefinition<TContext, TEvent>>;
   description?: string;
   tags: string[];
@@ -745,7 +747,9 @@ export interface FinalStateNodeConfig<
    * The data to be sent with the "done.state.<id>" event. The data can be
    * static or dynamic (based on assigners).
    */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  output?:
+    | Mapper<TContext, TEvent, any>
+    | PropertyMapper<TContext, TEvent, any>;
 }
 
 export type SimpleOrStateNodeConfig<
@@ -1025,7 +1029,7 @@ export interface MachineConfig<
   tsTypes?: TTypesMeta;
 }
 
-export type ActorMap = Record<string, { data: any }>;
+export type ActorMap = Record<string, { output: any }>;
 export interface MachineSchema<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1100,7 +1104,7 @@ export interface RaiseActionObject<
 
 export interface DoneInvokeEvent<TData> extends EventObject {
   type: `done.invoke.${string}`;
-  data: TData;
+  output: TData;
 }
 
 export interface ErrorEvent<TErrorData> {
@@ -1132,7 +1136,7 @@ export interface SCXMLErrorEvent extends SCXML.Event<any> {
 }
 
 export interface DoneEventObject extends EventObject {
-  data?: any;
+  output?: any;
   toString(): string;
 }
 

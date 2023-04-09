@@ -109,9 +109,9 @@ export class StateNode<
    */
   public meta?: any;
   /**
-   * The data sent with the "done.state._id_" event if this is a final state node.
+   * The output data sent with the "done.state._id_" event if this is a final state node.
    */
-  public doneData?:
+  public output?:
     | Mapper<TContext, TEvent, any>
     | PropertyMapper<TContext, TEvent, any>;
   /**
@@ -185,9 +185,9 @@ export class StateNode<
     this.exit = toActionObjects(this.config.exit);
 
     this.meta = this.config.meta;
-    this.doneData =
+    this.output =
       this.type === 'final'
-        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
+        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).output
         : undefined;
     this.tags = toArray(config.tags);
   }
@@ -239,7 +239,7 @@ export class StateNode<
       exit: this.exit,
       meta: this.meta,
       order: this.order || -1,
-      data: this.doneData,
+      output: this.output,
       invoke: this.invoke,
       description: this.description,
       tags: this.tags

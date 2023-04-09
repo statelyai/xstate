@@ -1634,7 +1634,7 @@ describe('interpreter', () => {
                 {
                   target: 'success',
                   guard: ({ event }) => {
-                    return event.data === 42;
+                    return event.output === 42;
                   }
                 },
                 { target: 'failure' }

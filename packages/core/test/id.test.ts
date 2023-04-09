@@ -42,9 +42,7 @@ const idMachine = createMachine({
             NEXT: '#A_foo'
           }
         },
-        dot: {
-          id: 'B.dot'
-        }
+        dot: {}
       }
     }
   }

@@ -1,5 +1,41 @@
 # xstate
 
+## 5.0.0-alpha.6
+
+### Major Changes
+
+- [#3952](https://github.com/statelyai/xstate/pull/3952) [`ec300837e`](https://github.com/statelyai/xstate/commit/ec300837e7665057b0edf8f3728319ca509ed801) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The output data on final states is now specified as `.output` instead of `.data`:
+
+  ```diff
+  const machine = createMachine({
+    // ...
+    states: {
+      // ...
+      success: {
+  -     data: { message: 'Success!' }
+  +     output: { message: 'Success!' }
+      }
+    }
+  })
+  ```
+
+- [#2881](https://github.com/statelyai/xstate/pull/2881) [`2f45343c5`](https://github.com/statelyai/xstate/commit/2f45343c5a8984dd92ee6b2ee6fcf90efaee264f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Target resolution improvements: targeting sibling nodes from the root is no longer valid, since the root node has no siblings:
+
+  ```diff
+  createMachine({
+    id: 'direction',
+    initial: 'left',
+    states: {
+      left: {},
+      right: {}
+    },
+    on: {
+  -   LEFT_CLICK: 'left',
+  +   LEFT_CLICK: '.left'
+    }
+  });
+  ```
+
 ## 5.0.0-alpha.5
 
 ### Major Changes
