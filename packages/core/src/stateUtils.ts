@@ -988,6 +988,7 @@ function getTransitionDomain(
 
   if (
     !transition.reenter &&
+    transition.source.type !== 'parallel' &&
     targetStates.every((targetStateNode) =>
       isDescendant(targetStateNode, transition.source)
     )

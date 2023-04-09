@@ -1046,14 +1046,17 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should reenter parallel region when a parallel state is not reentered while targeting another region', () => {
+    it('should reenter parallel region when a parallel state is reentered while targeting another region', () => {
       const machine = createMachine({
         initial: 'ready',
         states: {
           ready: {
             type: 'parallel',
             on: {
-              FOO: '#cameraOff'
+              FOO: {
+                target: '#cameraOff',
+                reenter: true
+              }
             },
             states: {
               devicesInfo: {},
@@ -1082,6 +1085,8 @@ describe('entry/exit actions', () => {
         'exit: ready.camera.on',
         'exit: ready.camera',
         'exit: ready.devicesInfo',
+        'exit: ready',
+        'enter: ready',
         'enter: ready.devicesInfo',
         'enter: ready.camera',
         'enter: ready.camera.off'
