@@ -1635,17 +1635,15 @@ export function interpret<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TResolvedTypesMeta = TypegenDisabled
 >(
-  machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends true
-    ? StateMachine<
-        TContext,
-        TStateSchema,
-        TEvent,
-        TTypestate,
-        any,
-        any,
-        TResolvedTypesMeta
-      >
-    : 'Some implementations missing',
+  machine: StateMachine<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate,
+    any,
+    any,
+    TResolvedTypesMeta
+  >,
   options?: InterpreterOptions
 ) {
   const interpreter = new Interpreter<
