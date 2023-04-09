@@ -291,8 +291,6 @@ export function getPersistedState<TState extends AnyState>(
   const { configuration, transitions, tags, machine, children, ...jsonValues } =
     state;
 
-  const contextJSON = JSON.stringify(state.context);
-
   const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
 
   for (const id in children) {
@@ -304,7 +302,6 @@ export function getPersistedState<TState extends AnyState>(
 
   return {
     ...jsonValues,
-    context: JSON.parse(contextJSON),
     children: childrenJson
   } as PersistedMachineState<TState>;
 }
