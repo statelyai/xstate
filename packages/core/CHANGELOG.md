@@ -1,6 +1,6 @@
 # xstate
 
-## 5.0.0-alpha.7
+## 5.0.0-beta.7
 
 ### Major Changes
 
