@@ -1,31 +1,33 @@
-import {
-  interpret,
-  assign,
-  sendParent,
-  send,
-  EventObject,
-  StateValue,
-  createMachine,
-  ActorContext,
-  ActorBehavior,
-  SpecialTargets,
-  toSCXMLEvent
-} from '../src/index.js';
-import { fromReducer } from '../src/actors/index.js';
-import { fromObservable, fromEventObservable } from '../src/actors/index.js';
-import { fromPromise } from '../src/actors/index.js';
-import { fromCallback } from '../src/actors/index.js';
+import { interval } from 'rxjs';
+import { map, take } from 'rxjs/operators';
 import {
   actionTypes,
-  done as _done,
   doneInvoke,
   escalate,
   forwardTo,
-  sendTo,
-  raise
-} from '../src/actions.js';
-import { interval } from 'rxjs';
-import { map, take } from 'rxjs/operators';
+  raise,
+  sendTo
+} from '../src/actions.ts';
+import {
+  fromCallback,
+  fromEventObservable,
+  fromObservable,
+  fromPromise,
+  fromTransition
+} from '../src/actors/index.ts';
+import {
+  ActorBehavior,
+  ActorContext,
+  EventObject,
+  SpecialTargets,
+  StateValue,
+  assign,
+  createMachine,
+  interpret,
+  send,
+  sendParent,
+  toSCXMLEvent
+} from '../src/index.ts';
 
 const user = { name: 'David' };
 
@@ -41,13 +43,13 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
       on: {
         RESOLVE: {
           target: 'success',
-          guard: (ctx) => ctx.userId !== undefined
+          guard: ({ context }) => context.userId !== undefined
         }
       }
     },
     success: {
       type: 'final',
-      data: { user: (_: any, e: any) => e.user }
+      output: { user: ({ event }) => event.user }
     },
     failure: {
       entry: sendParent({ type: 'REJECT' })
@@ -72,14 +74,14 @@ const fetcherMachine = createMachine({
     waiting: {
       invoke: {
         src: fetchMachine,
-        input: {
-          userId: (ctx: any) => ctx.selectedUserId
-        },
+        input: ({ context }) => ({
+          userId: context.selectedUserId
+        }),
         onDone: {
           target: 'received',
-          guard: (_, e) => {
+          guard: ({ event }) => {
             // Should receive { user: { name: 'David' } } as event data
-            return e.data.user.name === 'David';
+            return event.output.user.name === 'David';
           }
         }
       }
@@ -98,71 +100,7 @@ const fetcherMachine = createMachine({
 });
 
 describe('invoke', () => {
-  it('should start services (external machines)', (done) => {
-    const childMachine = createMachine({
-      id: 'child',
-      initial: 'init',
-      states: {
-        init: {
-          entry: [sendParent({ type: 'INC' }), sendParent({ type: 'INC' })]
-        }
-      }
-    });
-
-    const someParentMachine = createMachine<{ count: number }>(
-      {
-        id: 'parent',
-        context: { count: 0 },
-        initial: 'start',
-        states: {
-          start: {
-            invoke: {
-              src: 'child',
-              id: 'someService',
-              autoForward: true
-            },
-            always: {
-              target: 'stop',
-              guard: (ctx) => ctx.count === 2
-            },
-            on: {
-              INC: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
-              }
-            }
-          },
-          stop: {
-            type: 'final'
-          }
-        }
-      },
-      {
-        actors: {
-          child: childMachine
-        }
-      }
-    );
-
-    let count: number;
-
-    interpret(someParentMachine)
-      .onTransition((state) => {
-        count = state.context.count;
-      })
-      .onDone(() => {
-        // 1. The 'parent' machine will enter 'start' state
-        // 2. The 'child' service will be run with ID 'someService'
-        // 3. The 'child' machine will enter 'init' state
-        // 4. The 'entry' action will be executed, which sends 'INC' to 'parent' machine twice
-        // 5. The context will be updated to increment count to 2
-
-        expect(count).toEqual(2);
-        done();
-      })
-      .start();
-  });
-
-  it('should forward events to services if autoForward: true', () => {
+  it('child can immediately respond to the parent with multiple events', () => {
     const childMachine = createMachine({
       id: 'child',
       initial: 'init',
@@ -190,16 +128,19 @@ describe('invoke', () => {
           start: {
             invoke: {
               src: 'child',
-              id: 'someService',
-              autoForward: true
+              id: 'someService'
             },
             always: {
               target: 'stop',
-              guard: (ctx) => ctx.count === -3
+              guard: ({ context }) => context.count === -3
             },
             on: {
-              DEC: { actions: assign({ count: (ctx) => ctx.count - 1 }) },
-              FORWARD_DEC: undefined
+              DEC: {
+                actions: assign({ count: ({ context }) => context.count - 1 })
+              },
+              FORWARD_DEC: {
+                actions: sendTo('child', { type: 'FORWARD_DEC' })
+              }
             }
           },
           stop: {
@@ -215,13 +156,14 @@ describe('invoke', () => {
     );
 
     let state: any;
-    const service = interpret(someParentMachine)
-      .onTransition((s) => {
-        state = s;
-      })
+    const service = interpret(someParentMachine);
+    service.subscribe((s) => {
+      state = s;
+    });
+    service
       .onDone(() => {
         // 1. The 'parent' machine will not do anything (inert transition)
-        // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (autoForward: true)
+        // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
         // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
         // 4. The context of the 'parent' machine will be updated from 2 to -1
 
@@ -230,106 +172,6 @@ describe('invoke', () => {
       .start();
 
     service.send({ type: 'FORWARD_DEC' });
-  });
-
-  it('should forward events to services if autoForward: true before processing them', (done) => {
-    const actual: string[] = [];
-
-    const childMachine = createMachine<{ count: number }>({
-      id: 'child',
-      context: { count: 0 },
-      initial: 'counting',
-      states: {
-        counting: {
-          on: {
-            INCREMENT: [
-              {
-                target: 'done',
-                guard: (ctx) => {
-                  actual.push('child got INCREMENT');
-                  return ctx.count >= 2;
-                },
-                actions: assign((ctx) => ({ count: ++ctx.count }))
-              },
-              {
-                target: undefined,
-                actions: assign((ctx) => ({ count: ++ctx.count }))
-              }
-            ]
-          }
-        },
-        done: {
-          type: 'final',
-          data: (ctx) => ({ countedTo: ctx.count })
-        }
-      },
-      on: {
-        START: {
-          actions: () => {
-            throw new Error('Should not receive START action here.');
-          }
-        }
-      }
-    });
-
-    const parentMachine = createMachine<{ countedTo: number }>({
-      id: 'parent',
-      context: { countedTo: 0 },
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            START: 'invokeChild'
-          }
-        },
-        invokeChild: {
-          invoke: {
-            src: childMachine,
-            autoForward: true,
-            onDone: {
-              target: 'done',
-              actions: assign((_ctx, event) => ({
-                countedTo: event.data.countedTo
-              }))
-            }
-          },
-          on: {
-            INCREMENT: {
-              actions: () => {
-                actual.push('parent got INCREMENT');
-              }
-            }
-          }
-        },
-        done: {
-          type: 'final'
-        }
-      }
-    });
-
-    let state: any;
-    const service = interpret(parentMachine)
-      .onTransition((s) => {
-        state = s;
-      })
-      .onDone(() => {
-        expect(state.context).toEqual({ countedTo: 3 });
-        expect(actual).toEqual([
-          'child got INCREMENT',
-          'parent got INCREMENT',
-          'child got INCREMENT',
-          'parent got INCREMENT',
-          'child got INCREMENT',
-          'parent got INCREMENT'
-        ]);
-        done();
-      })
-      .start();
-
-    service.send({ type: 'START' });
-    service.send({ type: 'INCREMENT' });
-    service.send({ type: 'INCREMENT' });
-    service.send({ type: 'INCREMENT' });
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
@@ -345,15 +187,15 @@ describe('invoke', () => {
           on: {
             RESOLVE: {
               target: 'success',
-              guard: (ctx) => {
-                return ctx.userId !== undefined;
+              guard: ({ context }) => {
+                return context.userId !== undefined;
               }
             }
           }
         },
         success: {
           type: 'final',
-          data: { user: (_: any, e: any) => e.user }
+          output: { user: ({ event }) => event.user }
         },
         failure: {
           entry: sendParent({ type: 'REJECT' })
@@ -377,14 +219,14 @@ describe('invoke', () => {
         waiting: {
           invoke: {
             src: childMachine,
-            input: {
-              userId: (ctx: any) => ctx.selectedUserId
-            },
+            input: ({ context }) => ({
+              userId: context.selectedUserId
+            }),
             onDone: {
               target: 'received',
-              guard: (_, e) => {
+              guard: ({ event }) => {
                 // Should receive { user: { name: 'David' } } as event data
-                return e.data.user.name === 'David';
+                return event.output.user.name === 'David';
               }
             }
           }
@@ -435,8 +277,8 @@ describe('invoke', () => {
           on: {
             SUCCESS: {
               target: 'success',
-              guard: (_, e) => {
-                return e.data === 42;
+              guard: ({ event }) => {
+                return event.data === 42;
               }
             }
           }
@@ -485,9 +327,9 @@ describe('invoke', () => {
       },
       on: {
         SUCCESS: {
-          target: 'success',
-          guard: (_, e) => {
-            return e.data === 42;
+          target: '.success',
+          guard: ({ event }) => {
+            return event.data === 42;
           }
         }
       }
@@ -516,8 +358,7 @@ describe('invoke', () => {
           start: {
             invoke: {
               src: 'child',
-              id: 'someService',
-              autoForward: true
+              id: 'someService'
             },
             on: {
               STOP: 'stop'
@@ -669,7 +510,7 @@ describe('invoke', () => {
         states: {
           active: {
             type: 'final',
-            data: { secret: 'pingpong' }
+            output: { secret: 'pingpong' }
           }
         }
       });
@@ -687,7 +528,7 @@ describe('invoke', () => {
                   src: pongMachine,
                   onDone: {
                     target: 'success',
-                    guard: (_, e) => e.data.secret === 'pingpong'
+                    guard: ({ event }) => event.output.secret === 'pingpong'
                   }
                 }
               },
@@ -905,11 +746,11 @@ describe('invoke', () => {
                   }
                 })
               ),
-              input: (ctx) => ctx,
+              input: ({ context }) => context,
               onDone: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  return e.data === ctx.id;
+                guard: ({ context, event }) => {
+                  return event.output === context.id;
                 }
               },
               onError: 'failure'
@@ -971,13 +812,12 @@ describe('invoke', () => {
       });
 
       // tslint:disable-next-line:max-line-length
-      it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', (done) => {
+      it('should be invoked with a promise factory and stop on unhandled onError target', (done) => {
         const doneSpy = jest.fn();
 
         const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
-          strict: true,
           states: {
             pending: {
               invoke: {
@@ -1101,7 +941,7 @@ describe('invoke', () => {
                 ),
                 onDone: {
                   target: 'success',
-                  actions: assign({ count: (_, e) => e.data.count })
+                  actions: assign({ count: ({ event }) => event.output.count })
                 }
               }
             },
@@ -1111,13 +951,9 @@ describe('invoke', () => {
           }
         });
 
-        let state: any;
-        interpret(promiseMachine)
-          .onTransition((s) => {
-            state = s;
-          })
+        const actor = interpret(promiseMachine)
           .onDone(() => {
-            expect(state.context.count).toEqual(1);
+            expect(actor.getSnapshot().context.count).toEqual(1);
             done();
           })
           .start();
@@ -1135,7 +971,9 @@ describe('invoke', () => {
                   src: 'somePromise',
                   onDone: {
                     target: 'success',
-                    actions: assign({ count: (_, e) => e.data.count })
+                    actions: assign({
+                      count: ({ event }) => event.output.count
+                    })
                   }
                 }
               },
@@ -1153,13 +991,9 @@ describe('invoke', () => {
           }
         );
 
-        let state: any;
-        interpret(promiseMachine)
-          .onTransition((s) => {
-            state = s;
-          })
+        const actor = interpret(promiseMachine)
           .onDone(() => {
-            expect(state.context.count).toEqual(1);
+            expect(actor.getSnapshot().context.count).toEqual(1);
             done();
           })
           .start();
@@ -1180,8 +1014,8 @@ describe('invoke', () => {
                 ),
                 onDone: {
                   target: 'success',
-                  actions: (_, e) => {
-                    count = e.data.count;
+                  actions: ({ event }) => {
+                    count = event.output.count;
                   }
                 }
               }
@@ -1213,8 +1047,8 @@ describe('invoke', () => {
                   src: 'somePromise',
                   onDone: {
                     target: 'success',
-                    actions: (_, e) => {
-                      count = e.data.count;
+                    actions: ({ event }) => {
+                      count = event.output.count;
                     }
                   }
                 }
@@ -1262,9 +1096,9 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
-                  input: (ctx, ev) => ({
-                    foo: ctx.foo,
-                    event: ev
+                  input: ({ context, event }) => ({
+                    foo: context.foo,
+                    event: event
                   }),
                   onDone: 'last'
                 }
@@ -1317,8 +1151,8 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
-                            actions: assign((_ctx, ev) => ({
-                              result1: ev.data.result
+                            actions: assign(({ event }) => ({
+                              result1: event.output.result
                             }))
                           }
                         }
@@ -1336,8 +1170,8 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
-                            actions: assign((_ctx, ev) => ({
-                              result2: ev.data.result
+                            actions: assign(({ event }) => ({
+                              result2: event.output.result
                             }))
                           }
                         }
@@ -1411,15 +1245,15 @@ describe('invoke', () => {
             first: {
               invoke: {
                 src: 'someCallback',
-                input: (ctx, ev) => ({
-                  foo: ctx.foo,
-                  event: ev
+                input: ({ context, event }) => ({
+                  foo: context.foo,
+                  event: event
                 })
               },
               on: {
                 CALLBACK: {
                   target: 'last',
-                  guard: (_, e) => e.data === 42
+                  guard: ({ event }) => event.data === 42
                 }
               }
             },
@@ -1494,10 +1328,9 @@ describe('invoke', () => {
 
       const expectedStateValues = ['pending', 'first', 'intermediate'];
       const stateValues: StateValue[] = [];
-      interpret(callbackMachine)
-        .onTransition((current) => stateValues.push(current.value))
-        .start()
-        .send({ type: 'BEGIN' });
+      const actor = interpret(callbackMachine);
+      actor.subscribe((current) => stateValues.push(current.value));
+      actor.start().send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
@@ -1535,10 +1368,9 @@ describe('invoke', () => {
 
       const expectedStateValues = ['idle', 'intermediate'];
       const stateValues: StateValue[] = [];
-      interpret(callbackMachine)
-        .onTransition((current) => stateValues.push(current.value))
-        .start()
-        .send({ type: 'BEGIN' });
+      const actor = interpret(callbackMachine);
+      actor.subscribe((current) => stateValues.push(current.value));
+      actor.start().send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
@@ -1583,12 +1415,11 @@ describe('invoke', () => {
 
       const expectedStateValues = ['pending', 'second', 'third'];
       const stateValues: StateValue[] = [];
-      interpret(callbackMachine)
-        .onTransition((current) => {
-          stateValues.push(current.value);
-        })
-        .start()
-        .send({ type: 'BEGIN' });
+      const actor = interpret(callbackMachine);
+      actor.subscribe((current) => {
+        stateValues.push(current.value);
+      });
+      actor.start().send({ type: 'BEGIN' });
 
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
@@ -1618,10 +1449,12 @@ describe('invoke', () => {
             },
             always: {
               target: 'finished',
-              guard: (ctx) => ctx.count === 3
+              guard: ({ context }) => context.count === 3
             },
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) }
+              INC: {
+                actions: assign({ count: ({ context }) => context.count + 1 })
+              }
             }
           },
           finished: {
@@ -1703,8 +1536,10 @@ describe('invoke', () => {
               }),
               onError: {
                 target: 'failed',
-                guard: (_, e) => {
-                  return e.data instanceof Error && e.data.message === 'test';
+                guard: ({ event }) => {
+                  return (
+                    event.data instanceof Error && event.data.message === 'test'
+                  );
                 }
               }
             }
@@ -1757,8 +1592,10 @@ describe('invoke', () => {
               }),
               onError: {
                 target: 'failed',
-                guard: (_, e) => {
-                  return e.data instanceof Error && e.data.message === 'test';
+                guard: ({ event }) => {
+                  return (
+                    event.data instanceof Error && event.data.message === 'test'
+                  );
                 }
               }
             }
@@ -1775,8 +1612,6 @@ describe('invoke', () => {
     });
 
     it('should call onDone when resolved (async)', (done) => {
-      let state: any;
-
       const asyncWithDoneMachine = createMachine<{ result?: any }>({
         id: 'async',
         initial: 'fetch',
@@ -1790,7 +1625,7 @@ describe('invoke', () => {
               }),
               onDone: {
                 target: 'success',
-                actions: assign((_, { data: result }) => ({ result }))
+                actions: assign(({ event: { output: result } }) => ({ result }))
               }
             }
           },
@@ -1800,12 +1635,9 @@ describe('invoke', () => {
         }
       });
 
-      interpret(asyncWithDoneMachine)
-        .onTransition((s) => {
-          state = s;
-        })
+      const actor = interpret(asyncWithDoneMachine)
         .onDone(() => {
-          expect(state.context.result).toEqual(42);
+          expect(actor.getSnapshot().context.result).toEqual(42);
           done();
         })
         .start();
@@ -1940,11 +1772,12 @@ describe('invoke', () => {
       it('ends on the completed state', (done) => {
         const events: EventObject[] = [];
         let state: any;
-        const service = interpret(anotherParentMachine)
-          .onTransition((s) => {
-            state = s;
-            events.push(s.event);
-          })
+        const service = interpret(anotherParentMachine);
+        service.subscribe((s) => {
+          state = s;
+          events.push(s.event);
+        });
+        service
           .onDone(() => {
             expect(events.map((e) => e.type)).toEqual([
               actionTypes.init,
@@ -1976,12 +1809,12 @@ describe('invoke', () => {
             invoke: {
               src: fromObservable(() => interval(10)),
               onSnapshot: {
-                actions: assign({ count: (_, e) => e.data })
+                actions: assign({ count: ({ event }) => event.data })
               }
             },
             always: {
               target: 'counted',
-              guard: (ctx) => ctx.count === 5
+              guard: ({ context }) => context.count === 5
             }
           },
           counted: {
@@ -2018,12 +1851,12 @@ describe('invoke', () => {
               src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
-                  count: (_, e) => e.data
+                  count: ({ event }) => event.data
                 })
               },
               onDone: {
                 target: 'counted',
-                guard: (ctx) => ctx.count === 4
+                guard: ({ context }) => context.count === 4
               }
             }
           },
@@ -2067,13 +1900,15 @@ describe('invoke', () => {
                 )
               ),
               onSnapshot: {
-                actions: assign({ count: (_, e) => e.data })
+                actions: assign({ count: ({ event }) => event.data })
               },
               onError: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  expect(e.data.message).toEqual('some error');
-                  return ctx.count === 4 && e.data.message === 'some error';
+                guard: ({ context, event }) => {
+                  expect(event.data.message).toEqual('some error');
+                  return (
+                    context.count === 4 && event.data.message === 'some error'
+                  );
                 }
               }
             }
@@ -2111,12 +1946,12 @@ describe('invoke', () => {
             },
             on: {
               COUNT: {
-                actions: assign({ count: (_, e) => e.value })
+                actions: assign({ count: ({ event }) => event.value })
               }
             },
             always: {
               target: 'counted',
-              guard: (ctx) => ctx.count === 5
+              guard: ({ context }) => context.count === 5
             }
           },
           counted: {
@@ -2158,13 +1993,13 @@ describe('invoke', () => {
               ),
               onDone: {
                 target: 'counted',
-                guard: (ctx) => ctx.count === 4
+                guard: ({ context }) => context.count === 4
               }
             },
             on: {
               COUNT: {
                 actions: assign({
-                  count: (_, e) => e.value
+                  count: ({ event }) => event.value
                 })
               }
             }
@@ -2210,15 +2045,17 @@ describe('invoke', () => {
               ),
               onError: {
                 target: 'success',
-                guard: (ctx, e) => {
-                  expect(e.data.message).toEqual('some error');
-                  return ctx.count === 4 && e.data.message === 'some error';
+                guard: ({ context, event }) => {
+                  expect(event.data.message).toEqual('some error');
+                  return (
+                    context.count === 4 && event.data.message === 'some error'
+                  );
                 }
               }
             },
             on: {
               COUNT: {
-                actions: assign({ count: (_, e) => e.value })
+                actions: assign({ count: ({ event }) => event.value })
               }
             }
           },
@@ -2265,13 +2102,13 @@ describe('invoke', () => {
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          if (state.children['count']?.getSnapshot() === 2) {
-            done();
-          }
-        })
-        .start();
+      const countService = interpret(countMachine);
+      countService.subscribe((state) => {
+        if (state.children['count']?.getSnapshot() === 2) {
+          done();
+        }
+      });
+      countService.start();
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
@@ -2317,8 +2154,8 @@ describe('invoke', () => {
     });
   });
 
-  describe('with reducers', () => {
-    it('should work with a reducer', (done) => {
+  describe('with transition functions', () => {
+    it('should work with a transition function', (done) => {
       const countReducer = (
         count: number,
         event: { type: 'INC' } | { type: 'DEC' }
@@ -2334,7 +2171,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromReducer(countReducer, 0)
+          src: fromTransition(countReducer, 0)
         },
         on: {
           INC: {
@@ -2343,13 +2180,13 @@ describe('invoke', () => {
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          if (state.children['count']?.getSnapshot() === 2) {
-            done();
-          }
-        })
-        .start();
+      const countService = interpret(countMachine);
+      countService.subscribe((state) => {
+        if (state.children['count']?.getSnapshot() === 2) {
+          done();
+        }
+      });
+      countService.start();
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
@@ -2377,7 +2214,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: fromReducer(countReducer, 0)
+          src: fromTransition(countReducer, 0)
         },
         on: {
           INC: {
@@ -2386,13 +2223,13 @@ describe('invoke', () => {
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          if (state.children['count']?.getSnapshot() === 2) {
-            done();
-          }
-        })
-        .start();
+      const countService = interpret(countMachine);
+      countService.subscribe((state) => {
+        if (state.children['count']?.getSnapshot() === 2) {
+          done();
+        }
+      });
+      countService.start();
 
       countService.send({ type: 'INC' });
     });
@@ -2497,15 +2334,13 @@ describe('invoke', () => {
     });
 
     it('should start all services at once', (done) => {
-      let state: any;
-      const service = interpret(multiple)
-        .onTransition((s) => {
-          state = s;
-        })
-        .onDone(() => {
-          expect(state.context).toEqual({ one: 'one', two: 'two' });
-          done();
+      const service = interpret(multiple).onDone(() => {
+        expect(service.getSnapshot().context).toEqual({
+          one: 'one',
+          two: 'two'
         });
+        done();
+      });
 
       service.start();
     });
@@ -2566,15 +2401,13 @@ describe('invoke', () => {
     });
 
     it('should run services in parallel', (done) => {
-      let state: any;
-      const service = interpret(parallel)
-        .onTransition((s) => {
-          state = s;
-        })
-        .onDone(() => {
-          expect(state.context).toEqual({ one: 'one', two: 'two' });
-          done();
+      const service = interpret(parallel).onDone(() => {
+        expect(service.getSnapshot().context).toEqual({
+          one: 'one',
+          two: 'two'
         });
+        done();
+      });
 
       service.start();
     });
@@ -2723,13 +2556,13 @@ describe('invoke', () => {
             },
             always: [
               {
-                guard: (ctx) => ctx.counter === 0,
+                guard: ({ context }) => context.counter === 0,
                 target: 'inactive'
               }
             ]
           },
           inactive: {
-            entry: assign({ counter: (ctx) => ++ctx.counter }),
+            entry: assign({ counter: ({ context }) => ++context.counter }),
             always: 'active'
           }
         }
@@ -2765,7 +2598,7 @@ describe('invoke', () => {
               src: child,
               onError: {
                 target: 'two',
-                guard: (_, event) => event.data === 'oops'
+                guard: ({ event }) => event.data === 'oops'
               }
             }
           },
@@ -2792,7 +2625,7 @@ describe('invoke', () => {
         context: { id: 42 },
         states: {
           die: {
-            entry: escalate((ctx) => ctx.id)
+            entry: escalate(({ context }) => context.id)
           }
         }
       });
@@ -2807,7 +2640,7 @@ describe('invoke', () => {
               src: child,
               onError: {
                 target: 'two',
-                guard: (_, event) => {
+                guard: ({ event }) => {
                   expect(event.data).toEqual(42);
                   return true;
                 }
@@ -2874,7 +2707,7 @@ describe('invoke', () => {
           searching: {
             invoke: {
               src: 'search',
-              input: (ctx) => ({ endpoint: ctx.url }),
+              input: ({ context }) => ({ endpoint: context.url }),
               onDone: 'success'
             }
           },
@@ -2942,11 +2775,11 @@ describe('invoke', () => {
             invoke: {
               src: 'someSrc',
               onDone: {
-                guard: (_, e) => {
+                guard: ({ event }) => {
                   // invoke ID should not be 'someSrc'
                   const expectedType = 'done.invoke.(machine).a:invocation[0]';
-                  expect(e.type).toEqual(expectedType);
-                  return e.type === expectedType;
+                  expect(event.type).toEqual(expectedType);
+                  return event.type === expectedType;
                 },
                 target: 'b'
               }
@@ -3111,8 +2944,8 @@ describe('invoke', () => {
       },
       on: {
         '*': {
-          actions: (_ctx, ev) => {
-            actual.push(ev.type);
+          actions: ({ event }) => {
+            actual.push(event.type);
           }
         }
       }
@@ -3266,9 +3099,9 @@ describe('actors option', () => {
           pending: {
             invoke: {
               src: 'stringService',
-              input: (ctx) => ({
+              input: ({ context }) => ({
                 staticVal: 'hello',
-                newCount: ctx.count * 2 // TODO: types
+                newCount: context.count * 2 // TODO: types
               }),
               onDone: 'success'
             }

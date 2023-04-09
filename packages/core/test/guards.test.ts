@@ -1,5 +1,6 @@
-import { interpret, State, createMachine, actions } from '../src/index.js';
+import { interpret, State, createMachine, actions } from '../src/index.ts';
 import { and, not, or } from '../src/guards';
+import { trackEntries } from './utils.ts';
 
 describe('guard conditions', () => {
   interface LightMachineCtx {
@@ -23,16 +24,17 @@ describe('guard conditions', () => {
             TIMER: [
               {
                 target: 'green',
-                guard: ({ elapsed }) => elapsed < 100
+                guard: ({ context: { elapsed } }) => elapsed < 100
               },
               {
                 target: 'yellow',
-                guard: ({ elapsed }) => elapsed >= 100 && elapsed < 200
+                guard: ({ context: { elapsed } }) =>
+                  elapsed >= 100 && elapsed < 200
               }
             ],
             EMERGENCY: {
               target: 'red',
-              guard: (_, event) => !!event.isEmergency
+              guard: ({ event }) => !!event.isEmergency
             }
           }
         },
@@ -62,7 +64,8 @@ describe('guard conditions', () => {
     },
     {
       guards: {
-        minTimeElapsed: ({ elapsed }) => elapsed >= 100 && elapsed < 200
+        minTimeElapsed: ({ context: { elapsed } }) =>
+          elapsed >= 100 && elapsed < 200
       }
     }
   );
@@ -113,20 +116,36 @@ describe('guard conditions', () => {
   });
 
   it('should not transition if no condition is met', () => {
-    const nextState = lightMachine.transition(
-      lightMachine.resolveState(
-        State.from(
-          'green',
-          {
-            elapsed: 9000
-          },
-          lightMachine
-        )
-      ),
-      { type: 'TIMER', elapsed: 10 }
-    );
-    expect(nextState.value).toEqual('green');
-    expect(nextState.actions).toEqual([]);
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            TIMER: [
+              {
+                target: 'b',
+                guard: ({ event: { elapsed } }) => elapsed > 200
+              },
+              {
+                target: 'c',
+                guard: ({ event: { elapsed } }) => elapsed > 100
+              }
+            ]
+          }
+        },
+        b: {},
+        c: {}
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+    const actor = interpret(machine).start();
+    flushTracked();
+
+    actor.send({ type: 'TIMER', elapsed: 10 });
+
+    expect(actor.getSnapshot().value).toBe('a');
+    expect(flushTracked()).toEqual([]);
   });
 
   it('should work with defined string transitions', () => {
@@ -222,29 +241,26 @@ describe('guard conditions', () => {
             always: [
               {
                 target: 'B4',
-                guard: (_state, _event, { state: s }) => s.matches('A.A4')
+                guard: ({ state }) => state.matches('A.A4')
               }
             ],
             on: {
               T1: [
                 {
                   target: 'B1',
-                  guard: (_state: any, _event: any, { state: s }: any) =>
-                    s.matches('A.A1')
+                  guard: ({ state }) => state.matches('A.A1')
                 }
               ],
               T2: [
                 {
                   target: 'B2',
-                  guard: (_state: any, _event: any, { state: s }: any) =>
-                    s.matches('A.A2')
+                  guard: ({ state }) => state.matches('A.A2')
                 }
               ],
               T3: [
                 {
                   target: 'B3',
-                  guard: (_state: any, _event: any, { state: s }: any) =>
-                    s.matches('A.A3')
+                  guard: ({ state }) => state.matches('A.A3')
                 }
               ]
             }
@@ -299,8 +315,7 @@ describe('guard conditions', () => {
           tags: 'theTag',
           on: {
             MICRO: {
-              guard: (_ctx: any, _event: any, { state }: any) =>
-                state.hasTag('theTag'),
+              guard: ({ state }) => state.hasTag('theTag'),
               target: 'c'
             }
           }
@@ -348,10 +363,12 @@ describe('custom guards', () => {
     },
     {
       guards: {
-        custom: (ctx, e: Extract<Events, { type: 'EVENT' }>, meta) => {
-          const { prop, compare, op } = meta.guard.params;
+        custom: ({ context, event, guard }) => {
+          const { prop, compare, op } = guard.params;
           if (op === 'greaterThan') {
-            return ctx[prop as keyof typeof ctx] + e.value > compare;
+            return (
+              context[prop as keyof typeof context] + event.value > compare
+            );
           }
 
           return false;
@@ -497,7 +514,7 @@ describe('guards with child guards', () => {
                     },
                     { type: 'customGuard' }
                   ],
-                  predicate: (_: any, __: any, { guard }: any) => {
+                  predicate: ({ guard }) => {
                     expect(guard.children).toHaveLength(2);
                     expect(
                       guard.children?.find(
@@ -594,7 +611,7 @@ describe('not() guard', () => {
       },
       {
         guards: {
-          greaterThan10: (_, __, { guard }) => {
+          greaterThan10: ({ guard }) => {
             return guard.params.value > 10;
           }
         }
@@ -707,7 +724,7 @@ describe('and() guard', () => {
       },
       {
         guards: {
-          greaterThan10: (_, __, { guard }) => {
+          greaterThan10: ({ guard }) => {
             return guard.params.value > 10;
           }
         }
@@ -825,7 +842,7 @@ describe('or() guard', () => {
       },
       {
         guards: {
-          greaterThan10: (_, __, { guard }) => {
+          greaterThan10: ({ guard }) => {
             return guard.params.value > 10;
           }
         }

@@ -7,13 +7,12 @@ import {
   send,
   sendParent,
   StateValue,
-  AnyEventObject,
   createMachine,
   AnyState,
   InterpreterStatus,
   ActorRefFrom,
   ActorRef
-} from '../src/index.js';
+} from '../src/index.ts';
 import { State } from '../src/State';
 import { raise } from '../src/actions/raise';
 import { sendTo } from '../src/actions/send';
@@ -54,17 +53,6 @@ const lightMachine = createMachine({
 
 describe('interpreter', () => {
   describe('initial state', () => {
-    it('immediately notifies the listener with the initial state and event', (done) => {
-      const service = interpret(idMachine).onTransition((initialState) => {
-        expect(initialState).toBeInstanceOf(State);
-        expect(initialState.value).toEqual(idMachine.initialState.value);
-        expect(initialState.event.type).toEqual('xstate.init');
-        done();
-      });
-
-      service.start();
-    });
-
     it('.getSnapshot returns the initial state', () => {
       const service = interpret(idMachine);
 
@@ -84,7 +72,7 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: (_, __, { spawn }) => {
+              actor: ({ spawn }) => {
                 return spawn(
                   fromPromise(
                     () =>
@@ -117,43 +105,34 @@ describe('interpreter', () => {
       }, 100);
     });
 
-    // https://github.com/statelyai/xstate/issues/1174
-    it('executes actions from a restored state', (done) => {
-      const lightMachine = createMachine(
-        {
-          id: 'light',
-          initial: 'green',
-          states: {
-            green: {
-              on: {
-                TIMER: {
-                  target: 'yellow',
-                  actions: 'report'
-                }
-              }
-            },
-            yellow: {
-              on: {
-                TIMER: {
-                  target: 'red'
-                }
-              }
-            },
-            red: {
-              on: {
-                TIMER: 'green'
+    it('does not execute actions from a restored state', () => {
+      const reportSpy = jest.fn();
+      const lightMachine = createMachine({
+        id: 'light',
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: {
+                target: 'yellow',
+                actions: reportSpy
               }
             }
-          }
-        },
-        {
-          actions: {
-            report: () => {
-              done();
+          },
+          yellow: {
+            on: {
+              TIMER: {
+                target: 'red'
+              }
+            }
+          },
+          red: {
+            on: {
+              TIMER: 'green'
             }
           }
         }
-      );
+      });
 
       const currentState = 'green';
       const nextState = lightMachine.transition(currentState, {
@@ -166,6 +145,8 @@ describe('interpreter', () => {
 
       const service = interpret(lightMachine, { state: restoredState });
       service.start();
+
+      expect(reportSpy).not.toHaveBeenCalled();
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
@@ -202,22 +183,13 @@ describe('interpreter', () => {
       }
     });
 
-    it('should notify subscribers of the current state upon subscription (subscribe)', (done) => {
+    it('should not notify subscribers of the current state upon subscription (subscribe)', () => {
+      const spy = jest.fn();
       const service = interpret(machine).start();
 
-      service.subscribe((state) => {
-        expect(state.value).toBe('active');
-        done();
-      });
-    });
+      service.subscribe(spy);
 
-    it('should notify subscribers of the current state upon subscription (onTransition)', (done) => {
-      const service = interpret(machine).start();
-
-      service.onTransition((state) => {
-        expect(state.value).toBe('active');
-        done();
-      });
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
@@ -227,7 +199,8 @@ describe('interpreter', () => {
 
       const service = interpret(lightMachine, {
         clock: new SimulatedClock()
-      }).onTransition((state) => {
+      });
+      service.subscribe((state) => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
@@ -302,11 +275,11 @@ describe('interpreter', () => {
             entry: send(
               { type: 'FINISH' },
               {
-                delay: (ctx, e) =>
-                  ctx.initialDelay +
-                  ('wait' in e
+                delay: ({ context, event }) =>
+                  context.initialDelay +
+                  ('wait' in event
                     ? (
-                        e as Extract<
+                        event as Extract<
                           DelayExpMachineEvents,
                           { type: 'ACTIVATE' }
                         >
@@ -381,8 +354,8 @@ describe('interpreter', () => {
             entry: send(
               { type: 'FINISH' },
               {
-                delay: (ctx, _, { _event }) =>
-                  ctx.initialDelay +
+                delay: ({ context, _event }) =>
+                  context.initialDelay +
                   (
                     _event.data as Extract<
                       DelayExpMachineEvents,
@@ -440,7 +413,7 @@ describe('interpreter', () => {
             a: {
               after: [
                 {
-                  delay: (ctx) => ctx.delay,
+                  delay: ({ context }) => context.delay,
                   target: 'b'
                 }
               ]
@@ -459,7 +432,8 @@ describe('interpreter', () => {
             d: {
               after: [
                 {
-                  delay: (ctx, e) => ctx.delay + (e as any).value,
+                  delay: ({ context, event }) =>
+                    context.delay + (event as any).value,
                   target: 'e'
                 }
               ]
@@ -479,33 +453,28 @@ describe('interpreter', () => {
         },
         {
           delays: {
-            someDelay: (ctx) => {
-              return ctx.delay + 50;
+            someDelay: ({ context }) => {
+              return context.delay + 50;
             }
           }
         }
       );
 
-      let state: any;
-
-      interpret(letterMachine, { clock })
-        .onTransition((s) => {
-          state = s;
-        })
+      const actor = interpret(letterMachine, { clock })
         .onDone(() => {
           done();
         })
         .start();
 
-      expect(state.value).toEqual('a');
+      expect(actor.getSnapshot().value).toEqual('a');
       clock.increment(100);
-      expect(state.value).toEqual('b');
+      expect(actor.getSnapshot().value).toEqual('b');
       clock.increment(100 + 50);
-      expect(state.value).toEqual('c');
+      expect(actor.getSnapshot().value).toEqual('c');
       clock.increment(20);
-      expect(state.value).toEqual('d');
+      expect(actor.getSnapshot().value).toEqual('d');
       clock.increment(100 + 200);
-      expect(state.value).toEqual('e');
+      expect(actor.getSnapshot().value).toEqual('e');
       clock.increment(100 + 50);
     });
   });
@@ -643,20 +612,18 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', () => {
-    let currentState: AnyState;
-
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition((state) => (currentState = state));
+    });
     const clock = service.clock as SimulatedClock;
     service.start();
 
     clock.increment(5);
     service.send({ type: 'KEEP_GOING' });
 
-    expect(currentState!.value).toEqual('green');
+    expect(service.getSnapshot().value).toEqual('green');
     clock.increment(10);
-    expect(currentState!.value).toEqual('green');
+    expect(service.getSnapshot().value).toEqual('green');
   });
 
   it('can cancel a delayed event using expression to resolve send id', (done) => {
@@ -760,11 +727,11 @@ describe('interpreter', () => {
     });
 
     let state: any;
-    const deferService = interpret(deferMachine)
-      .onTransition((s) => {
-        state = s;
-      })
-      .onDone(() => done());
+    const deferService = interpret(deferMachine).onDone(() => done());
+
+    deferService.subscribe((nextState) => {
+      state = nextState;
+    });
 
     // uninitialized
     deferService.send({ type: 'NEXT_A' });
@@ -803,20 +770,19 @@ describe('interpreter', () => {
   });
 
   it('should not update when stopped', () => {
-    let state = lightMachine.initialState;
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition((s) => (state = s));
+    });
 
     service.start();
     service.send({ type: 'TIMER' }); // yellow
-    expect(state.value).toEqual('yellow');
+    expect(service.getSnapshot().value).toEqual('yellow');
 
     service.stop();
     try {
       service.send({ type: 'TIMER' }); // red if interpreter is not stopped
     } catch (e) {
-      expect(state.value).toEqual('yellow');
+      expect(service.getSnapshot().value).toEqual('yellow');
     }
   });
 
@@ -832,8 +798,8 @@ describe('interpreter', () => {
           on: {
             LOG: {
               actions: [
-                assign({ count: (ctx) => ctx.count + 1 }),
-                log((ctx) => ctx)
+                assign({ count: ({ context }) => context.count + 1 }),
+                log(({ context }) => context)
               ]
             }
           }
@@ -854,9 +820,9 @@ describe('interpreter', () => {
 
   it('should be able to log event origin (log action)', () => {
     const logs: any[] = [];
-    const logAction = log((_ctx, event, meta) => ({
+    const logAction = log(({ event, _event }) => ({
       event: event.type,
-      origin: meta._event.origin
+      origin: _event.origin
     }));
 
     const childMachine = createMachine({
@@ -927,7 +893,7 @@ describe('interpreter', () => {
 
   it('should receive correct _event (log action)', () => {
     const logs: any[] = [];
-    const logAction = log((_ctx, _ev, meta) => meta._event.data.type);
+    const logAction = log(({ _event }) => _event.data.type);
 
     const parentMachine = createMachine({
       initial: 'foo',
@@ -973,11 +939,14 @@ describe('interpreter', () => {
       },
       states: {
         start: {
-          entry: send((ctx) => ({ type: 'NEXT', password: ctx.password })),
+          entry: raise(({ context }) => ({
+            type: 'NEXT',
+            password: context.password
+          })),
           on: {
             NEXT: {
               target: 'finish',
-              guard: (_, e) => e.password === 'foo'
+              guard: ({ event }) => event.password === 'foo'
             }
           }
         },
@@ -1016,16 +985,10 @@ describe('interpreter', () => {
         }
       });
 
-      let state: AnyState;
-
-      interpret(raiseMachine)
-        .onTransition((s) => {
-          state = s;
-        })
-        .onDone(() => {
-          expect(state.value).toBe('pass');
-        })
-        .start();
+      const service = interpret(raiseMachine).start();
+      service.onDone(() => {
+        expect(service.getSnapshot().value).toBe('pass');
+      });
     });
   });
 
@@ -1039,8 +1002,8 @@ describe('interpreter', () => {
         }),
         states: {
           start: {
-            entry: sendParent((ctx) => {
-              return { type: 'NEXT', password: ctx.password };
+            entry: sendParent(({ context }) => {
+              return { type: 'NEXT', password: context.password };
             })
           }
         }
@@ -1062,7 +1025,7 @@ describe('interpreter', () => {
             on: {
               NEXT: {
                 target: 'finish',
-                guard: (_, e) => e.password === 'foo'
+                guard: ({ event }) => event.password === 'foo'
               }
             }
           },
@@ -1072,16 +1035,15 @@ describe('interpreter', () => {
         }
       });
 
-      interpret(parentMachine)
-        .onTransition((state) => {
-          if (state.matches('start')) {
-            const childActor = state.children.child;
+      const actor = interpret(parentMachine);
+      actor.subscribe((state) => {
+        if (state.matches('start')) {
+          const childActor = state.children.child;
 
-            expect(typeof childActor!.send).toBe('function');
-          }
-        })
-        .onDone(() => done())
-        .start();
+          expect(typeof childActor!.send).toBe('function');
+        }
+      });
+      actor.onDone(() => done()).start();
     });
   });
 
@@ -1094,7 +1056,7 @@ describe('interpreter', () => {
           on: {
             EVENT: {
               target: 'active',
-              guard: (_: any, e: any) => e.id === 42 // TODO: fix unknown event type
+              guard: ({ event }) => event.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }
@@ -1180,7 +1142,8 @@ describe('interpreter', () => {
 
     it('should initialize the service', (done) => {
       let state: any;
-      const startService = interpret(startMachine).onTransition((s) => {
+      const startService = interpret(startMachine);
+      startService.subscribe((s) => {
         state = s;
         expect(s).toBeDefined();
         expect(s.value).toEqual(startMachine.initialState.value);
@@ -1194,7 +1157,9 @@ describe('interpreter', () => {
 
     it('should not reinitialize a started service', () => {
       let stateCount = 0;
-      const startService = interpret(startMachine).onTransition(() => {
+      const startService = interpret(startMachine);
+
+      startService.subscribe(() => {
         stateCount++;
       });
 
@@ -1208,7 +1173,9 @@ describe('interpreter', () => {
     it('should be able to be initialized at a custom state', (done) => {
       const startService = interpret(startMachine, {
         state: State.from('bar', undefined, startMachine)
-      }).onTransition((state) => {
+      });
+
+      startService.subscribe((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
@@ -1220,7 +1187,9 @@ describe('interpreter', () => {
       const barState = startMachine.resolveStateValue('bar');
       const startService = interpret(startMachine, {
         state: barState
-      }).onTransition((state) => {
+      });
+
+      startService.subscribe((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
@@ -1231,7 +1200,8 @@ describe('interpreter', () => {
     it('should be able to resolve a custom initialized state', (done) => {
       const startService = interpret(startMachine, {
         state: startMachine.resolveStateValue('foo')
-      }).onTransition((state) => {
+      });
+      startService.subscribe((state) => {
         expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();
       });
@@ -1339,20 +1309,20 @@ describe('interpreter', () => {
 
       const sub = toggleService.subscribe(listener);
 
+      expect(stateCount).toEqual(0);
+
+      toggleService.send({ type: 'TOGGLE' });
+
       expect(stateCount).toEqual(1);
 
       toggleService.send({ type: 'TOGGLE' });
 
       expect(stateCount).toEqual(2);
 
-      toggleService.send({ type: 'TOGGLE' });
-
-      expect(stateCount).toEqual(3);
-
       sub.unsubscribe();
       toggleService.send({ type: 'TOGGLE' });
 
-      expect(stateCount).toEqual(3);
+      expect(stateCount).toEqual(2);
     });
   });
 
@@ -1370,9 +1340,9 @@ describe('interpreter', () => {
       });
 
       const stateValues: StateValue[] = [];
-      const service = interpret(stateMachine)
-        .onTransition((current) => stateValues.push(current.value))
-        .start();
+      const service = interpret(stateMachine);
+      service.subscribe((current) => stateValues.push(current.value));
+      service.start();
       service.send({ type: 'START' });
 
       const expectedStateValues = ['idle', 'next'];
@@ -1407,9 +1377,9 @@ describe('interpreter', () => {
       );
 
       const stateValues: StateValue[] = [];
-      const service = interpret(stateMachine)
-        .onTransition((current) => stateValues.push(current.value))
-        .start();
+      const service = interpret(stateMachine);
+      service.subscribe((current) => stateValues.push(current.value));
+      service.start();
       service.send({ type: 'START' });
 
       const expectedStateValues = ['idle', 'next'];
@@ -1431,12 +1401,12 @@ describe('interpreter', () => {
           after: {
             10: {
               target: 'active',
-              actions: assign({ count: (ctx) => ctx.count + 1 })
+              actions: assign({ count: ({ context }) => context.count + 1 })
             }
           },
           always: {
             target: 'finished',
-            guard: (ctx) => ctx.count >= 5
+            guard: ({ context }) => context.count >= 5
           }
         },
         finished: {
@@ -1474,7 +1444,7 @@ describe('interpreter', () => {
           },
           error: undefined,
           complete: () => {
-            expect(count).toEqual(6);
+            expect(count).toEqual(5);
             done();
           }
         });
@@ -1490,11 +1460,11 @@ describe('interpreter', () => {
           active: {
             always: {
               target: 'finished',
-              guard: (ctx) => ctx.count >= 5
+              guard: ({ context }) => context.count >= 5
             },
             on: {
               INC: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
+                actions: assign({ count: ({ context }) => context.count + 1 })
               }
             }
           },
@@ -1627,20 +1597,18 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine)
-        .onTransition((state) => {
-          const childActor = state.children.childActor;
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
+        done();
+      });
 
-          if (state.matches('active') && childActor) {
-            childActor.send({ type: 'FIRE' });
-          }
-        })
-        .onDone(() => {
-          expect(service.getSnapshot().children).not.toHaveProperty(
-            'childActor'
-          );
-          done();
-        });
+      service.subscribe((state) => {
+        const childActor = state.children.childActor;
+
+        if (state.matches('active') && childActor) {
+          childActor.send({ type: 'FIRE' });
+        }
+      });
 
       service.start();
     });
@@ -1663,8 +1631,8 @@ describe('interpreter', () => {
               onDone: [
                 {
                   target: 'success',
-                  guard: (_, e) => {
-                    return e.data === 42;
+                  guard: ({ event }) => {
+                    return event.output === 42;
                   }
                 },
                 { target: 'failure' }
@@ -1680,21 +1648,19 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine)
-        .onTransition((state) => {
-          if (state.matches('active')) {
-            const childActor = state.children.childActor;
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.getSnapshot().matches('success')).toBeTruthy();
+        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
+        done();
+      });
 
-            expect(childActor).toHaveProperty('send');
-          }
-        })
-        .onDone(() => {
-          expect(service.getSnapshot().matches('success')).toBeTruthy();
-          expect(service.getSnapshot().children).not.toHaveProperty(
-            'childActor'
-          );
-          done();
-        });
+      service.subscribe((state) => {
+        if (state.matches('active')) {
+          const childActor = state.children.childActor;
+
+          expect(childActor).toHaveProperty('send');
+        }
+      });
 
       service.start();
     });
@@ -1711,8 +1677,8 @@ describe('interpreter', () => {
               src: fromObservable(() => interval$),
               onSnapshot: {
                 target: 'success',
-                guard: (_: unknown, e: AnyEventObject) => {
-                  return e.data === 3;
+                guard: ({ event }) => {
+                  return event.data === 3;
                 }
               }
             }
@@ -1723,18 +1689,16 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine)
-        .onTransition((state) => {
-          if (state.matches('active')) {
-            expect(state.children['childActor']).not.toBeUndefined();
-          }
-        })
-        .onDone(() => {
-          expect(service.getSnapshot().children).not.toHaveProperty(
-            'childActor'
-          );
-          done();
-        });
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
+        done();
+      });
+
+      service.subscribe((state) => {
+        if (state.matches('active')) {
+          expect(state.children['childActor']).not.toBeUndefined();
+        }
+      });
 
       service.start();
     });
@@ -1752,20 +1716,19 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: (_, __, { spawn }) =>
-            spawn(childMachine, { id: 'child' })
+          firstNameRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
         }),
         states: {
           idle: {}
         }
       });
 
-      interpret(formMachine)
-        .onTransition((state) => {
-          expect(state.children).toHaveProperty('child');
-          done();
-        })
-        .start();
+      const actor = interpret(formMachine);
+      actor.subscribe((state) => {
+        expect(state.children).toHaveProperty('child');
+        done();
+      });
+      actor.start();
     });
 
     it('stopped spawned actors should be cleaned up in parent', (done) => {
@@ -1785,9 +1748,9 @@ describe('interpreter', () => {
           observableRef: ActorRef<any, any>;
         },
         entry: assign({
-          machineRef: (_, __, { spawn }) =>
+          machineRef: ({ spawn }) =>
             spawn(childMachine, { id: 'machineChild' }),
-          promiseRef: (_, __, { spawn }) =>
+          promiseRef: ({ spawn }) =>
             spawn(
               fromPromise(
                 () =>
@@ -1797,7 +1760,7 @@ describe('interpreter', () => {
               ),
               { id: 'promiseChild' }
             ),
-          observableRef: (_, __, { spawn }) =>
+          observableRef: ({ spawn }) =>
             spawn(
               fromObservable(() => interval(1000)),
               { id: 'observableChild' }
@@ -1809,9 +1772,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx) => ctx.machineRef),
-                  stop((ctx) => ctx.promiseRef),
-                  stop((ctx) => ctx.observableRef)
+                  stop(({ context }) => context.machineRef),
+                  stop(({ context }) => context.promiseRef),
+                  stop(({ context }) => context.observableRef)
                 ]
               }
             }
@@ -1884,12 +1847,11 @@ describe('interpreter', () => {
 
     const initialState = actor.getSnapshot();
 
-    actor
-      .onTransition((state) => {
-        expect(state).toBe(initialState);
-        done();
-      })
-      .start();
+    actor.subscribe((state) => {
+      expect(state).toBe(initialState);
+      done();
+    });
+    actor.start();
   });
 
   it('should call an onDone callback immediately if the service is already done', (done) => {

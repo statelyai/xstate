@@ -1,5 +1,5 @@
-import { createDynamicAction } from '../../actions/dynamicAction.js';
-import * as actionTypes from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import * as actionTypes from '../actionTypes.ts';
 import {
   EventObject,
   MachineContext,
@@ -9,9 +9,11 @@ import {
   SendExpr,
   AnyInterpreter,
   RaiseActionParams,
-  NoInfer
-} from '../types.js';
-import { toSCXMLEvent } from '../utils.js';
+  NoInfer,
+  UnifiedArg,
+  StateMeta
+} from '../types.ts';
+import { toSCXMLEvent } from '../utils.ts';
 
 /**
  * Raises an event. This places the event in the internal event queue, so that
@@ -50,7 +52,7 @@ export function raise<
             : eventOrExpr.type
       }
     },
-    (_event, { state }) => {
+    (_event, { state, actorContext }) => {
       const params = {
         delay: options ? options.delay : undefined,
         event: eventOrExpr,
@@ -61,29 +63,30 @@ export function raise<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta = {
-        _event
+      const args: UnifiedArg<TContext, TExpressionEvent> &
+        StateMeta<TExpressionEvent> = {
+        context: state.context,
+        event: _event.data,
+        _event,
+        self: actorContext?.self ?? ({} as any),
+        system: actorContext?.system
       };
       const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
-        typeof eventOrExpr === 'function'
-          ? eventOrExpr(state.context, _event.data, meta)
-          : eventOrExpr
+        typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr
       );
 
       let resolvedDelay: number | undefined;
       if (typeof params.delay === 'string') {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay =
-          typeof configDelay === 'function'
-            ? configDelay(state.context, _event.data, meta)
-            : configDelay;
+          typeof configDelay === 'function' ? configDelay(args) : configDelay;
       } else {
         resolvedDelay =
           typeof params.delay === 'function'
-            ? params.delay(state.context, _event.data, meta)
+            ? params.delay(args)
             : params.delay;
       }
 

@@ -22,9 +22,9 @@ describe('useMachine composition function', () => {
           onDone: {
             target: 'success',
             actions: assign({
-              data: (_, e) => e.data
+              data: ({ event }) => event.output
             }),
-            guard: (_, e) => e.data.length
+            guard: ({ event }) => event.output.length
           }
         }
       },

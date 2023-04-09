@@ -42,9 +42,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^3.0.0-alpha.0",
+    "@xstate/fsm": "^3.0.0-alpha.1",
     "vue": "^3.0.0",
-    "xstate": "^5.0.0-alpha.1"
+    "xstate": "^5.0.0-alpha.6"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -58,9 +58,9 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/vue": "^6.6.1",
     "@vue/compiler-sfc": "^3.0.11",
-    "@xstate/fsm": "3.0.0-alpha.0",
+    "@xstate/fsm": "3.0.0-alpha.1",
     "vue": "^3.0.11",
-    "xstate": "5.0.0-alpha.1"
+    "xstate": "5.0.0-alpha.6"
   },
   "preconstruct": {
     "entrypoints": [

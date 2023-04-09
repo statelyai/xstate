@@ -3,11 +3,11 @@ import {
   interpret,
   MachineContext,
   StateMachine
-} from '../src/index.js';
-import { fromPromise } from '../src/actors/index.js';
-import { fromCallback } from '../src/actors/index.js';
-import { createMachine } from '../src/Machine.js';
-import { TypegenMeta } from '../src/typegenTypes.js';
+} from '../src/index.ts';
+import { fromPromise } from '../src/actors/index.ts';
+import { fromCallback } from '../src/actors/index.ts';
+import { createMachine } from '../src/Machine.ts';
+import { TypegenMeta } from '../src/typegenTypes.ts';
 
 describe('typegen types', () => {
   it('should not require implementations when creating machine using `createMachine`', () => {
@@ -47,7 +47,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -81,7 +81,7 @@ describe('typegen types', () => {
       },
       {
         delays: {
-          myDelay: (_ctx, event) => {
+          myDelay: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -117,7 +117,7 @@ describe('typegen types', () => {
       },
       {
         guards: {
-          myGuard: (_ctx, event) => {
+          myGuard: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -602,7 +602,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             event.type === 'xstate.init';
           }
         }
@@ -618,7 +618,7 @@ describe('typegen types', () => {
       internalEvents: {
         'done.invoke.myActor': {
           type: 'done.invoke.myActor';
-          data: unknown;
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
@@ -636,15 +636,15 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             if (event.type === 'FOO') {
               return;
             }
             event.type === 'done.invoke.myActor';
-            event.data;
+            event.output;
             // indirectly check that it's not any
             // @ts-expect-error
-            ((_accept: string) => {})(event.data);
+            ((_accept: string) => {})(event.output);
           }
         }
       }
@@ -659,7 +659,7 @@ describe('typegen types', () => {
       internalEvents: {
         'done.invoke.myActor': {
           type: 'done.invoke.myActor';
-          data: unknown;
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
@@ -675,20 +675,20 @@ describe('typegen types', () => {
           events: {} as { type: 'FOO' } | { type: 'BAR' },
           actors: {
             myActor: {
-              data: {} as string
+              output: {} as string
             }
           }
         }
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             if (event.type === 'FOO') {
               return;
             }
             event.type === 'done.invoke.myActor';
-            event.data;
-            ((_accept: string) => {})(event.data);
+            event.output;
+            ((_accept: string) => {})(event.output);
           }
         }
       }
@@ -703,7 +703,7 @@ describe('typegen types', () => {
       internalEvents: {
         'done.invoke.myActor': {
           type: 'done.invoke.myActor';
-          data: unknown;
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
@@ -719,7 +719,7 @@ describe('typegen types', () => {
           events: {} as { type: 'FOO' },
           actors: {
             myActor: {
-              data: {} as string
+              output: {} as string
             }
           }
         }
@@ -740,7 +740,7 @@ describe('typegen types', () => {
       internalEvents: {
         'done.invoke.myActor': {
           type: 'done.invoke.myActor';
-          data: unknown;
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
@@ -756,7 +756,7 @@ describe('typegen types', () => {
           events: {} as { type: 'FOO' },
           actors: {
             myActor: {
-              data: {} as string
+              output: {} as string
             }
           }
         }
@@ -764,13 +764,13 @@ describe('typegen types', () => {
       {
         actors: {
           // @ts-expect-error
-          myActor: (_ctx) => Promise.resolve(42)
+          myActor: () => Promise.resolve(42)
         }
       }
     );
   });
 
-  it('should allow a machine actor returning the explicitly declared data in the given schema.actors', () => {
+  it('should allow a machine actor returning the explicitly declared output in the given schema.actors', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: {
         myActor: 'FOO';
@@ -778,7 +778,7 @@ describe('typegen types', () => {
       internalEvents: {
         'done.invoke.myActor': {
           type: 'done.invoke.myActor';
-          data: unknown;
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
@@ -794,7 +794,7 @@ describe('typegen types', () => {
           events: {} as { type: 'FOO' },
           actors: {
             myActor: {
-              data: {} as { foo: string }
+              output: {} as { foo: string }
             }
           }
         }
@@ -815,7 +815,7 @@ describe('typegen types', () => {
   //     internalEvents: {
   //       'done.invoke.myActor': {
   //         type: 'done.invoke.myActor';
-  //         data: unknown;
+  //         output: unknown;
   //         __tip: 'Declare the type.';
   //       };
   //     };
@@ -831,7 +831,7 @@ describe('typegen types', () => {
   //         events: {} as { type: 'FOO' },
   //         actors: {
   //           myActor: {
-  //             data: {} as { foo: string }
+  //             output: {} as { foo: string }
   //           }
   //         }
   //       }
@@ -861,7 +861,7 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          actionName: assign((_context, event) => {
+          actionName: assign(({ event }) => {
             ((_accept: 'BAR') => {})(event.type);
             return {};
           })
@@ -1012,9 +1012,9 @@ describe('typegen types', () => {
   //       actions: {
   //         myAction: (_context, event) => {
   //           ((_accept: 'done.invoke.invocation') => {})(event.type);
-  //           ((_accept: string) => {})(event.data);
+  //           ((_accept: string) => {})(event.output);
   //           // @ts-expect-error
-  //           ((_accept: number) => {})(event.data);
+  //           ((_accept: number) => {})(event.output);
   //         }
   //       }
   //     }
@@ -1189,9 +1189,9 @@ describe('typegen types', () => {
       },
       {
         actions: {
-          increment: assign((ctx, ev) => {
+          increment: assign(({ context, event }) => {
             return {
-              count: ctx.count + ev.value
+              count: context.count + event.value
             };
           })
         }

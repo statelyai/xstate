@@ -1,21 +1,21 @@
 import { Element as XMLElement, xml2js } from 'xml-js';
-import { assign } from './actions/assign.js';
-import { cancel } from './actions/cancel.js';
-import { choose } from './actions/choose.js';
-import { log } from './actions/log.js';
-import { raise } from './actions/raise.js';
-import { send } from './actions/send.js';
-import { NULL_EVENT } from './constants.js';
-import { not, stateIn } from './guards.js';
-import { AnyStateMachine, BaseActionObject, createMachine } from './index.js';
+import { assign } from './actions/assign.ts';
+import { cancel } from './actions/cancel.ts';
+import { choose } from './actions/choose.ts';
+import { log } from './actions/log.ts';
+import { raise } from './actions/raise.ts';
+import { send } from './actions/send.ts';
+import { NULL_EVENT } from './constants.ts';
+import { not, stateIn } from './guards.ts';
+import { AnyStateMachine, BaseActionObject, createMachine } from './index.ts';
 import {
   ChooseCondition,
   DelayExpr,
   EventObject,
-  SCXMLEventMeta,
-  SendExpr
-} from './types.js';
-import { flatten, isString, mapValues } from './utils.js';
+  SendExpr,
+  StateMeta
+} from './types.ts';
+import { flatten, isString, mapValues } from './utils.ts';
 
 function getAttribute(
   element: XMLElement,
@@ -104,7 +104,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   _ev: TEvent,
-  meta: SCXMLEventMeta<TEvent>,
+  meta: StateMeta<TEvent>,
   body: string
 ) => {
   const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
@@ -129,8 +129,20 @@ function createGuard<
   TContext extends object,
   TEvent extends EventObject = EventObject
 >(guard: string) {
-  return (context: TContext, _event: TEvent, meta) => {
-    return evaluateExecutableContent(context, _event, meta, `return ${guard};`);
+  return ({
+    context,
+    event,
+    ...meta
+  }: {
+    context: TContext;
+    event: TEvent;
+  }) => {
+    return evaluateExecutableContent(
+      context,
+      event,
+      meta as any,
+      `return ${guard};`
+    );
   };
 }
 
@@ -145,7 +157,7 @@ function mapAction<
       } as TEvent);
     }
     case 'assign': {
-      return assign<TContext, TEvent>((context, e, meta) => {
+      return assign<TContext, TEvent>(({ context, event, ...meta }) => {
         const fnBody = `
 
 ${element.attributes!.location};
@@ -153,19 +165,19 @@ ${element.attributes!.location};
 return {'${element.attributes!.location}': ${element.attributes!.expr}};
           `;
 
-        return evaluateExecutableContent(context, e, meta, fnBody);
+        return evaluateExecutableContent(context, event, meta, fnBody);
       });
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
         return cancel(element.attributes!.sendid! as string);
       }
-      return cancel((context, e, meta) => {
+      return cancel(({ context, event, ...meta }) => {
         const fnBody = `
 return ${element.attributes!.sendidexpr};
           `;
 
-        return evaluateExecutableContent(context, e, meta, fnBody);
+        return evaluateExecutableContent(context, event, meta, fnBody);
       });
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
@@ -187,7 +199,7 @@ return ${element.attributes!.sendidexpr};
       if (event && !params) {
         convertedEvent = { type: event } as TEvent;
       } else {
-        convertedEvent = (context, _ev, meta) => {
+        convertedEvent = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
 return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
             `;
@@ -199,7 +211,7 @@ return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
       if ('delay' in element.attributes!) {
         convertedDelay = delayToMs(element.attributes!.delay);
       } else if (element.attributes!.delayexpr) {
-        convertedDelay = (context, _ev, meta) => {
+        convertedDelay = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
 return (${delayToMs})(${element.attributes!.delayexpr});
             `;
@@ -218,12 +230,12 @@ return (${delayToMs})(${element.attributes!.delayexpr});
       const label = element.attributes!.label;
 
       return log<TContext, any>(
-        (context, e, meta) => {
+        ({ context, event, ...meta }) => {
           const fnBody = `
 return ${element.attributes!.expr};
             `;
 
-          return evaluateExecutableContent(context, e, meta, fnBody);
+          return evaluateExecutableContent(context, event, meta, fnBody);
         },
         label !== undefined ? String(label) : undefined
       );
@@ -445,8 +457,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: scxmlToMachine(content, options),
-        autoForward: element.attributes!.autoforward === 'true'
+        src: scxmlToMachine(content, options)
       };
     });
 

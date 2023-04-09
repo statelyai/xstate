@@ -1,13 +1,13 @@
-import { EventObject, ChooseCondition, MachineContext } from '../types.js';
-import * as actionTypes from '../actionTypes.js';
-import { createDynamicAction } from '../../actions/dynamicAction.js';
-import { evaluateGuard, toGuardDefinition } from '../guards.js';
+import { EventObject, ChooseCondition, MachineContext } from '../types.ts';
+import * as actionTypes from '../actionTypes.ts';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import { evaluateGuard, toGuardDefinition } from '../guards.ts';
 import {
   BaseDynamicActionObject,
   ChooseAction,
   ResolvedChooseAction
-} from '../index.js';
-import { toActionObjects } from '../actions.js';
+} from '../index.ts';
+import { toActionObjects } from '../actions.ts';
 
 export function choose<
   TContext extends MachineContext,

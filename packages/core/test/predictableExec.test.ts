@@ -4,10 +4,10 @@ import {
   createMachine,
   interpret,
   sendTo
-} from '../src/index.js';
-import { raise, send, sendParent, stop } from '../src/actions.js';
-import { fromCallback } from '../src/actors/index.js';
-import { fromPromise } from '../src/actors/index.js';
+} from '../src/index.ts';
+import { raise, send, sendParent, stop } from '../src/actions.ts';
+import { fromCallback } from '../src/actors/index.ts';
+import { fromPromise } from '../src/actors/index.ts';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
@@ -84,7 +84,7 @@ describe('predictableExec', () => {
           on: {
             RAISED: {
               target: 'c',
-              actions: (_ctx, ev) => (eventArg = ev)
+              actions: ({ event }) => (eventArg = event)
             }
           },
           entry: raise({ type: 'RAISED' })
@@ -114,8 +114,8 @@ describe('predictableExec', () => {
           on: {
             RAISED: {
               target: 'c',
-              actions: assign((_ctx, ev) => {
-                eventArg = ev;
+              actions: assign(({ event }) => {
+                eventArg = event;
                 return {};
               })
             }
@@ -154,7 +154,7 @@ describe('predictableExec', () => {
             src: fromCallback((_sendBack, _receive, { input }) => {
               eventArg = input.event;
             }),
-            input: (_, event) => ({ event })
+            input: ({ event }) => ({ event })
           }
         }
       }
@@ -237,7 +237,7 @@ describe('predictableExec', () => {
         b: {
           entry: [
             assign({ counter: 1 }),
-            (context) => (calledWith = context.counter),
+            ({ context }) => (calledWith = context.counter),
             assign({ counter: 2 })
           ]
         }
@@ -276,11 +276,11 @@ describe('predictableExec', () => {
           on: {
             update: {
               actions: [
-                stop((ctx) => {
-                  return ctx.actorRef;
+                stop(({ context }) => {
+                  return context.actorRef;
                 }),
                 assign({
-                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -290,7 +290,7 @@ describe('predictableExec', () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      'callback-2'
+                      { id: 'callback-2' }
                     );
                   }
                 })
@@ -338,9 +338,9 @@ describe('predictableExec', () => {
           on: {
             update: {
               actions: [
-                stop((ctx) => ctx.actorRef),
+                stop(({ context }) => context.actorRef),
                 assign({
-                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -350,7 +350,7 @@ describe('predictableExec', () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      'my_name'
+                      { id: 'my_name' }
                     );
                   }
                 })
@@ -400,7 +400,7 @@ describe('predictableExec', () => {
               actions: [
                 stop('my_name'),
                 assign({
-                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -410,7 +410,7 @@ describe('predictableExec', () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      'my_name'
+                      { id: 'my_name' }
                     );
                   }
                 })
@@ -460,7 +460,7 @@ describe('predictableExec', () => {
               actions: [
                 stop(() => 'my_name'),
                 assign({
-                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -470,7 +470,7 @@ describe('predictableExec', () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      'my_name'
+                      { id: 'my_name' }
                     );
                   }
                 })
@@ -543,11 +543,11 @@ describe('predictableExec', () => {
     const machine = createMachine({
       context: { count: 0 },
       entry: [
-        (ctx) => actual.push(ctx.count),
+        ({ context }) => actual.push(context.count),
         assign({ count: 1 }),
-        (ctx) => actual.push(ctx.count),
+        ({ context }) => actual.push(context.count),
         assign({ count: 2 }),
-        (ctx) => actual.push(ctx.count)
+        ({ context }) => actual.push(context.count)
       ]
     });
 
@@ -679,9 +679,9 @@ describe('predictableExec', () => {
               expect(input.updated).toBe(true);
               return Promise.resolve();
             }),
-            input: {
-              updated: (ctx) => ctx.updated
-            }
+            input: ({ context }) => ({
+              updated: context.updated
+            })
           }
         }
       }

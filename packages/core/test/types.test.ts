@@ -61,11 +61,8 @@ describe('StateSchema', () => {
             on: {
               PED_COUNTDOWN: {
                 target: 'stop',
-                guard: (
-                  ctx,
-                  e: { type: 'PED_COUNTDOWN'; duration: number }
-                ) => {
-                  return e.duration === 0 && ctx.elapsed > 0;
+                guard: ({ context, event }) => {
+                  return event.duration === 0 && context.elapsed > 0;
                 }
               }
             }
@@ -198,10 +195,10 @@ describe('Raise events', () => {
       },
       on: {
         FOO: {
-          actions: raise((_ctx, ev) => {
-            ((_arg: 'FOO') => {})(ev.type);
+          actions: raise(({ event }) => {
+            ((_arg: 'FOO') => {})(event.type);
             // @ts-expect-error
-            ((_arg: 'BAR') => {})(ev.type);
+            ((_arg: 'BAR') => {})(event.type);
 
             return {
               type: 'BAR'
@@ -265,10 +262,10 @@ describe('context', () => {
       },
       {
         actions: {
-          someAction: (ctx) => {
-            ((_accept: string) => {})(ctx.foo);
+          someAction: ({ context }) => {
+            ((_accept: string) => {})(context.foo);
             // @ts-expect-error
-            ((_accept: number) => {})(ctx.foo);
+            ((_accept: number) => {})(context.foo);
           }
         }
       }
@@ -283,14 +280,14 @@ describe('context', () => {
             count: number;
           }
         },
-        entry: (_ctx: any) => {}
+        entry: () => {}
       },
       {
         actions: {
-          someAction: (ctx) => {
-            ((_accept: number) => {})(ctx.count);
+          someAction: ({ context }) => {
+            ((_accept: number) => {})(context.count);
             // @ts-expect-error
-            ((_accept: string) => {})(ctx.count);
+            ((_accept: string) => {})(context.count);
           }
         }
       }
@@ -347,7 +344,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: (_ctx, _ev: any) => {}
+      entry: () => {}
     });
 
     const service = interpret(machine).start();
@@ -389,7 +386,7 @@ describe('events', () => {
       },
       on: {
         EVENT_WITH_FLAG: {
-          actions: (_context, event) => {
+          actions: ({ event }) => {
             ((_accept: 'EVENT_WITH_FLAG') => {})(event.type);
             ((_accept: boolean) => {})(event.flag);
             // @ts-expect-error
@@ -414,7 +411,7 @@ describe('events', () => {
       },
       on: {
         '*': {
-          actions: (_context, event) => {
+          actions: ({ event }) => {
             ((_accept: 'EVENT_WITH_FLAG' | 'EVENT_WITHOUT_FLAG') => {})(
               event.type
             );
@@ -437,7 +434,7 @@ describe('events', () => {
       {
         actions: {
           addNumber: assign({
-            numbers: (context, event) => {
+            numbers: ({ context, event }) => {
               ((_accept: number) => {})(event.number);
               // @ts-expect-error
               ((_accept: string) => {})(event.number);
@@ -458,7 +455,7 @@ describe('events', () => {
       },
       on: {
         FOO: {
-          actions: (_context, event) => {
+          actions: ({ event }) => {
             ((_accept: string) => {})(event.type);
           }
         }
@@ -505,7 +502,7 @@ describe('service-targets', () => {
     const machine = createMachine({
       invoke: {
         src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: ['a', 'b']
+        onDone: ['.a', '.b']
       },
       initial: 'a',
       states: {
@@ -521,7 +518,7 @@ describe('service-targets', () => {
     const machine = createMachine({
       invoke: {
         src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: 'a' }, { target: 'b' }]
+        onDone: [{ target: '.a' }, { target: '.b' }]
       },
       initial: 'a',
       states: {
@@ -537,7 +534,7 @@ describe('service-targets', () => {
     const machine = createMachine({
       invoke: {
         src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: 'a' }, 'b']
+        onDone: [{ target: '.a' }, '.b']
       },
       initial: 'a',
       states: {
@@ -559,10 +556,10 @@ describe('actions', () => {
       context: {
         count: 0
       },
-      entry: assign((ctx) => {
-        ((_accept: number) => {})(ctx.count);
+      entry: assign(({ context }) => {
+        ((_accept: number) => {})(context.count);
         // @ts-expect-error
-        ((_accept: "ain't any") => {})(ctx.count);
+        ((_accept: "ain't any") => {})(context.count);
         return {};
       })
     });
@@ -579,10 +576,10 @@ describe('actions', () => {
       },
       on: {
         FOO: {
-          actions: assign((ctx) => {
-            ((_accept: number) => {})(ctx.count);
+          actions: assign(({ context }) => {
+            ((_accept: number) => {})(context.count);
             // @ts-expect-error
-            ((_accept: "ain't any") => {})(ctx.count);
+            ((_accept: "ain't any") => {})(context.count);
             return {};
           })
         }
@@ -597,10 +594,10 @@ describe('actions', () => {
       },
       entry: [
         'foo',
-        assign((ctx) => {
-          ((_accept: number) => {})(ctx.count);
+        assign(({ context }) => {
+          ((_accept: number) => {})(context.count);
           // @ts-expect-error
-          ((_accept: "ain't any") => {})(ctx.count);
+          ((_accept: "ain't any") => {})(context.count);
           return {};
         })
       ]
@@ -616,10 +613,10 @@ describe('actions', () => {
         FOO: {
           actions: [
             'foo',
-            assign((ctx) => {
-              ((_accept: number) => {})(ctx.count);
+            assign(({ context }) => {
+              ((_accept: number) => {})(context.count);
               // @ts-expect-error
-              ((_accept: "ain't any") => {})(ctx.count);
+              ((_accept: "ain't any") => {})(context.count);
               return {};
             })
           ]
@@ -643,11 +640,11 @@ describe('actions', () => {
           childRef: ActorRefFrom<typeof childMachine>;
         }
       },
-      entry: stop((ctx) => {
-        ((_accept: number) => {})(ctx.count);
+      entry: stop(({ context }) => {
+        ((_accept: number) => {})(context.count);
         // @ts-expect-error
-        ((_accept: "ain't any") => {})(ctx.count);
-        return ctx.childRef;
+        ((_accept: "ain't any") => {})(context.count);
+        return context.childRef;
       })
     });
   });
@@ -669,11 +666,11 @@ describe('actions', () => {
       },
       on: {
         FOO: {
-          actions: stop((ctx) => {
-            ((_accept: number) => {})(ctx.count);
+          actions: stop(({ context }) => {
+            ((_accept: number) => {})(context.count);
             // @ts-expect-error
-            ((_accept: "ain't any") => {})(ctx.count);
-            return ctx.childRef;
+            ((_accept: "ain't any") => {})(context.count);
+            return context.childRef;
           })
         }
       }
@@ -689,8 +686,8 @@ describe('actions', () => {
       },
       entry: stop(
         // @ts-expect-error
-        (ctx) => {
-          return ctx.count;
+        ({ context }) => {
+          return context.count;
         }
       )
     });
@@ -708,17 +705,17 @@ describe('actions', () => {
         }
       },
       entry: [
-        stop((ctx) => {
-          ((_accept: number) => {})(ctx.count);
+        stop(({ context }) => {
+          ((_accept: number) => {})(context.count);
           // @ts-expect-error
-          ((_accept: "ain't any") => {})(ctx.count);
-          return ctx.childRef;
+          ((_accept: "ain't any") => {})(context.count);
+          return context.childRef;
         }),
-        stop((ctx) => {
-          ((_accept: number) => {})(ctx.count);
+        stop(({ context }) => {
+          ((_accept: number) => {})(context.count);
           // @ts-expect-error
-          ((_accept: "ain't any") => {})(ctx.count);
-          return ctx.promiseRef;
+          ((_accept: "ain't any") => {})(context.count);
+          return context.promiseRef;
         })
       ]
     });
@@ -759,7 +756,7 @@ describe('actions', () => {
         skip: true
       },
       entry: assign({
-        count: (context) => context.count + 1,
+        count: ({ context }) => context.count + 1,
         skip: true
       })
     });

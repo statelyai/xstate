@@ -1,10 +1,9 @@
-import { createMachine, interpret, StateValue } from '../src/index.js';
+import { createMachine, interpret, StateValue } from '../src/index.ts';
 import { assign } from '../src/actions/assign';
 import { raise } from '../src/actions/raise';
 import { testMultiTransition } from './utils';
 
 const composerMachine = createMachine({
-  strict: true,
   initial: 'ReadOnly',
   states: {
     ReadOnly: {
@@ -192,7 +191,7 @@ const composerMachine = createMachine({
 const wakMachine = createMachine({
   id: 'wakMachine',
   type: 'parallel',
-  strict: true,
+
   states: {
     wak1: {
       initial: 'wak1sonA',
@@ -306,7 +305,6 @@ const flatParallelMachine = createMachine({
 });
 
 const raisingParallelMachine = createMachine({
-  strict: true,
   type: 'parallel',
   states: {
     OUTER1: {
@@ -650,7 +648,7 @@ describe('parallel states', () => {
           on: {
             CHANGE: {
               actions: assign({
-                value: (_, e) => e.value
+                value: ({ event }) => event.value
               })
             }
           }
@@ -761,7 +759,7 @@ describe('parallel states', () => {
         }
       },
       on: {
-        'to-A': 'A'
+        'to-A': '.A'
       }
     });
 
@@ -910,7 +908,9 @@ describe('parallel states', () => {
                 }
               },
               foobaz: {
-                entry: assign({ log: (ctx) => [...ctx.log, 'entered foobaz'] }),
+                entry: assign({
+                  log: ({ context }) => [...context.log, 'entered foobaz']
+                }),
                 on: {
                   GOTO_FOOBAZ: 'foobaz'
                 }

@@ -1,4 +1,4 @@
-import { deepClone } from '../src/deepClone.js';
+import { deepClone } from '../src/deepClone.ts';
 
 describe('Deep Clone', () => {
   it('should deep clone array of primitives', () => {

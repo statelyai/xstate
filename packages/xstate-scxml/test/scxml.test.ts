@@ -9,7 +9,7 @@ import {
   SimulatedClock
 } from 'xstate';
 import { toMachine } from '../src/scxml';
-import { toSCXML, transitionToSCXML } from '../src/index.js';
+import { toSCXML, transitionToSCXML } from '../src/index.ts';
 
 interface SCIONTest {
   initialConfiguration: string[];
@@ -30,10 +30,11 @@ async function runTestToCompletion(
   const service = interpret(machine, {
     state: nextState,
     clock: new SimulatedClock()
-  })
-    .onTransition((state) => {
-      nextState = state;
-    })
+  });
+  service.subscribe((state) => {
+    nextState = state;
+  });
+  service
     .onDone(() => {
       done = true;
     })

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
-import { AnyState, AnyStateMachine, interpret } from '../src/index.js';
+import { AnyState, AnyStateMachine, interpret } from '../src/index.ts';
 import { toMachine } from '../src/scxml';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { getStateNodes } from '../src/stateUtils';
@@ -170,8 +170,8 @@ const testGroups: Record<string, string[]> = {
     // 'test225.txml', // unique invokeids generated at invoke time
     // 'test226.txml', // <invoke src="...">
     'test228.txml',
-    'test229.txml',
-    // 'test230.txml', // Manual test (TODO: check)
+    // 'test229.txml', // autoForward not supported in v5
+    // 'test230.txml', // autoForward not supported in v5
     'test232.txml',
     // 'test233.txml', // <finalize> not implemented yet
     // 'test234.txml', // <finalize> not implemented yet
@@ -350,13 +350,14 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
     let nextState: AnyState;
     let prevState: AnyState;
 
-    interpret(machine, {
+    const actor = interpret(machine, {
       logger: () => void 0
-    })
-      .onTransition((state) => {
-        prevState = nextState;
-        nextState = state;
-      })
+    });
+    actor.subscribe((state) => {
+      prevState = nextState;
+      nextState = state;
+    });
+    actor
       .onDone(() => {
         // Add 'final' for test230.txml which does not have a 'pass' state
         if (['final', 'pass'].includes(nextState.value as string)) {
@@ -390,11 +391,12 @@ async function runTestToCompletion(
 
   const service = interpret(machine, {
     clock: new SimulatedClock()
-  })
-    .onTransition((state) => {
-      prevState = nextState;
-      nextState = state;
-    })
+  });
+  service.subscribe((state) => {
+    prevState = nextState;
+    nextState = state;
+  });
+  service
     .onDone(() => {
       if (nextState.value === 'fail') {
         throw new Error(

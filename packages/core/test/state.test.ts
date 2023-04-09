@@ -200,7 +200,7 @@ describe('State', () => {
           same: {
             on: {
               EVENT: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
+                actions: assign({ count: ({ context }) => context.count + 1 })
               }
             }
           }
@@ -238,8 +238,8 @@ describe('State', () => {
             on: {
               CHANGE: {
                 actions: assign({
-                  value: (_, e) => {
-                    return e.value;
+                  value: ({ event }) => {
+                    return event.value;
                   }
                 })
               }
@@ -757,7 +757,7 @@ describe('State', () => {
           a: {
             on: {
               SPAWN: {
-                actions: assign((_, __, { spawn }) => ({
+                actions: assign(({ spawn }) => ({
                   ref: spawn(
                     fromCallback(() => {
                       spawned = true;

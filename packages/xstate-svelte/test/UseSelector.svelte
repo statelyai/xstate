@@ -1,6 +1,6 @@
 <script lang="ts">
   import { interpret, createMachine, assign } from 'xstate';
-  import { useSelector } from '../src/index.js';
+  import { useSelector } from '../src/index.ts';
 
   const machine = createMachine({
     initial: 'idle',
@@ -18,11 +18,11 @@
       idle: {
         on: {
           INCREMENT: {
-            actions: assign({ count: ({ count }) => count + 1 })
+            actions: assign({ count: ({ context: { count } }) => count + 1 })
           },
           INCREMENT_ANOTHER: {
             actions: assign({
-              anotherCount: ({ anotherCount }) => anotherCount + 1
+              anotherCount: ({ context: { anotherCount } }) => anotherCount + 1
             })
           }
         }
@@ -32,12 +32,13 @@
 
   const service = interpret(machine).start();
 
+  const state = useSelector(service, (state) => state);
   const count = useSelector(service, (state) => state.context.count);
 
   let withSelector = 0;
   $: $count && withSelector++;
   let withoutSelector = 0;
-  $: $service.context.count && withoutSelector++;
+  $: $state.context.count && withoutSelector++;
 </script>
 
 <button data-testid="count" on:click={() => service.send({ type: 'INCREMENT' })}

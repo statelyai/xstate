@@ -5,10 +5,10 @@ import {
   SendExpr,
   AnyEventObject,
   MachineContext
-} from '../types.js';
-import { send as sendActionType } from '../actionTypes.js';
-import { isFunction, isString, toSCXMLEvent } from '../utils.js';
-import { createDynamicAction } from '../../actions/dynamicAction.js';
+} from '../types.ts';
+import { send as sendActionType } from '../actionTypes.ts';
+import { isFunction, isString, toSCXMLEvent } from '../utils.ts';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import {
   AnyActorRef,
   AnyInterpreter,
@@ -18,9 +18,11 @@ import {
   ExprWithMeta,
   InferEvent,
   SendActionObject,
-  SendActionOptions
-} from '../index.js';
-import { actionTypes, error } from '../actions.js';
+  SendActionOptions,
+  StateMeta,
+  UnifiedArg
+} from '../index.ts';
+import { actionTypes, error } from '../actions.ts';
 
 /**
  * Sends an event. This returns an action that will be read by an interpreter to
@@ -83,32 +85,34 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const meta = {
-        _event
+      const args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent> = {
+        context: state.context,
+        event: _event.data,
+        _event,
+        self: actorContext?.self ?? (null as any),
+        system: actorContext?.system
       };
       const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
-        isFunction(eventOrExpr)
-          ? eventOrExpr(state.context, _event.data, meta)
-          : eventOrExpr
+        isFunction(eventOrExpr) ? eventOrExpr(args) : eventOrExpr
       );
 
       let resolvedDelay: number | undefined;
       if (isString(params.delay)) {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay = isFunction(configDelay)
-          ? configDelay(state.context, _event.data, meta)
+          ? configDelay(args)
           : configDelay;
       } else {
         resolvedDelay = isFunction(params.delay)
-          ? params.delay(state.context, _event.data, meta)
+          ? params.delay(args)
           : params.delay;
       }
 
       const resolvedTarget = isFunction(params.to)
-        ? params.to(state.context, _event.data, meta)
+        ? params.to(args)
         : params.to;
       let targetActorRef: AnyActorRef | undefined;
 
@@ -209,7 +213,7 @@ export function respond<
 ) {
   return send<TContext, TEvent>(event, {
     ...options,
-    to: (_, __, { _event }) => {
+    to: ({ _event }) => {
       return _event.origin!; // TODO: handle when _event.origin is undefined
     }
   });
@@ -246,7 +250,7 @@ export function forwardTo<
       return resolvedTarget;
     };
   }
-  return send<TContext, TEvent>((_, event) => event, {
+  return send<TContext, TEvent>(({ event }) => event, {
     ...options,
     to: target
   });
@@ -268,12 +272,10 @@ export function escalate<
   options?: SendActionParams<TContext, TEvent>
 ) {
   return sendParent<TContext, TEvent>(
-    (context, event, meta) => {
+    (arg) => {
       return {
         type: actionTypes.error,
-        data: isFunction(errorData)
-          ? errorData(context, event, meta)
-          : errorData
+        data: isFunction(errorData) ? errorData(arg) : errorData
       };
     },
     {
@@ -296,7 +298,7 @@ export function sendTo<
   TEvent extends EventObject,
   TActor extends AnyActorRef
 >(
-  actor: TActor | string | ((ctx: TContext, event: TEvent) => TActor | string),
+  actor: TActor | string | ExprWithMeta<TContext, TEvent, TActor | string>,
   event:
     | EventFrom<TActor>
     | SendExpr<
