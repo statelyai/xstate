@@ -416,7 +416,7 @@ function toConfig(
           target: getTargets(targets),
           ...(value.elements ? executableContent(value.elements) : undefined),
           ...guardObject,
-          external: !internal
+          ...(!internal && { reenter: true })
         };
 
         if (eventType === NULL_EVENT) {
