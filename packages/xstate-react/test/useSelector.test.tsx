@@ -245,7 +245,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const parentMachine = createMachine({
-      schema: {
+      types: {
         context: {} as {
           childActor: ActorRefFrom<typeof childMachine>;
         }
@@ -296,7 +296,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       });
 
     const parentMachine = createMachine({
-      schema: {
+      types: {
         context: {} as {
           childActor: ReturnType<typeof createActor>;
         }
@@ -336,7 +336,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const parentMachine = createMachine({
-      schema: {
+      types: {
         context: {} as {
           childActor: ActorRefFrom<typeof childMachine>;
         }
@@ -380,7 +380,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const parentMachine = createMachine({
-      schema: {
+      types: {
         context: {} as {
           childActor: ActorRefFrom<typeof childMachine>;
         }
@@ -436,7 +436,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       });
 
     const parentMachine = createMachine({
-      schema: {
+      types: {
         context: {} as {
           childActor: ReturnType<typeof createActor>;
         }

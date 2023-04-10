@@ -15,7 +15,7 @@ import { TypegenMeta } from '../src/typegenTypes';
 describe('ContextFrom', () => {
   it('should return context of a machine', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         context: {} as { counter: number }
       }
     });
@@ -38,7 +38,7 @@ describe('ContextFrom', () => {
   it('should return context of a typegened machine', () => {
     const machine = createMachine({
       tsTypes: {} as TypegenMeta,
-      schema: {
+      types: {
         context: {} as { counter: number }
       }
     });
@@ -62,7 +62,7 @@ describe('ContextFrom', () => {
 describe('EventFrom', () => {
   it('should return events for a machine', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -86,7 +86,7 @@ describe('EventFrom', () => {
   it('should return events for a typegened machine', () => {
     const machine = createMachine({
       tsTypes: {} as TypegenMeta,
-      schema: {
+      types: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -109,7 +109,7 @@ describe('EventFrom', () => {
 
   it('should return events for an interpreter', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -139,7 +139,7 @@ describe('MachineImplementationsFrom', () => {
       context: {
         count: 100
       },
-      schema: {
+      types: {
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
@@ -195,7 +195,7 @@ describe('MachineImplementationsFrom', () => {
       context: {
         count: 100
       },
-      schema: {
+      types: {
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
@@ -243,7 +243,7 @@ describe('MachineImplementationsFrom', () => {
       context: {
         count: 100
       },
-      schema: {
+      types: {
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
@@ -307,7 +307,7 @@ describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
     const service = interpret(
       createMachine({
-        schema: {
+        types: {
           events: {} as { type: 'FOO' }
         }
       })

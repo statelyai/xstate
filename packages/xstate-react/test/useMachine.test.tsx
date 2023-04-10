@@ -806,7 +806,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
-      schema: {
+      types: {
         context: {} as { value: number }
       },
       initial: 'intitial',

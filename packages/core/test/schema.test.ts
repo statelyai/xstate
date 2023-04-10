@@ -29,7 +29,7 @@ describe('schema', () => {
     const noop = (_: any) => void 0;
 
     const m = createMachine({
-      schema: {
+      types: {
         context: fromJSONSchema({
           type: 'object',
           properties: {
@@ -76,7 +76,7 @@ describe('schema', () => {
     };
 
     const m = createMachine({
-      schema,
+      types: schema,
       context: { foo: '' },
       initial: 'active',
       states: {

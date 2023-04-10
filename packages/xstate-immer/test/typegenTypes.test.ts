@@ -15,7 +15,7 @@ describe('@xstate/immer', () => {
         context: {
           count: 0
         },
-        schema: {
+        types: {
           context: {} as { count: number },
           events: {} as
             | {

@@ -145,7 +145,7 @@ export class StateMachine<
     this.options = Object.assign(createDefaultOptions(), options);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
-    this.schema = this.config.schema ?? ({} as any as this['schema']);
+    this.schema = this.config.types ?? ({} as any as this['schema']);
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {

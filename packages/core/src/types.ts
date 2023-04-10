@@ -1025,7 +1025,7 @@ export interface MachineConfig<
    * If `true`, will use SCXML semantics, such as event token matching.
    */
   scxml?: boolean;
-  schema?: MachineSchema<TContext, TEvent, TActorMap>;
+  types?: MachineSchema<TContext, TEvent, TActorMap>;
   tsTypes?: TTypesMeta;
 }
 
