@@ -11,7 +11,7 @@ describe('@xstate/immer', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
+        typegen: {} as TypesMeta,
         context: {
           count: 0
         },

@@ -33,7 +33,7 @@ import type {
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
-  MachineSchema,
+  MachineTypes,
   NoInfer,
   SCXML,
   StateConfig,
@@ -121,7 +121,7 @@ export class StateMachine<
 
   public options: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public schema: MachineSchema<TContext, TEvent>;
+  public schema: MachineTypes<TContext, TEvent>;
 
   public __xstatenode: true = true;
 

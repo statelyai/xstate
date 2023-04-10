@@ -8,7 +8,7 @@ import {
   BaseActionObject,
   EventObject,
   MachineConfig,
-  MachineSchema,
+  MachineTypes,
   ActorMap,
   State,
   StateNodeConfig,
@@ -32,7 +32,7 @@ export interface TestMachineConfig<
   TTypesMeta = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
   context?: MachineConfig<TContext, TEvent>['context'];
-  schema?: MachineSchema<TContext, TEvent, ActorMap>;
+  schema?: MachineTypes<TContext, TEvent, ActorMap>;
   tsTypes?: TTypesMeta;
 }
 

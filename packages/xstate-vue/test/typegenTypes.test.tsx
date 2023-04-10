@@ -14,7 +14,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      typegen: {} as TypesMeta
     });
 
     defineComponent({
@@ -38,7 +38,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      typegen: {} as TypesMeta,
       types: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -68,7 +68,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      typegen: {} as TypesMeta,
       types: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -114,7 +114,7 @@ describe('useMachine', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as TypesMeta,
+        typegen: {} as TypesMeta,
         types: {
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
@@ -154,7 +154,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      typegen: {} as TypesMeta,
       types: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -186,7 +186,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      typegen: {} as TypesMeta,
       types: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -220,7 +220,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      typegen: {} as TypesMeta
     });
 
     defineComponent({
@@ -244,7 +244,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      typegen: {} as TypesMeta,
       types: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -273,7 +273,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      typegen: {} as TypesMeta,
       types: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -319,7 +319,7 @@ describe('useInterpret', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as TypesMeta,
+        typegen: {} as TypesMeta,
         types: {
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
@@ -359,7 +359,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      typegen: {} as TypesMeta,
       types: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -392,7 +392,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      typegen: {} as TypesMeta,
       types: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -425,7 +425,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      typegen: {} as TypesMeta
     });
 
     defineComponent({
@@ -472,7 +472,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      typegen: {} as TypesMeta
     });
 
     function useMyActor(_actor: ActorRefFrom<typeof machine>) {}
@@ -503,7 +503,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      typegen: {} as TypesMeta
     });
 
     function useMyActor(_actor: ActorRefFrom<typeof machine>) {}

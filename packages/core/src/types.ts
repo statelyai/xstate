@@ -1025,12 +1025,12 @@ export interface MachineConfig<
    * If `true`, will use SCXML semantics, such as event token matching.
    */
   scxml?: boolean;
-  types?: MachineSchema<TContext, TEvent, TActorMap>;
-  tsTypes?: TTypesMeta;
+  types?: MachineTypes<TContext, TEvent, TActorMap>;
+  typegen?: TTypesMeta;
 }
 
 export type ActorMap = Record<string, { output: any }>;
-export interface MachineSchema<
+export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActorMap extends ActorMap = ActorMap
