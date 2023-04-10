@@ -836,7 +836,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [state] = useMachine(machine);
       const [childState] = useActor(
-        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine schema
+        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine types
       );
 
       expect(childState.context.value).toBe(42);

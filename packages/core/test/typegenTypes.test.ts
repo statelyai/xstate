@@ -610,7 +610,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should include generated dynamic internal event in the provided parameter if schema.actors is not provided', () => {
+  it('should include generated dynamic internal event in the provided parameter if types.actors is not provided', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
         myAction: 'done.invoke.myActor' | 'FOO';
@@ -651,7 +651,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should use an event generated based on schema.actors for a dynamic internal event over the generated fallback', () => {
+  it('should use an event generated based on types.actors for a dynamic internal event over the generated fallback', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
         myAction: 'done.invoke.myActor' | 'FOO';
@@ -695,7 +695,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow a promise actor returning the explicitly declared data in the given schema.actors', () => {
+  it('should allow a promise actor returning the explicitly declared data in the given types.actors', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: {
         myActor: 'FOO';
@@ -732,7 +732,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should not allow a promise actor returning a different type than the explicitly declared one in the given schema.actors', () => {
+  it('should not allow a promise actor returning a different type than the explicitly declared one in the given types.actors', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: {
         myActor: 'FOO';
@@ -770,7 +770,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow a machine actor returning the explicitly declared output in the given schema.actors', () => {
+  it('should allow a machine actor returning the explicitly declared output in the given types.actors', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: {
         myActor: 'FOO';
@@ -807,7 +807,7 @@ describe('typegen types', () => {
     );
   });
 
-  // it('should not allow a machine actor returning a different type than the explicitly declared one in the given schema.actors', () => {
+  // it('should not allow a machine actor returning a different type than the explicitly declared one in the given types.actors', () => {
   //   interface TypesMeta extends TypegenMeta {
   //     eventsCausingActors: {
   //       myActor: 'FOO';
