@@ -121,7 +121,7 @@ export class StateMachine<
 
   public options: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public schema: MachineTypes<TContext, TEvent>;
+  public types: MachineTypes<TContext, TEvent>;
 
   public __xstatenode: true = true;
 
@@ -145,7 +145,7 @@ export class StateMachine<
     this.options = Object.assign(createDefaultOptions(), options);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
-    this.schema = this.config.types ?? ({} as any as this['schema']);
+    this.types = this.config.types ?? ({} as any as this['types']);
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {

@@ -1,4 +1,4 @@
-import { createMachine, createSchema } from '../src/index.ts';
+import { createMachine } from '../src/index.ts';
 import { JSONSchema6 } from 'json-schema';
 
 export interface JSONSchemaObject<TK extends string> extends JSONSchema6 {
@@ -43,7 +43,7 @@ describe('schema', () => {
             }
           }
         }),
-        events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       context: { foo: '', bar: 0, baz: { one: '' } },
       initial: 'active',
@@ -84,6 +84,6 @@ describe('schema', () => {
       }
     });
 
-    expect(m.schema).toEqual(schema);
+    expect(m.types).toEqual(schema);
   });
 });
