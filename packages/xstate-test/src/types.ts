@@ -28,10 +28,11 @@ export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
 
 export interface TestMachineConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
   context?: MachineConfig<TContext, TEvent>['context'];
-  schema?: MachineTypes<TContext, TEvent, ActorMap>;
+  types?: MachineTypes<TContext, TEvent, ActorMap, TTypesMeta>;
 }
 
 export interface TestStateNodeConfig<
