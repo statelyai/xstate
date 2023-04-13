@@ -243,7 +243,7 @@ describe('@xstate/inspect', () => {
   it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {
     const machine = createMachine({
       context: {},
-      schema: {} as {
+      types: {} as {
         events: { type: 'EV'; value: any };
       },
       on: {

@@ -189,7 +189,7 @@ describe('Raise events', () => {
     type Events = { type: 'FOO' } | { type: 'BAR' };
 
     createMachine<Context, Events>({
-      schema: {
+      types: {
         context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
@@ -215,7 +215,7 @@ describe('Raise events', () => {
     type Events = { type: 'FOO' } | { type: 'BAR' };
 
     createMachine<Context, Events>({
-      schema: {
+      types: {
         context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
@@ -231,7 +231,7 @@ describe('Raise events', () => {
     type Events = { type: 'FOO' } | { type: 'BAR' };
 
     createMachine<Context, Events>({
-      schema: {
+      types: {
         context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
@@ -275,7 +275,7 @@ describe('context', () => {
   it('should not use actions as possible inference sites', () => {
     createMachine(
       {
-        schema: {
+        types: {
           context: {} as {
             count: number;
           }
@@ -306,7 +306,7 @@ describe('context', () => {
 
   it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           literalTest: 'foo' | 'bar';
         }
@@ -322,7 +322,7 @@ describe('context', () => {
 describe('events', () => {
   it('should not use actions as possible inference sites 1', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as {
           type: 'FOO';
         }
@@ -339,7 +339,7 @@ describe('events', () => {
 
   it('should not use actions as possible inference sites 2', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as {
           type: 'FOO';
         }
@@ -374,7 +374,7 @@ describe('events', () => {
 
   it('should infer inline function parameters when narrowing transition actions based on the event type', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           count: number;
         },
@@ -399,7 +399,7 @@ describe('events', () => {
 
   it('should infer inline function parameters when for a wildcard transition', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           count: number;
         },
@@ -426,7 +426,7 @@ describe('events', () => {
   it('action objects used within implementations parameter should get access to the provided event type', () => {
     createMachine(
       {
-        schema: {
+        types: {
           context: {} as { numbers: number[] },
           events: {} as { type: 'ADD'; number: number }
         }
@@ -448,7 +448,7 @@ describe('events', () => {
 
   it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           count: number;
         }
@@ -468,7 +468,7 @@ describe('interpreter', () => {
   it('should be convertable to Rx observable', () => {
     const s = interpret(
       createMachine({
-        schema: {
+        types: {
           context: {} as { count: number }
         }
       })
@@ -550,7 +550,7 @@ describe('service-targets', () => {
 describe('actions', () => {
   it('context should get inferred for builtin actions used as an entry action', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as { count: number }
       },
       context: {
@@ -567,7 +567,7 @@ describe('actions', () => {
 
   it('context should get inferred for builtin actions used as a transition action', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as { count: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
@@ -589,7 +589,7 @@ describe('actions', () => {
 
   it('context should get inferred for a builtin action within an array of entry actions', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as { count: number }
       },
       entry: [
@@ -606,7 +606,7 @@ describe('actions', () => {
 
   it('context should get inferred for a builtin action within an array of transition actions', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as { count: number }
       },
       on: {
@@ -634,7 +634,7 @@ describe('actions', () => {
     });
 
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           count: number;
           childRef: ActorRefFrom<typeof childMachine>;
@@ -658,7 +658,7 @@ describe('actions', () => {
     });
 
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           count: number;
           childRef: ActorRefFrom<typeof childMachine>;
@@ -679,7 +679,7 @@ describe('actions', () => {
 
   it('should report an error when the stop action returns an invalid actor ref', () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           count: number;
         }
@@ -697,7 +697,7 @@ describe('actions', () => {
     const childMachine = createMachine({});
 
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           count: number;
           childRef: ActorRefFrom<typeof childMachine>;
@@ -723,7 +723,7 @@ describe('actions', () => {
 
   it('should accept assign with partial static object', () => {
     createMachine({
-      schema: {
+      types: {
         events: {} as {
           type: 'TOGGLE';
         },
@@ -742,7 +742,7 @@ describe('actions', () => {
 
   it("should provide context to single prop updater in assign when it's mixed with a static value for another prop", () => {
     createMachine({
-      schema: {
+      types: {
         context: {} as {
           count: number;
           skip: boolean;
