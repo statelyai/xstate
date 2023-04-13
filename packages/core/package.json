@@ -65,7 +65,6 @@
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
-    "istanbul": "^0.4.5",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "pkg-up": "^3.1.0",
