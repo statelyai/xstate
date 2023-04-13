@@ -9,7 +9,7 @@ export default createMachine({
         t: {
           target: '#b',
           actions: actions.raise({ type: 's' }),
-          external: true
+          reenter: true
         }
       }
     },
@@ -18,7 +18,7 @@ export default createMachine({
       on: {
         s: {
           target: '#c',
-          external: true
+          reenter: true
         }
       }
     },

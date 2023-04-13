@@ -619,7 +619,7 @@ describe('transient states (eventless transitions)', () => {
       context: ({ input }) => ({
         duration: input.duration
       }),
-      schema: {
+      types: {
         context: {} as { duration: number }
       },
       states: {

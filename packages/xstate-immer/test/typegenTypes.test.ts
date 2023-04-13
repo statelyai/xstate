@@ -11,11 +11,11 @@ describe('@xstate/immer', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: {
           count: 0
         },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           context: {} as { count: number },
           events: {} as
             | {

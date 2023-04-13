@@ -319,7 +319,7 @@ export interface TransitionConfig<
 > {
   guard?: GuardConfig<TContext, TExpressionEvent>;
   actions?: BaseActions<TContext, TExpressionEvent, TEvent, TAction>;
-  external?: boolean;
+  reenter?: boolean;
   target?: TransitionTarget | undefined;
   meta?: Record<string, any>;
   description?: string;
@@ -1025,21 +1025,22 @@ export interface MachineConfig<
    * If `true`, will use SCXML semantics, such as event token matching.
    */
   scxml?: boolean;
-  schema?: MachineSchema<TContext, TEvent, TActorMap>;
-  tsTypes?: TTypesMeta;
+  types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
 }
 
 export type ActorMap = Record<string, { output: any }>;
-export interface MachineSchema<
+export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActorMap extends ActorMap = ActorMap
+  TActorMap extends ActorMap = ActorMap,
+  TTypesMeta = TypegenDisabled
 > {
   context?: TContext;
   actions?: { type: string; [key: string]: any };
   actors?: TActorMap;
   events?: TEvent;
   guards?: { type: string; [key: string]: any };
+  typegen?: TTypesMeta;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
@@ -1437,7 +1438,7 @@ export interface TransitionDefinition<
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: BaseActionObject[];
-  external: boolean;
+  reenter: boolean;
   guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | '*';
   toJSON: () => {

@@ -1,6 +1,6 @@
 {
   "mode": "pre",
-  "tag": "alpha",
+  "tag": "beta",
   "initialVersions": {
     "xstate": "4.7.3",
     "@xstate/analytics": "0.0.1",
@@ -24,6 +24,7 @@
     "clean-pens-buy",
     "cold-steaks-drop",
     "cool-grapes-suffer",
+    "cool-hairs-build",
     "cool-pets-love",
     "curvy-feet-guess",
     "dirty-birds-sniff",
