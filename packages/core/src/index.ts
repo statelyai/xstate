@@ -1,21 +1,11 @@
-import {
-  after,
-  done,
-  doneInvoke,
-  escalate,
-  forwardTo,
-  respond,
-  sendParent,
-  sendTo
-} from './actions.ts';
-import { assign } from './actions/assign.ts';
-import { cancel } from './actions/cancel.ts';
-import { choose } from './actions/choose.ts';
-import { log } from './actions/log.ts';
-import { pure } from './actions/pure.ts';
-import { raise } from './actions/raise.ts';
-import { send } from './actions/send.ts';
-import { stop } from './actions/stop.ts';
+import { doneInvoke, forwardTo, sendParent, sendTo } from './actions.ts';
+export { assign } from './actions/assign.ts';
+export { cancel } from './actions/cancel.ts';
+export { choose } from './actions/choose.ts';
+export { log } from './actions/log.ts';
+export { pure } from './actions/pure.ts';
+export { raise } from './actions/raise.ts';
+export { stop } from './actions/stop.ts';
 import { interpret, Interpreter, ActorStatus } from './interpreter.ts';
 import { createMachine } from './Machine.ts';
 import { mapState } from './mapState.ts';
@@ -37,9 +27,6 @@ export {
   StateNode,
   State,
   mapState,
-  actions,
-  assign,
-  send,
   sendTo,
   sendParent,
   forwardTo,
@@ -48,24 +35,6 @@ export {
   ActorStatus as InterpreterStatus,
   doneInvoke,
   createMachine
-};
-
-const actions = {
-  raise,
-  send,
-  sendParent,
-  sendTo,
-  log,
-  cancel,
-  stop,
-  assign,
-  after,
-  done,
-  respond,
-  forwardTo,
-  escalate,
-  choose,
-  pure
 };
 
 declare global {

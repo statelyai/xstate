@@ -33,9 +33,9 @@ import {
   done,
   toActionObjects,
   actionTypes,
-  resolveActionObject
+  resolveActionObject,
+  raise
 } from './actions.ts';
-import { send } from './actions/send.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
@@ -318,7 +318,7 @@ export function getDelayedTransitions<
   ) => {
     const delayRef = isFunction(delay) ? `${stateNode.id}:delay[${i}]` : delay;
     const eventType = after(delayRef, stateNode.id);
-    stateNode.entry.push(send({ type: eventType }, { delay }));
+    stateNode.entry.push(raise({ type: eventType } as TEvent, { delay }));
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };

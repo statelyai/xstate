@@ -1,5 +1,4 @@
-import { createMachine, actions } from '../../src';
-const { assign } = actions;
+import { createMachine, assign } from '../../src';
 
 // @ts-ignore
 const factorialMachine = createMachine<{ n: number; fac: number }>({
