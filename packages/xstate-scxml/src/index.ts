@@ -71,7 +71,7 @@ export function transitionToSCXML(
       target: (transition.target || [])
         .map((stateNode) => stateNode.id)
         .join(' '),
-      type: !transition.external ? 'internal' : undefined
+      type: !transition.reenter ? 'internal' : undefined
     }),
     elements: elements.length ? elements : undefined
   };
@@ -136,8 +136,8 @@ function stateNodeToSCXML(stateNode: StateNode<any, any>): XMLElement {
   elements.push(...transitionElements);
   elements.push(...childStates);
 
-  if (stateNode.type === 'final' && stateNode.doneData) {
-    elements.push(doneDataToSCXML(stateNode.doneData));
+  if (stateNode.type === 'final' && stateNode.output) {
+    elements.push(doneDataToSCXML(stateNode.output));
   }
 
   return {

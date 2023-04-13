@@ -245,7 +245,7 @@ describe('spawning promises', () => {
           on: {
             [doneInvoke('my-promise')]: {
               target: 'success',
-              guard: ({ event }) => event.data === 'response'
+              guard: ({ event }) => event.output === 'response'
             }
           }
         },
@@ -278,7 +278,7 @@ describe('spawning promises', () => {
           on: {
             [doneInvoke('my-promise')]: {
               target: 'success',
-              guard: ({ event }) => event.data === 'response'
+              guard: ({ event }) => event.output === 'response'
             }
           }
         },
@@ -903,7 +903,7 @@ describe('actors', () => {
             on: {
               'done.invoke.test': {
                 target: 'success',
-                guard: ({ event }) => event.data === 42
+                guard: ({ event }) => event.output === 42
               }
             }
           },

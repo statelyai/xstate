@@ -37,7 +37,9 @@ export function createTestMachine<
   config: TestMachineConfig<TContext, TEvent, TTypesMeta>,
   options?: TestMachineOptions<TContext, TEvent, TTypesMeta>
 ) {
-  return createMachine(config).provide(options);
+  const machine = createMachine(config);
+
+  return options ? machine.provide(options) : machine;
 }
 
 function serializeMachineTransition(

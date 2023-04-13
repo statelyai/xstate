@@ -39,7 +39,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
   initial: 'pending',
   states: {
     pending: {
-      entry: send({ type: 'RESOLVE', user }),
+      entry: raise({ type: 'RESOLVE', user }),
       on: {
         RESOLVE: {
           target: 'success',
@@ -49,7 +49,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      data: { user: ({ event }) => event.user }
+      output: { user: ({ event }) => event.user }
     },
     failure: {
       entry: sendParent({ type: 'REJECT' })
@@ -81,7 +81,7 @@ const fetcherMachine = createMachine({
           target: 'received',
           guard: ({ event }) => {
             // Should receive { user: { name: 'David' } } as event data
-            return event.data.user.name === 'David';
+            return event.output.user.name === 'David';
           }
         }
       }
@@ -192,7 +192,7 @@ describe('invoke', () => {
         },
         success: {
           type: 'final',
-          data: { user: ({ event }) => event.user }
+          output: { user: ({ event }) => event.user }
         },
         failure: {
           entry: sendParent({ type: 'REJECT' })
@@ -223,7 +223,7 @@ describe('invoke', () => {
               target: 'received',
               guard: ({ event }) => {
                 // Should receive { user: { name: 'David' } } as event data
-                return event.data.user.name === 'David';
+                return event.output.user.name === 'David';
               }
             }
           }
@@ -324,7 +324,7 @@ describe('invoke', () => {
       },
       on: {
         SUCCESS: {
-          target: 'success',
+          target: '.success',
           guard: ({ event }) => {
             return event.data === 42;
           }
@@ -504,7 +504,7 @@ describe('invoke', () => {
         states: {
           active: {
             type: 'final',
-            data: { secret: 'pingpong' }
+            output: { secret: 'pingpong' }
           }
         }
       });
@@ -522,7 +522,7 @@ describe('invoke', () => {
                   src: pongMachine,
                   onDone: {
                     target: 'success',
-                    guard: ({ event }) => event.data.secret === 'pingpong'
+                    guard: ({ event }) => event.output.secret === 'pingpong'
                   }
                 }
               },
@@ -744,7 +744,7 @@ describe('invoke', () => {
               onDone: {
                 target: 'success',
                 guard: ({ context, event }) => {
-                  return event.data === context.id;
+                  return event.output === context.id;
                 }
               },
               onError: 'failure'
@@ -932,7 +932,7 @@ describe('invoke', () => {
                 ),
                 onDone: {
                   target: 'success',
-                  actions: assign({ count: ({ event }) => event.data.count })
+                  actions: assign({ count: ({ event }) => event.output.count })
                 }
               }
             },
@@ -961,7 +961,9 @@ describe('invoke', () => {
                 src: 'somePromise',
                 onDone: {
                   target: 'success',
-                  actions: assign({ count: ({ event }) => event.data.count })
+                  actions: assign({
+                    count: ({ event }) => event.output.count
+                  })
                 }
               }
             },
@@ -1001,7 +1003,7 @@ describe('invoke', () => {
                 onDone: {
                   target: 'success',
                   actions: ({ event }) => {
-                    count = event.data.count;
+                    count = event.output.count;
                   }
                 }
               }
@@ -1033,7 +1035,7 @@ describe('invoke', () => {
                 onDone: {
                   target: 'success',
                   actions: ({ event }) => {
-                    count = event.data.count;
+                    count = event.output.count;
                   }
                 }
               }
@@ -1131,7 +1133,7 @@ describe('invoke', () => {
                         onDone: {
                           target: 'success',
                           actions: assign(({ event }) => ({
-                            result1: event.data.result
+                            result1: event.output.result
                           }))
                         }
                       }
@@ -1150,7 +1152,7 @@ describe('invoke', () => {
                         onDone: {
                           target: 'success',
                           actions: assign(({ event }) => ({
-                            result2: event.data.result
+                            result2: event.output.result
                           }))
                         }
                       }
@@ -1590,7 +1592,7 @@ describe('invoke', () => {
               }),
               onDone: {
                 target: 'success',
-                actions: assign(({ event: { data: result } }) => ({ result }))
+                actions: assign(({ event: { output: result } }) => ({ result }))
               }
             }
           },
@@ -3003,7 +3005,7 @@ describe('invoke', () => {
     expect(disposed).toBe(true);
   });
 
-  it('root invocations should restart on root external transitions', () => {
+  it('root invocations should restart on root reentering transitions', () => {
     let count = 0;
 
     const machine = createMachine({
@@ -3017,7 +3019,7 @@ describe('invoke', () => {
       on: {
         EVENT: {
           target: '#two',
-          external: true
+          reenter: true
         }
       },
       initial: 'one',

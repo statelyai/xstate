@@ -493,7 +493,7 @@ describe('service-targets', () => {
     const machine = createMachine({
       invoke: {
         src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: ['a', 'b']
+        onDone: ['.a', '.b']
       },
       initial: 'a',
       states: {
@@ -509,7 +509,7 @@ describe('service-targets', () => {
     const machine = createMachine({
       invoke: {
         src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: 'a' }, { target: 'b' }]
+        onDone: [{ target: '.a' }, { target: '.b' }]
       },
       initial: 'a',
       states: {
@@ -525,7 +525,7 @@ describe('service-targets', () => {
     const machine = createMachine({
       invoke: {
         src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: 'a' }, 'b']
+        onDone: [{ target: '.a' }, '.b']
       },
       initial: 'a',
       states: {

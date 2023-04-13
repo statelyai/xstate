@@ -166,24 +166,21 @@ describe('input', () => {
   it('should provide a static inline input to the referenced actor', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child',
-          input: 42
-        }
-      },
-      {
-        actors: {
-          child: createMachine({
-            context: ({ input }) => {
-              spy(input);
-              return {};
-            }
-          })
-        }
+    const machine = createMachine({
+      invoke: {
+        src: 'child',
+        input: 42
       }
-    );
+    }).provide({
+      actors: {
+        child: createMachine({
+          context: ({ input }) => {
+            spy(input);
+            return {};
+          }
+        })
+      }
+    });
 
     interpret(machine).start();
 
@@ -193,26 +190,23 @@ describe('input', () => {
   it('should provide a dynamic inline input to the referenced actor', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child',
-          input: ({ event }) => {
-            return event.input + 100;
-          }
-        }
-      },
-      {
-        actors: {
-          child: createMachine({
-            context: ({ input }) => {
-              spy(input);
-              return {};
-            }
-          })
+    const machine = createMachine({
+      invoke: {
+        src: 'child',
+        input: ({ event }) => {
+          return event.input + 100;
         }
       }
-    );
+    }).provide({
+      actors: {
+        child: createMachine({
+          context: ({ input }) => {
+            spy(input);
+            return {};
+          }
+        })
+      }
+    });
 
     interpret(machine, { input: 42 }).start();
 
@@ -222,26 +216,23 @@ describe('input', () => {
   it('should provide input to the referenced actor defined together with static input', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child'
-        }
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: 42
-          }
+    const machine = createMachine({
+      invoke: {
+        src: 'child'
+      }
+    }).provide({
+      actors: {
+        child: {
+          src: createMachine({
+            context: ({ input }) => {
+              spy(input);
+              return {};
+            }
+          }),
+          input: 42
         }
       }
-    );
+    });
 
     interpret(machine).start();
 
@@ -251,26 +242,23 @@ describe('input', () => {
   it('should provide input to the referenced actor defined together with dynamic input when invoking', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child'
-        }
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: ({ event }) => event.input + 100
-          }
+    const machine = createMachine({
+      invoke: {
+        src: 'child'
+      }
+    }).provide({
+      actors: {
+        child: {
+          src: createMachine({
+            context: ({ input }) => {
+              spy(input);
+              return {};
+            }
+          }),
+          input: ({ event }) => event.input + 100
         }
       }
-    );
+    });
 
     interpret(machine, { input: 42 }).start();
 
@@ -280,26 +268,23 @@ describe('input', () => {
   it('should provide input to the referenced actor defined together with dynamic input when spawning', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
-      {
-        entry: assign(({ spawn }) => ({
-          childRef: spawn('child')
-        }))
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: ({ event }) => event.input + 100
-          }
+    const machine = createMachine({
+      entry: assign(({ spawn }) => ({
+        childRef: spawn('child')
+      }))
+    }).provide({
+      actors: {
+        child: {
+          src: createMachine({
+            context: ({ input }) => {
+              spy(input);
+              return {};
+            }
+          }),
+          input: ({ event }) => event.input + 100
         }
       }
-    );
+    });
 
     interpret(machine, { input: 42 }).start();
 
@@ -309,27 +294,24 @@ describe('input', () => {
   it('should prioritize inline input over the one defined with referenced actor when invoking', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child',
-          input: 100
-        }
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: 42
-          }
+    const machine = createMachine({
+      invoke: {
+        src: 'child',
+        input: 100
+      }
+    }).provide({
+      actors: {
+        child: {
+          src: createMachine({
+            context: ({ input }) => {
+              spy(input);
+              return {};
+            }
+          }),
+          input: 42
         }
       }
-    );
+    });
 
     interpret(machine).start();
 
@@ -339,26 +321,23 @@ describe('input', () => {
   it('should prioritize inline input over the one defined with referenced actor when spawning', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
-      {
-        entry: assign(({ spawn }) => ({
-          childRef: spawn('child', { input: 100 })
-        }))
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: 42
-          }
+    const machine = createMachine({
+      entry: assign(({ spawn }) => ({
+        childRef: spawn('child', { input: 100 })
+      }))
+    }).provide({
+      actors: {
+        child: {
+          src: createMachine({
+            context: ({ input }) => {
+              spy(input);
+              return {};
+            }
+          }),
+          input: 42
         }
       }
-    );
+    });
 
     interpret(machine).start();
 
@@ -383,21 +362,18 @@ describe('input', () => {
   it('should call the input factory with self when spawning', () => {
     const spy = jest.fn();
 
-    const machine = createMachine(
-      {
-        entry: assign(({ spawn }) => ({
-          childRef: spawn('child')
-        }))
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({}),
-            input: ({ self }) => spy(self)
-          }
+    const machine = createMachine({
+      entry: assign(({ spawn }) => ({
+        childRef: spawn('child')
+      }))
+    }).provide({
+      actors: {
+        child: {
+          src: createMachine({}),
+          input: ({ self }) => spy(self)
         }
       }
-    );
+    });
 
     const actor = interpret(machine).start();
 
