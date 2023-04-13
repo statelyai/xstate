@@ -37,8 +37,8 @@ describe('ContextFrom', () => {
 
   it('should return context of a typegened machine', () => {
     const machine = createMachine({
-      typegen: {} as TypegenMeta,
       types: {
+        typegen: {} as TypegenMeta,
         context: {} as { counter: number }
       }
     });
@@ -85,8 +85,8 @@ describe('EventFrom', () => {
 
   it('should return events for a typegened machine', () => {
     const machine = createMachine({
-      typegen: {} as TypegenMeta,
       types: {
+        typegen: {} as TypegenMeta,
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -191,11 +191,11 @@ describe('MachineImplementationsFrom', () => {
       };
     }
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       context: {
         count: 100
       },
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
@@ -239,11 +239,11 @@ describe('MachineImplementationsFrom', () => {
       };
     }
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       context: {
         count: 100
       },
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
@@ -283,7 +283,9 @@ describe('StateValueFrom', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta
+      types: {
+        typegen: {} as TypesMeta
+      }
     });
 
     function matches(_value: StateValueFrom<typeof machine>) {}

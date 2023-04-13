@@ -20,7 +20,7 @@ describe('typegen types', () => {
       };
     }
     createMachine({
-      typegen: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
   });
 
@@ -39,9 +39,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         context: { foo: 100 },
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -73,9 +73,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         context: { foo: 100 },
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -109,9 +109,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         context: { foo: 100 },
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -145,9 +145,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         context: { foo: 100 },
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -182,9 +182,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         context: { foo: 100 },
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -212,9 +212,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         context: { foo: 100 },
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -242,9 +242,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         context: { foo: 100 },
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -272,9 +272,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         context: { foo: 100 },
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -293,9 +293,9 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       context: { foo: 100 },
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       },
       initial: 'a',
@@ -313,7 +313,7 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
+      types: { typegen: {} as TypesMeta },
       context: { foo: 100 },
       initial: 'a',
       states: {
@@ -330,9 +330,9 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       context: { foo: 100 },
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       },
       initial: 'a',
@@ -351,7 +351,7 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
+      types: { typegen: {} as TypesMeta },
       context: { foo: 100 },
       initial: 'a',
       states: {
@@ -369,9 +369,9 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       context: { foo: 100 },
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       },
       initial: 'a',
@@ -389,9 +389,9 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       context: { foo: 100 },
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       },
       initial: 'a',
@@ -419,8 +419,8 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
@@ -458,7 +458,7 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
 
     interpret(machine);
@@ -478,8 +478,8 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
@@ -503,8 +503,8 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
@@ -534,8 +534,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -561,8 +561,8 @@ describe('typegen types', () => {
 
     const machine = createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -595,8 +595,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' }
         }
       },
@@ -629,8 +629,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' }
         }
       },
@@ -670,8 +670,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' },
           actors: {
             myActor: {
@@ -714,8 +714,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
           actors: {
             myActor: {
@@ -751,8 +751,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
           actors: {
             myActor: {
@@ -789,8 +789,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
           actors: {
             myActor: {
@@ -854,8 +854,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
         }
       },
@@ -879,8 +879,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
         }
       },
@@ -930,8 +930,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' }
         }
       },
@@ -958,8 +958,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' }
         }
       },
@@ -1027,9 +1027,8 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
-
       types: {
+        typegen: {} as TypesMeta,
         context: {} as {
           foo: string;
         }
@@ -1048,8 +1047,8 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      typegen: {} as TypesMeta,
       types: {
+        typegen: {} as TypesMeta,
         context: {} as {
           foo: string;
         }
@@ -1083,8 +1082,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
           }
@@ -1106,8 +1105,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
           }
@@ -1129,8 +1128,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
           }
@@ -1153,8 +1152,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
           }
@@ -1179,8 +1178,8 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        typegen: {} as TypesMeta,
         types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             count: number;
           },
