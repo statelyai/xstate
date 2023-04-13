@@ -652,11 +652,6 @@ export function getStateNode(
   if (isStateId(stateKey)) {
     return stateNode.machine.getStateNodeById(stateKey);
   }
-  if (!stateNode.states) {
-    throw new Error(
-      `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
-    );
-  }
   const result = stateNode.states[stateKey];
   if (!result) {
     throw new Error(
@@ -800,9 +795,9 @@ export function transitionParallelNode<
   for (const subStateKey of Object.keys(stateValue)) {
     const subStateValue = stateValue[subStateKey];
 
-    if (!subStateValue) {
-      continue;
-    }
+    // if (!subStateValue) {
+    //   continue;
+    // }
 
     const subStateNode = getStateNode(stateNode, subStateKey);
     const innerTransitions = transitionNode(

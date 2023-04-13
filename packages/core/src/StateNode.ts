@@ -246,10 +246,6 @@ export class StateNode<
     };
   }
 
-  public toJSON() {
-    return this.definition;
-  }
-
   /**
    * The behaviors invoked as actors by this state node.
    */
@@ -322,15 +318,6 @@ export class StateNode<
     return memo(this, 'initial', () =>
       formatInitialTransition(this, this.config.initial || [])
     );
-  }
-
-  /**
-   * Returns `true` if this state node explicitly handles the given event.
-   *
-   * @param event The event in question
-   */
-  public handles(event: TEvent): boolean {
-    return this.events.includes(event.type);
   }
 
   public next(

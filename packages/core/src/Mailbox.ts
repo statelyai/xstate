@@ -26,11 +26,6 @@ export class Mailbox<T> {
 
   // TODO: rethink this design
   public prepend(event: T): void {
-    if (!this._current) {
-      this.enqueue(event);
-      return;
-    }
-
     // we know that something is already queued up
     // so the mailbox is already flushing or it's inactive
     // therefore the only thing that we need to do is to reassign `this._current`

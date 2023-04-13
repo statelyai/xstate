@@ -347,15 +347,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export const uniqueId = (() => {
-  let currentId = 0;
-
-  return () => {
-    currentId++;
-    return currentId.toString(16);
-  };
-})();
-
 export function isSCXMLEvent<TEvent extends EventObject>(
   event: TEvent | SCXML.Event<TEvent>
 ): event is SCXML.Event<TEvent> {
@@ -431,32 +422,32 @@ export function normalizeTarget<
   return toArray(target);
 }
 
-export function reportUnhandledExceptionOnInvocation(
-  originalError: any,
-  currentError: any,
-  id: string
-) {
-  if (!IS_PRODUCTION) {
-    const originalStackTrace = originalError.stack
-      ? ` Stacktrace was '${originalError.stack}'`
-      : '';
-    if (originalError === currentError) {
-      // tslint:disable-next-line:no-console
-      console.error(
-        `Missing onError handler for invocation '${id}', error was '${originalError}'.${originalStackTrace}`
-      );
-    } else {
-      const stackTrace = currentError.stack
-        ? ` Stacktrace was '${currentError.stack}'`
-        : '';
-      // tslint:disable-next-line:no-console
-      console.error(
-        `Missing onError handler and/or unhandled exception/promise rejection for invocation '${id}'. ` +
-          `Original error: '${originalError}'. ${originalStackTrace} Current error is '${currentError}'.${stackTrace}`
-      );
-    }
-  }
-}
+// export function reportUnhandledExceptionOnInvocation(
+//   originalError: any,
+//   currentError: any,
+//   id: string
+// ) {
+//   if (!IS_PRODUCTION) {
+//     const originalStackTrace = originalError.stack
+//       ? ` Stacktrace was '${originalError.stack}'`
+//       : '';
+//     if (originalError === currentError) {
+//       // tslint:disable-next-line:no-console
+//       console.error(
+//         `Missing onError handler for invocation '${id}', error was '${originalError}'.${originalStackTrace}`
+//       );
+//     } else {
+//       const stackTrace = currentError.stack
+//         ? ` Stacktrace was '${currentError.stack}'`
+//         : '';
+//       // tslint:disable-next-line:no-console
+//       console.error(
+//         `Missing onError handler and/or unhandled exception/promise rejection for invocation '${id}'. ` +
+//           `Original error: '${originalError}'. ${originalStackTrace} Current error is '${currentError}'.${stackTrace}`
+//       );
+//     }
+//   }
+// }
 
 export function toInvokeConfig<
   TContext extends MachineContext,
@@ -470,12 +461,12 @@ export function toInvokeConfig<
       return invocable;
     }
 
-    if ('transition' in invocable) {
-      return {
-        id,
-        src: invocable
-      };
-    }
+    // if ('transition' in invocable) {
+    //   return {
+    //     id,
+    //     src: invocable
+    //   };
+    // }
   }
 
   return {

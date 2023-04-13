@@ -381,7 +381,7 @@ export class StateMachine<
     const stateNode = this.idMap.get(resolvedStateId);
     if (!stateNode) {
       throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
+        `State node '#${resolvedStateId}' does not exist on machine '${this.id}'`
       );
     }
     return getStateNodeByPath(stateNode, relativePath);

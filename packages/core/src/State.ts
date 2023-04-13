@@ -31,21 +31,6 @@ import {
   warn
 } from './utils.ts';
 
-export function isStateConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(state: any): state is StateConfig<TContext, TEvent> {
-  if (typeof state !== 'object' || state === null) {
-    return false;
-  }
-
-  return 'value' in state && '_event' in state;
-}
-
-/**
- * @deprecated Use `isStateConfig(object)` or `state instanceof State` instead.
- */
-export const isState = isStateConfig;
 export class State<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,

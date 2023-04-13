@@ -12,15 +12,3 @@ export function memo<T>(object: any, key: string, fn: () => T): T {
 
   return memoizedData[key];
 }
-
-export function evict(object: any, key?: string): void {
-  if (!key) {
-    return void cache.delete(object);
-  }
-
-  const memoizedData = cache.get(object);
-
-  if (memoizedData) {
-    delete memoizedData[key];
-  }
-}
