@@ -104,7 +104,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   _ev: TEvent,
-  meta: StateMeta<TContext, TEvent>,
+  meta: StateMeta<TEvent>,
   body: string
 ) => {
   const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
@@ -416,7 +416,7 @@ function toConfig(
           target: getTargets(targets),
           ...(value.elements ? executableContent(value.elements) : undefined),
           ...guardObject,
-          external: !internal
+          ...(!internal && { reenter: true })
         };
 
         if (eventType === NULL_EVENT) {

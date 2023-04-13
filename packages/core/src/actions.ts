@@ -10,8 +10,7 @@ import {
   DoneEventObject,
   MachineContext,
   BaseActionObject,
-  SCXML,
-  AnyState
+  SCXML
 } from './types.ts';
 import * as actionTypes from './actionTypes.ts';
 import { toSCXMLEvent, isArray } from './utils.ts';
@@ -60,7 +59,6 @@ export function resolveActionObject(
               event: state.event,
               action: a,
               _event: state._event,
-              state,
               system: actorCtx.system,
               self: actorCtx.self
             });
@@ -105,7 +103,6 @@ export function toActionObject<
             event: _event.data as TEvent,
             action: actionObject,
             _event: _event as SCXML.Event<TEvent>,
-            state: state as AnyState,
             self: actorCtx.self,
             system: actorCtx.system
           });
@@ -150,13 +147,13 @@ export function after(delayRef: number | string, id?: string) {
  * has been reached in the parent state node.
  *
  * @param id The final state node's parent state node `id`
- * @param data The data to pass into the event
+ * @param output The data to pass into the event
  */
-export function done(id: string, data?: any): DoneEventObject {
+export function done(id: string, output?: any): DoneEventObject {
   const type = `${ActionTypes.DoneState}.${id}`;
   const eventObject = {
     type,
-    data
+    output
   };
 
   eventObject.toString = () => type;
@@ -171,13 +168,13 @@ export function done(id: string, data?: any): DoneEventObject {
  * but not when it is canceled.
  *
  * @param invokeId The invoked service ID
- * @param data The data to pass into the event
+ * @param output The data to pass into the event
  */
-export function doneInvoke(invokeId: string, data?: any): DoneEvent {
+export function doneInvoke(invokeId: string, output?: any): DoneEvent {
   const type = `${ActionTypes.DoneInvoke}.${invokeId}`;
   const eventObject = {
     type,
-    data
+    output
   };
 
   eventObject.toString = () => type;

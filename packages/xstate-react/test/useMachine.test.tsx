@@ -43,9 +43,11 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           onDone: {
             target: 'success',
             actions: assign({
-              data: ({ event }) => event.data
+              data: ({ event }) => {
+                return event.output;
+              }
             }),
-            guard: ({ event }) => event.data.length
+            guard: ({ event }) => event.output.length
           }
         }
       },
@@ -57,7 +59,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   const successFetchState = fetchMachine.transition('loading', {
     type: 'done.invoke.fetchData',
-    data: 'persisted data'
+    output: 'persisted data'
   });
 
   const persistedSuccessFetchState =
@@ -816,7 +818,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
-      schema: {
+      types: {
         context: {} as { value: number }
       },
       initial: 'intitial',
@@ -846,7 +848,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [state] = useMachine(machine);
       const [childState] = useActor(
-        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine schema
+        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine types
       );
 
       expect(childState.context.value).toBe(42);

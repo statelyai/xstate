@@ -122,7 +122,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   _ev: TEvent,
-  meta: StateMeta<TContext, TEvent>,
+  meta: StateMeta<TEvent>,
   body: string
 ) => {
   const datamodel = context

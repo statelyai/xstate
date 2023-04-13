@@ -8,7 +8,7 @@ import {
   BaseActionObject,
   EventObject,
   MachineConfig,
-  MachineSchema,
+  MachineTypes,
   ActorMap,
   State,
   StateNodeConfig,
@@ -29,11 +29,10 @@ export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
 export interface TestMachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TTypesMeta = TypegenDisabled
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
   context?: MachineConfig<TContext, TEvent>['context'];
-  schema?: MachineSchema<TContext, TEvent, ActorMap>;
-  tsTypes?: TTypesMeta;
+  types?: MachineTypes<TContext, TEvent, ActorMap, TTypesMeta>;
 }
 
 export interface TestStateNodeConfig<
@@ -49,7 +48,7 @@ export interface TestStateNodeConfig<
     | 'exit'
     | 'meta'
     | 'always'
-    | 'data'
+    | 'output'
     | 'id'
     | 'tags'
     | 'description'

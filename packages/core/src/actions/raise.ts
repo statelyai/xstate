@@ -64,11 +64,10 @@ export function raise<
             : eventOrExpr.type
       };
       const args: UnifiedArg<TContext, TExpressionEvent> &
-        StateMeta<TContext, TExpressionEvent> = {
+        StateMeta<TExpressionEvent> = {
         context: state.context,
         event: _event.data,
         _event,
-        state: state as any, // TODO: fix
         self: actorContext?.self ?? ({} as any),
         system: actorContext?.system
       };

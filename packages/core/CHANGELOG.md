@@ -1,5 +1,61 @@
 # xstate
 
+## 5.0.0-beta.7
+
+### Major Changes
+
+- [#3900](https://github.com/statelyai/xstate/pull/3900) [`7d1a8ff09`](https://github.com/statelyai/xstate/commit/7d1a8ff097dc96526e4aba3700d34934133e6eeb) Thanks [@Andarist](https://github.com/Andarist)! - `external` property on transitions has been renamed to `reenter`
+
+## 5.0.0-alpha.6
+
+### Major Changes
+
+- [#3952](https://github.com/statelyai/xstate/pull/3952) [`ec300837e`](https://github.com/statelyai/xstate/commit/ec300837e7665057b0edf8f3728319ca509ed801) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The output data on final states is now specified as `.output` instead of `.data`:
+
+  ```diff
+  const machine = createMachine({
+    // ...
+    states: {
+      // ...
+      success: {
+  -     data: { message: 'Success!' }
+  +     output: { message: 'Success!' }
+      }
+    }
+  })
+  ```
+
+- [#2881](https://github.com/statelyai/xstate/pull/2881) [`2f45343c5`](https://github.com/statelyai/xstate/commit/2f45343c5a8984dd92ee6b2ee6fcf90efaee264f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Target resolution improvements: targeting sibling nodes from the root is no longer valid, since the root node has no siblings:
+
+  ```diff
+  createMachine({
+    id: 'direction',
+    initial: 'left',
+    states: {
+      left: {},
+      right: {}
+    },
+    on: {
+  -   LEFT_CLICK: 'left',
+  +   LEFT_CLICK: '.left'
+    }
+  });
+  ```
+
+## 5.0.0-alpha.5
+
+### Major Changes
+
+- [#3926](https://github.com/statelyai/xstate/pull/3926) [`f9f692b2b`](https://github.com/statelyai/xstate/commit/f9f692b2b7f51311a41d6de13037c61bbcb9b7c2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Restored state will no longer contain actions, since they are assumed to have already been executed. Actions will not be replayed.
+
+  If you want to replay actions when restoring state, it is recommended to use an event sourcing approach.
+
+## 5.0.0-alpha.4
+
+### Major Changes
+
+- [#3950](https://github.com/statelyai/xstate/pull/3950) [`e5ee0a1e8`](https://github.com/statelyai/xstate/commit/e5ee0a1e8da3487c405021901e0642f773a7e75e) Thanks [@Andarist](https://github.com/Andarist)! - Actions are no longer called with `state`
+
 ## 5.0.0-alpha.3
 
 ### Major Changes

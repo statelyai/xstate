@@ -107,17 +107,16 @@ export interface BaseDynamicActionObject<
     args: {
       context: TContext;
       event: TExpressionEvent;
-    } & ActionMeta<TContext, TEvent, ParameterizedObject>
+    } & ActionMeta<TEvent, ParameterizedObject>
   ): void;
 }
 
 export type MachineContext = Record<string, any>;
 
 export interface ActionMeta<
-  TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject
-> extends StateMeta<TContext, TEvent> {
+> extends StateMeta<TEvent> {
   action: TAction;
   _event: SCXML.Event<TEvent>;
 }
@@ -136,10 +135,9 @@ export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: rea
   : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
 
 export interface AssignMeta<
-  TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   _TEvent extends EventObject
-> extends StateMeta<TContext, TExpressionEvent> {
+> extends StateMeta<TExpressionEvent> {
   action: BaseActionObject;
   _event: SCXML.Event<TExpressionEvent>;
   spawn: Spawner;
@@ -154,7 +152,7 @@ export type ActionFunction<
   args: {
     context: TContext;
     event: TExpressionEvent;
-  } & ActionMeta<TContext, TEvent, TAction>
+  } & ActionMeta<TEvent, TAction>
 ) => void;
 
 export interface ChooseCondition<
@@ -321,7 +319,7 @@ export interface TransitionConfig<
 > {
   guard?: GuardConfig<TContext, TExpressionEvent>;
   actions?: BaseActions<TContext, TExpressionEvent, TEvent, TAction>;
-  external?: boolean;
+  reenter?: boolean;
   target?: TransitionTarget | undefined;
   meta?: Record<string, any>;
   description?: string;
@@ -555,7 +553,7 @@ export interface InvokeConfig<
   onError?:
     | string
     | SingleOrArray<
-        TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+        TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent>
       >;
 
   onSnapshot?:
@@ -645,12 +643,14 @@ export interface StateNodeConfig<
    */
   meta?: any;
   /**
-   * The data sent with the "done.state._id_" event if this is a final state node.
+   * The output data sent with the "done.state._id_" event if this is a final state node.
    *
-   * The data will be evaluated with the current `context` and placed on the `.data` property
+   * The output data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
    */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  output?:
+    | Mapper<TContext, TEvent, any>
+    | PropertyMapper<TContext, TEvent, any>;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.
@@ -697,7 +697,7 @@ export interface StateNodeDefinition<
   exit: BaseActionObject[];
   meta: any;
   order: number;
-  data?: FinalStateNodeConfig<TContext, TEvent>['data'];
+  output?: FinalStateNodeConfig<TContext, TEvent>['output'];
   invoke: Array<InvokeDefinition<TContext, TEvent>>;
   description?: string;
   tags: string[];
@@ -747,7 +747,9 @@ export interface FinalStateNodeConfig<
    * The data to be sent with the "done.state.<id>" event. The data can be
    * static or dynamic (based on assigners).
    */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  output?:
+    | Mapper<TContext, TEvent, any>
+    | PropertyMapper<TContext, TEvent, any>;
 }
 
 export type SimpleOrStateNodeConfig<
@@ -1023,21 +1025,22 @@ export interface MachineConfig<
    * If `true`, will use SCXML semantics, such as event token matching.
    */
   scxml?: boolean;
-  schema?: MachineSchema<TContext, TEvent, TActorMap>;
-  tsTypes?: TTypesMeta;
+  types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
 }
 
-export type ActorMap = Record<string, { data: any }>;
-export interface MachineSchema<
+export type ActorMap = Record<string, { output: any }>;
+export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActorMap extends ActorMap = ActorMap
+  TActorMap extends ActorMap = ActorMap,
+  TTypesMeta = TypegenDisabled
 > {
   context?: TContext;
   actions?: { type: string; [key: string]: any };
   actors?: TActorMap;
   events?: TEvent;
   guards?: { type: string; [key: string]: any };
+  typegen?: TTypesMeta;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
@@ -1102,7 +1105,7 @@ export interface RaiseActionObject<
 
 export interface DoneInvokeEvent<TData> extends EventObject {
   type: `done.invoke.${string}`;
-  data: TData;
+  output: TData;
 }
 
 export interface ErrorEvent<TErrorData> {
@@ -1134,7 +1137,7 @@ export interface SCXMLErrorEvent extends SCXML.Event<any> {
 }
 
 export interface DoneEventObject extends EventObject {
-  data?: any;
+  output?: any;
   toString(): string;
 }
 
@@ -1246,7 +1249,7 @@ export type ExprWithMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (args: UnifiedArg<TContext, TEvent> & StateMeta<TContext, TEvent>) => T;
+> = (args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent>) => T;
 
 export type SendExpr<
   TContext extends MachineContext,
@@ -1318,7 +1321,7 @@ export type Assigner<
   args: {
     context: TContext;
     event: TExpressionEvent;
-  } & AssignMeta<TContext, TExpressionEvent, TEvent>
+  } & AssignMeta<TExpressionEvent, TEvent>
 ) => Partial<TContext>;
 
 export type PartialAssigner<
@@ -1330,7 +1333,7 @@ export type PartialAssigner<
   args: {
     context: TContext;
     event: TExpressionEvent;
-  } & AssignMeta<TContext, TExpressionEvent, TEvent>
+  } & AssignMeta<TExpressionEvent, TEvent>
 ) => TContext[TKey];
 
 export type PropertyAssigner<
@@ -1435,7 +1438,7 @@ export interface TransitionDefinition<
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: BaseActionObject[];
-  external: boolean;
+  reenter: boolean;
   guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | '*';
   toJSON: () => {
@@ -1512,11 +1515,7 @@ export interface Segment<
   event: TEvent;
 }
 
-export interface StateMeta<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  state: State<TContext, TEvent, any>;
+export interface StateMeta<TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
   self: ActorRef<TEvent>;
   system: ActorSystem<any>;

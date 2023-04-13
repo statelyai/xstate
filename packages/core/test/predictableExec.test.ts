@@ -515,7 +515,7 @@ describe('predictableExec', () => {
           on: {
             REENTER: {
               target: 'active',
-              external: true
+              reenter: true
             }
           }
         }
