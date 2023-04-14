@@ -16,11 +16,11 @@ describe('action creators', () => {
     });
 
     it('should accept an event object', () => {
-      const action = raise({
-        type: 'foo',
-        // @ts-ignore
+      const event = {
+        type: 'foo' as const,
         bar: 'baz'
-      });
+      };
+      const action = raise<{}, typeof event>(event);
       expect(action.params).toEqual(
         expect.objectContaining({
           event: { type: 'foo', bar: 'baz' },
