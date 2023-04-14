@@ -19,7 +19,6 @@ import {
   isDynamicAction
 } from '../actions/dynamicAction.ts';
 export {
-  send,
   sendTo,
   sendParent,
   respond,
