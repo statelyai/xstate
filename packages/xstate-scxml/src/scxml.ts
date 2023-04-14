@@ -8,7 +8,7 @@ import {
   BaseActionObject,
   AnyStateMachine,
   StateMeta,
-  send,
+  sendTo,
   log,
   raise,
   assign,
@@ -247,9 +247,20 @@ function mapAction<
         };
       }
 
-      return send<TContext, TEvent>(convertedEvent, {
+      const scxmlParams = {
         delay: convertedDelay,
-        to: target as string | undefined,
+        id: id as string | undefined
+      };
+
+      if (target) {
+        return sendTo(target as string, convertedEvent, {
+          ...scxmlParams,
+          to: target as string | undefined
+        });
+      }
+
+      return raise<TContext, TEvent, TEvent>(convertedEvent as TEvent, {
+        delay: convertedDelay,
         id: id as string | undefined
       });
     }
