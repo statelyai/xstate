@@ -14,6 +14,10 @@
       "module": "./guards/dist/xstate-guards.esm.js",
       "default": "./guards/dist/xstate-guards.cjs.js"
     },
+    "./actions": {
+      "module": "./actions/dist/xstate-actions.esm.js",
+      "default": "./actions/dist/xstate-actions.cjs.js"
+    },
     "./dev": {
       "module": "./dev/dist/xstate-dev.esm.js",
       "default": "./dev/dist/xstate-dev.cjs.js"
@@ -69,6 +73,7 @@
     "umdName": "XState",
     "entrypoints": [
       "./index.ts",
+      "./actions.ts",
       "./actors/index.ts",
       "./guards.ts",
       "./dev/index.ts"
