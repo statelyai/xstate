@@ -1873,3 +1873,21 @@ describe('interpreter', () => {
     });
   });
 });
+
+it('should throw if an event is received', () => {
+  const machine = createMachine({});
+
+  const actor = interpret(machine).start();
+
+  actor.send(
+    // @ts-ignore
+    'EVENT'
+  );
+
+  expect(() =>
+    actor.send(
+      // @ts-ignore
+      'EVENT'
+    )
+  ).toThrow();
+});
