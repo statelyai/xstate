@@ -34,7 +34,7 @@ import type {
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
-  MachineSchema,
+  MachineTypes,
   NoInfer,
   SCXML,
   StateConfig,
@@ -126,7 +126,7 @@ export class StateMachine<
 
   public options: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public schema: MachineSchema<TContext, TEvent>;
+  public types: MachineTypes<TContext, TEvent>;
 
   public __xstatenode: true = true;
 
@@ -150,7 +150,7 @@ export class StateMachine<
     this.options = createDefaultOptions(options);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
-    this.schema = this.config.schema ?? ({} as any as this['schema']);
+    this.types = this.config.types ?? ({} as any as this['types']);
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {

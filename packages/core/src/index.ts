@@ -21,7 +21,6 @@ import { createMachine } from './StateMachine.ts';
 import { mapState } from './mapState.ts';
 import { State } from './State.ts';
 import { StateNode } from './StateNode.ts';
-export { createSchema, t } from './schema.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { StateMachine } from './StateMachine.ts';
 export { getStateNodes } from './stateUtils.ts';

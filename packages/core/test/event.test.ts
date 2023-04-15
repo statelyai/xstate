@@ -142,7 +142,7 @@ describe('SCXML events', () => {
 
   it('should be able to respond to sender by sending self', (done) => {
     const authServerMachine = createMachine({
-      schema: {
+      types: {
         events: {} as { type: 'CODE'; sender: AnyActorRef }
       },
       id: 'authServer',

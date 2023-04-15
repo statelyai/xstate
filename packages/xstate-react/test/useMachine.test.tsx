@@ -788,7 +788,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
-      schema: {
+      types: {
         context: {} as { value: number }
       },
       initial: 'intitial',
@@ -818,7 +818,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [state] = useMachine(machine);
       const [childState] = useActor(
-        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine schema
+        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine types
       );
 
       expect(childState.context.value).toBe(42);
