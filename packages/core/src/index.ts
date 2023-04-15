@@ -37,6 +37,15 @@ export {
   doneInvoke,
   createMachine
 };
+export {
+  fromPromise,
+  fromObservable,
+  fromCallback,
+  fromEventObservable,
+  fromTransition
+} from './actors/index.ts';
+
+export { stateIn, not, and, or } from './guards.ts';
 
 declare global {
   interface SymbolConstructor {
