@@ -11,6 +11,7 @@ import {
 } from 'xstate';
 import { useMachine, useInterpret, useActor } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
+import { createNullActor, fromTransition } from 'xstate/actors';
 
 const originalConsoleError = console.error;
 
@@ -510,5 +511,54 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     render(<App />);
 
     expect(spy).not.toBeCalled();
+  });
+
+  it('should work with a null actor', () => {
+    const Child = (props: {
+      actor: ActorRef<any, { count: number }> | undefined;
+    }) => {
+      const [state] = useActor(props.actor ?? createNullActor());
+
+      try {
+        // @ts-expect-error (state can be undefined)
+        state.count;
+      } catch (_) {}
+
+      if (state) {
+        // another type test... probably a better way to do this
+        ((_count: number) => void 0)(state.count);
+      }
+
+      return <div data-testid="state">{state?.count ?? 'undefined'}</div>;
+    };
+
+    const App = () => {
+      const [actor, setActor] = useState<ActorRef<any, { count: number }>>();
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() =>
+              setActor(interpret(fromTransition((s) => s, { count: 42 })))
+            }
+          >
+            Set actor
+          </button>
+          <Child actor={actor} />
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const button = screen.getByTestId('button');
+    const stateEl = screen.getByTestId('state');
+
+    expect(stateEl.textContent).toBe('undefined');
+
+    fireEvent.click(button);
+
+    expect(stateEl.textContent).toBe('42');
   });
 });
