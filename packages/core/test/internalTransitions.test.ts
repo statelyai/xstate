@@ -44,7 +44,7 @@ describe('internal transitions', () => {
           on: {
             NEXT: {
               target: '.right',
-              external: true
+              reenter: true
             }
           }
         }
@@ -85,7 +85,7 @@ describe('internal transitions', () => {
           on: {
             RESET: {
               target: 'foo',
-              external: true
+              reenter: true
             }
           }
         }
@@ -125,7 +125,7 @@ describe('internal transitions', () => {
           on: {
             RESET_TO_B: {
               target: 'foo.b',
-              external: true
+              reenter: true
             }
           }
         }

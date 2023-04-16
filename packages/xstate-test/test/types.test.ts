@@ -5,7 +5,7 @@ describe('types', () => {
   it('`EventExecutor` should be passed event with type that corresponds to its key', () => {
     const machine = createMachine({
       id: 'test',
-      schema: {
+      types: {
         context: {} as any,
         events: {} as
           | { type: 'a'; valueA: boolean }

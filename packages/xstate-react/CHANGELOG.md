@@ -1,5 +1,7 @@
 # Changelog
 
+## 4.0.0-beta.3
+
 ## 4.0.0-alpha.2
 
 ### Patch Changes

@@ -1,9 +1,4 @@
-import {
-  createMachine,
-  interpret,
-  assign,
-  AnyEventObject
-} from '../src/index.ts';
+import { createMachine, interpret, assign } from '../src/index.ts';
 
 describe('final states', () => {
   it('should emit the "done.state.*" event when all nested states are in their final states', () => {
@@ -117,16 +112,16 @@ describe('final states', () => {
             },
             reveal: {
               type: 'final',
-              data: {
+              output: {
                 secret: () => 'the secret'
               }
             }
           },
           onDone: {
             target: 'success',
-            actions: assign<Ctx, AnyEventObject>({
+            actions: assign({
               revealedSecret: ({ event }) => {
-                return event.data.secret;
+                return event.output.secret;
               }
             })
           }
@@ -161,7 +156,7 @@ describe('final states', () => {
         },
         end: {
           type: 'final',
-          data: spy
+          output: spy
         }
       }
     });

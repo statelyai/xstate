@@ -6,6 +6,7 @@ import { StateNode } from './StateNode.ts';
 import { interpret } from './interpreter.ts';
 import {
   getConfiguration,
+  getStateNodeByPath,
   getInitialConfiguration,
   getStateNodes,
   isInFinalState,
@@ -32,7 +33,7 @@ import type {
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
-  MachineSchema,
+  MachineTypes,
   NoInfer,
   SCXML,
   StateConfig,
@@ -127,7 +128,7 @@ export class StateMachine<
 
   public options: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public schema: MachineSchema<TContext, TEvent>;
+  public types: MachineTypes<TContext, TEvent>;
 
   public __xstatenode: true = true;
 
@@ -151,7 +152,7 @@ export class StateMachine<
     this.options = Object.assign(createDefaultOptions(), options);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
-    this.schema = this.config.schema ?? ({} as any as this['schema']);
+    this.types = this.config.types ?? ({} as any as this['types']);
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
@@ -383,9 +384,11 @@ export class StateMachine<
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
-    const resolvedStateId = isStateId(stateId)
-      ? stateId.slice(STATE_IDENTIFIER.length)
-      : stateId;
+    const fullPath = stateId.split(this.delimiter);
+    const relativePath = fullPath.slice(1);
+    const resolvedStateId = isStateId(fullPath[0])
+      ? fullPath[0].slice(STATE_IDENTIFIER.length)
+      : fullPath[0];
 
     const stateNode = this.idMap.get(resolvedStateId);
     if (!stateNode) {
@@ -393,7 +396,7 @@ export class StateMachine<
         `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
       );
     }
-    return stateNode;
+    return getStateNodeByPath(stateNode, relativePath);
   }
 
   public get definition(): StateMachineDefinition<TContext, TEvent> {
