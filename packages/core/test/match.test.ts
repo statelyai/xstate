@@ -115,6 +115,11 @@ describe('matches() method', () => {
 
     expect(machine.initialState.matches('foo')).toBeTruthy();
     expect(machine.initialState.matches({ foo: 'bar' })).toBeTruthy();
-    expect(machine.initialState.matches('fake')).toBeFalsy();
+    expect(
+      machine.initialState.matches(
+        // @ts-expect-error
+        'fake'
+      )
+    ).toBeFalsy();
   });
 });

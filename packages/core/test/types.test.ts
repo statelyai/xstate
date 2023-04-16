@@ -311,8 +311,8 @@ describe('context', () => {
           literalTest: 'foo' | 'bar';
         }
       },
+      // @ts-expect-error
       context: {
-        // @ts-expect-error
         literalTest: 'anything'
       }
     });
