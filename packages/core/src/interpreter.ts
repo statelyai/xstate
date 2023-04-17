@@ -99,6 +99,7 @@ export class Interpreter<
   private delayedEventsMap: Record<string, unknown> = {};
 
   private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
+  private inspectors: Set<Observer<InternalStateFrom<TBehavior>>> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -141,7 +142,11 @@ export class Interpreter<
     const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem();
+    this.system =
+      parent?.system ??
+      createSystem({
+        devTools: resolvedOptions.devTools
+      });
 
     if (systemId) {
       this._systemId = systemId;
@@ -208,6 +213,10 @@ export class Interpreter<
       observer.next?.(snapshot);
     }
 
+    for (const inspector of this.inspectors) {
+      inspector.next?.(this._state);
+    }
+
     const status = this.behavior.getStatus?.(state);
 
     switch (status?.status) {
@@ -230,6 +239,9 @@ export class Interpreter<
         );
         for (const observer of this.observers) {
           observer.error?.(status.data);
+        }
+        for (const inspector of this.inspectors) {
+          inspector.error?.(status.data);
         }
         break;
     }
@@ -264,6 +276,36 @@ export class Interpreter<
     return {
       unsubscribe: () => {
         this.observers.delete(observer);
+      }
+    };
+  }
+
+  public inspect(
+    observer: Observer<InternalStateFrom<TBehavior>>
+  ): Subscription;
+  public inspect(
+    nextListener?: (state: InternalStateFrom<TBehavior>) => void,
+    errorListener?: (error: any) => void,
+    completeListener?: () => void
+  ): Subscription;
+  public inspect(
+    nextListenerOrObserver?:
+      | ((state: InternalStateFrom<TBehavior>) => void)
+      | Observer<InternalStateFrom<TBehavior>>,
+    errorListener?: (error: any) => void,
+    completeListener?: () => void
+  ): Subscription {
+    const inspector = toObserver(
+      nextListenerOrObserver,
+      errorListener,
+      completeListener
+    );
+
+    this.inspectors.add(inspector);
+
+    return {
+      unsubscribe: () => {
+        this.inspectors.delete(inspector);
       }
     };
   }
@@ -312,7 +354,7 @@ export class Interpreter<
     // we need to rethink if this needs to be refactored
     this.update(this._state);
 
-    if (this.options.devTools) {
+    if (this.system.devTools) {
       this.attachDevTools();
     }
 
@@ -462,7 +504,7 @@ export class Interpreter<
   }
 
   private attachDevTools(): void {
-    const { devTools } = this.options;
+    const { devTools } = this.system;
     if (devTools) {
       const resolvedDevToolsAdapter =
         typeof devTools === 'function' ? devTools : devToolsAdapter;

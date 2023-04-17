@@ -10,8 +10,8 @@ type ServiceListener = (service: AnyInterpreter) => void;
 
 export interface XStateDevInterface {
   register: (service: AnyInterpreter) => void;
-  unregister: (service: AnyInterpreter) => void;
-  onRegister: (listener: ServiceListener) => {
+  unregister?: (service: AnyInterpreter) => void;
+  onRegister?: (listener: ServiceListener) => {
     unsubscribe: () => void;
   };
   services: Set<AnyInterpreter>;
@@ -47,26 +47,10 @@ function getDevTools(): DevInterface | undefined {
   return undefined;
 }
 
-export function registerService(service: AnyInterpreter) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const devTools = getDevTools();
-
-  if (devTools) {
-    devTools.register(service);
-  }
-}
-
 export const devToolsAdapter: DevToolsAdapter = (service) => {
   if (typeof window === 'undefined') {
     return;
   }
 
-  const devTools = getDevTools();
-
-  if (devTools) {
-    devTools.register(service);
-  }
+  getDevTools()?.register(service);
 };
