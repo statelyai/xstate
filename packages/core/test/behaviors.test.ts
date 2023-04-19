@@ -374,7 +374,7 @@ describe('machine behavior', () => {
 
     expect(persistedState.children.a.state).toEqual(
       expect.objectContaining({
-        canceled: false,
+        status: 'done',
         data: 42
       })
     );
