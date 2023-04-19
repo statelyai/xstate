@@ -1,4 +1,4 @@
-import { interpret, State, createMachine, actions } from '../src/index.ts';
+import { interpret, State, createMachine, raise } from '../src/index.ts';
 import { and, not, or } from '../src/guards';
 import { trackEntries } from './utils.ts';
 
@@ -311,7 +311,7 @@ describe('guard conditions', () => {
           }
         },
         b: {
-          entry: actions.raise({ type: 'MICRO' }),
+          entry: raise({ type: 'MICRO' }),
           tags: 'theTag',
           on: {
             MICRO: {

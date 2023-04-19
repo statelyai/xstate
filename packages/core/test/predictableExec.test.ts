@@ -5,7 +5,7 @@ import {
   interpret,
   sendTo
 } from '../src/index.ts';
-import { raise, send, sendParent, stop } from '../src/actions.ts';
+import { raise, sendParent, stop } from '../src/actions.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 
@@ -633,7 +633,7 @@ describe('predictableExec', () => {
             id: 'ponger',
             src: child
           },
-          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          entry: sendTo('ponger', { type: 'PING' }),
           on: {
             PONG: 'done'
           }
@@ -800,7 +800,7 @@ describe('predictableExec', () => {
             id: 'ponger',
             src: child
           },
-          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          entry: sendTo('ponger', { type: 'PING' }),
           on: {
             PONG: 'done'
           }

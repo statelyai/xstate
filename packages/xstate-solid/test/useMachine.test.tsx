@@ -5,9 +5,9 @@ import {
   Interpreter,
   doneInvoke,
   createMachine,
-  send as xsend,
   InterpreterStatus,
-  PersistedMachineState
+  PersistedMachineState,
+  raise
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { DoneEventObject } from 'xstate';
@@ -1280,12 +1280,12 @@ describe('useMachine hook', () => {
       context: {
         count: 0
       },
-      entry: [assign({ count: 1 }), xsend({ type: 'INC' })],
+      entry: [assign({ count: 1 }), raise({ type: 'INC' })],
       on: {
         INC: {
           actions: [
             assign({ count: ({ context }) => ++context.count }),
-            xsend({ type: 'UNHANDLED' })
+            raise({ type: 'UNHANDLED' })
           ]
         }
       },
