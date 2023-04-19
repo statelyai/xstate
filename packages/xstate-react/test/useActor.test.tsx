@@ -519,15 +519,9 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     }) => {
       const [state] = useActor(props.actor ?? createNullActor());
 
-      try {
-        // @ts-expect-error (state can be undefined)
-        state.count;
-      } catch (_) {}
-
-      if (state) {
-        // another type test... probably a better way to do this
-        ((_count: number) => void 0)(state.count);
-      }
+      // @ts-expect-error
+      ((_accept: { count: number }) => {})(state);
+      ((_accept: { count: number } | undefined) => {})(state);
 
       return <div data-testid="state">{state?.count ?? 'undefined'}</div>;
     };
