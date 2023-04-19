@@ -70,8 +70,8 @@ export function toActorRef<
   };
 }
 
-const nullBehavior = fromTransition((_) => undefined, undefined);
+const emptyBehavior = fromTransition((_) => undefined, undefined);
 
-export function createNullActor(): ActorRef<AnyEventObject, undefined> {
-  return interpret(nullBehavior);
+export function createEmptyActor(): ActorRef<AnyEventObject, undefined> {
+  return interpret(emptyBehavior);
 }

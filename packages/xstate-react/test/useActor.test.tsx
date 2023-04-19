@@ -11,7 +11,7 @@ import {
 } from 'xstate';
 import { useMachine, useInterpret, useActor } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
-import { createNullActor, fromTransition } from 'xstate/actors';
+import { createEmptyActor, fromTransition } from 'xstate/actors';
 
 const originalConsoleError = console.error;
 
@@ -517,7 +517,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     const Child = (props: {
       actor: ActorRef<any, { count: number }> | undefined;
     }) => {
-      const [state] = useActor(props.actor ?? createNullActor());
+      const [state] = useActor(props.actor ?? createEmptyActor());
 
       // @ts-expect-error
       ((_accept: { count: number }) => {})(state);
