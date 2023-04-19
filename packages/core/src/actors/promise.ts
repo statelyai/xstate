@@ -3,8 +3,7 @@ import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T> {
-  status: 'active' | 'error' | 'done';
-  canceled: boolean;
+  status: 'active' | 'error' | 'done' | 'canceled';
   data: T | undefined;
   input?: any;
 }
@@ -33,7 +32,7 @@ export function fromPromise<T>(
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 
-      if (state.canceled) {
+      if (state.status !== 'active') {
         return state;
       }
 
@@ -57,7 +56,7 @@ export function fromPromise<T>(
         case stopSignalType:
           return {
             ...state,
-            canceled: true,
+            status: 'canceled',
             input: undefined
           };
         default:
@@ -86,7 +85,6 @@ export function fromPromise<T>(
     },
     getInitialState: (_, input) => {
       return {
-        canceled: false,
         status: 'active',
         data: undefined,
         input
