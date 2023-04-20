@@ -117,7 +117,7 @@ export type AreAllImplementationsAssumedToBeProvided<
     : false
   : true;
 
-export type MisingImplementationsError<
+export type MissingImplementationsError<
   TResolvedTypesMeta,
   TMissingImplementations = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
