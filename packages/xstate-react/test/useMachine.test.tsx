@@ -10,7 +10,7 @@ import {
   doneInvoke,
   Interpreter,
   PersistedMachineState,
-  send,
+  raise,
   StateFrom
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
@@ -924,12 +924,12 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       context: {
         count: 0
       },
-      entry: [assign({ count: 1 }), send({ type: 'INC' })],
+      entry: [assign({ count: 1 }), raise({ type: 'INC' })],
       on: {
         INC: {
           actions: [
             assign({ count: ({ context }) => context.count + 1 }),
-            send({ type: 'UNHANDLED' })
+            raise({ type: 'UNHANDLED' })
           ]
         }
       },

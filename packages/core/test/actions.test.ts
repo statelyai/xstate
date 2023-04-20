@@ -1,11 +1,14 @@
 import { ActorRef } from '../src/index.ts';
-import { cancel } from '../src/actions/cancel.ts';
-import { choose } from '../src/actions/choose.ts';
-import { log } from '../src/actions/log.ts';
-import { pure } from '../src/actions/pure.ts';
-import { raise } from '../src/actions/raise.ts';
-import { sendParent, sendTo } from '../src/actions/send.ts';
-import { stop } from '../src/actions/stop.ts';
+import {
+  cancel,
+  choose,
+  log,
+  pure,
+  raise,
+  sendParent,
+  sendTo,
+  stop
+} from '../src/actions.ts';
 import {
   ActorRefFrom,
   assign,
