@@ -942,8 +942,7 @@ describe('actors', () => {
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: ActorBehavior<EventObject, undefined> = {
         transition: (_state, event, { self }) => {
-          const _event = toSCXMLEvent(event);
-          if (_event.name === 'PING') {
+          if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
 

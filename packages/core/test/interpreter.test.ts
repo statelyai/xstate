@@ -12,7 +12,6 @@ import {
   ActorRef,
   cancel,
   raise,
-  sendTo,
   stop,
   log
 } from '../src/index.ts';
@@ -22,7 +21,6 @@ import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
-import { respond } from '../src/actions.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -354,10 +352,10 @@ describe('interpreter', () => {
             entry: raise(
               { type: 'FINISH' },
               {
-                delay: ({ context, _event }) =>
+                delay: ({ context, event }) =>
                   context.initialDelay +
                   (
-                    _event.data as Extract<
+                    event as Extract<
                       DelayExpMachineEvents,
                       { type: 'ACTIVATE' }
                     >
