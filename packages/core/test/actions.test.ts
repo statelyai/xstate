@@ -3078,7 +3078,7 @@ describe('sendTo', () => {
     expect(() => {
       interpret(machine).start();
     }).toThrowErrorMatchingInlineSnapshot(
-      `"Only event objects may be sent to actors; use .send({ type: "a string" }) instead"`
+      `"Only event objects may be used with sendTo; use sendTo({ type: "a string" }) instead"`
     );
   });
 });
@@ -3301,7 +3301,7 @@ describe('raise', () => {
     expect(() => {
       interpret(machine).start();
     }).toThrowErrorMatchingInlineSnapshot(
-      `"Only event objects may be sent to actors; use .send({ type: "a string" }) instead"`
+      `"Only event objects may be used with raise; use raise({ type: "a string" }) instead"`
     );
   });
 });
