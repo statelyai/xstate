@@ -2,7 +2,7 @@
 'xstate': major
 ---
 
-The `createNullActor()` function has been added to make it easier to create actors that do nothing ("null" actors). This is useful for testing, or for some integrations such as `useActor(actor)` in `@xstate/react` that require an actor:
+The `createEmptyActor()` function has been added to make it easier to create actors that do nothing ("empty" actors). This is useful for testing, or for some integrations such as `useActor(actor)` in `@xstate/react` that require an actor:
 
 ```jsx
 import { createNullActor } from 'xstate';
