@@ -9,7 +9,7 @@ import { createNullActor } from 'xstate';
 
 const SomeComponent = (props) => {
   // props.actor may be undefined
-  const [state, send] = useActor(props.actor ?? createNullActor());
+  const [state, send] = useActor(props.actor ?? createEmptyActor());
 
   // ...
 };
