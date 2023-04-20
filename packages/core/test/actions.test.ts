@@ -3065,6 +3065,22 @@ describe('sendTo', () => {
 
     service.send({ type: 'EVENT', value: 'foo' });
   });
+
+  it('should throw if given a string', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: fromCallback(() => {})
+      },
+      entry: sendTo('child', 'a string')
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Only event objects may be sent to actors; use .send({ type: "a string" }) instead"`
+    );
+  });
 });
 
 describe('raise', () => {
@@ -3272,6 +3288,21 @@ describe('raise', () => {
     setTimeout(() => {
       expect(actor.getSnapshot().value).toBe('a');
     }, 10);
+  });
+
+  it('should throw if given a string', () => {
+    const machine = createMachine({
+      entry: raise(
+        // @ts-ignore
+        'a string'
+      )
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Only event objects may be sent to actors; use .send({ type: "a string" }) instead"`
+    );
   });
 });
 
