@@ -24,7 +24,6 @@ import {
   assign,
   createMachine,
   interpret,
-  send,
   sendParent,
   toSCXMLEvent
 } from '../src/index.ts';
@@ -39,7 +38,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
   initial: 'pending',
   states: {
     pending: {
-      entry: send({ type: 'RESOLVE', user }),
+      entry: raise({ type: 'RESOLVE', user }),
       on: {
         RESOLVE: {
           target: 'success',
@@ -183,7 +182,7 @@ describe('invoke', () => {
       initial: 'pending',
       states: {
         pending: {
-          entry: send({ type: 'RESOLVE', user }),
+          entry: raise({ type: 'RESOLVE', user }),
           on: {
             RESOLVE: {
               target: 'success',

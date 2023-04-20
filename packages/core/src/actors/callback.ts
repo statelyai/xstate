@@ -34,7 +34,7 @@ export function fromCallback<TEvent extends EventObject>(
       if (_event.name === startSignalType) {
         const sender = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
-            return state;
+            return;
           }
 
           self._parent?.send(toSCXMLEvent(eventForParent, { origin: self }));

@@ -1,4 +1,4 @@
-import { createMachine, actions } from 'xstate';
+import { createMachine, raise } from 'xstate';
 
 export default createMachine<any>({
   initial: 'a',
@@ -8,7 +8,7 @@ export default createMachine<any>({
       on: {
         t: {
           target: 'b',
-          actions: actions.raise({ type: 's' })
+          actions: raise({ type: 's' })
         }
       }
     },

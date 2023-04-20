@@ -7,9 +7,14 @@ import {
   createMachine,
   BaseActionObject,
   AnyStateMachine,
-  StateMeta
+  StateMeta,
+  sendTo,
+  log,
+  raise,
+  assign,
+  cancel,
+  choose
 } from 'xstate';
-import * as actions from 'xstate/actions';
 import { not, stateIn } from 'xstate/guards';
 
 export function mapValues<P, O extends Record<string, unknown>>(
@@ -173,12 +178,12 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<any, any>({
+      return raise<any, any>({
         type: element.attributes!.event!
       } as TEvent);
     }
     case 'assign': {
-      return actions.assign<TContext, TEvent>(({ context, event, ...meta }) => {
+      return assign<TContext, TEvent>(({ context, event, ...meta }) => {
         const fnBody = `
             return {'${element.attributes!.location}': ${
           element.attributes!.expr
@@ -190,9 +195,9 @@ function mapAction<
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
-        return actions.cancel(element.attributes!.sendid! as string);
+        return cancel(element.attributes!.sendid! as string);
       }
-      return actions.cancel(({ context, event, ...meta }) => {
+      return cancel(({ context, event, ...meta }) => {
         const fnBody = `
             return ${element.attributes!.sendidexpr};
           `;
@@ -242,16 +247,27 @@ function mapAction<
         };
       }
 
-      return actions.send<TContext, TEvent>(convertedEvent, {
+      const scxmlParams = {
         delay: convertedDelay,
-        to: target as string | undefined,
+        id: id as string | undefined
+      };
+
+      if (target) {
+        return sendTo(target as string, convertedEvent, {
+          ...scxmlParams,
+          to: target as string | undefined
+        });
+      }
+
+      return raise<TContext, TEvent, TEvent>(convertedEvent as TEvent, {
+        delay: convertedDelay,
         id: id as string | undefined
       });
     }
     case 'log': {
       const label = element.attributes!.label;
 
-      return actions.log<TContext, any, any>(
+      return log<TContext, any, any>(
         ({ context, event, ...meta }) => {
           const fnBody = `
               return ${element.attributes!.expr};
@@ -294,7 +310,7 @@ function mapAction<
       }
 
       conds.push(current);
-      return actions.choose(conds);
+      return choose(conds);
     }
     default:
       throw new Error(
