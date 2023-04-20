@@ -1850,11 +1850,6 @@ it('should throw if an event is received', () => {
 
   const actor = interpret(machine).start();
 
-  actor.send(
-    // @ts-ignore
-    'EVENT'
-  );
-
   expect(() =>
     actor.send(
       // @ts-ignore
