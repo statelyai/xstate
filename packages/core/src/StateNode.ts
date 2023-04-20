@@ -20,7 +20,6 @@ import type {
   InvokeDefinition,
   Mapper,
   PropertyMapper,
-  SCXML,
   TransitionDefinitionMap,
   InitialTransitionDefinition,
   MachineContext,
@@ -115,7 +114,7 @@ export class StateNode<
     | Mapper<TContext, TEvent, any>
     | PropertyMapper<TContext, TEvent, any>;
   /**
-   * The order this state node appears. Corresponds to the implicit SCXML document order.
+   * The order this state node appears. Corresponds to the implicit document order.
    */
   public order: number = -1;
 
@@ -335,20 +334,20 @@ export class StateNode<
 
   public next(
     state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>
+    event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
-    const eventName = _event.name;
+    const eventType = event.type;
     const actions: BaseActionObject[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
     const candidates: Array<TransitionDefinition<TContext, TEvent>> = memo(
       this,
-      `candidates-${eventName.toString()}`,
+      `candidates-${eventType.toString()}`,
       () =>
         getCandidates(
           this,
-          eventName,
+          eventType,
           this.machine.config.scxml // Whether token matching should be used
         )
     );
@@ -362,17 +361,12 @@ export class StateNode<
       try {
         guardPassed =
           !guard ||
-          evaluateGuard<TContext, TEvent>(
-            guard,
-            resolvedContext,
-            _event,
-            state
-          );
+          evaluateGuard<TContext, TEvent>(guard, resolvedContext, event, state);
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${
             guard!.type
-          }' in transition for event '${eventName}' in state node '${
+          }' in transition for event '${eventType}' in state node '${
             this.id
           }':\n${err.message}`
         );

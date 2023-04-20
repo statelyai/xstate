@@ -818,82 +818,9 @@ describe('interpreter', () => {
     expect(logs).toEqual([{ count: 1 }, { count: 2 }]);
   });
 
-  it('should be able to log event origin (log action)', () => {
+  it('should receive correct event (log action)', () => {
     const logs: any[] = [];
-    const logAction = log(({ event, _event }) => ({
-      event: event.type,
-      origin: _event.origin
-    }));
-
-    const childMachine = createMachine({
-      initial: 'bar',
-      states: {
-        bar: {}
-      },
-      on: {
-        PING: {
-          actions: [respond({ type: 'PONG' })]
-        }
-      }
-    });
-
-    const parentMachine = createMachine({
-      initial: 'foo',
-      states: {
-        foo: {
-          invoke: {
-            id: 'child',
-            src: childMachine
-          }
-        }
-      },
-      on: {
-        PING_CHILD: {
-          actions: [sendTo('child', { type: 'PING' }), logAction]
-        },
-        '*': {
-          actions: [logAction]
-        }
-      }
-    });
-
-    const service = interpret(parentMachine, {
-      logger: (msg) => logs.push(msg)
-    }).start();
-
-    service.send({ type: 'PING_CHILD' });
-    service.send({ type: 'PING_CHILD' });
-
-    expect(logs.length).toBe(4);
-    expect(logs).toMatchInlineSnapshot(`
-      [
-        {
-          "event": "PING_CHILD",
-          "origin": undefined,
-        },
-        {
-          "event": "PONG",
-          "origin": {
-            "id": "child",
-          },
-        },
-        {
-          "event": "PING_CHILD",
-          "origin": undefined,
-        },
-        {
-          "event": "PONG",
-          "origin": {
-            "id": "child",
-          },
-        },
-      ]
-    `);
-  });
-
-  it('should receive correct _event (log action)', () => {
-    const logs: any[] = [];
-    const logAction = log(({ _event }) => _event.data.type);
+    const logAction = log(({ event }) => event.type);
 
     const parentMachine = createMachine({
       initial: 'foo',

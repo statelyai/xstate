@@ -85,56 +85,6 @@ describe('SCXML events', () => {
     actor.start();
   });
 
-  it('respond() should be able to respond to sender', (done) => {
-    const authServerMachine = createMachine({
-      id: 'authServer',
-      initial: 'waitingForCode',
-      states: {
-        waitingForCode: {
-          on: {
-            CODE: {
-              actions: respond(
-                { type: 'TOKEN' },
-                {
-                  delay: 10
-                }
-              )
-            }
-          }
-        }
-      }
-    });
-
-    const authClientMachine = createMachine({
-      id: 'authClient',
-      initial: 'idle',
-      states: {
-        idle: {
-          on: { AUTH: 'authorizing' }
-        },
-        authorizing: {
-          invoke: {
-            id: 'auth-server',
-            src: authServerMachine
-          },
-          entry: sendTo('auth-server', { type: 'CODE' }),
-          on: {
-            TOKEN: 'authorized'
-          }
-        },
-        authorized: {
-          type: 'final'
-        }
-      }
-    });
-
-    const service = interpret(authClientMachine)
-      .onDone(() => done())
-      .start();
-
-    service.send({ type: 'AUTH' });
-  });
-
   it('should be able to respond to sender by sending self', (done) => {
     const authServerMachine = createMachine({
       types: {

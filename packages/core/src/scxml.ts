@@ -103,8 +103,8 @@ const evaluateExecutableContent = <
   TEvent extends EventObject
 >(
   context: TContext,
-  _ev: TEvent,
-  meta: StateMeta<TEvent>,
+  event: TEvent,
+  _meta: StateMeta<TEvent>,
   body: string
 ) => {
   const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
@@ -122,7 +122,7 @@ with (context) {
 
   const fn = new Function(...args, fnBody);
 
-  return fn(context, meta._event);
+  return fn(context, { name: event.type, data: event });
 };
 
 function createGuard<

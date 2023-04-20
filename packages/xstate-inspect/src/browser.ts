@@ -4,8 +4,7 @@ import {
   EventObject,
   interpret,
   Observer,
-  toObserver,
-  toSCXMLEvent
+  toObserver
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { toActorRef } from 'xstate/actors';
@@ -159,7 +158,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
 
     inspectService.send({
       type: 'service.event',
-      event: stringifyWithSerializer(state._event),
+      event: stringifyWithSerializer(state.event),
       sessionId: service.sessionId
     });
 
@@ -174,7 +173,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       service.send = function inspectSend(event: EventObject) {
         inspectService.send({
           type: 'service.event',
-          event: stringifyWithSerializer(toSCXMLEvent(event)),
+          event: stringifyWithSerializer(event),
           sessionId: service.sessionId
         });
 

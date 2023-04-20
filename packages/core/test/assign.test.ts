@@ -1,11 +1,4 @@
-import {
-  assign,
-  createMachine,
-  interpret,
-  sendParent,
-  sendTo
-} from '../src/index.ts';
-import { ActorRef } from '../src/types.ts';
+import { assign, createMachine, interpret } from '../src/index.ts';
 
 interface CounterContext {
   count: number;
@@ -306,86 +299,6 @@ describe('assign meta', () => {
     const actor = interpret(machine).start();
 
     expect(actor.getSnapshot().context.count).toEqual(11);
-  });
-
-  it('should provide meta._event to assigner', () => {
-    interface Ctx {
-      eventLog: Array<{ event: string; origin?: ActorRef<any> }>;
-    }
-
-    const assignEventLog = assign<Ctx>(({ context, event, _event }) => ({
-      eventLog: context.eventLog.concat({
-        event: event.type,
-        origin: _event.origin
-      })
-    }));
-
-    const childMachine = createMachine({
-      initial: 'bar',
-      states: {
-        bar: {}
-      },
-      on: {
-        PING: {
-          actions: [sendParent({ type: 'PONG' })]
-        }
-      }
-    });
-
-    const parentMachine = createMachine<Ctx>({
-      initial: 'foo',
-      context: {
-        eventLog: []
-      },
-      states: {
-        foo: {
-          invoke: {
-            id: 'child',
-            src: childMachine
-          }
-        }
-      },
-      on: {
-        PING_CHILD: {
-          actions: [sendTo('child', { type: 'PING' }), assignEventLog]
-        },
-        '*': {
-          actions: [assignEventLog]
-        }
-      }
-    });
-
-    const service = interpret(parentMachine).start();
-
-    service.send({ type: 'PING_CHILD' });
-    service.send({ type: 'PING_CHILD' });
-
-    expect(service.getSnapshot().context).toMatchInlineSnapshot(`
-      {
-        "eventLog": [
-          {
-            "event": "PING_CHILD",
-            "origin": undefined,
-          },
-          {
-            "event": "PONG",
-            "origin": {
-              "id": "child",
-            },
-          },
-          {
-            "event": "PING_CHILD",
-            "origin": undefined,
-          },
-          {
-            "event": "PONG",
-            "origin": {
-              "id": "child",
-            },
-          },
-        ],
-      }
-    `);
   });
 
   it(

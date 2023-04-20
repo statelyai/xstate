@@ -4,7 +4,6 @@ import {
   ActorSystem,
   EventObject
 } from '../types';
-import { isSCXMLEvent } from '../utils';
 
 /**
  * Returns an actor behavior from a transition function and its initial state.
@@ -29,10 +28,7 @@ export function fromTransition<
 ): ActorBehavior<TEvent, TState, TState> {
   const behavior: ActorBehavior<TEvent, TState, TState, TState> = {
     transition: (state, event, actorContext) => {
-      // @ts-ignore TODO
-      const resolvedEvent = isSCXMLEvent(event) ? event.data : event;
-      // @ts-ignore TODO
-      return transition(state, resolvedEvent, actorContext);
+      return transition(state, event as TEvent, actorContext as any);
     },
     getInitialState: (_, input) => {
       return typeof initialState === 'function'

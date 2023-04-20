@@ -1,6 +1,5 @@
 import { createMachine } from '../src/index.ts';
 import { raise } from '../src/actions.ts';
-import { toSCXMLEvent } from '../src/utils';
 
 describe('action creators', () => {
   describe('raise()', () => {
@@ -67,15 +66,12 @@ describe('action creators', () => {
       const machine = createMachine<any, any>({});
 
       const [, resolvedAction] = action.resolve(
-        toSCXMLEvent({ type: 'EVENT', value: 50 } as {
-          type: 'EVENT';
-          value: number;
-        }),
+        { type: 'EVENT' as const, value: 50 },
         {
           state: machine.createState({
             context: { delay: 100 },
             value: {},
-            _event: {} as any,
+            event: {} as any,
             transitions: [],
             children: {}
           }) as any, // TODO: fix
