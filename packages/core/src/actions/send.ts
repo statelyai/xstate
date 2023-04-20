@@ -97,7 +97,7 @@ export function send<
       // TODO: helper function for resolving Expr
       if (typeof eventOrExpr === 'string') {
         throw new Error(
-          `Only event objects may be sent to actors; use .send({ type: "${eventOrExpr}" }) instead`
+          `Only event objects may be used with sendTo; use sendTo({ type: "${eventOrExpr}" }) instead`
         );
       }
       const resolvedEvent = toSCXMLEvent(
