@@ -451,6 +451,12 @@ export class Interpreter<
    * @param event The event to send
    */
   public send(event: TEvent | SCXML.Event<TEvent>) {
+    if (typeof event === 'string') {
+      throw new Error(
+        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
+      );
+    }
+
     const _event = toSCXMLEvent(event);
 
     if (this.status === ActorStatus.Stopped) {

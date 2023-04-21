@@ -1,4 +1,4 @@
-import { createMachine, actions, assign } from 'xstate';
+import { createMachine, log, assign } from 'xstate';
 
 export default createMachine({
   initial: 's1',
@@ -11,7 +11,7 @@ export default createMachine({
       on: {
         '*': {
           target: '#fail',
-          actions: actions.log(
+          actions: log(
             ({ event }) => `unhandled input ${JSON.stringify(event)}`,
             'TEST'
           )

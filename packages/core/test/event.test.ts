@@ -6,7 +6,7 @@ import {
   AnyActorRef
 } from '../src/index.ts';
 import { respond } from '../src/actions';
-import { send, sendTo } from '../src/actions/send';
+import { sendTo } from '../src/actions/send';
 import { fromCallback } from '../src/actors/callback';
 
 describe('SCXML events', () => {
@@ -117,12 +117,7 @@ describe('SCXML events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: send(
-            { type: 'CODE' },
-            {
-              to: 'auth-server'
-            }
-          ),
+          entry: sendTo('auth-server', { type: 'CODE' }),
           on: {
             TOKEN: 'authorized'
           }

@@ -1,5 +1,4 @@
-import { createMachine, assign } from 'xstate';
-import { log } from 'xstate/actions';
+import { createMachine, assign, log } from 'xstate';
 
 export default createMachine<any>({
   initial: 'a',

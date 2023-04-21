@@ -1,11 +1,14 @@
 import { ActorRef } from '../src/index.ts';
-import { cancel } from '../src/actions/cancel.ts';
-import { choose } from '../src/actions/choose.ts';
-import { log } from '../src/actions/log.ts';
-import { pure } from '../src/actions/pure.ts';
-import { raise } from '../src/actions/raise.ts';
-import { sendParent, sendTo } from '../src/actions/send.ts';
-import { stop } from '../src/actions/stop.ts';
+import {
+  cancel,
+  choose,
+  log,
+  pure,
+  raise,
+  sendParent,
+  sendTo,
+  stop
+} from '../src/actions.ts';
 import {
   ActorRefFrom,
   assign,
@@ -3062,6 +3065,22 @@ describe('sendTo', () => {
 
     service.send({ type: 'EVENT', value: 'foo' });
   });
+
+  it('should throw if given a string', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: fromCallback(() => {})
+      },
+      entry: sendTo('child', 'a string')
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Only event objects may be used with sendTo; use sendTo({ type: "a string" }) instead"`
+    );
+  });
 });
 
 describe('raise', () => {
@@ -3269,6 +3288,21 @@ describe('raise', () => {
     setTimeout(() => {
       expect(actor.getSnapshot().value).toBe('a');
     }, 10);
+  });
+
+  it('should throw if given a string', () => {
+    const machine = createMachine({
+      entry: raise(
+        // @ts-ignore
+        'a string'
+      )
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Only event objects may be used with raise; use raise({ type: "a string" }) instead"`
+    );
   });
 });
 

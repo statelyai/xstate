@@ -329,7 +329,7 @@ describe('delayed transitions', () => {
         delay: 500
       });
       const sendActions = activeState.actions.filter(
-        (a) => a.type === 'xstate.send'
+        (a) => a.type === 'xstate.raise'
       );
       expect(sendActions.length).toBe(1);
       expect(sendActions[0].params?.delay).toEqual(undefined);

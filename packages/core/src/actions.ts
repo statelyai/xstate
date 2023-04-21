@@ -33,6 +33,7 @@ export { cancel } from './actions/cancel.ts';
 export { assign } from './actions/assign.ts';
 export { raise } from './actions/raise.ts';
 export { choose } from './actions/choose.ts';
+export { pure } from './actions/pure.ts';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });

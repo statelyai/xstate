@@ -1,4 +1,4 @@
-import { createMachine, actions } from 'xstate';
+import { createMachine, raise } from 'xstate';
 
 const m = createMachine({
   initial: 'a',
@@ -10,7 +10,7 @@ const m = createMachine({
       }
     },
     b: {
-      entry: actions.raise({ type: 's' }),
+      entry: raise({ type: 's' }),
       on: {
         s: 'c'
       }
