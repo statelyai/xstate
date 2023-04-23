@@ -721,10 +721,10 @@ vite@^4.1.0:
   optionalDependencies:
     fsevents "~2.3.2"
 
-xstate@^5.0.0-beta.7:
-  version "5.0.0-beta.7"
-  resolved "https://registry.yarnpkg.com/xstate/-/xstate-5.0.0-beta.7.tgz#5c9dd01403122132c53f6c8e8ca98913f097ae81"
-  integrity sha512-CjUxplAllchPWlqNn5dwHk9aXWTTNMdm7MSAW118dzeirHsCdRINP7sn/EOYvgusisNBTtybixajTcDOa+bM2w==
+xstate@^5.0.0-beta.8:
+  version "5.0.0-beta.8"
+  resolved "https://registry.yarnpkg.com/xstate/-/xstate-5.0.0-beta.8.tgz#b819098f486ec29a903662b7ea172bb6ad6983ad"
+  integrity sha512-vxnNy2GaOcK4S1eCJUFAZ3g++HM+E1b0vPqzNYwnJyreJKsrhNCAd5CrmsZSBh96IkvmDD0MBx55VTSKTnUelg==
 
 yallist@^3.0.2:
   version "3.1.1"
