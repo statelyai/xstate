@@ -1,5 +1,83 @@
 # xstate
 
+## 5.0.0-beta.8
+
+### Major Changes
+
+- [#898](https://github.com/statelyai/xstate/pull/898) [`26986f417`](https://github.com/statelyai/xstate/commit/26986f4178d34ce3f74209e89006337cc1c10dbc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Sending a string event to `actor.send('some string')` will now throw a proper error message.
+
+- [#3957](https://github.com/statelyai/xstate/pull/3957) [`423c5ab72`](https://github.com/statelyai/xstate/commit/423c5ab72f1ad7f510f94a5b4b5f98e5e8540d0e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The machine `.schema` property is now `.types`:
+
+  ```ts
+  const machine = createMachine({
+    // schema: { ... }
+    types: {} as {
+      context: { ... };
+      events: { ... };
+      // ...
+    }
+  });
+  ```
+
+  And the `.tsTypes` property is now `.types.typegen`:
+
+  ```ts
+  const machine = createMachine({
+    // tsTypes: { ... }
+    types: {} as {
+      typegen: {};
+      context: { ... };
+      events: { ... };
+      // ...
+    }
+  });
+  ```
+
+- [#3968](https://github.com/statelyai/xstate/pull/3968) [`eecb31b8f`](https://github.com/statelyai/xstate/commit/eecb31b8f43efc4580887ad850336ea74cfba537) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createEmptyActor()` function has been added to make it easier to create actors that do nothing ("empty" actors). This is useful for testing, or for some integrations such as `useActor(actor)` in `@xstate/react` that require an actor:
+
+  ```jsx
+  import { createEmptyActor } from 'xstate';
+
+  const SomeComponent = (props) => {
+    // props.actor may be undefined
+    const [state, send] = useActor(props.actor ?? createEmptyActor());
+
+    // ...
+  };
+  ```
+
+- [#3966](https://github.com/statelyai/xstate/pull/3966) [`61db63bf4`](https://github.com/statelyai/xstate/commit/61db63bf44edf0efe4774ebdec29244d7d024381) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now import the following from `xstate`:
+
+  ```js
+  import {
+    // actions
+    // sendTo (removed)
+    pure,
+
+    // interpret helpers
+    waitFor,
+
+    // actor functions
+    fromPromise,
+    fromObservable,
+    fromCallback,
+    fromEventObservable,
+    fromTransition,
+
+    // guard functions
+    stateIn,
+    not,
+    and,
+    or
+  }
+  ```
+
+  The `send` action was removed from exports; use `sendTo(...)` or `raise(...)` instead.
+
+### Patch Changes
+
+- [#3959](https://github.com/statelyai/xstate/pull/3959) [`ead287257`](https://github.com/statelyai/xstate/commit/ead28725741c99c6282bd8ab1b7c12818bd66865) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Unresolved promises will now be properly persisted. The current behavior is to restart a promise that is unresolved.
+
 ## 5.0.0-beta.7
 
 ### Major Changes
