@@ -96,7 +96,7 @@ describe('getMachineShortestPaths', () => {
 
   it('handles event cases', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as { type: 'todo.add'; todo: string },
         context: {} as { todos: string[] }
       },
@@ -106,8 +106,8 @@ describe('getMachineShortestPaths', () => {
       on: {
         'todo.add': {
           actions: assign({
-            todos: (ctx, ev) => {
-              return ctx.todos.concat(ev.todo);
+            todos: ({ context, event }) => {
+              return context.todos.concat(event.todo);
             }
           })
         }

@@ -805,14 +805,14 @@ describe('useActor', () => {
           on: {
             REMOVE_START: {
               actions: assign({
-                numbers: (ctx) => {
+                numbers: ({ context: ctx }) => {
                   return ctx.numbers.filter((_, i) => i !== 0);
                 }
               })
             },
             REMOVE_END: {
               actions: assign({
-                numbers: (ctx) => {
+                numbers: ({ context: ctx }) => {
                   return ctx.numbers.filter(
                     (_, i) => i !== ctx.numbers.length - 1
                   );
@@ -821,7 +821,7 @@ describe('useActor', () => {
             },
             ADD: {
               actions: assign({
-                numbers: (ctx) => {
+                numbers: ({ context: ctx }) => {
                   return [
                     ...ctx.numbers,
                     ctx.numbers[ctx.numbers.length - 1] + 1

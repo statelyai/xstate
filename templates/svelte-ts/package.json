@@ -21,6 +21,6 @@
   "type": "module",
   "dependencies": {
     "@xstate/svelte": "^2.0.1",
-    "xstate": "^4.37.0"
+    "xstate": "^5.0.0-beta.7"
   }
 }

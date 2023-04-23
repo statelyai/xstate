@@ -1,6 +1,6 @@
 import { assign, createMachine } from 'xstate';
 
-const schema = {
+const types = {
   context: {} as { feedback: string },
   events: {} as
     | {
@@ -24,7 +24,7 @@ const schema = {
 export const feedbackMachine = createMachine({
   id: 'feedback',
   initial: 'prompt',
-  schema,
+  types,
   context: {
     feedback: ''
   },
@@ -39,12 +39,12 @@ export const feedbackMachine = createMachine({
       on: {
         'feedback.update': {
           actions: assign({
-            feedback: (_, event) => event.value
+            feedback: ({ event }) => event.value
           })
         },
         back: { target: 'prompt' },
         submit: {
-          cond: (ctx) => ctx.feedback.length > 0,
+          guard: ({ context }) => context.feedback.length > 0,
           target: 'thanks'
         }
       }
@@ -57,6 +57,6 @@ export const feedbackMachine = createMachine({
     }
   },
   on: {
-    close: 'closed'
+    close: '.closed'
   }
 });

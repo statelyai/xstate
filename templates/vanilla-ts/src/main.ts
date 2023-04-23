@@ -1,5 +1,5 @@
 import './style.css';
-import { feedbackMachine } from './feedbackMachine';
+import { feedbackMachine } from './feedbackMachine.ts';
 import { interpret } from 'xstate';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `

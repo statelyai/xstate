@@ -1,5 +1,5 @@
 import './App.css';
-import { feedbackMachine } from './feedbackMachine';
+import { feedbackMachine } from './feedbackMachine.ts';
 import { useMachine } from '@xstate/react';
 
 function Feedback() {
