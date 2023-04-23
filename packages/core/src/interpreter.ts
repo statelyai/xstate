@@ -288,21 +288,27 @@ export class Interpreter<
     return this;
   }
 
+  public getOutput() {
+    return this.behavior.getOutput?.(this._state);
+  }
+
   // thenable
   public then(
     resolve: (value: SnapshotFrom<TBehavior>) => void,
     reject?: (error: any) => void
   ): PromiseLike<SnapshotFrom<TBehavior>> {
     return new Promise((resolvePromise, rejectPromise) => {
-      if (this._doneEvent) {
-        resolvePromise(this._doneEvent.data);
-        resolve(this._doneEvent.data);
+      if (this.status === ActorStatus.Stopped) {
+        const output = this.getOutput();
+        resolvePromise(output);
+        resolve(output);
         return;
       }
 
       this.onDone(() => {
-        resolvePromise(this._doneEvent!.data);
-        resolve(this._doneEvent!.data);
+        const output = this.getOutput();
+        resolvePromise(output);
+        resolve(output);
       });
     });
   }

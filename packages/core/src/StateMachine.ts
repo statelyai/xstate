@@ -404,6 +404,10 @@ export class StateMachine<
     return getPersistedState(state);
   }
 
+  public getOutput(state: State<TContext, TEvent, TResolvedTypesMeta>) {
+    return state.output;
+  }
+
   public createState(
     stateConfig:
       | State<TContext, TEvent, TResolvedTypesMeta>

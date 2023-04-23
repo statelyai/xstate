@@ -1857,3 +1857,24 @@ it('should throw if an event is received', () => {
     )
   ).toThrow();
 });
+
+it('should be awaitable', async () => {
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        after: {
+          10: 'b'
+        }
+      },
+      b: {
+        type: 'final',
+        output: { foo: 'bar' }
+      }
+    }
+  });
+
+  const output = await interpret(machine).start();
+
+  expect(output).toEqual({ foo: 'bar' });
+});
