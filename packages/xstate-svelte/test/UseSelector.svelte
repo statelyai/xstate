@@ -4,7 +4,7 @@
 
   const machine = createMachine({
     initial: 'idle',
-    schema: {
+    types: {
       context: {} as {
         count: number;
         anotherCount: number;

@@ -2,43 +2,43 @@ import { SimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
   interpret,
-  actions,
   assign,
-  send,
   sendParent,
   StateValue,
   createMachine,
   AnyState,
   InterpreterStatus,
   ActorRefFrom,
-  ActorRef
+  ActorRef,
+  cancel,
+  raise,
+  sendTo,
+  stop,
+  log
 } from '../src/index.ts';
 import { State } from '../src/State';
-import { raise } from '../src/actions/raise';
-import { sendTo } from '../src/actions/send';
-import { stop } from '../src/actions/stop';
-import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
+import { respond } from '../src/actions.ts';
 
 const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
     green: {
-      entry: [actions.send({ type: 'TIMER' }, { delay: 10 })],
+      entry: [raise({ type: 'TIMER' }, { delay: 10 })],
       on: {
         TIMER: 'yellow',
         KEEP_GOING: {
-          actions: [actions.cancel('TIMER')]
+          actions: [cancel('TIMER')]
         }
       }
     },
     yellow: {
-      entry: [actions.send({ type: 'TIMER' }, { delay: 10 })],
+      entry: [raise({ type: 'TIMER' }, { delay: 10 })],
       on: {
         TIMER: 'red'
       }
@@ -272,7 +272,7 @@ describe('interpreter', () => {
             }
           },
           pending: {
-            entry: send(
+            entry: raise(
               { type: 'FINISH' },
               {
                 delay: ({ context, event }) =>
@@ -351,7 +351,7 @@ describe('interpreter', () => {
             }
           },
           pending: {
-            entry: send(
+            entry: raise(
               { type: 'FINISH' },
               {
                 delay: ({ context, _event }) =>
@@ -424,7 +424,7 @@ describe('interpreter', () => {
               }
             },
             c: {
-              entry: send({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
+              entry: raise({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
               on: {
                 FIRE_DELAY: 'd'
               }
@@ -632,20 +632,20 @@ describe('interpreter', () => {
       states: {
         first: {
           entry: [
-            send(
+            raise(
               { type: 'FOO' },
               {
                 id: 'foo',
                 delay: 100
               }
             ),
-            send(
+            raise(
               { type: 'BAR' },
               {
                 delay: 200
               }
             ),
-            actions.cancel(() => 'foo')
+            cancel(() => 'foo')
           ],
           on: {
             FOO: 'fail',
@@ -832,7 +832,7 @@ describe('interpreter', () => {
       },
       on: {
         PING: {
-          actions: [actions.respond({ type: 'PONG' })]
+          actions: [respond({ type: 'PONG' })]
         }
       }
     });
@@ -960,35 +960,6 @@ describe('interpreter', () => {
       interpret(machine)
         .onDone(() => done())
         .start();
-    });
-
-    it('should be able to raise event using special target', () => {
-      const raiseMachine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            entry: [
-              send({ type: 'EVENT_2' }),
-              send({ type: 'EVENT_1' }, { to: '#_internal' })
-            ],
-            on: {
-              EVENT_1: 'pass',
-              EVENT_2: 'fail'
-            }
-          },
-          pass: {
-            type: 'final'
-          },
-          fail: {
-            type: 'final'
-          }
-        }
-      });
-
-      const service = interpret(raiseMachine).start();
-      service.onDone(() => {
-        expect(service.getSnapshot().value).toBe('pass');
-      });
     });
   });
 
@@ -1632,7 +1603,7 @@ describe('interpreter', () => {
                 {
                   target: 'success',
                   guard: ({ event }) => {
-                    return event.data === 42;
+                    return event.output === 42;
                   }
                 },
                 { target: 'failure' }
@@ -1872,4 +1843,17 @@ describe('interpreter', () => {
       done();
     });
   });
+});
+
+it('should throw if an event is received', () => {
+  const machine = createMachine({});
+
+  const actor = interpret(machine).start();
+
+  expect(() =>
+    actor.send(
+      // @ts-ignore
+      'EVENT'
+    )
+  ).toThrow();
 });

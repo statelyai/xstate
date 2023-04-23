@@ -306,7 +306,7 @@ const testGroups: Record<string, string[]> = {
     // 'test530.txml', // https://github.com/davidkpiano/xstate/pull/1811#discussion_r551897693
     // 'test531.txml', // Basic HTTP Event I/O processor not implemented
     // 'test532.txml', // Basic HTTP Event I/O processor not implemented
-    'test533.txml',
+    // 'test533.txml', // we allow `reenter: false` to not leave the source state even if that source state is not compound
     // 'test534.txml', // Basic HTTP Event I/O processor not implemented
     // 'test550.txml', // non-root datamodel with early binding not implemented yet
     // 'test551.txml', // non-root datamodel with early binding not implemented yet

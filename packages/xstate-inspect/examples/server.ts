@@ -1,6 +1,6 @@
 import { inspect } from '@xstate/inspect/server';
 import WebSocket from 'ws';
-import { createMachine, interpret, send, toSCXMLEvent } from 'xstate';
+import { createMachine, interpret, sendTo, toSCXMLEvent } from 'xstate';
 import { fromCallback } from 'xstate/actors';
 
 inspect({
@@ -33,7 +33,7 @@ const machine = createMachine({
       }
     },
     active: {
-      entry: send({ type: 'PING' }, { to: 'ponger', delay: 1000 }),
+      entry: sendTo('ponger', { type: 'PING' }, { delay: 1000 }),
       on: {
         PONG: 'inactive'
       }

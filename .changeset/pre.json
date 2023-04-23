@@ -1,6 +1,6 @@
 {
   "mode": "pre",
-  "tag": "alpha",
+  "tag": "beta",
   "initialVersions": {
     "xstate": "4.7.3",
     "@xstate/analytics": "0.0.1",
@@ -24,6 +24,7 @@
     "clean-pens-buy",
     "cold-steaks-drop",
     "cool-grapes-suffer",
+    "cool-hairs-build",
     "cool-pets-love",
     "curvy-feet-guess",
     "dirty-birds-sniff",
@@ -33,6 +34,7 @@
     "eleven-forks-sleep",
     "fast-rockets-share",
     "fast-tables-design",
+    "five-mirrors-join",
     "five-ravens-own",
     "flat-clouds-greet",
     "fresh-garlics-fry",
@@ -40,6 +42,7 @@
     "gold-buses-thank",
     "good-comics-collect",
     "green-brooms-laugh",
+    "heavy-apes-tie",
     "heavy-jeans-arrive",
     "heavy-ties-search",
     "hip-melons-clean",

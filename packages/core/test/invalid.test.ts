@@ -54,3 +54,22 @@ describe('invalid or resolved states', () => {
     );
   });
 });
+
+describe('invalid transition', () => {
+  it('should throw when attempting to create a machine with a sibling target on the root node', () => {
+    expect(() => {
+      createMachine({
+        id: 'direction',
+        initial: 'left',
+        states: {
+          left: {},
+          right: {}
+        },
+        on: {
+          LEFT_CLICK: 'left',
+          RIGHT_CLICK: 'right'
+        }
+      });
+    }).toThrowError(/invalid target/i);
+  });
+});

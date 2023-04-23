@@ -13,7 +13,7 @@ describe('events', () => {
       | { type: 'SUBMIT'; value: string };
     const feedbackMachine = createTestMachine({
       id: 'feedback',
-      schema: {
+      types: {
         events: {} as Events
       },
       initial: 'question',

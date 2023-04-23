@@ -1,14 +1,13 @@
 import { createMachine } from '../src/index.ts';
-import { send } from '../src/actions/send';
+import { raise } from '../src/actions.ts';
 import { toSCXMLEvent } from '../src/utils';
 
 describe('action creators', () => {
-  describe('send()', () => {
+  describe('raise()', () => {
     it('should accept a string event', () => {
-      const action = send({ type: 'foo' });
+      const action = raise({ type: 'foo' });
       expect(action.params).toEqual(
         expect.objectContaining({
-          to: undefined,
           event: { type: 'foo' },
           delay: undefined,
           id: 'foo'
@@ -17,10 +16,13 @@ describe('action creators', () => {
     });
 
     it('should accept an event object', () => {
-      const action = send({ type: 'foo', bar: 'baz' });
+      const event = {
+        type: 'foo' as const,
+        bar: 'baz'
+      };
+      const action = raise<{}, typeof event>(event);
       expect(action.params).toEqual(
         expect.objectContaining({
-          to: undefined,
           event: { type: 'foo', bar: 'baz' },
           delay: undefined,
           id: 'foo'
@@ -29,10 +31,9 @@ describe('action creators', () => {
     });
 
     it('should accept an id option', () => {
-      const action = send({ type: 'foo' }, { id: 'foo-id' });
+      const action = raise({ type: 'foo' }, { id: 'foo-id' });
       expect(action.params).toEqual(
         expect.objectContaining({
-          to: undefined,
           event: { type: 'foo' },
           delay: undefined,
           id: 'foo-id'
@@ -41,10 +42,9 @@ describe('action creators', () => {
     });
 
     it('should accept a delay option', () => {
-      const action = send({ type: 'foo' }, { delay: 1000 });
+      const action = raise({ type: 'foo' }, { delay: 1000 });
       expect(action.params).toEqual(
         expect.objectContaining({
-          to: undefined,
           event: { type: 'foo' },
           delay: 1000,
           id: 'foo'
@@ -53,7 +53,7 @@ describe('action creators', () => {
     });
 
     it('should accept a delay option (expression)', () => {
-      const action = send<
+      const action = raise<
         { delay: number },
         { type: 'EVENT'; value: number } | { type: 'RECEIVED' }
       >(

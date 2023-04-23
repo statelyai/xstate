@@ -1,11 +1,14 @@
 import { ActorRef } from '../src/index.ts';
-import { cancel } from '../src/actions/cancel.ts';
-import { choose } from '../src/actions/choose.ts';
-import { log } from '../src/actions/log.ts';
-import { pure } from '../src/actions/pure.ts';
-import { raise } from '../src/actions/raise.ts';
-import { sendParent, sendTo } from '../src/actions/send.ts';
-import { stop } from '../src/actions/stop.ts';
+import {
+  cancel,
+  choose,
+  log,
+  pure,
+  raise,
+  sendParent,
+  sendTo,
+  stop
+} from '../src/actions.ts';
 import {
   ActorRefFrom,
   assign,
@@ -231,7 +234,7 @@ describe('entry/exit actions', () => {
             on: {
               RESTART: {
                 target: 'green',
-                external: true
+                reenter: true
               }
             }
           }
@@ -256,7 +259,7 @@ describe('entry/exit actions', () => {
             on: {
               RESTART: {
                 target: 'green',
-                external: true
+                reenter: true
               }
             },
             initial: 'walk',
@@ -599,7 +602,7 @@ describe('entry/exit actions', () => {
       expect(called).toBe(true);
     });
 
-    it('root entry/exit actions should be called on root external transitions', () => {
+    it('root entry/exit actions should be called on root reentering transitions', () => {
       let entrySpy = jest.fn();
       let exitSpy = jest.fn();
 
@@ -610,7 +613,7 @@ describe('entry/exit actions', () => {
         on: {
           EVENT: {
             target: '#two',
-            external: true
+            reenter: true
           }
         },
         initial: 'one',
@@ -858,7 +861,7 @@ describe('entry/exit actions', () => {
             on: {
               RESTART: {
                 target: 'green',
-                external: true
+                reenter: true
               }
             },
             initial: 'walk',
@@ -966,7 +969,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should enter all descendents when target is a descendent of the source when using an external transition', () => {
+    it('should enter all descendents when target is a descendent of the source when using an reentering transition', () => {
       const machine = createMachine({
         initial: 'A',
         states: {
@@ -974,7 +977,7 @@ describe('entry/exit actions', () => {
             initial: 'A1',
             on: {
               NEXT: {
-                external: true,
+                reenter: true,
                 target: '.A2'
               }
             },
@@ -1194,7 +1197,57 @@ describe('entry/exit actions', () => {
           ready: {
             type: 'parallel',
             on: {
-              FOO: '#cameraOff'
+              FOO: {
+                target: '#cameraOff',
+                reenter: true
+              }
+            },
+            states: {
+              devicesInfo: {},
+              camera: {
+                initial: 'on',
+                states: {
+                  on: {},
+                  off: {
+                    id: 'cameraOff'
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const service = interpret(machine).start();
+
+      flushTracked();
+      service.send({ type: 'FOO' });
+
+      expect(flushTracked()).toEqual([
+        'exit: ready.camera.on',
+        'exit: ready.camera',
+        'exit: ready.devicesInfo',
+        'exit: ready',
+        'enter: ready',
+        'enter: ready.devicesInfo',
+        'enter: ready.camera',
+        'enter: ready.camera.off'
+      ]);
+    });
+
+    it('should reenter parallel region when a parallel state is reentered while targeting another region', () => {
+      const machine = createMachine({
+        initial: 'ready',
+        states: {
+          ready: {
+            type: 'parallel',
+            on: {
+              FOO: {
+                target: '#cameraOff',
+                reenter: true
+              }
             },
             states: {
               devicesInfo: {},
@@ -2100,30 +2153,26 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options (entry actions)', () => {
     const spy = jest.fn();
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: 'b'
-            }
-          },
-          b: {
-            entry: [
-              'definedAction',
-              { type: 'definedAction' },
-              'undefinedAction'
-            ]
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: 'b'
           }
+        },
+        b: {
+          entry: ['definedAction', { type: 'definedAction' }, 'undefinedAction']
         }
       },
-      {
-        actions: {
-          definedAction: spy
-        }
+      on: {
+        E: '.a'
       }
-    );
+    }).provide({
+      actions: {
+        definedAction: spy
+      }
+    });
 
     const actor = interpret(machine).start();
     actor.send({ type: 'EVENT' });
@@ -3016,6 +3065,22 @@ describe('sendTo', () => {
 
     service.send({ type: 'EVENT', value: 'foo' });
   });
+
+  it('should throw if given a string', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: fromCallback(() => {})
+      },
+      entry: sendTo('child', 'a string')
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Only event objects may be used with sendTo; use sendTo({ type: "a string" }) instead"`
+    );
+  });
 });
 
 describe('raise', () => {
@@ -3223,6 +3288,21 @@ describe('raise', () => {
     setTimeout(() => {
       expect(actor.getSnapshot().value).toBe('a');
     }, 10);
+  });
+
+  it('should throw if given a string', () => {
+    const machine = createMachine({
+      entry: raise(
+        // @ts-ignore
+        'a string'
+      )
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Only event objects may be used with raise; use raise({ type: "a string" }) instead"`
+    );
   });
 });
 
