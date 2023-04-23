@@ -309,6 +309,16 @@ describe('spawning promises', () => {
 
     promiseService.start();
   });
+
+  it('should be awaitable', async () => {
+    const promiseActor = interpret(
+      fromPromise(() => Promise.resolve(42))
+    ).start();
+
+    const result = await promiseActor;
+
+    expect(result).toEqual(42);
+  });
 });
 
 describe('spawning callbacks', () => {
