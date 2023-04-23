@@ -1987,3 +1987,7 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
     };
   };
 };
+
+export type TagsFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['hasTag']
+>[0];
