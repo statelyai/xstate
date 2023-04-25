@@ -3617,3 +3617,50 @@ it('should call a referenced action responding to an initial raise with the rais
 
   expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
 });
+
+it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    context: { count: 0 },
+    entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+    on: {
+      HELLO: {
+        actions: ({ context }) => {
+          spy(context);
+        }
+      }
+    }
+  });
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ count: 42 });
+});
+
+it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine(
+    {
+      context: { count: 0 },
+      entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+      on: {
+        HELLO: {
+          actions: 'foo'
+        }
+      }
+    },
+    {
+      actions: {
+        foo: ({ context }) => {
+          spy(context);
+        }
+      }
+    }
+  );
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ count: 42 });
+});
