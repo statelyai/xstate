@@ -3572,3 +3572,48 @@ describe('action meta', () => {
     interpret(machine).start();
   });
 });
+
+it('should call an inline action responding to an initial raise with the raised event', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: raise({ type: 'HELLO' }),
+    on: {
+      HELLO: {
+        actions: ({ event }) => {
+          spy(event);
+        }
+      }
+    }
+  });
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
+});
+
+it('should call a referenced action responding to an initial raise with the raised event', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine(
+    {
+      entry: raise({ type: 'HELLO' }),
+      on: {
+        HELLO: {
+          actions: 'foo'
+        }
+      }
+    },
+    {
+      actions: {
+        foo: ({ event }) => {
+          spy(event);
+        }
+      }
+    }
+  );
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
+});
