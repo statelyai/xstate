@@ -56,7 +56,7 @@
     }
   },
   "dependencies": {
-    "use-isomorphic-layout-effect": "^1.0.0",
+    "use-isomorphic-layout-effect": "^1.1.2",
     "use-sync-external-store": "^1.0.0"
   },
   "devDependencies": {

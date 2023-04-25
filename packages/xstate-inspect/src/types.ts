@@ -20,6 +20,7 @@ export interface InspectorOptions {
   iframe?: MaybeLazy<HTMLIFrameElement | null | false>;
   devTools?: MaybeLazy<XStateDevInterface>;
   serialize?: Replacer | undefined;
+  targetWindow?: Window | undefined | null;
 }
 
 export interface Inspector extends ActorRef<InspectMachineEvent, AnyState> {
