@@ -1,5 +1,5 @@
 ---
-'@xstate/react': minor
+'@xstate/react': patch
 ---
 
-Fix warning about unmet peer dependencies
+Updated the allowed range for the `use-isomorphic-layout-effect` dependency.
