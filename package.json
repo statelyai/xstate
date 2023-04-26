@@ -82,8 +82,7 @@
     "webpack-dev-middleware": "^3.6.0"
   },
   "resolutions": {
-    "**/tslib": "^2.3.1",
-    "**/typescript": "5.0.2"
+    "**/tslib": "^2.3.1"
   },
   "husky": {
     "hooks": {
