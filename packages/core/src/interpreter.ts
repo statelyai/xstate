@@ -77,6 +77,7 @@ import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
 import {
   AreAllImplementationsAssumedToBeProvided,
+  MissingImplementationsError,
   TypegenDisabled
 } from './typegenTypes';
 
@@ -1645,7 +1646,7 @@ export function interpret<
         any,
         TResolvedTypesMeta
       >
-    : 'Some implementations missing',
+    : MissingImplementationsError<TResolvedTypesMeta>,
   options?: InterpreterOptions
 ) {
   const interpreter = new Interpreter<

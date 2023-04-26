@@ -7,7 +7,8 @@ import {
   Values,
   IsAny,
   ServiceMap,
-  Cast
+  Cast,
+  Compute
 } from './types';
 
 export interface TypegenDisabled {
@@ -108,15 +109,28 @@ export type AreAllImplementationsAssumedToBeProvided<
   ? true
   : TResolvedTypesMeta extends TypegenEnabled
   ? IsNever<
-      Values<
-        {
-          [K in keyof TMissingImplementations]: TMissingImplementations[K];
-        }
-      >
+      Values<{
+        [K in keyof TMissingImplementations]: TMissingImplementations[K];
+      }>
     > extends true
     ? true
     : false
   : true;
+
+export type MissingImplementationsError<
+  TResolvedTypesMeta,
+  TMissingImplementations = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'missingImplementations'
+  >
+> = Compute<
+  [
+    'Some implementations missing',
+    Values<{
+      [K in keyof TMissingImplementations]: TMissingImplementations[K];
+    }>
+  ]
+>;
 
 interface AllImplementationsProvided {
   missingImplementations: {
