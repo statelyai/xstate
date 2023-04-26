@@ -5,6 +5,7 @@ const os = require('os');
  * @type {import('@jest/types').Config.InitialOptions}
  */
 module.exports = {
+  setupFilesAfterEnv: ['@xstate-repo/jest-utils/setup'],
   transform: {
     [constants.DEFAULT_JS_PATTERN]: 'babel-jest',
     '^.+\\.vue$': '@vue/vue3-jest',
