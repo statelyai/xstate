@@ -134,12 +134,32 @@ export function send<
           targetActorRef = state.children[resolvedTarget];
         }
         if (!targetActorRef) {
-          throw new Error(
-            `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
-          );
+          // throw new Error(
+          //   `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
+          // );
+          return [
+            state,
+            {
+              type: actionTypes.send,
+              params: {
+                ...params,
+                _event: resolvedEvent,
+                event: resolvedEvent.data,
+                internal: false,
+                to: undefined,
+                delay: undefined
+              },
+              execute: (actorCtx) => {
+                actorCtx.system.deadLetters.send({
+                  type: 'deadLetter',
+                  event: resolvedEvent
+                });
+              }
+            }
+          ];
         }
       } else {
-        targetActorRef = resolvedTarget || actorContext?.self;
+        targetActorRef = resolvedTarget ?? actorContext?.self;
       }
 
       const resolvedAction: SendActionObject = {

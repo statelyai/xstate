@@ -1857,3 +1857,39 @@ it('should throw if an event is received', () => {
     )
   ).toThrow();
 });
+
+it('should not error if the childMachine uses sendParent when not invoked within a parent machine', (done) => {
+  const orphanMachine = createMachine({
+    id: 'orphan',
+    initial: 'start',
+    context: {
+      password: 'hunter2'
+    },
+    states: {
+      start: {
+        entry: sendParent(({ context }) => ({
+          type: 'NEXT',
+          password: context.password
+        })),
+        always: 'finish'
+      },
+      finish: {
+        type: 'final'
+      }
+    }
+  });
+  const actor = interpret(orphanMachine);
+  actor.subscribe((state) => {
+    expect(state.matches('finish')).toBe(true);
+  });
+  actor.system.deadLetters.subscribe((deadLetters) => {
+    if (deadLetters.length) {
+      expect(deadLetters[0].event.data).toEqual({
+        type: 'NEXT',
+        password: 'hunter2'
+      });
+      done();
+    }
+  });
+  actor.start();
+});
