@@ -7,10 +7,10 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "@xstate/react": "latest",
+    "@xstate/react": "4.0.0-beta.3",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "xstate": "latest"
+    "xstate": "5.0.0-beta.8"
   },
   "devDependencies": {
     "@types/react": "^17.0.47",

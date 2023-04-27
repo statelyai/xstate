@@ -8,12 +8,16 @@ type CounterEvent = {
   type: 'INCREMENT';
 };
 
-export const counterMachine = createMachine<CounterContext, CounterEvent>({
+export const counterMachine = createMachine({
+  types: {} as {
+    context: CounterContext;
+    events: CounterEvent;
+  },
   id: 'counter',
   context: { count: 0 },
   on: {
     INCREMENT: {
-      actions: assign({ count: (ctx) => ctx.count + 1 })
+      actions: assign({ count: ({ context }) => context.count + 1 })
     }
   }
 });

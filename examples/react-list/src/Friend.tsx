@@ -24,7 +24,7 @@ export const Friend: React.FC<{
           onSubmit={(event) => {
             event.preventDefault();
 
-            send('SAVE');
+            send({ type: 'SAVE' });
           }}
         >
           <label className="field" htmlFor="friend.name">
@@ -47,19 +47,19 @@ export const Friend: React.FC<{
               <button
                 disabled={state.hasTag('saving')}
                 onClick={() => {
-                  send('SAVE');
+                  send({ type: 'SAVE' });
                 }}
               >
                 Save
               </button>
-              <button onClick={() => send('CANCEL')} type="button">
+              <button onClick={() => send({ type: 'CANCEL' })} type="button">
                 Cancel
               </button>
             </>
           )}
           {state.hasTag('read') && (
             <>
-              <button onClick={() => send('EDIT')}>Edit</button>
+              <button onClick={() => send({ type: 'EDIT' })}>Edit</button>
               <button className="remove" onClick={onRemove}>
                 Remove
               </button>
