@@ -5,7 +5,10 @@ import { devToolsAdapter } from './dev/index.ts';
 import { IS_PRODUCTION } from './environment.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { createSystem } from './system.ts';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.ts';
+import {
+  AreAllImplementationsAssumedToBeProvided,
+  MissingImplementationsError
+} from './typegenTypes.ts';
 import type {
   ActorBehavior,
   ActorContext,
@@ -512,7 +515,7 @@ export function interpret<TMachine extends AnyStateMachine>(
     TMachine['__TResolvedTypesMeta']
   > extends true
     ? TMachine
-    : 'Some implementations missing',
+    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(

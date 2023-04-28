@@ -1,5 +1,11 @@
 # xstate
 
+## 4.37.2
+
+### Patch Changes
+
+- [#3972](https://github.com/statelyai/xstate/pull/3972) [`2b9583a63`](https://github.com/statelyai/xstate/commit/2b9583a63c9089103365bad9419bd4a1edd43556) Thanks [@Andarist](https://github.com/Andarist)! - The "Some implementations missing" type-level error will now mention what implementations are missing.
+
 ## 5.0.0-beta.8
 
 ### Major Changes
