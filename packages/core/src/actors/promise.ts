@@ -76,12 +76,14 @@ export function fromPromise<T>(
 
       resolvedPromise.then(
         (response) => {
+          // TODO: remove this condition once dead letter queue lands
           if ((self as any)._state.status !== 'active') {
             return;
           }
           self.send({ type: resolveEventType, data: response });
         },
         (errorData) => {
+          // TODO: remove this condition once dead letter queue lands
           if ((self as any)._state.status !== 'active') {
             return;
           }
