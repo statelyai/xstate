@@ -4,7 +4,8 @@
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "workspaces": {
     "packages": [
-      "packages/*"
+      "packages/*",
+      "scripts/*"
     ]
   },
   "preconstruct": {

@@ -1,9 +1,10 @@
+import { clearConsoleMocks } from '@xstate-repo/jest-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
+import { SimulatedClock } from '../src/SimulatedClock';
 import { AnyState, AnyStateMachine, interpret } from '../src/index.ts';
 import { toMachine } from '../src/scxml';
-import { SimulatedClock } from '../src/SimulatedClock';
 import { getStateNodes } from '../src/stateUtils';
 
 const TEST_FRAMEWORK = path.dirname(
@@ -472,6 +473,8 @@ describe('scxml', () => {
         } catch (e) {
           console.log(JSON.stringify(machine.config, null, 2));
           throw e;
+        } finally {
+          clearConsoleMocks();
         }
       });
     });
