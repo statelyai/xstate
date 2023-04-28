@@ -76,9 +76,15 @@ export function fromPromise<T>(
 
       resolvedPromise.then(
         (response) => {
+          if ((self as any)._state.status !== 'active') {
+            return;
+          }
           self.send({ type: resolveEventType, data: response });
         },
         (errorData) => {
+          if ((self as any)._state.status !== 'active') {
+            return;
+          }
           self.send({ type: rejectEventType, data: errorData });
         }
       );

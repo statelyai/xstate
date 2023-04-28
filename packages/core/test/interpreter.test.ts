@@ -784,6 +784,15 @@ describe('interpreter', () => {
     } catch (e) {
       expect(service.getSnapshot().value).toEqual('yellow');
     }
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          "Warning: Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+      Event: {"type":"TIMER"}",
+        ],
+      ]
+    `);
   });
 
   it('should be able to log (log action)', () => {
@@ -1239,6 +1248,14 @@ describe('interpreter', () => {
 
       setTimeout(() => {
         expect(called).toBeFalsy();
+        expect(console.warn).toMatchMockCallsInlineSnapshot(`
+          [
+            [
+              "Warning: Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+          Event: {"type":"TRIGGER"}",
+            ],
+          ]
+        `);
         done();
       }, 10);
     });
