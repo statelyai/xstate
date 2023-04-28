@@ -28,12 +28,14 @@ afterEach(() => {
       // as we just restored the mock, we need to setup a new spy
       consoleSpies[method] = spyOnConsole(method);
 
-      throw new Error(
-        [
-          `console.${method} was called unexpectedly ${calls.length} times without observing its calls with \`expect(console.${method}).toMatchMockCallsInlineSnapshot()\`.`,
-          `You can check the observed calls above.`
-        ].join(' ')
-      );
+      if (process.env.CI) {
+        throw new Error(
+          [
+            `console.${method} was called unexpectedly ${calls.length} times without observing its calls with \`expect(console.${method}).toMatchMockCallsInlineSnapshot()\`.`,
+            `You can check the observed calls above.`
+          ].join(' ')
+        );
+      }
     }
   });
 });
