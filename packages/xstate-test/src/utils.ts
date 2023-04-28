@@ -19,7 +19,6 @@ export function formatPathTestResult(
     formatColor: (_color, string) => string,
     serializeState: simpleStringify,
     serializeEvent: simpleStringify,
-    eventCases: {},
     ...options
   };
 

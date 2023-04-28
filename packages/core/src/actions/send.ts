@@ -94,6 +94,11 @@ export function send<
       const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
+      if (typeof eventOrExpr === 'string') {
+        throw new Error(
+          `Only event objects may be used with sendTo; use sendTo({ type: "${eventOrExpr}" }) instead`
+        );
+      }
       const resolvedEvent = isFunction(eventOrExpr)
         ? eventOrExpr(args)
         : eventOrExpr;

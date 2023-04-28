@@ -5,7 +5,10 @@ import { devToolsAdapter } from './dev/index.ts';
 import { IS_PRODUCTION } from './environment.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { createSystem } from './system.ts';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.ts';
+import {
+  AreAllImplementationsAssumedToBeProvided,
+  MissingImplementationsError
+} from './typegenTypes.ts';
 import type {
   ActorBehavior,
   ActorContext,
@@ -209,16 +212,15 @@ export class Interpreter<
 
     switch (status?.status) {
       case 'done':
+        this._stopProcedure();
         this._doneEvent = doneInvoke(this.id, status.data);
         this._parent?.send(this._doneEvent as any);
-
-        this._stopProcedure();
+        this._complete();
         break;
       case 'error':
+        this._stopProcedure();
         this._parent?.send(error(this.id, status.data));
-        for (const observer of this.observers) {
-          observer.error?.(status.data);
-        }
+        this._error(status.data);
         break;
     }
   }
@@ -321,6 +323,7 @@ export class Interpreter<
 
       if (event.type === stopSignalType) {
         this._stopProcedure();
+        this._complete();
       }
     } catch (err) {
       // TODO: properly handle errors
@@ -364,9 +367,13 @@ export class Interpreter<
     }
     this.observers.clear();
   }
+  private _error(data: any): void {
+    for (const observer of this.observers) {
+      observer.error?.(data);
+    }
+    this.observers.clear();
+  }
   private _stopProcedure(): this {
-    this._complete();
-
     if (this.status !== ActorStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
@@ -397,6 +404,12 @@ export class Interpreter<
    * @param event The event to send
    */
   public send(event: TEvent) {
+    if (typeof event === 'string') {
+      throw new Error(
+        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
+      );
+    }
+
     if (this.status === ActorStatus.Stopped) {
       // do nothing
       if (!IS_PRODUCTION) {
@@ -488,7 +501,7 @@ export function interpret<TMachine extends AnyStateMachine>(
     TMachine['__TResolvedTypesMeta']
   > extends true
     ? TMachine
-    : 'Some implementations missing',
+    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(

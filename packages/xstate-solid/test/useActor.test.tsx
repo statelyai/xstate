@@ -794,6 +794,80 @@ describe('useActor', () => {
     expect(div2.textContent).toEqual('');
   });
 
+  it('should properly handle array updates', () => {
+    const numberListMachine = createMachine<{ numbers: number[] }>({
+      context: {
+        numbers: [1, 2, 3, 4, 5, 6]
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            REMOVE_START: {
+              actions: assign({
+                numbers: ({ context }) => {
+                  return context.numbers.filter((_, i) => i !== 0);
+                }
+              })
+            },
+            REMOVE_END: {
+              actions: assign({
+                numbers: ({ context }) => {
+                  return context.numbers.filter(
+                    (_, i) => i !== context.numbers.length - 1
+                  );
+                }
+              })
+            },
+            ADD: {
+              actions: assign({
+                numbers: ({ context }) => {
+                  return [
+                    ...context.numbers,
+                    context.numbers[context.numbers.length - 1] + 1
+                  ];
+                }
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const Test = () => {
+      const [state, send] = useMachine(numberListMachine);
+      return (
+        <div>
+          <div data-testid="state">{state.context.numbers.join(',')}</div>
+          <button
+            data-testid="remove-start"
+            onclick={() => send({ type: 'REMOVE_START' })}
+          />
+          <button
+            data-testid="remove-end"
+            onclick={() => send({ type: 'REMOVE_END' })}
+          />
+          <button data-testid="add" onclick={() => send({ type: 'ADD' })} />
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const state = screen.getByTestId('state');
+    const removeStart = screen.getByTestId('remove-start');
+    const removeEnd = screen.getByTestId('remove-end');
+    const add = screen.getByTestId('add');
+
+    expect(state.textContent).toEqual('1,2,3,4,5,6');
+    fireEvent.click(removeStart);
+    expect(state.textContent).toEqual('2,3,4,5,6');
+    fireEvent.click(removeEnd);
+    expect(state.textContent).toEqual('2,3,4,5');
+    fireEvent.click(add);
+    expect(state.textContent).toEqual('2,3,4,5,6');
+  });
+
   it('should rerender and trigger effects only on object within array changes', () => {
     const arr = [
       { id: '1', value: 10 },

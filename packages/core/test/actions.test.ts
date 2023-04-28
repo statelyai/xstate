@@ -3065,6 +3065,22 @@ describe('sendTo', () => {
 
     service.send({ type: 'EVENT', value: 'foo' });
   });
+
+  it('should throw if given a string', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: fromCallback(() => {})
+      },
+      entry: sendTo('child', 'a string')
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Only event objects may be used with sendTo; use sendTo({ type: "a string" }) instead"`
+    );
+  });
 });
 
 describe('raise', () => {
@@ -3272,6 +3288,21 @@ describe('raise', () => {
     setTimeout(() => {
       expect(actor.getSnapshot().value).toBe('a');
     }, 10);
+  });
+
+  it('should throw if given a string', () => {
+    const machine = createMachine({
+      entry: raise(
+        // @ts-ignore
+        'a string'
+      )
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Only event objects may be used with raise; use raise({ type: "a string" }) instead"`
+    );
   });
 });
 
@@ -3540,4 +3571,96 @@ describe('action meta', () => {
 
     interpret(machine).start();
   });
+});
+
+it('should call an inline action responding to an initial raise with the raised event', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: raise({ type: 'HELLO' }),
+    on: {
+      HELLO: {
+        actions: ({ event }) => {
+          spy(event);
+        }
+      }
+    }
+  });
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
+});
+
+it('should call a referenced action responding to an initial raise with the raised event', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine(
+    {
+      entry: raise({ type: 'HELLO' }),
+      on: {
+        HELLO: {
+          actions: 'foo'
+        }
+      }
+    },
+    {
+      actions: {
+        foo: ({ event }) => {
+          spy(event);
+        }
+      }
+    }
+  );
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
+});
+
+it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    context: { count: 0 },
+    entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+    on: {
+      HELLO: {
+        actions: ({ context }) => {
+          spy(context);
+        }
+      }
+    }
+  });
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ count: 42 });
+});
+
+it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine(
+    {
+      context: { count: 0 },
+      entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+      on: {
+        HELLO: {
+          actions: 'foo'
+        }
+      }
+    },
+    {
+      actions: {
+        foo: ({ context }) => {
+          spy(context);
+        }
+      }
+    }
+  );
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ count: 42 });
 });

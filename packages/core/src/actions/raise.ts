@@ -72,6 +72,11 @@ export function raise<
       const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
+      if (typeof eventOrExpr === 'string') {
+        throw new Error(
+          `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
+        );
+      }
       const resolvedEvent =
         typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
 

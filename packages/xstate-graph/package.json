@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.1",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -35,10 +35,10 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^5.0.0-beta.7"
+    "xstate": "^5.0.0-beta.8"
   },
   "devDependencies": {
-    "xstate": "5.0.0-beta.7"
+    "xstate": "5.0.0-beta.8"
   },
   "dependencies": {}
 }

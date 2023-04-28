@@ -6,10 +6,10 @@ describe('types', () => {
     const machine = createMachine<{}, { type: 'FOO' } | { type: 'BAR' }>({});
 
     getMachineShortestPaths(machine, {
-      getEvents: () => [
+      events: [
         {
           type: 'FOO'
-        } as const
+        }
       ]
     });
   });
@@ -18,76 +18,90 @@ describe('types', () => {
     const machine = createMachine<{}, { type: 'FOO' } | { type: 'BAR' }>({});
 
     getMachineShortestPaths(machine, {
-      getEvents: () =>
-        [
-          {
-            type: 'FOO'
-          }
-        ] as const
+      events: [
+        {
+          type: 'FOO'
+        }
+      ]
     });
   });
 
-  it('`eventCases` should allow known event', () => {
+  it('`events` should allow known event', () => {
     const machine = createMachine<{}, { type: 'FOO'; value: number }>({});
 
     getMachineShortestPaths(machine, {
-      eventCases: {
-        FOO: [
-          {
-            value: 100
-          }
-        ]
-      }
+      events: [
+        {
+          type: 'FOO',
+          value: 100
+        }
+      ]
     });
   });
 
-  it('`eventCases` should not require all event types', () => {
+  it('`events` should not require all event types (array literal expression)', () => {
     const machine = createMachine<
       {},
       { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
     >({});
 
     getMachineShortestPaths(machine, {
-      eventCases: {
-        FOO: [
-          {
-            value: 100
-          }
-        ]
-      }
+      events: [{ type: 'FOO', value: 100 }]
     });
   });
 
-  it('`eventCases` should not allow unknown events', () => {
+  it('`events` should not require all event types (tuple)', () => {
+    const machine = createMachine<
+      {},
+      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
+    >({});
+
+    const events = [{ type: 'FOO', value: 100 }] as const;
+
+    getMachineShortestPaths(machine, {
+      events
+    });
+  });
+
+  it('`events` should not require all event types (function)', () => {
+    const machine = createMachine<
+      {},
+      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
+    >({});
+
+    getMachineShortestPaths(machine, {
+      events: () => [{ type: 'FOO', value: 100 }] as const
+    });
+  });
+
+  it('`events` should not allow unknown events', () => {
     const machine = createMachine<{}, { type: 'FOO'; value: number }>({});
 
     getMachineShortestPaths(machine, {
-      eventCases: {
-        // @ts-expect-error
-        UNKNOWN: [
-          {
-            value: 100
-          }
-        ]
-      }
+      events: [
+        {
+          // @ts-expect-error
+          type: 'UNKNOWN',
+          value: 100
+        }
+      ]
     });
   });
 
-  it('`eventCases` should only allow props of a specific event', () => {
+  it('`events` should only allow props of a specific event', () => {
     const machine = createMachine<
       {},
       { type: 'FOO'; value: number } | { type: 'BAR'; other: string }
     >({});
 
     getMachineShortestPaths(machine, {
-      eventCases: {
-        FOO: [
-          {
-            // @ts-expect-error
-            other: 'nana nana nananana'
-          }
-        ]
-      }
+      events: [
+        {
+          type: 'FOO',
+          // @ts-expect-error
+          other: 'nana nana nananana'
+        }
+      ]
     });
   });
 

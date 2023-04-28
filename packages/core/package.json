@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "5.0.0-beta.7",
+  "version": "5.0.0-beta.8",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
@@ -63,6 +63,7 @@
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
+    "@xstate-repo/jest-utils": "*",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "pkg-up": "^3.1.0",
