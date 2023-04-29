@@ -5,11 +5,12 @@ import {
   assign,
   createMachine,
   interpret,
-  sendTo
+  sendTo,
+  stop
 } from '../src/index.ts';
 
 describe('system', () => {
-  it('should register an actor (implicit system)', (done) => {
+  it('should register an invoked actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
         receiver: ActorRef<{ type: 'HELLO' }>;
@@ -51,7 +52,56 @@ describe('system', () => {
     interpret(machine).start();
   });
 
-  it('system can be immediatelly accessed outside the actor', () => {
+  it('should register a spawned actor', (done) => {
+    type MySystem = ActorSystem<{
+      actors: {
+        receiver: ActorRef<{ type: 'HELLO' }>;
+      };
+    }>;
+
+    const machine = createMachine({
+      id: 'parent',
+      context: ({ spawn }) => ({
+        ref: spawn(
+          fromCallback((_, receive) => {
+            receive((event) => {
+              expect(event.type).toBe('HELLO');
+              done();
+            });
+          }),
+          { systemId: 'receiver' }
+        )
+      }),
+      on: {
+        toggle: {
+          actions: assign({
+            machineRef: ({ spawn }) => {
+              return spawn(
+                createMachine({
+                  id: 'childmachine',
+                  entry: ({ system }) => {
+                    const receiver = (system as MySystem)?.get('receiver');
+
+                    if (receiver) {
+                      receiver.send({ type: 'HELLO' });
+                    } else {
+                      throw new Error('no');
+                    }
+                  }
+                })
+              );
+            }
+          })
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'toggle' });
+  });
+
+  it('system can be immediately accessed outside the actor', () => {
     const machine = createMachine({
       invoke: {
         systemId: 'someChild',
@@ -71,7 +121,7 @@ describe('system', () => {
     expect(actor.system.get('test')).toBe(actor);
   });
 
-  it('should remove actor from receptionist if stopped', () => {
+  it('should remove invoked actor from receptionist if stopped', () => {
     const machine = createMachine({
       initial: 'active',
       states: {
@@ -85,6 +135,29 @@ describe('system', () => {
           }
         },
         inactive: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.system.get('test')).toBeDefined();
+
+    actor.send({ type: 'toggle' });
+
+    expect(actor.system.get('test')).toBeUndefined();
+  });
+
+  it('should remove spawned actor from receptionist if stopped', () => {
+    const machine = createMachine({
+      context: ({ spawn }) => ({
+        ref: spawn(createMachine({}), {
+          systemId: 'test'
+        })
+      }),
+      on: {
+        toggle: {
+          actions: stop(({ context }) => context.ref)
+        }
       }
     });
 
