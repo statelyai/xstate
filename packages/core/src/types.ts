@@ -122,8 +122,6 @@ export interface ActionMeta<
 }
 
 // TODO: do not accept machines without all implementations
-// we should also accept a raw machine as a behavior here
-// or just make machine a behavior
 export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
   options?: Partial<{

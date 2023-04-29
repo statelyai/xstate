@@ -427,7 +427,7 @@ export class StateMachine<
 
   public restoreState(
     state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
-    _actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const children = {};
 
@@ -444,7 +444,7 @@ export class StateMachine<
         return;
       }
 
-      const actorState = behavior.restoreState?.(childState, _actorCtx);
+      const actorState = behavior.restoreState?.(childState, actorCtx);
 
       const actorRef = interpret(behavior, {
         id: actorId,
@@ -472,7 +472,7 @@ export class StateMachine<
           if (referenced) {
             const actorRef = interpret(referenced.src, {
               id,
-              parent: _actorCtx?.self,
+              parent: actorCtx?.self,
               input:
                 'input' in invokeConfig ? invokeConfig.input : referenced.input
             });
