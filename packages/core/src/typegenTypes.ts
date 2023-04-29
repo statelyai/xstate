@@ -1,4 +1,5 @@
 import {
+  Compute,
   EventObject,
   IndexByType,
   IsNever,
@@ -115,6 +116,21 @@ export type AreAllImplementationsAssumedToBeProvided<
     ? true
     : false
   : true;
+
+export type MissingImplementationsError<
+  TResolvedTypesMeta,
+  TMissingImplementations = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'missingImplementations'
+  >
+> = Compute<
+  [
+    'Some implementations missing',
+    Values<{
+      [K in keyof TMissingImplementations]: TMissingImplementations[K];
+    }>
+  ]
+>;
 
 interface AllImplementationsProvided {
   missingImplementations: {
