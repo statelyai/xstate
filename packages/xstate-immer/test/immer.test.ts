@@ -199,11 +199,13 @@ describe('@xstate/immer', () => {
       }
     });
 
-    const service = interpret(formMachine)
-      .onDone(() => {
+    const service = interpret(formMachine);
+    service.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
 
     service.send(nameUpdater.update('David'));
     service.send(ageUpdater.update(0));

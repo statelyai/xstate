@@ -42,10 +42,9 @@ describe('SCXML events', () => {
         }
       }
     });
-
-    interpret(parentMachine)
-      .onDone(() => done())
-      .start();
+    const actor = interpret(parentMachine);
+    actor.subscribe({ complete: () => done() });
+    actor.start();
   });
 
   it('should have the origin (id) from the sending callback service', (done) => {
@@ -128,9 +127,9 @@ describe('SCXML events', () => {
       }
     });
 
-    const service = interpret(authClientMachine)
-      .onDone(() => done())
-      .start();
+    const service = interpret(authClientMachine);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
     service.send({ type: 'AUTH' });
   });
@@ -186,9 +185,9 @@ describe('SCXML events', () => {
       }
     });
 
-    const service = interpret(authClientMachine)
-      .onDone(() => done())
-      .start();
+    const service = interpret(authClientMachine);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
     service.send({ type: 'AUTH' });
   });

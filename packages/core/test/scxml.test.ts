@@ -358,22 +358,21 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
       prevState = nextState;
       nextState = state;
     });
-    actor
-      .onDone(() => {
-        // Add 'final' for test230.txml which does not have a 'pass' state
-        if (['final', 'pass'].includes(nextState.value as string)) {
-          resolve();
-        } else {
-          reject(
-            new Error(
-              `Reached "fail" state with event ${JSON.stringify(
-                nextState.event
-              )} from state ${JSON.stringify(prevState?.value)}`
-            )
-          );
-        }
-      })
-      .start();
+    actor.onDone(() => {
+      // Add 'final' for test230.txml which does not have a 'pass' state
+      if (['final', 'pass'].includes(nextState.value as string)) {
+        resolve();
+      } else {
+        reject(
+          new Error(
+            `Reached "fail" state with event ${JSON.stringify(
+              nextState.event
+            )} from state ${JSON.stringify(prevState?.value)}`
+          )
+        );
+      }
+    });
+    actor.start();
   });
 }
 
@@ -397,18 +396,17 @@ async function runTestToCompletion(
     prevState = nextState;
     nextState = state;
   });
-  service
-    .onDone(() => {
-      if (nextState.value === 'fail') {
-        throw new Error(
-          `Reached "fail" state with event ${JSON.stringify(
-            nextState.event
-          )} from state ${JSON.stringify(prevState?.value)}`
-        );
-      }
-      done = true;
-    })
-    .start();
+  service.onDone(() => {
+    if (nextState.value === 'fail') {
+      throw new Error(
+        `Reached "fail" state with event ${JSON.stringify(
+          nextState.event
+        )} from state ${JSON.stringify(prevState?.value)}`
+      );
+    }
+    done = true;
+  });
+  service.start();
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {

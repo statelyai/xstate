@@ -251,10 +251,9 @@ const pingPongMachine = createMachine({
     }
   }
 });
-
-interpret(pingPongMachine)
-  .onDone(() => done())
-  .start();
+const actor = interpret(pingPongMachine);
+actor.subscribe({ complete: () => done() });
+actor.start();
 ```
 
 ## 调用 Observables <Badge text="4.6"/>

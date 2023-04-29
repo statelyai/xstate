@@ -301,11 +301,13 @@ describe('interpreter', () => {
 
       const delayExprService = interpret(delayExprMachine, {
         clock
-      })
-        .onDone(() => {
+      });
+      delayExprService.subscribe({
+        complete: () => {
           stopped = true;
-        })
-        .start();
+        }
+      });
+      delayExprService.start();
 
       delayExprService.send({
         type: 'ACTIVATE',
@@ -380,11 +382,13 @@ describe('interpreter', () => {
 
       const delayExprService = interpret(delayExprMachine, {
         clock
-      })
-        .onDone(() => {
+      });
+      delayExprService.subscribe({
+        complete: () => {
           stopped = true;
-        })
-        .start();
+        }
+      });
+      delayExprService.start();
 
       delayExprService.send({
         type: 'ACTIVATE',
@@ -460,11 +464,13 @@ describe('interpreter', () => {
         }
       );
 
-      const actor = interpret(letterMachine, { clock })
-        .onDone(() => {
+      const actor = interpret(letterMachine, { clock });
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
 
       expect(actor.getSnapshot().value).toEqual('a');
       clock.increment(100);
@@ -663,9 +669,11 @@ describe('interpreter', () => {
 
     const service = interpret(machine).start();
 
-    service.onDone(() => {
-      expect(service.getSnapshot().value).toBe('pass');
-      done();
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('pass');
+        done();
+      }
     });
   });
 
@@ -727,7 +735,8 @@ describe('interpreter', () => {
     });
 
     let state: any;
-    const deferService = interpret(deferMachine).onDone(() => done());
+    const deferService = interpret(deferMachine);
+    deferService.onDone(() => done());
 
     deferService.subscribe((nextState) => {
       state = nextState;
@@ -966,9 +975,9 @@ describe('interpreter', () => {
     });
 
     it('should resolve send event expressions', (done) => {
-      interpret(machine)
-        .onDone(() => done())
-        .start();
+      const actor = interpret(machine);
+      actor.subscribe({ complete: () => done() });
+      actor.start();
     });
   });
 
@@ -1016,14 +1025,17 @@ describe('interpreter', () => {
       });
 
       const actor = interpret(parentMachine);
-      actor.subscribe((state) => {
-        if (state.matches('start')) {
-          const childActor = state.children.child;
+      actor.subscribe({
+        next: (state) => {
+          if (state.matches('start')) {
+            const childActor = state.children.child;
 
-          expect(typeof childActor!.send).toBe('function');
-        }
+            expect(typeof childActor!.send).toBe('function');
+          }
+        },
+        complete: () => done()
       });
-      actor.onDone(() => done()).start();
+      actor.start();
     });
   });
 
@@ -1048,25 +1060,25 @@ describe('interpreter', () => {
     });
 
     it('can send events with a string', (done) => {
-      const service = interpret(sendMachine)
-        .onDone(() => done())
-        .start();
+      const service = interpret(sendMachine);
+      service.subscribe({ complete: () => done() });
+      service.start();
 
       service.send({ type: 'ACTIVATE' });
     });
 
     it('can send events with an object', (done) => {
-      const service = interpret(sendMachine)
-        .onDone(() => done())
-        .start();
+      const service = interpret(sendMachine);
+      service.subscribe({ complete: () => done() });
+      service.start();
 
       service.send({ type: 'ACTIVATE' });
     });
 
     it('can send events with an object with payload', (done) => {
-      const service = interpret(sendMachine)
-        .onDone(() => done())
-        .start();
+      const service = interpret(sendMachine);
+      service.subscribe({ complete: () => done() });
+      service.start();
 
       service.send({ type: 'EVENT', id: 42 });
     });
@@ -1094,11 +1106,13 @@ describe('interpreter', () => {
         }
       });
 
-      const toggleService = interpret(toggleMachine)
-        .onDone(() => {
+      const toggleService = interpret(toggleMachine);
+      toggleService.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      toggleService.start();
 
       toggleService.send({ type: 'ACTIVATE' });
       toggleService.send({ type: 'INACTIVATE' });
@@ -1474,12 +1488,12 @@ describe('interpreter', () => {
       });
 
       let count: number;
-      const service = interpret(machine)
-        .onDone(() => {
-          expect(count).toEqual(2);
-          done();
-        })
-        .start();
+      const service = interpret(machine);
+      service.onDone(() => {
+        expect(count).toEqual(2);
+        done();
+      });
+      service.start();
 
       const subscription = service.subscribe(
         (state) => (count = state.context.count)
@@ -1638,7 +1652,8 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine).onDone(() => {
+      const service = interpret(parentMachine);
+      service.onDone(() => {
         expect(service.getSnapshot().matches('success')).toBeTruthy();
         expect(service.getSnapshot().children).not.toHaveProperty('childActor');
         done();
@@ -1679,7 +1694,8 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine).onDone(() => {
+      const service = interpret(parentMachine);
+      service.onDone(() => {
         expect(service.getSnapshot().children).not.toHaveProperty('childActor');
         done();
       });
@@ -1771,16 +1787,14 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine)
-        .onDone(() => {
-          expect(service.getSnapshot().children.machineChild).toBeUndefined();
-          expect(service.getSnapshot().children.promiseChild).toBeUndefined();
-          expect(
-            service.getSnapshot().children.observableChild
-          ).toBeUndefined();
-          done();
-        })
-        .start();
+      const service = interpret(parentMachine);
+      service.onDone(() => {
+        expect(service.getSnapshot().children.machineChild).toBeUndefined();
+        expect(service.getSnapshot().children.promiseChild).toBeUndefined();
+        expect(service.getSnapshot().children.observableChild).toBeUndefined();
+        done();
+      });
+      service.start();
 
       service.subscribe((state) => {
         if (state.matches('present')) {
@@ -1849,9 +1863,10 @@ describe('interpreter', () => {
     const service = interpret(machine).start();
 
     expect(service.status).toBe(InterpreterStatus.Stopped);
-
-    service.onDone(() => {
-      done();
+    service.subscribe({
+      complete: () => {
+        done();
+      }
     });
   });
 });

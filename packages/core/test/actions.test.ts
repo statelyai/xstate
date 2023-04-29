@@ -1372,13 +1372,15 @@ describe('entry/exit actions', () => {
         }
       });
 
-      interpret(parentMachine)
-        .onDone(() => {
+      const actor = interpret(parentMachine);
+      actor.subscribe({
+        complete: () => {
           expect(exitCalled).toBeTruthy();
           expect(childExitCalled).toBeTruthy();
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
   });
 
@@ -2443,9 +2445,9 @@ describe('forwardTo()', () => {
       }
     });
 
-    const service = interpret(parent)
-      .onDone(() => done())
-      .start();
+    const service = interpret(parent);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
     service.send({ type: 'EVENT', value: 42 });
   });
@@ -2493,9 +2495,9 @@ describe('forwardTo()', () => {
       }
     });
 
-    const service = interpret(parent)
-      .onDone(() => done())
-      .start();
+    const service = interpret(parent);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
     service.send({ type: 'EVENT', value: 42 });
   });
@@ -3112,7 +3114,7 @@ describe('raise', () => {
 
     const service = interpret(machine).start();
 
-    service.onDone(() => done());
+    service.subscribe({ complete: () => done() });
 
     // Ensures that the delayed self-event is sent when in the `b` state
     service.send({ type: 'TO_B' });
@@ -3193,7 +3195,7 @@ describe('raise', () => {
 
     const service = interpret(machine).start();
 
-    service.onDone(() => done());
+    service.subscribe({ complete: () => done() });
 
     setTimeout(() => {
       // didn't transition yet

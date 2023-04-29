@@ -132,14 +132,14 @@ describe('final states', () => {
       }
     });
 
-    const service = interpret(machine)
-      .onDone(() => {
-        expect(service.getSnapshot().context).toEqual({
-          revealedSecret: 'the secret'
-        });
-        done();
-      })
-      .start();
+    const service = interpret(machine);
+    service.onDone(() => {
+      expect(service.getSnapshot().context).toEqual({
+        revealedSecret: 'the secret'
+      });
+      done();
+    });
+    service.start();
 
     service.send({ type: 'REQUEST_SECRET' });
   });

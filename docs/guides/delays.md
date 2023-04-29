@@ -249,9 +249,9 @@ const dynamicDelayMachine = createMachine({
   }
 });
 
-const dynamicDelayService = interpret(dynamicDelayMachine)
-  .onDone(() => console.log('done!'))
-  .start();
+const dynamicDelayService = interpret(dynamicDelayMachine);
+dynamicDelayService.subscribe({ complete: () => console.log('done!') });
+dynamicDelayService.start();
 
 dynamicDelayService.send({
   type: 'ACTIVATE',
