@@ -272,19 +272,6 @@ export class Interpreter<
   }
 
   /**
-   * Calls the `listener` when the actor is stopped.
-   */
-  public onStop(listener: () => void) {
-    if (this.status === ActorStatus.Stopped) {
-      listener();
-    } else {
-      this.stopListeners.add(listener);
-    }
-
-    return this;
-  }
-
-  /**
    * Starts the interpreter from the initial state
    */
   public start(): this {

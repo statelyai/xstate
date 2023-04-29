@@ -858,15 +858,12 @@ describe('invoke', () => {
             // TODO: determine if err should be the full SCXML error event
             expect(err).toBeInstanceOf(Error);
             expect(err.message).toBe('test');
+            expect(doneSpy).not.toHaveBeenCalled();
+            done();
           },
           complete: doneSpy
         });
         actor.start();
-
-        actor.onStop(() => {
-          expect(doneSpy).not.toHaveBeenCalled();
-          done();
-        });
       });
 
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', (done) => {
