@@ -250,7 +250,7 @@ describe('invoke', () => {
   it('should start services (explicit machine, invoke = machine)', (done) => {
     const actor = interpret(fetcherMachine);
     actor.subscribe({
-      complete: (_) => {
+      complete: () => {
         done();
       }
     });
