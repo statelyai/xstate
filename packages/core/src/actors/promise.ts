@@ -91,7 +91,7 @@ export function fromPromise<T>(
         }
       );
     },
-    getInitialState: (_, input) => {
+    getInitialState: (input) => {
       return {
         status: 'active',
         data: undefined,

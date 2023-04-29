@@ -98,7 +98,7 @@ export function fromCallback<TEvent extends EventObject>(
 
       return state;
     },
-    getInitialState: (_, input) => {
+    getInitialState: (input) => {
       return {
         canceled: false,
         receivers: new Set(),

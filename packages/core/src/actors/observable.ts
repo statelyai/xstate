@@ -92,7 +92,7 @@ export function fromObservable<T, TEvent extends EventObject>(
           return state;
       }
     },
-    getInitialState: (_, input) => {
+    getInitialState: (input) => {
       return {
         subscription: undefined,
         status: 'active',

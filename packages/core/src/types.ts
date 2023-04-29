@@ -1848,12 +1848,12 @@ export interface ActorBehavior<
 > {
   transition: (
     state: TInternalState,
-    message: TEvent | LifecycleSignal,
-    ctx: ActorContext<TEvent, TSnapshot, TSystem>
+    event: TEvent | LifecycleSignal,
+    actorInfo: ActorContext<TEvent, TSnapshot, TSystem>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot, any>,
-    input: any
+    input: any,
+    actorCtx: ActorContext<TEvent, TSnapshot, any>
   ) => TInternalState;
   restoreState?: (
     persistedState: TPersisted,

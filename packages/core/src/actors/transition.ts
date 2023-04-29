@@ -34,7 +34,7 @@ export function fromTransition<
       // @ts-ignore TODO
       return transition(state, resolvedEvent, actorContext);
     },
-    getInitialState: (_, input) => {
+    getInitialState: (input) => {
       return typeof initialState === 'function'
         ? (initialState as any)({ input })
         : initialState;
