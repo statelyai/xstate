@@ -102,6 +102,7 @@ export class Interpreter<
   private delayedEventsMap: Record<string, unknown> = {};
 
   private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
+  private stopListeners: Set<() => void> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -271,20 +272,13 @@ export class Interpreter<
   }
 
   /**
-   * Adds a state listener that is notified when the statechart has reached its final state.
-   * @param listener The state listener
+   * Calls the `listener` when the actor is stopped.
    */
-  public onDone(listener: EventListener<DoneEvent>): this {
-    if (this.status === ActorStatus.Stopped && this._doneEvent) {
-      listener(this._doneEvent);
+  public onStop(listener: () => void) {
+    if (this.status === ActorStatus.Stopped) {
+      listener();
     } else {
-      this.observers.add({
-        complete: () => {
-          if (this._doneEvent) {
-            listener(this._doneEvent);
-          }
-        }
-      });
+      this.stopListeners.add(listener);
     }
 
     return this;
@@ -406,6 +400,9 @@ export class Interpreter<
 
     this.status = ActorStatus.Stopped;
     this.system._unregister(this);
+
+    this.stopListeners.forEach((listener) => listener());
+    this.stopListeners.clear();
 
     return this;
   }

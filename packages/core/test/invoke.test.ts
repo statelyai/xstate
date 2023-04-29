@@ -159,13 +159,15 @@ describe('invoke', () => {
     service.subscribe((s) => {
       state = s;
     });
-    service.onDone(() => {
-      // 1. The 'parent' machine will not do anything (inert transition)
-      // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
-      // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
-      // 4. The context of the 'parent' machine will be updated from 2 to -1
+    service.subscribe({
+      complete: () => {
+        // 1. The 'parent' machine will not do anything (inert transition)
+        // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
+        // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
+        // 4. The context of the 'parent' machine will be updated from 2 to -1
 
-      expect(state.context).toEqual({ count: -3 });
+        expect(state.context).toEqual({ count: -3 });
+      }
     });
     service.start();
 
@@ -694,9 +696,11 @@ describe('invoke', () => {
       });
 
       const service = interpret(parent);
-      service.onDone(() => {
-        expect(invokeCount).toBe(1);
-        done();
+      service.subscribe({
+        complete: () => {
+          expect(invokeCount).toBe(1);
+          done();
+        }
       });
       service.start();
 
@@ -775,9 +779,11 @@ describe('invoke', () => {
 
       it('should be invoked with a promise factory and resolve through onDone', (done) => {
         const service = interpret(invokePromiseMachine);
-        service.onDone(() => {
-          expect(service.getSnapshot()._event.origin).toBeDefined();
-          done();
+        service.subscribe({
+          complete: () => {
+            expect(service.getSnapshot()._event.origin).toBeDefined();
+            done();
+          }
         });
         service.start();
       });
@@ -847,22 +853,19 @@ describe('invoke', () => {
 
         const actor = interpret(promiseMachine);
 
-        // actor.subscribe({ complete: doneSpy });
-        actor.onDone(doneSpy);
         actor.subscribe({
           error: (err) => {
             // TODO: determine if err should be the full SCXML error event
             expect(err).toBeInstanceOf(Error);
             expect(err.message).toBe('test');
-          }
+          },
+          complete: doneSpy
         });
         actor.start();
 
-        actor.subscribe({
-          complete() {
-            expect(doneSpy).not.toHaveBeenCalled();
-            done();
-          }
+        actor.onStop(() => {
+          expect(doneSpy).not.toHaveBeenCalled();
+          done();
         });
       });
 
@@ -962,9 +965,11 @@ describe('invoke', () => {
         });
 
         const actor = interpret(promiseMachine);
-        actor.onDone(() => {
-          expect(actor.getSnapshot().context.count).toEqual(1);
-          done();
+        actor.subscribe({
+          complete: () => {
+            expect(actor.getSnapshot().context.count).toEqual(1);
+            done();
+          }
         });
         actor.start();
       });
@@ -1002,9 +1007,11 @@ describe('invoke', () => {
         );
 
         const actor = interpret(promiseMachine);
-        actor.onDone(() => {
-          expect(actor.getSnapshot().context.count).toEqual(1);
-          done();
+        actor.subscribe({
+          complete: () => {
+            expect(actor.getSnapshot().context.count).toEqual(1);
+            done();
+          }
         });
         actor.start();
       });
@@ -1037,9 +1044,11 @@ describe('invoke', () => {
         });
 
         const actor = interpret(promiseMachine);
-        actor.onDone(() => {
-          expect(count).toEqual(1);
-          done();
+        actor.subscribe({
+          complete: () => {
+            expect(count).toEqual(1);
+            done();
+          }
         });
         actor.start();
       });
@@ -1078,9 +1087,11 @@ describe('invoke', () => {
         );
 
         const actor = interpret(promiseMachine);
-        actor.onDone(() => {
-          expect(count).toEqual(1);
-          done();
+        actor.subscribe({
+          complete: () => {
+            expect(count).toEqual(1);
+            done();
+          }
         });
         actor.start();
       });
@@ -1130,7 +1141,7 @@ describe('invoke', () => {
         );
 
         const actor = interpret(promiseMachine);
-        actor.onDone(() => done());
+        actor.subscribe({ complete: () => done() });
         actor.start();
         actor.send({
           type: 'BEGIN',
@@ -1212,12 +1223,14 @@ describe('invoke', () => {
         );
 
         const service = interpret(machine);
-        service.onDone(() => {
-          const snapshot = service.getSnapshot();
-          expect(typeof snapshot.context.result1).toBe('number');
-          expect(typeof snapshot.context.result2).toBe('number');
-          expect(snapshot.context.result1).not.toBe(snapshot.context.result2);
-          done();
+        service.subscribe({
+          complete: () => {
+            const snapshot = service.getSnapshot();
+            expect(typeof snapshot.context.result1).toBe('number');
+            expect(typeof snapshot.context.result2).toBe('number');
+            expect(snapshot.context.result1).not.toBe(snapshot.context.result2);
+            done();
+          }
         });
         service.start();
       });
@@ -1295,7 +1308,7 @@ describe('invoke', () => {
       );
 
       const actor = interpret(callbackMachine);
-      actor.onDone(() => done());
+      actor.subscribe({ complete: () => done() });
       actor.start();
       actor.send({
         type: 'BEGIN',
@@ -1645,9 +1658,11 @@ describe('invoke', () => {
       });
 
       const actor = interpret(asyncWithDoneMachine);
-      actor.onDone(() => {
-        expect(actor.getSnapshot().context.result).toEqual(42);
-        done();
+      actor.subscribe({
+        complete: () => {
+          expect(actor.getSnapshot().context.result).toEqual(42);
+          done();
+        }
       });
       actor.start();
     });
@@ -1786,14 +1801,16 @@ describe('invoke', () => {
           state = s;
           events.push(s.event);
         });
-        service.onDone(() => {
-          expect(events.map((e) => e.type)).toEqual([
-            actionTypes.init,
-            'STOPCHILD',
-            doneInvoke('invoked.child').type
-          ]);
-          expect(state.value).toEqual('completed');
-          done();
+        service.subscribe({
+          complete: () => {
+            expect(events.map((e) => e.type)).toEqual([
+              actionTypes.init,
+              'STOPCHILD',
+              doneInvoke('invoked.child').type
+            ]);
+            expect(state.value).toEqual('completed');
+            done();
+          }
         });
         service.start();
 
@@ -1832,9 +1849,11 @@ describe('invoke', () => {
       });
 
       const service = interpret(obsMachine);
-      service.onDone(() => {
-        expect(service.getSnapshot()._event.origin).toBeDefined();
-        done();
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot()._event.origin).toBeDefined();
+          done();
+        }
       });
       service.start();
     });
@@ -1973,9 +1992,11 @@ describe('invoke', () => {
       });
 
       const service = interpret(obsMachine);
-      service.onDone(() => {
-        expect(service.getSnapshot()._event.origin).toBeDefined();
-        done();
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot()._event.origin).toBeDefined();
+          done();
+        }
       });
       service.start();
     });
@@ -2354,12 +2375,14 @@ describe('invoke', () => {
 
     it('should start all services at once', (done) => {
       const service = interpret(multiple);
-      service.onDone(() => {
-        expect(service.getSnapshot().context).toEqual({
-          one: 'one',
-          two: 'two'
-        });
-        done();
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().context).toEqual({
+            one: 'one',
+            two: 'two'
+          });
+          done();
+        }
       });
 
       service.start();
@@ -2422,12 +2445,14 @@ describe('invoke', () => {
 
     it('should run services in parallel', (done) => {
       const service = interpret(parallel);
-      service.onDone(() => {
-        expect(service.getSnapshot().context).toEqual({
-          one: 'one',
-          two: 'two'
-        });
-        done();
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().context).toEqual({
+            one: 'one',
+            two: 'two'
+          });
+          done();
+        }
       });
 
       service.start();
@@ -3150,8 +3175,11 @@ describe('actors option', () => {
       }
     );
 
-    const service = interpret(machine).onDone(() => {
-      done();
+    const service = interpret(machine);
+    service.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     service.start();

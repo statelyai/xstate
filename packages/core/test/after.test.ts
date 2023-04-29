@@ -106,9 +106,11 @@ describe('delayed transitions', () => {
     });
 
     const actor = interpret(machine);
-    actor.onDone(() => {
-      expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
-      done();
+    actor.subscribe({
+      complete: () => {
+        expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
+        done();
+      }
     });
     actor.start();
   });

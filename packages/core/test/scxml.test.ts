@@ -354,22 +354,24 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
     const actor = interpret(machine, {
       logger: () => void 0
     });
-    actor.subscribe((state) => {
-      prevState = nextState;
-      nextState = state;
-    });
-    actor.onDone(() => {
-      // Add 'final' for test230.txml which does not have a 'pass' state
-      if (['final', 'pass'].includes(nextState.value as string)) {
-        resolve();
-      } else {
-        reject(
-          new Error(
-            `Reached "fail" state with event ${JSON.stringify(
-              nextState.event
-            )} from state ${JSON.stringify(prevState?.value)}`
-          )
-        );
+    actor.subscribe({
+      next: (state) => {
+        prevState = nextState;
+        nextState = state;
+      },
+      complete: () => {
+        // Add 'final' for test230.txml which does not have a 'pass' state
+        if (['final', 'pass'].includes(nextState.value as string)) {
+          resolve();
+        } else {
+          reject(
+            new Error(
+              `Reached "fail" state with event ${JSON.stringify(
+                nextState.event
+              )} from state ${JSON.stringify(prevState?.value)}`
+            )
+          );
+        }
       }
     });
     actor.start();
@@ -392,19 +394,21 @@ async function runTestToCompletion(
   const service = interpret(machine, {
     clock: new SimulatedClock()
   });
-  service.subscribe((state) => {
-    prevState = nextState;
-    nextState = state;
-  });
-  service.onDone(() => {
-    if (nextState.value === 'fail') {
-      throw new Error(
-        `Reached "fail" state with event ${JSON.stringify(
-          nextState.event
-        )} from state ${JSON.stringify(prevState?.value)}`
-      );
+  service.subscribe({
+    next: (state) => {
+      prevState = nextState;
+      nextState = state;
+    },
+    complete: () => {
+      if (nextState.value === 'fail') {
+        throw new Error(
+          `Reached "fail" state with event ${JSON.stringify(
+            nextState.event
+          )} from state ${JSON.stringify(prevState?.value)}`
+        );
+      }
+      done = true;
     }
-    done = true;
   });
   service.start();
 

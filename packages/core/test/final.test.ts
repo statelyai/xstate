@@ -133,11 +133,13 @@ describe('final states', () => {
     });
 
     const service = interpret(machine);
-    service.onDone(() => {
-      expect(service.getSnapshot().context).toEqual({
-        revealedSecret: 'the secret'
-      });
-      done();
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().context).toEqual({
+          revealedSecret: 'the secret'
+        });
+        done();
+      }
     });
     service.start();
 

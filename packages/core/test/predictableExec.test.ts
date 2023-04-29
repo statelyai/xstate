@@ -609,9 +609,11 @@ describe('predictableExec', () => {
     });
 
     service = interpret(machine);
-    service.onDone(() => {
-      expect(service.getSnapshot().value).toBe('success');
-      done();
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('success');
+        done();
+      }
     });
     service.start();
   });
@@ -776,9 +778,11 @@ describe('predictableExec', () => {
     });
 
     service = interpret(machine);
-    service.onDone(() => {
-      expect(service.getSnapshot().value).toBe('success');
-      done();
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('success');
+        done();
+      }
     });
     service.start();
   });

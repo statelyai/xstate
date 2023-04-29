@@ -362,9 +362,11 @@ describe('machine', () => {
       const persistedState = machine.getPersistedState(nextState);
 
       const service = interpret(machine, { state: persistedState });
-      service.onDone(() => {
-        // Should reach done state immediately
-        done();
+      service.subscribe({
+        complete: () => {
+          // Should reach done state immediately
+          done();
+        }
       });
 
       service.start();

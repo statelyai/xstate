@@ -736,10 +736,12 @@ describe('interpreter', () => {
 
     let state: any;
     const deferService = interpret(deferMachine);
-    deferService.onDone(() => done());
 
-    deferService.subscribe((nextState) => {
-      state = nextState;
+    deferService.subscribe({
+      next: (nextState) => {
+        state = nextState;
+      },
+      complete: done
     });
 
     // uninitialized
@@ -1489,9 +1491,11 @@ describe('interpreter', () => {
 
       let count: number;
       const service = interpret(machine);
-      service.onDone(() => {
-        expect(count).toEqual(2);
-        done();
+      service.subscribe({
+        complete: () => {
+          expect(count).toEqual(2);
+          done();
+        }
       });
       service.start();
 
@@ -1653,17 +1657,21 @@ describe('interpreter', () => {
       });
 
       const service = interpret(parentMachine);
-      service.onDone(() => {
-        expect(service.getSnapshot().matches('success')).toBeTruthy();
-        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
-        done();
-      });
 
-      service.subscribe((state) => {
-        if (state.matches('active')) {
-          const childActor = state.children.childActor;
+      service.subscribe({
+        next: (state) => {
+          if (state.matches('active')) {
+            const childActor = state.children.childActor;
 
-          expect(childActor).toHaveProperty('send');
+            expect(childActor).toHaveProperty('send');
+          }
+        },
+        complete: () => {
+          expect(service.getSnapshot().matches('success')).toBeTruthy();
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
+          done();
         }
       });
 
@@ -1695,9 +1703,13 @@ describe('interpreter', () => {
       });
 
       const service = interpret(parentMachine);
-      service.onDone(() => {
-        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
-        done();
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
+          done();
+        }
       });
 
       service.subscribe((state) => {
@@ -1788,11 +1800,15 @@ describe('interpreter', () => {
       });
 
       const service = interpret(parentMachine);
-      service.onDone(() => {
-        expect(service.getSnapshot().children.machineChild).toBeUndefined();
-        expect(service.getSnapshot().children.promiseChild).toBeUndefined();
-        expect(service.getSnapshot().children.observableChild).toBeUndefined();
-        done();
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().children.machineChild).toBeUndefined();
+          expect(service.getSnapshot().children.promiseChild).toBeUndefined();
+          expect(
+            service.getSnapshot().children.observableChild
+          ).toBeUndefined();
+          done();
+        }
       });
       service.start();
 
