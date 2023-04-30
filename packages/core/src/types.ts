@@ -524,7 +524,8 @@ export type TransitionsConfig<
 
 export interface InvokeConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TReceivedEvent extends EventObject
 > {
   /**
    * The unique identifier for the invoked machine. If not specified, this
@@ -538,7 +539,10 @@ export interface InvokeConfig<
    */
   src: string | ActorBehavior<any, any>; // TODO: fix types
 
-  input?: Mapper<TContext, TEvent, any> | any;
+  input?:
+    | Mapper<TContext, TReceivedEvent, any>
+    // non-function
+    | Exclude<{}, Function>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -602,7 +606,7 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<string | InvokeConfig<TContext, TEvent>>;
+  invoke?: SingleOrArray<string | InvokeConfig<TContext, TEvent, TEvent>>;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -994,16 +998,16 @@ export type MachineImplementations<
   ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActorMap>
 >;
 
-type InitialContext<TContext extends MachineContext> =
+type InitialContext<TContext extends MachineContext, TInput> =
   | TContext
-  | ContextFactory<TContext>;
+  | ContextFactory<TContext, TInput>;
 
-export type ContextFactory<TContext extends MachineContext> = ({
+export type ContextFactory<TContext extends MachineContext, TInput> = ({
   spawn,
   input
 }: {
   spawn: Spawner;
-  input: any; // TODO: fix
+  input: TInput;
 }) => TContext;
 
 export interface MachineConfig<
@@ -1011,12 +1015,13 @@ export interface MachineConfig<
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
-  TTypesMeta = TypegenDisabled
+  TTypesMeta = TypegenDisabled,
+  TInput = unknown
 > extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
   /**
    * The initial context (extended state)
    */
-  context?: InitialContext<LowInfer<TContext>>;
+  context?: InitialContext<LowInfer<TContext>, TInput>;
   /**
    * The machine's own version.
    */
@@ -1025,7 +1030,18 @@ export interface MachineConfig<
    * If `true`, will use SCXML semantics, such as event token matching.
    */
   scxml?: boolean;
-  types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
+  types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta, TInput>;
+  invoke?: SingleOrArray<
+    | string
+    | InvokeConfig<
+        TContext,
+        TEvent,
+        {
+          type: 'xstate.init';
+          input: TInput;
+        }
+      >
+  >;
 }
 
 export type ActorMap = Record<string, { output: any }>;
@@ -1033,7 +1049,8 @@ export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActorMap extends ActorMap = ActorMap,
-  TTypesMeta = TypegenDisabled
+  TTypesMeta = TypegenDisabled,
+  TInput = unknown
 > {
   context?: TContext;
   actions?: { type: string; [key: string]: any };
@@ -1041,6 +1058,7 @@ export interface MachineTypes<
   events?: TEvent;
   guards?: { type: string; [key: string]: any };
   typegen?: TTypesMeta;
+  input?: TInput;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
@@ -1350,7 +1368,7 @@ export type Mapper<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TParams extends {}
-> = (args: { context: TContext; event: TEvent }) => TParams;
+> = (args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent>) => TParams;
 
 export type PropertyMapper<
   TContext extends MachineContext,
@@ -1548,7 +1566,19 @@ export interface StateConfig<
   _internalQueue?: Array<SCXML.Event<TEvent>>;
 }
 
-export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
+export type InputFrom<TBehavior extends AnyActorBehavior> =
+  TBehavior extends ActorBehavior<
+    infer _TEvent,
+    infer _TSnapshot,
+    infer _TInternalState,
+    infer _TPersisted,
+    infer _TSystem,
+    infer TInput
+  >
+    ? TInput
+    : never;
+
+export interface InterpreterOptions<TActorBehavior extends AnyActorBehavior> {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
@@ -1584,7 +1614,7 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   /**
    * The input data to pass to the actor.
    */
-  input?: any;
+  input?: InputFrom<TActorBehavior>;
 
   // state?:
   //   | PersistedStateFrom<TActorBehavior>
@@ -1844,7 +1874,8 @@ export interface ActorBehavior<
    * Serialized internal state used for persistence & restoration
    */
   TPersisted = TInternalState,
-  TSystem extends ActorSystem<any> = ActorSystem<any>
+  TSystem extends ActorSystem<any> = ActorSystem<any>,
+  TInput = any
 > {
   transition: (
     state: TInternalState,
@@ -1853,7 +1884,7 @@ export interface ActorBehavior<
   ) => TInternalState;
   getInitialState: (
     actorCtx: ActorContext<TEvent, TSnapshot, any>,
-    input: any
+    input: TInput
   ) => TInternalState;
   restoreState?: (
     persistedState: TPersisted,

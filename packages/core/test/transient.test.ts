@@ -619,8 +619,9 @@ describe('transient states (eventless transitions)', () => {
       context: ({ input }) => ({
         duration: input.duration
       }),
-      types: {
-        context: {} as { duration: number }
+      types: {} as {
+        context: { duration: number };
+        input: { duration: number };
       },
       states: {
         initial: {
@@ -640,6 +641,9 @@ describe('transient states (eventless transitions)', () => {
     });
 
     const machine = createMachine({
+      types: {} as {
+        context: { customDuration: number };
+      },
       initial: 'active',
       context: {
         customDuration: 3000
@@ -648,9 +652,9 @@ describe('transient states (eventless transitions)', () => {
         active: {
           invoke: {
             src: timerMachine,
-            input: {
-              duration: (context: any) => context.customDuration
-            }
+            input: ({ context }) => ({
+              duration: context.customDuration
+            })
           }
         }
       }

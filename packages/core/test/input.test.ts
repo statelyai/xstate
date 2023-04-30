@@ -12,7 +12,11 @@ describe('input', () => {
   it('should create a machine with input', () => {
     const spy = jest.fn();
 
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+        input: { startCount: number };
+      },
       context: ({ input }) => ({
         count: input.startCount
       }),
@@ -21,7 +25,8 @@ describe('input', () => {
       }
     });
 
-    interpret(machine, { input: { startCount: 42 } }).start();
+    const actor = interpret(machine, { input: { startCount: 42 } });
+    actor.start();
 
     expect(spy).toHaveBeenCalledWith(42);
   });
@@ -38,9 +43,11 @@ describe('input', () => {
   });
 
   it('should throw if input is expected but not provided', () => {
-    const machine = createMachine<{
-      message: string;
-    }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { message: string };
+        input: { greeting: string };
+      },
       context: ({ input }) => ({
         message: `Hello, ${input.greeting}`
       })
@@ -196,6 +203,9 @@ describe('input', () => {
 
     const machine = createMachine(
       {
+        types: {} as {
+          input: number;
+        },
         invoke: {
           src: 'child',
           input: ({ event }) => {
@@ -225,6 +235,9 @@ describe('input', () => {
 
     const machine = createMachine(
       {
+        types: {} as {
+          input: number;
+        },
         invoke: {
           src: 'child'
         }
@@ -254,6 +267,9 @@ describe('input', () => {
 
     const machine = createMachine(
       {
+        types: {} as {
+          input: number;
+        },
         invoke: {
           src: 'child'
         }

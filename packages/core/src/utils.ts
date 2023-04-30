@@ -238,7 +238,7 @@ export function mapContext<
   _event: SCXML.Event<TEvent>
 ): any {
   if (isFunction(mapper)) {
-    return mapper({ context, event: _event.data });
+    return mapper({ context, event: _event.data, _event });
   }
 
   const result = {} as any;
@@ -462,9 +462,12 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable: InvokeConfig<TContext, TEvent> | string | ActorBehavior<any, any>,
+  invocable:
+    | InvokeConfig<TContext, TEvent, TEvent>
+    | string
+    | ActorBehavior<any, any>,
   id: string
-): InvokeConfig<TContext, TEvent> {
+): InvokeConfig<TContext, TEvent, TEvent> {
   if (typeof invocable === 'object') {
     if ('src' in invocable) {
       return invocable;

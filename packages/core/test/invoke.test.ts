@@ -30,8 +30,13 @@ import {
 
 const user = { name: 'David' };
 
-const fetchMachine = createMachine<{ userId: string | undefined }>({
+const fetchMachine = createMachine({
   id: 'fetch',
+  types: {} as {
+    context: { userId: string | undefined };
+    input: { userId: string };
+    events: { type: 'RESOLVE'; user: typeof user } | { type: 'REJECT' };
+  },
   context: ({ input }) => ({
     userId: input.userId
   }),
@@ -174,8 +179,13 @@ describe('invoke', () => {
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
-    const childMachine = createMachine<{ userId: string | undefined }>({
+    const childMachine = createMachine({
       id: 'fetch',
+      types: {} as {
+        context: { userId: string | undefined };
+        input: { userId: string };
+        events: { type: 'RESOLVE'; user: typeof user } | { type: 'REJECT' };
+      },
       context: ({ input }) => ({
         userId: input.userId
       }),
@@ -727,8 +737,14 @@ describe('invoke', () => {
     describe(`with promises (${type})`, () => {
       const invokePromiseMachine = createMachine({
         id: 'invokePromise',
+        types: {} as {
+          context: { id: number; succeed: boolean };
+          input?: { id: number; succeed: boolean };
+        },
         initial: 'pending',
         context: ({ input }) => ({
+          // TODO: why doesn't undefined work here?
+          // input is optional...
           id: 42,
           succeed: true,
           ...input

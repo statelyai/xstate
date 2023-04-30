@@ -976,6 +976,9 @@ describe('interpreter', () => {
     it('should resolve sendParent event expressions', (done) => {
       const childMachine = createMachine({
         id: 'child',
+        types: {} as {
+          input: { password: string };
+        },
         initial: 'start',
         context: ({ input }) => ({
           password: input.password
@@ -989,11 +992,11 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<
-        any,
-        { type: 'NEXT'; password: string }
-      >({
+      const parentMachine = createMachine({
         id: 'parent',
+        types: {} as {
+          events: { type: 'NEXT'; password: string };
+        },
         initial: 'start',
         states: {
           start: {

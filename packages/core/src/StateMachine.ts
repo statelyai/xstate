@@ -74,13 +74,16 @@ export class StateMachine<
     NoInfer<TEvent>,
     TAction,
     TActorMap
-  >
+  >,
+  TInput = unknown
 > implements
     ActorBehavior<
       TEvent | SCXML.Event<TEvent>,
       State<TContext, TEvent, TResolvedTypesMeta>,
       State<TContext, TEvent, TResolvedTypesMeta>,
-      PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
+      PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
+      any, // TODO: system
+      TInput
     >
 {
   // TODO: this getter should be removed
@@ -339,7 +342,7 @@ export class StateMachine<
       TEvent,
       State<TContext, TEvent, TResolvedTypesMeta>
     >,
-    input?: any
+    input?: TInput
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const initEvent = createInitEvent(input) as unknown as SCXML.Event<TEvent>; // TODO: fix;
 
@@ -501,4 +504,5 @@ export class StateMachine<
   __TActorMap!: TActorMap;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
+  __TInput!: TInput;
 }

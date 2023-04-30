@@ -341,6 +341,11 @@ describe('machine behavior', () => {
     });
 
     const machine = createMachine({
+      types: {} as {
+        events: {
+          type: 'done';
+        };
+      },
       initial: 'waiting',
       invoke: [
         {

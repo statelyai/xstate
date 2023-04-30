@@ -18,14 +18,17 @@ export function createMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject,
   TActorMap extends ActorMap = ActorMap,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  TTypesMeta extends TypegenConstraint = TypegenDisabled,
+  TInput = unknown,
+  _TOutput = unknown
 >(
   config: MachineConfig<
     TContext,
     TEvent,
     ParameterizedObject,
     TActorMap,
-    TTypesMeta
+    TTypesMeta,
+    TInput
   >,
   implementations?: InternalMachineImplementations<
     TContext,
@@ -37,9 +40,10 @@ export function createMachine<
   TEvent,
   ParameterizedObject,
   TActorMap,
-  ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActorMap>
+  ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActorMap>,
+  TInput
 > {
-  return new StateMachine<any, any, any, any, any>(
+  return new StateMachine<any, any, any, any, any, any>(
     config,
     implementations as any
   );
