@@ -93,4 +93,47 @@ describe('getMachineShortestPaths', () => {
       ]
     `);
   });
+
+  it('handles event cases', () => {
+    const machine = createMachine({
+      types: {
+        events: {} as { type: 'todo.add'; todo: string },
+        context: {} as { todos: string[] }
+      },
+      context: {
+        todos: []
+      },
+      on: {
+        'todo.add': {
+          actions: assign({
+            todos: ({ context, event }) => {
+              return context.todos.concat(event.todo);
+            }
+          })
+        }
+      }
+    });
+
+    const shortestPaths = getMachineShortestPaths(machine, {
+      events: [
+        {
+          type: 'todo.add',
+          todo: 'one'
+        } as const,
+        {
+          type: 'todo.add',
+          todo: 'two'
+        } as const
+      ],
+      filter: (state) => state.context.todos.length < 3
+    });
+
+    const pathWithTwoTodos = shortestPaths.filter(
+      (path) =>
+        path.state.context.todos.includes('one') &&
+        path.state.context.todos.includes('two')
+    );
+
+    expect(pathWithTwoTodos).toBeDefined();
+  });
 });

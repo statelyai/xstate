@@ -11,8 +11,8 @@ import {
   isSCXMLEvent,
   isFunction
 } from '../utils';
-import { doneInvoke, error } from '../actions.js';
-import { startSignalType, stopSignalType, isSignal } from '../actors/index.js';
+import { doneInvoke, error } from '../actions.ts';
+import { startSignalType, stopSignalType, isSignal } from '../actors/index.ts';
 
 export interface CallbackInternalState {
   canceled: boolean;
@@ -34,7 +34,7 @@ export function fromCallback<TEvent extends EventObject>(
       if (_event.name === startSignalType) {
         const sender = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
-            return state;
+            return;
           }
 
           self._parent?.send(toSCXMLEvent(eventForParent, { origin: self }));

@@ -1,5 +1,13 @@
 # @xstate/fsm
 
+## 3.0.0-beta.2
+
+## 3.0.0-alpha.1
+
+### Major Changes
+
+- [#3917](https://github.com/statelyai/xstate/pull/3917) [`b8b44206e`](https://github.com/statelyai/xstate/commit/b8b44206e9aa465585d67cde3552ea95bd6ad378) Thanks [@Andarist](https://github.com/Andarist)! - Observing a service via `service.subscribe(...)` no longer immediately receives the current state. Instead, the current state can be read from `service.state`, and observers will receive snapshots only when a transition in the service occurs.
+
 ## 3.0.0-alpha.0
 
 ### Major Changes

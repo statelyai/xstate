@@ -1,6 +1,6 @@
 {
   "name": "@xstate/solid",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "XState tools for SolidJS",
   "keywords": [
     "state",
@@ -48,9 +48,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^3.0.0-alpha.0",
+    "@xstate/fsm": "^3.0.0-beta.2",
     "solid-js": "^1.6.0",
-    "xstate": "^5.0.0-alpha.2"
+    "xstate": "^5.0.0-beta.8"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -61,10 +61,10 @@
     }
   },
   "devDependencies": {
-    "@xstate/fsm": "3.0.0-alpha.0",
+    "@xstate/fsm": "3.0.0-beta.2",
     "solid-js": "^1.6.0",
     "solid-testing-library": "^0.3.0",
-    "xstate": "5.0.0-alpha.2"
+    "xstate": "5.0.0-beta.8"
   },
   "preconstruct": {
     "entrypoints": [

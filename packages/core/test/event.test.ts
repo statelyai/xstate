@@ -4,9 +4,9 @@ import {
   interpret,
   assign,
   AnyActorRef
-} from '../src/index.js';
+} from '../src/index.ts';
 import { respond } from '../src/actions';
-import { send, sendTo } from '../src/actions/send';
+import { sendTo } from '../src/actions/send';
 import { fromCallback } from '../src/actors/callback';
 
 describe('SCXML events', () => {
@@ -117,12 +117,7 @@ describe('SCXML events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: send(
-            { type: 'CODE' },
-            {
-              to: 'auth-server'
-            }
-          ),
+          entry: sendTo('auth-server', { type: 'CODE' }),
           on: {
             TOKEN: 'authorized'
           }
@@ -142,7 +137,7 @@ describe('SCXML events', () => {
 
   it('should be able to respond to sender by sending self', (done) => {
     const authServerMachine = createMachine({
-      schema: {
+      types: {
         events: {} as { type: 'CODE'; sender: AnyActorRef }
       },
       id: 'authServer',

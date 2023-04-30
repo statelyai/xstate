@@ -1,5 +1,169 @@
 # xstate
 
+## 4.37.2
+
+### Patch Changes
+
+- [#3972](https://github.com/statelyai/xstate/pull/3972) [`2b9583a63`](https://github.com/statelyai/xstate/commit/2b9583a63c9089103365bad9419bd4a1edd43556) Thanks [@Andarist](https://github.com/Andarist)! - The "Some implementations missing" type-level error will now mention what implementations are missing.
+
+## 5.0.0-beta.8
+
+### Major Changes
+
+- [#898](https://github.com/statelyai/xstate/pull/898) [`26986f417`](https://github.com/statelyai/xstate/commit/26986f4178d34ce3f74209e89006337cc1c10dbc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Sending a string event to `actor.send('some string')` will now throw a proper error message.
+
+- [#3957](https://github.com/statelyai/xstate/pull/3957) [`423c5ab72`](https://github.com/statelyai/xstate/commit/423c5ab72f1ad7f510f94a5b4b5f98e5e8540d0e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The machine `.schema` property is now `.types`:
+
+  ```ts
+  const machine = createMachine({
+    // schema: { ... }
+    types: {} as {
+      context: { ... };
+      events: { ... };
+      // ...
+    }
+  });
+  ```
+
+  And the `.tsTypes` property is now `.types.typegen`:
+
+  ```ts
+  const machine = createMachine({
+    // tsTypes: { ... }
+    types: {} as {
+      typegen: {};
+      context: { ... };
+      events: { ... };
+      // ...
+    }
+  });
+  ```
+
+- [#3968](https://github.com/statelyai/xstate/pull/3968) [`eecb31b8f`](https://github.com/statelyai/xstate/commit/eecb31b8f43efc4580887ad850336ea74cfba537) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createEmptyActor()` function has been added to make it easier to create actors that do nothing ("empty" actors). This is useful for testing, or for some integrations such as `useActor(actor)` in `@xstate/react` that require an actor:
+
+  ```jsx
+  import { createEmptyActor } from 'xstate';
+
+  const SomeComponent = (props) => {
+    // props.actor may be undefined
+    const [state, send] = useActor(props.actor ?? createEmptyActor());
+
+    // ...
+  };
+  ```
+
+- [#3966](https://github.com/statelyai/xstate/pull/3966) [`61db63bf4`](https://github.com/statelyai/xstate/commit/61db63bf44edf0efe4774ebdec29244d7d024381) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now import the following from `xstate`:
+
+  ```js
+  import {
+    // actions
+    // sendTo (removed)
+    pure,
+
+    // interpret helpers
+    waitFor,
+
+    // actor functions
+    fromPromise,
+    fromObservable,
+    fromCallback,
+    fromEventObservable,
+    fromTransition,
+
+    // guard functions
+    stateIn,
+    not,
+    and,
+    or
+  }
+  ```
+
+  The `send` action was removed from exports; use `sendTo(...)` or `raise(...)` instead.
+
+### Patch Changes
+
+- [#3959](https://github.com/statelyai/xstate/pull/3959) [`ead287257`](https://github.com/statelyai/xstate/commit/ead28725741c99c6282bd8ab1b7c12818bd66865) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Unresolved promises will now be properly persisted. The current behavior is to restart a promise that is unresolved.
+
+## 5.0.0-beta.7
+
+### Major Changes
+
+- [#3900](https://github.com/statelyai/xstate/pull/3900) [`7d1a8ff09`](https://github.com/statelyai/xstate/commit/7d1a8ff097dc96526e4aba3700d34934133e6eeb) Thanks [@Andarist](https://github.com/Andarist)! - `external` property on transitions has been renamed to `reenter`
+
+## 5.0.0-alpha.6
+
+### Major Changes
+
+- [#3952](https://github.com/statelyai/xstate/pull/3952) [`ec300837e`](https://github.com/statelyai/xstate/commit/ec300837e7665057b0edf8f3728319ca509ed801) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The output data on final states is now specified as `.output` instead of `.data`:
+
+  ```diff
+  const machine = createMachine({
+    // ...
+    states: {
+      // ...
+      success: {
+  -     data: { message: 'Success!' }
+  +     output: { message: 'Success!' }
+      }
+    }
+  })
+  ```
+
+- [#2881](https://github.com/statelyai/xstate/pull/2881) [`2f45343c5`](https://github.com/statelyai/xstate/commit/2f45343c5a8984dd92ee6b2ee6fcf90efaee264f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Target resolution improvements: targeting sibling nodes from the root is no longer valid, since the root node has no siblings:
+
+  ```diff
+  createMachine({
+    id: 'direction',
+    initial: 'left',
+    states: {
+      left: {},
+      right: {}
+    },
+    on: {
+  -   LEFT_CLICK: 'left',
+  +   LEFT_CLICK: '.left'
+    }
+  });
+  ```
+
+## 5.0.0-alpha.5
+
+### Major Changes
+
+- [#3926](https://github.com/statelyai/xstate/pull/3926) [`f9f692b2b`](https://github.com/statelyai/xstate/commit/f9f692b2b7f51311a41d6de13037c61bbcb9b7c2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Restored state will no longer contain actions, since they are assumed to have already been executed. Actions will not be replayed.
+
+  If you want to replay actions when restoring state, it is recommended to use an event sourcing approach.
+
+## 5.0.0-alpha.4
+
+### Major Changes
+
+- [#3950](https://github.com/statelyai/xstate/pull/3950) [`e5ee0a1e8`](https://github.com/statelyai/xstate/commit/e5ee0a1e8da3487c405021901e0642f773a7e75e) Thanks [@Andarist](https://github.com/Andarist)! - Actions are no longer called with `state`
+
+## 5.0.0-alpha.3
+
+### Major Changes
+
+- [#3939](https://github.com/statelyai/xstate/pull/3939) [`91bc6fdd5`](https://github.com/statelyai/xstate/commit/91bc6fdd505fb519dce5cb1b72760de43263de26) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Action/actor/delay/guard arguments are now consolidated into a single object argument. This is a breaking change for all of those things that are called with arguments.
+
+  ```diff
+  assign({
+  - count: (context, event) => {
+  + count: ({ context, event }) => {
+      return context.count + event.value;
+    }
+  })
+  ```
+
+- [#3939](https://github.com/statelyai/xstate/pull/3939) [`91bc6fdd5`](https://github.com/statelyai/xstate/commit/91bc6fdd505fb519dce5cb1b72760de43263de26) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Guard arguments are now consolidated into a single object argument. This is a breaking change for all guards that are called with arguments.
+
+  ```diff
+  - guard: (context, event) => {
+  + guard: ({ context, event }) => {
+    return context.count + event.value > 10;
+  }
+  ```
+
 ## 5.0.0-alpha.2
 
 ### Major Changes
@@ -186,6 +350,48 @@
 - [#3756](https://github.com/statelyai/xstate/pull/3756) [`67d576190`](https://github.com/statelyai/xstate/commit/67d57619015803a6a7cf9f3b6dd98c10c064faff) Thanks [@Andarist](https://github.com/Andarist)! - All transitions became internal by default. The style of the `target` pattern (`.child`, `sibling`, `#id`) has now no effect on the transition type.
 
   Internal transitions don't reenter their source state when the target lies within it. You can still create external transitions (ones that reenter the source state under the mentioned circumstances) by explicitly setting `external: true` on the given transition.
+
+## 4.37.1
+
+### Patch Changes
+
+- [#3913](https://github.com/statelyai/xstate/pull/3913) [`1c1874657`](https://github.com/statelyai/xstate/commit/1c187465797cd687f311d5a2e18c91738d17f194) Thanks [@Andarist](https://github.com/Andarist)! - Fixed `forwardTo`, `escalate` and `sendUpdate` to be compatible with required action types
+
+## 4.37.0
+
+### Minor Changes
+
+- [#3835](https://github.com/statelyai/xstate/pull/3835) [`431472082`](https://github.com/statelyai/xstate/commit/431472082f8b644da9f519931207aa994052517f) Thanks [@with-heart](https://github.com/with-heart)! - The new `TagsFrom` helper type extracts the type of `tags` from a state machine when typegen is enabled:
+
+  ```ts
+  const machine = createMachine({
+    // `tags` attached to machine via typegen
+    tsTypes: {} as import('./machine.typegen').Typegen0,
+    tags: ['a', 'b'],
+    states: {
+      idle: { tags: 'c' }
+    }
+  });
+
+  type Tags = TagsFrom<typeof machine>; // 'a' | 'b' | 'c'
+  ```
+
+  If typegen is not enabled, `TagsFrom` returns `string`:
+
+  ```ts
+  const machine = createMachine({
+    tags: ['a', 'b'],
+    states: {
+      idle: { tags: 'c' }
+    }
+  });
+
+  type Tags = TagsFrom<typeof machine>; // string
+  ```
+
+### Patch Changes
+
+- [#3855](https://github.com/statelyai/xstate/pull/3855) [`02012c2be`](https://github.com/statelyai/xstate/commit/02012c2be12f89aac43479b30571688496d8f1b3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed event type narrowing in some of the builtin actions.
 
 ## 4.36.0
 

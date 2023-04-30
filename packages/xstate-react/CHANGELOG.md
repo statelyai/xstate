@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.2.2
+
+### Patch Changes
+
+- [#3919](https://github.com/statelyai/xstate/pull/3919) [`6665f0a32`](https://github.com/statelyai/xstate/commit/6665f0a32327407e8fec12240383f211094d929c) Thanks [@c-w](https://github.com/c-w)! - Updated the allowed range for the `use-isomorphic-layout-effect` dependency.
+
+## 4.0.0-beta.3
+
+## 4.0.0-alpha.2
+
+### Patch Changes
+
+- [#3944](https://github.com/statelyai/xstate/pull/3944) [`305a89001`](https://github.com/statelyai/xstate/commit/305a89001d229f43eb85cd7bd06e797c3fb4f78a) Thanks [@Andarist](https://github.com/Andarist)! - Releasing adjusted internals to make the alpha version of this module compatible with the current version of `xstate@alpha`
+
 ## 3.2.1
 
 ### Patch Changes

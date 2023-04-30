@@ -9,8 +9,8 @@ import {
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { toActorRef } from 'xstate/actors';
-import { createInspectMachine, InspectMachineEvent } from './inspectMachine.js';
-import { stringifyMachine, stringifyState } from './serialize.js';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
+import { stringifyMachine, stringifyState } from './serialize.ts';
 import type {
   Inspector,
   InspectorOptions,
@@ -19,13 +19,13 @@ import type {
   ServiceListener,
   WebSocketReceiverOptions,
   WindowReceiverOptions
-} from './types.js';
+} from './types.ts';
 import {
   getLazy,
   isReceiverEvent,
   parseReceiverEvent,
   stringify
-} from './utils.js';
+} from './utils.ts';
 
 export const serviceMap = new Map<string, AnyInterpreter>();
 
@@ -73,7 +73,8 @@ const defaultInspectorOptions = {
     globalThis.__xstate__ = devTools;
     return devTools;
   },
-  serialize: undefined
+  serialize: undefined,
+  targetWindow: undefined
 };
 
 const getFinalOptions = (options?: Partial<InspectorOptions>) => {
@@ -89,9 +90,15 @@ const getFinalOptions = (options?: Partial<InspectorOptions>) => {
 const patchedInterpreters = new Set<AnyInterpreter>();
 
 export function inspect(options?: InspectorOptions): Inspector | undefined {
-  const { iframe, url, devTools } = getFinalOptions(options);
+  const finalOptions = getFinalOptions(options);
+  const { iframe, url, devTools } = finalOptions;
 
-  if (iframe === null) {
+  if (options?.targetWindow === null) {
+    throw new Error('Received a nullable `targetWindow`.');
+  }
+  let targetWindow: Window | null | undefined = finalOptions.targetWindow;
+
+  if (iframe === null && !targetWindow) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
@@ -107,7 +114,6 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     listeners.forEach((listener) => listener.next?.(state));
   });
 
-  let targetWindow: Window | null | undefined;
   let client: Pick<ActorRef<any>, 'send'>;
 
   const messageHandler = (event: MessageEvent<unknown>) => {
@@ -207,7 +213,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     });
 
     iframe.setAttribute('src', String(url));
-  } else {
+  } else if (!targetWindow) {
     targetWindow = window.open(String(url), 'xstateinspector');
   }
 

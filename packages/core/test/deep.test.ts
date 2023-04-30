@@ -1,180 +1,495 @@
-import { createMachine } from '../src/index';
+import { createMachine, interpret } from '../src/index.ts';
+import { trackEntries } from './utils.ts';
 
 describe('deep transitions', () => {
-  const deepMachine = createMachine({
-    id: 'deep',
-    initial: 'A',
-    on: {
-      MACHINE_EVENT: '#deep.DONE'
-    },
-    states: {
-      DONE: {},
-      FAIL: {},
-      A: {
-        on: {
-          A_EVENT: '#deep.DONE',
-          B_EVENT: 'FAIL', // shielded by B's B_EVENT
-          A_S: '#deep.P.Q.R.S',
-          A_P: '#deep.P'
-        },
-        entry: 'ENTER_A',
-        exit: 'EXIT_A',
-        initial: 'B',
-        states: {
-          B: {
-            on: {
-              B_EVENT: '#deep.DONE'
-            },
-            entry: 'ENTER_B',
-            exit: 'EXIT_B',
-            initial: 'C',
-            states: {
-              C: {
-                on: {
-                  C_EVENT: '#deep.DONE'
-                },
-                entry: 'ENTER_C',
-                exit: 'EXIT_C',
-                initial: 'D',
-                states: {
-                  D: {
-                    on: {
-                      D_EVENT: '#deep.DONE',
-                      D_S: '#deep.P.Q.R.S',
-                      D_P: '#deep.P'
-                    },
-                    entry: 'ENTER_D',
-                    exit: 'EXIT_D'
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      P: {
-        on: {
-          P_EVENT: '#deep.DONE',
-          Q_EVENT: 'FAIL' // shielded by Q's Q_EVENT
-        },
-        entry: 'ENTER_P',
-        exit: 'EXIT_P',
-        initial: 'Q',
-        states: {
-          Q: {
-            on: {
-              Q_EVENT: '#deep.DONE'
-            },
-            entry: 'ENTER_Q',
-            exit: 'EXIT_Q',
-            initial: 'R',
-            states: {
-              R: {
-                on: {
-                  R_EVENT: '#deep.DONE'
-                },
-                entry: 'ENTER_R',
-                exit: 'EXIT_R',
-                initial: 'S',
-                states: {
-                  S: {
-                    on: {
-                      S_EVENT: '#deep.DONE'
-                    },
-                    entry: 'ENTER_S',
-                    exit: 'EXIT_S'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  });
-
   describe('exiting super/substates', () => {
-    it('should exit all substates when superstates exits (A_EVENT)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'A_EVENT' })
-        .actions.map((a) => a.type);
-      const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      expect(actual).toEqual(expected);
+    it('should exit all substates when superstates exits', () => {
+      const machine = createMachine({
+        id: 'root',
+        initial: 'A',
+        states: {
+          DONE: {},
+          FAIL: {},
+          A: {
+            on: {
+              A_EVENT: '#root.DONE'
+            },
+            initial: 'B',
+            states: {
+              B: {
+                initial: 'C',
+                states: {
+                  C: {
+                    initial: 'D',
+                    states: {
+                      D: {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'A_EVENT'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: DONE'
+      ]);
     });
 
     it('should exit substates and superstates when exiting (B_EVENT)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'B_EVENT' })
-        .actions.map((a) => a.type);
-      const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      expect(actual).toEqual(expected);
+      const machine = createMachine({
+        id: 'root',
+        initial: 'A',
+        states: {
+          DONE: {},
+          A: {
+            initial: 'B',
+            states: {
+              B: {
+                on: {
+                  B_EVENT: '#root.DONE'
+                },
+                initial: 'C',
+                states: {
+                  C: {
+                    initial: 'D',
+                    states: {
+                      D: {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'B_EVENT'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: DONE'
+      ]);
     });
 
     it('should exit substates and superstates when exiting (C_EVENT)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'C_EVENT' })
-        .actions.map((a) => a.type);
-      const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      expect(actual).toEqual(expected);
+      const machine = createMachine({
+        id: 'root',
+        initial: 'A',
+        states: {
+          DONE: {},
+          A: {
+            initial: 'B',
+            states: {
+              B: {
+                initial: 'C',
+                states: {
+                  C: {
+                    on: {
+                      C_EVENT: '#root.DONE'
+                    },
+                    initial: 'D',
+                    states: {
+                      D: {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'C_EVENT'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: DONE'
+      ]);
     });
 
     it('should exit superstates when exiting (D_EVENT)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'D_EVENT' })
-        .actions.map((a) => a.type);
-      const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      expect(actual).toEqual(expected);
+      const machine = createMachine({
+        id: 'root',
+        initial: 'A',
+        states: {
+          DONE: {},
+          A: {
+            initial: 'B',
+            states: {
+              B: {
+                initial: 'C',
+                states: {
+                  C: {
+                    initial: 'D',
+                    states: {
+                      D: {
+                        on: {
+                          D_EVENT: '#root.DONE'
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'D_EVENT'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: DONE'
+      ]);
     });
 
     it('should exit substate when machine handles event (MACHINE_EVENT)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'MACHINE_EVENT' })
-        .actions.map((a) => a.type);
-      const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      expect(actual).toEqual(expected);
+      const machine = createMachine({
+        id: 'deep',
+        initial: 'A',
+        on: {
+          MACHINE_EVENT: '#deep.DONE'
+        },
+        states: {
+          DONE: {},
+          A: {
+            initial: 'B',
+            states: {
+              B: {
+                initial: 'C',
+                states: {
+                  C: {
+                    initial: 'D',
+                    states: {
+                      D: {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'MACHINE_EVENT'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: DONE'
+      ]);
     });
 
-    const DBCAPQRS = [
-      'EXIT_D',
-      'EXIT_C',
-      'EXIT_B',
-      'EXIT_A',
-      'ENTER_P',
-      'ENTER_Q',
-      'ENTER_R',
-      'ENTER_S'
-    ];
-
     it('should exit deep and enter deep (A_S)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'A_S' })
-        .actions.map((a) => a.type);
-      const expected = DBCAPQRS;
-      expect(actual).toEqual(expected);
+      const machine = createMachine({
+        id: 'root',
+        initial: 'A',
+        states: {
+          A: {
+            on: {
+              A_S: '#root.P.Q.R.S'
+            },
+            initial: 'B',
+            states: {
+              B: {
+                initial: 'C',
+                states: {
+                  C: {
+                    initial: 'D',
+                    states: {
+                      D: {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          P: {
+            initial: 'Q',
+            states: {
+              Q: {
+                initial: 'R',
+                states: {
+                  R: {
+                    initial: 'S',
+                    states: {
+                      S: {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'A_S'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: P',
+        'enter: P.Q',
+        'enter: P.Q.R',
+        'enter: P.Q.R.S'
+      ]);
     });
 
     it('should exit deep and enter deep (D_P)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'D_P' })
-        .actions.map((a) => a.type);
-      const expected = DBCAPQRS;
-      expect(actual).toEqual(expected);
+      const machine = createMachine({
+        id: 'deep',
+        initial: 'A',
+        states: {
+          A: {
+            initial: 'B',
+            states: {
+              B: {
+                initial: 'C',
+                states: {
+                  C: {
+                    initial: 'D',
+                    states: {
+                      D: {
+                        on: {
+                          D_P: '#deep.P'
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          P: {
+            initial: 'Q',
+            states: {
+              Q: {
+                initial: 'R',
+                states: {
+                  R: {
+                    initial: 'S',
+                    states: {
+                      S: {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'D_P'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: P',
+        'enter: P.Q',
+        'enter: P.Q.R',
+        'enter: P.Q.R.S'
+      ]);
     });
 
-    it('should exit deep and enter deep (A_P)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'A_P' })
-        .actions.map((a) => a.type);
-      const expected = DBCAPQRS;
-      expect(actual).toEqual(expected);
+    it('should exit deep and enter deep when targeting an ancestor of the final resolved deep target', () => {
+      const machine = createMachine({
+        id: 'root',
+        initial: 'A',
+        states: {
+          A: {
+            on: {
+              A_P: '#root.P'
+            },
+            initial: 'B',
+            states: {
+              B: {
+                initial: 'C',
+                states: {
+                  C: {
+                    initial: 'D',
+                    states: {
+                      D: {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          P: {
+            initial: 'Q',
+            states: {
+              Q: {
+                initial: 'R',
+                states: {
+                  R: {
+                    initial: 'S',
+                    states: {
+                      S: {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'A_P'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: P',
+        'enter: P.Q',
+        'enter: P.Q.R',
+        'enter: P.Q.R.S'
+      ]);
     });
 
-    it('should exit deep and enter deep (D_S)', () => {
-      const actual = deepMachine
-        .transition(deepMachine.initialState, { type: 'D_S' })
-        .actions.map((a) => a.type);
-      const expected = DBCAPQRS;
-      expect(actual).toEqual(expected);
+    it('should exit deep and enter deep when targeting a deep state', () => {
+      const machine = createMachine({
+        id: 'root',
+        initial: 'A',
+        states: {
+          A: {
+            initial: 'B',
+            states: {
+              B: {
+                initial: 'C',
+                states: {
+                  C: {
+                    initial: 'D',
+                    states: {
+                      D: {
+                        on: {
+                          D_S: '#root.P.Q.R.S'
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          P: {
+            initial: 'Q',
+            states: {
+              Q: {
+                initial: 'R',
+                states: {
+                  R: {
+                    initial: 'S',
+                    states: {
+                      S: {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const actor = interpret(machine).start();
+      flushTracked();
+
+      actor.send({
+        type: 'D_S'
+      });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.B.C.D',
+        'exit: A.B.C',
+        'exit: A.B',
+        'exit: A',
+        'enter: P',
+        'enter: P.Q',
+        'enter: P.Q.R',
+        'enter: P.Q.R.S'
+      ]);
     });
   });
 });

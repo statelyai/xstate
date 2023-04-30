@@ -13,11 +13,11 @@ import type {
   TraversalOptions
 } from '@xstate/graph';
 import { EventObject, AnyState } from 'xstate';
-import { deduplicatePaths } from './deduplicatePaths.js';
+import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createShortestPathsGen,
   createSimplePathsGen
-} from './pathGenerators.js';
+} from './pathGenerators.ts';
 import type {
   EventExecutor,
   PathGenerator,
@@ -26,12 +26,12 @@ import type {
   TestPath,
   TestPathResult,
   TestStepResult
-} from './types.js';
+} from './types.ts';
 import {
   formatPathTestResult,
   getDescription,
   simpleStringify
-} from './utils.js';
+} from './utils.ts';
 
 function isStateLike(state: any): state is AnyState {
   return (
@@ -61,9 +61,8 @@ export class TestModel<TState, TEvent extends EventObject> {
       // separate transitions, so just use event type
       serializeTransition: (state, event) =>
         `${simpleStringify(state)}|${event?.type ?? ''}`,
-      getEvents: () => [],
+      events: [],
       stateMatcher: (_, stateKey) => stateKey === '*',
-      eventCases: {},
       logger: {
         log: console.log.bind(console),
         error: console.error.bind(console)

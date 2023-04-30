@@ -1,5 +1,5 @@
 import { AnyState, matchesState } from 'xstate';
-import type { CheckSnapshot } from './types.js';
+import type { CheckSnapshot } from './types.ts';
 
 function isState(state: any): state is AnyState {
   return (

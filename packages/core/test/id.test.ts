@@ -1,5 +1,5 @@
 import { testAll } from './utils';
-import { createMachine } from '../src/index.js';
+import { createMachine } from '../src/index.ts';
 
 const idMachine = createMachine({
   initial: 'A',
@@ -42,9 +42,7 @@ const idMachine = createMachine({
             NEXT: '#A_foo'
           }
         },
-        dot: {
-          id: 'B.dot'
-        }
+        dot: {}
       }
     }
   }

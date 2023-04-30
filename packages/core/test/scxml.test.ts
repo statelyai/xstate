@@ -1,9 +1,10 @@
+import { clearConsoleMocks } from '@xstate-repo/jest-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
-import { AnyState, AnyStateMachine, interpret } from '../src/index.js';
-import { toMachine } from '../src/scxml';
 import { SimulatedClock } from '../src/SimulatedClock';
+import { AnyState, AnyStateMachine, interpret } from '../src/index.ts';
+import { toMachine } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
 const TEST_FRAMEWORK = path.dirname(
@@ -306,7 +307,7 @@ const testGroups: Record<string, string[]> = {
     // 'test530.txml', // https://github.com/davidkpiano/xstate/pull/1811#discussion_r551897693
     // 'test531.txml', // Basic HTTP Event I/O processor not implemented
     // 'test532.txml', // Basic HTTP Event I/O processor not implemented
-    'test533.txml',
+    // 'test533.txml', // we allow `reenter: false` to not leave the source state even if that source state is not compound
     // 'test534.txml', // Basic HTTP Event I/O processor not implemented
     // 'test550.txml', // non-root datamodel with early binding not implemented yet
     // 'test551.txml', // non-root datamodel with early binding not implemented yet
@@ -472,6 +473,8 @@ describe('scxml', () => {
         } catch (e) {
           console.log(JSON.stringify(machine.config, null, 2));
           throw e;
+        } finally {
+          clearConsoleMocks();
         }
       });
     });

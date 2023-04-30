@@ -1,4 +1,4 @@
-import { createMachine, actions } from 'xstate';
+import { createMachine, raise } from 'xstate';
 
 export default createMachine({
   initial: 'a',
@@ -8,8 +8,8 @@ export default createMachine({
       on: {
         t: {
           target: '#b',
-          actions: actions.raise({ type: 's' }),
-          external: true
+          actions: raise({ type: 's' }),
+          reenter: true
         }
       }
     },
@@ -18,7 +18,7 @@ export default createMachine({
       on: {
         s: {
           target: '#c',
-          external: true
+          reenter: true
         }
       }
     },

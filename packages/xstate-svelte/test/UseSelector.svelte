@@ -1,10 +1,10 @@
 <script lang="ts">
   import { interpret, createMachine, assign } from 'xstate';
-  import { useSelector } from '../src/index.js';
+  import { useSelector } from '../src/index.ts';
 
   const machine = createMachine({
     initial: 'idle',
-    schema: {
+    types: {
       context: {} as {
         count: number;
         anotherCount: number;

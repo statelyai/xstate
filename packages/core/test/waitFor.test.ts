@@ -1,6 +1,5 @@
-import { interpret } from '../src/index.js';
-import { createMachine } from '../src/index.js';
-import { waitFor } from '../src/waitFor';
+import { interpret, waitFor } from '../src/index.ts';
+import { createMachine } from '../src/index.ts';
 
 describe('waitFor', () => {
   it('should wait for a condition to be true and return the emitted value', async () => {

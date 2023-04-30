@@ -10,7 +10,7 @@ import {
   toStateValue,
   mapContext,
   toSCXMLEvent
-} from './utils.js';
+} from './utils.ts';
 import {
   BaseActionObject,
   EventObject,
@@ -26,24 +26,24 @@ import {
   RaiseActionObject,
   InitialTransitionConfig,
   MachineContext
-} from './types.js';
-import { cloneState, State } from './State.js';
+} from './types.ts';
+import { cloneState, State } from './State.ts';
 import {
   after,
   done,
   toActionObjects,
   actionTypes,
-  resolveActionObject
-} from './actions.js';
-import { send } from './actions/send.js';
-import { cancel } from './actions/cancel.js';
-import { invoke } from './actions/invoke.js';
-import { stop } from './actions/stop.js';
-import { IS_PRODUCTION } from './environment.js';
-import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.js';
-import { evaluateGuard, toGuardDefinition } from './guards.js';
-import type { StateNode } from './StateNode.js';
-import { isDynamicAction } from '../actions/dynamicAction.js';
+  resolveActionObject,
+  raise
+} from './actions.ts';
+import { cancel } from './actions/cancel.ts';
+import { invoke } from './actions/invoke.ts';
+import { stop } from './actions/stop.ts';
+import { IS_PRODUCTION } from './environment.ts';
+import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.ts';
+import { evaluateGuard, toGuardDefinition } from './guards.ts';
+import type { StateNode } from './StateNode.ts';
+import { isDynamicAction } from '../actions/dynamicAction.ts';
 import {
   AnyActorContext,
   AnyEventObject,
@@ -58,8 +58,8 @@ import {
   SendActionObject,
   StateFromMachine
 } from '.';
-import { stopSignalType } from './actors/index.js';
-import { ActorStatus } from './interpreter.js';
+import { stopSignalType } from './actors/index.ts';
+import { ActorStatus } from './interpreter.ts';
 
 type Configuration<
   TContext extends MachineContext,
@@ -80,12 +80,9 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
       stateNode.type === 'final' && stateNode.parent === machine.root
   );
 
-  const doneData =
-    finalChildStateNode && finalChildStateNode.doneData
-      ? mapContext(finalChildStateNode.doneData, context, _event)
-      : undefined;
-
-  return doneData;
+  return finalChildStateNode && finalChildStateNode.output
+    ? mapContext(finalChildStateNode.output, context, _event)
+    : undefined;
 }
 
 const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
@@ -321,7 +318,7 @@ export function getDelayedTransitions<
   ) => {
     const delayRef = isFunction(delay) ? `${stateNode.id}:delay[${i}]` : delay;
     const eventType = after(delayRef, stateNode.id);
-    stateNode.entry.push(send({ type: eventType }, { delay }));
+    stateNode.entry.push(raise({ type: eventType } as TEvent, { delay }));
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
@@ -363,7 +360,7 @@ export function formatTransition<
   }
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
-  const external = transitionConfig.external ?? false;
+  const reenter = transitionConfig.reenter ?? false;
   const { guards } = stateNode.machine.options;
   const target = resolveTarget(stateNode, normalizedTarget);
 
@@ -384,7 +381,7 @@ export function formatTransition<
       : undefined,
     target,
     source: stateNode,
-    external,
+    reenter,
     eventType: transitionConfig.event,
     toJSON: () => ({
       ...transition,
@@ -527,7 +524,7 @@ export function formatInitialTransition<
       source: stateNode,
       actions: [],
       eventType: null as any,
-      external: false,
+      reenter: false,
       target: resolvedTarget!,
       toJSON: () => ({
         ...transition,
@@ -566,6 +563,10 @@ export function resolveTarget(
     if (!isString(target)) {
       return target;
     }
+    if (isStateId(target)) {
+      return stateNode.machine.getStateNodeById(target);
+    }
+
     const isInternalTarget = target[0] === stateNode.machine.delimiter;
     // If internal target is defined on machine,
     // do not include machine key on target
@@ -586,7 +587,9 @@ export function resolveTarget(
         );
       }
     } else {
-      return getStateNodeByPath(stateNode, resolvedTarget);
+      throw new Error(
+        `Invalid target: "${target}" is not a valid target from the root node. Did you mean ".${target}"?`
+      );
     }
   });
 }
@@ -668,7 +671,7 @@ export function getStateNode(
  *
  * @param statePath The string or string array relative path to the state node.
  */
-function getStateNodeByPath(
+export function getStateNodeByPath(
   stateNode: AnyStateNode,
   statePath: string | string[]
 ): AnyStateNode {
@@ -987,8 +990,8 @@ function getTransitionDomain(
   }
 
   if (
-    !transition.external &&
-    transition.source.type === 'compound' &&
+    !transition.reenter &&
+    transition.source.type !== 'parallel' &&
     targetStates.every((targetStateNode) =>
       isDescendant(targetStateNode, transition.source)
     )
@@ -1066,7 +1069,7 @@ export function microstep<
           {
             target: [...currentState.configuration].filter(isAtomicStateNode),
             source: machine.root,
-            external: true,
+            reenter: true,
             actions: [],
             eventType: null as any,
             toJSON: null as any // TODO: fix
@@ -1266,9 +1269,9 @@ function enterStates(
         toSCXMLEvent(
           done(
             parent!.id,
-            stateNodeToEnter.doneData
+            stateNodeToEnter.output
               ? mapContext(
-                  stateNodeToEnter.doneData,
+                  stateNodeToEnter.output,
                   currentState.context,
                   currentState._event
                 )

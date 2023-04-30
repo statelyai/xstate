@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActorRefFrom, createMachine, sendTo } from 'xstate';
 import { fireEvent, screen } from '@testing-library/react';
-import { useActor, useInterpret, useMachine } from '../src/index.js';
+import { useActor, useInterpret, useMachine } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 
 const originalConsoleWarn = console.warn;

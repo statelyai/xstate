@@ -8,12 +8,12 @@ import type {
   AssignMeta,
   InvokeActionObject,
   LowInfer
-} from '../types.js';
-import * as actionTypes from '../actionTypes.js';
-import { createDynamicAction } from '../../actions/dynamicAction.js';
-import { isFunction } from '../utils.js';
-import { createSpawner } from '../spawn.js';
-import { cloneState } from '../State.js';
+} from '../types.ts';
+import * as actionTypes from '../actionTypes.ts';
+import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import { isFunction } from '../utils.ts';
+import { createSpawner } from '../spawn.ts';
+import { cloneState } from '../State.ts';
 
 /**
  * Updates the current context of the machine.
@@ -53,13 +53,12 @@ export function assign<
         );
       }
 
-      const args: AssignMeta<TContext, TExpressionEvent, TEvent> & {
+      const args: AssignMeta<TExpressionEvent, TEvent> & {
         context: TContext;
         event: TExpressionEvent;
       } = {
         context: state.context,
         event: _event.data,
-        state: state as any,
         action,
         _event,
         spawn: createSpawner(

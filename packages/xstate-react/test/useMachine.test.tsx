@@ -10,11 +10,11 @@ import {
   doneInvoke,
   Interpreter,
   PersistedMachineState,
-  send,
+  raise,
   StateFrom
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
-import { useActor, useMachine } from '../src/index.js';
+import { useActor, useMachine } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 
 afterEach(() => {
@@ -43,9 +43,11 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           onDone: {
             target: 'success',
             actions: assign({
-              data: ({ event }) => event.data
+              data: ({ event }) => {
+                return event.output;
+              }
             }),
-            guard: ({ event }) => event.data.length
+            guard: ({ event }) => event.output.length
           }
         }
       },
@@ -57,7 +59,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   const successFetchState = fetchMachine.transition('loading', {
     type: 'done.invoke.fetchData',
-    data: 'persisted data'
+    output: 'persisted data'
   });
 
   const persistedSuccessFetchState =
@@ -804,7 +806,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
-      schema: {
+      types: {
         context: {} as { value: number }
       },
       initial: 'intitial',
@@ -834,7 +836,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [state] = useMachine(machine);
       const [childState] = useActor(
-        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine schema
+        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine types
       );
 
       expect(childState.context.value).toBe(42);
@@ -922,12 +924,12 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       context: {
         count: 0
       },
-      entry: [assign({ count: 1 }), send({ type: 'INC' })],
+      entry: [assign({ count: 1 }), raise({ type: 'INC' })],
       on: {
         INC: {
           actions: [
             assign({ count: ({ context }) => context.count + 1 }),
-            send({ type: 'UNHANDLED' })
+            raise({ type: 'UNHANDLED' })
           ]
         }
       },

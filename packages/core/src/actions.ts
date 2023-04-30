@@ -10,15 +10,14 @@ import {
   DoneEventObject,
   MachineContext,
   BaseActionObject,
-  SCXML,
-  AnyState
-} from './types.js';
-import * as actionTypes from './actionTypes.js';
-import { toSCXMLEvent, isArray } from './utils.js';
+  SCXML
+} from './types.ts';
+import * as actionTypes from './actionTypes.ts';
+import { toSCXMLEvent, isArray } from './utils.ts';
 import {
   createDynamicAction,
   isDynamicAction
-} from '../actions/dynamicAction.js';
+} from '../actions/dynamicAction.ts';
 export {
   send,
   sendTo,
@@ -26,14 +25,15 @@ export {
   respond,
   forwardTo,
   escalate
-} from './actions/send.js';
+} from './actions/send.ts';
 
-export { stop } from './actions/stop.js';
-export { log } from './actions/log.js';
-export { cancel } from './actions/cancel.js';
-export { assign } from './actions/assign.js';
-export { raise } from './actions/raise.js';
-export { choose } from './actions/choose.js';
+export { stop } from './actions/stop.ts';
+export { log } from './actions/log.ts';
+export { cancel } from './actions/cancel.ts';
+export { assign } from './actions/assign.ts';
+export { raise } from './actions/raise.ts';
+export { choose } from './actions/choose.ts';
+export { pure } from './actions/pure.ts';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
@@ -57,10 +57,9 @@ export function resolveActionObject(
           execute: (actorCtx) => {
             return dereferencedAction({
               context: state.context,
-              event: state.event,
+              event: _event.data,
               action: a,
-              _event: state._event,
-              state,
+              _event: _event,
               system: actorCtx.system,
               self: actorCtx.self
             });
@@ -105,7 +104,6 @@ export function toActionObject<
             event: _event.data as TEvent,
             action: actionObject,
             _event: _event as SCXML.Event<TEvent>,
-            state: state as AnyState,
             self: actorCtx.self,
             system: actorCtx.system
           });
@@ -150,13 +148,13 @@ export function after(delayRef: number | string, id?: string) {
  * has been reached in the parent state node.
  *
  * @param id The final state node's parent state node `id`
- * @param data The data to pass into the event
+ * @param output The data to pass into the event
  */
-export function done(id: string, data?: any): DoneEventObject {
+export function done(id: string, output?: any): DoneEventObject {
   const type = `${ActionTypes.DoneState}.${id}`;
   const eventObject = {
     type,
-    data
+    output
   };
 
   eventObject.toString = () => type;
@@ -171,13 +169,13 @@ export function done(id: string, data?: any): DoneEventObject {
  * but not when it is canceled.
  *
  * @param invokeId The invoked service ID
- * @param data The data to pass into the event
+ * @param output The data to pass into the event
  */
-export function doneInvoke(invokeId: string, data?: any): DoneEvent {
+export function doneInvoke(invokeId: string, output?: any): DoneEvent {
   const type = `${ActionTypes.DoneInvoke}.${invokeId}`;
   const eventObject = {
     type,
-    data
+    output
   };
 
   eventObject.toString = () => type;

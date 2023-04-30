@@ -108,15 +108,16 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should carry actions from previous transitions within same step', () => {
+    const actual: string[] = [];
     const machine = createMachine({
       initial: 'A',
       states: {
         A: {
-          exit: 'exit_A',
+          exit: () => actual.push('exit_A'),
           on: {
             TIMER: {
               target: 'T',
-              actions: ['timer']
+              actions: () => actual.push('timer')
             }
           }
         },
@@ -124,18 +125,16 @@ describe('transient states (eventless transitions)', () => {
           always: [{ target: 'B' }]
         },
         B: {
-          entry: 'enter_B'
+          entry: () => actual.push('enter_B')
         }
       }
     });
 
-    const state = machine.transition('A', { type: 'TIMER' });
+    const actor = interpret(machine).start();
 
-    expect(state.actions.map((a) => a.type)).toEqual([
-      'exit_A',
-      'timer',
-      'enter_B'
-    ]);
+    actor.send({ type: 'TIMER' });
+
+    expect(actual).toEqual(['exit_A', 'timer', 'enter_B']);
   });
 
   it('should execute all internal events one after the other', () => {
@@ -620,7 +619,7 @@ describe('transient states (eventless transitions)', () => {
       context: ({ input }) => ({
         duration: input.duration
       }),
-      schema: {
+      types: {
         context: {} as { duration: number }
       },
       states: {

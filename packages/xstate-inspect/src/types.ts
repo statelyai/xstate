@@ -7,7 +7,7 @@ import type {
   StateConfig
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { InspectMachineEvent } from './inspectMachine.js';
+import { InspectMachineEvent } from './inspectMachine.ts';
 
 export type MaybeLazy<T> = T | (() => T);
 
@@ -20,6 +20,7 @@ export interface InspectorOptions {
   iframe?: MaybeLazy<HTMLIFrameElement | null | false>;
   devTools?: MaybeLazy<XStateDevInterface>;
   serialize?: Replacer | undefined;
+  targetWindow?: Window | undefined | null;
 }
 
 export interface Inspector extends ActorRef<InspectMachineEvent, AnyState> {

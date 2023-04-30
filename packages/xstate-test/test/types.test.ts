@@ -1,11 +1,11 @@
 import { createMachine } from 'xstate';
-import { createTestModel } from '../src/index.js';
+import { createTestModel } from '../src/index.ts';
 
 describe('types', () => {
   it('`EventExecutor` should be passed event with type that corresponds to its key', () => {
     const machine = createMachine({
       id: 'test',
-      schema: {
+      types: {
         context: {} as any,
         events: {} as
           | { type: 'a'; valueA: boolean }
@@ -30,10 +30,14 @@ describe('types', () => {
       path.test({
         events: {
           a: ({ event }) => {
-            console.log(event.valueA);
+            ((_accept: 'a') => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'b') => {})(event.type);
           },
           b: ({ event }) => {
-            console.log(event.valueB);
+            // @ts-expect-error
+            ((_accept: 'a') => {})(event.type);
+            ((_accept: 'b') => {})(event.type);
           }
         }
       });

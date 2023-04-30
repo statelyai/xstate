@@ -1,21 +1,26 @@
+import { Mailbox } from './Mailbox.ts';
+import { doneInvoke, error } from './actions.ts';
+import { stopSignalType } from './actors/index.ts';
+import { devToolsAdapter } from './dev/index.ts';
+import { IS_PRODUCTION } from './environment.ts';
+import { symbolObservable } from './symbolObservable.ts';
+import { createSystem } from './system.ts';
+import {
+  AreAllImplementationsAssumedToBeProvided,
+  MissingImplementationsError
+} from './typegenTypes.ts';
 import type {
-  ActorContext,
-  AnyStateMachine,
   ActorBehavior,
+  ActorContext,
+  ActorSystem,
+  AnyActorBehavior,
+  AnyStateMachine,
   EventFromBehavior,
   InterpreterFrom,
   PersistedStateFrom,
-  SnapshotFrom,
-  ActorSystem,
-  AnyActorBehavior,
-  RaiseActionObject
-} from './types.js';
-import { stopSignalType } from './actors/index.js';
-import { devToolsAdapter } from './dev/index.js';
-import { IS_PRODUCTION } from './environment.js';
-import { Mailbox } from './Mailbox.js';
-import { createSystem } from './system.js';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.js';
+  RaiseActionObject,
+  SnapshotFrom
+} from './types.ts';
 import {
   ActorRef,
   DoneEvent,
@@ -26,10 +31,8 @@ import {
   SCXML,
   SendActionObject,
   Subscription
-} from './types.js';
-import { toObserver, toSCXMLEvent, warn } from './utils.js';
-import { symbolObservable } from './symbolObservable.js';
-import { doneInvoke, error } from './actions.js';
+} from './types.ts';
+import { toObserver, toSCXMLEvent, warn } from './utils.ts';
 
 export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>
@@ -213,6 +216,7 @@ export class Interpreter<
 
     switch (status?.status) {
       case 'done':
+        this._stopProcedure();
         this._doneEvent = doneInvoke(this.id, status.data);
         this._parent?.send(
           toSCXMLEvent(this._doneEvent as any, {
@@ -220,18 +224,16 @@ export class Interpreter<
             invokeid: this.id
           })
         );
-
-        this._stopProcedure();
+        this._complete();
         break;
       case 'error':
+        this._stopProcedure();
         this._parent?.send(
           toSCXMLEvent(error(this.id, status.data), {
             origin: this
           })
         );
-        for (const observer of this.observers) {
-          observer.error?.(status.data);
-        }
+        this._error(status.data);
         break;
     }
   }
@@ -334,6 +336,7 @@ export class Interpreter<
 
       if (event.name === stopSignalType) {
         this._stopProcedure();
+        this._complete();
       }
     } catch (err) {
       // TODO: properly handle errors
@@ -377,9 +380,13 @@ export class Interpreter<
     }
     this.observers.clear();
   }
+  private _error(data: any): void {
+    for (const observer of this.observers) {
+      observer.error?.(data);
+    }
+    this.observers.clear();
+  }
   private _stopProcedure(): this {
-    this._complete();
-
     if (this.status !== ActorStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
@@ -410,6 +417,12 @@ export class Interpreter<
    * @param event The event to send
    */
   public send(event: TEvent | SCXML.Event<TEvent>) {
+    if (typeof event === 'string') {
+      throw new Error(
+        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
+      );
+    }
+
     const _event = toSCXMLEvent(event);
 
     if (this.status === ActorStatus.Stopped) {
@@ -512,7 +525,7 @@ export function interpret<TMachine extends AnyStateMachine>(
     TMachine['__TResolvedTypesMeta']
   > extends true
     ? TMachine
-    : 'Some implementations missing',
+    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(

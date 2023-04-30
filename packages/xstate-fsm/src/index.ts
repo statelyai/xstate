@@ -4,9 +4,9 @@ import {
   InterpreterStatus,
   StateMachine,
   Typestate
-} from './types.js';
+} from './types.ts';
 
-export * from './types.js';
+export * from './types.ts';
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
@@ -159,9 +159,8 @@ export function createMachine<
       }
 
       if (stateConfig.on) {
-        const transitions: Array<
-          StateMachine.Transition<TContext, TEvent>
-        > = toArray(stateConfig.on[event.type]);
+        const transitions: Array<StateMachine.Transition<TContext, TEvent>> =
+          toArray(stateConfig.on[event.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
@@ -172,10 +171,12 @@ export function createMachine<
             target,
             actions = [],
             guard
-          }: StateMachine.TransitionObject<TContext, TEvent> =
-            typeof transition === 'string'
-              ? { target: transition }
-              : transition;
+          }: StateMachine.TransitionObject<
+            TContext,
+            TEvent
+          > = typeof transition === 'string'
+            ? { target: transition }
+            : transition;
 
           const isTargetless = target === undefined;
 
@@ -191,11 +192,12 @@ export function createMachine<
           }
 
           if (!guard || guard?.(context, event)) {
-            const allActions = (isTargetless
-              ? toArray(actions)
-              : ([] as any[])
-                  .concat(stateConfig.exit, actions, nextStateConfig.entry)
-                  .filter((a) => a)
+            const allActions = (
+              isTargetless
+                ? toArray(actions)
+                : ([] as any[])
+                    .concat(stateConfig.exit, actions, nextStateConfig.entry)
+                    .filter((a) => a)
             ).map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
               toActionObject(action, (machine as any)._options.actions)
             );
@@ -259,7 +261,6 @@ export function interpret<
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {
       listeners.add(listener);
-      listener(state);
 
       return {
         unsubscribe: () => listeners.delete(listener)

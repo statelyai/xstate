@@ -6,7 +6,7 @@ import {
   toInvokeConfig,
   toTransitionConfigArray,
   createInvokeId
-} from './utils.js';
+} from './utils.ts';
 import type {
   EventObject,
   HistoryStateNodeConfig,
@@ -25,20 +25,20 @@ import type {
   InitialTransitionDefinition,
   MachineContext,
   BaseActionObject
-} from './types.js';
-import type { State } from './State.js';
-import * as actionTypes from './actionTypes.js';
-import { toActionObjects } from './actions.js';
-import { formatInitialTransition, formatTransition } from './stateUtils.js';
+} from './types.ts';
+import type { State } from './State.ts';
+import * as actionTypes from './actionTypes.ts';
+import { toActionObjects } from './actions.ts';
+import { formatInitialTransition, formatTransition } from './stateUtils.ts';
 import {
   getDelayedTransitions,
   formatTransitions,
   getCandidates
-} from './stateUtils.js';
-import { evaluateGuard } from './guards.js';
-import type { StateMachine } from './StateMachine.js';
-import { memo } from './memo.js';
-import { NULL_EVENT } from './constants.js';
+} from './stateUtils.ts';
+import { evaluateGuard } from './guards.ts';
+import type { StateMachine } from './StateMachine.ts';
+import { memo } from './memo.ts';
+import { NULL_EVENT } from './constants.ts';
 
 const EMPTY_OBJECT = {};
 
@@ -109,9 +109,9 @@ export class StateNode<
    */
   public meta?: any;
   /**
-   * The data sent with the "done.state._id_" event if this is a final state node.
+   * The output data sent with the "done.state._id_" event if this is a final state node.
    */
-  public doneData?:
+  public output?:
     | Mapper<TContext, TEvent, any>
     | PropertyMapper<TContext, TEvent, any>;
   /**
@@ -185,9 +185,9 @@ export class StateNode<
     this.exit = toActionObjects(this.config.exit);
 
     this.meta = this.config.meta;
-    this.doneData =
+    this.output =
       this.type === 'final'
-        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
+        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).output
         : undefined;
     this.tags = toArray(config.tags);
   }
@@ -220,7 +220,7 @@ export class StateNode<
             source: this,
             actions: this.initial.actions,
             eventType: null as any,
-            external: false,
+            reenter: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
@@ -239,7 +239,7 @@ export class StateNode<
       exit: this.exit,
       meta: this.meta,
       order: this.order || -1,
-      data: this.doneData,
+      output: this.output,
       invoke: this.invoke,
       description: this.description,
       tags: this.tags
@@ -451,7 +451,7 @@ export class StateNode<
           return !(
             !transition.target &&
             !transition.actions.length &&
-            !transition.external
+            !transition.reenter
           );
         })
         .map((transition) => transition.eventType)

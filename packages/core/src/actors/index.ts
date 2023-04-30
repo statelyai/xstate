@@ -1,10 +1,16 @@
-import type { EventObject, ActorRef, BaseActorRef } from '../types.js';
-import { symbolObservable } from '../symbolObservable.js';
-import { ActorStatus } from '../interpreter.js';
-export { fromTransition } from './transition.js';
-export { fromPromise } from './promise.js';
-export { fromObservable, fromEventObservable } from './observable.js';
-export { fromCallback } from './callback.js';
+import type {
+  EventObject,
+  ActorRef,
+  BaseActorRef,
+  AnyEventObject
+} from '../types.ts';
+import { symbolObservable } from '../symbolObservable.ts';
+import { ActorStatus, interpret } from '../interpreter.ts';
+import { fromTransition } from './transition.ts';
+export { fromTransition } from './transition.ts';
+export { fromPromise } from './promise.ts';
+export { fromObservable, fromEventObservable } from './observable.ts';
+export { fromCallback } from './callback.ts';
 
 export const startSignalType = 'xstate.init';
 export const stopSignalType = 'xstate.stop';
@@ -62,4 +68,10 @@ export function toActorRef<
     stop: () => void 0,
     ...actorRefLike
   };
+}
+
+const emptyBehavior = fromTransition((_) => undefined, undefined);
+
+export function createEmptyActor(): ActorRef<AnyEventObject, undefined> {
+  return interpret(emptyBehavior);
 }

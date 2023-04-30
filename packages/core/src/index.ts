@@ -1,46 +1,33 @@
-import {
-  after,
-  done,
-  doneInvoke,
-  escalate,
-  forwardTo,
-  respond,
-  sendParent,
-  sendTo
-} from './actions.js';
-import { assign } from './actions/assign.js';
-import { cancel } from './actions/cancel.js';
-import { choose } from './actions/choose.js';
-import { log } from './actions/log.js';
-import { pure } from './actions/pure.js';
-import { raise } from './actions/raise.js';
-import { send } from './actions/send.js';
-import { stop } from './actions/stop.js';
-import { interpret, Interpreter, ActorStatus } from './interpreter.js';
-import { createMachine } from './Machine.js';
-import { mapState } from './mapState.js';
-import { State } from './State.js';
-import { StateNode } from './StateNode.js';
-export { createSchema, t } from './schema.js';
-export { SimulatedClock } from './SimulatedClock.js';
-export { StateMachine } from './StateMachine.js';
-export { getStateNodes } from './stateUtils.js';
-export * from './typegenTypes.js';
-export * from './types.js';
+import { doneInvoke, forwardTo, sendParent, sendTo } from './actions.ts';
+export { assign } from './actions/assign.ts';
+export { cancel } from './actions/cancel.ts';
+export { choose } from './actions/choose.ts';
+export { log } from './actions/log.ts';
+export { pure } from './actions/pure.ts';
+export { raise } from './actions/raise.ts';
+export { stop } from './actions/stop.ts';
+import { interpret, Interpreter, ActorStatus } from './interpreter.ts';
+import { createMachine } from './Machine.ts';
+import { mapState } from './mapState.ts';
+import { State } from './State.ts';
+import { StateNode } from './StateNode.ts';
+export { SimulatedClock } from './SimulatedClock.ts';
+export { StateMachine } from './StateMachine.ts';
+export { getStateNodes } from './stateUtils.ts';
+export { waitFor } from './waitFor.ts';
+export * from './typegenTypes.ts';
+export * from './types.ts';
 // TODO: decide from where those should be exported
 export {
   matchesState,
   pathToStateValue,
   toObserver,
   toSCXMLEvent
-} from './utils.js';
+} from './utils.ts';
 export {
   StateNode,
   State,
   mapState,
-  actions,
-  assign,
-  send,
   sendTo,
   sendParent,
   forwardTo,
@@ -50,24 +37,15 @@ export {
   doneInvoke,
   createMachine
 };
+export {
+  fromPromise,
+  fromObservable,
+  fromCallback,
+  fromEventObservable,
+  fromTransition
+} from './actors/index.ts';
 
-const actions = {
-  raise,
-  send,
-  sendParent,
-  sendTo,
-  log,
-  cancel,
-  stop,
-  assign,
-  after,
-  done,
-  respond,
-  forwardTo,
-  escalate,
-  choose,
-  pure
-};
+export { stateIn, not, and, or } from './guards.ts';
 
 declare global {
   interface SymbolConstructor {

@@ -1,13 +1,13 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { createMachine, interpret } from '../src/index.js';
+import { createMachine, interpret } from '../src/index.ts';
 import {
   fromObservable,
   fromPromise,
   fromTransition
-} from '../src/actors/index.js';
-import { waitFor } from '../src/waitFor.js';
-import { raise, sendTo } from '../src/actions.js';
+} from '../src/actors/index.ts';
+import { waitFor } from '../src/waitFor.ts';
+import { raise, sendTo } from '../src/actions.ts';
 
 describe('promise behavior (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -86,7 +86,31 @@ describe('promise behavior (fromPromise)', () => {
     expect(called).toBe(false);
   });
 
-  it('should persist a promise', (done) => {
+  it('should persist an unresolved promise', (done) => {
+    const promiseBehavior = fromPromise(
+      () =>
+        new Promise<number>((res) => {
+          setTimeout(() => res(42), 10);
+        })
+    );
+
+    const actor = interpret(promiseBehavior);
+    actor.start();
+
+    const resolvedPersistedState = actor.getPersistedState();
+    actor.stop();
+
+    const restoredActor = interpret(promiseBehavior, {
+      state: resolvedPersistedState
+    }).start();
+
+    setTimeout(() => {
+      expect(restoredActor.getSnapshot()).toBe(42);
+      done();
+    }, 20);
+  });
+
+  it('should persist a resolved promise', (done) => {
     const promiseBehavior = fromPromise(
       () =>
         new Promise<number>((res) => {
@@ -350,7 +374,7 @@ describe('machine behavior', () => {
 
     expect(persistedState.children.a.state).toEqual(
       expect.objectContaining({
-        canceled: false,
+        status: 'done',
         data: 42
       })
     );

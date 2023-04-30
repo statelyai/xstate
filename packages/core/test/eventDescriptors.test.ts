@@ -251,11 +251,43 @@ describe('event descriptors', () => {
         .transition(undefined, { type: 'event.foo.bar.first.second' })
         .matches('success')
     ).toBeFalsy();
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
+        ],
+        [
+          "Warning: Infix wildcards in transition events are not allowed. Check the "event.*.bar.*" event.",
+        ],
+        [
+          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
+        ],
+        [
+          "Warning: Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
+        ],
+      ]
+    `);
+
     expect(
       machine
         .transition(undefined, { type: 'whatever.event' })
         .matches('success')
     ).toBeFalsy();
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
+        ],
+        [
+          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
+        ],
+        [
+          "Warning: Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
+        ],
+      ]
+    `);
   });
 
   it('should not match wildcards as part of tokens', () => {
@@ -279,10 +311,33 @@ describe('event descriptors', () => {
         .transition(undefined, { type: 'eventually.bar.baz' })
         .matches('success')
     ).toBeFalsy();
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
+        ],
+        [
+          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
+        ],
+      ]
+    `);
+
     expect(
       machine
         .transition(undefined, { type: 'prevent.whatever' })
         .matches('success')
     ).toBeFalsy();
+
+    expect(console.warn).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
+        ],
+        [
+          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
+        ],
+      ]
+    `);
   });
 });

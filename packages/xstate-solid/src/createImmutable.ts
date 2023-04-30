@@ -1,6 +1,6 @@
 import type { Store } from 'solid-js/store';
 import { createStore } from 'solid-js/store';
-import { deepClone, isWrappable } from './deepClone.js';
+import { deepClone, isWrappable } from './deepClone.ts';
 import { batch } from 'solid-js';
 
 const resolvePath = (path: any[], obj = {}) => {
@@ -53,7 +53,7 @@ const updateStore = <Path extends unknown[]>(
       const largestSize = Math.max(next.length, prev.length);
 
       // Diff array
-      for (let start = 0, end = smallestSize - 1; start < end; start++, end--) {
+      for (let start = 0, end = largestSize - 1; start < end; start++, end--) {
         diff(next[start], prev[start], [...path, start] as Path);
         diff(next[end], prev[end], [...path, end] as Path);
       }

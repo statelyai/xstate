@@ -1,5 +1,5 @@
 import { assign, createMachine, interpret } from 'xstate';
-import { createDevTools, inspect } from '../src/index.js';
+import { createDevTools, inspect } from '../src/index.ts';
 
 // mute the warning about this not being implemented by jsdom
 window.open = () => null;
@@ -243,7 +243,7 @@ describe('@xstate/inspect', () => {
   it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {
     const machine = createMachine({
       context: {},
-      schema: {} as {
+      types: {} as {
         events: { type: 'EV'; value: any };
       },
       on: {
@@ -299,7 +299,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[{"type":"xstate.assign","params":{"context":{"value":{"unsafe":"[unsafe]"}},"actions":[]}}],"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_event":{"name":"EV","data":{"type":"EV","value":{"unsafe":"[unsafe]"}},"$$type":"scxml","type":"external"},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","external":false,"eventType":"EV"}],"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[{"type":"xstate.assign","params":{"context":{"value":{"unsafe":"[unsafe]"}},"actions":[]}}],"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_event":{"name":"EV","data":{"type":"EV","value":{"unsafe":"[unsafe]"}},"$$type":"scxml","type":"external"},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","reenter":false,"eventType":"EV"}],"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -357,5 +357,24 @@ describe('@xstate/inspect', () => {
         .flushMessages()
         .filter((message: any) => message.type === 'service.event')
     ).toHaveLength(1);
+  });
+
+  it('browser inspector should use targetWindow if provided', () => {
+    const windowMock = jest.fn() as unknown as Window;
+    const windowSpy = jest.spyOn(window, 'open');
+    windowSpy.mockImplementation(() => windowMock);
+
+    const localWindowMock = jest.fn() as unknown as Window;
+    const devTools = createDevTools();
+
+    inspect({
+      devTools,
+      iframe: undefined,
+      targetWindow: localWindowMock
+    });
+
+    expect(windowSpy).not.toHaveBeenCalled();
+
+    windowSpy.mockRestore();
   });
 });

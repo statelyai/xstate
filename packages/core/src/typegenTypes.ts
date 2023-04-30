@@ -1,4 +1,5 @@
 import {
+  Compute,
   EventObject,
   IndexByType,
   IsNever,
@@ -8,7 +9,7 @@ import {
   ActorMap,
   Cast,
   ParameterizedObject
-} from './types.js';
+} from './types.ts';
 
 export interface TypegenDisabled {
   '@@xstate/typegen': false;
@@ -116,6 +117,21 @@ export type AreAllImplementationsAssumedToBeProvided<
     : false
   : true;
 
+export type MissingImplementationsError<
+  TResolvedTypesMeta,
+  TMissingImplementations = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'missingImplementations'
+  >
+> = Compute<
+  [
+    'Some implementations missing',
+    Values<{
+      [K in keyof TMissingImplementations]: TMissingImplementations[K];
+    }>
+  ]
+>;
+
 interface AllImplementationsProvided {
   missingImplementations: {
     actions: never;
@@ -193,11 +209,11 @@ export interface ResolveTypegenMeta<
       AllowAllEvents & {
         indexedActions: IndexByType<TAction>;
         indexedEvents: Record<string, TEvent> & {
-          __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
+          __XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__: { output: any };
         };
         invokeSrcNameMap: Record<
           string,
-          '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'
+          '__XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__'
         >;
       };
   }[IsNever<TTypesMeta> extends true

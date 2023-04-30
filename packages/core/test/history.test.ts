@@ -122,7 +122,7 @@ describe('history states', () => {
     expect(service.getSnapshot().value).toEqual({ idle: 'absent' });
   });
 
-  it('should reenter persisted state during external transition targeting a history state', () => {
+  it('should reenter persisted state during reentering transition targeting a history state', () => {
     const actual: string[] = [];
 
     const machine = createMachine({
@@ -132,7 +132,7 @@ describe('history states', () => {
           on: {
             REENTER: {
               target: '#b_hist',
-              external: true
+              reenter: true
             }
           },
           initial: 'a1',

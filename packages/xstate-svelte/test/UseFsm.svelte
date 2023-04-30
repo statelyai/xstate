@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useMachine } from '../src/fsm';
+  import { useMachine } from '../src/fsm.ts';
   import { createMachine, assign } from '@xstate/fsm';
 
   const context = {
@@ -33,7 +33,8 @@
   const onFetch = () =>
     new Promise((res) => setTimeout(() => res('some data'), 50));
 
-  const { state, send } = useMachine(fetchMachine, {
+  // TODO: `any` here is related to https://github.com/microsoft/TypeScript/issues/53436
+  const { state, send }: any = useMachine(fetchMachine, {
     actions: {
       load: () => {
         onFetch().then((res) => {

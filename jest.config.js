@@ -5,6 +5,7 @@ const os = require('os');
  * @type {import('@jest/types').Config.InitialOptions}
  */
 module.exports = {
+  setupFilesAfterEnv: ['@xstate-repo/jest-utils/setup'],
   transform: {
     [constants.DEFAULT_JS_PATTERN]: 'babel-jest',
     '^.+\\.vue$': '@vue/vue3-jest',
@@ -29,6 +30,5 @@ module.exports = {
     'jest-watch-typeahead/filename',
     'jest-watch-typeahead/testname'
   ],
-  testEnvironment: 'jsdom',
-  resolver: 'jest-ts-webcompat-resolver'
+  testEnvironment: 'jsdom'
 };

@@ -1,151 +1,259 @@
 import { createMachine, interpret, assign } from '../src/index';
-
-const wordMachine = createMachine({
-  type: 'parallel',
-  states: {
-    direction: {
-      initial: 'left',
-      entry: 'ENTER_DIRECTION',
-      exit: 'EXIT_DIRECTION',
-      states: {
-        left: {},
-        right: {},
-        center: {},
-        justify: {}
-      },
-      on: {
-        // internal transitions
-        LEFT_CLICK: '.left',
-        RIGHT_CLICK: '.right',
-        RIGHT_CLICK_EXTERNAL: {
-          target: '.right',
-          external: true
-        },
-        CENTER_CLICK: '.center',
-        JUSTIFY_CLICK: '.justify',
-        RESET: 'direction', // explicit self-transition
-        RESET_TO_CENTER: {
-          target: 'direction.center',
-          external: true
-        }
-      }
-    }
-  }
-});
-
-const topLevelMachine = createMachine({
-  initial: 'Hidden',
-  on: {
-    CLICKED_CLOSE: '.Hidden',
-    TARGETLESS_ARRAY: [{ actions: ['doSomethingParent'] }],
-    TARGETLESS_OBJECT: { actions: ['doSomethingParent'] },
-    PARENT_EVENT: { actions: ['handleParentEvent'] }
-  },
-  states: {
-    Hidden: {
-      on: {
-        PUBLISH_FAILURE: 'Failure',
-        TARGETLESS_ARRAY: [{ actions: ['doSomething'] }],
-        TARGETLESS_OBJECT: { actions: ['doSomething'] }
-      }
-    },
-    Failure: {}
-  }
-});
+import { trackEntries } from './utils';
 
 describe('internal transitions', () => {
   it('parent state should enter child state without re-entering self', () => {
-    const nextState = wordMachine.transition(wordMachine.initialState, {
-      type: 'RIGHT_CLICK'
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          on: {
+            CLICK: '.b'
+          }
+        }
+      }
     });
 
-    expect(nextState.value).toEqual({ direction: 'right' });
-    expect(nextState.actions.length).toBe(0);
+    const flushTracked = trackEntries(machine);
+    const actor = interpret(machine).start();
+    flushTracked();
+
+    actor.send({
+      type: 'CLICK'
+    });
+
+    expect(actor.getSnapshot().value).toEqual({ foo: 'b' });
+    expect(flushTracked()).toEqual(['exit: foo.a', 'enter: foo.b']);
   });
 
-  it('parent state should re-enter self upon transitioning to child state if internal is false', () => {
-    const nextState = wordMachine.transition(wordMachine.initialState, {
-      type: 'RIGHT_CLICK_EXTERNAL'
+  it('parent state should re-enter self upon transitioning to child state if transition is reentering', () => {
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'left',
+          states: {
+            left: {},
+            right: {}
+          },
+          on: {
+            NEXT: {
+              target: '.right',
+              reenter: true
+            }
+          }
+        }
+      }
     });
 
-    expect(nextState.value).toEqual({ direction: 'right' });
-    expect(nextState.actions.length).toBe(2);
-    expect(nextState.actions.map((a) => a.type)).toEqual([
-      'EXIT_DIRECTION',
-      'ENTER_DIRECTION'
+    const flushTracked = trackEntries(machine);
+    const actor = interpret(machine).start();
+    flushTracked();
+
+    actor.send({
+      type: 'NEXT'
+    });
+
+    expect(actor.getSnapshot().value).toEqual({ foo: 'right' });
+    expect(flushTracked()).toEqual([
+      'exit: foo.left',
+      'exit: foo',
+      'enter: foo',
+      'enter: foo.right'
     ]);
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition', () => {
-    const resetState = wordMachine.transition('direction.center', {
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'a',
+          states: {
+            a: {
+              on: {
+                NEXT: 'b'
+              }
+            },
+            b: {}
+          },
+          on: {
+            RESET: {
+              target: 'foo',
+              reenter: true
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+    const actor = interpret(machine).start();
+    actor.send({
+      type: 'NEXT'
+    });
+    flushTracked();
+
+    actor.send({
       type: 'RESET'
     });
 
-    expect(resetState.value).toEqual({ direction: 'left' });
-    expect(resetState.actions.map((a) => a.type)).toEqual([
-      'EXIT_DIRECTION',
-      'ENTER_DIRECTION'
+    expect(actor.getSnapshot().value).toEqual({ foo: 'a' });
+    expect(flushTracked()).toEqual([
+      'exit: foo.b',
+      'exit: foo',
+      'enter: foo',
+      'enter: foo.a'
     ]);
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition (to child)', () => {
-    const resetState = wordMachine.transition('direction.right', {
-      type: 'RESET_TO_CENTER'
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          on: {
+            RESET_TO_B: {
+              target: 'foo.b',
+              reenter: true
+            }
+          }
+        }
+      }
     });
 
-    expect(resetState.value).toEqual({ direction: 'center' });
-    expect(resetState.actions.map((a) => a.type)).toEqual([
-      'EXIT_DIRECTION',
-      'ENTER_DIRECTION'
+    const flushTracked = trackEntries(machine);
+    const actor = interpret(machine).start();
+    flushTracked();
+
+    actor.send({
+      type: 'RESET_TO_B'
+    });
+
+    expect(actor.getSnapshot().value).toEqual({ foo: 'b' });
+    expect(flushTracked()).toEqual([
+      'exit: foo.a',
+      'exit: foo',
+      'enter: foo',
+      'enter: foo.b'
     ]);
   });
 
   it('should listen to events declared at top state', () => {
-    const actualState = topLevelMachine.transition('Failure', {
-      type: 'CLICKED_CLOSE'
+    const machine = createMachine({
+      initial: 'foo',
+      on: {
+        CLICKED: '.bar'
+      },
+      states: {
+        foo: {},
+        bar: {}
+      }
+    });
+    const actor = interpret(machine).start();
+    actor.send({
+      type: 'CLICKED'
     });
 
-    expect(actualState.value).toEqual('Hidden');
+    expect(actor.getSnapshot().value).toEqual('bar');
   });
 
   it('should work with targetless transitions (in conditional array)', () => {
-    const sameState = topLevelMachine.transition('Hidden', {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            TARGETLESS_ARRAY: [{ actions: [spy] }]
+          }
+        }
+      }
+    });
+    const actor = interpret(machine).start();
+    actor.send({
       type: 'TARGETLESS_ARRAY'
     });
-
-    expect(sameState.actions.map((a) => a.type)).toEqual(['doSomething']);
+    expect(spy).toHaveBeenCalled();
   });
 
   it('should work with targetless transitions (in object)', () => {
-    const sameState = topLevelMachine.transition('Hidden', {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            TARGETLESS_OBJECT: { actions: [spy] }
+          }
+        }
+      }
+    });
+    const actor = interpret(machine).start();
+    actor.send({
       type: 'TARGETLESS_OBJECT'
     });
-
-    expect(sameState.actions.map((a) => a.type)).toEqual(['doSomething']);
+    expect(spy).toHaveBeenCalled();
   });
 
   it('should work on parent with targetless transitions (in conditional array)', () => {
-    const sameState = topLevelMachine.transition('Failure', {
+    const spy = jest.fn();
+    const machine = createMachine({
+      on: {
+        TARGETLESS_ARRAY: [{ actions: [spy] }]
+      },
+      initial: 'foo',
+      states: { foo: {} }
+    });
+    const actor = interpret(machine).start();
+    actor.send({
       type: 'TARGETLESS_ARRAY'
     });
-
-    expect(sameState.actions.map((a) => a.type)).toEqual(['doSomethingParent']);
+    expect(spy).toHaveBeenCalled();
   });
 
-  it('should work with targetless transitions (in object)', () => {
-    const sameState = topLevelMachine.transition('Failure', {
+  it('should work on parent with targetless transitions (in object)', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      on: {
+        TARGETLESS_OBJECT: { actions: [spy] }
+      },
+      initial: 'foo',
+      states: { foo: {} }
+    });
+    const actor = interpret(machine).start();
+    actor.send({
       type: 'TARGETLESS_OBJECT'
     });
-
-    expect(sameState.actions.map((a) => a.type)).toEqual(['doSomethingParent']);
+    expect(spy).toHaveBeenCalled();
   });
 
   it('should maintain the child state when targetless transition is handled by parent', () => {
-    const hiddenState = topLevelMachine.transition('Hidden', {
+    const machine = createMachine({
+      initial: 'foo',
+      on: {
+        PARENT_EVENT: { actions: () => {} }
+      },
+      states: {
+        foo: {}
+      }
+    });
+    const actor = interpret(machine).start();
+    actor.send({
       type: 'PARENT_EVENT'
     });
 
-    expect(hiddenState.value).toEqual('Hidden');
+    expect(actor.getSnapshot().value).toEqual('foo');
   });
 
   it('should reenter proper descendants of a source state of an internal transition', () => {

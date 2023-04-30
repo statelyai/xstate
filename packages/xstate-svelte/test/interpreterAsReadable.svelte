@@ -4,7 +4,7 @@
 
   const service = interpret(
     createMachine({
-      schema: {
+      types: {
         context: {} as { count: number }
       }
     })

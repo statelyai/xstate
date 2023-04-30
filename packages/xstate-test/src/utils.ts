@@ -5,7 +5,7 @@ import {
   StatePath
 } from '@xstate/graph';
 import { AnyState, MachineContext } from 'xstate';
-import { TestMeta, TestPathResult } from './types.js';
+import { TestMeta, TestPathResult } from './types.ts';
 
 interface TestResultStringOptions extends SerializationConfig<any, any> {
   formatColor: (color: string, string: string) => string;
@@ -25,7 +25,6 @@ export function formatPathTestResult(
     serializeState: (state, _event) =>
       simpleStringify(state) as SerializedState,
     serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
-    eventCases: {},
     ...options
   };
 

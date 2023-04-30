@@ -8,14 +8,15 @@ import {
   MachineImplementationsFrom,
   StateValueFrom,
   ActorBehavior,
-  ActorRefFrom
-} from '../src/index.js';
+  ActorRefFrom,
+  TagsFrom
+} from '../src/index.ts';
 import { TypegenMeta } from '../src/typegenTypes';
 
 describe('ContextFrom', () => {
   it('should return context of a machine', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         context: {} as { counter: number }
       }
     });
@@ -37,8 +38,8 @@ describe('ContextFrom', () => {
 
   it('should return context of a typegened machine', () => {
     const machine = createMachine({
-      tsTypes: {} as TypegenMeta,
-      schema: {
+      types: {
+        typegen: {} as TypegenMeta,
         context: {} as { counter: number }
       }
     });
@@ -62,7 +63,7 @@ describe('ContextFrom', () => {
 describe('EventFrom', () => {
   it('should return events for a machine', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -85,8 +86,8 @@ describe('EventFrom', () => {
 
   it('should return events for a typegened machine', () => {
     const machine = createMachine({
-      tsTypes: {} as TypegenMeta,
-      schema: {
+      types: {
+        typegen: {} as TypegenMeta,
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -109,7 +110,7 @@ describe('EventFrom', () => {
 
   it('should return events for an interpreter', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -139,7 +140,7 @@ describe('MachineImplementationsFrom', () => {
       context: {
         count: 100
       },
-      schema: {
+      types: {
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
@@ -191,11 +192,11 @@ describe('MachineImplementationsFrom', () => {
       };
     }
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
       context: {
         count: 100
       },
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
@@ -239,11 +240,11 @@ describe('MachineImplementationsFrom', () => {
       };
     }
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
       context: {
         count: 100
       },
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
@@ -283,7 +284,9 @@ describe('StateValueFrom', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: {
+        typegen: {} as TypesMeta
+      }
     });
 
     function matches(_value: StateValueFrom<typeof machine>) {}
@@ -307,7 +310,7 @@ describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
     const service = interpret(
       createMachine({
-        schema: {
+        types: {
           events: {} as { type: 'FOO' }
         }
       })
@@ -357,5 +360,42 @@ describe('ActorRefFrom', () => {
     }
 
     acceptActorRef(interpret(behavior).start());
+  });
+});
+
+describe('tags', () => {
+  it('derives tags from StateMachine when typegen is enabled', () => {
+    interface TypesMeta extends TypegenMeta {
+      tags: 'a' | 'b' | 'c';
+    }
+    const machine = createMachine({
+      types: {
+        typegen: {} as TypesMeta
+      }
+    });
+
+    type Tags = TagsFrom<typeof machine>;
+
+    const acceptTag = (_tag: Tags) => {};
+
+    acceptTag('a');
+    acceptTag('b');
+    acceptTag('c');
+    // @ts-expect-error d is not a valid tag
+    acceptTag('d');
+  });
+
+  it('derives string from StateMachine without typegen', () => {
+    const machine = createMachine({});
+
+    type Tags = TagsFrom<typeof machine>;
+
+    const acceptTag = (_tag: Tags) => {};
+
+    acceptTag('a');
+    acceptTag('b');
+    acceptTag('c');
+    // d is a valid tag, as is any string
+    acceptTag('d');
   });
 });

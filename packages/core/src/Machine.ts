@@ -6,13 +6,13 @@ import {
   ActorMap,
   InternalMachineImplementations,
   ParameterizedObject
-} from './types.js';
+} from './types.ts';
 import {
   TypegenConstraint,
   TypegenDisabled,
   ResolveTypegenMeta
-} from './typegenTypes.js';
-import { StateMachine } from './StateMachine.js';
+} from './typegenTypes.ts';
+import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
   TContext extends MachineContext,
