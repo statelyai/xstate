@@ -9,7 +9,7 @@ import {
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
-import { flatten } from 'xstate/src/utils';
+import { flatten } from 'xstate/lib/utils';
 
 export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -72,9 +72,8 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
       for (const serializedEvent of Object.keys(
         adjacency[fromStateSerial].transitions
       ) as SerializedEvent[]) {
-        const { state: nextState, event: subEvent } = adjacency[
-          fromStateSerial
-        ].transitions[serializedEvent];
+        const { state: nextState, event: subEvent } =
+          adjacency[fromStateSerial].transitions[serializedEvent];
 
         if (!(serializedEvent in adjacency[fromStateSerial].transitions)) {
           continue;
