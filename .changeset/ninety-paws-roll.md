@@ -2,4 +2,4 @@
 '@xstate/graph': patch
 ---
 
-Fixed imports to not import from `xstate/src`
+Fixed an internal import to not import from `xstate/src`
