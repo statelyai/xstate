@@ -768,6 +768,15 @@ export type ActionFunctionMap<
         TContext,
         TEvent,
         TAction extends { type: K } ? TAction : never
+      >
+    | Array<
+        | BaseDynamicActionObject<TContext, TEvent, TEvent, TAction, any>
+        | ActionFunction<
+            TContext,
+            TEvent,
+            TAction extends { type: K } ? TAction : never
+          >
+        | K
       >;
 };
 
@@ -806,7 +815,7 @@ type MachineImplementationsActions<
   >,
   TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
-  [K in keyof TEventsCausingActions]?:
+  [K in keyof TEventsCausingActions]?: SingleOrArray<
     | BaseDynamicActionObject<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
@@ -819,7 +828,9 @@ type MachineImplementationsActions<
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
         ParameterizedObject, // TODO: when bringing back parametrized actions this should accept something like `Cast<Prop<TIndexedActions, K>, ParameterizedObject>`. At the moment we need to keep this type argument consistent with what is provided to the fake callable signature within `BaseDynamicActionObject`
         Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
-      >;
+      >
+    | keyof TEventsCausingActions
+  >;
 };
 
 type MachineImplementationsDelays<
@@ -1086,7 +1097,8 @@ export enum ActionTypes {
   ErrorPlatform = 'error.platform',
   ErrorCustom = 'xstate.error',
   Pure = 'xstate.pure',
-  Choose = 'xstate.choose'
+  Choose = 'xstate.choose',
+  ActionGroup = 'xstate.group'
 }
 
 export interface RaiseActionObject<

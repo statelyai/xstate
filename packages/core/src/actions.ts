@@ -69,6 +69,17 @@ export function resolveActionObject(
         return [state, a];
       }
     );
+  } else if (isArray(dereferencedAction)) {
+    return createDynamicAction(
+      { type: ActionTypes.ActionGroup, params: actionObject.params ?? {} },
+      (_event, { state }) => {
+        const action: BaseActionObject = {
+          type: actionObject.type,
+          params: { actions: dereferencedAction }
+        };
+        return [state, action];
+      }
+    );
   } else if (dereferencedAction) {
     return dereferencedAction;
   } else {

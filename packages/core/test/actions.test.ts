@@ -3664,3 +3664,166 @@ it('should call a referenced action responding to an initial raise with updated 
 
   expect(spy).toHaveBeenCalledWith({ count: 42 });
 });
+
+describe('action groups', () => {
+  it('should execute actions provided as type strings in a group', () => {
+    const action1 = jest.fn();
+    const action2 = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: 'group'
+      },
+      {
+        actions: {
+          group: ['action1', 'action2'],
+          action1,
+          action2
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(action1).toHaveBeenCalled();
+    expect(action2).toHaveBeenCalled();
+  });
+
+  it('should execute actions provided as action functions in a group', () => {
+    const action1 = jest.fn();
+    const action2 = jest.fn();
+
+    const context = { value: 'string' };
+    const event = { type: 'event', value: 'someValue' };
+
+    const machine = createMachine(
+      {
+        context,
+        on: {
+          event: { actions: 'group' }
+        }
+      },
+      {
+        actions: {
+          group: [
+            ({ context }) => action1(context),
+            ({ event }) => action2(event)
+          ]
+        }
+      }
+    );
+
+    const service = interpret(machine).start();
+
+    service.send(event);
+
+    expect(action1).toHaveBeenCalledWith(context);
+    expect(action2).toHaveBeenCalledWith(event);
+  });
+
+  it('should execute a mix of actions in a group', () => {
+    const action1 = jest.fn();
+    const action2 = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: 'group',
+        context: {
+          value: 'some value'
+        }
+      },
+      {
+        actions: {
+          group: [
+            'action1',
+            assign({
+              value: ({ context }) => `${context.value}!`
+            }),
+            'action2'
+          ],
+          action1: ({ context }) => action1(context.value),
+          action2: ({ context }) => action2(context.value)
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(action1).toHaveBeenCalledWith('some value');
+    expect(action2).toHaveBeenCalledWith('some value!');
+  });
+
+  it('should be able to reference groups from other groups while respecting action order', () => {
+    const action = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: 'group1'
+      },
+      {
+        actions: {
+          group1: ['group2', 'group3'],
+          group2: [assign({ value: 'a' }), 'action', 'group4'],
+          group3: [assign({ value: 'b' }), 'action'],
+          group4: [assign({ value: 'c' }), 'action'],
+          action: ({ context }) => action(context.value)
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(action).toHaveBeenCalledTimes(3);
+    expect(action).toHaveBeenNthCalledWith(1, 'a');
+    expect(action).toHaveBeenNthCalledWith(2, 'c');
+    expect(action).toHaveBeenNthCalledWith(3, 'b');
+  });
+
+  it('should play nicely with typegen', () => {
+    interface Typegen0 {
+      '@@xstate/typegen': true;
+      eventsCausingActions: {
+        updateValue: 'update';
+        setValue: 'update';
+        displayValue: 'display';
+        incrementInteractionCount: 'update' | 'display';
+        logValue: 'update' | 'display';
+      };
+    }
+
+    // @ts-ignore
+    const machine = createMachine(
+      {
+        types: {
+          context: {} as {
+            value: string;
+            interactionCount: number;
+          },
+          events: {} as { type: 'display' } | { type: 'update'; value: string },
+          typegen: {} as Typegen0
+        },
+        context: {
+          value: '',
+          interactionCount: 0
+        },
+        on: {
+          update: { actions: 'updateValue' },
+          display: { actions: 'displayValue' }
+        }
+      },
+      {
+        actions: {
+          updateValue: ['incrementInteractionCount', 'setValue'],
+          displayValue: ['incrementInteractionCount', 'logValue'],
+          setValue: assign({
+            value: ({ event }) => event.value
+          }),
+          incrementInteractionCount: assign({
+            interactionCount: ({ context }) => context.interactionCount + 1
+          }),
+          logValue: log(({ context }) => `Value: ${context.value}`)
+        }
+      }
+    );
+  });
+});
