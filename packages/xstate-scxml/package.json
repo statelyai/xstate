@@ -18,6 +18,7 @@
   "exports": {
     ".": {
       "module": "./dist/xstate-scxml.esm.js",
+      "import": "./dist/xstate-scxml.cjs.mjs",
       "default": "./dist/xstate-scxml.cjs.js"
     },
     "./package.json": "./package.json"

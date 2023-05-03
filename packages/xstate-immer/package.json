@@ -17,6 +17,7 @@
   "exports": {
     ".": {
       "module": "./dist/xstate-immer.esm.js",
+      "import": "./dist/xstate-immer.cjs.mjs",
       "default": "./dist/xstate-immer.cjs.js"
     },
     "./package.json": "./package.json"

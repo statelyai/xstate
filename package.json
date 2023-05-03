@@ -15,9 +15,8 @@
     "globals": {
       "react": "React"
     },
-    "exports": true,
-    "___experimentalFlags_WILL_CHANGE_IN_PATCH": {
-      "exports": true
+    "exports": {
+      "importConditionDefaultExport": "default"
     }
   },
   "scripts": {
@@ -54,7 +53,7 @@
     "@changesets/cli": "^2.24.4",
     "@manypkg/cli": "^0.16.1",
     "@manypkg/get-packages": "^1.1.3",
-    "@preconstruct/cli": "^2.2.2",
+    "@preconstruct/cli": "^2.6.2",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/vue": "^6.6.1",
     "@types/jest": "^29.2.5",

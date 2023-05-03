@@ -20,10 +20,12 @@
   "exports": {
     "./fsm": {
       "module": "./fsm/dist/xstate-react-fsm.esm.js",
+      "import": "./fsm/dist/xstate-react-fsm.cjs.mjs",
       "default": "./fsm/dist/xstate-react-fsm.cjs.js"
     },
     ".": {
       "module": "./dist/xstate-react.esm.js",
+      "import": "./dist/xstate-react.cjs.mjs",
       "default": "./dist/xstate-react.cjs.js"
     },
     "./package.json": "./package.json"
