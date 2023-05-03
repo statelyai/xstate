@@ -27,6 +27,7 @@
         "browser": "./dist/xstate-test.browser.esm.js",
         "default": "./dist/xstate-test.esm.js"
       },
+      "import": "./dist/xstate-test.cjs.mjs",
       "default": "./dist/xstate-test.cjs.js"
     },
     "./package.json": "./package.json"

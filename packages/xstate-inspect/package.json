@@ -19,10 +19,12 @@
   "exports": {
     ".": {
       "module": "./dist/xstate-inspect.esm.js",
+      "import": "./dist/xstate-inspect.cjs.mjs",
       "default": "./dist/xstate-inspect.cjs.js"
     },
     "./server": {
       "module": "./server/dist/xstate-inspect-server.esm.js",
+      "import": "./server/dist/xstate-inspect-server.cjs.mjs",
       "default": "./server/dist/xstate-inspect-server.cjs.js"
     },
     "./package.json": "./package.json"
