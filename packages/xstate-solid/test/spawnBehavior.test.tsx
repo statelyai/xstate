@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import { useActor } from '../src';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { fromReducer } from 'xstate/src/behaviors';
+import { fromReducer } from 'xstate/lib/behaviors';
 import { spawnBehavior } from 'xstate';
 
 describe("usage with core's spawnBehavior", () => {
