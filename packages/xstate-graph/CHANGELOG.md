@@ -1,5 +1,11 @@
 # @xstate/graph
 
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- [#3992](https://github.com/statelyai/xstate/pull/3992) [`fc076d82f`](https://github.com/statelyai/xstate/commit/fc076d82f4646c3285455c33200d84f804c17f36) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed an internal import to not import from `xstate/src`
+
 ## 2.0.0-alpha.1
 
 ### Patch Changes
