@@ -19,6 +19,7 @@
   "exports": {
     ".": {
       "module": "./dist/xstate-analytics.esm.js",
+      "import": "./dist/xstate-analytics.cjs.mjs",
       "default": "./dist/xstate-analytics.cjs.js"
     },
     "./package.json": "./package.json"

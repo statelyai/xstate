@@ -71,9 +71,8 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
       for (const serializedEvent of Object.keys(
         adjacency[fromStateSerial].transitions
       ) as SerializedEvent[]) {
-        const { state: nextState, event: subEvent } = adjacency[
-          fromStateSerial
-        ].transitions[serializedEvent];
+        const { state: nextState, event: subEvent } =
+          adjacency[fromStateSerial].transitions[serializedEvent];
 
         if (!(serializedEvent in adjacency[fromStateSerial].transitions)) {
           continue;
