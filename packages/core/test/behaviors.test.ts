@@ -2,6 +2,7 @@ import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { createMachine, interpret } from '../src/index.ts';
 import {
+  fromData,
   fromObservable,
   fromPromise,
   fromTransition
@@ -525,5 +526,44 @@ describe('machine behavior', () => {
     expect(actor2.getSnapshot().children.child.getSnapshot().value).toBe(
       'inner'
     );
+  });
+});
+
+describe('data behavior', () => {
+  it('should read data', () => {
+    const dataActor = interpret(fromData({ count: 42 })).start();
+
+    expect(dataActor.getSnapshot()).toEqual({
+      count: 42
+    });
+  });
+
+  it('should set data', () => {
+    const dataActor = interpret(fromData({ count: 42, foo: 'bar' })).start();
+
+    dataActor.send({ type: 'set', data: { count: 43, foo: 'baz' } });
+
+    expect(dataActor.getSnapshot()).toEqual({
+      count: 43,
+      foo: 'baz'
+    });
+  });
+
+  it('should reset data', () => {
+    const dataActor = interpret(fromData({ count: 42, foo: 'bar' })).start();
+
+    dataActor.send({ type: 'set', data: { count: 43, foo: 'baz' } });
+
+    expect(dataActor.getSnapshot()).toEqual({
+      count: 43,
+      foo: 'baz'
+    });
+
+    dataActor.send({ type: 'reset' });
+
+    expect(dataActor.getSnapshot()).toEqual({
+      count: 42,
+      foo: 'bar'
+    });
   });
 });

@@ -11,6 +11,7 @@ export { fromTransition } from './transition.ts';
 export { fromPromise } from './promise.ts';
 export { fromObservable, fromEventObservable } from './observable.ts';
 export { fromCallback } from './callback.ts';
+export { fromData } from './data.ts';
 
 export const startSignalType = 'xstate.init';
 export const stopSignalType = 'xstate.stop';
