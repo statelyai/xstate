@@ -47,7 +47,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^3.0.0-beta.2",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "xstate": "^5.0.0-beta.8"
+    "xstate": "^5.0.0-beta.9"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -72,7 +72,7 @@
     "jsdom-global": "^3.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "xstate": "5.0.0-beta.8"
+    "xstate": "5.0.0-beta.9"
   },
   "preconstruct": {
     "entrypoints": [

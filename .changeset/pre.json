@@ -15,7 +15,8 @@
     "@xstate/inspect": "0.7.0",
     "@xstate/svelte": "2.0.0",
     "@xstate/vue": "2.0.0",
-    "@xstate/solid": "0.1.2"
+    "@xstate/solid": "0.1.2",
+    "@xstate-repo/jest-utils": "0.0.0"
   },
   "changesets": [
     "bright-needles-visit",
@@ -40,6 +41,7 @@
     "flat-clouds-greet",
     "fresh-garlics-fry",
     "fresh-keys-happen",
+    "fuzzy-cows-film",
     "giant-moons-glow",
     "gold-buses-thank",
     "good-comics-collect",
