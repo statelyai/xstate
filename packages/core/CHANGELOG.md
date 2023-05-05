@@ -1,5 +1,11 @@
 # xstate
 
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- [#3981](https://github.com/statelyai/xstate/pull/3981) [`a225a474c`](https://github.com/statelyai/xstate/commit/a225a474c7f8ff6f1ea2aa8535a5e58a36e26dc9) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with a referenced action responding to an initial raised event being called with init event
+
 ## 4.37.2
 
 ### Patch Changes
