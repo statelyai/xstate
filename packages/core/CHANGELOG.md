@@ -1,5 +1,17 @@
 # xstate
 
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- [#3981](https://github.com/statelyai/xstate/pull/3981) [`a225a474c`](https://github.com/statelyai/xstate/commit/a225a474c7f8ff6f1ea2aa8535a5e58a36e26dc9) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with a referenced action responding to an initial raised event being called with init event
+
+## 4.37.2
+
+### Patch Changes
+
+- [#3972](https://github.com/statelyai/xstate/pull/3972) [`2b9583a63`](https://github.com/statelyai/xstate/commit/2b9583a63c9089103365bad9419bd4a1edd43556) Thanks [@Andarist](https://github.com/Andarist)! - The "Some implementations missing" type-level error will now mention what implementations are missing.
+
 ## 5.0.0-beta.8
 
 ### Major Changes
@@ -344,6 +356,48 @@
 - [#3756](https://github.com/statelyai/xstate/pull/3756) [`67d576190`](https://github.com/statelyai/xstate/commit/67d57619015803a6a7cf9f3b6dd98c10c064faff) Thanks [@Andarist](https://github.com/Andarist)! - All transitions became internal by default. The style of the `target` pattern (`.child`, `sibling`, `#id`) has now no effect on the transition type.
 
   Internal transitions don't reenter their source state when the target lies within it. You can still create external transitions (ones that reenter the source state under the mentioned circumstances) by explicitly setting `external: true` on the given transition.
+
+## 4.37.1
+
+### Patch Changes
+
+- [#3913](https://github.com/statelyai/xstate/pull/3913) [`1c1874657`](https://github.com/statelyai/xstate/commit/1c187465797cd687f311d5a2e18c91738d17f194) Thanks [@Andarist](https://github.com/Andarist)! - Fixed `forwardTo`, `escalate` and `sendUpdate` to be compatible with required action types
+
+## 4.37.0
+
+### Minor Changes
+
+- [#3835](https://github.com/statelyai/xstate/pull/3835) [`431472082`](https://github.com/statelyai/xstate/commit/431472082f8b644da9f519931207aa994052517f) Thanks [@with-heart](https://github.com/with-heart)! - The new `TagsFrom` helper type extracts the type of `tags` from a state machine when typegen is enabled:
+
+  ```ts
+  const machine = createMachine({
+    // `tags` attached to machine via typegen
+    tsTypes: {} as import('./machine.typegen').Typegen0,
+    tags: ['a', 'b'],
+    states: {
+      idle: { tags: 'c' }
+    }
+  });
+
+  type Tags = TagsFrom<typeof machine>; // 'a' | 'b' | 'c'
+  ```
+
+  If typegen is not enabled, `TagsFrom` returns `string`:
+
+  ```ts
+  const machine = createMachine({
+    tags: ['a', 'b'],
+    states: {
+      idle: { tags: 'c' }
+    }
+  });
+
+  type Tags = TagsFrom<typeof machine>; // string
+  ```
+
+### Patch Changes
+
+- [#3855](https://github.com/statelyai/xstate/pull/3855) [`02012c2be`](https://github.com/statelyai/xstate/commit/02012c2be12f89aac43479b30571688496d8f1b3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed event type narrowing in some of the builtin actions.
 
 ## 4.36.0
 

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -19,10 +19,12 @@
   "exports": {
     ".": {
       "module": "./dist/xstate-inspect.esm.js",
+      "import": "./dist/xstate-inspect.cjs.mjs",
       "default": "./dist/xstate-inspect.cjs.js"
     },
     "./server": {
       "module": "./server/dist/xstate-inspect-server.esm.js",
+      "import": "./server/dist/xstate-inspect-server.cjs.mjs",
       "default": "./server/dist/xstate-inspect-server.cjs.js"
     },
     "./package.json": "./package.json"
@@ -43,12 +45,12 @@
   "devDependencies": {
     "@types/ws": "^8.2.2",
     "ws": "^8.4.0",
-    "xstate": "5.0.0-beta.8"
+    "xstate": "5.0.0-beta.9"
   },
   "peerDependencies": {
     "@types/ws": "^8.0.0",
     "ws": "^8.0.0",
-    "xstate": "^5.0.0-beta.8"
+    "xstate": "^5.0.0-beta.9"
   },
   "peerDependenciesMeta": {
     "@types/ws": {

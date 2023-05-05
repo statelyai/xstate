@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -27,6 +27,7 @@
         "browser": "./dist/xstate-test.browser.esm.js",
         "default": "./dist/xstate-test.esm.js"
       },
+      "import": "./dist/xstate-test.cjs.mjs",
       "default": "./dist/xstate-test.cjs.js"
     },
     "./package.json": "./package.json"
@@ -44,14 +45,14 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^5.0.0-beta.8"
+    "xstate": "^5.0.0-beta.9"
   },
   "devDependencies": {
     "strip-ansi": "^5.2.0",
-    "xstate": "5.0.0-beta.8"
+    "xstate": "5.0.0-beta.9"
   },
   "dependencies": {
-    "@xstate/graph": "^2.0.0-alpha.0"
+    "@xstate/graph": "^2.0.0-alpha.1"
   },
   "preconstruct": {
     "exports": {

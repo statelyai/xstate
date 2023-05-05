@@ -3572,3 +3572,95 @@ describe('action meta', () => {
     interpret(machine).start();
   });
 });
+
+it('should call an inline action responding to an initial raise with the raised event', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: raise({ type: 'HELLO' }),
+    on: {
+      HELLO: {
+        actions: ({ event }) => {
+          spy(event);
+        }
+      }
+    }
+  });
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
+});
+
+it('should call a referenced action responding to an initial raise with the raised event', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine(
+    {
+      entry: raise({ type: 'HELLO' }),
+      on: {
+        HELLO: {
+          actions: 'foo'
+        }
+      }
+    },
+    {
+      actions: {
+        foo: ({ event }) => {
+          spy(event);
+        }
+      }
+    }
+  );
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
+});
+
+it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    context: { count: 0 },
+    entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+    on: {
+      HELLO: {
+        actions: ({ context }) => {
+          spy(context);
+        }
+      }
+    }
+  });
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ count: 42 });
+});
+
+it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine(
+    {
+      context: { count: 0 },
+      entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+      on: {
+        HELLO: {
+          actions: 'foo'
+        }
+      }
+    },
+    {
+      actions: {
+        foo: ({ context }) => {
+          spy(context);
+        }
+      }
+    }
+  );
+
+  interpret(machine).start();
+
+  expect(spy).toHaveBeenCalledWith({ count: 42 });
+});

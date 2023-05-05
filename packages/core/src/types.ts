@@ -160,7 +160,7 @@ export interface ChooseCondition<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 > {
-  guard?: GuardConfig<TContext, TEvent>;
+  guard?: GuardConfig<TContext, TExpressionEvent>;
   actions: Actions<TContext, TExpressionEvent, TEvent>;
 }
 
@@ -1972,6 +1972,10 @@ export type TODO = any;
 
 export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['matches']
+>[0];
+
+export type TagsFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['hasTag']
 >[0];
 
 export type StateFromMachine<TMachine extends AnyStateMachine> =
