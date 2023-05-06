@@ -1,4 +1,3 @@
-import { toSCXMLEvent } from '..';
 import { ActorBehavior } from '../types';
 
 export function fromData<T>(initialData: T): ActorBehavior<
@@ -14,10 +13,7 @@ export function fromData<T>(initialData: T): ActorBehavior<
   }
 > {
   return {
-    transition: (state, _event) => {
-      const scxmlEvent = toSCXMLEvent(_event);
-      const event = scxmlEvent.data;
-
+    transition: (state, event) => {
       if (event.type === 'set') {
         return {
           ...state,
