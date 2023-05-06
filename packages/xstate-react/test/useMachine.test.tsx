@@ -1,4 +1,9 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor as testWaitFor
+} from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
@@ -8,6 +13,8 @@ import {
   createMachine,
   DoneEventObject,
   doneInvoke,
+  fromObservable,
+  fromTransition,
   Interpreter,
   PersistedMachineState,
   raise,
@@ -16,6 +23,7 @@ import {
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useMachine } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
+import { interval } from 'rxjs';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -975,5 +983,73 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           3
         : 1
     );
+  });
+
+  it('should work with a promise actor behavior', async () => {
+    const App = () => {
+      const [state] = useMachine(() => fromPromise(() => Promise.resolve(42)));
+
+      return <div data-testid="result">{state}</div>;
+    };
+
+    render(<App />);
+
+    const result = await screen.findByTestId('result');
+
+    await testWaitFor(() => {
+      expect(result.textContent).toBe('42');
+    });
+  });
+
+  it('should work with an observable actor behavior', async () => {
+    const App = () => {
+      const [state] = useMachine(() => fromObservable(() => interval(10)));
+
+      return <div data-testid="result">{state}</div>;
+    };
+
+    render(<App />);
+
+    const result = await screen.findByTestId('result');
+
+    await testWaitFor(() => {
+      expect(result.textContent).toBe('3');
+    });
+  });
+
+  it('should work with a transition actor behavior', () => {
+    const App = () => {
+      const [state, send] = useMachine(() =>
+        fromTransition((state, ev) => {
+          if (ev.type === 'inc') {
+            return state + 1;
+          }
+          return state;
+        }, 0)
+      );
+
+      return (
+        <>
+          <div data-testid="result">{state}</div>
+          <button
+            data-testid="button"
+            onClick={() => {
+              send({ type: 'inc' });
+            }}
+          ></button>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const result = screen.getByTestId('result');
+    const button = screen.getByTestId('button');
+
+    expect(result.textContent).toBe('0');
+
+    fireEvent.click(button);
+
+    expect(result.textContent).toBe('1');
   });
 });

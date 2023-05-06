@@ -10,8 +10,8 @@
         "${file}",
         "--config",
         "jest.config.js",
-        "--no-cache",
-        "--testTimeout=2147483647"
+        "--no-cache"
+        // "--testTimeout=2147483647"
       ],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",

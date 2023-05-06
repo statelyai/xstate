@@ -1,6 +1,7 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
+  AnyActorBehavior,
   AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
@@ -8,10 +9,13 @@ import {
   InterpreterOptions,
   InterpreterStatus,
   MissingImplementationsError,
-  StateFrom
+  StateFrom,
+  interpret
 } from 'xstate';
 import { Prop } from './types.ts';
 import { useIdleInterpreter } from './useInterpret.ts';
+import useConstant from './useConstant.ts';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
 function identity<T>(a: T): T {
   return a;
@@ -68,4 +72,62 @@ export function useMachine<TMachine extends AnyStateMachine>(
   }, []);
 
   return [storeSnapshot, service.send, service] as any;
+}
+
+export function useMachine2<TBehavior extends AnyActorBehavior>(
+  behavior: TBehavior,
+  options?: InterpreterOptions<TBehavior>
+) {
+  const actorRef = useConstant(() => interpret(behavior, options));
+
+  const getSnapshot = useCallback(() => {
+    return actorRef.getSnapshot();
+  }, [actorRef]);
+
+  const subscribe = useCallback(
+    (handleStoreChange) => {
+      const { unsubscribe } = actorRef.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [actorRef]
+  );
+
+  const actorSnapshot = useSyncExternalStoreWithSelector(
+    subscribe,
+    getSnapshot,
+    getSnapshot,
+    identity,
+    isEqual
+  );
+
+  useEffect(() => {
+    actorRef.start();
+
+    return () => {
+      actorRef.stop();
+      actorRef.status = InterpreterStatus.NotStarted;
+      (actorRef as any)._initState();
+    };
+  }, [actorRef]);
+
+  // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
+  useIsomorphicLayoutEffect(() => {
+    actorRef.behavior.options = behavior.options;
+  });
+
+  if (process.env.NODE_ENV !== 'production' && typeof behavior !== 'function') {
+    const [initialMachine] = useState(behavior);
+
+    if (
+      (behavior.config ?? behavior) !==
+      (initialMachine.config ?? initialMachine)
+    ) {
+      console.warn(
+        'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
+          'Please make sure that you pass the same Machine as argument each time.'
+      );
+    }
+  }
+
+  return [actorSnapshot, actorRef.send, actorRef] as any;
 }

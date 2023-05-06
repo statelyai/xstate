@@ -1870,6 +1870,7 @@ export interface ActorBehavior<
    * @returns Persisted state
    */
   getPersistedState?: (state: TInternalState) => TPersisted;
+  options?: unknown;
 }
 
 export type AnyActorBehavior = ActorBehavior<any, any, any, any>;
