@@ -1,4 +1,4 @@
-import { ActorBehavior } from '../types';
+import { ActorBehavior } from '../types.ts';
 
 export function fromData<T>(initialData: T): ActorBehavior<
   | {
