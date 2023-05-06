@@ -3,17 +3,10 @@ import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/w
 import {
   AnyActorBehavior,
   AnyState,
-  AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
-  InterpreterFrom,
   InterpreterOptions,
   InterpreterStatus,
-  MissingImplementationsError,
-  StateFrom,
   interpret
 } from 'xstate';
-import { Prop } from './types.ts';
-import { useIdleInterpreter } from './useInterpret.ts';
 import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
@@ -25,10 +18,10 @@ const isEqual = (prevState: AnyState, nextState: AnyState) => {
   return prevState === nextState || nextState.changed === false;
 };
 
-type UseMachineReturn<
-  TMachine extends AnyStateMachine,
-  TInterpreter = InterpreterFrom<TMachine>
-> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
+// type UseMachineReturn<
+//   TMachine extends AnyStateMachine,
+//   TInterpreter = InterpreterFrom<TMachine>
+// > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
 // export function useMachine<TMachine extends AnyStateMachine>(
 //   machine: AreAllImplementationsAssumedToBeProvided<

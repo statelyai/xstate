@@ -72,13 +72,13 @@ type RestParams<TMachine extends AnyStateMachine> =
           | ((value: StateFrom<TMachine>) => void)
       ];
 
-export function useInterpret<TMachine extends AnyActorBehavior>(
-  behavior: TMachine,
-  options?: InterpreterOptions<TMachine>,
+export function useInterpret<TBehavior extends AnyActorBehavior>(
+  behavior: TBehavior,
+  options?: InterpreterOptions<TBehavior>,
   observerOrListener?:
-    | Observer<SnapshotFrom<TMachine>>
-    | ((value: SnapshotFrom<TMachine>) => void)
-): ActorRefFrom<TMachine> {
+    | Observer<SnapshotFrom<TBehavior>>
+    | ((value: SnapshotFrom<TBehavior>) => void)
+): ActorRefFrom<TBehavior> {
   const service = useIdleInterpreter(behavior, options as any);
 
   useEffect(() => {
