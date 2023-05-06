@@ -1,7 +1,18 @@
 import * as React from 'react';
-import { ActorRefFrom, createMachine, sendTo } from 'xstate';
+import {
+  ActorRefFrom,
+  createMachine,
+  fromPromise,
+  fromTransition,
+  sendTo
+} from 'xstate';
 import { fireEvent, screen } from '@testing-library/react';
-import { useActor, useInterpret, useMachine } from '../src/index.ts';
+import {
+  useActor,
+  useInterpret,
+  useMachine,
+  useSelector
+} from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 
 const originalConsoleWarn = console.warn;
@@ -321,7 +332,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
       const actor = useInterpret(m, { systemId: 'test' });
 
       React.useEffect(() => {
-        actor.system.get('test')!.send({ type: 'PING' });
+        actor.system?.get('test')!.send({ type: 'PING' });
       });
 
       return null;
@@ -330,5 +341,41 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     render(<App />);
 
     expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
+  });
+
+  it('should work with any behavior', async () => {
+    const App = () => {
+      const actor = useInterpret(() =>
+        fromTransition((state, event) => {
+          if (event.type === 'inc') {
+            return state + 1;
+          }
+          return state;
+        }, 0)
+      );
+
+      const count = useSelector(actor, (state) => state);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            actor.send({ type: 'inc' });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
+
+    render(<App />);
+
+    const count = screen.getByTestId('count');
+
+    expect(count.textContent).toBe('0');
+
+    fireEvent.click(count);
+
+    expect(count.textContent).toBe('1');
   });
 });

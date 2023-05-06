@@ -30,49 +30,49 @@ type UseMachineReturn<
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
-export function useMachine<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options: InterpreterOptions<TMachine> = {}
-): UseMachineReturn<TMachine> {
-  // using `useIdleInterpreter` allows us to subscribe to the service *before* we start it
-  // so we don't miss any notifications
-  const service = useIdleInterpreter(machine as any, options as any);
+// export function useMachine<TMachine extends AnyStateMachine>(
+//   machine: AreAllImplementationsAssumedToBeProvided<
+//     TMachine['__TResolvedTypesMeta']
+//   > extends true
+//     ? TMachine
+//     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
+//   options: InterpreterOptions<TMachine> = {}
+// ): UseMachineReturn<TMachine> {
+//   // using `useIdleInterpreter` allows us to subscribe to the service *before* we start it
+//   // so we don't miss any notifications
+//   const service = useIdleInterpreter(machine as any, options as any);
 
-  const getSnapshot = useCallback(() => {
-    return service.getSnapshot();
-  }, [service]);
+//   const getSnapshot = useCallback(() => {
+//     return service.getSnapshot();
+//   }, [service]);
 
-  const subscribe = useCallback(
-    (handleStoreChange) => {
-      const { unsubscribe } = service.subscribe(handleStoreChange);
-      return unsubscribe;
-    },
-    [service]
-  );
-  const storeSnapshot = useSyncExternalStoreWithSelector(
-    subscribe,
-    getSnapshot,
-    getSnapshot,
-    identity,
-    isEqual
-  );
+//   const subscribe = useCallback(
+//     (handleStoreChange) => {
+//       const { unsubscribe } = service.subscribe(handleStoreChange);
+//       return unsubscribe;
+//     },
+//     [service]
+//   );
+//   const storeSnapshot = useSyncExternalStoreWithSelector(
+//     subscribe,
+//     getSnapshot,
+//     getSnapshot,
+//     identity,
+//     isEqual
+//   );
 
-  useEffect(() => {
-    service.start();
+//   useEffect(() => {
+//     service.start();
 
-    return () => {
-      service.stop();
-      service.status = InterpreterStatus.NotStarted;
-      (service as any)._initState();
-    };
-  }, []);
+//     return () => {
+//       service.stop();
+//       service.status = InterpreterStatus.NotStarted;
+//       (service as any)._initState();
+//     };
+//   }, []);
 
-  return [storeSnapshot, service.send, service] as any;
-}
+//   return [storeSnapshot, service.send, service] as any;
+// }
 
 export function useMachine2<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,

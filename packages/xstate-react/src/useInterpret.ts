@@ -5,24 +5,26 @@ import {
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
   interpret,
-  InterpreterFrom,
+  ActorRefFrom,
+  SnapshotFrom,
   InterpreterOptions,
   InterpreterStatus,
   Observer,
   StateFrom,
-  toObserver
+  toObserver,
+  AnyActorBehavior
 } from 'xstate';
 import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
 export function useIdleInterpreter(
-  machine: AnyStateMachine,
-  options: Partial<InterpreterOptions<AnyStateMachine>>
+  behavior: AnyActorBehavior,
+  options: Partial<InterpreterOptions<AnyActorBehavior>>
 ): AnyInterpreter {
   if (process.env.NODE_ENV !== 'production') {
-    const [initialMachine] = useState(machine);
+    const [initialBehavior] = useState(behavior);
 
-    if (machine.config !== initialMachine.config) {
+    if (behavior.config !== initialBehavior.config) {
       console.warn(
         'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
           'Please make sure that you pass the same Machine as argument each time.'
@@ -31,12 +33,12 @@ export function useIdleInterpreter(
   }
 
   const service = useConstant(() => {
-    return interpret(machine as AnyStateMachine, options);
+    return interpret(behavior as AnyActorBehavior, options);
   });
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
-    (service.behavior as AnyStateMachine).options = machine.options;
+    (service.behavior as AnyActorBehavior).options = behavior.options;
   });
 
   return service as any;
@@ -70,11 +72,14 @@ type RestParams<TMachine extends AnyStateMachine> =
           | ((value: StateFrom<TMachine>) => void)
       ];
 
-export function useInterpret<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  ...[options = {}, observerOrListener]: RestParams<TMachine>
-): InterpreterFrom<TMachine> {
-  const service = useIdleInterpreter(machine, options);
+export function useInterpret<TMachine extends AnyActorBehavior>(
+  behavior: TMachine,
+  options?: InterpreterOptions<TMachine>,
+  observerOrListener?:
+    | Observer<SnapshotFrom<TMachine>>
+    | ((value: SnapshotFrom<TMachine>) => void)
+): ActorRefFrom<TMachine> {
+  const service = useIdleInterpreter(behavior, options as any);
 
   useEffect(() => {
     if (!observerOrListener) {
