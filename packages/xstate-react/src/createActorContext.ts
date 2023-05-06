@@ -1,86 +1,45 @@
 import * as React from 'react';
-import { useInterpret } from './useInterpret';
 import { useActor as useActorUnbound } from './useActor';
 import { useSelector as useSelectorUnbound } from './useSelector';
-import {
-  ActorRefFrom,
-  AnyStateMachine,
-  SnapshotFrom,
-  InterpreterOptions,
-  Observer,
-  StateFrom,
-  AreAllImplementationsAssumedToBeProvided,
-  MarkAllImplementationsAsProvided,
-  StateMachine
-} from 'xstate';
+import { SnapshotFrom, AnyActorRef } from 'xstate';
 
-type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
-  TMachine extends StateMachine<
-    infer TContext,
-    infer TEvent,
-    infer TAction,
-    infer TActorMap,
-    infer TResolvedTypesMeta
-  >
-    ? StateMachine<
-        TContext,
-        TEvent,
-        TAction,
-        TActorMap,
-        AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-          ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-          : TResolvedTypesMeta
-      >
-    : never;
-
-export function createActorContext<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  interpreterOptions?: InterpreterOptions<TMachine>,
-  observerOrListener?:
-    | Observer<StateFrom<TMachine>>
-    | ((value: StateFrom<TMachine>) => void)
+export function createActorContext<TActor extends AnyActorRef>(
+  actorRef: TActor
 ): {
-  useActor: () => [StateFrom<TMachine>, ActorRefFrom<TMachine>['send']];
+  useActor: () => [SnapshotFrom<TActor>, TActor['send']];
   useSelector: <T>(
-    selector: (snapshot: SnapshotFrom<TMachine>) => T,
+    selector: (snapshot: SnapshotFrom<TActor>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
-  useActorRef: () => ActorRefFrom<TMachine>;
-  Provider: (
-    props: {
-      children: React.ReactNode;
-    } & (AreAllImplementationsAssumedToBeProvided<
-      TMachine['__TResolvedTypesMeta']
-    > extends true
-      ? {
-          machine?: TMachine;
-        }
-      : {
-          machine: ToMachinesWithProvidedImplementations<TMachine>;
-        })
-  ) => React.ReactElement<any, any>;
+  useActorRef: () => TActor;
+  Provider: (props: {
+    children: React.ReactNode;
+    actorRef?: TActor;
+  }) => React.ReactElement<any, any>;
 } {
-  const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
+  const ReactContext = React.createContext<TActor | null>(null);
 
   const OriginalProvider = ReactContext.Provider;
 
   function Provider({
     children,
-    machine: providedMachine = machine
+    actorRef: resolvedActorRef = actorRef
   }: {
     children: React.ReactNode;
-    machine: TMachine;
+    actorRef?: TActor;
   }) {
-    const actor = useInterpret(
-      providedMachine,
-      interpreterOptions,
-      observerOrListener
-    ) as ActorRefFrom<TMachine>;
+    React.useEffect(() => {
+      // Start the actor if it's not already started
+      resolvedActorRef.start?.();
+    }, []);
 
-    return React.createElement(OriginalProvider, { value: actor, children });
+    return React.createElement(OriginalProvider, {
+      value: resolvedActorRef,
+      children
+    });
   }
 
-  Provider.displayName = `ActorProvider(${machine.id})`;
+  Provider.displayName = `ActorProvider(${actorRef.id})`;
 
   function useContext() {
     const actor = React.useContext(ReactContext);
@@ -100,7 +59,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   }
 
   function useSelector<T>(
-    selector: (snapshot: SnapshotFrom<TMachine>) => T,
+    selector: (snapshot: SnapshotFrom<TActor>) => T,
     compare?: (a: T, b: T) => boolean
   ): T {
     const actor = useContext();
