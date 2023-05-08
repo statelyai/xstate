@@ -261,3 +261,17 @@ describe('nested transitions', () => {
     expect(state.context).toEqual({ password, email: '' });
   });
 });
+
+describe('private events', () => {
+  it('should not be possible to externally send private events', () => {
+    const machine = createMachine({
+      id: 'test'
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(() => {
+      actor.send({ type: 'xstate.init' });
+    }).toThrow();
+  });
+});

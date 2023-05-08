@@ -1826,6 +1826,7 @@ export interface ActorContext<
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   self: ActorRef<TEvent, TSnapshot>;
+  enqueue: (event: TEvent) => void;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;

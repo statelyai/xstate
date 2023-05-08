@@ -25,8 +25,8 @@ export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): ActorBehavior<TEvent, undefined> {
   const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
-    start: (_state, { self }) => {
-      self.send({ type: startSignalType } as TEvent);
+    start: (_state, { enqueue }) => {
+      enqueue({ type: startSignalType } as TEvent);
     },
     transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);

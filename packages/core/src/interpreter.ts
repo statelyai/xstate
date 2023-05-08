@@ -175,6 +175,9 @@ export class Interpreter<
           );
         }
         (child as any)._stop();
+      },
+      enqueue: (event) => {
+        this.mailbox.enqueue(toSCXMLEvent(event));
       }
     };
 
@@ -420,6 +423,10 @@ export class Interpreter<
       throw new Error(
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
+    }
+
+    if (event.type.startsWith('xstate.')) {
+      throw new Error('Cannot send private event');
     }
 
     const _event = toSCXMLEvent(event);
