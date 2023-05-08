@@ -3779,6 +3779,35 @@ describe('action groups', () => {
     expect(action).toHaveBeenNthCalledWith(3, 'b');
   });
 
+  it('should pass params to executed group actions', () => {
+    const handler1 = jest.fn();
+    const handler2 = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: {
+          type: 'messageHandlers',
+          params: {
+            message: 'Hello world!'
+          }
+        }
+      },
+      {
+        actions: {
+          messageHandlers: ['handler1', 'otherHandlers'],
+          otherHandlers: ['handler2'],
+          handler1: ({ action }) => handler1(action.params!.message),
+          handler2: ({ action }) => handler2(action.params!.message)
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(handler1).toHaveBeenCalledWith('Hello world!');
+    expect(handler2).toHaveBeenCalledWith('Hello world!');
+  });
+
   it('should play nicely with typegen', () => {
     interface Typegen0 {
       '@@xstate/typegen': true;
