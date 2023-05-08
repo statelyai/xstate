@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
+  ActorRefFrom,
   AnyActorBehavior,
   AnyState,
+  EventFrom,
   InterpreterOptions,
   InterpreterStatus,
+  SnapshotFrom,
+  ValidateActorBehavior,
   interpret
 } from 'xstate';
 import useConstant from './useConstant.ts';
@@ -68,9 +72,13 @@ const isEqual = (prevState: AnyState, nextState: AnyState) => {
 // }
 
 export function useMachine2<TBehavior extends AnyActorBehavior>(
-  behavior: TBehavior,
+  behavior: TBehavior & ValidateActorBehavior<TBehavior>,
   options?: InterpreterOptions<TBehavior>
-) {
+): [
+  SnapshotFrom<TBehavior>,
+  (event: EventFrom<TBehavior>) => void,
+  ActorRefFrom<TBehavior>
+] {
   const actorRef = useConstant(() => interpret(behavior, options));
 
   const getSnapshot = useCallback(() => {

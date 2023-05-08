@@ -1993,3 +1993,12 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
     };
   };
 };
+
+export type ValidateActorBehavior<T extends AnyActorBehavior> =
+  T extends AnyStateMachine
+    ? AreAllImplementationsAssumedToBeProvided<
+        T['__TResolvedTypesMeta']
+      > extends false
+      ? 'Invalid behavior' // TODO: make this more exact
+      : {}
+    : {};

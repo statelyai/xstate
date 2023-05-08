@@ -1,11 +1,5 @@
 import * as React from 'react';
-import {
-  ActorRefFrom,
-  createMachine,
-  fromPromise,
-  fromTransition,
-  sendTo
-} from 'xstate';
+import { ActorRefFrom, createMachine, fromTransition, sendTo } from 'xstate';
 import { fireEvent, screen } from '@testing-library/react';
 import {
   useActor,

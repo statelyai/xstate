@@ -307,24 +307,30 @@ describe('useInterpret', () => {
     function App() {
       // @ts-expect-error
       useInterpret(machine, {});
-      useInterpret(machine, {
+      useInterpret(
+        machine.provide({
+          // @ts-expect-error
+          actions: {}
+        })
+      );
+      useInterpret(
         // @ts-expect-error
-        actions: {}
-      });
-      // @ts-expect-error
-      useInterpret(machine, {
-        actions: {
-          myAction: () => {}
-        }
-      });
-      useInterpret(machine, {
-        actions: {
-          myAction: () => {}
-        },
-        delays: {
-          myDelay: () => 42
-        }
-      });
+        machine.provide({
+          actions: {
+            myAction: () => {}
+          }
+        })
+      );
+      useInterpret(
+        machine.provide({
+          actions: {
+            myAction: () => {}
+          },
+          delays: {
+            myDelay: () => 42
+          }
+        })
+      );
       return null;
     }
 
@@ -358,14 +364,16 @@ describe('useInterpret', () => {
     );
 
     function App() {
-      useInterpret(machine, {
-        actions: {
-          fooAction: () => {}
-        },
-        delays: {
-          barDelay: () => 100
-        }
-      });
+      useInterpret(
+        machine.provide({
+          actions: {
+            fooAction: () => {}
+          },
+          delays: {
+            barDelay: () => 100
+          }
+        })
+      );
       return null;
     }
 
@@ -393,12 +401,14 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(machine, {
-        actions: {
-          // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: () => {}
-        }
-      });
+      useInterpret(
+        machine.provide({
+          actions: {
+            // it's important to use `event` here somehow to make this a possible source of information for inference
+            fooAction: () => {}
+          }
+        })
+      );
       return null;
     }
 

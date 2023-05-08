@@ -12,7 +12,8 @@ import {
   Observer,
   StateFrom,
   toObserver,
-  AnyActorBehavior
+  AnyActorBehavior,
+  ValidateActorBehavior
 } from 'xstate';
 import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
@@ -73,7 +74,7 @@ type RestParams<TMachine extends AnyStateMachine> =
       ];
 
 export function useInterpret<TBehavior extends AnyActorBehavior>(
-  behavior: TBehavior,
+  behavior: TBehavior & ValidateActorBehavior<TBehavior>,
   options?: InterpreterOptions<TBehavior>,
   observerOrListener?:
     | Observer<SnapshotFrom<TBehavior>>
