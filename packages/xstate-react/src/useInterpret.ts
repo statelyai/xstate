@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
   AnyInterpreter,
-  AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
-  InternalMachineImplementations,
   interpret,
   ActorRefFrom,
   SnapshotFrom,
   InterpreterOptions,
   InterpreterStatus,
   Observer,
-  StateFrom,
   toObserver,
   AnyActorBehavior,
   ValidateActorBehavior
@@ -44,34 +40,6 @@ export function useIdleInterpreter(
 
   return service as any;
 }
-
-type RestParams<TMachine extends AnyStateMachine> =
-  AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta'],
-            true
-          >,
-        observerOrListener?:
-          | Observer<StateFrom<TMachine>>
-          | ((value: StateFrom<TMachine>) => void)
-      ]
-    : [
-        options?: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta']
-          >,
-        observerOrListener?:
-          | Observer<StateFrom<TMachine>>
-          | ((value: StateFrom<TMachine>) => void)
-      ];
 
 export function useInterpret<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior & ValidateActorBehavior<TBehavior>,

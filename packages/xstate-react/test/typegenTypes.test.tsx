@@ -588,7 +588,7 @@ describe('createActorContext', () => {
     render(<App />);
   });
 
-  it.skip('should not allow to be used with a machine with some missing implementations', () => {
+  it('should not allow to be used with a machine with some missing implementations', () => {
     // TODO: this should now be checked at the interpret(machine) level
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
@@ -609,10 +609,13 @@ describe('createActorContext', () => {
       }
     });
 
-    const Context = createActorContext(interpret(machine));
+    const Context = createActorContext(
+      // @ts-expect-error
+      interpret(machine)
+    );
 
     function App() {
-      // @ts-expect-error
+      // Validated at interpret level, not here!
       return <Context.Provider>{null}</Context.Provider>;
     }
 
@@ -640,11 +643,13 @@ describe('createActorContext', () => {
       }
     });
 
-    const Context = createActorContext(interpret(machine));
+    const Context = createActorContext(
+      // @ts-expect-error
+      interpret(machine)
+    );
 
     function App() {
       let ret;
-      // @ts-expect-error
       ret = <Context.Provider options={{}}>{null}</Context.Provider>;
       ret = (
         <Context.Provider
@@ -662,7 +667,6 @@ describe('createActorContext', () => {
       );
       ret = (
         <Context.Provider
-          // @ts-expect-error
           options={{
             actions: {
               myAction: () => {}
@@ -723,7 +727,10 @@ describe('createActorContext', () => {
       }
     );
 
-    const Context = createActorContext(interpret(machine));
+    const Context = createActorContext(
+      // @ts-expect-error
+      interpret(machine)
+    );
 
     function App() {
       return (

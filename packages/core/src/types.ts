@@ -1888,7 +1888,13 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   : never;
 
 export type EventFromBehavior<TBehavior extends ActorBehavior<any, any>> =
-  TBehavior extends ActorBehavior<infer TEvent, infer _> ? TEvent : never;
+  TBehavior extends ActorBehavior<infer TEvent, infer _>
+    ? TEvent
+    : TBehavior extends StateMachine<infer _, infer TEvent>
+    ? // TODO: this shouldn't be needed; StateMachine implements ActorBehavior, but it's not working
+      // for whatever reason
+      TEvent
+    : never;
 
 export type PersistedStateFrom<TBehavior extends ActorBehavior<any, any>> =
   TBehavior extends ActorBehavior<

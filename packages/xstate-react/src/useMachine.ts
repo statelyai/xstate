@@ -4,7 +4,7 @@ import {
   ActorRefFrom,
   AnyActorBehavior,
   AnyState,
-  EventFrom,
+  EventFromBehavior,
   InterpreterOptions,
   InterpreterStatus,
   SnapshotFrom,
@@ -76,7 +76,25 @@ export function useMachine2<TBehavior extends AnyActorBehavior>(
   options?: InterpreterOptions<TBehavior>
 ): [
   SnapshotFrom<TBehavior>,
-  (event: EventFrom<TBehavior>) => void,
+  (event: EventFromBehavior<TBehavior>) => void,
+  ActorRefFrom<TBehavior>
+];
+export function useMachine2<TBehavior extends AnyActorBehavior>(
+  memoizedBehavior: () => TBehavior & ValidateActorBehavior<TBehavior>,
+  options?: InterpreterOptions<TBehavior>
+): [
+  SnapshotFrom<TBehavior>,
+  (event: EventFromBehavior<TBehavior>) => void,
+  ActorRefFrom<TBehavior>
+];
+export function useMachine2<TBehavior extends AnyActorBehavior>(
+  behavior:
+    | (TBehavior & ValidateActorBehavior<TBehavior>)
+    | (() => TBehavior & ValidateActorBehavior<TBehavior>),
+  options?: InterpreterOptions<TBehavior>
+): [
+  SnapshotFrom<TBehavior>,
+  (event: EventFromBehavior<TBehavior>) => void,
   ActorRefFrom<TBehavior>
 ] {
   const actorRef = useConstant(() => interpret(behavior, options));

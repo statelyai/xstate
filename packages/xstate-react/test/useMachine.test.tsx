@@ -968,7 +968,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       const [_state, _send, actor] = useMachine(m);
 
       React.useEffect(() => {
-        actor.system.get('child')!.send({ type: 'PING' });
+        actor.system?.get('child')!.send({ type: 'PING' });
       });
 
       return null;
@@ -1020,7 +1020,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   it('should work with a transition actor behavior', () => {
     const App = () => {
       const [state, send] = useMachine(() =>
-        fromTransition((state, ev) => {
+        fromTransition((state, ev: { type: 'inc' }) => {
           if (ev.type === 'inc') {
             return state + 1;
           }

@@ -19,7 +19,8 @@ import type {
   InterpreterFrom,
   PersistedStateFrom,
   RaiseActionObject,
-  SnapshotFrom
+  SnapshotFrom,
+  ValidateActorBehavior
 } from './types.ts';
 import {
   ActorRef,
@@ -519,7 +520,7 @@ export function interpret<TMachine extends AnyStateMachine>(
   options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(
-  behavior: TBehavior,
+  behavior: TBehavior & ValidateActorBehavior<TBehavior>,
   options?: InterpreterOptions<TBehavior>
 ): Interpreter<TBehavior>;
 export function interpret(
