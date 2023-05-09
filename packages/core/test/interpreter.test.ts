@@ -1868,3 +1868,34 @@ it('should throw if an event is received', () => {
     )
   ).toThrow();
 });
+
+it('does not infinite loop on observer error', () => {
+  const machine = createMachine({
+    id: 'machine',
+    initial: 'initial',
+    context: {
+      count: 0
+    },
+    states: {
+      initial: {
+        on: { activate: 'active' }
+      },
+      active: {}
+    }
+  });
+
+  const actor = interpret(machine);
+  let count = 0;
+  actor.subscribe(() => {
+    if (count !== 0) {
+      throw new Error('blah');
+    }
+    count++;
+  });
+
+  actor.start();
+
+  expect(() => {
+    actor.send({ type: 'activate' });
+  }).toThrowError();
+});

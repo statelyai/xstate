@@ -339,14 +339,12 @@ export class Interpreter<
       }
     } catch (err) {
       // TODO: properly handle errors
-      if (this.observers.size > 0) {
-        this.observers.forEach((observer) => {
-          observer.error?.(err);
-        });
-        this.stop();
-      } else {
-        throw err;
-      }
+      this.observers.forEach((observer) => {
+        observer.error?.(err);
+      });
+      this._parent?.send({ type: 'error.execution' });
+      this.stop();
+      throw err;
     }
   }
 
