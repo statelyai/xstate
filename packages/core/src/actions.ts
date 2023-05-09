@@ -70,12 +70,21 @@ export function resolveActionObject(
       }
     );
   } else if (isArray(dereferencedAction)) {
+    const params = actionObject.params ?? {};
     return createDynamicAction(
-      { type: ActionTypes.ActionGroup, params: actionObject.params ?? {} },
+      { type: ActionTypes.ActionGroup, params },
       (_event, { state }) => {
         const action: BaseActionObject = {
           type: actionObject.type,
-          params: { actions: dereferencedAction }
+          params: {
+            actions: toActionObjects(dereferencedAction).map((object) => ({
+              ...object,
+              params: {
+                ...object.params,
+                ...params
+              }
+            }))
+          }
         };
         return [state, action];
       }

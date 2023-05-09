@@ -3794,18 +3794,24 @@ describe('action groups', () => {
       },
       {
         actions: {
-          messageHandlers: ['handler1', 'otherHandlers'],
+          messageHandlers: [
+            'handler1',
+            { type: 'otherHandlers', params: { level: 'info' } }
+          ],
           otherHandlers: ['handler2'],
-          handler1: ({ action }) => handler1(action.params!.message),
-          handler2: ({ action }) => handler2(action.params!.message)
+          handler1: ({ action }) => handler1(action.params),
+          handler2: ({ action }) => handler2(action.params)
         }
       }
     );
 
     interpret(machine).start();
 
-    expect(handler1).toHaveBeenCalledWith('Hello world!');
-    expect(handler2).toHaveBeenCalledWith('Hello world!');
+    expect(handler1).toHaveBeenCalledWith({ message: 'Hello world!' });
+    expect(handler2).toHaveBeenCalledWith({
+      message: 'Hello world!',
+      level: 'info'
+    });
   });
 
   it('should play nicely with typegen', () => {
