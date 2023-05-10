@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useActorRef } from './useActorRef';
-import { useActor as useActorUnbound } from './useActor';
 import { useSelector as useSelectorUnbound } from './useSelector';
 import {
   ActorRefFrom,
@@ -82,7 +81,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   Provider.displayName = `ActorProvider(${machine.id})`;
 
-  function useContext() {
+  function useContext(): ActorRefFrom<TMachine> {
     const actor = React.useContext(ReactContext);
 
     if (!actor) {
@@ -96,7 +95,8 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   function useActor() {
     const actor = useContext();
-    return useActorUnbound(actor);
+    const state = useSelector((s) => s);
+    return [state, actor.send];
   }
 
   function useSelector<T>(
