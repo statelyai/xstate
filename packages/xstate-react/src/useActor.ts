@@ -6,7 +6,6 @@ import {
   AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  EventFromBehavior,
   InternalMachineImplementations,
   InterpreterOptions,
   InterpreterStatus,
@@ -51,7 +50,7 @@ export function useActor<TBehavior extends AnyActorBehavior>(
   options: InterpreterOptions<TBehavior> = {}
 ): [
   SnapshotFrom<TBehavior>,
-  (event: EventFromBehavior<TBehavior>) => void,
+  ActorRefFrom<TBehavior>['send'],
   ActorRefFrom<TBehavior>
 ] {
   const actorRef = useIdleInterpreter(behavior, options as any);
