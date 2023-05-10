@@ -14,7 +14,7 @@ import {
   StateFrom
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
-import { useActor, useMachine } from '../src/index.ts';
+import { useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 
 afterEach(() => {
@@ -847,8 +847,9 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     const Test = () => {
       const [state] = useMachine(machine);
-      const [childState] = useActor(
-        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine types
+      const childState = useSelector(
+        state.children.test as ActorRefFrom<typeof childMachine>, // TODO: introduce typing for this in machine types
+        (s) => s
       );
 
       expect(childState.context.value).toBe(42);

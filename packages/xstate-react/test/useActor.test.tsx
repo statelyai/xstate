@@ -9,7 +9,7 @@ import {
   interpret,
   sendParent
 } from 'xstate';
-import { useMachine, useActorRef, useActor } from '../src/index.ts';
+import { useMachine, useActorRef, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 import { createEmptyActor, fromTransition } from 'xstate/actors';
 
@@ -42,7 +42,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
       actor
     }) => {
-      const [state] = useActor(actor);
+      const state = useSelector(actor, (s) => s);
 
       expect(state.value).toEqual('active');
 
@@ -95,12 +95,12 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
       const ChildTest: React.FC<{
         actor: ActorRefFrom<typeof childMachine>;
       }> = ({ actor }) => {
-        const [state, send] = useActor(actor);
+        const state = useSelector(actor, (s) => s);
 
         expect(state.value).toEqual('active');
 
         React.useLayoutEffect(() => {
-          send({ type: 'FINISH' });
+          actor.send({ type: 'FINISH' });
         }, []);
 
         return null;
@@ -152,7 +152,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
       actor
     }) => {
-      const [state] = useActor(actor);
+      const state = useSelector(actor, (s) => s);
 
       expect(state.value).toEqual('active');
 
@@ -207,12 +207,12 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
       const ChildTest: React.FC<{
         actor: ActorRefFrom<typeof childMachine>;
       }> = ({ actor }) => {
-        const [state, send] = useActor(actor);
+        const state = useSelector(actor, (s) => s);
 
         expect(state.value).toEqual('active');
 
         React.useLayoutEffect(() => {
-          send({ type: 'FINISH' });
+          actor.send({ type: 'FINISH' });
         }, []);
 
         return null;
@@ -242,7 +242,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     });
 
     const Test = () => {
-      const [state] = useActor(simpleActor);
+      const state = useSelector(simpleActor, (s) => s);
 
       return <div data-testid="state">{state}</div>;
     };
@@ -264,7 +264,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
 
     const Test = () => {
       const [actor, setActor] = useState(createSimpleActor(42));
-      const [state] = useActor(actor);
+      const state = useSelector(actor, (s) => s);
 
       return (
         <>
@@ -304,9 +304,8 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
 
     const Test = () => {
       const [, setState] = useState(0);
-      const [, send] = useActor(actor);
 
-      latestSend = send;
+      latestSend = actor.send;
 
       return (
         <>
@@ -350,9 +349,8 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
 
     const Test = () => {
       const [actor, setActor] = useState(firstActor);
-      const [, send] = useActor(actor);
 
-      latestSend = send;
+      latestSend = actor.send;
 
       return (
         <>
@@ -402,18 +400,18 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         }
       }
     );
-    const counterService = interpret(counterMachine).start();
+    const counterActor = interpret(counterMachine).start();
 
     const Counter = () => {
-      const [state, send] = useActor(counterService);
+      const state = useSelector(counterActor, (s) => s);
 
       return (
         <div
           data-testid="count"
           onClick={() => {
-            send({ type: 'INC' });
+            counterActor.send({ type: 'INC' });
             // @ts-expect-error
-            send({ type: 'FAKE' });
+            counterActor.send({ type: 'FAKE' });
           }}
         >
           {state.context.count}
@@ -437,7 +435,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     });
 
     act(() => {
-      counterService.send({ type: 'INC' });
+      counterActor.send({ type: 'INC' });
     });
 
     countEls.forEach((countEl) => {
@@ -473,14 +471,14 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
 
     const App = () => {
       const [state] = useMachine(machine);
-      const [childState, childSend] = useActor(state.context.ref);
+      const childState = useSelector(state.context.ref, (s) => s);
 
       return (
         <>
           <div data-testid="child-state">{childState.value}</div>
           <button
             data-testid="child-send"
-            onClick={() => childSend({ type: 'NEXT' })}
+            onClick={() => state.context.ref.send({ type: 'NEXT' })}
           ></button>
         </>
       );
@@ -503,7 +501,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
 
     const machine = createMachine({});
     const App = () => {
-      useActor(useActorRef(machine));
+      useSelector(useActorRef(machine), (s) => s);
 
       return null;
     };
@@ -517,7 +515,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     const Child = (props: {
       actor: ActorRef<any, { count: number }> | undefined;
     }) => {
-      const [state] = useActor(props.actor ?? createEmptyActor());
+      const state = useSelector(props.actor ?? createEmptyActor(), (s) => s);
 
       // @ts-expect-error
       ((_accept: { count: number }) => {})(state);

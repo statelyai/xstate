@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { fromTransition } from 'xstate/actors';
-import { useActor, useSpawn } from '../src/index.ts';
+import { useSelector, useSpawn } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 
 describeEachReactMode('useSpawn (%s)', ({ render }) => {
@@ -17,11 +17,14 @@ describeEachReactMode('useSpawn (%s)', ({ render }) => {
 
     const Test = () => {
       const actorRef = useSpawn(behavior);
-      const [count, send] = useActor(actorRef);
+      const count = useSelector(actorRef, (s) => s);
 
       return (
         <>
-          <button data-testid="count" onClick={() => send({ type: 'INC' })}>
+          <button
+            data-testid="count"
+            onClick={() => actorRef.send({ type: 'INC' })}
+          >
             {count}
           </button>
         </>

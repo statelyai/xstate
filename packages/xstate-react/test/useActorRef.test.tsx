@@ -4,20 +4,14 @@ import {
   createMachine,
   fromPromise,
   fromTransition,
-  sendTo,
-  waitFor
+  sendTo
 } from 'xstate';
 import {
   fireEvent,
   screen,
   waitFor as testWaitFor
 } from '@testing-library/react';
-import {
-  useActor,
-  useActorRef,
-  useMachine,
-  useSelector
-} from '../src/index.ts';
+import { useActorRef, useMachine, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
 const originalConsoleWarn = console.warn;
@@ -240,14 +234,14 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     const App = () => {
       const parentActor = useActorRef(parentMachine);
-      const [parentState, parentSend] = useActor(parentActor);
-      const [childState] = useActor(parentState.context.childRef);
+      const parentState = useSelector(parentActor, (s) => s);
+      const childState = useSelector(parentState.context.childRef, (s) => s);
 
       return (
         <>
           <button
             data-testid="button"
-            onClick={() => parentSend({ type: 'SEND_TO_CHILD' })}
+            onClick={() => parentActor.send({ type: 'SEND_TO_CHILD' })}
           >
             Send to child
           </button>
@@ -296,7 +290,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     const App = () => {
       const [parentState, parentSend] = useMachine(parentMachine);
-      const [childState] = useActor(parentState.context.childRef);
+      const childState = useSelector(parentState.context.childRef, (s) => s);
 
       return (
         <>
