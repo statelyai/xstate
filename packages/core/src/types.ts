@@ -1846,6 +1846,7 @@ export interface ActorBehavior<
   TPersisted = TInternalState,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
+  config?: unknown;
   transition: (
     state: TInternalState,
     message: TEvent | LifecycleSignal,

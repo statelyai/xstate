@@ -29,6 +29,7 @@ export function fromPromise<T>(
     T | undefined,
     PromiseInternalState<T>
   > = {
+    config: promiseCreator,
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 

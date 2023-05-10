@@ -25,6 +25,7 @@ export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): ActorBehavior<TEvent, undefined> {
   const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
+    config: invokeCallback,
     start: (_state, { self }) => {
       self.send({ type: startSignalType } as TEvent);
     },

@@ -68,11 +68,13 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     });
 
     const App = ({ value }: { value: number }) => {
-      const service = useInterpret(machine, {
-        actions: {
-          recordProp: () => actual.push(value)
-        }
-      });
+      const service = useInterpret(
+        machine.provide({
+          actions: {
+            recordProp: () => actual.push(value)
+          }
+        })
+      );
 
       React.useLayoutEffect(() => {
         service.send({ type: 'EXEC_ACTION' });
@@ -93,30 +95,25 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
 
   it('should warn when machine reference is updated during the hook lifecycle', () => {
     console.warn = jest.fn();
-    const machine = createMachine({
-      initial: 'foo',
-      context: { id: 1 },
-      states: {
-        foo: {
-          on: {
-            CHECK: {
-              target: 'bar',
-              guard: 'hasOverflown'
+    const createTestMachine = () =>
+      createMachine({
+        initial: 'foo',
+        context: { id: 1 },
+        states: {
+          foo: {
+            on: {
+              CHECK: {
+                target: 'bar',
+                guard: 'hasOverflown'
+              }
             }
-          }
-        },
-        bar: {}
-      }
-    });
+          },
+          bar: {}
+        }
+      });
     const App = () => {
-      const [id, setId] = React.useState(1);
-      const [, send] = useMachine(
-        machine.provide({
-          guards: {
-            hasOverflown: () => id > 1
-          }
-        })
-      );
+      const [, setId] = React.useState(1);
+      const [, send] = useMachine(createTestMachine());
 
       return (
         <>
@@ -148,6 +145,55 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
         Please make sure that you pass the same Machine as argument each time."
       `);
     }
+  });
+
+  it('should not warn when only the provided machine implementations have changed', () => {
+    console.warn = jest.fn();
+    const machine = createMachine({
+      initial: 'foo',
+      context: { id: 1 },
+      states: {
+        foo: {
+          on: {
+            CHECK: {
+              target: 'bar',
+              guard: 'hasOverflown'
+            }
+          }
+        },
+        bar: {}
+      }
+    });
+
+    const App = () => {
+      const [id, setId] = React.useState(1);
+      const [, send] = useMachine(
+        machine.provide({
+          guards: {
+            hasOverflown: () => id > 1
+          }
+        })
+      );
+
+      return (
+        <>
+          <button
+            onClick={() => {
+              setId(2);
+              send({ type: 'CHECK' });
+            }}
+          >
+            update id
+          </button>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(console.warn).not.toHaveBeenCalled();
   });
 
   it('should change state when started', async () => {
