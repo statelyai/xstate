@@ -4,9 +4,6 @@ import {
   ActorRefFrom,
   AnyActorBehavior,
   AnyState,
-  AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
-  InternalMachineImplementations,
   InterpreterOptions,
   InterpreterStatus,
   SnapshotFrom
@@ -20,30 +17,6 @@ function identity<T>(a: T): T {
 const isEqual = (prevState: AnyState, nextState: AnyState) => {
   return prevState === nextState || nextState.changed === false;
 };
-
-type RestParams<TMachine extends AnyActorBehavior> =
-  TMachine extends AnyStateMachine
-    ? AreAllImplementationsAssumedToBeProvided<
-        TMachine['__TResolvedTypesMeta']
-      > extends false
-      ? [
-          options: InterpreterOptions<TMachine> &
-            InternalMachineImplementations<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              TMachine['__TResolvedTypesMeta'],
-              true
-            >
-        ]
-      : [
-          options?: InterpreterOptions<TMachine> &
-            InternalMachineImplementations<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              TMachine['__TResolvedTypesMeta']
-            >
-        ]
-    : any;
 
 export function useActor<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
