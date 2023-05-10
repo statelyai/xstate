@@ -58,23 +58,5 @@ export function useActor<TBehavior extends AnyActorBehavior>(
     };
   }, [actorRef]);
 
-  if (typeof behavior !== 'function') {
-    actorRef.behavior.options = (behavior as any).options;
-  }
-
-  if (process.env.NODE_ENV !== 'production' && typeof behavior !== 'function') {
-    const [initialMachine] = useState(behavior);
-
-    if (
-      (behavior.config ?? behavior) !==
-      (initialMachine.config ?? initialMachine)
-    ) {
-      console.warn(
-        'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
-          'Please make sure that you pass the same Machine as argument each time.'
-      );
-    }
-  }
-
   return [actorSnapshot, actorRef.send, actorRef] as any;
 }
