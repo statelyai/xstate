@@ -1,16 +1,65 @@
-import { useCallback } from 'react';
-import { ActorRef, EventObject, SnapshotFrom } from 'xstate';
-import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import { useCallback, useEffect, useState } from 'react';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import {
+  ActorRefFrom,
+  AnyActorBehavior,
+  AnyState,
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  EventFromBehavior,
+  InternalMachineImplementations,
+  InterpreterOptions,
+  InterpreterStatus,
+  SnapshotFrom
+} from 'xstate';
+import { useIdleInterpreter } from './useActorRef.ts';
 
-export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: TActor
-): [SnapshotFrom<TActor>, TActor['send']];
-export function useActor<TEvent extends EventObject, TSnapshot>(
-  actorRef: ActorRef<TEvent, TSnapshot>
-): [TSnapshot, (event: TEvent) => void];
-export function useActor(
-  actorRef: ActorRef<EventObject, unknown>
-): [unknown, (event: EventObject) => void] {
+function identity<T>(a: T): T {
+  return a;
+}
+
+const isEqual = (prevState: AnyState, nextState: AnyState) => {
+  return prevState === nextState || nextState.changed === false;
+};
+
+type RestParams<TMachine extends AnyActorBehavior> =
+  TMachine extends AnyStateMachine
+    ? AreAllImplementationsAssumedToBeProvided<
+        TMachine['__TResolvedTypesMeta']
+      > extends false
+      ? [
+          options: InterpreterOptions<TMachine> &
+            InternalMachineImplementations<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              TMachine['__TResolvedTypesMeta'],
+              true
+            >
+        ]
+      : [
+          options?: InterpreterOptions<TMachine> &
+            InternalMachineImplementations<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              TMachine['__TResolvedTypesMeta']
+            >
+        ]
+    : any;
+
+export function useActor<TBehavior extends AnyActorBehavior>(
+  behavior: TBehavior,
+  options: InterpreterOptions<TBehavior> = {}
+): [
+  SnapshotFrom<TBehavior>,
+  (event: EventFromBehavior<TBehavior>) => void,
+  ActorRefFrom<TBehavior>
+] {
+  const actorRef = useIdleInterpreter(behavior, options as any);
+
+  const getSnapshot = useCallback(() => {
+    return actorRef.getSnapshot();
+  }, [actorRef]);
+
   const subscribe = useCallback(
     (handleStoreChange) => {
       const { unsubscribe } = actorRef.subscribe(handleStoreChange);
@@ -19,21 +68,41 @@ export function useActor(
     [actorRef]
   );
 
-  const boundGetSnapshot = useCallback(
-    () => actorRef.getSnapshot(),
-    [actorRef]
-  );
-
-  const storeSnapshot = useSyncExternalStore(
+  const actorSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
-    boundGetSnapshot,
-    boundGetSnapshot
+    getSnapshot,
+    getSnapshot,
+    identity,
+    isEqual
   );
 
-  const boundSend: typeof actorRef.send = useCallback(
-    (event) => actorRef.send(event),
-    [actorRef]
-  );
+  useEffect(() => {
+    actorRef.start();
 
-  return [storeSnapshot, boundSend];
+    return () => {
+      actorRef.stop();
+      actorRef.status = InterpreterStatus.NotStarted;
+      (actorRef as any)._initState();
+    };
+  }, [actorRef]);
+
+  if (typeof behavior !== 'function') {
+    actorRef.behavior.options = (behavior as any).options;
+  }
+
+  if (process.env.NODE_ENV !== 'production' && typeof behavior !== 'function') {
+    const [initialMachine] = useState(behavior);
+
+    if (
+      (behavior.config ?? behavior) !==
+      (initialMachine.config ?? initialMachine)
+    ) {
+      console.warn(
+        'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
+          'Please make sure that you pass the same Machine as argument each time.'
+      );
+    }
+  }
+
+  return [actorSnapshot, actorRef.send, actorRef] as any;
 }
