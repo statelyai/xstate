@@ -911,25 +911,6 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     expect(currentState!.matches('idle')).toBe(true);
   });
 
-  it('should accept a lazily created machine', () => {
-    const App = () => {
-      const [state] = useMachine(() =>
-        createMachine({
-          initial: 'idle',
-          states: {
-            idle: {}
-          }
-        })
-      );
-
-      expect(state.matches('idle')).toBeTruthy();
-
-      return null;
-    };
-
-    render(<App />);
-  });
-
   it('should not miss initial synchronous updates', () => {
     const m = createMachine<{ count: number }>({
       initial: 'idle',

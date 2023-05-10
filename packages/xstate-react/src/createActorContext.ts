@@ -33,8 +33,6 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
       >
     : never;
 
-type Lazy<T> = T | (() => T);
-
 export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine,
   interpreterOptions?: InterpreterOptions<TMachine>,
@@ -55,10 +53,10 @@ export function createActorContext<TMachine extends AnyStateMachine>(
       TMachine['__TResolvedTypesMeta']
     > extends true
       ? {
-          machine?: Lazy<TMachine>;
+          machine?: TMachine;
         }
       : {
-          machine: Lazy<ToMachinesWithProvidedImplementations<TMachine>>;
+          machine: ToMachinesWithProvidedImplementations<TMachine>;
         })
   ) => React.ReactElement<any, any>;
 } {
@@ -71,7 +69,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     machine: providedMachine = machine
   }: {
     children: React.ReactNode;
-    machine: TMachine | (() => TMachine);
+    machine: TMachine;
   }) {
     const actor = useInterpret(
       providedMachine,

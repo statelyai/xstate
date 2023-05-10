@@ -12,24 +12,17 @@ import {
   StateFrom,
   toObserver
 } from 'xstate';
-import { MaybeLazy } from './types.ts';
 import useConstant from './useConstant.ts';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
 export function useIdleInterpreter(
-  getMachine: MaybeLazy<AnyStateMachine>,
+  machine: AnyStateMachine,
   options: Partial<InterpreterOptions<AnyStateMachine>>
 ): AnyInterpreter {
-  const machine = useConstant(() => {
-    return typeof getMachine === 'function' ? getMachine() : getMachine;
-  });
-
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    typeof getMachine !== 'function'
-  ) {
+  if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(machine);
 
-    if (getMachine.config !== initialMachine.config) {
+    if (machine.config !== initialMachine.config) {
       console.warn(
         'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
           'Please make sure that you pass the same Machine as argument each time.'
@@ -41,9 +34,10 @@ export function useIdleInterpreter(
     return interpret(machine as AnyStateMachine, options);
   });
 
-  if (typeof getMachine !== 'function') {
-    (service.behavior as AnyStateMachine).options = getMachine.options;
-  }
+  // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
+  useIsomorphicLayoutEffect(() => {
+    (service.behavior as AnyStateMachine).options = machine.options;
+  });
 
   return service as any;
 }
@@ -77,10 +71,10 @@ type RestParams<TMachine extends AnyStateMachine> =
       ];
 
 export function useInterpret<TMachine extends AnyStateMachine>(
-  getMachine: MaybeLazy<TMachine>,
+  machine: TMachine,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {
-  const service = useIdleInterpreter(getMachine, options as any);
+  const service = useIdleInterpreter(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
