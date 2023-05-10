@@ -1,8 +1,24 @@
 import * as React from 'react';
-import { ActorRefFrom, createMachine, sendTo } from 'xstate';
-import { fireEvent, screen } from '@testing-library/react';
-import { useActor, useInterpret, useMachine } from '../src/index.ts';
-import { describeEachReactMode } from './utils';
+import {
+  ActorRefFrom,
+  createMachine,
+  fromPromise,
+  fromTransition,
+  sendTo,
+  waitFor
+} from 'xstate';
+import {
+  fireEvent,
+  screen,
+  waitFor as testWaitFor
+} from '@testing-library/react';
+import {
+  useActor,
+  useActorRef,
+  useMachine,
+  useSelector
+} from '../src/index.ts';
+import { describeEachReactMode } from './utils.tsx';
 
 const originalConsoleWarn = console.warn;
 
@@ -10,7 +26,7 @@ afterEach(() => {
   console.warn = originalConsoleWarn;
 });
 
-describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
+describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('observer should be called with next state', (done) => {
     const machine = createMachine({
       initial: 'inactive',
@@ -25,7 +41,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
 
       React.useEffect(() => {
         service.subscribe((state) => {
@@ -68,7 +84,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     });
 
     const App = ({ value }: { value: number }) => {
-      const service = useInterpret(
+      const service = useActorRef(
         machine.provide({
           actions: {
             recordProp: () => actual.push(value)
@@ -223,7 +239,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const parentActor = useInterpret(parentMachine);
+      const parentActor = useActorRef(parentMachine);
       const [parentState, parentSend] = useActor(parentActor);
       const [childState] = useActor(parentState.context.childRef);
 
@@ -318,10 +334,10 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const actor = useInterpret(m, { systemId: 'test' });
+      const actor = useActorRef(m, { systemId: 'test' });
 
       React.useEffect(() => {
-        actor.system.get('test')!.send({ type: 'PING' });
+        actor.system?.get('test')!.send({ type: 'PING' });
       });
 
       return null;
@@ -330,5 +346,56 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     render(<App />);
 
     expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
+  });
+
+  it('should work with a transition actor', () => {
+    const someLogic = fromTransition((state, event) => {
+      if (event.type == 'inc') {
+        return state + 1;
+      }
+      return state;
+    }, 0);
+
+    const App = () => {
+      const actorRef = useActorRef(someLogic);
+      const count = useSelector(actorRef, (state) => state);
+
+      return (
+        <div data-testid="count" onClick={() => actorRef.send({ type: 'inc' })}>
+          {count}
+        </div>
+      );
+    };
+
+    render(<App />);
+
+    const count = screen.getByTestId('count');
+
+    expect(count.textContent).toBe('0');
+
+    fireEvent.click(count);
+
+    expect(count.textContent).toBe('1');
+  });
+
+  it('should work with a promise actor', async () => {
+    const promiseLogic = fromPromise(
+      () => new Promise((resolve) => setTimeout(() => resolve(42), 10))
+    );
+
+    const App = () => {
+      const actorRef = useActorRef(promiseLogic);
+      const count = useSelector(actorRef, (state) => state);
+
+      return <div data-testid="count">{count}</div>;
+    };
+
+    render(<App />);
+
+    const count = screen.getByTestId('count');
+
+    expect(count.textContent).toBe('');
+
+    await testWaitFor(() => expect(count.textContent).toBe('42'));
   });
 });

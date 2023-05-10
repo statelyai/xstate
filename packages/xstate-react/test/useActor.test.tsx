@@ -9,7 +9,7 @@ import {
   interpret,
   sendParent
 } from 'xstate';
-import { useMachine, useInterpret, useActor } from '../src/index.ts';
+import { useMachine, useActorRef, useActor } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
 import { createEmptyActor, fromTransition } from 'xstate/actors';
 
@@ -503,7 +503,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
 
     const machine = createMachine({});
     const App = () => {
-      useActor(useInterpret(machine));
+      useActor(useActorRef(machine));
 
       return null;
     };

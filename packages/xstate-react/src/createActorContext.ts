@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useInterpret } from './useInterpret';
+import { useActorRef } from './useActorRef';
 import { useActor as useActorUnbound } from './useActor';
 import { useSelector as useSelectorUnbound } from './useSelector';
 import {
@@ -71,7 +71,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     children: React.ReactNode;
     machine: TMachine;
   }) {
-    const actor = useInterpret(
+    const actor = useActorRef(
       providedMachine,
       interpreterOptions,
       observerOrListener

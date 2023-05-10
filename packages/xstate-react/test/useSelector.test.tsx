@@ -10,7 +10,7 @@ import {
 } from 'xstate';
 import {
   shallowEqual,
-  useInterpret,
+  useActorRef,
   useMachine,
   useSelector
 } from '../src/index.ts';
@@ -46,7 +46,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     let rerenders = 0;
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       const count = useSelector(service, (state) => state.context.count);
 
       rerenders++;
@@ -104,7 +104,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       const name = useSelector(
         service,
         (state) => state.context.name,
@@ -169,7 +169,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       const [userChanges, setUserChanges] = React.useState(0);
       const user = useSelector(
         service,
@@ -578,7 +578,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const snapshots: AnyState[] = [];
 
     function App() {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       useSelector(service, (state) => {
         snapshots.push(state);
         return state.children.child;
@@ -606,7 +606,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     function App() {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       useSelector(service, () => {});
       expect(called).toBe(false);
       return null;

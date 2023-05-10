@@ -11,7 +11,7 @@ import {
   StateFrom
 } from 'xstate';
 import { Prop } from './types.ts';
-import { useIdleInterpreter } from './useInterpret.ts';
+import { useIdleInterpreter } from './useActorRef.ts';
 
 function identity<T>(a: T): T {
   return a;
