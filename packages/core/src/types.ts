@@ -1844,10 +1844,9 @@ export interface ActorBehavior<
    * Serialized internal state used for persistence & restoration
    */
   TPersisted = TInternalState,
-  TSystem extends ActorSystem<any> = ActorSystem<any>,
-  TProvided = any
+  TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
-  config?: any;
+  config?: unknown;
   transition: (
     state: TInternalState,
     message: TEvent | LifecycleSignal,
@@ -1871,16 +1870,6 @@ export interface ActorBehavior<
    * @returns Persisted state
    */
   getPersistedState?: (state: TInternalState) => TPersisted;
-  provide?: (
-    provided: any // TODO: type
-  ) => ActorBehavior<
-    TEvent,
-    TSnapshot,
-    TInternalState,
-    TPersisted,
-    TSystem,
-    TProvided
-  >;
 }
 
 export type AnyActorBehavior = ActorBehavior<any, any, any, any>;

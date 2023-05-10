@@ -8,8 +8,32 @@ import {
   SnapshotFrom,
   InterpreterOptions,
   Observer,
-  StateFrom
+  StateFrom,
+  AreAllImplementationsAssumedToBeProvided,
+  MarkAllImplementationsAsProvided,
+  StateMachine
 } from 'xstate';
+
+type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
+  TMachine extends StateMachine<
+    infer TContext,
+    infer TEvent,
+    infer TAction,
+    infer TActorMap,
+    infer TResolvedTypesMeta
+  >
+    ? StateMachine<
+        TContext,
+        TEvent,
+        TAction,
+        TActorMap,
+        AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+          ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+          : TResolvedTypesMeta
+      >
+    : never;
+
+type Lazy<T> = T | (() => T);
 
 export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -24,10 +48,19 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     compare?: (a: T, b: T) => boolean
   ) => T;
   useActorRef: () => ActorRefFrom<TMachine>;
-  Provider: (props: {
-    children: React.ReactNode;
-    machine?: TMachine | (() => TMachine);
-  }) => React.ReactElement<any, any>;
+  Provider: (
+    props: {
+      children: React.ReactNode;
+    } & (AreAllImplementationsAssumedToBeProvided<
+      TMachine['__TResolvedTypesMeta']
+    > extends true
+      ? {
+          machine?: Lazy<TMachine>;
+        }
+      : {
+          machine: Lazy<ToMachinesWithProvidedImplementations<TMachine>>;
+        })
+  ) => React.ReactElement<any, any>;
 } {
   const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
 
@@ -77,7 +110,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   }
 
   return {
-    Provider,
+    Provider: Provider as any,
     useActorRef: useContext,
     useActor,
     useSelector

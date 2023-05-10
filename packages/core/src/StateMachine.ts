@@ -80,8 +80,7 @@ export class StateMachine<
       TEvent | SCXML.Event<TEvent>,
       State<TContext, TEvent, TResolvedTypesMeta>,
       State<TContext, TEvent, TResolvedTypesMeta>,
-      PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
-      any
+      PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     >
 {
   // TODO: this getter should be removed
@@ -169,7 +168,6 @@ export class StateMachine<
    *
    * @returns A new `StateMachine` instance with the provided implementations.
    */
-  // @ts-ignore halp
   public provide(
     implementations: InternalMachineImplementations<
       TContext,
