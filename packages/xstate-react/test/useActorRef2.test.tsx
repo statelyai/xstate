@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { fromTransition } from 'xstate/actors';
-import { useSelector, useSpawn } from '../src/index.ts';
-import { describeEachReactMode } from './utils';
+import { useActorRef, useSelector } from '../src/index.ts';
+import { describeEachReactMode } from './utils.tsx';
 
 describeEachReactMode('useSpawn (%s)', ({ render }) => {
   it('should be able to spawn an actor from a behavior', () => {
@@ -16,7 +16,7 @@ describeEachReactMode('useSpawn (%s)', ({ render }) => {
     const behavior = fromTransition(reducer, 0);
 
     const Test = () => {
-      const actorRef = useSpawn(behavior);
+      const actorRef = useActorRef(behavior);
       const count = useSelector(actorRef, (s) => s);
 
       return (
