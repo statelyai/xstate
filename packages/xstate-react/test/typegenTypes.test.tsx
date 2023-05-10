@@ -481,7 +481,7 @@ describe('useInterpret', () => {
     };
   });
 
-  it('returned actor created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';
@@ -500,7 +500,7 @@ describe('useInterpret', () => {
     }
 
     function App() {
-      const actorRef = useInterpret(() =>
+      const actorRef = useInterpret(
         machine.provide({
           actions: {
             someAction: () => {}
@@ -514,7 +514,7 @@ describe('useInterpret', () => {
     render(<App />);
   });
 
-  it('returned actor created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';
@@ -533,7 +533,7 @@ describe('useInterpret', () => {
     }
 
     function App() {
-      const actorRef = useInterpret(() =>
+      const actorRef = useInterpret(
         machine.provide({
           actions: {
             someAction: () => {}
@@ -803,7 +803,7 @@ describe('createActorContext', () => {
     render(<App />);
   });
 
-  it('returned actor created based on a machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';
