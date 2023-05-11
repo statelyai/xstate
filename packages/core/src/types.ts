@@ -821,15 +821,7 @@ export type ActionFunctionMap<
         TEvent,
         TAction extends { type: K } ? TAction : never
       >
-    | Array<
-        | BaseDynamicActionObject<TContext, TEvent, TEvent, TAction, any>
-        | ActionFunction<
-            TContext,
-            TEvent,
-            TAction extends { type: K } ? TAction : never
-          >
-        | K
-      >;
+    | ActionGroup<TContext, TEvent, TEvent, K>;
 };
 
 export type DelayFunctionMap<
