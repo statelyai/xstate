@@ -1,3 +1,4 @@
+import { createMachine } from './Machine.ts';
 import { Mailbox } from './Mailbox.ts';
 import { doneInvoke, error } from './actions.ts';
 import { stopSignalType } from './actors/index.ts';
@@ -15,6 +16,7 @@ import type {
   ActorSystem,
   AnyActorBehavior,
   AnyStateMachine,
+  Call,
   EventFromBehavior,
   InterpreterFrom,
   PersistedStateFrom,
@@ -504,22 +506,32 @@ export class Interpreter<
   }
 }
 
+type ErrorArgs<S> = S extends ActorBehavior<
+  infer _,
+  infer __,
+  infer ___,
+  infer ____,
+  infer _____,
+  infer TFlexible
+>
+  ? Call<
+      TFlexible['finalizedCheck'],
+      TFlexible['finalizedCheckArgs']
+    > extends string
+    ? [Call<TFlexible['finalizedCheck'], TFlexible['finalizedCheckArgs']>]
+    : [S]
+  : never;
+
+// type A = ErrorArgs<>
+
 /**
  * Creates a new Interpreter instance for the given machine with the provided options, if any.
  *
  * @param machine The machine to interpret
  * @param options Interpreter options
  */
-export function interpret<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options?: InterpreterOptions<TMachine>
-): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(
-  behavior: TBehavior,
+  behavior: ErrorArgs<TBehavior>,
   options?: InterpreterOptions<TBehavior>
 ): Interpreter<TBehavior>;
 export function interpret(
@@ -530,3 +542,37 @@ export function interpret(
 
   return interpreter;
 }
+
+const m1 = createMachine({});
+
+type A = ErrorArgs<typeof m1>;
+
+interpret(m1);
+
+createMachine({
+  types: {
+    typegen: {} as {
+      '@@xstate/typegen': true;
+      missingImplementations: {
+        actions: 'myAction';
+        delays: 'myDelay';
+        guards: never;
+        actors: never;
+      };
+    }
+  }
+});
+
+createMachine({
+  types: {
+    typegen: {} as {
+      '@@xstate/typegen': true;
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
+    }
+  }
+});

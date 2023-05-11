@@ -1834,7 +1834,20 @@ export interface ActorContext<
   stopChild: (child: AnyActorRef) => void;
 }
 
+export declare const rawArgs: unique symbol;
+export type rawArgs = typeof rawArgs;
+
+export type Call<fn extends { return: unknown }, arg1> = (fn & {
+  [rawArgs]: [arg1];
+})['return'];
+
 export type AnyActorContext = ActorContext<any, any, any>;
+
+interface NoCheck {
+  [rawArgs]: unknown;
+  arg0: this[rawArgs] extends [infer arg, ...any] ? arg : never;
+  return: unknown;
+}
 
 export interface ActorBehavior<
   TEvent extends EventObject,
@@ -1844,7 +1857,15 @@ export interface ActorBehavior<
    * Serialized internal state used for persistence & restoration
    */
   TPersisted = TInternalState,
-  TSystem extends ActorSystem<any> = ActorSystem<any>
+  TSystem extends ActorSystem<any> = ActorSystem<any>,
+  // @ts-ignore
+  TFlexible extends {
+    finalizedCheck: NoCheck;
+    finalizedCheckArgs: unknown;
+  } = {
+    finalizedCheck: NoCheck;
+    finalizedCheckArgs: unknown;
+  }
 > {
   config?: unknown;
   transition: (
@@ -1872,7 +1893,7 @@ export interface ActorBehavior<
   getPersistedState?: (state: TInternalState) => TPersisted;
 }
 
-export type AnyActorBehavior = ActorBehavior<any, any, any, any>;
+export type AnyActorBehavior = ActorBehavior<any, any, any, any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>

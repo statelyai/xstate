@@ -20,6 +20,7 @@ import {
 import type {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
+  MissingImplementationsError,
   ResolveTypegenMeta,
   TypegenDisabled
 } from './typegenTypes.ts';
@@ -42,7 +43,9 @@ import type {
   TransitionDefinition,
   PersistedMachineState,
   ParameterizedObject,
-  AnyActorContext
+  AnyActorContext,
+  ActorSystem,
+  rawArgs
 } from './types.ts';
 import {
   isSCXMLErrorEvent,
@@ -64,6 +67,14 @@ function createDefaultOptions() {
   };
 }
 
+interface AreImplementationsProvidedCheck {
+  [rawArgs]: unknown;
+  arg0: this[rawArgs] extends [infer arg, ...any] ? arg : never;
+  return: AreAllImplementationsAssumedToBeProvided<this['arg0']> extends true
+    ? number // hack, we don't want to end up with string, let's revisit this
+    : MissingImplementationsError<this['arg0']>;
+}
+
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
@@ -80,7 +91,12 @@ export class StateMachine<
       TEvent | SCXML.Event<TEvent>,
       State<TContext, TEvent, TResolvedTypesMeta>,
       State<TContext, TEvent, TResolvedTypesMeta>,
-      PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
+      PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
+      ActorSystem<any>,
+      {
+        finalizedCheck: AreImplementationsProvidedCheck;
+        finalizedCheckArgs: TResolvedTypesMeta;
+      }
     >
 {
   // TODO: this getter should be removed
