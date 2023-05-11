@@ -241,12 +241,6 @@ export class Interpreter<
             origin: this
           })
         );
-        for (const observer of this.observers) {
-          observer.error?.(status.data);
-        }
-        for (const inspector of this.inspectors) {
-          inspector.error?.(status.data);
-        }
         this._error(status.data);
         break;
     }
@@ -427,6 +421,9 @@ export class Interpreter<
   private _error(data: any): void {
     for (const observer of this.observers) {
       observer.error?.(data);
+    }
+    for (const inspector of this.inspectors) {
+      inspector.error?.(data);
     }
     this.observers.clear();
   }
