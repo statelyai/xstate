@@ -273,5 +273,13 @@ describe('private events', () => {
     expect(() => {
       actor.send({ type: 'xstate.init' });
     }).toThrow();
+
+    expect(() => {
+      actor.send({ type: 'xstate.stop' });
+    }).toThrow();
+
+    expect(() => {
+      actor.send({ type: 'anotherEvent' });
+    }).not.toThrow();
   });
 });
