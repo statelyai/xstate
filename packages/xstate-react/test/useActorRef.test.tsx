@@ -1,9 +1,11 @@
 import * as React from 'react';
 import {
   ActorRefFrom,
+  assign,
   createMachine,
   fromPromise,
   fromTransition,
+  sendParent,
   sendTo
 } from 'xstate';
 import {
@@ -392,4 +394,131 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     await testWaitFor(() => expect(count.textContent).toBe('42'));
   });
+
+  // TODO: reexecuted layout effect in strict mode sees the outdated state
+  // it fires after passive cleanup (that stops the machine) and before the passive setup (that restarts the machine)
+  (suiteKey === 'strict' ? it.skip : it)(
+    'invoked actor should be able to receive (deferred) events that it replays when active',
+    (done) => {
+      const childMachine = createMachine({
+        id: 'childMachine',
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            }
+          }
+        }
+      });
+      const machine = createMachine({
+        initial: 'active',
+        invoke: {
+          id: 'child',
+          src: childMachine
+        },
+        states: {
+          active: {
+            on: { FINISH: 'success' }
+          },
+          success: {}
+        }
+      });
+
+      const ChildTest: React.FC<{
+        actor: ActorRefFrom<typeof childMachine>;
+      }> = ({ actor }) => {
+        const state = useSelector(actor, (s) => s);
+
+        expect(state.value).toEqual('active');
+
+        React.useLayoutEffect(() => {
+          actor.send({ type: 'FINISH' });
+        }, []);
+
+        return null;
+      };
+
+      const Test = () => {
+        const actorRef = useActorRef(machine);
+        const childActor = useSelector(
+          actorRef,
+          (s) => s.children.child as ActorRefFrom<typeof childMachine>
+        );
+
+        const isDone = useSelector(actorRef, (s) => s.matches('success'));
+
+        if (isDone) {
+          done();
+        }
+
+        return <ChildTest actor={childActor} />;
+      };
+
+      render(<Test />);
+    }
+  );
+
+  // TODO: reexecuted layout effect in strict mode sees the outdated state
+  // it fires after passive cleanup (that stops the machine) and before the passive setup (that restarts the machine)
+  (suiteKey === 'strict' ? it.skip : it)(
+    'spawned actor should be able to receive (deferred) events that it replays when active',
+    (done) => {
+      const childMachine = createMachine({
+        id: 'childMachine',
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              FINISH: { actions: sendParent({ type: 'FINISH' }) }
+            }
+          }
+        }
+      });
+      const machine = createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            entry: assign({
+              actorRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
+            }),
+            on: { FINISH: 'success' }
+          },
+          success: {}
+        }
+      });
+
+      const ChildTest: React.FC<{
+        actor: ActorRefFrom<typeof childMachine>;
+      }> = ({ actor }) => {
+        const state = useSelector(actor, (s) => s);
+
+        expect(state.value).toEqual('active');
+
+        React.useLayoutEffect(() => {
+          actor.send({ type: 'FINISH' });
+        }, []);
+
+        return null;
+      };
+
+      const Test = () => {
+        const actorRef = useActorRef(machine);
+        const childActor = useSelector(
+          actorRef,
+          (s) => s.children.child as ActorRefFrom<typeof childMachine>
+        );
+
+        const isDone = useSelector(actorRef, (s) => s.matches('success'));
+
+        if (isDone) {
+          done();
+        }
+
+        return <ChildTest actor={childActor} />;
+      };
+
+      render(<Test />);
+    }
+  );
 });
