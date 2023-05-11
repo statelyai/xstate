@@ -16,7 +16,6 @@ export function fromPromise<T>(
 
   // TODO: add event types
   const behavior: ActorBehavior<
-    | { type: string }
     | {
         type: typeof resolveEventType;
         data: T;
@@ -38,7 +37,7 @@ export function fromPromise<T>(
           return {
             ...state,
             status: 'done',
-            data: (event as any).data,
+            data: event.data,
             input: undefined
           };
         case rejectEventType:

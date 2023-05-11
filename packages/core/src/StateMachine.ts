@@ -243,7 +243,7 @@ export class StateMachine<
       isErrorEvent(event) &&
       !currentState.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
-      throw (event as any).data;
+      throw event.data;
     }
 
     const { state: nextState } = macrostep(currentState, event, actorCtx);
@@ -263,7 +263,7 @@ export class StateMachine<
     event: TEvent,
     actorCtx?: AnyActorContext | undefined
   ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
-    return macrostep(state, event as any, actorCtx).microstates;
+    return macrostep(state, event, actorCtx).microstates;
   }
 
   public getTransitionData(
