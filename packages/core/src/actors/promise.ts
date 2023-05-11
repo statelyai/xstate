@@ -1,5 +1,4 @@
 import { ActorBehavior } from '../types';
-import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T> {
@@ -17,7 +16,6 @@ export function fromPromise<T>(
 
   // TODO: add event types
   const behavior: ActorBehavior<
-    | { type: string }
     | {
         type: typeof resolveEventType;
         data: T;
@@ -31,27 +29,23 @@ export function fromPromise<T>(
   > = {
     config: promiseCreator,
     transition: (state, event) => {
-      const _event = toSCXMLEvent(event);
-
       if (state.status !== 'active') {
         return state;
       }
 
-      const eventObject = _event.data;
-
-      switch (_event.name) {
+      switch (event.type) {
         case resolveEventType:
           return {
             ...state,
             status: 'done',
-            data: eventObject.data,
+            data: event.data,
             input: undefined
           };
         case rejectEventType:
           return {
             ...state,
             status: 'error',
-            data: eventObject.data,
+            data: (event as any).data,
             input: undefined
           };
         case stopSignalType:

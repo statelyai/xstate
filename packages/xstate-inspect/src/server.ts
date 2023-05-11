@@ -1,11 +1,5 @@
 import { WebSocketServer } from 'ws';
-import {
-  ActorRef,
-  EventObject,
-  interpret,
-  Interpreter,
-  toSCXMLEvent
-} from 'xstate';
+import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
 import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
 import { Inspector, Replacer } from './types.ts';
@@ -92,7 +86,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
 
     inspectService.send({
       type: 'service.event',
-      event: stringify(service.getSnapshot()._event),
+      event: stringify(service.getSnapshot().event),
       sessionId: service.sessionId
     });
 
@@ -104,7 +98,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     service.send = function inspectSend(event: EventObject) {
       inspectService.send({
         type: 'service.event',
-        event: stringify(toSCXMLEvent(event)),
+        event: stringify(event),
         sessionId: service.sessionId
       });
 

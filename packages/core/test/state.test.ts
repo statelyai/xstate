@@ -1,7 +1,6 @@
 import { createMachine, interpret } from '../src/index';
 import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
-import { toSCXMLEvent } from '../src/utils';
 import { fromCallback } from '../src/actors/callback';
 
 type Events =
@@ -391,70 +390,10 @@ describe('State', () => {
       expect(nextState.event).toEqual({ type: 'TO_TWO', foo: 'bar' });
     });
 
-    it('the ._event prop should be the initial event for the initial state', () => {
+    it('the .event prop should be the initial event for the initial state', () => {
       const { initialState } = exampleMachine;
 
-      expect(initialState._event).toEqual(initEvent);
-    });
-  });
-
-  describe('._event', () => {
-    it('the ._event prop should be the SCXML event (string) that caused the transition', () => {
-      const { initialState } = exampleMachine;
-
-      const nextState = exampleMachine.transition(initialState, {
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(nextState._event).toEqual(
-        toSCXMLEvent({ type: 'TO_TWO', foo: 'test' })
-      );
-    });
-
-    it('the ._event prop should be the SCXML event (object) that caused the transition', () => {
-      const { initialState } = exampleMachine;
-
-      const nextState = exampleMachine.transition(initialState, {
-        type: 'TO_TWO',
-        foo: 'bar'
-      });
-
-      expect(nextState._event).toEqual(
-        toSCXMLEvent({ type: 'TO_TWO', foo: 'bar' })
-      );
-    });
-
-    it('the ._event prop should be the initial SCXML event for the initial state', () => {
-      const { initialState } = exampleMachine;
-
-      expect(initialState._event).toEqual(toSCXMLEvent(initEvent));
-    });
-
-    it('the ._event prop should be the SCXML event (SCXML metadata) that caused the transition', () => {
-      const { initialState } = exampleMachine;
-
-      const nextState = exampleMachine.transition(
-        initialState,
-        toSCXMLEvent(
-          {
-            type: 'TO_TWO',
-            foo: 'bar'
-          },
-          {
-            sendid: 'test'
-          }
-        )
-      );
-
-      expect(nextState._event).toEqual(
-        toSCXMLEvent(
-          { type: 'TO_TWO', foo: 'bar' },
-          {
-            sendid: 'test'
-          }
-        )
-      );
+      expect(initialState.event).toEqual(initEvent);
     });
   });
 

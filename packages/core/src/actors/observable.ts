@@ -4,7 +4,6 @@ import {
   EventObject,
   Subscription
 } from '../types';
-import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
 
 export interface ObservableInternalState<T> {
@@ -41,37 +40,30 @@ export function fromObservable<T, TEvent extends EventObject>(
   > = {
     config: observableCreator,
     transition: (state, event, { self, id, defer }) => {
-      const _event = toSCXMLEvent(event);
-
       if (state.status !== 'active') {
         return state;
       }
 
-      switch (_event.name) {
+      switch (event.type) {
         case nextEventType:
           // match the exact timing of events sent by machines
           // send actions are not executed immediately
           defer(() => {
-            self._parent?.send(
-              toSCXMLEvent(
-                {
-                  type: `xstate.snapshot.${id}`,
-                  data: _event.data.data
-                },
-                { origin: self }
-              )
-            );
+            self._parent?.send({
+              type: `xstate.snapshot.${id}`,
+              data: event.data
+            });
           });
           return {
             ...state,
-            data: event.data.data
+            data: event.data
           };
         case errorEventType:
           return {
             ...state,
             status: 'error',
             input: undefined,
-            data: _event.data.data,
+            data: event.data,
             subscription: undefined
           };
         case completeEventType:
@@ -158,19 +150,17 @@ export function fromEventObservable<T extends EventObject>(
   > = {
     config: lazyObservable,
     transition: (state, event) => {
-      const _event = toSCXMLEvent(event);
-
       if (state.status !== 'active') {
         return state;
       }
 
-      switch (_event.name) {
+      switch (event.type) {
         case errorEventType:
           return {
             ...state,
             status: 'error',
             input: undefined,
-            data: _event.data.data,
+            data: event.data,
             subscription: undefined
           };
         case completeEventType:
@@ -207,7 +197,7 @@ export function fromEventObservable<T extends EventObject>(
 
       state.subscription = lazyObservable({ input: state.input }).subscribe({
         next: (value) => {
-          self._parent?.send(toSCXMLEvent(value, { origin: self }));
+          self._parent?.send(value);
         },
         error: (err) => {
           self.send({ type: errorEventType, data: err });

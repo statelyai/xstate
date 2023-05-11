@@ -8,8 +8,7 @@ import {
   toTransitionConfigArray,
   normalizeTarget,
   toStateValue,
-  mapContext,
-  toSCXMLEvent
+  mapContext
 } from './utils.ts';
 import {
   BaseActionObject,
@@ -21,7 +20,6 @@ import {
   TransitionDefinition,
   SingleOrArray,
   DelayExpr,
-  SCXML,
   StateValueMap,
   RaiseActionObject,
   InitialTransitionConfig,
@@ -72,7 +70,7 @@ type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   configuration: StateNode<TContext, TEvent>[],
   context: TContext,
-  _event: SCXML.Event<TEvent>
+  event: TEvent
 ) {
   const machine = configuration[0].machine;
   const finalChildStateNode = configuration.find(
@@ -81,7 +79,7 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   );
 
   return finalChildStateNode && finalChildStateNode.output
-    ? mapContext(finalChildStateNode.output, context, _event)
+    ? mapContext(finalChildStateNode.output, context, event)
     : undefined;
 }
 
@@ -748,13 +746,13 @@ export function transitionAtomicNode<
   stateNode: AnyStateNode,
   stateValue: string,
   state: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent>
+  event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
-  const next = childStateNode.next(state, _event);
+  const next = childStateNode.next(state, event);
 
   if (!next || !next.length) {
-    return stateNode.next(state, _event);
+    return stateNode.next(state, event);
   }
 
   return next;
@@ -767,7 +765,7 @@ export function transitionCompoundNode<
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent>
+  event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
 
@@ -776,11 +774,11 @@ export function transitionCompoundNode<
     childStateNode,
     stateValue[subStateKeys[0]],
     state,
-    _event
+    event
   );
 
   if (!next || !next.length) {
-    return stateNode.next(state, _event);
+    return stateNode.next(state, event);
   }
 
   return next;
@@ -793,7 +791,7 @@ export function transitionParallelNode<
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent>
+  event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
@@ -809,14 +807,14 @@ export function transitionParallelNode<
       subStateNode,
       subStateValue,
       state,
-      _event
+      event
     );
     if (innerTransitions) {
       allInnerTransitions.push(...innerTransitions);
     }
   }
   if (!allInnerTransitions.length) {
-    return stateNode.next(state, _event);
+    return stateNode.next(state, event);
   }
 
   return allInnerTransitions;
@@ -829,20 +827,20 @@ export function transitionNode<
   stateNode: AnyStateNode,
   stateValue: StateValue,
   state: State<TContext, TEvent, any>,
-  _event: SCXML.Event<TEvent>
+  event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (isString(stateValue)) {
-    return transitionAtomicNode(stateNode, stateValue, state, _event);
+    return transitionAtomicNode(stateNode, stateValue, state, event);
   }
 
   // compound node
   if (Object.keys(stateValue).length === 1) {
-    return transitionCompoundNode(stateNode, stateValue, state, _event);
+    return transitionCompoundNode(stateNode, stateValue, state, event);
   }
 
   // parallel node
-  return transitionParallelNode(stateNode, stateValue, state, _event);
+  return transitionParallelNode(stateNode, stateValue, state, event);
 }
 
 function getHistoryNodes(stateNode: AnyStateNode): Array<AnyStateNode> {
@@ -1042,7 +1040,7 @@ export function microstep<
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext | undefined,
-  scxmlEvent: SCXML.Event<TEvent>
+  event: TEvent
 ): State<TContext, TEvent, any> {
   const { machine } = currentState;
   // Transition will "apply" if:
@@ -1054,7 +1052,7 @@ export function microstep<
 
   if (!currentState._initial && !willTransition) {
     const inertState = cloneState(currentState, {
-      _event: scxmlEvent,
+      event,
       actions: [],
       transitions: []
     });
@@ -1078,7 +1076,7 @@ export function microstep<
       : transitions,
     currentState,
     mutConfiguration,
-    scxmlEvent,
+    event,
     actorCtx
   );
 
@@ -1129,7 +1127,7 @@ function microstepProcedure(
   transitions: Array<AnyTransitionDefinition>,
   currentState: AnyState,
   mutConfiguration: Set<AnyStateNode>,
-  scxmlEvent: SCXML.Event<AnyEventObject>,
+  event: AnyEventObject,
   actorCtx: AnyActorContext | undefined
 ): typeof currentState {
   const { machine } = currentState;
@@ -1178,13 +1176,13 @@ function microstepProcedure(
   try {
     const { nextState } = resolveActionsAndContext(
       actions,
-      scxmlEvent,
+      event,
       currentState,
       actorCtx
     );
 
     const output = done
-      ? getOutput(nextConfiguration, nextState.context, scxmlEvent)
+      ? getOutput(nextConfiguration, nextState.context, event)
       : undefined;
 
     internalQueue.push(...nextState._internalQueue);
@@ -1195,7 +1193,7 @@ function microstepProcedure(
       historyValue,
       _internalQueue: internalQueue,
       context: nextState.context,
-      _event: scxmlEvent,
+      event,
       done,
       output,
       children: nextState.children
@@ -1208,7 +1206,7 @@ function microstepProcedure(
         actions: [],
         configuration: Array.from(mutConfiguration),
         historyValue,
-        _internalQueue: [toSCXMLEvent({ type: 'error.execution' })],
+        _internalQueue: [{ type: 'error.execution' }],
         context: currentState.context
       });
     } else {
@@ -1221,7 +1219,7 @@ function enterStates(
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
   actions: BaseActionObject[],
-  internalQueue: SCXML.Event<AnyEventObject>[],
+  internalQueue: AnyEventObject[],
   currentState: AnyState,
   historyValue: HistoryValue<any, any>
 ): void {
@@ -1266,17 +1264,15 @@ function enterStates(
       }
 
       internalQueue.push(
-        toSCXMLEvent(
-          done(
-            parent!.id,
-            stateNodeToEnter.output
-              ? mapContext(
-                  stateNodeToEnter.output,
-                  currentState.context,
-                  currentState._event
-                )
-              : undefined
-          )
+        done(
+          parent!.id,
+          stateNodeToEnter.output
+            ? mapContext(
+                stateNodeToEnter.output,
+                currentState.context,
+                currentState.event
+              )
+            : undefined
         )
       );
 
@@ -1289,7 +1285,7 @@ function enterStates(
               isInFinalState([...mutConfiguration], parentNode)
             )
           ) {
-            internalQueue.push(toSCXMLEvent(done(grandparent.id)));
+            internalQueue.push(done(grandparent.id));
           }
         }
       }
@@ -1491,7 +1487,7 @@ export function resolveActionsAndContext<
   TEvent extends EventObject
 >(
   actions: BaseActionObject[],
-  scxmlEvent: SCXML.Event<TEvent>,
+  event: TEvent,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext | undefined
 ): {
@@ -1519,7 +1515,7 @@ export function resolveActionsAndContext<
 
     if (isDynamicAction(executableActionObject)) {
       const [nextState, resolvedAction] = executableActionObject.resolve(
-        scxmlEvent,
+        event,
         {
           state: intermediateState,
           action: actionObject,
@@ -1559,20 +1555,20 @@ export function resolveActionsAndContext<
   return {
     nextState: cloneState(intermediateState, {
       actions: resolvedActions,
-      _internalQueue: raiseActions.map((a) => a.params._event)
+      _internalQueue: raiseActions.map((a) => a.params.event)
     })
   };
 }
 
 export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
-  scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
+  event: TMachine['__TEvent'],
   actorCtx: AnyActorContext | undefined
 ): {
   state: typeof state;
   microstates: Array<typeof state>;
 } {
-  if (!IS_PRODUCTION && scxmlEvent.name === WILDCARD) {
+  if (!IS_PRODUCTION && event.type === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
 
@@ -1580,8 +1576,8 @@ export function macrostep<TMachine extends AnyStateMachine>(
   const states: StateFromMachine<TMachine>[] = [];
 
   // Handle stop event
-  if (scxmlEvent?.name === stopSignalType) {
-    nextState = stopStep(scxmlEvent, nextState, actorCtx);
+  if (event.type === stopSignalType) {
+    nextState = stopStep(event, nextState, actorCtx);
     states.push(nextState);
 
     return {
@@ -1592,9 +1588,9 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (scxmlEvent.name !== actionTypes.init) {
-    const transitions = selectTransitions(scxmlEvent, nextState);
-    nextState = microstep(transitions, state, actorCtx, scxmlEvent);
+  if (event.type !== actionTypes.init) {
+    const transitions = selectTransitions(event, nextState);
+    nextState = microstep(transitions, state, actorCtx, event);
     states.push(nextState);
   }
 
@@ -1631,7 +1627,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
         enabledTransitions,
         nextState,
         actorCtx,
-        nextState._event
+        nextState.event
       );
       nextState.actions.unshift(...currentActions);
 
@@ -1641,7 +1637,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   if (nextState.done) {
     // Perform the stop step to ensure that child actors are stopped
-    stopStep(nextState._event, nextState, actorCtx);
+    stopStep(nextState.event, nextState, actorCtx);
   }
 
   return {
@@ -1651,7 +1647,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 }
 
 function stopStep(
-  scxmlEvent: SCXML.Event<any>,
+  event: AnyEventObject,
   nextState: AnyState,
   actorCtx: AnyActorContext | undefined
 ): AnyState {
@@ -1669,7 +1665,7 @@ function stopStep(
 
   const { nextState: stoppedState } = resolveActionsAndContext(
     actions,
-    scxmlEvent,
+    event,
     nextState,
     actorCtx
   );
@@ -1678,10 +1674,10 @@ function stopStep(
 }
 
 function selectTransitions(
-  scxmlEvent: SCXML.Event<any>,
+  event: AnyEventObject,
   nextState: AnyState
 ): AnyTransitionDefinition[] {
-  return nextState.machine.getTransitionData(nextState, scxmlEvent);
+  return nextState.machine.getTransitionData(nextState, event);
 }
 
 function selectEventlessTransitions(
@@ -1703,7 +1699,7 @@ function selectEventlessTransitions(
           evaluateGuard(
             transition.guard,
             nextState.context,
-            nextState._event,
+            nextState.event,
             nextState
           )
         ) {
