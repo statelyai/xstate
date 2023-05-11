@@ -170,7 +170,7 @@ const testGroups: Record<string, string[]> = {
     // 'test224.txml', // <invoke idlocation="...">
     // 'test225.txml', // unique invokeids generated at invoke time
     // 'test226.txml', // <invoke src="...">
-    'test228.txml',
+    // 'test228.txml', // this test relies on `invokeid` being available on the event
     // 'test229.txml', // autoForward not supported in v5
     // 'test230.txml', // autoForward not supported in v5
     'test232.txml',

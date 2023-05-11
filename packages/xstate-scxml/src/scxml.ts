@@ -126,8 +126,8 @@ const evaluateExecutableContent = <
   TEvent extends EventObject
 >(
   context: TContext,
-  _ev: TEvent,
-  meta: StateMeta<TEvent>,
+  event: TEvent,
+  _meta: StateMeta<TEvent>,
   body: string
 ) => {
   const datamodel = context
@@ -148,7 +148,7 @@ const evaluateExecutableContent = <
   `;
 
   const fn = new Function(...args, fnBody);
-  return fn(context, meta._event);
+  return fn(context, { name: event.type, data: event });
 };
 
 function createGuard<

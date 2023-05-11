@@ -35,20 +35,16 @@ import type {
   MachineImplementationsSimplified,
   MachineTypes,
   NoInfer,
-  SCXML,
   StateConfig,
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
   PersistedMachineState,
   ParameterizedObject,
-  AnyActorContext
+  AnyActorContext,
+  AnyEventObject
 } from './types.ts';
-import {
-  isSCXMLErrorEvent,
-  resolveReferencedActor,
-  toSCXMLEvent
-} from './utils.ts';
+import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -77,7 +73,7 @@ export class StateMachine<
   >
 > implements
     ActorBehavior<
-      TEvent | SCXML.Event<TEvent>,
+      TEvent,
       State<TContext, TEvent, TResolvedTypesMeta>,
       State<TContext, TEvent, TResolvedTypesMeta>,
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
@@ -237,23 +233,20 @@ export class StateMachine<
   public transition(
     state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue = this
       .initialState,
-    event: TEvent | SCXML.Event<TEvent>,
+    event: TEvent,
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState =
       state instanceof State ? state : this.resolveStateValue(state);
     // TODO: handle error events in a better way
-    const scxmlEvent = toSCXMLEvent(event);
     if (
-      isSCXMLErrorEvent(scxmlEvent) &&
-      !currentState.nextEvents.some(
-        (nextEvent) => nextEvent === scxmlEvent.name
-      )
+      isErrorEvent(event) &&
+      !currentState.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
-      throw scxmlEvent.data.data;
+      throw event.data;
     }
 
-    const { state: nextState } = macrostep(currentState, scxmlEvent, actorCtx);
+    const { state: nextState } = macrostep(currentState, event, actorCtx);
 
     return nextState;
   }
@@ -267,21 +260,17 @@ export class StateMachine<
    */
   public microstep(
     state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
-    event: TEvent | SCXML.Event<TEvent>,
+    event: TEvent,
     actorCtx?: AnyActorContext | undefined
   ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
-    const scxmlEvent = toSCXMLEvent(event);
-
-    const { microstates } = macrostep(state, scxmlEvent, actorCtx);
-
-    return microstates;
+    return macrostep(state, event, actorCtx).microstates;
   }
 
   public getTransitionData(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
-    _event: SCXML.Event<TEvent>
+    event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    return transitionNode(this.root, state.value, state, _event) || [];
+    return transitionNode(this.root, state.value, state, event) || [];
   }
 
   /**
@@ -298,7 +287,7 @@ export class StateMachine<
       this.createState({
         value: {}, // TODO: this is computed in state constructor
         context,
-        _event: createInitEvent({}) as unknown as SCXML.Event<TEvent>,
+        event: createInitEvent({}) as unknown as TEvent,
         actions: [],
         meta: undefined,
         configuration: config,
@@ -312,7 +301,7 @@ export class StateMachine<
     if (actorCtx) {
       const { nextState } = resolveActionsAndContext(
         actions,
-        initEvent as SCXML.Event<TEvent>,
+        initEvent as TEvent,
         preInitial,
         actorCtx
       );
@@ -341,13 +330,17 @@ export class StateMachine<
     >,
     input?: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const initEvent = createInitEvent(input) as unknown as SCXML.Event<TEvent>; // TODO: fix;
+    const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
     const preInitialState = this.getPreInitialState(actorCtx, input);
     const nextState = microstep([], preInitialState, actorCtx, initEvent);
     nextState.actions.unshift(...preInitialState.actions);
 
-    const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
+    const { state: macroState } = macrostep(
+      nextState,
+      initEvent as AnyEventObject,
+      actorCtx
+    );
 
     return macroState;
   }
@@ -414,7 +407,7 @@ export class StateMachine<
 
     const { nextState: resolvedState } = resolveActionsAndContext(
       state.actions,
-      state._event,
+      state.event,
       state,
       undefined
     );

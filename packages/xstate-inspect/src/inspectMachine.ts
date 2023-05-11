@@ -1,4 +1,4 @@
-import { ActorRef, assign, createMachine, Interpreter, SCXML } from 'xstate';
+import { ActorRef, assign, createMachine, Interpreter } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { stringifyMachine, stringifyState } from './serialize.ts';
 
@@ -52,9 +52,10 @@ export function createInspectMachine(
           'xstate.event': {
             actions: ({ event: e }) => {
               const { event } = e;
-              const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
-              const service = serviceMap.get(scxmlEventObject.origin?.id!);
-              service?.send(scxmlEventObject);
+              const parsedEvent = JSON.parse(event);
+              // TODO: figure out a different mechanism
+              const service = serviceMap.get(parsedEvent.origin?.id!);
+              service?.send(parsedEvent);
             }
           },
           unload: {

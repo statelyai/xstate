@@ -18,12 +18,7 @@ export { waitFor } from './waitFor.ts';
 export * from './typegenTypes.ts';
 export * from './types.ts';
 // TODO: decide from where those should be exported
-export {
-  matchesState,
-  pathToStateValue,
-  toObserver,
-  toSCXMLEvent
-} from './utils.ts';
+export { matchesState, pathToStateValue, toObserver } from './utils.ts';
 export {
   StateNode,
   State,

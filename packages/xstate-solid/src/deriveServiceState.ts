@@ -8,7 +8,6 @@ function isState(state: any): state is AnyState {
     'value' in state &&
     'context' in state &&
     'event' in state &&
-    '_event' in state &&
     'can' in state &&
     'matches' in state
   );

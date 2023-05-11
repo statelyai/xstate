@@ -28,11 +28,10 @@ import {
   InteropSubscribable,
   InterpreterOptions,
   Observer,
-  SCXML,
   SendActionObject,
   Subscription
 } from './types.ts';
-import { toObserver, toSCXMLEvent, warn } from './utils.ts';
+import { toObserver, warn } from './utils.ts';
 
 export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>
@@ -95,9 +94,7 @@ export class Interpreter<
    */
   public id: string;
 
-  private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
-    this._process.bind(this)
-  );
+  private mailbox: Mailbox<TEvent> = new Mailbox(this._process.bind(this));
 
   private delayedEventsMap: Record<string, unknown> = {};
 
@@ -217,21 +214,12 @@ export class Interpreter<
       case 'done':
         this._stopProcedure();
         this._doneEvent = doneInvoke(this.id, status.data);
-        this._parent?.send(
-          toSCXMLEvent(this._doneEvent as any, {
-            origin: this,
-            invokeid: this.id
-          })
-        );
+        this._parent?.send(this._doneEvent as any);
         this._complete();
         break;
       case 'error':
         this._stopProcedure();
-        this._parent?.send(
-          toSCXMLEvent(error(this.id, status.data), {
-            origin: this
-          })
-        );
+        this._parent?.send(error(this.id, status.data));
         this._error(status.data);
         break;
     }
@@ -323,7 +311,7 @@ export class Interpreter<
     return this;
   }
 
-  private _process(event: SCXML.Event<TEvent>) {
+  private _process(event: TEvent) {
     try {
       const nextState = this.behavior.transition(
         this._state,
@@ -333,7 +321,7 @@ export class Interpreter<
 
       this.update(nextState);
 
-      if (event.name === stopSignalType) {
+      if (event.type === stopSignalType) {
         this._stopProcedure();
         this._complete();
       }
@@ -359,7 +347,7 @@ export class Interpreter<
       this.status = ActorStatus.Stopped;
       return this;
     }
-    this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
+    this.mailbox.enqueue({ type: stopSignalType } as any);
 
     return this;
   }
@@ -415,23 +403,21 @@ export class Interpreter<
    *
    * @param event The event to send
    */
-  public send(event: TEvent | SCXML.Event<TEvent>) {
+  public send(event: TEvent) {
     if (typeof event === 'string') {
       throw new Error(
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
     }
 
-    const _event = toSCXMLEvent(event);
-
     if (this.status === ActorStatus.Stopped) {
       // do nothing
       if (!IS_PRODUCTION) {
-        const eventString = JSON.stringify(_event.data);
+        const eventString = JSON.stringify(event);
 
         warn(
           false,
-          `Event "${_event.name.toString()}" was sent to stopped actor "${
+          `Event "${event.type.toString()}" was sent to stopped actor "${
             this.id
           } (${
             this.sessionId
@@ -443,16 +429,16 @@ export class Interpreter<
 
     if (this.status !== ActorStatus.Running && !this.options.deferEvents) {
       throw new Error(
-        `Event "${_event.name}" was sent to uninitialized actor "${
+        `Event "${event.type}" was sent to uninitialized actor "${
           this.id
           // tslint:disable-next-line:max-line-length
         }". Make sure .start() is called for this actor, or set { deferEvents: true } in the actor options.\nEvent: ${JSON.stringify(
-          _event.data
+          event
         )}`
       );
     }
 
-    this.mailbox.enqueue(_event);
+    this.mailbox.enqueue(event);
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
@@ -461,9 +447,9 @@ export class Interpreter<
   ): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if ('to' in sendAction.params && sendAction.params.to) {
-        sendAction.params.to.send(sendAction.params._event);
+        sendAction.params.to.send(sendAction.params.event);
       } else {
-        this.send(sendAction.params._event as SCXML.Event<TEvent>);
+        this.send(sendAction.params.event);
       }
     }, sendAction.params.delay as number);
   }

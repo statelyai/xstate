@@ -18,18 +18,11 @@ import type {
   MachineContext,
   PersistedMachineState,
   Prop,
-  SCXML,
   StateConfig,
   StateValue,
   TransitionDefinition
 } from './types.ts';
-import {
-  flatten,
-  isString,
-  matchesState,
-  toSCXMLEvent,
-  warn
-} from './utils.ts';
+import { flatten, isString, matchesState, warn } from './utils.ts';
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -39,7 +32,7 @@ export function isStateConfig<
     return false;
   }
 
-  return 'value' in state && '_event' in state;
+  return 'value' in state && 'event' in state;
 }
 
 /**
@@ -66,8 +59,7 @@ export class State<
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public actions: BaseActionObject[] = [];
   public event: TEvent;
-  public _internalQueue: Array<SCXML.Event<TEvent>>;
-  public _event: SCXML.Event<TEvent>;
+  public _internalQueue: Array<TEvent>;
   public _initial: boolean = false;
   /**
    * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
@@ -109,7 +101,7 @@ export class State<
           {
             value: stateValue.value,
             context,
-            _event: stateValue._event,
+            event: stateValue.event,
             actions: [],
             meta: {},
             configuration: [], // TODO: fix,
@@ -123,7 +115,7 @@ export class State<
       return stateValue;
     }
 
-    const _event = createInitEvent({}) as unknown as SCXML.Event<TEvent>; // TODO: fix
+    const event = createInitEvent({}) as unknown as TEvent; // TODO: fix
 
     const configuration = getConfiguration(
       getStateNodes(machine.root, stateValue)
@@ -133,7 +125,7 @@ export class State<
       {
         value: stateValue,
         context,
-        _event,
+        event,
         actions: [],
         meta: undefined,
         configuration: Array.from(configuration),
@@ -154,9 +146,8 @@ export class State<
     public machine: AnyStateMachine
   ) {
     this.context = config.context;
-    this._event = config._event;
     this._internalQueue = config._internalQueue ?? [];
-    this.event = this._event.data;
+    this.event = config.event;
     this.historyValue = config.historyValue || {};
     this.actions = config.actions ?? [];
     this.matches = this.matches.bind(this);
@@ -242,10 +233,7 @@ export class State<
       );
     }
 
-    const transitionData = this.machine.getTransitionData(
-      this,
-      toSCXMLEvent(event)
-    );
+    const transitionData = this.machine.getTransitionData(this, event);
 
     return (
       !!transitionData?.length &&
