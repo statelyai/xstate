@@ -57,9 +57,9 @@ export function resolveActionObject(
           execute: (actorCtx) => {
             return dereferencedAction({
               context: state.context,
-              event: state.event,
+              event: _event.data,
               action: a,
-              _event: state._event,
+              _event: _event,
               system: actorCtx.system,
               self: actorCtx.self
             });

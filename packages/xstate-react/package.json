@@ -20,10 +20,12 @@
   "exports": {
     "./fsm": {
       "module": "./fsm/dist/xstate-react-fsm.esm.js",
+      "import": "./fsm/dist/xstate-react-fsm.cjs.mjs",
       "default": "./fsm/dist/xstate-react-fsm.cjs.js"
     },
     ".": {
       "module": "./dist/xstate-react.esm.js",
+      "import": "./dist/xstate-react.cjs.mjs",
       "default": "./dist/xstate-react.cjs.js"
     },
     "./package.json": "./package.json"
@@ -45,7 +47,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^3.0.0-beta.2",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "xstate": "^5.0.0-beta.7"
+    "xstate": "^5.0.0-beta.9"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -56,7 +58,7 @@
     }
   },
   "dependencies": {
-    "use-isomorphic-layout-effect": "^1.0.0",
+    "use-isomorphic-layout-effect": "^1.1.2",
     "use-sync-external-store": "^1.0.0"
   },
   "devDependencies": {
@@ -70,7 +72,7 @@
     "jsdom-global": "^3.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "xstate": "5.0.0-beta.7"
+    "xstate": "5.0.0-beta.9"
   },
   "preconstruct": {
     "entrypoints": [

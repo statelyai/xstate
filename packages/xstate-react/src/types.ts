@@ -1,7 +1,5 @@
 import { EventObject, MachineContext, StateConfig } from 'xstate';
 
-export type MaybeLazy<T> = T | (() => T);
-
 export type NoInfer<T> = [T][T extends any ? 0 : any];
 
 export type Prop<T, K> = K extends keyof T ? T[K] : never;

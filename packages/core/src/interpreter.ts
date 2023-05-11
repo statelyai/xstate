@@ -5,7 +5,10 @@ import { devToolsAdapter } from './dev/index.ts';
 import { IS_PRODUCTION } from './environment.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { createSystem } from './system.ts';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.ts';
+import {
+  AreAllImplementationsAssumedToBeProvided,
+  MissingImplementationsError
+} from './typegenTypes.ts';
 import type {
   ActorBehavior,
   ActorContext,
@@ -221,6 +224,7 @@ export class Interpreter<
 
     switch (status?.status) {
       case 'done':
+        this._stopProcedure();
         this._doneEvent = doneInvoke(this.id, status.data);
         this._parent?.send(
           toSCXMLEvent(this._doneEvent as any, {
@@ -228,10 +232,10 @@ export class Interpreter<
             invokeid: this.id
           })
         );
-
-        this._stopProcedure();
+        this._complete();
         break;
       case 'error':
+        this._stopProcedure();
         this._parent?.send(
           toSCXMLEvent(error(this.id, status.data), {
             origin: this
@@ -243,6 +247,7 @@ export class Interpreter<
         for (const inspector of this.inspectors) {
           inspector.error?.(status.data);
         }
+        this._error(status.data);
         break;
     }
   }
@@ -375,6 +380,7 @@ export class Interpreter<
 
       if (event.name === stopSignalType) {
         this._stopProcedure();
+        this._complete();
       }
     } catch (err) {
       // TODO: properly handle errors
@@ -418,9 +424,13 @@ export class Interpreter<
     }
     this.observers.clear();
   }
+  private _error(data: any): void {
+    for (const observer of this.observers) {
+      observer.error?.(data);
+    }
+    this.observers.clear();
+  }
   private _stopProcedure(): this {
-    this._complete();
-
     if (this.status !== ActorStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
@@ -550,7 +560,7 @@ export function interpret<TMachine extends AnyStateMachine>(
     TMachine['__TResolvedTypesMeta']
   > extends true
     ? TMachine
-    : 'Some implementations missing',
+    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(

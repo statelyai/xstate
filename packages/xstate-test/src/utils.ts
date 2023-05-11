@@ -25,7 +25,6 @@ export function formatPathTestResult(
     serializeState: (state, _event) =>
       simpleStringify(state) as SerializedState,
     serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
-    eventCases: {},
     ...options
   };
 

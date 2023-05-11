@@ -28,6 +28,7 @@ export function fromTransition<
   initialState: TState | (({ input }: { input: any }) => TState) // TODO: type
 ): ActorBehavior<TEvent, TState, TState> {
   const behavior: ActorBehavior<TEvent, TState, TState, TState> = {
+    config: transition,
     transition: (state, event, actorContext) => {
       // @ts-ignore TODO
       const resolvedEvent = isSCXMLEvent(event) ? event.data : event;

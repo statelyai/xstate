@@ -4,22 +4,15 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Jest All",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": ["--runInBand"],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "disableOptimisticBPs": true,
-      "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest"
-      }
-    },
-    {
-      "type": "node",
-      "request": "launch",
       "name": "Jest Current File",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
+      "args": [
+        "${file}",
+        "--config",
+        "jest.config.js",
+        "--no-cache",
+        "--testTimeout=2147483647"
+      ],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "disableOptimisticBPs": true,

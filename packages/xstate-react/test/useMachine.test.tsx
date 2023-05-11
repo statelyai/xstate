@@ -74,12 +74,16 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     },
     persistedState
   }) => {
-    const [current, send] = useMachine(fetchMachine, {
-      state: persistedState,
-      actors: {
-        fetchData: fromPromise(onFetch)
+    const [current, send] = useMachine(
+      fetchMachine.provide({
+        actors: {
+          fetchData: fromPromise(onFetch)
+        }
+      }),
+      {
+        state: persistedState
       }
-    });
+    );
 
     switch (current.value) {
       case 'idle':
@@ -251,17 +255,19 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const Component = () => {
       const [ext, setExt] = useState(1);
 
-      const [, send] = useMachine(toggleMachine, {
-        actions: {
-          setLatest: assign({
-            latest: () => {
-              expect(ext).toBe(2);
-              done();
-              return ext;
-            }
-          })
-        }
-      });
+      const [, send] = useMachine(
+        toggleMachine.provide({
+          actions: {
+            setLatest: assign({
+              latest: () => {
+                expect(ext).toBe(2);
+                done();
+                return ext;
+              }
+            })
+          }
+        })
+      );
 
       return (
         <>
@@ -311,17 +317,19 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const Component = () => {
       const [ext, setExt] = useState(1);
 
-      const [, send] = useMachine(toggleMachine, {
-        actions: {
-          setLatest: assign({
-            latest: () => {
-              expect(ext).toBe(2);
-              done();
-              return ext;
-            }
-          })
-        }
-      });
+      const [, send] = useMachine(
+        toggleMachine.provide({
+          actions: {
+            setLatest: assign({
+              latest: () => {
+                expect(ext).toBe(2);
+                done();
+                return ext;
+              }
+            })
+          }
+        })
+      );
 
       return (
         <>
@@ -371,11 +379,13 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
         done();
       }, [ext]);
 
-      const [, send] = useMachine(toggleMachine, {
-        actions: {
-          doAction
-        }
-      });
+      const [, send] = useMachine(
+        toggleMachine.provide({
+          actions: {
+            doAction
+          }
+        })
+      );
 
       return (
         <>
@@ -717,11 +727,13 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     });
 
     const App = ({ isAwesome }: { isAwesome: boolean }) => {
-      const [state, send] = useMachine(machine, {
-        guards: {
-          isAwesome: () => isAwesome
-        }
-      });
+      const [state, send] = useMachine(
+        machine.provide({
+          guards: {
+            isAwesome: () => isAwesome
+          }
+        })
+      );
       return (
         <>
           <div data-testid="result">{state.value}</div>
@@ -897,25 +909,6 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     });
 
     expect(currentState!.matches('idle')).toBe(true);
-  });
-
-  it('should accept a lazily created machine', () => {
-    const App = () => {
-      const [state] = useMachine(() =>
-        createMachine({
-          initial: 'idle',
-          states: {
-            idle: {}
-          }
-        })
-      );
-
-      expect(state.matches('idle')).toBeTruthy();
-
-      return null;
-    };
-
-    render(<App />);
   });
 
   it('should not miss initial synchronous updates', () => {

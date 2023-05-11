@@ -100,7 +100,7 @@ describe('state meta data', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/1105
-  it('services started from a persisted state should calculate meta data', (done) => {
+  it('services started from a persisted state should calculate meta data', () => {
     const machine = createMachine({
       id: 'test',
       initial: 'first',
@@ -118,18 +118,16 @@ describe('state meta data', () => {
       }
     });
 
-    const secondState = machine.resolveStateValue('second');
-
-    const service = interpret(machine, { state: secondState });
-    service.subscribe((state) => {
-      expect(state.meta).toEqual({
-        'test.second': {
-          name: 'second state'
-        }
-      });
-      done();
+    const actor = interpret(machine, {
+      state: machine.resolveStateValue('second')
     });
-    service.start();
+    actor.start();
+
+    expect(actor.getSnapshot().meta).toEqual({
+      'test.second': {
+        name: 'second state'
+      }
+    });
   });
 });
 
