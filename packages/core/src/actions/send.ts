@@ -22,7 +22,7 @@ import {
   StateMeta,
   UnifiedArg
 } from '../index.ts';
-import { actionTypes } from '../actions.ts';
+import { actionTypes, error } from '../actions.ts';
 
 /**
  * Sends an event. This returns an action that will be read by an interpreter to
@@ -158,9 +158,16 @@ export function send<
             return;
           } else {
             const target = sendAction.params.to!;
+            const sentEvent = sendAction.params.event;
             actorCtx.defer(() => {
-              // const origin = actorCtx.self;
-              target.send(sendAction.params.event);
+              target.send(
+                sentEvent.type === actionTypes.error
+                  ? {
+                      type: `${error(actorCtx.self.id)}`,
+                      data: sentEvent.data
+                    }
+                  : sendAction.params.event
+              );
             });
           }
         }
