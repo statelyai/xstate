@@ -238,7 +238,7 @@ export function forwardTo<
   options?: SendActionOptions<TContext, TEvent>
 ) {
   if (
-    process.env.NODE_END !== 'production' &&
+    process.env.NODE_ENV !== 'production' &&
     (!target || typeof target === 'function')
   ) {
     const originalTarget = target;
