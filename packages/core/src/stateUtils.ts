@@ -1568,7 +1568,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
   state: typeof state;
   microstates: Array<typeof state>;
 } {
-  if (!IS_PRODUCTION && event.name === WILDCARD) {
+  if (!IS_PRODUCTION && event.type === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
 
@@ -1588,7 +1588,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (event.name !== actionTypes.init) {
+  if (event.type !== actionTypes.init) {
     const transitions = selectTransitions(event, nextState);
     nextState = microstep(transitions, state, actorCtx, event);
     states.push(nextState);
