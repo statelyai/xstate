@@ -3666,7 +3666,7 @@ it('should call a referenced action responding to an initial raise with updated 
 });
 
 describe('action groups', () => {
-  it('should execute actions provided as type strings in a group', () => {
+  it('should execute actions from action type strings in a group', () => {
     const action1 = jest.fn();
     const action2 = jest.fn();
 
@@ -3689,7 +3689,30 @@ describe('action groups', () => {
     expect(action2).toHaveBeenCalled();
   });
 
-  it('should execute actions provided as action functions in a group', () => {
+  it('should execute actions from action objects in a group', () => {
+    const action1 = jest.fn();
+    const action2 = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: 'group'
+      },
+      {
+        actions: {
+          group: [{ type: 'action1' }, { type: 'action2' }],
+          action1,
+          action2
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(action1).toHaveBeenCalled();
+    expect(action2).toHaveBeenCalled();
+  });
+
+  it('should execute actions from action functions in a group', () => {
     const action1 = jest.fn();
     const action2 = jest.fn();
 
@@ -3721,7 +3744,7 @@ describe('action groups', () => {
     expect(action2).toHaveBeenCalledWith(event);
   });
 
-  it('should execute a mix of actions in a group', () => {
+  it('should execute a mix of action types in a group', () => {
     const action1 = jest.fn();
     const action2 = jest.fn();
 
@@ -3739,7 +3762,7 @@ describe('action groups', () => {
             assign({
               value: ({ context }) => `${context.value}!`
             }),
-            'action2'
+            { type: 'action2' }
           ],
           action1: ({ context }) => action1(context.value),
           action2: ({ context }) => action2(context.value)
