@@ -1843,7 +1843,7 @@ export type Call<fn extends { return: unknown }, arg1> = (fn & {
 
 export type AnyActorContext = ActorContext<any, any, any>;
 
-interface NoCheck {
+export interface NoCheck {
   [rawArgs]: unknown;
   arg0: this[rawArgs] extends [infer arg, ...any] ? arg : never;
   return: unknown;

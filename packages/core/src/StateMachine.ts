@@ -99,6 +99,11 @@ export class StateMachine<
       }
     >
 {
+  // @ts-ignore
+  public _stuff: {
+    finalizedCheck: AreImplementationsProvidedCheck;
+    finalizedCheckArgs: TResolvedTypesMeta;
+  };
   // TODO: this getter should be removed
   public getContext(input?: any): TContext {
     return this.getContextAndActions(undefined, input)[0];

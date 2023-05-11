@@ -19,6 +19,7 @@ import type {
   Call,
   EventFromBehavior,
   InterpreterFrom,
+  NoCheck,
   PersistedStateFrom,
   RaiseActionObject,
   SnapshotFrom
@@ -506,21 +507,19 @@ export class Interpreter<
   }
 }
 
-type ErrorArgs<S> = S extends ActorBehavior<
-  infer _,
-  infer __,
-  infer ___,
-  infer ____,
-  infer _____,
-  infer TFlexible
->
-  ? Call<
-      TFlexible['finalizedCheck'],
-      TFlexible['finalizedCheckArgs']
-    > extends string
-    ? [Call<TFlexible['finalizedCheck'], TFlexible['finalizedCheckArgs']>]
-    : [S]
-  : never;
+type ErrorArgs<S> = '_stuff' extends keyof S
+  ? S['_stuff'] extends {
+      finalizedCheck: NoCheck;
+      finalizedCheckArgs: unknown;
+    }
+    ? Call<
+        S['_stuff']['finalizedCheck'],
+        S['_stuff']['finalizedCheckArgs']
+      > extends string
+      ? Call<S['_stuff']['finalizedCheck'], S['_stuff']['finalizedCheckArgs']>
+      : S
+    : S
+  : S;
 
 // type A = ErrorArgs<>
 
