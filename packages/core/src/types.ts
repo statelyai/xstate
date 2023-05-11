@@ -212,6 +212,58 @@ export type Actions<
   TEvent extends EventObject = TExpressionEvent
 > = SingleOrArray<Action<TContext, TEvent>>;
 
+/**
+ * An action implemented as a group of actions.
+ *
+ * Action groups may contain:
+ *
+ * - action `type` strings
+ * - action objects
+ * - action functions
+ * - built-in xstate functions
+ *
+ * @example
+ * // create a group of actions
+ * const myGroupAction: ActionGroup = [
+ *     'myAction', // action `type` string
+ *     { type: 'myOtherAction' }, // action object
+ *     ({ context }) => console.log(context.value), // action function
+ *     log(({ context }) => context.value), // built-in xstate function
+ * ]
+ *
+ * const machine = createMachine({
+ *   // reference the action group
+ *   entry: 'myGroupAction'
+ * }, {
+ *   actions: {
+ *     // add the action group to machine's actions implementations
+ *     myGroupAction,
+ *   }
+ * });
+ */
+export type ActionGroup<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent,
+  TActionTypes = string
+> = Array<
+  | TActionTypes
+  | ParameterizedObject
+  | BaseDynamicActionObject<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      any, // TODO: this should receive something like `Cast<Prop<TIndexedActions, K>, ParameterizedObject>`, but at the moment builtin actions expect Resolved*Action here and this should be simplified somehow
+      any
+    >
+  | ActionFunction<
+      TContext,
+      TExpressionEvent,
+      ParameterizedObject, // TODO: when bringing back parametrized actions this should accept something like `Cast<Prop<TIndexedActions, K>, ParameterizedObject>`. At the moment we need to keep this type argument consistent with what is provided to the fake callable signature within `BaseDynamicActionObject`
+      TEvent
+    >
+>;
+
 export type StateKey = string | AnyState;
 
 export interface StateValueMap {
@@ -815,7 +867,7 @@ type MachineImplementationsActions<
   >,
   TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
-  [K in keyof TEventsCausingActions]?: SingleOrArray<
+  [K in keyof TEventsCausingActions]?:
     | BaseDynamicActionObject<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
@@ -829,8 +881,12 @@ type MachineImplementationsActions<
         ParameterizedObject, // TODO: when bringing back parametrized actions this should accept something like `Cast<Prop<TIndexedActions, K>, ParameterizedObject>`. At the moment we need to keep this type argument consistent with what is provided to the fake callable signature within `BaseDynamicActionObject`
         Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
       >
-    | keyof TEventsCausingActions
-  >;
+    | ActionGroup<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
+        Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>,
+        keyof TEventsCausingActions
+      >;
 };
 
 type MachineImplementationsDelays<
