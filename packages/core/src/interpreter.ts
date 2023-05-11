@@ -545,11 +545,11 @@ export function interpret(
 
 const m1 = createMachine({});
 
-type A = ErrorArgs<typeof m1>;
+type Res1 = ErrorArgs<typeof m1>;
 
 interpret(m1);
 
-createMachine({
+const m2 = createMachine({
   types: {
     typegen: {} as {
       '@@xstate/typegen': true;
@@ -563,7 +563,11 @@ createMachine({
   }
 });
 
-createMachine({
+type Res2 = ErrorArgs<typeof m2>;
+
+interpret(m2);
+
+const m3 = createMachine({
   types: {
     typegen: {} as {
       '@@xstate/typegen': true;
@@ -576,3 +580,7 @@ createMachine({
     }
   }
 });
+
+type Res3 = ErrorArgs<typeof m3>;
+
+interpret(m3);
