@@ -11,7 +11,7 @@
 <script lang="ts">
 import { defineComponent, onRenderTracked } from 'vue';
 import { assign, createMachine } from 'xstate';
-import { useInterpret, useSelector } from '../src/index.ts';
+import { useActorRef, useSelector } from '../src/index.ts';
 
 const machine = createMachine<{ count: number; other: number }>({
   initial: 'active',
@@ -35,7 +35,7 @@ const machine = createMachine<{ count: number; other: number }>({
 export default defineComponent({
   emits: ['rerender'],
   setup(_props, { emit }) {
-    const service = useInterpret(machine);
+    const service = useActorRef(machine);
     const count = useSelector(service, (state) => state.context.count);
 
     let rerenders = 0;

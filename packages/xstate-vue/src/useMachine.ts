@@ -8,7 +8,7 @@ import {
   StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop } from './types.ts';
-import { useInterpret } from './useInterpret.ts';
+import { useActorRef } from './useActorRef.ts';
 
 type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
@@ -51,7 +51,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
     }
   }
 
-  const service = useInterpret(getMachine, options, listener);
+  const service = useActorRef(getMachine, options, listener);
 
   const state = shallowRef(service.getSnapshot());
 

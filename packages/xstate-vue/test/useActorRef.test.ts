@@ -1,9 +1,9 @@
 import { render, fireEvent, waitFor } from '@testing-library/vue';
-import UseInterpret from './UseInterpret.vue';
+import UseActorRef from './UseActorRef.vue';
 
-describe('useInterpret composable function', () => {
+describe('useActorRef composable function', () => {
   it('observer should be called with next state', async () => {
-    const { getByTestId } = render(UseInterpret);
+    const { getByTestId } = render(UseActorRef);
 
     const buttonEl = getByTestId('button');
 
