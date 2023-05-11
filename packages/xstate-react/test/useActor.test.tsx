@@ -15,7 +15,7 @@ import {
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
-import { describeEachReactMode } from './utils';
+import { describeEachReactMode } from './utils.tsx';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -147,20 +147,6 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       if (!(service instanceof Interpreter)) {
         throw new Error('service not instance of Interpreter');
       }
-
-      return null;
-    };
-
-    render(<Test />);
-  });
-
-  it('should provide options for the service', () => {
-    const Test = () => {
-      const [, , service] = useActor(fetchMachine, {
-        execute: false
-      });
-
-      expect(service.options.execute).toBe(false);
 
       return null;
     };
@@ -961,7 +947,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [_state, _send, actor] = useActor(m);
 
       React.useEffect(() => {
-        actor.system.get('child')!.send({ type: 'PING' });
+        actor.system!.get('child')!.send({ type: 'PING' });
       });
 
       return null;

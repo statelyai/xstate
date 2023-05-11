@@ -1879,7 +1879,21 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TSnapshot
     : R extends Interpreter<infer TBehavior>
     ? SnapshotFrom<TBehavior>
-    : R extends ActorBehavior<infer _, infer TSnapshot>
+    : R extends StateMachine<
+        infer _,
+        infer __,
+        infer ___,
+        infer ____,
+        infer _____
+      >
+    ? StateFrom<R>
+    : R extends ActorBehavior<
+        infer _,
+        infer TSnapshot,
+        infer __,
+        infer ___,
+        infer ____
+      >
     ? TSnapshot
     : R extends ActorContext<infer _, infer TSnapshot, infer __>
     ? TSnapshot
