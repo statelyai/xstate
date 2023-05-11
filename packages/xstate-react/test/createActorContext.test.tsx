@@ -244,9 +244,11 @@ describe('createActorContext', () => {
       return <div data-testid="value">{count}</div>;
     };
 
+    const otherMachine = createSomeMachine({ count: 42 });
+
     const App = () => {
       return (
-        <SomeContext.Provider machine={() => createSomeMachine({ count: 42 })}>
+        <SomeContext.Provider machine={otherMachine}>
           <Component />
         </SomeContext.Provider>
       );
@@ -321,12 +323,11 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          machine={someMachine}
-          options={{
+          machine={someMachine.provide({
             actions: {
               testAction: stubFn
             }
-          }}
+          })}
         >
           <Component />
         </SomeContext.Provider>

@@ -39,6 +39,7 @@ export function fromObservable<T, TEvent extends EventObject>(
     ObservableInternalState<T>,
     ObservablePersistedState<T>
   > = {
+    config: observableCreator,
     transition: (state, event, { self, id, defer }) => {
       const _event = toSCXMLEvent(event);
 
@@ -155,6 +156,7 @@ export function fromEventObservable<T extends EventObject>(
     ObservableInternalState<T>,
     ObservablePersistedState<T>
   > = {
+    config: lazyObservable,
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 
