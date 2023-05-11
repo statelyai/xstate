@@ -26,8 +26,7 @@ export function useIdleInterpreter(
 
     if (machine.config !== initialMachine.config) {
       console.warn(
-        'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
-          'Please make sure that you pass the same Machine as argument each time.'
+        `Actor logic has changed between renders. This is not supported and may lead to invalid snapshots.`
       );
     }
   }
