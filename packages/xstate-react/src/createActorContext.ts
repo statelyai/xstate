@@ -39,7 +39,6 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     | Observer<StateFrom<TMachine>>
     | ((value: StateFrom<TMachine>) => void)
 ): {
-  useActor: () => [StateFrom<TMachine>, ActorRefFrom<TMachine>['send']];
   useSelector: <T>(
     selector: (snapshot: SnapshotFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
@@ -70,7 +69,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     children: React.ReactNode;
     machine: TMachine;
   }) {
-    const actor = useActorRef(
+    const actor = (useActorRef as any)(
       providedMachine,
       interpreterOptions,
       observerOrListener
@@ -93,12 +92,6 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     return actor;
   }
 
-  function useActor() {
-    const actor = useContext();
-    const state = useSelector((s) => s);
-    return [state, actor.send];
-  }
-
   function useSelector<T>(
     selector: (snapshot: SnapshotFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
@@ -110,7 +103,6 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   return {
     Provider: Provider as any,
     useActorRef: useContext,
-    useActor,
     useSelector
   };
 }
