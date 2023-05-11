@@ -1,7 +1,7 @@
 import { createMachine } from './Machine.ts';
 import { Mailbox } from './Mailbox.ts';
 import { doneInvoke, error } from './actions.ts';
-import { stopSignalType } from './actors/index.ts';
+import { fromPromise, fromTransition, stopSignalType } from './actors/index.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import { IS_PRODUCTION } from './environment.ts';
 import { symbolObservable } from './symbolObservable.ts';
@@ -515,9 +515,9 @@ type ErrorArgs<S> = '_stuff' extends keyof S
     ? Call<
         S['_stuff']['finalizedCheck'],
         S['_stuff']['finalizedCheckArgs']
-      > extends string
-      ? Call<S['_stuff']['finalizedCheck'], S['_stuff']['finalizedCheckArgs']>
-      : S
+      > extends true
+      ? S
+      : Call<S['_stuff']['finalizedCheck'], S['_stuff']['finalizedCheckArgs']>
     : S
   : S;
 
@@ -583,3 +583,7 @@ const m3 = createMachine({
 type Res3 = ErrorArgs<typeof m3>;
 
 interpret(m3);
+
+const promiseLogic = fromPromise(() => Promise.resolve(100));
+
+interpret(promiseLogic);

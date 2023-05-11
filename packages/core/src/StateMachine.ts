@@ -71,7 +71,7 @@ interface AreImplementationsProvidedCheck {
   [rawArgs]: unknown;
   arg0: this[rawArgs] extends [infer arg, ...any] ? arg : never;
   return: AreAllImplementationsAssumedToBeProvided<this['arg0']> extends true
-    ? number // hack, we don't want to end up with string, let's revisit this
+    ? true // it means that the check has passed
     : MissingImplementationsError<this['arg0']>;
 }
 
