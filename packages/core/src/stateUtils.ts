@@ -1125,7 +1125,6 @@ function microstepProcedure(
   event: AnyEventObject,
   actorCtx: AnyActorContext | undefined
 ): typeof currentState {
-  const { machine } = currentState;
   const actions: BaseActionObject[] = [];
   const historyValue = {
     ...currentState.historyValue
