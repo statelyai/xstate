@@ -194,15 +194,17 @@ describe('useMachine', () => {
 
     defineComponent({
       setup: () => {
-        useMachine(machine, {
-          actions: {
-            fooAction: assign(({ event }) => {
-              ((_accept: 'FOO') => {})(event.type);
-              // @ts-expect-error
-              ((_accept: "test that this isn't any") => {})(_event.type);
-            })
-          }
-        });
+        useMachine(
+          machine.provide({
+            actions: {
+              fooAction: assign(({ event }) => {
+                ((_accept: 'FOO') => {})(event.type);
+                // @ts-expect-error
+                ((_accept: "test that this isn't any") => {})(_event.type);
+              })
+            }
+          })
+        );
       }
     });
   });
@@ -400,15 +402,17 @@ describe('useInterpret', () => {
 
     defineComponent({
       setup: () => {
-        useActorRef(machine, {
-          actions: {
-            fooAction: assign(({ event }) => {
-              ((_accept: 'FOO') => {})(event.type);
-              // @ts-expect-error
-              ((_accept: "test that this isn't any") => {})(event.type);
-            })
-          }
-        });
+        useActorRef(
+          machine.provide({
+            actions: {
+              fooAction: assign(({ event }) => {
+                ((_accept: 'FOO') => {})(event.type);
+                // @ts-expect-error
+                ((_accept: "test that this isn't any") => {})(event.type);
+              })
+            }
+          })
+        );
       }
     });
   });

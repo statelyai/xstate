@@ -2,53 +2,28 @@ import { Ref, shallowRef } from 'vue';
 import {
   ActorRefFrom,
   AnyActorBehavior,
-  AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
   EventFrom,
-  InternalMachineImplementations,
-  InterpreterFrom,
-  InterpreterOptions,
-  SnapshotFrom,
-  StateFrom
+  SnapshotFrom
 } from 'xstate';
-import { MaybeLazy, Prop } from './types.ts';
 import { UseActorRefRestParams, useActorRef } from './useActorRef.ts';
 
-type RestParams<TMachine extends AnyStateMachine> =
-  AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta'],
-            true
-          >
-      ]
-    : [
-        options?: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta']
-          >
-      ];
-
-export function useMachine<TMachine extends AnyActorBehavior>(
-  behavior: TMachine,
-  ...[options = {}]: UseActorRefRestParams<TMachine>
+export function useMachine<TBehavior extends AnyActorBehavior>(
+  behavior: TBehavior,
+  ...[options = {}]: UseActorRefRestParams<TBehavior>
 ): {
-  snapshot: Ref<SnapshotFrom<TMachine>>;
-  send: (event: EventFrom<TMachine>) => void;
-  actorRef: ActorRefFrom<TMachine>;
+  snapshot: Ref<SnapshotFrom<TBehavior>>;
+  send: (event: EventFrom<TBehavior>) => void;
+  actorRef: ActorRefFrom<TBehavior>;
 } {
-  function listener(nextState: SnapshotFrom<TMachine>) {
+  function listener(nextState: SnapshotFrom<TBehavior>) {
     snapshot.value = nextState;
   }
 
-  const actorRef = useActorRef(behavior, options, listener);
+  const actorRef = useActorRef(
+    behavior,
+    options,
+    listener
+  ) as ActorRefFrom<TBehavior>;
 
   const snapshot = shallowRef(actorRef.getSnapshot());
 
