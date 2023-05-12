@@ -1,74 +1,62 @@
 import { onDestroy } from 'svelte';
 import { Readable, readable } from 'svelte/store';
 import {
+  ActorRefFrom,
+  AnyActorBehavior,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
+  EventFromBehavior,
   InternalMachineImplementations,
   interpret,
-  InterpreterFrom,
   InterpreterOptions,
-  StateFrom
+  SnapshotFrom
 } from 'xstate';
 
-type Prop<T, K> = K extends keyof T ? T[K] : never;
+type RestParams<TMachine extends AnyActorBehavior> =
+  TMachine extends AnyStateMachine
+    ? AreAllImplementationsAssumedToBeProvided<
+        TMachine['__TResolvedTypesMeta']
+      > extends false
+      ? [
+          options: InterpreterOptions<TMachine> &
+            InternalMachineImplementations<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              TMachine['__TResolvedTypesMeta'],
+              true
+            >
+        ]
+      : [
+          options?: InterpreterOptions<TMachine> &
+            InternalMachineImplementations<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              TMachine['__TResolvedTypesMeta']
+            >
+        ]
+    : [options?: InterpreterOptions<TMachine>];
 
-type RestParams<TMachine extends AnyStateMachine> =
-  AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta'],
-            true
-          >
-      ]
-    : [
-        options?: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta']
-          >
-      ];
+export function useMachine<TBehavior extends AnyActorBehavior>(
+  behavior: TBehavior,
+  ...[options = {}]: RestParams<TBehavior>
+): {
+  snapshot: Readable<SnapshotFrom<TBehavior>>;
+  send: (event: EventFromBehavior<TBehavior>) => void;
+  actorRef: ActorRefFrom<TBehavior>;
+} {
+  const actorRef = interpret(behavior, options).start();
 
-type UseMachineReturn<
-  TMachine extends AnyStateMachine,
-  TInterpreter = InterpreterFrom<TMachine>
-> = {
-  state: Readable<StateFrom<TMachine>>;
-  send: Prop<TInterpreter, 'send'>;
-  service: TInterpreter;
-};
+  onDestroy(() => actorRef.stop());
 
-export function useMachine<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  ...[options = {}]: RestParams<TMachine>
-): UseMachineReturn<TMachine> {
-  const { guards, actions, actors, delays, ...interpreterOptions } = options;
-
-  const machineConfig = {
-    guards,
-    actions,
-    actors,
-    delays
-  };
-
-  const resolvedMachine = machine.provide(machineConfig as any);
-
-  const service = interpret(resolvedMachine, interpreterOptions).start();
-
-  onDestroy(() => service.stop());
-
-  const state = readable(service.getSnapshot(), (set) => {
-    return service.subscribe((state) => {
-      if (state.changed) {
-        set(state);
-      }
+  const snapshot = readable(actorRef.getSnapshot(), (set) => {
+    return actorRef.subscribe((state) => {
+      set(state);
     }).unsubscribe;
   });
 
-  return { state, send: service.send, service } as any;
+  return {
+    snapshot,
+    send: actorRef.send,
+    actorRef: actorRef as ActorRefFrom<TBehavior>
+  };
 }
