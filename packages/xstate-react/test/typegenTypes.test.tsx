@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { ActorRefFrom, assign, createMachine, TypegenMeta } from 'xstate';
-import { createActorContext, useInterpret, useMachine } from '../src/index.ts';
+import { createActorContext, useActorRef, useMachine } from '../src/index.ts';
 
 describe('useMachine', () => {
   it('should allow to be used with a machine without any missing implementations', () => {
@@ -225,7 +225,7 @@ describe('useMachine', () => {
   });
 });
 
-describe('useInterpret', () => {
+describe('useActorRef', () => {
   it('should allow to be used with a machine without any missing implementations', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
@@ -241,7 +241,7 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(machine);
+      useActorRef(machine);
       return null;
     }
 
@@ -270,7 +270,7 @@ describe('useInterpret', () => {
 
     function App() {
       // @ts-expect-error
-      useInterpret(machine);
+      useActorRef(machine);
       return null;
     }
 
@@ -300,18 +300,18 @@ describe('useInterpret', () => {
 
     function App() {
       // @ts-expect-error
-      useInterpret(machine, {});
-      useInterpret(machine, {
+      useActorRef(machine, {});
+      useActorRef(machine, {
         // @ts-expect-error
         actions: {}
       });
       // @ts-expect-error
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           myAction: () => {}
         }
       });
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           myAction: () => {}
         },
@@ -352,7 +352,7 @@ describe('useInterpret', () => {
     );
 
     function App() {
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           fooAction: () => {}
         },
@@ -387,7 +387,7 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           // it's important to use `event` here somehow to make this a possible source of information for inference
           fooAction: () => {}
@@ -420,7 +420,7 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(
+      useActorRef(
         machine.provide({
           actions: {
             fooAction: assign(({ event }) => {
@@ -500,7 +500,7 @@ describe('useInterpret', () => {
     }
 
     function App() {
-      const actorRef = useInterpret(
+      const actorRef = useActorRef(
         machine.provide({
           actions: {
             someAction: () => {}
@@ -533,7 +533,7 @@ describe('useInterpret', () => {
     }
 
     function App() {
-      const actorRef = useInterpret(
+      const actorRef = useActorRef(
         machine.provide({
           actions: {
             someAction: () => {}
