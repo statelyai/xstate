@@ -323,15 +323,6 @@ export class StateNode<
     );
   }
 
-  /**
-   * Returns `true` if this state node explicitly handles the given event.
-   *
-   * @param event The event in question
-   */
-  public handles(event: TEvent): boolean {
-    return this.events.includes(event.type);
-  }
-
   public next(
     state: State<TContext, TEvent>,
     event: TEvent
@@ -343,13 +334,8 @@ export class StateNode<
 
     const candidates: Array<TransitionDefinition<TContext, TEvent>> = memo(
       this,
-      `candidates-${eventType.toString()}`,
-      () =>
-        getCandidates(
-          this,
-          eventType,
-          this.machine.config.scxml // Whether token matching should be used
-        )
+      `candidates-${eventType}`,
+      () => getCandidates(this, eventType)
     );
 
     for (const candidate of candidates) {
