@@ -19,13 +19,13 @@ export function useMachine<TBehavior extends AnyActorBehavior>(
     snapshot.value = nextState;
   }
 
-  const actorRef = useActorRef(
-    behavior,
-    options,
-    listener
-  ) as ActorRefFrom<TBehavior>;
+  const actorRef = useActorRef(behavior, options, listener);
 
   const snapshot = shallowRef(actorRef.getSnapshot());
 
-  return { snapshot, send: actorRef.send, actorRef };
+  return {
+    snapshot,
+    send: actorRef.send,
+    actorRef: actorRef as ActorRefFrom<TBehavior>
+  };
 }
