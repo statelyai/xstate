@@ -4,14 +4,14 @@ Usage of XState in a Vue application may vary depending on which version of Vue 
 
 There are two ways you can use XState with Vue 2:
 
-1. Using the `useMachine` hook provided by the [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) (3rd-party) plugin;
+1. *Since Vue `^2.7`*: using the `useMachine` hook provided by the [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) (3rd-party) plugin;
 2. Using XState `interpret` utility to create a service and inject it into your app.
 
 ::: tip
 If you want to use the Vue Composition API, we recommend using the following packages:
 
 - [`@xstate/vue` package](../packages/xstate-vue) for Vue 3
-- [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) (3rd-party) for Vue 2
+- [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) (3rd-party) for Vue `^2.7`
 
 :::
 
