@@ -24,6 +24,8 @@ Vue follows a similar pattern to [React](./react.md):
 - The service is started (`service.start()`) when the component is `created()`;
 - Events are sent to the service via `service.send(event)`.
 
+The following recipes use the following `toggleMachine`:
+
 ```js
 import { createMachine } from 'xstate';
 
@@ -44,6 +46,33 @@ export const toggleMachine = createMachine({
   }
 });
 ```
+
+## Using `useMachine` hook from `xstate-vue2` plugin
+
+```html
+<!-- toggle.vue -->
+<!-- Top level bindigs are pre-processed via "setup" -->
+<script setup>
+import { useMachine } from "xstate-vue2";
+import toggleMachine from "../path/to/toggleMachine";
+
+const { state, send } = useMachine(toggleMachine);
+</script>
+
+<template>
+  <main>
+    <button @click="send('TOGGLE')">
+      {{
+        state.value === "inactive"
+          ? "Click to activate"
+          : "Active! Click to deactivate"
+      }}
+    </button>
+  </main>
+</template>
+```
+
+## Using XState `interpret`
 
 ```html
 <!-- Toggle.vue -->
