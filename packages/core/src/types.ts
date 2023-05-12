@@ -1019,10 +1019,6 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  /**
-   * If `true`, will use SCXML semantics, such as event token matching.
-   */
-  scxml?: boolean;
   types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
 }
 

@@ -230,12 +230,7 @@ export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
-  receivedEventType: TEvent['type'],
-  /**
-   * If `true`, will use SCXML event partial token matching semantics
-   * without the need for the ".*" suffix
-   */
-  partialMatch: boolean = false
+  receivedEventType: TEvent['type']
 ): Array<TransitionDefinition<any, TEvent>> {
   const candidates = stateNode.transitions.filter((transition) => {
     const { eventType } = transition;
@@ -250,7 +245,7 @@ export function getCandidates<TEvent extends EventObject>(
       return true;
     }
 
-    if (!partialMatch && !eventType.endsWith('.*')) {
+    if (!eventType.endsWith('.*')) {
       return false;
     }
 
@@ -1130,7 +1125,6 @@ function microstepProcedure(
   event: AnyEventObject,
   actorCtx: AnyActorContext | undefined
 ): typeof currentState {
-  const { machine } = currentState;
   const actions: BaseActionObject[] = [];
   const historyValue = {
     ...currentState.historyValue
@@ -1201,17 +1195,7 @@ function microstepProcedure(
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
     // See https://github.com/statelyai/rfcs/pull/4
-    if (machine.config.scxml) {
-      return cloneState(currentState, {
-        actions: [],
-        configuration: Array.from(mutConfiguration),
-        historyValue,
-        _internalQueue: [{ type: 'error.execution' }],
-        context: currentState.context
-      });
-    } else {
-      throw e;
-    }
+    throw e;
   }
 }
 

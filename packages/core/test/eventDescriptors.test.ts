@@ -181,55 +181,6 @@ describe('event descriptors', () => {
     ).toBeTruthy();
   });
 
-  it('should only allow non-wildcard prefix matching for SCXML machines', () => {
-    const nonSCXMLMachine = createMachine({
-      initial: 'start',
-      states: {
-        start: {
-          on: {
-            event: 'success'
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-
-    const SCXMLMachine = createMachine({
-      scxml: true,
-      initial: 'start',
-      states: {
-        start: {
-          on: {
-            event: 'success'
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-
-    expect(
-      nonSCXMLMachine
-        .transition(undefined, { type: 'event.whatever' })
-        .matches('start')
-    ).toBeTruthy();
-
-    expect(
-      SCXMLMachine.transition(undefined, { type: 'event.whatever' }).matches(
-        'success'
-      )
-    ).toBeTruthy();
-
-    expect(
-      SCXMLMachine.transition(undefined, { type: 'eventually' }).matches(
-        'start'
-      )
-    ).toBeTruthy();
-  });
-
   it('should not match infix wildcards', () => {
     const machine = createMachine({
       initial: 'start',
