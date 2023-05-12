@@ -1,14 +1,18 @@
 import { Ref, shallowRef } from 'vue';
 import {
+  ActorRefFrom,
+  AnyActorBehavior,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
+  EventFrom,
   InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
+  SnapshotFrom,
   StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop } from './types.ts';
-import { useActorRef } from './useActorRef.ts';
+import { UseActorRefRestParams, useActorRef } from './useActorRef.ts';
 
 type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
@@ -32,28 +36,21 @@ type RestParams<TMachine extends AnyStateMachine> =
           >
       ];
 
-type UseMachineReturn<
-  TMachine extends AnyStateMachine,
-  TInterpreter = InterpreterFrom<TMachine>
-> = {
-  state: Ref<StateFrom<TMachine>>;
-  send: Prop<TInterpreter, 'send'>;
-  service: TInterpreter;
-};
-
-export function useMachine<TMachine extends AnyStateMachine>(
-  getMachine: MaybeLazy<TMachine>,
-  ...[options = {}]: RestParams<TMachine>
-): UseMachineReturn<TMachine> {
-  function listener(nextState: StateFrom<TMachine>) {
-    if (nextState.changed) {
-      state.value = nextState;
-    }
+export function useMachine<TMachine extends AnyActorBehavior>(
+  behavior: TMachine,
+  ...[options = {}]: UseActorRefRestParams<TMachine>
+): {
+  snapshot: Ref<SnapshotFrom<TMachine>>;
+  send: (event: EventFrom<TMachine>) => void;
+  actorRef: ActorRefFrom<TMachine>;
+} {
+  function listener(nextState: SnapshotFrom<TMachine>) {
+    snapshot.value = nextState;
   }
 
-  const service = useActorRef(getMachine, options, listener);
+  const actorRef = useActorRef(behavior, options, listener);
 
-  const state = shallowRef(service.getSnapshot());
+  const snapshot = shallowRef(actorRef.getSnapshot());
 
-  return { state, send: service.send, service } as any;
+  return { snapshot, send: actorRef.send, actorRef };
 }

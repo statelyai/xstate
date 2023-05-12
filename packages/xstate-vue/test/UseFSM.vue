@@ -1,10 +1,10 @@
 <template>
   <div>
-    <button v-if="state.matches('idle')" @click="send({ type: 'FETCH' })">Fetch</button>
-    <div v-else-if="state.matches('loading')">Loading...</div>
-    <div v-else-if="state.matches('success')">
+    <button v-if="snapshot.matches('idle')" @click="send({ type: 'FETCH' })">Fetch</button>
+    <div v-else-if="snapshot.matches('loading')">Loading...</div>
+    <div v-else-if="snapshot.matches('success')">
       Success! Data:
-      <div data-testid="data">{{ state.context.data }}</div>
+      <div data-testid="data">{{ snapshot.context.data }}</div>
     </div>
   </div>
 </template>
@@ -45,7 +45,7 @@ export default defineComponent({
     const onFetch = () =>
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
-    const { state, send, service } = useMachine(fetchMachine, {
+    const { snapshot, send, service } = useMachine(fetchMachine, {
       actions: {
         load: () => {
           onFetch().then((res) => {
@@ -55,7 +55,7 @@ export default defineComponent({
       }
     });
 
-    return { state, send, service };
+    return { snapshot, send, service };
   }
 });
 </script>

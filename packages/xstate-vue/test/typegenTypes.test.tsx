@@ -430,7 +430,7 @@ describe('useInterpret', () => {
 
     defineComponent({
       setup: () => {
-        const { state } = useMachine(machine, {});
+        const { snapshot: state } = useMachine(machine, {});
         if (state.value.matches('a')) {
           return { a: 1 };
         }
@@ -448,7 +448,7 @@ describe('useInterpret', () => {
 
     defineComponent({
       setup: () => {
-        const { state } = useMachine(machine, {});
+        const { snapshot: state } = useMachine(machine, {});
         if (state.value.matches('a')) {
           return { a: 1 };
         }

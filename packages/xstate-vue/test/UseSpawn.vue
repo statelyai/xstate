@@ -21,7 +21,7 @@ const behavior = fromTransition(reducer, 0);
 export default defineComponent({
   setup() {
     const actorRef = useSpawn(behavior);
-    const { state: count, send } = useActor(actorRef);
+    const { snapshot: count, send } = useActor(actorRef);
 
     return { count, send };
   }

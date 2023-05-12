@@ -8,20 +8,20 @@ const noop = () => {
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: TActor | Ref<TActor>
 ): {
-  state: Ref<SnapshotFrom<TActor>>;
+  snapshot: Ref<SnapshotFrom<TActor>>;
   send: TActor['send'];
 };
 export function useActor<TEvent extends EventObject, TSnapshot>(
   actorRef: ActorRef<TEvent, TSnapshot> | Ref<ActorRef<TEvent, TSnapshot>>
-): { state: Ref<TSnapshot>; send: (event: TEvent) => void };
+): { snapshot: Ref<TSnapshot>; send: (event: TEvent) => void };
 export function useActor(
   actorRef: ActorRef<EventObject, unknown> | Ref<ActorRef<EventObject, unknown>>
 ): {
-  state: Ref<unknown>;
+  snapshot: Ref<unknown>;
   send: (event: EventObject) => void;
 } {
   const actorRefRef = isRef(actorRef) ? actorRef : shallowRef(actorRef);
-  const state = shallowRef(actorRefRef.value.getSnapshot());
+  const snapshot = shallowRef(actorRefRef.value.getSnapshot());
 
   const send: typeof actorRefRef.value.send = (event) => {
     actorRefRef.value.send(event);
@@ -30,9 +30,9 @@ export function useActor(
   watch(
     actorRefRef,
     (newActor, _, onCleanup) => {
-      state.value = newActor.getSnapshot();
+      snapshot.value = newActor.getSnapshot();
       const { unsubscribe } = newActor.subscribe({
-        next: (emitted) => (state.value = emitted),
+        next: (emitted) => (snapshot.value = emitted),
         error: noop,
         complete: noop
       });
@@ -43,5 +43,5 @@ export function useActor(
     }
   );
 
-  return { state, send };
+  return { snapshot, send };
 }

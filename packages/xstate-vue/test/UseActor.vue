@@ -39,9 +39,9 @@ const machine = createMachine({
 
 export default defineComponent({
   setup() {
-    const { state: machineState } = useMachine(machine);
+    const { snapshot: machineState } = useMachine(machine);
 
-    const { state: actorState } = useActor(machineState.value.children.child);
+    const { snapshot: actorState } = useActor(machineState.value.children.child);
 
     return {
       machineState,

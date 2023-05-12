@@ -5,6 +5,7 @@
     "strict": true,
     "noEmit": true,
     "jsx": "react",
-    "rootDir": ".."
+    "rootDir": "..",
+    "allowImportingTsExtensions": true
   }
 }

@@ -16,7 +16,7 @@ export function useMachine<
     actions?: StateMachine.ActionMap<TContext, TEvent>;
   }
 ): {
-  state: Ref<StateMachine.State<TContext, TEvent, any>>;
+  snapshot: Ref<StateMachine.State<TContext, TEvent, any>>;
   send: StateMachine.Service<TContext, TEvent>['send'];
   service: StateMachine.Service<TContext, TEvent>;
 } {
@@ -27,17 +27,17 @@ export function useMachine<
     )
   ).start();
 
-  const state = shallowRef<StateMachine.State<TContext, TEvent, any>>(
+  const snapshot = shallowRef<StateMachine.State<TContext, TEvent, any>>(
     service.state
   );
 
   onMounted(() => {
-    service.subscribe((currentState) => (state.value = currentState));
+    service.subscribe((currentState) => (snapshot.value = currentState));
   });
 
   onBeforeUnmount(service.stop);
 
-  return { state, send: service.send, service };
+  return { snapshot, send: service.send, service };
 }
 
 export function useService<
@@ -49,7 +49,7 @@ export function useService<
     | StateMachine.Service<TContext, TEvent, TState>
     | Ref<StateMachine.Service<TContext, TEvent, TState>>
 ): {
-  state: Ref<StateMachine.State<TContext, TEvent, TState>>;
+  snapshot: Ref<StateMachine.State<TContext, TEvent, TState>>;
   send: StateMachine.Service<TContext, TEvent, TState>['send'];
   service: Ref<StateMachine.Service<TContext, TEvent, TState>>;
 } {
@@ -58,18 +58,18 @@ export function useService<
   )
     ? service
     : shallowRef(service);
-  const state = shallowRef<StateMachine.State<TContext, TEvent, TState>>(
+  const snapshot = shallowRef<StateMachine.State<TContext, TEvent, TState>>(
     serviceRef.value.state
   );
 
   watch(
     serviceRef,
     (service, _, onCleanup) => {
-      state.value = service.state;
+      snapshot.value = service.state;
 
       const { unsubscribe } = service.subscribe((currentState) => {
         if (currentState.changed) {
-          state.value = currentState;
+          snapshot.value = currentState;
         }
       });
       onCleanup(unsubscribe);
@@ -82,5 +82,5 @@ export function useService<
   const send: typeof serviceRef.value.send = (event) =>
     serviceRef.value.send(event);
 
-  return { state, send, service: serviceRef };
+  return { snapshot, send, service: serviceRef };
 }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div data-testid="state">{{ state }}</div>
+    <div data-testid="state">{{ snapshot }}</div>
     <button
       data-testid="button"
       @click="actor = createSimpleActor(100)"
@@ -32,9 +32,9 @@ const createSimpleActor = (value: number): ActorRef<any, number> =>
 export default defineComponent({
   setup() {
     const actor = shallowRef(createSimpleActor(42));
-    const { state } = useActor(actor);
+    const { snapshot } = useActor(actor);
 
-    return { actor, state, createSimpleActor };
+    return { actor, snapshot, createSimpleActor };
   }
 });
 </script>

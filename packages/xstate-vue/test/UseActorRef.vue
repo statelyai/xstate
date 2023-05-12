@@ -1,6 +1,6 @@
 <template>
   <button @click="service.send({ type: 'TOGGLE' })" data-testid="button">
-    {{ state === 'inactive' ? 'Turn on' : 'Turn off' }}
+    {{ snapshot === 'inactive' ? 'Turn on' : 'Turn off' }}
   </button>
 </template>
 
@@ -28,11 +28,11 @@ const machine = createMachine({
 export default defineComponent({
   setup() {
     const service = useActorRef(machine, {}, (nextState) => {
-      state.value = nextState.value;
+      snapshot.value = nextState.value;
     });
-    const state = ref(service.getSnapshot().value);
+    const snapshot = ref(service.getSnapshot().value);
 
-    return { service, state };
+    return { service, snapshot };
   }
 });
 </script>

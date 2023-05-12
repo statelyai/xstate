@@ -1,63 +1,58 @@
 import { onBeforeUnmount, onMounted } from 'vue';
 import {
+  ActorRefFrom,
+  AnyActorBehavior,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
   interpret,
-  InterpreterFrom,
   InterpreterOptions,
   Observer,
+  SnapshotFrom,
   StateFrom,
   toObserver
 } from 'xstate';
-import { MaybeLazy } from './types.js';
 
-type RestParams<TMachine extends AnyStateMachine> =
-  AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta'],
-            true
-          >,
-        observerOrListener?:
-          | Observer<StateFrom<TMachine>>
-          | ((value: StateFrom<TMachine>) => void)
-      ]
+export type UseActorRefRestParams<TBehavior extends AnyActorBehavior> =
+  TBehavior extends AnyStateMachine
+    ? AreAllImplementationsAssumedToBeProvided<
+        TBehavior['__TResolvedTypesMeta']
+      > extends false
+      ? [
+          options: InterpreterOptions<TBehavior> &
+            InternalMachineImplementations<
+              TBehavior['__TContext'],
+              TBehavior['__TEvent'],
+              TBehavior['__TResolvedTypesMeta'],
+              true
+            >,
+          observerOrListener?:
+            | Observer<StateFrom<TBehavior>>
+            | ((value: StateFrom<TBehavior>) => void)
+        ]
+      : [
+          options?: InterpreterOptions<TBehavior> &
+            InternalMachineImplementations<
+              TBehavior['__TContext'],
+              TBehavior['__TEvent'],
+              TBehavior['__TResolvedTypesMeta']
+            >,
+          observerOrListener?:
+            | Observer<StateFrom<TBehavior>>
+            | ((value: StateFrom<TBehavior>) => void)
+        ]
     : [
-        options?: InterpreterOptions<TMachine> &
-          InternalMachineImplementations<
-            TMachine['__TContext'],
-            TMachine['__TEvent'],
-            TMachine['__TResolvedTypesMeta']
-          >,
+        options?: InterpreterOptions<TBehavior>,
         observerOrListener?:
-          | Observer<StateFrom<TMachine>>
-          | ((value: StateFrom<TMachine>) => void)
+          | Observer<SnapshotFrom<TBehavior>>
+          | ((value: SnapshotFrom<TBehavior>) => void)
       ];
 
-export function useActorRef<TMachine extends AnyStateMachine>(
-  getMachine: MaybeLazy<TMachine>,
-  ...[options = {}, observerOrListener]: RestParams<TMachine>
-): InterpreterFrom<TMachine> {
-  const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
-
-  const { guards, actions, actors, delays, ...interpreterOptions } = options;
-
-  const machineConfig = {
-    guards,
-    actions,
-    actors,
-    delays
-  };
-
-  const machineWithConfig = machine.provide(machineConfig as any);
-
-  const service = interpret(machineWithConfig, interpreterOptions).start();
+export function useActorRef<TBehavior extends AnyActorBehavior>(
+  behavior: TBehavior,
+  ...[options = {}, observerOrListener]: UseActorRefRestParams<TBehavior>
+): ActorRefFrom<TBehavior> {
+  const service = interpret(behavior, options).start();
 
   let sub;
   onMounted(() => {
@@ -71,5 +66,5 @@ export function useActorRef<TMachine extends AnyStateMachine>(
     sub?.unsubscribe();
   });
 
-  return service as any;
+  return service as ActorRefFrom<TBehavior>;
 }

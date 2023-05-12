@@ -1,6 +1,6 @@
 <template>
   <button @click="send({ type: 'TOGGLE' })">
-    {{ state.value === 'inactive' ? 'Turn on' : 'Turn off' }}
+    {{ snapshot.value === 'inactive' ? 'Turn on' : 'Turn off' }}
   </button>
 </template>
 
@@ -24,8 +24,8 @@ const toggleMachine = createMachine({
 
 export default defineComponent({
   setup() {
-    const { state, send } = useMachine(toggleMachine);
-    return { state, send };
+    const { snapshot, send } = useMachine(toggleMachine);
+    return { snapshot, send };
   }
 });
 </script>

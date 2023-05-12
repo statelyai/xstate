@@ -1,5 +1,5 @@
 <template>
-  <div data-testid="state">{{ state }}</div>
+  <div data-testid="state">{{ snapshot }}</div>
 </template>
 
 <script lang="ts">
@@ -21,8 +21,8 @@ const simpleActor: ActorRef<any, number> = interpret({
 
 export default defineComponent({
   setup() {
-    const { state } = useActor(simpleActor);
-    return { state };
+    const { snapshot } = useActor(simpleActor);
+    return { snapshot };
   }
 });
 </script>
