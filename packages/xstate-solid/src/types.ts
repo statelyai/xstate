@@ -1,4 +1,5 @@
 import type {
+  AnyActorBehavior,
   AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
@@ -36,12 +37,17 @@ type InternalMachineOpts<
   RequireMissing
 >;
 
-export type RestParams<TMachine extends AnyStateMachine> =
-  AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineOpts<TMachine, true>
-      ]
-    : [options?: InterpreterOptions<TMachine> & InternalMachineOpts<TMachine>];
+export type RestParams<TBehavior extends AnyActorBehavior> =
+  TBehavior extends AnyStateMachine
+    ? AreAllImplementationsAssumedToBeProvided<
+        TBehavior['__TResolvedTypesMeta']
+      > extends false
+      ? [
+          options: InterpreterOptions<TBehavior> &
+            InternalMachineOpts<TBehavior, true>
+        ]
+      : [
+          options?: InterpreterOptions<TBehavior> &
+            InternalMachineOpts<TBehavior>
+        ]
+    : [options?: InterpreterOptions<TBehavior>];

@@ -1,6 +1,6 @@
 import type { AnyStateMachine, StateFrom, InterpreterFrom, Prop } from 'xstate';
 import type { CheckSnapshot, RestParams } from './types.ts';
-import { createService } from './createService.ts';
+import { createActorRef } from './createActorRef.ts';
 import { onCleanup, onMount } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState.ts';
 import { createImmutable } from './createImmutable.ts';
@@ -19,7 +19,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  const service = createService(machine, options);
+  const service = createActorRef(machine, options);
 
   const [state, setState] = createImmutable(
     deriveServiceState(service.getSnapshot())

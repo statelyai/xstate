@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import { createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { createService } from '../src/index.ts';
+import { createActorRef } from '../src/index.ts';
 import { createEffect } from 'solid-js';
 
 describe('createService', () => {
@@ -19,7 +19,7 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = createActorRef(machine);
 
       createEffect(() => {
         service.subscribe((state) => {
@@ -59,7 +59,7 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = createActorRef(machine);
 
       createEffect(() => {
         service.subscribe((state) => {

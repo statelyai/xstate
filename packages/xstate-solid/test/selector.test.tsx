@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import { ActorRefFrom, AnyState, assign, createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { useActor, createService, useMachine } from '../src/index.ts';
+import { useActor, createActorRef, useMachine } from '../src/index.ts';
 import { createMemo, createSignal, from } from 'solid-js';
 
 describe('usage of selectors with reactive service state', () => {
@@ -29,7 +29,7 @@ describe('usage of selectors with reactive service state', () => {
     let rerenders = 0;
 
     const App = () => {
-      const service = createService(machine);
+      const service = createActorRef(machine);
       const serviceState = from(service);
 
       const selector = (state) => state.context.count;
@@ -89,7 +89,7 @@ describe('usage of selectors with reactive service state', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = createActorRef(machine);
       const serviceState = from(service);
       const name = createMemo(
         () => serviceState()!.context.name,
