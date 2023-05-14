@@ -352,16 +352,17 @@ export class StateMachine<
     state.actions.forEach((action) => {
       action.execute?.(actorCtx);
     });
-    Object.values(state.children).forEach((child) => {
+    for (const child of Object.values(state.children)) {
       if (child.status === 0) {
         try {
           child.start?.();
         } catch (err) {
           // TODO: unify error handling when child starts
           actorCtx.self.send(error(child.id, err) as unknown as TEvent);
+          throw err;
         }
       }
-    });
+    }
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {

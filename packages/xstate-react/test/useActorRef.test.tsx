@@ -108,21 +108,28 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   it('should warn when machine reference is updated during the hook lifecycle', () => {
     console.warn = jest.fn();
     const createTestMachine = () =>
-      createMachine({
-        initial: 'foo',
-        context: { id: 1 },
-        states: {
-          foo: {
-            on: {
-              CHECK: {
-                target: 'bar',
-                guard: 'hasOverflown'
+      createMachine(
+        {
+          initial: 'foo',
+          context: { id: 1 },
+          states: {
+            foo: {
+              on: {
+                CHECK: {
+                  target: 'bar',
+                  guard: 'hasOverflown'
+                }
               }
-            }
-          },
-          bar: {}
+            },
+            bar: {}
+          }
+        },
+        {
+          guards: {
+            hasOverflown: () => true
+          }
         }
-      });
+      );
     const App = () => {
       const [, setId] = React.useState(1);
       const [, send] = useMachine(createTestMachine());

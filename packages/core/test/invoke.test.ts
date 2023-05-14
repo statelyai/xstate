@@ -137,7 +137,7 @@ describe('invoke', () => {
                 actions: assign({ count: ({ context }) => context.count - 1 })
               },
               FORWARD_DEC: {
-                actions: sendTo('child', { type: 'FORWARD_DEC' })
+                actions: sendTo('someService', { type: 'FORWARD_DEC' })
               }
             }
           },

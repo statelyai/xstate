@@ -312,29 +312,17 @@ export class Interpreter<
   }
 
   private _process(event: TEvent) {
-    try {
-      const nextState = this.behavior.transition(
-        this._state,
-        event,
-        this._actorContext
-      );
+    const nextState = this.behavior.transition(
+      this._state,
+      event,
+      this._actorContext
+    );
 
-      this.update(nextState);
+    this.update(nextState);
 
-      if (event.type === stopSignalType) {
-        this._stopProcedure();
-        this._complete();
-      }
-    } catch (err) {
-      // TODO: properly handle errors
-      if (this.observers.size > 0) {
-        this.observers.forEach((observer) => {
-          observer.error?.(err);
-        });
-        this.stop();
-      } else {
-        throw err;
-      }
+    if (event.type === stopSignalType) {
+      this._stopProcedure();
+      this._complete();
     }
   }
 
