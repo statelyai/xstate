@@ -5,10 +5,10 @@ import { onCleanup } from 'solid-js';
 import { isServer } from 'solid-js/web';
 
 export function createActorRef<TBehavior extends AnyActorBehavior>(
-  machine: TBehavior,
+  behavior: TBehavior,
   ...[options = {}]: RestParams<TBehavior>
 ): ActorRefFrom<TBehavior> {
-  const machineWithConfig = machine;
+  const machineWithConfig = behavior;
 
   const service = interpret(machineWithConfig, options);
 
