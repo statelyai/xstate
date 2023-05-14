@@ -6,8 +6,9 @@ import {
   SnapshotFrom
 } from 'xstate';
 import { UseActorRefRestParams, useActorRef } from './useActorRef.ts';
+import { isActorRef } from 'xstate/actors';
 
-export function useMachine<TBehavior extends AnyActorBehavior>(
+export function useActor<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
   ...[options = {}]: UseActorRefRestParams<TBehavior>
 ): {
@@ -15,12 +16,19 @@ export function useMachine<TBehavior extends AnyActorBehavior>(
   send: (event: EventFrom<TBehavior>) => void;
   actorRef: ActorRefFrom<TBehavior>;
 } {
+  if (process.env.NODE_ENV !== 'production') {
+    if (isActorRef(behavior)) {
+      throw new Error(
+        `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
+      );
+    }
+  }
+
   function listener(nextState: SnapshotFrom<TBehavior>) {
     snapshot.value = nextState;
   }
 
   const actorRef = useActorRef(behavior, options, listener);
-
   const snapshot = shallowRef(actorRef.getSnapshot());
 
   return {
@@ -29,3 +37,5 @@ export function useMachine<TBehavior extends AnyActorBehavior>(
     actorRef: actorRef as ActorRefFrom<TBehavior>
   };
 }
+
+export const useMachine = useActor;
