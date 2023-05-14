@@ -1,5 +1,5 @@
 /* @jsxImportSource solid-js */
-import { useActor, createActorRef } from '../src';
+import { useSnapshot, createActorRef } from '../src';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { fromTransition } from 'xstate/actors';
 
@@ -15,10 +15,13 @@ describe("usage with core's spawnBehavior", () => {
 
     const Test = () => {
       const actorRef = createActorRef(fromTransition(reducer, 0));
-      const [count, send] = useActor(() => actorRef);
+      const count = useSnapshot(() => actorRef);
 
       return (
-        <button data-testid="count" onclick={() => send({ type: 'INC' })}>
+        <button
+          data-testid="count"
+          onclick={() => actorRef.send({ type: 'INC' })}
+        >
           {count()}
         </button>
       );

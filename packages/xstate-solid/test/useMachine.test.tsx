@@ -1,5 +1,5 @@
 /* @jsxImportSource solid-js */
-import { useMachine, useActor } from '../src';
+import { useMachine, useSnapshot } from '../src';
 import {
   assign,
   Interpreter,
@@ -1645,7 +1645,7 @@ describe('useMachine (strict mode)', () => {
 
     const Test = () => {
       const [state] = useMachine(machine);
-      const [childState] = useActor(() => state.children.test);
+      const childState = useSnapshot(() => state.children.test);
 
       expect(childState().context.value).toBe(42);
 

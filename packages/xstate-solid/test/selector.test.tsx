@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import { ActorRefFrom, AnyState, assign, createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { useActor, createActorRef, useMachine } from '../src/index.ts';
+import { useSnapshot, createActorRef, useMachine } from '../src/index.ts';
 import { createMemo, createSignal, from } from 'solid-js';
 
 describe('usage of selectors with reactive service state', () => {
@@ -159,14 +159,16 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const [actorState, actorSend] = useActor(state.context.childActor);
+      const actorState = useSnapshot(state.context.childActor);
 
       return (
         <div>
           <div data-testid="count">{selector(actorState())}</div>
 
           <button
-            onclick={() => actorSend({ type: 'UPDATE_COUNT' })}
+            onclick={() =>
+              state.context.childActor.send({ type: 'UPDATE_COUNT' })
+            }
             data-testid="button"
           />
         </div>
@@ -310,12 +312,14 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const [actorState, actorSend] = useActor(state.context.childActor);
+      const actorState = useSnapshot(state.context.childActor);
       const value = createMemo(() => `${prop()} ${actorState().context.count}`);
       return (
         <div>
           <div data-testid="value">{value()}</div>
-          <button onclick={() => actorSend({ type: 'INC' })} />
+          <button
+            onclick={() => state.context.childActor.send({ type: 'INC' })}
+          />
         </div>
       );
     };

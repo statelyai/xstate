@@ -1,5 +1,5 @@
 /* @jsxImportSource solid-js */
-import { useMachine, useActor } from '../src';
+import { useMachine, useSnapshot } from '../src';
 import {
   createMachine,
   sendParent,
@@ -51,7 +51,7 @@ describe('useActor', () => {
     const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const [state] = useActor(props.actor);
+      const state = useSnapshot(props.actor);
 
       expect(state().value).toEqual('active');
       done();
@@ -100,11 +100,11 @@ describe('useActor', () => {
     const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const [state, send] = useActor(props.actor);
+      const state = useSnapshot(props.actor);
 
       onMount(() => {
         expect(state().value).toEqual('active');
-        send({ type: 'FINISH' });
+        props.actor.send({ type: 'FINISH' });
       });
 
       return null;
@@ -145,11 +145,11 @@ describe('useActor', () => {
 
     const Spawner = () => {
       const [service] = createSignal(interpret(machine).start());
-      const [current, send] = useActor(service);
+      const current = useSnapshot(service);
 
       onMount(() => {
         expect(current().value).toBe('start');
-        send({ type: 'done' });
+        service().send({ type: 'done' });
         expect(current().value).toBe('success');
       });
 
@@ -231,7 +231,7 @@ describe('useActor', () => {
     const ChildTest = (props: {
       actor: Readonly<ActorRefFrom<typeof childMachine>>;
     }) => {
-      const [state, send] = useActor(props.actor);
+      const state = useSnapshot(props.actor);
       const [count, setCount] = createSignal(0);
       const [total, setTotal] = createSignal(0);
       createEffect(
@@ -255,8 +255,8 @@ describe('useActor', () => {
       );
 
       onMount(() => {
-        send({ type: 'COUNT' });
-        send({ type: 'FINISH' });
+        props.actor.send({ type: 'COUNT' });
+        props.actor.send({ type: 'FINISH' });
       });
 
       return (
@@ -312,7 +312,7 @@ describe('useActor', () => {
     const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const [state] = useActor(props.actor);
+      const state = useSnapshot(props.actor);
 
       expect(state().value).toEqual('active');
 
@@ -353,7 +353,7 @@ describe('useActor', () => {
 
     const App = () => {
       const service = interpret(machine).start();
-      const [state, send] = useActor(service);
+      const state = useSnapshot(service);
       const [toStrings, setToStrings] = createSignal(state().toStrings());
       createEffect(
         on(
@@ -367,7 +367,7 @@ describe('useActor', () => {
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
+            onclick={() => service.send({ type: 'TRANSITION' })}
           />
           <div data-testid="to-strings">{JSON.stringify(toStrings())}</div>
         </div>
@@ -418,7 +418,7 @@ describe('useActor', () => {
 
     const App = () => {
       const service = interpret(machine).start();
-      const [state, send] = useActor(service);
+      const state = useSnapshot(service);
       const [toJson, setToJson] = createSignal(state().toJSON());
       createEffect(
         on(
@@ -432,7 +432,7 @@ describe('useActor', () => {
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
+            onclick={() => service.send({ type: 'TRANSITION' })}
           />
           <div data-testid="to-json">{toJson().value.toString()}</div>
         </div>
@@ -486,7 +486,7 @@ describe('useActor', () => {
 
     const App = () => {
       const service = interpret(machine).start();
-      const [state, send] = useActor(service);
+      const state = useSnapshot(service);
       const [canGo, setCanGo] = createSignal(state().hasTag('go'));
       createEffect(() => {
         setCanGo(state().hasTag('go'));
@@ -495,7 +495,7 @@ describe('useActor', () => {
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
+            onclick={() => service.send({ type: 'TRANSITION' })}
           />
           <div data-testid="can-go">{canGo().toString()}</div>
           <div data-testid="stop">{state().hasTag('stop').toString()}</div>
@@ -547,7 +547,7 @@ describe('useActor', () => {
 
     const App = () => {
       const service = interpret(machine).start();
-      const [state, send] = useActor(service);
+      const state = useSnapshot(service);
       const [canToggle, setCanToggle] = createSignal(
         state().can({ type: 'TOGGLE' })
       );
@@ -558,7 +558,7 @@ describe('useActor', () => {
         <div>
           <button
             data-testid="toggle-button"
-            onclick={() => send({ type: 'TOGGLE' })}
+            onclick={() => service.send({ type: 'TOGGLE' })}
           />
           <div data-testid="can-toggle">{canToggle().toString()}</div>
           <div data-testid="can-do-something">
@@ -611,13 +611,13 @@ describe('useActor', () => {
     });
 
     const ChildTest = (props: { actor: ActorRefFrom<typeof childMachine> }) => {
-      const [state, send] = useActor(props.actor);
+      const state = useSnapshot(props.actor);
       createEffect(() => {
         expect(state().value).toEqual('active');
       });
 
       onMount(() => {
-        send({ type: 'FINISH' });
+        props.actor.send({ type: 'FINISH' });
       });
 
       return null;
@@ -645,7 +645,7 @@ describe('useActor', () => {
     });
 
     const Test = () => {
-      const [state] = useActor(simpleActor);
+      const state = useSnapshot(simpleActor);
 
       return <div data-testid="state">{state()}</div>;
     };
@@ -660,7 +660,7 @@ describe('useActor', () => {
   it('should update snapshot value when actor changes', () => {
     const Test = () => {
       const [actor, setActor] = createSignal(createSimpleActor(42));
-      const [state] = useActor(actor);
+      const state = useSnapshot(actor);
 
       return (
         <div>
@@ -688,7 +688,7 @@ describe('useActor', () => {
       const [actor, setActor] = createSignal(
         createSimpleActor(new Date('2020-08-21'))
       );
-      const [state] = useActor(actor);
+      const state = useSnapshot(actor);
 
       return (
         <div>
@@ -714,7 +714,7 @@ describe('useActor', () => {
   it('should rerender and trigger effects only on array changes', () => {
     const Test = () => {
       const [actor, setActor] = createSignal(createSimpleActor(['1', '2']));
-      const [state] = useActor(actor);
+      const state = useSnapshot(actor);
       const [change, setChange] = createSignal(0);
 
       createEffect(() => {
@@ -755,7 +755,7 @@ describe('useActor', () => {
     const [actor, setActor] = createSignal(
       createSimpleActor(['1', '3', '5', '8'])
     );
-    const [state] = useActor(actor);
+    const state = useSnapshot(actor);
     const Test = () => {
       const [change, setChange] = createSignal(0);
 
@@ -903,7 +903,8 @@ describe('useActor', () => {
     });
 
     const Test = () => {
-      const [state, send] = useActor(interpret(actorMachine).start());
+      const actor = interpret(actorMachine).start();
+      const state = useSnapshot(actor);
       const [changeIndex0, setChangeIndex0] = createSignal(0);
       const [changeIndex1, setChangeIndex1] = createSignal(0);
       const [changeRoot, setChangeRoot] = createSignal(0);
@@ -934,11 +935,11 @@ describe('useActor', () => {
           <div data-testid="state-1">{state().context.arr[1].value}</div>
           <button
             data-testid="index-0-btn"
-            onclick={() => send({ type: 'CHANGE', index: 0, value: -10 })}
+            onclick={() => actor.send({ type: 'CHANGE', index: 0, value: -10 })}
           />
           <button
             data-testid="index-1-btn"
-            onclick={() => send({ type: 'CHANGE', index: 1, value: 22 })}
+            onclick={() => actor.send({ type: 'CHANGE', index: 1, value: 22 })}
           />
         </div>
       );
@@ -992,7 +993,7 @@ describe('useActor', () => {
       ]);
       const [actor, setActor] = createSignal(createSimpleActor(map1));
       const [signal, setSignal] = createSignal(map1);
-      const [state] = useActor(actor);
+      const state = useSnapshot(actor);
       const [actorChange, setActorChange] = createSignal(0);
       const [signalChange, setSignalChange] = createSignal(0);
 
@@ -1058,7 +1059,7 @@ describe('useActor', () => {
         createSimpleActor({ value: map1 })
       );
       const [signal, setSignal] = createStore({ value: map1 });
-      const [state] = useActor(actor);
+      const state = useSnapshot(actor);
       const [actorChange, setActorChange] = createSignal(0);
       const [signalChange, setSignalChange] = createSignal(0);
 
@@ -1133,12 +1134,11 @@ describe('useActor', () => {
 
     const Test = () => {
       const [actor, setActor] = createSignal(firstActor);
-      const [, send] = useActor(actor);
 
       onMount(() => {
         setTimeout(() => {
           // The `send` here is closed-in
-          send({ type: 'anything' });
+          actor().send({ type: 'anything' });
         }, 10);
       });
 
@@ -1191,15 +1191,15 @@ describe('useActor', () => {
     const counterService = interpret(counterMachine).start();
 
     const Counter = () => {
-      const [state, send] = useActor(counterService);
+      const state = useSnapshot(counterService);
 
       return (
         <div
           data-testid="count"
           onclick={() => {
-            send({ type: 'INC' });
+            counterService.send({ type: 'INC' });
             // @ts-expect-error
-            send({ type: 'FAKE' });
+            counterService.send({ type: 'FAKE' });
           }}
         >
           {state().context.count}
@@ -1258,7 +1258,7 @@ describe('useActor', () => {
 
     const Comp = () => {
       let calls = 0;
-      const [state, send] = useActor(counterService);
+      const state = useSnapshot(counterService);
 
       createEffect(() => {
         calls++;
@@ -1266,13 +1266,13 @@ describe('useActor', () => {
       });
 
       onMount(() => {
-        send({ type: 'INC' });
-        send({ type: 'INC' });
-        send({ type: 'INC' });
+        counterService.send({ type: 'INC' });
+        counterService.send({ type: 'INC' });
+        counterService.send({ type: 'INC' });
         setTimeout(() => {
-          send({ type: 'INC' });
+          counterService.send({ type: 'INC' });
           setTimeout(() => {
-            send({ type: 'INC' });
+            counterService.send({ type: 'INC' });
             setTimeout(() => {
               expect(calls).toBe(1);
               done();
@@ -1311,11 +1311,14 @@ describe('useActor', () => {
     const Counter = (props: {
       counterRef: Accessor<ActorRefFrom<typeof counterMachine>>;
     }) => {
-      const [state, send] = useActor(props.counterRef);
+      const state = useSnapshot(props.counterRef);
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <button
+            data-testid="inc"
+            onclick={(_) => props.counterRef().send({ type: 'INC' })}
+          />
           <div data-testid="count">{state().context.count}</div>
         </div>
       );
@@ -1382,11 +1385,14 @@ describe('useActor', () => {
     const Counter = (props: {
       counterRef: Accessor<ActorRefFrom<typeof counterMachine2>>;
     }) => {
-      const [state, send] = useActor(props.counterRef);
+      const state = useSnapshot(props.counterRef);
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <button
+            data-testid="inc"
+            onclick={(_) => props.counterRef().send({ type: 'INC' })}
+          />
           <div data-testid="count">
             {state().context.subCount.subCount1.subCount2.count}
           </div>
@@ -1454,7 +1460,7 @@ describe('useActor', () => {
 
     const Counter = () => {
       const counterService = interpret(counterMachine2).start();
-      const [state, send] = useActor(counterService);
+      const state = useSnapshot(counterService);
       const [effectCount, setEffectCount] = createSignal(0);
       createEffect(
         on(
@@ -1469,7 +1475,10 @@ describe('useActor', () => {
       );
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <button
+            data-testid="inc"
+            onclick={(_) => counterService.send({ type: 'INC' })}
+          />
           <div data-testid="effect-count">{effectCount()}</div>
           <div data-testid="count">
             {state().context.subCount.subCount1.subCount2.count}
@@ -1523,15 +1532,15 @@ describe('useActor', () => {
     const Test = () => {
       const service1 = interpret(machine).start();
       const service2 = interpret(machine).start();
-      const [state1, send1] = useActor(service1);
-      const [state2, send2] = useActor(service2);
+      const state1 = useSnapshot(service1);
+      const state2 = useSnapshot(service2);
 
       return (
         <div>
           <div>
             <button
               data-testid="inc-machine1"
-              onclick={() => send1({ type: 'INC' })}
+              onclick={() => service1.send({ type: 'INC' })}
             >
               INC 1
             </button>
@@ -1542,7 +1551,7 @@ describe('useActor', () => {
           <div>
             <button
               data-testid="inc-machine2"
-              onclick={() => send2({ type: 'INC' })}
+              onclick={() => service2.send({ type: 'INC' })}
             >
               INC 1
             </button>
@@ -1603,14 +1612,14 @@ describe('useActor', () => {
 
     const App = () => {
       const [state] = useMachine(machine);
-      const [childState, childSend] = useActor(state.context.ref);
+      const childState = useSnapshot(state.context.ref);
 
       return (
         <div>
           <div data-testid="child-state">{childState().value}</div>
           <button
             data-testid="child-send"
-            onclick={() => childSend({ type: 'NEXT' })}
+            onclick={() => state.context.ref.send({ type: 'NEXT' })}
           />
         </div>
       );

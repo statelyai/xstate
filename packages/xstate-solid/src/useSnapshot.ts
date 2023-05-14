@@ -10,19 +10,21 @@ const noop = () => {
   /* ... */
 };
 
-type Sender<TEvent> = (event: TEvent) => void;
-
-export function useActor<TActor extends ActorRef<any, any>>(
+/**
+ * A hook that returns a snapshot of the current state of an XState actor.
+ * The snapshot is updated whenever the actor's state changes
+ **/
+export function useSnapshot<TActor extends ActorRef<any, any>>(
   actorRef: Accessor<TActor> | TActor
-): [Accessor<CheckSnapshot<SnapshotFrom<TActor>>>, TActor['send']];
-export function useActor<TEvent extends EventObject, TEmitted>(
+): Accessor<CheckSnapshot<SnapshotFrom<TActor>>>;
+export function useSnapshot<TEvent extends EventObject, TEmitted>(
   actorRef: Accessor<ActorRef<TEvent, TEmitted>> | ActorRef<TEvent, TEmitted>
-): [Accessor<CheckSnapshot<TEmitted>>, Sender<TEvent>];
-export function useActor(
+): Accessor<CheckSnapshot<TEmitted>>;
+export function useSnapshot(
   actorRef:
     | Accessor<ActorRef<EventObject, unknown>>
     | ActorRef<EventObject, unknown>
-): [Accessor<unknown>, Sender<EventObject>] {
+): Accessor<unknown> {
   const actorMemo = createMemo(() =>
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
@@ -54,7 +56,5 @@ export function useActor(
     return false;
   }, true);
 
-  const send = (event: EventObject) => actorMemo().send(event);
-
-  return [() => state.snapshot, send];
+  return () => state.snapshot;
 }
