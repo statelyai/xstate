@@ -9,8 +9,8 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, PropType } from 'vue';
-import { useActor } from '../src/index.ts';
 import { ActorRefFrom, AnyStateMachine } from 'xstate';
+import { useSelector } from '../src/index.ts';
 
 export default defineComponent({
   props: {
@@ -19,13 +19,13 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const { snapshot: actorState, send: actorSend } = useActor(props.actor!);
+    const actorState = useSelector(props.actor!, s => s);
 
     onMounted(() => {
-      actorSend({ type: 'FINISH' });
+      props.actor!.send({ type: 'FINISH' });
     });
 
-    return { actorState, actorSend };
+    return { actorState, actorSend: props.actor!.send };
   }
 });
 </script>

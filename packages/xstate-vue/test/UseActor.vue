@@ -8,7 +8,7 @@
 </template>
 
 <script lang="ts">
-import { useMachine, useActor } from '../src/index.ts';
+import { useMachine, useSelector } from '../src/index.ts';
 import { createMachine, sendParent } from 'xstate';
 import { defineComponent } from 'vue';
 
@@ -41,7 +41,7 @@ export default defineComponent({
   setup() {
     const { snapshot: machineState } = useMachine(machine);
 
-    const { snapshot: actorState } = useActor(machineState.value.children.child);
+    const actorState = useSelector(machineState.value.children.child, s=>s);
 
     return {
       machineState,

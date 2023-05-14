@@ -5,7 +5,8 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { interpret, ActorRef } from 'xstate';
-import { useActor } from '../src/index.ts';
+
+import { useSelector } from '../src/index.ts';
 const simpleActor: ActorRef<any, number> = interpret({
   transition: (s) => s,
   getSnapshot: () => 42,
@@ -21,7 +22,7 @@ const simpleActor: ActorRef<any, number> = interpret({
 
 export default defineComponent({
   setup() {
-    const { snapshot } = useActor(simpleActor);
+    const snapshot = useSelector(simpleActor, s => s);
     return { snapshot };
   }
 });

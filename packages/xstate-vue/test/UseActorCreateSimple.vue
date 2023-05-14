@@ -9,11 +9,11 @@
 </template>
 
 <script lang="ts">
-import { ActorRef } from 'xstate';
+import { interpret } from 'xstate';
+import type { ActorRef } from 'xstate';
 import { defineComponent, shallowRef } from 'vue';
 
-import { useActor } from '../src/index.ts';
-import { interpret } from 'xstate/src';
+import { useSelector } from '../src/index.ts';
 
 const createSimpleActor = (value: number): ActorRef<any, number> =>
   interpret({
@@ -32,7 +32,7 @@ const createSimpleActor = (value: number): ActorRef<any, number> =>
 export default defineComponent({
   setup() {
     const actor = shallowRef(createSimpleActor(42));
-    const { snapshot } = useActor(actor);
+    const snapshot = useSelector(actor, s => s);
 
     return { actor, snapshot, createSimpleActor };
   }
