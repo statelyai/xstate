@@ -44,7 +44,7 @@ export function assign<
         assignment
       }
     },
-    (_event, { state, action, actorContext }) => {
+    (event, { state, action, actorContext }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!state.context) {
@@ -58,14 +58,13 @@ export function assign<
         event: TExpressionEvent;
       } = {
         context: state.context,
-        event: _event.data,
+        event,
         action,
-        _event,
         spawn: createSpawner(
           actorContext?.self,
           state.machine,
           state.context,
-          _event,
+          event,
           capturedActions
         ),
         self: actorContext?.self ?? ({} as any),

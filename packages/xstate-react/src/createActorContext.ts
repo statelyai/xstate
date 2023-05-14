@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { useInterpret } from './useInterpret';
-import { useActor as useActorUnbound } from './useActor';
+import { useActorRef } from './useActorRef';
 import { useSelector as useSelectorUnbound } from './useSelector';
 import {
   ActorRefFrom,
@@ -40,7 +39,6 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     | Observer<StateFrom<TMachine>>
     | ((value: StateFrom<TMachine>) => void)
 ): {
-  useActor: () => [StateFrom<TMachine>, ActorRefFrom<TMachine>['send']];
   useSelector: <T>(
     selector: (snapshot: SnapshotFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
@@ -71,7 +69,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     children: React.ReactNode;
     machine: TMachine;
   }) {
-    const actor = useInterpret(
+    const actor = (useActorRef as any)(
       providedMachine,
       interpreterOptions,
       observerOrListener
@@ -82,7 +80,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   Provider.displayName = `ActorProvider(${machine.id})`;
 
-  function useContext() {
+  function useContext(): ActorRefFrom<TMachine> {
     const actor = React.useContext(ReactContext);
 
     if (!actor) {
@@ -92,11 +90,6 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     }
 
     return actor;
-  }
-
-  function useActor() {
-    const actor = useContext();
-    return useActorUnbound(actor);
   }
 
   function useSelector<T>(
@@ -110,7 +103,6 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   return {
     Provider: Provider as any,
     useActorRef: useContext,
-    useActor,
     useSelector
   };
 }

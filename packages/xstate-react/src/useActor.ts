@@ -1,16 +1,46 @@
-import { useCallback } from 'react';
-import { ActorRef, EventObject, SnapshotFrom } from 'xstate';
-import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import { useCallback, useEffect } from 'react';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import {
+  ActorRefFrom,
+  AnyActorBehavior,
+  AnyState,
+  InterpreterOptions,
+  InterpreterStatus,
+  SnapshotFrom
+} from 'xstate';
+import { useIdleInterpreter } from './useActorRef.ts';
+import { isActorRef } from 'xstate/actors';
 
-export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: TActor
-): [SnapshotFrom<TActor>, TActor['send']];
-export function useActor<TEvent extends EventObject, TSnapshot>(
-  actorRef: ActorRef<TEvent, TSnapshot>
-): [TSnapshot, (event: TEvent) => void];
-export function useActor(
-  actorRef: ActorRef<EventObject, unknown>
-): [unknown, (event: EventObject) => void] {
+function identity<T>(a: T): T {
+  return a;
+}
+
+const isEqual = (prevState: AnyState, nextState: AnyState) => {
+  return prevState === nextState || nextState.changed === false;
+};
+
+export function useActor<TBehavior extends AnyActorBehavior>(
+  behavior: TBehavior,
+  options: InterpreterOptions<TBehavior> = {}
+): [
+  SnapshotFrom<TBehavior>,
+  ActorRefFrom<TBehavior>['send'],
+  ActorRefFrom<TBehavior>
+] {
+  if (process.env.NODE_ENV !== 'production') {
+    if (isActorRef(behavior)) {
+      throw new Error(
+        `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
+      );
+    }
+  }
+
+  const actorRef = useIdleInterpreter(behavior, options as any);
+
+  const getSnapshot = useCallback(() => {
+    return actorRef.getSnapshot();
+  }, [actorRef]);
+
   const subscribe = useCallback(
     (handleStoreChange) => {
       const { unsubscribe } = actorRef.subscribe(handleStoreChange);
@@ -19,21 +49,23 @@ export function useActor(
     [actorRef]
   );
 
-  const boundGetSnapshot = useCallback(
-    () => actorRef.getSnapshot(),
-    [actorRef]
-  );
-
-  const storeSnapshot = useSyncExternalStore(
+  const actorSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
-    boundGetSnapshot,
-    boundGetSnapshot
+    getSnapshot,
+    getSnapshot,
+    identity,
+    isEqual
   );
 
-  const boundSend: typeof actorRef.send = useCallback(
-    (event) => actorRef.send(event),
-    [actorRef]
-  );
+  useEffect(() => {
+    actorRef.start();
 
-  return [storeSnapshot, boundSend];
+    return () => {
+      actorRef.stop();
+      actorRef.status = InterpreterStatus.NotStarted;
+      (actorRef as any)._initState();
+    };
+  }, [actorRef]);
+
+  return [actorSnapshot, actorRef.send, actorRef] as any;
 }

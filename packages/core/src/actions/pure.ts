@@ -36,7 +36,7 @@ export function pure<
         get: getActions
       }
     },
-    (_event, { state }) => {
+    (event, { state }) => {
       return [
         state,
         {
@@ -44,9 +44,7 @@ export function pure<
           params: {
             actions:
               toArray(
-                toActionObjects(
-                  getActions({ context: state.context, event: _event.data })
-                )
+                toActionObjects(getActions({ context: state.context, event }))
               ) ?? []
           }
         }

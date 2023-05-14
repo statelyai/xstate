@@ -7,15 +7,9 @@ import {
   ActorBehavior,
   Subscribable,
   Observer,
-  toSCXMLEvent
+  AnyActorRef
 } from '../src/index.ts';
-import {
-  sendParent,
-  doneInvoke,
-  respond,
-  forwardTo,
-  error
-} from '../src/actions.ts';
+import { sendParent, doneInvoke, forwardTo, error } from '../src/actions.ts';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { sendTo } from '../src/actions/send';
@@ -565,13 +559,19 @@ describe('spawning event observables', () => {
 describe('communicating with spawned actors', () => {
   it('should treat an interpreter as an actor', (done) => {
     const existingMachine = createMachine({
+      types: {
+        events: {} as {
+          type: 'ACTIVATE';
+          origin: AnyActorRef;
+        }
+      },
       initial: 'inactive',
       states: {
         inactive: {
           on: { ACTIVATE: 'active' }
         },
         active: {
-          entry: respond({ type: 'EXISTING.DONE' })
+          entry: sendTo(({ event }) => event.origin, { type: 'EXISTING.DONE' })
         }
       }
     });
@@ -589,7 +589,6 @@ describe('communicating with spawned actors', () => {
         pending: {
           entry: assign({
             // No need to spawn an existing service:
-            // existingRef: () => spawn(existingService)
             existingRef: existingService
           }),
           on: {
@@ -597,9 +596,13 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: sendTo(({ context }) => context.existingRef!, {
-                type: 'ACTIVATE'
-              })
+              actions: sendTo(
+                ({ context }) => context.existingRef!,
+                ({ self }) => ({
+                  type: 'ACTIVATE',
+                  origin: self
+                })
+              )
             }
           }
         },
@@ -618,13 +621,19 @@ describe('communicating with spawned actors', () => {
 
   it.skip('should be able to name existing actors', (done) => {
     const existingMachine = createMachine({
+      types: {
+        events: {} as {
+          type: 'ACTIVATE';
+          origin: AnyActorRef;
+        }
+      },
       initial: 'inactive',
       states: {
         inactive: {
           on: { ACTIVATE: 'active' }
         },
         active: {
-          entry: respond({ type: 'EXISTING.DONE' })
+          entry: sendTo(({ event }) => event.origin, { type: 'EXISTING.DONE' })
         }
       }
     });
@@ -650,54 +659,13 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: sendTo('existing', { type: 'ACTIVATE' })
-            }
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-
-    const parentService = interpret(parentMachine).onDone(() => {
-      done();
-    });
-
-    parentService.start();
-  });
-
-  it('should be able to communicate with arbitrary actors if sessionId is known', (done) => {
-    const existingMachine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: { ACTIVATE: 'active' }
-        },
-        active: {
-          entry: respond({ type: 'EXISTING.DONE' })
-        }
-      }
-    });
-
-    const existingService = interpret(existingMachine).start();
-
-    const parentMachine = createMachine<{ existingRef: ActorRef<any> }>({
-      initial: 'pending',
-      context: {
-        existingRef: existingService
-      },
-      states: {
-        pending: {
-          entry: sendTo(existingService, { type: 'ACTIVATE' }),
-          on: {
-            'EXISTING.DONE': 'success'
-          },
-          after: {
-            100: {
-              actions: sendTo(({ context }) => context.existingRef, {
-                type: 'ACTIVATE'
-              })
+              actions: sendTo(
+                ({ context }) => context.existingRef!,
+                ({ self }) => ({
+                  type: 'ACTIVATE',
+                  origin: self
+                })
+              )
             }
           }
         },
@@ -974,8 +942,7 @@ describe('actors', () => {
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: ActorBehavior<EventObject, undefined> = {
         transition: (_state, event, { self }) => {
-          const _event = toSCXMLEvent(event);
-          if (_event.name === 'PING') {
+          if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
 

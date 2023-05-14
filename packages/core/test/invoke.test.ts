@@ -24,8 +24,7 @@ import {
   assign,
   createMachine,
   interpret,
-  sendParent,
-  toSCXMLEvent
+  sendParent
 } from '../src/index.ts';
 
 const user = { name: 'David' };
@@ -765,9 +764,26 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise factory and resolve through onDone', (done) => {
-        const service = interpret(invokePromiseMachine)
+        const machine = createMachine({
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: fromPromise(() =>
+                  createPromise((resolve) => {
+                    resolve();
+                  })
+                ),
+                onDone: 'success'
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        });
+        interpret(machine)
           .onDone(() => {
-            expect(service.getSnapshot()._event.origin).toBeDefined();
             done();
           })
           .start();
@@ -1822,9 +1838,8 @@ describe('invoke', () => {
         }
       });
 
-      const service = interpret(obsMachine)
+      interpret(obsMachine)
         .onDone(() => {
-          expect(service.getSnapshot()._event.origin).toBeDefined();
           done();
         })
         .start();
@@ -1959,9 +1974,8 @@ describe('invoke', () => {
         }
       });
 
-      const service = interpret(obsMachine)
+      interpret(obsMachine)
         .onDone(() => {
-          expect(service.getSnapshot()._event.origin).toBeDefined();
           done();
         })
         .start();
@@ -2076,12 +2090,9 @@ describe('invoke', () => {
     it('should work with a behavior', (done) => {
       const countBehavior: ActorBehavior<EventObject, number> = {
         transition: (count, event) => {
-          // TODO: all behaviors receive SCXML.Event objects,
-          // make sure this is clear in the docs
-          const _event = toSCXMLEvent(event);
-          if (_event.name === 'INC') {
+          if (event.type === 'INC') {
             return count + 1;
-          } else if (_event.name === 'DEC') {
+          } else if (event.type === 'DEC') {
             return count - 1;
           }
           return count;
@@ -2116,9 +2127,7 @@ describe('invoke', () => {
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: ActorBehavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
-          const _event = toSCXMLEvent(event);
-
-          if (_event.name === 'PING') {
+          if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
 

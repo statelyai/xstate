@@ -29,7 +29,7 @@ export function invoke<
 > {
   return createDynamicAction(
     { type: invokeActionType, params: invokeDef },
-    (_event, { state, actorContext }) => {
+    (event, { state, actorContext }) => {
       const type = actionTypes.invoke;
       const { id, src } = invokeDef;
 
@@ -64,7 +64,7 @@ export function invoke<
               typeof input === 'function'
                 ? input({
                     context: state.context,
-                    event: _event.data as any,
+                    event,
                     self: actorContext?.self
                   })
                 : input

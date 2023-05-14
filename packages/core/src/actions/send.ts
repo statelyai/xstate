@@ -7,7 +7,7 @@ import {
   MachineContext
 } from '../types.ts';
 import { send as sendActionType } from '../actionTypes.ts';
-import { isFunction, isString, toSCXMLEvent } from '../utils.ts';
+import { isFunction, isString } from '../utils.ts';
 import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import {
   AnyActorRef,
@@ -71,7 +71,7 @@ export function send<
             : eventOrExpr.type
       }
     },
-    (_event, { actorContext, state }) => {
+    (event, { actorContext, state }) => {
       const params = {
         to: options ? options.to : undefined,
         delay: options ? options.delay : undefined,
@@ -87,8 +87,7 @@ export function send<
       };
       const args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent> = {
         context: state.context,
-        event: _event.data,
-        _event,
+        event,
         self: actorContext?.self ?? (null as any),
         system: actorContext?.system
       };
@@ -100,9 +99,9 @@ export function send<
           `Only event objects may be used with sendTo; use sendTo({ type: "${eventOrExpr}" }) instead`
         );
       }
-      const resolvedEvent = toSCXMLEvent(
-        isFunction(eventOrExpr) ? eventOrExpr(args) : eventOrExpr
-      );
+      const resolvedEvent = isFunction(eventOrExpr)
+        ? eventOrExpr(args)
+        : eventOrExpr;
 
       let resolvedDelay: number | undefined;
       if (isString(params.delay)) {
@@ -147,8 +146,7 @@ export function send<
         params: {
           ...params,
           to: targetActorRef,
-          _event: resolvedEvent,
-          event: resolvedEvent.data,
+          event: resolvedEvent,
           delay: resolvedDelay,
           internal: resolvedTarget === SpecialTargets.Internal
         },
@@ -160,18 +158,16 @@ export function send<
             return;
           } else {
             const target = sendAction.params.to!;
-            const { _event } = sendAction.params;
+            const sentEvent = sendAction.params.event;
             actorCtx.defer(() => {
-              const origin = actorCtx.self;
-              const resolvedEvent: typeof _event = {
-                ..._event,
-                name:
-                  _event.name === actionTypes.error
-                    ? `${error(origin.id)}`
-                    : _event.name,
-                origin: origin
-              };
-              target.send(resolvedEvent);
+              target.send(
+                sentEvent.type === actionTypes.error
+                  ? {
+                      type: `${error(actorCtx.self.id)}`,
+                      data: sentEvent.data
+                    }
+                  : sendAction.params.event
+              );
             });
           }
         }
@@ -203,28 +199,6 @@ export function sendParent<
 }
 
 /**
- * Sends an event back to the sender of the original event.
- *
- * @param event The event to send back to the sender
- * @param options Options to pass into the send event
- */
-export function respond<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TSentEvent extends EventObject = AnyEventObject
->(
-  event: TEvent | SendExpr<TContext, TEvent, TSentEvent>,
-  options?: SendActionOptions<TContext, TEvent>
-) {
-  return send<TContext, TEvent>(event, {
-    ...options,
-    to: ({ _event }) => {
-      return _event.origin!; // TODO: handle when _event.origin is undefined
-    }
-  });
-}
-
-/**
  * Forwards (sends) an event to a specified service.
  *
  * @param target The target service to forward the event to.
@@ -238,7 +212,7 @@ export function forwardTo<
   options?: SendActionOptions<TContext, TEvent>
 ) {
   if (
-    process.env.NODE_END !== 'production' &&
+    process.env.NODE_ENV !== 'production' &&
     (!target || typeof target === 'function')
   ) {
     const originalTarget = target;
