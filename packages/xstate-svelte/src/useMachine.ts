@@ -36,7 +36,7 @@ type RestParams<TMachine extends AnyActorBehavior> =
         ]
     : [options?: InterpreterOptions<TMachine>];
 
-export function useMachine<TBehavior extends AnyActorBehavior>(
+export function useActor<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
   ...[options = {}]: RestParams<TBehavior>
 ): {
@@ -60,3 +60,5 @@ export function useMachine<TBehavior extends AnyActorBehavior>(
     actorRef: actorRef as ActorRefFrom<TBehavior>
   };
 }
+
+export const useMachine = useActor;

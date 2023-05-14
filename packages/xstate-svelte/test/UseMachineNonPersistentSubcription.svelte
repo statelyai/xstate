@@ -1,7 +1,7 @@
 <script lang="ts">
   export let persistedState: AnyState | undefined = undefined;
 
-  import { useMachine } from '../src/index.ts';
+  import { useActor } from '../src/index.ts';
   import UseMachineNonPersistentSubcriptionChild from './UseMachineNonPersistentSubcriptionChild.svelte';
   import type { AnyState } from 'xstate';
   import { assign, createMachine } from 'xstate';
@@ -21,7 +21,7 @@
     }
   });
 
-  const { snapshot, send } = useMachine(machine);
+  const { snapshot, send } = useActor(machine);
 </script>
 
 <div>
@@ -29,5 +29,5 @@
   {#if visible}
     <!-- inlined version of this doesn't unsubscribe from the store when the content gets hidden, so we need to keep this in a separate component  -->
     <UseMachineNonPersistentSubcriptionChild {send} {snapshot} />
-  {/if}
+  {/if}useActor
 </div>
