@@ -1,13 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import cn from 'classnames';
-import { useMachine } from '@xstate/react';
 import { useHashChange } from './useHashChange';
-import { assign, createMachine } from 'xstate';
 import { Todo } from './Todo';
-import { TodosFilter, TodoItem, todosMachine } from './todosMachine';
+import { TodosFilter, TodoItem } from './todosMachine';
 import { TodosContext } from './App';
-// const Todo = () => null;
-// import { todosMachine } from './todos.machine';
 
 function filterTodos(filter: TodosFilter, todos: TodoItem[]) {
   if (filter === 'active') {
@@ -21,39 +17,11 @@ function filterTodos(filter: TodosFilter, todos: TodoItem[]) {
   return todos;
 }
 
-// const persistedTodosMachine = todosMachine.withConfig(
-//   {
-//     actions: {
-//       persist: (context) => {
-//         try {
-//           localStorage.setItem('todos-xstate', JSON.stringify(context.todos));
-//         } catch (e) {
-//           console.error(e);
-//         }
-//       }
-//     }
-//   },
-//   // initial state from localstorage
-//   {
-//     todo: 'Learn state machines',
-//     todos: (() => {
-//       try {
-//         return JSON.parse(localStorage.getItem('todos-xstate')) || [];
-//       } catch (e) {
-//         console.error(e);
-//         return [];
-//       }
-//     })(),
-//     filter: 'all'
-//   }
-// );
-
 export function Todos() {
   const { send } = TodosContext.useActorRef();
   const state = TodosContext.useSelector((s) => s);
 
   useHashChange(() => {
-    // send({ type: 'SHOW', filter: window.location.hash.slice(2) || 'all' });
     send({
       type: 'filter.change',
       filter: (window.location.hash.slice(2) || 'all') as TodosFilter
@@ -62,8 +30,6 @@ export function Todos() {
 
   // Capture initial state of browser hash
   useEffect(() => {
-    // window.location.hash.slice(2) &&
-    //   send({ type: 'SHOW', filter: window.location.hash.slice(2) });
     window.location.hash.slice(2) &&
       send({
         type: 'filter.change',
