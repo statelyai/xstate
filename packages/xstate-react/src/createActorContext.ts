@@ -10,7 +10,8 @@ import {
   StateFrom,
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
-  StateMachine
+  StateMachine,
+  EventFromBehavior
 } from 'xstate';
 
 type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
@@ -39,6 +40,11 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     | Observer<StateFrom<TMachine>>
     | ((value: StateFrom<TMachine>) => void)
 ): {
+  useSnapshot: () => [
+    SnapshotFrom<TMachine>,
+    (event: EventFromBehavior<TMachine>) => void,
+    ActorRefFrom<TMachine>
+  ];
   useSelector: <T>(
     selector: (snapshot: SnapshotFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
@@ -100,9 +106,21 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     return useSelectorUnbound(actor, selector, compare);
   }
 
+  function useSnapshot(): [
+    SnapshotFrom<TMachine>,
+    (event: EventFromBehavior<TMachine>) => void,
+    ActorRefFrom<TMachine>
+  ] {
+    const actor = useContext();
+    const state = useSelectorUnbound(actor, (s) => s);
+
+    return [state, actor.send, actor];
+  }
+
   return {
     Provider: Provider as any,
     useActorRef: useContext,
-    useSelector
+    useSelector,
+    useSnapshot
   };
 }

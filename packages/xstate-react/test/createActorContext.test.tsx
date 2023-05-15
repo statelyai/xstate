@@ -300,4 +300,46 @@ describe('createActorContext', () => {
 
     expect(stubFn).toHaveBeenCalledTimes(1);
   });
+
+  it('should work with useSnapshot', () => {
+    const someMachine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            next: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const SomeContext = createActorContext(someMachine);
+
+    const Component = () => {
+      const [snapshot, send] = SomeContext.useSnapshot();
+
+      return (
+        <div data-testid="value" onClick={() => send({ type: 'next' })}>
+          {snapshot.value}
+        </div>
+      );
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('a');
+
+    fireEvent.click(screen.getByTestId('value'));
+
+    expect(screen.getByTestId('value').textContent).toBe('b');
+  });
 });
