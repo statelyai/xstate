@@ -49,7 +49,8 @@ function filterTodos(filter: TodosFilter, todos: TodoItem[]) {
 // );
 
 export function Todos() {
-  const [state, send] = TodosContext.useActor();
+  const { send } = TodosContext.useActorRef();
+  const state = TodosContext.useSelector((s) => s);
 
   useHashChange(() => {
     // send({ type: 'SHOW', filter: window.location.hash.slice(2) || 'all' });

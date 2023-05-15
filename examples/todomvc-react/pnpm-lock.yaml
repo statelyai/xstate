@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@xstate/react':
-    specifier: 4.0.0-beta.3
-    version: 4.0.0-beta.3(@types/react@17.0.0)(react@17.0.0)(xstate@5.0.0-beta.9)
+    specifier: 4.0.0-beta.4
+    version: 4.0.0-beta.4(@types/react@17.0.0)(react@17.0.0)(xstate@5.0.0-beta.10)
   classnames:
     specifier: ^2.3.2
     version: 2.3.2
@@ -20,8 +20,8 @@ dependencies:
     specifier: ^1.0.5
     version: 1.0.5
   xstate:
-    specifier: 5.0.0-beta.9
-    version: 5.0.0-beta.9
+    specifier: 5.0.0-beta.10
+    version: 5.0.0-beta.10
 
 devDependencies:
   '@types/react':
@@ -625,12 +625,12 @@ packages:
     resolution: {integrity: sha512-0rFu3h8JbclbnvvKrs7Fe5FNGV9/5X2rPD7KmOzhLSUAiQH5//Hq437Gv0fR5Mev3u/nbtvmLl8XgwCU20/ZfQ==}
     dev: true
 
-  /@xstate/react@4.0.0-beta.3(@types/react@17.0.0)(react@17.0.0)(xstate@5.0.0-beta.9):
-    resolution: {integrity: sha512-McQvOHzBqiAtkW1vIeEPEaLJe/iwErBj4ldTmv0p2/X1wns6Ta+T2WO4XAAB1Mexko+/F+q2ktblXNnbYS0D5Q==}
+  /@xstate/react@4.0.0-beta.4(@types/react@17.0.0)(react@17.0.0)(xstate@5.0.0-beta.10):
+    resolution: {integrity: sha512-dUcbZZhc57wY6WGEfCEKc/hIFab7H4s7/rGBv9Bb1aIWYmrR2GolbFIi6e7hS2UylIHHtNk4UibRz1aqOFqVhA==}
     peerDependencies:
       '@xstate/fsm': ^3.0.0-beta.2
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      xstate: ^5.0.0-beta.7
+      xstate: ^5.0.0-beta.10
     peerDependenciesMeta:
       '@xstate/fsm':
         optional: true
@@ -640,7 +640,7 @@ packages:
       react: 17.0.0
       use-isomorphic-layout-effect: 1.1.2(@types/react@17.0.0)(react@17.0.0)
       use-sync-external-store: 1.2.0(react@17.0.0)
-      xstate: 5.0.0-beta.9
+      xstate: 5.0.0-beta.10
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -2346,8 +2346,8 @@ packages:
         optional: true
     dev: true
 
-  /xstate@5.0.0-beta.9:
-    resolution: {integrity: sha512-VD9d0xItzyo/piMz4v9XY4Bj8x6sSIDZ2UcobU0j/66a1fJMBbhKuZZ0ld/ReB0D93O0BjLwGOHa7zF+dj5QOw==}
+  /xstate@5.0.0-beta.10:
+    resolution: {integrity: sha512-mFmqk6CguOYkVfrGnpUfbv4McqQCnvlN0XwCxyRYHPaO90T2J6AifPsIql0r7r+lQk3AHlKkjYWm5GefhQk3oQ==}
     dev: false
 
   /yallist@3.1.1:
