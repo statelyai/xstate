@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import {
   createMachine,
   interpret,
@@ -22,7 +23,7 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
 ): [StateFrom<TMachine>, ServiceFrom<TMachine>['send'], ServiceFrom<TMachine>] {
   const persistedStateRef = useRef<StateMachine.AnyState>();
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDevelopment) {
     const [initialMachine] = useState(stateMachine);
 
     if (stateMachine !== initialMachine) {

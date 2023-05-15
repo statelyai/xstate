@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import { useEffect, useState } from 'react';
 import {
   AnyActorBehavior,
@@ -21,7 +22,7 @@ export function useIdleInterpreter(
   machine: AnyActorBehavior,
   options: Partial<InterpreterOptions<AnyActorBehavior>>
 ): AnyInterpreter {
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDevelopment) {
     const [initialMachine] = useState(machine);
 
     if (machine.config !== initialMachine.config) {
