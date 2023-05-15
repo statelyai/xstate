@@ -2,10 +2,14 @@ import React, { useEffect, useRef } from 'react';
 import cn from 'classnames';
 import { useMachine } from '@xstate/react';
 import { useHashChange } from './useHashChange';
+import { assign, createMachine } from 'xstate';
 import { Todo } from './Todo';
+import { TodosFilter, TodoItem, todosMachine } from './todosMachine';
+import { TodosContext } from './App';
+// const Todo = () => null;
 // import { todosMachine } from './todos.machine';
 
-function filterTodos(filter, todos) {
+function filterTodos(filter: TodosFilter, todos: TodoItem[]) {
   if (filter === 'active') {
     return todos.filter((todo) => !todo.completed);
   }
@@ -17,44 +21,53 @@ function filterTodos(filter, todos) {
   return todos;
 }
 
-const persistedTodosMachine = todosMachine.withConfig(
-  {
-    actions: {
-      persist: (context) => {
-        try {
-          localStorage.setItem('todos-xstate', JSON.stringify(context.todos));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    }
-  },
-  // initial state from localstorage
-  {
-    todo: 'Learn state machines',
-    todos: (() => {
-      try {
-        return JSON.parse(localStorage.getItem('todos-xstate')) || [];
-      } catch (e) {
-        console.error(e);
-        return [];
-      }
-    })(),
-    filter: 'all'
-  }
-);
+// const persistedTodosMachine = todosMachine.withConfig(
+//   {
+//     actions: {
+//       persist: (context) => {
+//         try {
+//           localStorage.setItem('todos-xstate', JSON.stringify(context.todos));
+//         } catch (e) {
+//           console.error(e);
+//         }
+//       }
+//     }
+//   },
+//   // initial state from localstorage
+//   {
+//     todo: 'Learn state machines',
+//     todos: (() => {
+//       try {
+//         return JSON.parse(localStorage.getItem('todos-xstate')) || [];
+//       } catch (e) {
+//         console.error(e);
+//         return [];
+//       }
+//     })(),
+//     filter: 'all'
+//   }
+// );
 
 export function Todos() {
-  const [state, send] = useMachine(persistedTodosMachine, { devTools: true });
+  const [state, send] = TodosContext.useActor();
 
   useHashChange(() => {
-    send({ type: 'SHOW', filter: window.location.hash.slice(2) || 'all' });
+    // send({ type: 'SHOW', filter: window.location.hash.slice(2) || 'all' });
+    send({
+      type: 'filter.change',
+      filter: (window.location.hash.slice(2) || 'all') as TodosFilter
+    });
   });
 
   // Capture initial state of browser hash
   useEffect(() => {
+    // window.location.hash.slice(2) &&
+    //   send({ type: 'SHOW', filter: window.location.hash.slice(2) });
     window.location.hash.slice(2) &&
-      send({ type: 'SHOW', filter: window.location.hash.slice(2) });
+      send({
+        type: 'filter.change',
+        filter: window.location.hash.slice(2) as TodosFilter
+      });
   }, [send]);
 
   const { todo, todos, filter } = state.context;
@@ -62,13 +75,12 @@ export function Todos() {
   const numActiveTodos = todos.filter((todo) => !todo.completed).length;
   const allCompleted = todos.length > 0 && numActiveTodos === 0;
   const mark = !allCompleted ? 'completed' : 'active';
-  const markEvent = `MARK.${mark}`;
   const filteredTodos = filterTodos(filter, todos);
 
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (todos.length === 0) {
-      inputRef.current.focus();
+      inputRef.current?.focus();
     }
   }, [todos]);
 
@@ -83,11 +95,11 @@ export function Todos() {
           autoFocus
           onKeyPress={(e) => {
             if (e.key === 'Enter') {
-              send({ type: 'NEWTODO.COMMIT', value: e.target.value });
+              send({ type: 'newTodo.commit', value: e.currentTarget.value });
             }
           }}
           onChange={(e) =>
-            send({ type: 'NEWTODO.CHANGE', value: e.target.value })
+            send({ type: 'newTodo.change', value: e.currentTarget.value })
           }
           value={todo}
         />
@@ -102,7 +114,10 @@ export function Todos() {
               type="checkbox"
               checked={allCompleted}
               onChange={() => {
-                send(markEvent);
+                send({
+                  type: 'todo.markAll',
+                  mark: allCompleted ? 'active' : 'completed'
+                });
               }}
             />
             <label htmlFor="toggle-all" title={`Mark all as ${mark}`}>
@@ -110,7 +125,7 @@ export function Todos() {
             </label>
             <ul className="todo-list">
               {filteredTodos.map((todo) => (
-                <Todo key={todo.id} todoRef={todo.ref} />
+                <Todo key={todo.id} todo={todo} />
               ))}
             </ul>
           </section>
@@ -154,7 +169,8 @@ export function Todos() {
             </ul>
             {numActiveTodos < todos.length && (
               <button
-                onClick={(_) => send('CLEAR_COMPLETED')}
+                // onClick={(_) => send('CLEAR_COMPLETED')}
+                onClick={() => send({ type: 'todos.clearCompleted' })}
                 className="clear-completed"
               >
                 Clear completed

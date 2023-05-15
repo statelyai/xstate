@@ -7,14 +7,14 @@
   },
   "dependencies": {
     "@xstate/inspect": "^0.4.1",
-    "@xstate/react": "^1.6.3",
+    "@xstate/react": "4.0.0-beta.3",
     "classnames": "^2.3.1",
     "nanoid": "^3.3.4",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "todomvc-app-css": "^2.4.2",
     "todomvc-common": "^1.0.5",
-    "xstate": "^4.32.1"
+    "xstate": "5.0.0-beta.9"
   },
   "devDependencies": {
     "@types/react": "^17.0.47",

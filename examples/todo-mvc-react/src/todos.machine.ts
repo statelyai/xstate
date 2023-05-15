@@ -1,5 +1,5 @@
 import { createModel } from 'xstate/lib/model';
-import { spawn, ActorRef, EventFrom } from 'xstate';
+import { spawn, ActorRef, EventFrom, createMachine, assign } from 'xstate';
 import { createTodoMachine } from './todo.machine';
 
 import { nanoid } from 'nanoid';
@@ -43,36 +43,30 @@ type TodosEvents = EventFrom<typeof todosModel>[keyof EventFrom<
   typeof todosModel
 >];
 
-export const todosMachine = todosModel.createMachine({
+export const todosMachine = createMachine({
   id: 'todos',
-  context: todosModel.initialContext,
-  initial: 'loading',
-  states: {
-    loading: {
-      entry: todosModel.assign<TodosEvents>({
-        todos: (context) => {
-          // "Rehydrate" persisted todos
-          return context.todos.map((todo) => ({
-            ...todo,
-            ref: spawn(createTodoMachine(todo))
-          }));
-        }
-      }),
-      always: 'ready'
-    },
-    ready: {}
+  types: {} as {
+    events:
+      | { type: 'NEWTODO.CHANGE'; value: string }
+      | { type: 'NEWTODO.COMMIT'; value: string }
+      | { type: 'TODO.COMMIT'; value: string };
+  },
+  context: {
+    todo: '',
+    todos: [] as Todo[],
+    filter: 'all'
   },
   on: {
     'NEWTODO.CHANGE': {
-      actions: todosModel.assign({
-        todo: (_, event) => event.value
+      actions: assign({
+        todo: ({ event }) => event.value
       })
     },
     'NEWTODO.COMMIT': {
       actions: [
-        todosModel.assign({
+        assign({
           todo: '', // clear todo
-          todos: (context, event) => {
+          todos: ({ context, event }) => {
             console.log('value', event.value);
             const newTodo = createTodo(event.value.trim());
             return context.todos.concat({
@@ -83,12 +77,12 @@ export const todosMachine = todosModel.createMachine({
         }),
         'persist'
       ],
-      cond: (_, event) => !!event.value.trim().length
+      guard: ({ event }) => !!event.value.trim().length
     },
     'TODO.COMMIT': {
       actions: [
-        todosModel.assign({
-          todos: (context, event) =>
+        assign({
+          todos: ({ context, event }) =>
             context.todos.map((todo) => {
               return todo.id === event.todo.id
                 ? { ...todo, ...event.todo, ref: todo.ref }
@@ -100,34 +94,35 @@ export const todosMachine = todosModel.createMachine({
     },
     'TODO.DELETE': {
       actions: [
-        todosModel.assign({
-          todos: (context, event) =>
+        assign({
+          todos: ({ context, event }) =>
             context.todos.filter((todo) => todo.id !== event.id)
         }),
         'persist'
       ]
     },
     SHOW: {
-      actions: todosModel.assign({
-        filter: (_, event) => event.filter
+      actions: assign({
+        filter: ({ event }) => event.filter
       })
     },
     'MARK.completed': {
-      actions: (context) => {
+      actions: ({ context }) => {
         context.todos.forEach((todo) =>
           todo.ref.send({ type: 'SET_COMPLETED' })
         );
       }
     },
     'MARK.active': {
-      actions: (context) => {
+      actions: ({ context }) => {
         context.todos.forEach((todo) => todo.ref.send({ type: 'SET_ACTIVE' }));
       }
     },
     CLEAR_COMPLETED: {
       actions: [
-        todosModel.assign({
-          todos: (context) => context.todos.filter((todo) => !todo.completed)
+        assign({
+          todos: ({ context }) =>
+            context.todos.filter((todo) => !todo.completed)
         }),
         'persist'
       ]
