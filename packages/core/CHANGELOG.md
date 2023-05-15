@@ -1,5 +1,11 @@
 # xstate
 
+## 5.0.0-beta.10
+
+### Major Changes
+
+- [#3971](https://github.com/statelyai/xstate/pull/3971) [`d0ba42ca9`](https://github.com/statelyai/xstate/commit/d0ba42ca9f60e15fcb08d1b3ee33f5161dc44903) Thanks [@Andarist](https://github.com/Andarist)! - `_event` has been removed from all APIs and types. It was a wrapper structure containing the `event` that users were using directly.
+
 ## 5.0.0-beta.9
 
 ### Patch Changes
