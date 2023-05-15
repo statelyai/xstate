@@ -7,11 +7,11 @@ import {
   SnapshotFrom,
   InterpreterOptions,
   Observer,
-  StateFrom,
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   StateMachine,
-  EventFromBehavior
+  EventFromBehavior,
+  AnyActorBehavior
 } from 'xstate';
 
 type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
@@ -33,38 +33,44 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
       >
     : never;
 
-export function createActorContext<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  interpreterOptions?: InterpreterOptions<TMachine>,
+export function createActorContext<TBehavior extends AnyActorBehavior>(
+  machine: TBehavior,
+  interpreterOptions?: InterpreterOptions<TBehavior>,
   observerOrListener?:
-    | Observer<StateFrom<TMachine>>
-    | ((value: StateFrom<TMachine>) => void)
+    | Observer<SnapshotFrom<TBehavior>>
+    | ((value: SnapshotFrom<TBehavior>) => void)
 ): {
   useSnapshot: () => [
-    SnapshotFrom<TMachine>,
-    (event: EventFromBehavior<TMachine>) => void,
-    ActorRefFrom<TMachine>
+    SnapshotFrom<TBehavior>,
+    (event: EventFromBehavior<TBehavior>) => void,
+    ActorRefFrom<TBehavior>
   ];
   useSelector: <T>(
-    selector: (snapshot: SnapshotFrom<TMachine>) => T,
+    selector: (snapshot: SnapshotFrom<TBehavior>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
-  useActorRef: () => ActorRefFrom<TMachine>;
+  useActorRef: () => ActorRefFrom<TBehavior>;
   Provider: (
     props: {
       children: React.ReactNode;
-    } & (AreAllImplementationsAssumedToBeProvided<
-      TMachine['__TResolvedTypesMeta']
-    > extends true
-      ? {
-          machine?: TMachine;
-        }
+    } & (TBehavior extends AnyStateMachine
+      ? AreAllImplementationsAssumedToBeProvided<
+          TBehavior['__TResolvedTypesMeta']
+        > extends true
+        ? {
+            machine?: TBehavior;
+          }
+        : {
+            machine: ToMachinesWithProvidedImplementations<TBehavior>;
+          }
       : {
-          machine: ToMachinesWithProvidedImplementations<TMachine>;
+          machine?: TBehavior;
         })
   ) => React.ReactElement<any, any>;
 } {
-  const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
+  const ReactContext = React.createContext<ActorRefFrom<TBehavior> | null>(
+    null
+  );
 
   const OriginalProvider = ReactContext.Provider;
 
@@ -73,20 +79,22 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     machine: providedMachine = machine
   }: {
     children: React.ReactNode;
-    machine: TMachine;
+    machine: TBehavior;
   }) {
     const actor = (useActorRef as any)(
       providedMachine,
       interpreterOptions,
       observerOrListener
-    ) as ActorRefFrom<TMachine>;
+    ) as ActorRefFrom<TBehavior>;
 
     return React.createElement(OriginalProvider, { value: actor, children });
   }
 
-  Provider.displayName = `ActorProvider(${machine.id})`;
+  Provider.displayName = `ActorProvider(${
+    machine.id ?? machine.transition.name
+  })`;
 
-  function useContext(): ActorRefFrom<TMachine> {
+  function useContext(): ActorRefFrom<TBehavior> {
     const actor = React.useContext(ReactContext);
 
     if (!actor) {
@@ -99,7 +107,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   }
 
   function useSelector<T>(
-    selector: (snapshot: SnapshotFrom<TMachine>) => T,
+    selector: (snapshot: SnapshotFrom<TBehavior>) => T,
     compare?: (a: T, b: T) => boolean
   ): T {
     const actor = useContext();
@@ -107,12 +115,12 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   }
 
   function useSnapshot(): [
-    SnapshotFrom<TMachine>,
-    (event: EventFromBehavior<TMachine>) => void,
-    ActorRefFrom<TMachine>
+    SnapshotFrom<TBehavior>,
+    (event: EventFromBehavior<TBehavior>) => void,
+    ActorRefFrom<TBehavior>
   ] {
     const actor = useContext();
-    const state = useSelectorUnbound(actor, (s) => s);
+    const state = useSelector((s) => s);
 
     return [state, actor.send, actor];
   }
