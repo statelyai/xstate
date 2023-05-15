@@ -7,26 +7,46 @@
   "umd:main": "dist/xstate.umd.min.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate.cjs.mjs",
+        "default": "./dist/xstate.cjs.js"
+      },
       "module": "./dist/xstate.esm.js",
       "import": "./dist/xstate.cjs.mjs",
       "default": "./dist/xstate.cjs.js"
     },
     "./guards": {
+      "types": {
+        "import": "./guards/dist/xstate-guards.cjs.mjs",
+        "default": "./guards/dist/xstate-guards.cjs.js"
+      },
       "module": "./guards/dist/xstate-guards.esm.js",
       "import": "./guards/dist/xstate-guards.cjs.mjs",
       "default": "./guards/dist/xstate-guards.cjs.js"
     },
     "./actions": {
+      "types": {
+        "import": "./actions/dist/xstate-actions.cjs.mjs",
+        "default": "./actions/dist/xstate-actions.cjs.js"
+      },
       "module": "./actions/dist/xstate-actions.esm.js",
       "import": "./actions/dist/xstate-actions.cjs.mjs",
       "default": "./actions/dist/xstate-actions.cjs.js"
     },
     "./dev": {
+      "types": {
+        "import": "./dev/dist/xstate-dev.cjs.mjs",
+        "default": "./dev/dist/xstate-dev.cjs.js"
+      },
       "module": "./dev/dist/xstate-dev.esm.js",
       "import": "./dev/dist/xstate-dev.cjs.mjs",
       "default": "./dev/dist/xstate-dev.cjs.js"
     },
     "./actors": {
+      "types": {
+        "import": "./actors/dist/xstate-actors.cjs.mjs",
+        "default": "./actors/dist/xstate-actors.cjs.js"
+      },
       "module": "./actors/dist/xstate-actors.esm.js",
       "import": "./actors/dist/xstate-actors.cjs.mjs",
       "default": "./actors/dist/xstate-actors.cjs.js"

@@ -19,11 +19,19 @@
   "module": "dist/xstate-react.esm.js",
   "exports": {
     "./fsm": {
+      "types": {
+        "import": "./fsm/dist/xstate-react-fsm.cjs.mjs",
+        "default": "./fsm/dist/xstate-react-fsm.cjs.js"
+      },
       "module": "./fsm/dist/xstate-react-fsm.esm.js",
       "import": "./fsm/dist/xstate-react-fsm.cjs.mjs",
       "default": "./fsm/dist/xstate-react-fsm.cjs.js"
     },
     ".": {
+      "types": {
+        "import": "./dist/xstate-react.cjs.mjs",
+        "default": "./dist/xstate-react.cjs.js"
+      },
       "module": "./dist/xstate-react.esm.js",
       "import": "./dist/xstate-react.cjs.mjs",
       "default": "./dist/xstate-react.cjs.js"

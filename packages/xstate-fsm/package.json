@@ -21,6 +21,10 @@
   "module": "dist/xstate-fsm.esm.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate-fsm.cjs.mjs",
+        "default": "./dist/xstate-fsm.cjs.js"
+      },
       "module": "./dist/xstate-fsm.esm.js",
       "import": "./dist/xstate-fsm.cjs.mjs",
       "default": "./dist/xstate-fsm.cjs.js"

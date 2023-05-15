@@ -16,6 +16,10 @@
   "module": "dist/xstate-immer.esm.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate-immer.cjs.mjs",
+        "default": "./dist/xstate-immer.cjs.js"
+      },
       "module": "./dist/xstate-immer.esm.js",
       "import": "./dist/xstate-immer.cjs.mjs",
       "default": "./dist/xstate-immer.cjs.js"
