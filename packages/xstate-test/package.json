@@ -53,12 +53,5 @@
   },
   "dependencies": {
     "@xstate/graph": "^2.0.0-alpha.1"
-  },
-  "preconstruct": {
-    "exports": {
-      "envConditions": [
-        "browser"
-      ]
-    }
   }
 }
