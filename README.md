@@ -18,9 +18,9 @@
 
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
-📖 [Read the documentation](https://stately.ai/docs/xstate)
+### ✨ Create state machines visually → [state.new](https://state.new)
 
-💙 [Explore our catalogue of examples](https://xstate-catalogue.com/)
+📖 [Read the documentation](https://stately.ai/docs/xstate)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
