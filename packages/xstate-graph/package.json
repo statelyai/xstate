@@ -17,6 +17,10 @@
   "module": "dist/xstate-graph.esm.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate-graph.cjs.mjs",
+        "default": "./dist/xstate-graph.cjs.js"
+      },
       "module": "./dist/xstate-graph.esm.js",
       "import": "./dist/xstate-graph.cjs.mjs",
       "default": "./dist/xstate-graph.cjs.js"

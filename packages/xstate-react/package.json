@@ -19,16 +19,40 @@
   "module": "dist/xstate-react.esm.js",
   "exports": {
     "./fsm": {
+      "types": {
+        "import": "./fsm/dist/xstate-react-fsm.cjs.mjs",
+        "default": "./fsm/dist/xstate-react-fsm.cjs.js"
+      },
+      "development": {
+        "module": "./fsm/dist/xstate-react-fsm.development.esm.js",
+        "import": "./fsm/dist/xstate-react-fsm.development.cjs.mjs",
+        "default": "./fsm/dist/xstate-react-fsm.development.cjs.js"
+      },
       "module": "./fsm/dist/xstate-react-fsm.esm.js",
       "import": "./fsm/dist/xstate-react-fsm.cjs.mjs",
       "default": "./fsm/dist/xstate-react-fsm.cjs.js"
     },
     ".": {
+      "types": {
+        "import": "./dist/xstate-react.cjs.mjs",
+        "default": "./dist/xstate-react.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-react.development.esm.js",
+        "import": "./dist/xstate-react.development.cjs.mjs",
+        "default": "./dist/xstate-react.development.cjs.js"
+      },
       "module": "./dist/xstate-react.esm.js",
       "import": "./dist/xstate-react.cjs.mjs",
       "default": "./dist/xstate-react.cjs.js"
     },
     "./package.json": "./package.json"
+  },
+  "imports": {
+    "#is-development": {
+      "development": "./src/true.ts",
+      "default": "./src/false.ts"
+    }
   },
   "types": "dist/xstate-react.cjs.d.ts",
   "sideEffects": false,

@@ -1,7 +1,7 @@
+import isDevelopment from '#is-development';
 import { AnyActorBehavior, AnyState } from './index.ts';
 import { errorExecution, errorPlatform } from './actionTypes.ts';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
-import { IS_PRODUCTION } from './environment.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
   ActorBehavior,
@@ -301,30 +301,6 @@ export function partition<T, A extends T, B extends T>(
   return [truthy, falsy];
 }
 
-// tslint:disable-next-line:no-empty
-export let warn: (
-  condition: boolean | Error,
-  message: string
-) => void = () => {};
-
-if (!IS_PRODUCTION) {
-  warn = (condition: boolean | Error, message: string) => {
-    const error = condition instanceof Error ? condition : undefined;
-    if (!error && condition) {
-      return;
-    }
-
-    if (console !== undefined) {
-      const args: [string, ...any[]] = [`Warning: ${message}`];
-      if (error) {
-        args.push(error);
-      }
-      // tslint:disable-next-line:no-console
-      console.warn.apply(console, args);
-    }
-  };
-}
-
 export function isArray(value: any): value is any[] {
   return Array.isArray(value);
 }
@@ -410,7 +386,7 @@ export function reportUnhandledExceptionOnInvocation(
   currentError: any,
   id: string
 ) {
-  if (!IS_PRODUCTION) {
+  if (isDevelopment) {
     const originalStackTrace = originalError.stack
       ? ` Stacktrace was '${originalError.stack}'`
       : '';

@@ -17,6 +17,10 @@
   "module": "dist/xstate-scxml.esm.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate-scxml.cjs.mjs",
+        "default": "./dist/xstate-scxml.cjs.js"
+      },
       "module": "./dist/xstate-scxml.esm.js",
       "import": "./dist/xstate-scxml.cjs.mjs",
       "default": "./dist/xstate-scxml.cjs.js"

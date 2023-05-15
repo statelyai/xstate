@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import { EventObject, InvokeDefinition, MachineContext } from '../types.ts';
 import { invoke as invokeActionType } from '../actionTypes.ts';
 import { isActorRef } from '../actors/index.ts';
@@ -9,10 +10,9 @@ import {
   InvokeActionObject
 } from '../index.ts';
 import { actionTypes, error } from '../actions.ts';
-import { resolveReferencedActor, warn } from '../utils.ts';
+import { resolveReferencedActor } from '../utils.ts';
 import { ActorStatus, interpret } from '../interpreter.ts';
 import { cloneState } from '../State.ts';
-import { IS_PRODUCTION } from '../environment.ts';
 
 export function invoke<
   TContext extends MachineContext,
@@ -92,9 +92,8 @@ export function invoke<
         const parent = actorCtx.self as AnyInterpreter;
         const { id, ref } = resolvedInvokeAction.params;
         if (!ref) {
-          if (!IS_PRODUCTION) {
-            warn(
-              false,
+          if (isDevelopment) {
+            console.warn(
               `Actor type '${resolvedInvokeAction.params.src}' not found in machine '${actorCtx.id}'.`
             );
           }

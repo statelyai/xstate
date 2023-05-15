@@ -19,11 +19,19 @@
   "module": "dist/xstate-vue.esm.js",
   "exports": {
     "./fsm": {
+      "types": {
+        "import": "./fsm/dist/xstate-vue-fsm.cjs.mjs",
+        "default": "./fsm/dist/xstate-vue-fsm.cjs.js"
+      },
       "module": "./fsm/dist/xstate-vue-fsm.esm.js",
       "import": "./fsm/dist/xstate-vue-fsm.cjs.mjs",
       "default": "./fsm/dist/xstate-vue-fsm.cjs.js"
     },
     ".": {
+      "types": {
+        "import": "./dist/xstate-vue.cjs.mjs",
+        "default": "./dist/xstate-vue.cjs.js"
+      },
       "module": "./dist/xstate-vue.esm.js",
       "import": "./dist/xstate-vue.cjs.mjs",
       "default": "./dist/xstate-vue.cjs.js"

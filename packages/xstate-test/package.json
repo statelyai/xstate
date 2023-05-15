@@ -23,10 +23,11 @@
   },
   "exports": {
     ".": {
-      "module": {
-        "browser": "./dist/xstate-test.browser.esm.js",
-        "default": "./dist/xstate-test.esm.js"
+      "types": {
+        "import": "./dist/xstate-test.cjs.mjs",
+        "default": "./dist/xstate-test.cjs.js"
       },
+      "module": "./dist/xstate-test.esm.js",
       "import": "./dist/xstate-test.cjs.mjs",
       "default": "./dist/xstate-test.cjs.js"
     },
@@ -53,12 +54,5 @@
   },
   "dependencies": {
     "@xstate/graph": "^2.0.0-alpha.1"
-  },
-  "preconstruct": {
-    "exports": {
-      "envConditions": [
-        "browser"
-      ]
-    }
   }
 }
