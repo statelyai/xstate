@@ -1,8 +1,13 @@
-import { EventObject, AnyStateMachine, StateFrom, EventFrom } from 'xstate';
+import {
+  EventObject,
+  AnyStateMachine,
+  StateFrom,
+  EventFrom,
+  ActorBehavior
+} from 'xstate';
 import {
   SerializedEvent,
   SerializedState,
-  SimpleBehavior,
   StatePath,
   TraversalOptions,
   VisitedContext
@@ -19,15 +24,18 @@ export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
     createDefaultMachineOptions(machine)
   );
 
-  return getSimplePaths(machine as SimpleBehavior<any, any>, resolvedOptions);
+  return getSimplePaths(machine as any, resolvedOptions);
 }
 
 export function getSimplePaths<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
+  behavior: ActorBehavior<TEvent, TState>,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const fromState = resolvedOptions.fromState ?? behavior.initialState;
+  const actorContext = undefined as any; // TODO: figure out the simulation API
+  const fromState =
+    resolvedOptions.fromState ??
+    behavior.getInitialState(actorContext, undefined);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;

@@ -849,10 +849,10 @@ describe('actors', () => {
       }
     });
 
-    const { initialState } = nullActorMachine;
-
-    // expect(initialState.context.ref!.id).toBe('null'); // TODO: identify null actors
-    expect(initialState.context.ref!.send).toBeDefined();
+    // expect(interpret(nullActorMachine).getSnapshot().context.ref!.id).toBe('null'); // TODO: identify null actors
+    expect(
+      interpret(nullActorMachine).getSnapshot().context.ref!.send
+    ).toBeDefined();
   });
 
   describe('with behaviors', () => {

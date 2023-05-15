@@ -1736,10 +1736,24 @@ describe('invoke', () => {
     });
 
     it('should be able to be stringified', () => {
-      const waitingState = fetcherMachine.transition(
-        fetcherMachine.initialState,
-        { type: 'GO_TO_WAITING' }
-      );
+      const machine = createMachine({
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              GO_TO_WAITING: 'waiting'
+            }
+          },
+          waiting: {
+            invoke: {
+              src: fromCallback(() => {})
+            }
+          }
+        }
+      });
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'GO_TO_WAITING' });
+      const waitingState = actorRef.getSnapshot();
 
       expect(() => {
         JSON.stringify(waitingState);
@@ -2963,7 +2977,7 @@ describe('invoke', () => {
       );
 
       expect(
-        machine.initialState.children['machine.a:invocation[0]']
+        interpret(machine).getSnapshot().children['machine.a:invocation[0]']
       ).toBeDefined();
     }
   );

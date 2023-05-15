@@ -5,7 +5,7 @@ describe('custom test models', () => {
   it('tests any behavior', async () => {
     const model = new TestModel(
       {
-        initialState: 15,
+        getInitialState: () => 15,
         transition: (value, event) => {
           if (event.type === 'even') {
             return value / 2;
@@ -34,7 +34,7 @@ describe('custom test models', () => {
 
     const model = new TestModel(
       {
-        initialState: 15,
+        getInitialState: () => 15,
         transition: (value, event) => {
           if (event.type === 'even') {
             return value / 2;

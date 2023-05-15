@@ -328,7 +328,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(machine.initialState);
+    acceptState(interpret(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -342,7 +342,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(machine.initialState);
+    acceptState(interpret(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });

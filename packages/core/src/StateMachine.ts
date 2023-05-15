@@ -231,22 +231,19 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue = this
-      .initialState,
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
     event: TEvent,
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const currentState =
-      state instanceof State ? state : this.resolveStateValue(state);
     // TODO: handle error events in a better way
     if (
       isErrorEvent(event) &&
-      !currentState.nextEvents.some((nextEvent) => nextEvent === event.type)
+      !state.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
       throw event.data;
     }
 
-    const { state: nextState } = macrostep(currentState, event, actorCtx);
+    const { state: nextState } = macrostep(state, event, actorCtx);
 
     return nextState;
   }
@@ -259,9 +256,9 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
     event: TEvent,
-    actorCtx?: AnyActorContext | undefined
+    actorCtx: AnyActorContext
   ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
     return macrostep(state, event, actorCtx).microstates;
   }
@@ -278,7 +275,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: AnyActorContext | undefined,
+    actorCtx: AnyActorContext,
     input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions(actorCtx, input);
@@ -313,21 +310,10 @@ export class StateMachine<
   }
 
   /**
-   * The initial State instance, which includes all actions to be executed from
-   * entering the initial state.
-   */
-  public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
-    return this.getInitialState();
-  }
-
-  /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx?: ActorContext<
-      TEvent,
-      State<TContext, TEvent, TResolvedTypesMeta>
-    >,
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>,
     input?: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
