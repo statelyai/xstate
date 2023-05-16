@@ -1,4 +1,4 @@
-import { interval } from 'rxjs';
+import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import {
   actionTypes,
@@ -1939,6 +1939,23 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should work with input', (done) => {
+      const machine = createMachine({
+        invoke: {
+          src: fromObservable(({ input }) => of(input)),
+          input: 42,
+          onSnapshot: {
+            actions: ({ event }) => {
+              expect(event.data).toEqual(42);
+              done();
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
+    });
   });
 
   describe('with event observables', () => {
@@ -2083,6 +2100,30 @@ describe('invoke', () => {
           done();
         })
         .start();
+    });
+
+    it('should work with input', (done) => {
+      const machine = createMachine({
+        invoke: {
+          src: fromEventObservable(({ input }) =>
+            of({
+              type: 'obs.event',
+              value: input
+            })
+          ),
+          input: 42
+        },
+        on: {
+          'obs.event': {
+            actions: ({ event }) => {
+              expect(event.value).toEqual(42);
+              done();
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
     });
   });
 

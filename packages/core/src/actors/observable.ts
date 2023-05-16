@@ -182,11 +182,12 @@ export function fromEventObservable<T extends EventObject>(
           return state;
       }
     },
-    getInitialState: () => {
+    getInitialState: (_, input) => {
       return {
         subscription: undefined,
         status: 'active',
-        data: undefined
+        data: undefined,
+        input
       };
     },
     start: (state, { self }) => {
