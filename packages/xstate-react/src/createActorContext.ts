@@ -11,7 +11,8 @@ import {
   MarkAllImplementationsAsProvided,
   StateMachine,
   EventFromBehavior,
-  AnyActorBehavior
+  AnyActorBehavior,
+  AnyActorRef
 } from 'xstate';
 
 type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
@@ -91,7 +92,7 @@ export function createActorContext<TBehavior extends AnyActorBehavior>(
   }
 
   Provider.displayName = `ActorProvider(${
-    machine.id ?? machine.transition.name
+    (machine as unknown as AnyStateMachine).id ?? machine.transition.name
   })`;
 
   function useContext(): ActorRefFrom<TBehavior> {
@@ -122,7 +123,7 @@ export function createActorContext<TBehavior extends AnyActorBehavior>(
     const actor = useContext();
     const state = useSelector((s) => s);
 
-    return [state, actor.send, actor];
+    return [state, (actor as AnyActorRef).send, actor];
   }
 
   return {
