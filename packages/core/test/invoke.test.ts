@@ -1748,6 +1748,29 @@ describe('invoke', () => {
       expect(() => service.start()).toThrow();
     });
 
+    it('should work with input', (done) => {
+      const machine = createMachine({
+        types: {} as {
+          context: { foo: string };
+        },
+        initial: 'start',
+        context: { foo: 'bar' },
+        states: {
+          start: {
+            invoke: {
+              src: fromCallback((_sendBack, _onReceive, { input }) => {
+                expect(input).toEqual({ foo: 'bar' });
+                done();
+              }),
+              input: ({ context }) => context
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
+    });
+
     describe('sub invoke race condition', () => {
       const anotherChildMachine = createMachine({
         id: 'child',
