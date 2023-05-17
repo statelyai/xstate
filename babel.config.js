@@ -19,6 +19,7 @@ const stripSymbolObservableMethodPlugin = ({ types: t }) => {
 
 module.exports = {
   assumptions: {
+    constantReexports: true, // only matters for tests (since only there we transpile to CJS using Babel), it makes debugging easier
     setClassMethods: true,
     setComputedProperties: true,
     setPublicClassFields: true,
@@ -35,7 +36,9 @@ module.exports = {
           // and thus it's the user's responsibility to downlevel the code to what they need.
           node: 16
         },
-        exclude: ['@babel/plugin-proposal-class-properties']
+        exclude: [
+          '@babel/plugin-proposal-optional-chaining' // despite being supported by node 16 optional chaining was still transpiled by some reason
+        ]
       }
     ],
     ['@babel/preset-react', { runtime: 'automatic' }],
