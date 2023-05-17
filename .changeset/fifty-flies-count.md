@@ -2,7 +2,7 @@
 '@xstate/react': major
 ---
 
-The Context object returned from `createActorContext(...)` now provides a `.useSnapshot()` hook, which replaces `useActor()`:
+The Context object returned from `createActorContext(...)` now provides a `.useSnapshot()` hook, which replaces what was previously provided as `.useActor()`:
 
 ```ts
 // instead of this:
