@@ -17,20 +17,19 @@ const stripSymbolObservableMethodPlugin = ({ types: t }) => {
   };
 };
 
-// TODO: consider enabling loose mode
 module.exports = {
   presets: [
     [
       '@babel/preset-env',
       {
-        // we want to test files transpiled in the very same way as when we build dist files
-        // we don't use async functions in our public APIs though, so we can skip transforms related to them safely
-        exclude: isTest
-          ? [
-              '@babel/plugin-transform-async-to-generator',
-              '@babel/plugin-transform-regenerator'
-            ]
-          : []
+        targets: {
+          // Even though our packages are not node-only, we can use this as an approximation of the "target syntax level"
+          // as Babel doesn't support targets like "ES2022". We currently target the latest LTS version of node here.
+          // When targeting browsers, the code is usually going through some kind of bundler anyway
+          // and thus it's the user's responsibility to downlevel the code to what they need.
+          node: 16
+        },
+        exclude: ['@babel/plugin-proposal-class-properties']
       }
     ],
     ['@babel/preset-react', { runtime: 'automatic' }],
@@ -63,6 +62,6 @@ module.exports = {
   ],
   plugins: [
     stripSymbolObservableMethodPlugin,
-    '@babel/proposal-class-properties'
+    ['@babel/proposal-class-properties', { loose: true }]
   ]
 };
