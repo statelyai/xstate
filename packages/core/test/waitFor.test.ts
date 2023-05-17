@@ -111,6 +111,18 @@ describe('waitFor', () => {
     ).resolves.toHaveProperty('value', 'a');
   });
 
+  it('should not subscribe when the predicate immediately matches', () => {
+    const machine = createMachine({});
+
+    const actorRef = interpret(machine).start();
+    const spy = jest.fn();
+    actorRef.subscribe = spy;
+
+    waitFor(actorRef, () => true).then(() => {});
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it('should internally unsubscribe when the predicate immediately matches the current state', async () => {
     let count = 0;
     const machine = createMachine({
