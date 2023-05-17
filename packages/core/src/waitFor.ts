@@ -73,12 +73,14 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
       }
     }
 
+    let sub: Subscription | undefined; // avoid TDZ when disposing synchronously
+
     // See if the current snapshot already matches the predicate
     checkEmitted(actorRef.getSnapshot());
     if (done) {
       return;
     }
-    let sub: Subscription | undefined; // avoid TDZ when disposing synchronously
+
     sub = actorRef.subscribe({
       next: checkEmitted,
       error: (err) => {
