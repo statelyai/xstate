@@ -35,7 +35,7 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
     : never;
 
 export function createActorContext<TBehavior extends AnyActorBehavior>(
-  machine: TBehavior,
+  behavior: TBehavior,
   interpreterOptions?: InterpreterOptions<TBehavior>,
   observerOrListener?:
     | Observer<SnapshotFrom<TBehavior>>
@@ -59,13 +59,13 @@ export function createActorContext<TBehavior extends AnyActorBehavior>(
           TBehavior['__TResolvedTypesMeta']
         > extends true
         ? {
-            machine?: TBehavior;
+            logic?: TBehavior;
           }
         : {
-            machine: ToMachinesWithProvidedImplementations<TBehavior>;
+            logic: ToMachinesWithProvidedImplementations<TBehavior>;
           }
       : {
-          machine?: TBehavior;
+          logic?: TBehavior;
         })
   ) => React.ReactElement<any, any>;
 } {
@@ -77,13 +77,13 @@ export function createActorContext<TBehavior extends AnyActorBehavior>(
 
   function Provider({
     children,
-    machine: providedMachine = machine
+    logic = behavior
   }: {
     children: React.ReactNode;
-    machine: TBehavior;
+    logic: TBehavior;
   }) {
     const actor = (useActorRef as any)(
-      providedMachine,
+      logic,
       interpreterOptions,
       observerOrListener
     ) as ActorRefFrom<TBehavior>;
@@ -91,9 +91,7 @@ export function createActorContext<TBehavior extends AnyActorBehavior>(
     return React.createElement(OriginalProvider, { value: actor, children });
   }
 
-  Provider.displayName = `ActorProvider(${
-    (machine as unknown as AnyStateMachine).id ?? machine.transition.name
-  })`;
+  Provider.displayName = 'ActorProvider'; // TODO: specific display names based on actor ID?
 
   function useContext(): ActorRefFrom<TBehavior> {
     const actor = React.useContext(ReactContext);
