@@ -18,6 +18,12 @@ const stripSymbolObservableMethodPlugin = ({ types: t }) => {
 };
 
 module.exports = {
+  assumptions: {
+    setClassMethods: true,
+    setComputedProperties: true,
+    setPublicClassFields: true,
+    setSpreadProperties: true
+  },
   presets: [
     [
       '@babel/preset-env',
@@ -62,6 +68,6 @@ module.exports = {
   ],
   plugins: [
     stripSymbolObservableMethodPlugin,
-    ['@babel/proposal-class-properties', { loose: true }]
+    '@babel/proposal-class-properties'
   ]
 };
