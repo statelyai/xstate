@@ -1,5 +1,22 @@
 # xstate
 
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- [#4020](https://github.com/statelyai/xstate/pull/4020) [`7898731b5`](https://github.com/statelyai/xstate/commit/7898731b5738ce73a7441d528b5920c946d33b5f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `fromEventObservable` actor logic creator now accepts `input`:
+
+  ```ts
+  const machine = createMachine({
+    invoke: {
+      src: fromEventObservable(({ input }) => /* ... */),
+      input: {
+        foo: 'bar'
+      }
+    }
+  });
+  ```
+
 ## 5.0.0-beta.10
 
 ### Major Changes
