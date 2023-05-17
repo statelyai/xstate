@@ -1,5 +1,5 @@
 ---
-'xstate': major
+'xstate': patch
 ---
 
 The `fromEventObservable` actor logic creator now accepts `input`:
