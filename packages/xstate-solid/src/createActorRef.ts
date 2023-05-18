@@ -8,14 +8,12 @@ export function createActorRef<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
   ...[options = {}]: RestParams<TBehavior>
 ): ActorRefFrom<TBehavior> {
-  const machineWithConfig = behavior;
-
-  const service = interpret(machineWithConfig, options);
+  const actorRef = interpret(behavior, options);
 
   if (!isServer) {
-    service.start();
-    onCleanup(() => service.stop());
+    actorRef.start();
+    onCleanup(() => actorRef.stop());
   }
 
-  return service as unknown as ActorRefFrom<TBehavior>;
+  return actorRef as unknown as ActorRefFrom<TBehavior>;
 }
