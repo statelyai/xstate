@@ -38,8 +38,7 @@ function isStateLike(state: any): state is AnyState {
     typeof state === 'object' &&
     'value' in state &&
     'context' in state &&
-    'event' in state &&
-    '_event' in state
+    'event' in state
   );
 }
 

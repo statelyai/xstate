@@ -12,7 +12,6 @@ import {
   ActorRef,
   cancel,
   raise,
-  sendTo,
   stop,
   log
 } from '../src/index.ts';
@@ -22,7 +21,6 @@ import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
-import { respond } from '../src/actions.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -356,10 +354,10 @@ describe('interpreter', () => {
             entry: raise(
               { type: 'FINISH' },
               {
-                delay: ({ context, _event }) =>
+                delay: ({ context, event }) =>
                   context.initialDelay +
                   (
-                    _event.data as Extract<
+                    event as Extract<
                       DelayExpMachineEvents,
                       { type: 'ACTIVATE' }
                     >
@@ -799,7 +797,7 @@ describe('interpreter', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+          "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
       Event: {"type":"TIMER"}",
         ],
       ]
@@ -838,82 +836,9 @@ describe('interpreter', () => {
     expect(logs).toEqual([{ count: 1 }, { count: 2 }]);
   });
 
-  it('should be able to log event origin (log action)', () => {
+  it('should receive correct event (log action)', () => {
     const logs: any[] = [];
-    const logAction = log(({ event, _event }) => ({
-      event: event.type,
-      origin: _event.origin
-    }));
-
-    const childMachine = createMachine({
-      initial: 'bar',
-      states: {
-        bar: {}
-      },
-      on: {
-        PING: {
-          actions: [respond({ type: 'PONG' })]
-        }
-      }
-    });
-
-    const parentMachine = createMachine({
-      initial: 'foo',
-      states: {
-        foo: {
-          invoke: {
-            id: 'child',
-            src: childMachine
-          }
-        }
-      },
-      on: {
-        PING_CHILD: {
-          actions: [sendTo('child', { type: 'PING' }), logAction]
-        },
-        '*': {
-          actions: [logAction]
-        }
-      }
-    });
-
-    const service = interpret(parentMachine, {
-      logger: (msg) => logs.push(msg)
-    }).start();
-
-    service.send({ type: 'PING_CHILD' });
-    service.send({ type: 'PING_CHILD' });
-
-    expect(logs.length).toBe(4);
-    expect(logs).toMatchInlineSnapshot(`
-      [
-        {
-          "event": "PING_CHILD",
-          "origin": undefined,
-        },
-        {
-          "event": "PONG",
-          "origin": {
-            "id": "child",
-          },
-        },
-        {
-          "event": "PING_CHILD",
-          "origin": undefined,
-        },
-        {
-          "event": "PONG",
-          "origin": {
-            "id": "child",
-          },
-        },
-      ]
-    `);
-  });
-
-  it('should receive correct _event (log action)', () => {
-    const logs: any[] = [];
-    const logAction = log(({ _event }) => _event.data.type);
+    const logAction = log(({ event }) => event.type);
 
     const parentMachine = createMachine({
       initial: 'foo',
@@ -1278,7 +1203,7 @@ describe('interpreter', () => {
         expect(console.warn).toMatchMockCallsInlineSnapshot(`
           [
             [
-              "Warning: Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+              "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
           Event: {"type":"TRIGGER"}",
             ],
           ]

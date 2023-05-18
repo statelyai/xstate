@@ -4,8 +4,7 @@ import {
   Spawner,
   ActorRef,
   MachineContext,
-  EventObject,
-  SCXML
+  EventObject
 } from './index.ts';
 import { invoke } from './actions/invoke.ts';
 import { interpret } from './interpreter.ts';
@@ -18,7 +17,7 @@ export function createSpawner<
   self: ActorRef<any, any> | undefined,
   machine: AnyStateMachine,
   context: TContext,
-  _event: SCXML.Event<TEvent>,
+  event: TEvent,
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
   return (src, options = {}) => {
@@ -37,7 +36,7 @@ export function createSpawner<
             typeof input === 'function'
               ? input({
                   context,
-                  event: _event.data,
+                  event,
                   self
                 })
               : input

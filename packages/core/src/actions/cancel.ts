@@ -37,12 +37,11 @@ export function cancel<
         sendId
       }
     },
-    (_event, { state, actorContext }) => {
+    (event, { state, actorContext }) => {
       const resolvedSendId = isFunction(sendId)
         ? sendId({
             context: state.context,
-            event: _event.data,
-            _event,
+            event,
             self: actorContext?.self ?? ({} as any),
             system: actorContext?.system
           })

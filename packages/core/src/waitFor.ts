@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import { ActorRef, SnapshotFrom } from '.';
 
 interface WaitForOptions {
@@ -46,7 +47,7 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
   };
   return new Promise((res, rej) => {
     let done = false;
-    if (process.env.NODE_ENV !== 'production' && resolvedOptions.timeout < 0) {
+    if (isDevelopment && resolvedOptions.timeout < 0) {
       console.error(
         '`timeout` passed to `waitFor` is negative and it will reject its internal promise immediately.'
       );

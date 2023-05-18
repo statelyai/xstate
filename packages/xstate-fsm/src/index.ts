@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import {
   EventObject,
   InitEvent,
@@ -49,8 +50,6 @@ function toActionObject<TContext extends object, TEvent extends EventObject>(
       }
     : action;
 }
-
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 function createMatcher(value: string) {
   return (stateValue) => value === stateValue;
@@ -116,7 +115,7 @@ export function createMachine<
     actions?: StateMachine.ActionMap<TContext, TEvent>;
   } = {}
 ): StateMachine.Machine<TContext, TEvent, TState> {
-  if (!IS_PRODUCTION) {
+  if (isDevelopment) {
     Object.keys(fsmConfig.states).forEach((state) => {
       if (fsmConfig.states[state].states) {
         throw new Error(`Nested finite states not supported.
@@ -152,7 +151,7 @@ export function createMachine<
           : state;
       const stateConfig = fsmConfig.states[value];
 
-      if (!IS_PRODUCTION && !stateConfig) {
+      if (isDevelopment && !stateConfig) {
         throw new Error(
           `State '${value}' not found on machine ${fsmConfig.id ?? ''}`
         );
@@ -183,7 +182,7 @@ export function createMachine<
           const nextStateValue = target ?? value;
           const nextStateConfig = fsmConfig.states[nextStateValue];
 
-          if (!IS_PRODUCTION && !nextStateConfig) {
+          if (isDevelopment && !nextStateConfig) {
             throw new Error(
               `State '${nextStateValue}' not found on machine ${
                 fsmConfig.id ?? ''
@@ -283,7 +282,7 @@ export function interpret<
           matches: createMatcher(resolved.value)
         };
 
-        if (!IS_PRODUCTION) {
+        if (isDevelopment) {
           if (!(state.value in machine.config.states)) {
             throw new Error(
               `Cannot start service in state '${
