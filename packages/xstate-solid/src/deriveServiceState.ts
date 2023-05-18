@@ -20,7 +20,7 @@ function isState(state: any): state is AnyState {
  * @param prevState {AnyState | unknown}
  */
 export const deriveServiceState = <
-  StateSnapshot extends AnyState,
+  StateSnapshot,
   StateReturnType = CheckSnapshot<StateSnapshot>
 >(
   state: StateSnapshot | unknown,
