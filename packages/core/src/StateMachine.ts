@@ -296,7 +296,6 @@ export class StateMachine<
       })
     );
     preInitial._initial = true;
-    preInitial.actions.unshift(...actions);
 
     if (actorCtx) {
       const { nextState } = resolveActionsAndContext(
@@ -306,7 +305,6 @@ export class StateMachine<
         actorCtx
       );
       preInitial.children = nextState.children;
-      preInitial.actions = nextState.actions;
     }
 
     return preInitial;
@@ -334,7 +332,6 @@ export class StateMachine<
 
     const preInitialState = this.getPreInitialState(actorCtx, input);
     const nextState = microstep([], preInitialState, actorCtx, initEvent);
-    nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(
       nextState,
