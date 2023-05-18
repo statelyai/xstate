@@ -99,7 +99,6 @@ export class Interpreter<
   private delayedEventsMap: Record<string, unknown> = {};
 
   private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
-  private stopListeners: Set<() => void> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -375,9 +374,6 @@ export class Interpreter<
 
     this.status = ActorStatus.Stopped;
     this.system._unregister(this);
-
-    this.stopListeners.forEach((listener) => listener());
-    this.stopListeners.clear();
 
     return this;
   }
