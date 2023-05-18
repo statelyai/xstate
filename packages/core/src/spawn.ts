@@ -21,6 +21,7 @@ export function createSpawner<
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
   return (src, options = {}) => {
+    const { systemId } = options;
     if (isString(src)) {
       const referenced = resolveReferencedActor(machine.options.actors[src]);
 
@@ -49,7 +50,8 @@ export function createSpawner<
             src: actorRef, // TODO
             ref: actorRef,
             meta: undefined,
-            input
+            input,
+            systemId
           }) as any as InvokeActionObject
         );
 
@@ -65,7 +67,8 @@ export function createSpawner<
       const actorRef = interpret(src, {
         id: options.id || 'anonymous',
         parent: self,
-        input: options.input
+        input: options.input,
+        systemId
       });
 
       mutCapturedActions.push(
