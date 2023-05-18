@@ -6,13 +6,7 @@
       "request": "launch",
       "name": "Jest Current File",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": [
-        "${file}",
-        "--config",
-        "jest.config.js",
-        "--no-cache"
-        // "--testTimeout=2147483647"
-      ],
+      "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "disableOptimisticBPs": true,
