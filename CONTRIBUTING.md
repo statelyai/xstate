@@ -41,3 +41,13 @@ Issues and bug reports are also encouraged. If you want to submit an issue:
 3. Ensure you fill out all the details in the issue template to help us understand the issue.
 
 We’ll try to respond promptly and address your issue as soon as possible.
+
+## Contributing to our docs
+
+Our [new docs](https://stately.ai/docs) are now in their own [docs repo](https://github.com/statelyai/docs). [Read the contribution guide for our Stately Studio and XState docs](https://github.com/statelyai/docs/blob/main/CONTRIBUTING.md).
+
+### Legacy docs and xstate.js.org
+
+The docs at `/docs` in this repo are legacy XState docs. They are built using [Vuepress](https://vuepress.vuejs.org) and deployed to [xstate.js.org/docs](https://xstate.js.org/docs) using GitHub pages from the `gh-pages` branch using the `pages build and deployment` workflow.
+
+The [xstate.js.org](https://xstate.js.org) landing page is currently stored at `index.html` and deployed from the `gh-pages` branch using the `pages build and deployment` workflow.
