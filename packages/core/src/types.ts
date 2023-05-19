@@ -127,6 +127,7 @@ export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: rea
   behavior: T,
   options?: Partial<{
     id: string;
+    systemId?: string;
     input: any;
   }>
 ) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>
