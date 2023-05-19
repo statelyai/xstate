@@ -1,12 +1,10 @@
 import { SimulatedClock } from '../src/SimulatedClock';
-import { machine as idMachine } from './fixtures/id';
 import {
   interpret,
   assign,
   sendParent,
   StateValue,
   createMachine,
-  AnyState,
   InterpreterStatus,
   ActorRefFrom,
   ActorRef,
@@ -52,10 +50,16 @@ const lightMachine = createMachine({
 describe('interpreter', () => {
   describe('initial state', () => {
     it('.getSnapshot returns the initial state', () => {
-      const service = interpret(idMachine);
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {}
+        }
+      });
+      const service = interpret(machine);
 
       expect(service.getSnapshot().value).toEqual(
-        idMachine.getInitialState().value
+        machine.getInitialState().value
       );
     });
 
@@ -163,10 +167,6 @@ describe('interpreter', () => {
         }
       });
 
-      const bState = machine.initialState;
-
-      expect(bState.value).toEqual('b');
-
       interpret(machine, { state: machine.resolveStateValue('b') }).start();
 
       expect(aCalled).toBe(false);
@@ -192,57 +192,34 @@ describe('interpreter', () => {
   });
 
   describe('send with delay', () => {
-    it('can send an event after a delay', () => {
-      const currentStates: Array<AnyState> = [];
-
-      const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
-      });
-      service.subscribe((state) => {
-        currentStates.push(state);
-
-        if (currentStates.length === 4) {
-          expect(currentStates.map((s) => s.value)).toEqual([
-            'green',
-            'yellow',
-            'red',
-            'green'
-          ]);
+    it('can send an event after a delay', async () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: [raise({ type: 'TIMER' }, { delay: 10 })],
+            on: {
+              TIMER: 'bar'
+            }
+          },
+          bar: {}
         }
       });
-      const clock = service.clock as SimulatedClock;
-      service.start();
 
-      clock.increment(5);
-      expect(currentStates[0]!.value).toEqual('green');
+      const actorRef = interpret(machine);
+      expect(actorRef.getSnapshot().value).toBe('foo');
 
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
+      await new Promise((res) => setTimeout(res, 10));
+      expect(actorRef.getSnapshot().value).toBe('foo');
 
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
+      actorRef.start();
+      expect(actorRef.getSnapshot().value).toBe('foo');
 
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual([
-        'green',
-        'yellow',
-        'red'
-      ]);
+      await new Promise((res) => setTimeout(res, 5));
+      expect(actorRef.getSnapshot().value).toBe('foo');
 
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual([
-        'green',
-        'yellow',
-        'red'
-      ]);
-
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual([
-        'green',
-        'yellow',
-        'red',
-        'green'
-      ]);
+      await new Promise((res) => setTimeout(res, 10));
+      expect(actorRef.getSnapshot().value).toBe('bar');
     });
 
     it('can send an event after a delay (expression)', () => {

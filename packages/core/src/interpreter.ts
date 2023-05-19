@@ -293,14 +293,19 @@ export class Interpreter<
     }
     this.status = ActorStatus.Running;
 
+    let newState = this._state;
+
     if (this.behavior.start) {
-      this.behavior.start(this._state, this._actorContext);
+      const startedState = this.behavior.start(
+        this._state,
+        this._actorContext
+      ) as any;
+      if (startedState) {
+        newState = startedState;
+      }
     }
 
-    // TODO: this notifies all subscribers but usually this is redundant
-    // there is no real change happening here
-    // we need to rethink if this needs to be refactored
-    this.update(this._state);
+    this.update(newState);
 
     if (this.options.devTools) {
       this.attachDevTools();

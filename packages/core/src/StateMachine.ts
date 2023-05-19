@@ -274,43 +274,6 @@ export class StateMachine<
   }
 
   /**
-   * The initial state _before_ evaluating any microsteps.
-   * This "pre-initial" state is provided to initial actions executed in the initial state.
-   */
-  private getPreInitialState(
-    actorCtx: AnyActorContext | undefined,
-    input: any
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const [context, actions] = this.getContextAndActions(actorCtx, input);
-    const config = getInitialConfiguration(this.root);
-    const preInitial = this.resolveState(
-      this.createState({
-        value: {}, // TODO: this is computed in state constructor
-        context,
-        event: createInitEvent({}) as unknown as TEvent,
-        actions: [],
-        meta: undefined,
-        configuration: config,
-        transitions: [],
-        children: {}
-      })
-    );
-    preInitial._initial = true;
-
-    if (actorCtx) {
-      const { nextState } = resolveActionsAndContext(
-        actions,
-        initEvent as TEvent,
-        preInitial,
-        actorCtx
-      );
-      preInitial.children = nextState.children;
-    }
-
-    return preInitial;
-  }
-
-  /**
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
@@ -328,10 +291,43 @@ export class StateMachine<
     >,
     input?: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
+    const [context, actions] = this.getContextAndActions(actorCtx, input);
+    const config = getInitialConfiguration(this.root);
+    const preInitial = this.resolveState(
+      this.createState({
+        value: {}, // TODO: this is computed in state constructor
+        context,
+        event: createInitEvent({}) as unknown as TEvent,
+        actions: [],
+        meta: undefined,
+        configuration: config,
+        transitions: [],
+        children: {}
+      })
+    );
+    preInitial._initial = true;
 
-    const preInitialState = this.getPreInitialState(actorCtx, input);
-    const nextState = microstep([], preInitialState, actorCtx, initEvent);
+    // TODO: this shouldn't be here?
+    if (actorCtx) {
+      const { nextState } = resolveActionsAndContext(
+        actions,
+        initEvent as TEvent,
+        preInitial,
+        actorCtx
+      );
+      preInitial.children = nextState.children;
+    }
+
+    return preInitial;
+  }
+
+  public start(
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+  ) {
+    // const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
+    const initEvent = createInitEvent({}) as unknown as TEvent; // TODO: fix;
+    const nextState = microstep([], state, actorCtx, initEvent);
 
     const { state: macroState } = macrostep(
       nextState,
@@ -339,17 +335,7 @@ export class StateMachine<
       actorCtx
     );
 
-    return macroState;
-  }
-
-  public start(
-    state: State<TContext, TEvent, TResolvedTypesMeta>,
-    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
-  ): void {
-    state.actions.forEach((action) => {
-      action.execute?.(actorCtx);
-    });
-    Object.values(state.children).forEach((child) => {
+    Object.values(macroState.children).forEach((child: any) => {
       if (child.status === 0) {
         try {
           child.start?.();
@@ -359,6 +345,7 @@ export class StateMachine<
         }
       }
     });
+    return macroState;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
