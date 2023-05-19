@@ -373,7 +373,7 @@ describe('machine', () => {
   });
 
   describe('machine.getInitialState', () => {
-    it('should follow always transition', () => {
+    it('should not follow always transition', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -384,7 +384,7 @@ describe('machine', () => {
         }
       });
 
-      expect(machine.getInitialState().value).toBe('b');
+      expect(machine.getInitialState().value).toBe('a');
     });
   });
 
