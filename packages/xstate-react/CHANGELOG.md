@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- [#4033](https://github.com/statelyai/xstate/pull/4033) [`9cb7cb51a`](https://github.com/statelyai/xstate/commit/9cb7cb51a0ce577d2de508aedf3773d4f80f9d46) Thanks [@Andarist](https://github.com/Andarist)! - Fixed generated TS declaration files to not include `.ts` extensions in the import/export statements.
+
 ## 4.0.0-beta.4
 
 ### Major Changes
