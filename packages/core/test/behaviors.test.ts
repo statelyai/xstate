@@ -529,7 +529,7 @@ describe('machine behavior', () => {
 
   it('should persist a spawned actor with referenced src', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         context: {} as {
           ref: AnyActorRef;
         }
@@ -562,7 +562,7 @@ describe('machine behavior', () => {
 
   it('should not persist a spawned actor with inline src', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         context: {} as {
           ref: AnyActorRef;
         }
