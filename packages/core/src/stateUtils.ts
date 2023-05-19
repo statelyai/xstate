@@ -1132,7 +1132,7 @@ function microstepProcedure(
   const internalQueue = [...currentState._internalQueue];
 
   // Exit states
-  if (!currentState._initial) {
+  if (event.type !== actionTypes.init) {
     exitStates(filteredTransitions, mutConfiguration, historyValue, actions);
   }
 

@@ -332,60 +332,59 @@ describe('guard conditions', () => {
 });
 
 describe('custom guards', () => {
-  interface Ctx {
-    count: number;
-  }
-  interface Events {
-    type: 'EVENT';
-    value: number;
-  }
-  const machine = createMachine<Ctx, Events>(
-    {
-      id: 'custom',
-      initial: 'inactive',
-      context: {
-        count: 0
-      },
-      states: {
-        inactive: {
-          on: {
-            EVENT: {
-              target: 'active',
-              guard: {
-                type: 'custom',
-                params: { prop: 'count', op: 'greaterThan', compare: 3 }
+  it('should evaluate custom guards', () => {
+    interface Ctx {
+      count: number;
+    }
+    interface Events {
+      type: 'EVENT';
+      value: number;
+    }
+    const machine = createMachine<Ctx, Events>(
+      {
+        id: 'custom',
+        initial: 'inactive',
+        context: {
+          count: 0
+        },
+        states: {
+          inactive: {
+            on: {
+              EVENT: {
+                target: 'active',
+                guard: {
+                  type: 'custom',
+                  params: { prop: 'count', op: 'greaterThan', compare: 3 }
+                }
               }
             }
-          }
-        },
-        active: {}
-      }
-    },
-    {
-      guards: {
-        custom: ({ context, event, guard }) => {
-          const { prop, compare, op } = guard.params;
-          if (op === 'greaterThan') {
-            return (
-              context[prop as keyof typeof context] + event.value > compare
-            );
-          }
+          },
+          active: {}
+        }
+      },
+      {
+        guards: {
+          custom: ({ context, event, guard }) => {
+            const { prop, compare, op } = guard.params;
+            if (op === 'greaterThan') {
+              return (
+                context[prop as keyof typeof context] + event.value > compare
+              );
+            }
 
-          return false;
+            return false;
+          }
         }
       }
-    }
-  );
-
-  it('should evaluate custom guards', () => {
-    const passState = machine.transition(machine.initialState, {
+    );
+    const passState = machine.transition(machine.getInitialState(), {
       type: 'EVENT',
       value: 4
     });
 
     expect(passState.value).toEqual('active');
 
-    const failState = machine.transition(machine.initialState, {
+    const failState = machine.transition(machine.getInitialState(), {
       type: 'EVENT',
       value: 3
     });
