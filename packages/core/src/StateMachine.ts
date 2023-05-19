@@ -297,7 +297,7 @@ export class StateMachine<
       this.createState({
         value: {}, // TODO: this is computed in state constructor
         context,
-        event: createInitEvent({}) as unknown as TEvent,
+        event: createInitEvent(input) as unknown as TEvent,
         actions: [],
         meta: undefined,
         configuration: config,
@@ -325,8 +325,9 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ) {
-    // const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
-    const initEvent = createInitEvent({}) as unknown as TEvent; // TODO: fix;
+    const initEvent = createInitEvent(
+      (state.event as any).input
+    ) as unknown as TEvent; // TODO: fix;
     const nextState = microstep([], state, actorCtx, initEvent);
 
     const { state: macroState } = macrostep(
