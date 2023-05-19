@@ -1,9 +1,4 @@
-import {
-  SerializationConfig,
-  SerializedEvent,
-  SerializedState,
-  StatePath
-} from '@xstate/graph';
+import { SerializationConfig, StatePath } from '@xstate/graph';
 import { AnyState, MachineContext } from 'xstate';
 import { TestMeta, TestPathResult } from './types.ts';
 
@@ -22,10 +17,8 @@ export function formatPathTestResult(
 ): string {
   const resolvedOptions: TestResultStringOptions = {
     formatColor: (_color, string) => string,
-    serializeState: (state, _event) =>
-      simpleStringify(state) as SerializedState,
-    serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
-    eventCases: {},
+    serializeState: simpleStringify,
+    serializeEvent: simpleStringify,
     ...options
   };
 

@@ -22,33 +22,6 @@ function checkConsoleErrorOutputForMissingProvider() {
 }
 
 describe('createActorContext', () => {
-  it('should work with useActor', () => {
-    const someMachine = createMachine({
-      initial: 'a',
-      states: { a: {} }
-    });
-
-    const SomeContext = createActorContext(someMachine);
-
-    const Component = () => {
-      const [state] = SomeContext.useActor();
-
-      return <div data-testid="value">{state.value}</div>;
-    };
-
-    const App = () => {
-      return (
-        <SomeContext.Provider>
-          <Component />
-        </SomeContext.Provider>
-      );
-    };
-
-    render(<App />);
-
-    expect(screen.getByTestId('value').textContent).toBe('a');
-  });
-
   it('should work with useSelector', () => {
     const someMachine = createMachine({
       initial: 'a',
@@ -92,12 +65,16 @@ describe('createActorContext', () => {
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const [state, send] = SomeContext.useActor();
+      const actorRef = SomeContext.useActorRef();
+      const state = SomeContext.useSelector((s) => s);
 
       return (
         <>
           <div data-testid="value">{state.value}</div>
-          <button data-testid="next" onClick={() => send({ type: 'NEXT' })}>
+          <button
+            data-testid="next"
+            onClick={() => actorRef.send({ type: 'NEXT' })}
+          >
             Next
           </button>
         </>
@@ -244,9 +221,11 @@ describe('createActorContext', () => {
       return <div data-testid="value">{count}</div>;
     };
 
+    const otherMachine = createSomeMachine({ count: 42 });
+
     const App = () => {
       return (
-        <SomeContext.Provider machine={() => createSomeMachine({ count: 42 })}>
+        <SomeContext.Provider machine={otherMachine}>
           <Component />
         </SomeContext.Provider>
       );
@@ -263,21 +242,6 @@ describe('createActorContext', () => {
 
     const App = () => {
       SomeContext.useActorRef();
-      return null;
-    };
-
-    expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component."`
-    );
-    checkConsoleErrorOutputForMissingProvider();
-  });
-
-  it('useActor should throw when the actor was not provided', () => {
-    console.error = jest.fn();
-    const SomeContext = createActorContext(createMachine({}));
-
-    const App = () => {
-      SomeContext.useActor();
       return null;
     };
 
@@ -321,12 +285,11 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          machine={someMachine}
-          options={{
+          machine={someMachine.provide({
             actions: {
               testAction: stubFn
             }
-          }}
+          })}
         >
           <Component />
         </SomeContext.Provider>

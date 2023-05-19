@@ -1,145 +1,7 @@
-import {
-  createMachine,
-  sendParent,
-  interpret,
-  assign,
-  AnyActorRef
-} from '../src/index.ts';
-import { respond } from '../src/actions';
-import { send, sendTo } from '../src/actions/send';
-import { fromCallback } from '../src/actors/callback';
+import { createMachine, interpret, assign, AnyActorRef } from '../src/index.ts';
+import { sendTo } from '../src/actions/send';
 
-describe('SCXML events', () => {
-  it('should have the origin (id) from the sending machine service', (done) => {
-    const childMachine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: sendParent({ type: 'EVENT' })
-        }
-      }
-    });
-
-    const parentMachine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          invoke: {
-            id: 'child',
-            src: childMachine
-          },
-          on: {
-            EVENT: {
-              target: 'success',
-              guard: ({ _event }) => {
-                return !!_event.origin;
-              }
-            }
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-
-    interpret(parentMachine)
-      .onDone(() => done())
-      .start();
-  });
-
-  it('should have the origin (id) from the sending callback service', (done) => {
-    const machine = createMachine<{ childOrigin?: string }>({
-      initial: 'active',
-      context: {},
-      states: {
-        active: {
-          invoke: {
-            id: 'callback_child',
-            src: fromCallback((sendBack) => sendBack({ type: 'EVENT' }))
-          },
-          on: {
-            EVENT: {
-              target: 'success',
-              actions: assign({
-                childOrigin: ({ _event }) => {
-                  return _event.origin?.id;
-                }
-              })
-            }
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-
-    const actor = interpret(machine);
-    actor.subscribe((state) => {
-      if (state.done) {
-        expect(state.context.childOrigin).toEqual('callback_child');
-        done();
-      }
-    });
-    actor.start();
-  });
-
-  it('respond() should be able to respond to sender', (done) => {
-    const authServerMachine = createMachine({
-      id: 'authServer',
-      initial: 'waitingForCode',
-      states: {
-        waitingForCode: {
-          on: {
-            CODE: {
-              actions: respond(
-                { type: 'TOKEN' },
-                {
-                  delay: 10
-                }
-              )
-            }
-          }
-        }
-      }
-    });
-
-    const authClientMachine = createMachine({
-      id: 'authClient',
-      initial: 'idle',
-      states: {
-        idle: {
-          on: { AUTH: 'authorizing' }
-        },
-        authorizing: {
-          invoke: {
-            id: 'auth-server',
-            src: authServerMachine
-          },
-          entry: send(
-            { type: 'CODE' },
-            {
-              to: 'auth-server'
-            }
-          ),
-          on: {
-            TOKEN: 'authorized'
-          }
-        },
-        authorized: {
-          type: 'final'
-        }
-      }
-    });
-
-    const service = interpret(authClientMachine)
-      .onDone(() => done())
-      .start();
-
-    service.send({ type: 'AUTH' });
-  });
-
+describe('events', () => {
   it('should be able to respond to sender by sending self', (done) => {
     const authServerMachine = createMachine({
       types: {
@@ -191,9 +53,9 @@ describe('SCXML events', () => {
       }
     });
 
-    const service = interpret(authClientMachine)
-      .onDone(() => done())
-      .start();
+    const service = interpret(authClientMachine);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
     service.send({ type: 'AUTH' });
   });

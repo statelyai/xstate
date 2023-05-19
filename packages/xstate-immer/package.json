@@ -16,7 +16,12 @@
   "module": "dist/xstate-immer.esm.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate-immer.cjs.mjs",
+        "default": "./dist/xstate-immer.cjs.js"
+      },
       "module": "./dist/xstate-immer.esm.js",
+      "import": "./dist/xstate-immer.cjs.mjs",
       "default": "./dist/xstate-immer.cjs.js"
     },
     "./package.json": "./package.json"
@@ -36,10 +41,10 @@
   "dependencies": {},
   "peerDependencies": {
     "immer": "^9.0.6",
-    "xstate": "^5.0.0-beta.7"
+    "xstate": "^5.0.0-beta.12"
   },
   "devDependencies": {
     "immer": "^9.0.6",
-    "xstate": "5.0.0-beta.7"
+    "xstate": "5.0.0-beta.12"
   }
 }

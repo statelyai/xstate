@@ -7,10 +7,33 @@ import {
   createMachine,
   BaseActionObject,
   AnyStateMachine,
-  StateMeta
+  StateMeta,
+  sendTo,
+  log,
+  raise,
+  assign,
+  cancel,
+  choose,
+  AnyStateNode
 } from 'xstate';
-import * as actions from 'xstate/actions';
 import { not, stateIn } from 'xstate/guards';
+
+function appendWildcards(state: AnyStateNode) {
+  for (const t of state.transitions) {
+    if (
+      typeof t.eventType === 'string' &&
+      !!t.eventType &&
+      t.eventType !== '*' &&
+      !t.eventType.endsWith('.*')
+    ) {
+      t.eventType = `${t.eventType}.*`;
+    }
+  }
+
+  for (const key of Object.keys(state.states)) {
+    appendWildcards(state.states[key]);
+  }
+}
 
 export function mapValues<P, O extends Record<string, unknown>>(
   collection: O,
@@ -121,8 +144,8 @@ const evaluateExecutableContent = <
   TEvent extends EventObject
 >(
   context: TContext,
-  _ev: TEvent,
-  meta: StateMeta<TEvent>,
+  event: TEvent,
+  _meta: StateMeta<TEvent>,
   body: string
 ) => {
   const datamodel = context
@@ -143,7 +166,7 @@ const evaluateExecutableContent = <
   `;
 
   const fn = new Function(...args, fnBody);
-  return fn(context, meta._event);
+  return fn(context, { name: event.type, data: event });
 };
 
 function createGuard<
@@ -173,12 +196,12 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<any, any>({
+      return raise<any, any>({
         type: element.attributes!.event!
       } as TEvent);
     }
     case 'assign': {
-      return actions.assign<TContext, TEvent>(({ context, event, ...meta }) => {
+      return assign<TContext, TEvent>(({ context, event, ...meta }) => {
         const fnBody = `
             return {'${element.attributes!.location}': ${
           element.attributes!.expr
@@ -190,9 +213,9 @@ function mapAction<
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
-        return actions.cancel(element.attributes!.sendid! as string);
+        return cancel(element.attributes!.sendid! as string);
       }
-      return actions.cancel(({ context, event, ...meta }) => {
+      return cancel(({ context, event, ...meta }) => {
         const fnBody = `
             return ${element.attributes!.sendidexpr};
           `;
@@ -242,16 +265,27 @@ function mapAction<
         };
       }
 
-      return actions.send<TContext, TEvent>(convertedEvent, {
+      const scxmlParams = {
         delay: convertedDelay,
-        to: target as string | undefined,
+        id: id as string | undefined
+      };
+
+      if (target) {
+        return sendTo(target as string, convertedEvent, {
+          ...scxmlParams,
+          to: target as string | undefined
+        });
+      }
+
+      return raise<TContext, TEvent, TEvent>(convertedEvent as TEvent, {
+        delay: convertedDelay,
         id: id as string | undefined
       });
     }
     case 'log': {
       const label = element.attributes!.label;
 
-      return actions.log<TContext, any, any>(
+      return log<TContext, any, any>(
         ({ context, event, ...meta }) => {
           const fnBody = `
               return ${element.attributes!.expr};
@@ -294,7 +328,7 @@ function mapAction<
       }
 
       conds.push(current);
-      return actions.choose(conds);
+      return choose(conds);
     }
     default:
       throw new Error(
@@ -541,12 +575,15 @@ function scxmlToMachine(
         }, {})
     : undefined;
 
-  return createMachine({
+  const machine = createMachine({
     ...toConfig(machineElement, '(machine)', options),
     context,
-    delimiter: options.delimiter,
-    scxml: true
+    delimiter: options.delimiter
   } as any);
+
+  appendWildcards(machine.root);
+
+  return machine;
 }
 
 export function toMachine(

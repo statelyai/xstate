@@ -1,10 +1,11 @@
+import isDevelopment from '#is-development';
 import { AnyActorBehavior, AnyState } from './index.ts';
 import { errorExecution, errorPlatform } from './actionTypes.ts';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
-import { IS_PRODUCTION } from './environment.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
   ActorBehavior,
+  AnyEventObject,
   EventObject,
   EventType,
   InvokeConfig,
@@ -12,8 +13,7 @@ import type {
   Mapper,
   Observer,
   PropertyMapper,
-  SCXML,
-  SCXMLErrorEvent,
+  ErrorEvent,
   SingleOrArray,
   StateLike,
   StateValue,
@@ -76,8 +76,7 @@ export function isStateLike(state: any): state is AnyState {
     typeof state === 'object' &&
     'value' in state &&
     'context' in state &&
-    'event' in state &&
-    '_event' in state
+    'event' in state
   );
 }
 
@@ -235,14 +234,14 @@ export function mapContext<
 >(
   mapper: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>,
   context: TContext,
-  _event: SCXML.Event<TEvent>
+  event: TEvent
 ): any {
   if (isFunction(mapper)) {
-    return mapper({ context, event: _event.data });
+    return mapper({ context, event });
   }
 
   const result = {} as any;
-  const args = { context, event: _event.data };
+  const args = { context, event };
 
   for (const key of Object.keys(mapper)) {
     const subMapper = mapper[key];
@@ -302,30 +301,6 @@ export function partition<T, A extends T, B extends T>(
   return [truthy, falsy];
 }
 
-// tslint:disable-next-line:no-empty
-export let warn: (
-  condition: boolean | Error,
-  message: string
-) => void = () => {};
-
-if (!IS_PRODUCTION) {
-  warn = (condition: boolean | Error, message: string) => {
-    const error = condition instanceof Error ? condition : undefined;
-    if (!error && condition) {
-      return;
-    }
-
-    if (console !== undefined) {
-      const args: [string, ...any[]] = [`Warning: ${message}`];
-      if (error) {
-        args.push(error);
-      }
-      // tslint:disable-next-line:no-console
-      console.warn.apply(console, args);
-    }
-  };
-}
-
 export function isArray(value: any): value is any[] {
   return Array.isArray(value);
 }
@@ -356,36 +331,11 @@ export const uniqueId = (() => {
   };
 })();
 
-export function isSCXMLEvent<TEvent extends EventObject>(
-  event: TEvent | SCXML.Event<TEvent>
-): event is SCXML.Event<TEvent> {
-  return '$$type' in event && event.$$type === 'scxml';
-}
-
-export function isSCXMLErrorEvent(
-  event: SCXML.Event<any>
-): event is SCXMLErrorEvent {
+export function isErrorEvent(event: AnyEventObject): event is ErrorEvent<any> {
   return (
-    typeof event.name === 'string' &&
-    (event.name === errorExecution || event.name.startsWith(errorPlatform))
+    typeof event.type === 'string' &&
+    (event.type === errorExecution || event.type.startsWith(errorPlatform))
   );
-}
-
-export function toSCXMLEvent<TEvent extends EventObject>(
-  event: TEvent | SCXML.Event<TEvent>,
-  scxmlEvent?: Partial<SCXML.Event<TEvent>>
-): SCXML.Event<TEvent> {
-  if (isSCXMLEvent(event)) {
-    return event as SCXML.Event<TEvent>;
-  }
-
-  return {
-    name: event.type,
-    data: event,
-    $$type: 'scxml',
-    type: 'external',
-    ...scxmlEvent
-  };
 }
 
 export function toTransitionConfigArray<
@@ -436,7 +386,7 @@ export function reportUnhandledExceptionOnInvocation(
   currentError: any,
   id: string
 ) {
-  if (!IS_PRODUCTION) {
+  if (isDevelopment) {
     const originalStackTrace = originalError.stack
       ? ` Stacktrace was '${originalError.stack}'`
       : '';

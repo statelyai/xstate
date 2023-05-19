@@ -34,11 +34,12 @@ async function runTestToCompletion(
   service.subscribe((state) => {
     nextState = state;
   });
-  service
-    .onDone(() => {
+  service.subscribe({
+    complete: () => {
       done = true;
-    })
-    .start();
+    }
+  });
+  service.start();
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {

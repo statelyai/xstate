@@ -4,7 +4,6 @@ import type {
   BooleanGuardDefinition,
   GuardConfig,
   GuardDefinition,
-  SCXML,
   GuardPredicate,
   MachineContext
 } from './types.ts';
@@ -39,8 +38,8 @@ export function not<
     type: 'xstate.boolean',
     params: { op: 'not' },
     children: [toGuardDefinition(guard)],
-    predicate: ({ evaluate, guard, context, _event, state }) => {
-      return !evaluate(guard.children![0], context, _event, state);
+    predicate: ({ evaluate, guard, context, event, state }) => {
+      return !evaluate(guard.children![0], context, event, state);
     }
   };
 }
@@ -55,9 +54,9 @@ export function and<
     type: 'xstate.boolean',
     params: { op: 'and' },
     children: guards.map((guard) => toGuardDefinition(guard)),
-    predicate: ({ evaluate, guard, context, _event, state }) => {
+    predicate: ({ evaluate, guard, context, event, state }) => {
       return guard.children!.every((childGuard) => {
-        return evaluate(childGuard, context, _event, state);
+        return evaluate(childGuard, context, event, state);
       });
     }
   };
@@ -70,9 +69,9 @@ export function or<TContext extends MachineContext, TEvent extends EventObject>(
     type: 'xstate.boolean',
     params: { op: 'or' },
     children: guards.map((guard) => toGuardDefinition(guard)),
-    predicate: ({ evaluate, guard, context, _event, state }) => {
+    predicate: ({ evaluate, guard, context, event, state }) => {
       return guard.children!.some((childGuard) => {
-        return evaluate(childGuard, context, _event, state);
+        return evaluate(childGuard, context, event, state);
       });
     }
   };
@@ -84,7 +83,7 @@ export function evaluateGuard<
 >(
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
-  _event: SCXML.Event<TEvent>,
+  event: TEvent,
   state: State<TContext, TEvent>
 ): boolean {
   const { machine } = state;
@@ -97,10 +96,9 @@ export function evaluateGuard<
 
   return predicate({
     context,
-    event: _event.data,
+    event,
     state,
     guard,
-    _event,
     evaluate: evaluateGuard
   });
 }

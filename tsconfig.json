@@ -17,5 +17,5 @@
     "lib": ["es2019", "dom"],
     "strictPropertyInitialization": true
   },
-  "exclude": ["examples"]
+  "exclude": ["examples", "templates"]
 }

@@ -12,7 +12,8 @@
     "@xstate/scxml": "0.2.1",
     "@xstate/svelte": "2.0.0",
     "@xstate/test": "1.0.0-alpha.0",
-    "@xstate/vue": "2.0.0"
+    "@xstate/vue": "2.0.0",
+    "@xstate/solid": "0.1.3"
   },
   "changesets": [
     "curly-windows-burn",
@@ -24,6 +25,8 @@
     "lazy-turtles-grate",
     "lazy-turtles-great",
     "lazy-turtles-mate",
-    "lazy-turtles-trade"
+    "lazy-turtles-trade",
+    "ninety-paws-roll",
+    "plenty-insects-visit"
   ]
 }

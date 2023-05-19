@@ -91,7 +91,7 @@ export interface BaseDynamicActionObject<
   type: `xstate.${string}`;
   params: TDynamicParams;
   resolve: (
-    _event: SCXML.Event<TExpressionEvent>,
+    event: TExpressionEvent,
     extra: {
       state: State<TContext, TEvent>;
       /**
@@ -118,7 +118,6 @@ export interface ActionMeta<
   TAction extends ParameterizedObject = ParameterizedObject
 > extends StateMeta<TEvent> {
   action: TAction;
-  _event: SCXML.Event<TEvent>;
 }
 
 // TODO: do not accept machines without all implementations
@@ -128,6 +127,7 @@ export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: rea
   behavior: T,
   options?: Partial<{
     id: string;
+    systemId?: string;
     input: any;
   }>
 ) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>
@@ -139,7 +139,7 @@ export interface AssignMeta<
   _TEvent extends EventObject
 > extends StateMeta<TExpressionEvent> {
   action: BaseActionObject;
-  _event: SCXML.Event<TExpressionEvent>;
+  event: TExpressionEvent;
   spawn: Spawner;
 }
 
@@ -160,7 +160,7 @@ export interface ChooseCondition<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 > {
-  guard?: GuardConfig<TContext, TEvent>;
+  guard?: GuardConfig<TContext, TExpressionEvent>;
   actions: Actions<TContext, TExpressionEvent, TEvent>;
 }
 
@@ -253,7 +253,7 @@ export type GuardEvaluator<
 > = (
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
-  _event: SCXML.Event<TEvent>,
+  event: TEvent,
   state: State<TContext, TEvent>
 ) => boolean;
 
@@ -262,7 +262,6 @@ export interface GuardMeta<
   TEvent extends EventObject
 > {
   state: State<TContext, TEvent, any>;
-  _event: SCXML.Event<TEvent>;
   guard: GuardDefinition<TContext, TEvent>;
   evaluate: GuardEvaluator<TContext, TEvent>;
 }
@@ -385,7 +384,7 @@ export type ActorBehaviorCreator<
     id: string;
     data?: any;
     src: string;
-    _event: SCXML.Event<TEvent>;
+    event: TEvent;
     meta: MetaObject | undefined;
     input: any;
   }
@@ -661,7 +660,7 @@ export interface StateNodeConfig<
    */
   delimiter?: string;
   /**
-   * The order this state node appears. Corresponds to the implicit SCXML document order.
+   * The order this state node appears. Corresponds to the implicit document order.
    */
   order?: number;
 
@@ -1021,10 +1020,6 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  /**
-   * If `true`, will use SCXML semantics, such as event token matching.
-   */
-  scxml?: boolean;
   types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
 }
 
@@ -1097,7 +1092,6 @@ export interface RaiseActionObject<
   type: ActionTypes.Raise;
   params: {
     event: TEvent;
-    _event: SCXML.Event<TEvent>;
     delay: RaiseActionOptions<TContext, TExpressionEvent>['delay'];
     id: string | number;
   };
@@ -1125,14 +1119,6 @@ export interface ErrorExecutionEvent extends EventObject {
 }
 
 export interface ErrorPlatformEvent extends EventObject {
-  data: any;
-}
-
-export interface SCXMLErrorEvent extends SCXML.Event<any> {
-  name:
-    | ActionTypes.ErrorExecution
-    | ActionTypes.ErrorPlatform
-    | ActionTypes.ErrorCommunication;
   data: any;
 }
 
@@ -1231,7 +1217,6 @@ export interface SendActionObject<
   type: 'xstate.send';
   params: {
     to: ActorRef<TSentEvent> | undefined;
-    _event: SCXML.Event<TSentEvent>;
     event: TSentEvent;
     delay?: number;
     id: string | number;
@@ -1516,7 +1501,6 @@ export interface Segment<
 }
 
 export interface StateMeta<TEvent extends EventObject> {
-  _event: SCXML.Event<TEvent>;
   self: ActorRef<TEvent>;
   system: ActorSystem<any>;
 }
@@ -1525,7 +1509,6 @@ export interface StateLike<TContext extends MachineContext> {
   value: StateValue;
   context: TContext;
   event: EventObject;
-  _event: SCXML.Event<EventObject>;
 }
 
 export interface StateConfig<
@@ -1534,7 +1517,7 @@ export interface StateConfig<
 > {
   value: StateValue;
   context: TContext;
-  _event: SCXML.Event<TEvent>;
+  event: TEvent;
   historyValue?: HistoryValue<TContext, TEvent>;
   actions?: BaseActionObject[];
   meta?: any;
@@ -1545,7 +1528,7 @@ export interface StateConfig<
   output?: any;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any>;
-  _internalQueue?: Array<SCXML.Event<TEvent>>;
+  _internalQueue?: Array<TEvent>;
 }
 
 export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
@@ -1598,70 +1581,6 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
 }
 
 export type AnyInterpreter = Interpreter<any>;
-
-export declare namespace SCXML {
-  // tslint:disable-next-line:no-shadowed-variable
-  export interface Event<TEvent extends EventObject> {
-    /**
-     * This is a character string giving the name of the event.
-     * The SCXML Processor must set the name field to the name of this event.
-     * It is what is matched against the 'event' attribute of <transition>.
-     * Note that transitions can do additional tests by using the value of this field
-     * inside boolean expressions in the 'cond' attribute.
-     */
-    name: string;
-    /**
-     * This field describes the event type.
-     * The SCXML Processor must set it to: "platform" (for events raised by the platform itself, such as error events),
-     * "internal" (for events raised by <raise> and <send> with target '_internal')
-     * or "external" (for all other events).
-     */
-    type: 'platform' | 'internal' | 'external';
-    /**
-     * If the sending entity has specified a value for this, the Processor must set this field to that value
-     * (see C Event I/O Processors for details).
-     * Otherwise, in the case of error events triggered by a failed attempt to send an event,
-     * the Processor must set this field to the send id of the triggering <send> element.
-     * Otherwise it must leave it blank.
-     */
-    sendid?: string;
-    /**
-     * This is a URI, equivalent to the 'target' attribute on the <send> element.
-     * For external events, the SCXML Processor should set this field to a value which,
-     * when used as the value of 'target', will allow the receiver of the event to <send>
-     * a response back to the originating entity via the Event I/O Processor specified in 'origintype'.
-     * For internal and platform events, the Processor must leave this field blank.
-     */
-    origin?: ActorRef<any>;
-    /**
-     * This is equivalent to the 'type' field on the <send> element.
-     * For external events, the SCXML Processor should set this field to a value which,
-     * when used as the value of 'type', will allow the receiver of the event to <send>
-     * a response back to the originating entity at the URI specified by 'origin'.
-     * For internal and platform events, the Processor must leave this field blank.
-     */
-    origintype?: string;
-    /**
-     * If this event is generated from an invoked child process, the SCXML Processor
-     * must set this field to the invoke id of the invocation that triggered the child process.
-     * Otherwise it must leave it blank.
-     */
-    invokeid?: string;
-    /**
-     * This field contains whatever data the sending entity chose to include in this event.
-     * The receiving SCXML Processor should reformat this data to match its data model,
-     * but must not otherwise modify it.
-     *
-     * If the conversion is not possible, the Processor must leave the field blank
-     * and must place an error 'error.execution' in the internal event queue.
-     */
-    data: TEvent;
-    /**
-     * @private
-     */
-    $$type: 'scxml';
-  }
-}
 
 // Based on RxJS types
 export type Observer<T> = {
@@ -1846,6 +1765,7 @@ export interface ActorBehavior<
   TPersisted = TInternalState,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
+  config?: unknown;
   transition: (
     state: TInternalState,
     message: TEvent | LifecycleSignal,
@@ -1878,7 +1798,21 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TSnapshot
     : R extends Interpreter<infer TBehavior>
     ? SnapshotFrom<TBehavior>
-    : R extends ActorBehavior<infer _, infer TSnapshot>
+    : R extends StateMachine<
+        infer _,
+        infer __,
+        infer ___,
+        infer ____,
+        infer _____
+      >
+    ? StateFrom<R>
+    : R extends ActorBehavior<
+        infer _,
+        infer TSnapshot,
+        infer __,
+        infer ___,
+        infer ____
+      >
     ? TSnapshot
     : R extends ActorContext<infer _, infer TSnapshot, infer __>
     ? TSnapshot
@@ -1919,10 +1853,6 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : R extends State<infer _, infer TEvent, infer __>
     ? TEvent
-    : // TODO: the special case for Interpreter shouldn't be needed here as it implements ActorRef
-    // however to drop it we'd have to remove ` | SCXML.Event<TEvent>` from its `send`'s accepted parameter
-    R extends Interpreter<infer _, infer TEvent>
-    ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
     ? TEvent
     : never
@@ -1962,6 +1892,10 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['matches']
 >[0];
 
+export type TagsFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['hasTag']
+>[0];
+
 export type StateFromMachine<TMachine extends AnyStateMachine> =
   TMachine['initialState'];
 
@@ -1978,7 +1912,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 }
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
-  'value' | 'output' | 'context' | '_event' | 'done' | 'historyValue'
+  'value' | 'output' | 'context' | 'event' | 'done' | 'historyValue'
 > & {
   children: {
     [K in keyof TState['children']]: {

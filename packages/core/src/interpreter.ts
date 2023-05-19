@@ -1,11 +1,14 @@
+import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
 import { doneInvoke, error } from './actions.ts';
 import { stopSignalType } from './actors/index.ts';
 import { devToolsAdapter } from './dev/index.ts';
-import { IS_PRODUCTION } from './environment.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { createSystem } from './system.ts';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes.ts';
+import {
+  AreAllImplementationsAssumedToBeProvided,
+  MissingImplementationsError
+} from './typegenTypes.ts';
 import type {
   ActorBehavior,
   ActorContext,
@@ -25,11 +28,10 @@ import {
   InteropSubscribable,
   InterpreterOptions,
   Observer,
-  SCXML,
   SendActionObject,
   Subscription
 } from './types.ts';
-import { toObserver, toSCXMLEvent, warn } from './utils.ts';
+import { toObserver } from './utils.ts';
 
 export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>
@@ -92,9 +94,7 @@ export class Interpreter<
    */
   public id: string;
 
-  private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
-    this._process.bind(this)
-  );
+  private mailbox: Mailbox<TEvent> = new Mailbox(this._process.bind(this));
 
   private delayedEventsMap: Record<string, unknown> = {};
 
@@ -212,25 +212,15 @@ export class Interpreter<
 
     switch (status?.status) {
       case 'done':
-        this._doneEvent = doneInvoke(this.id, status.data);
-        this._parent?.send(
-          toSCXMLEvent(this._doneEvent as any, {
-            origin: this,
-            invokeid: this.id
-          })
-        );
-
         this._stopProcedure();
+        this._doneEvent = doneInvoke(this.id, status.data);
+        this._parent?.send(this._doneEvent as any);
+        this._complete();
         break;
       case 'error':
-        this._parent?.send(
-          toSCXMLEvent(error(this.id, status.data), {
-            origin: this
-          })
-        );
-        for (const observer of this.observers) {
-          observer.error?.(status.data);
-        }
+        this._stopProcedure();
+        this._parent?.send(error(this.id, status.data));
+        this._error(status.data);
         break;
     }
   }
@@ -269,26 +259,6 @@ export class Interpreter<
   }
 
   /**
-   * Adds a state listener that is notified when the statechart has reached its final state.
-   * @param listener The state listener
-   */
-  public onDone(listener: EventListener<DoneEvent>): this {
-    if (this.status === ActorStatus.Stopped && this._doneEvent) {
-      listener(this._doneEvent);
-    } else {
-      this.observers.add({
-        complete: () => {
-          if (this._doneEvent) {
-            listener(this._doneEvent);
-          }
-        }
-      });
-    }
-
-    return this;
-  }
-
-  /**
    * Starts the interpreter from the initial state
    */
   public start(): this {
@@ -321,7 +291,7 @@ export class Interpreter<
     return this;
   }
 
-  private _process(event: SCXML.Event<TEvent>) {
+  private _process(event: TEvent) {
     try {
       const nextState = this.behavior.transition(
         this._state,
@@ -331,8 +301,9 @@ export class Interpreter<
 
       this.update(nextState);
 
-      if (event.name === stopSignalType) {
+      if (event.type === stopSignalType) {
         this._stopProcedure();
+        this._complete();
       }
     } catch (err) {
       // TODO: properly handle errors
@@ -356,7 +327,7 @@ export class Interpreter<
       this.status = ActorStatus.Stopped;
       return this;
     }
-    this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
+    this.mailbox.enqueue({ type: stopSignalType } as any);
 
     return this;
   }
@@ -376,9 +347,13 @@ export class Interpreter<
     }
     this.observers.clear();
   }
+  private _error(data: any): void {
+    for (const observer of this.observers) {
+      observer.error?.(data);
+    }
+    this.observers.clear();
+  }
   private _stopProcedure(): this {
-    this._complete();
-
     if (this.status !== ActorStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
@@ -408,17 +383,20 @@ export class Interpreter<
    *
    * @param event The event to send
    */
-  public send(event: TEvent | SCXML.Event<TEvent>) {
-    const _event = toSCXMLEvent(event);
+  public send(event: TEvent) {
+    if (typeof event === 'string') {
+      throw new Error(
+        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
+      );
+    }
 
     if (this.status === ActorStatus.Stopped) {
       // do nothing
-      if (!IS_PRODUCTION) {
-        const eventString = JSON.stringify(_event.data);
+      if (isDevelopment) {
+        const eventString = JSON.stringify(event);
 
-        warn(
-          false,
-          `Event "${_event.name.toString()}" was sent to stopped actor "${
+        console.warn(
+          `Event "${event.type.toString()}" was sent to stopped actor "${
             this.id
           } (${
             this.sessionId
@@ -430,16 +408,16 @@ export class Interpreter<
 
     if (this.status !== ActorStatus.Running && !this.options.deferEvents) {
       throw new Error(
-        `Event "${_event.name}" was sent to uninitialized actor "${
+        `Event "${event.type}" was sent to uninitialized actor "${
           this.id
           // tslint:disable-next-line:max-line-length
         }". Make sure .start() is called for this actor, or set { deferEvents: true } in the actor options.\nEvent: ${JSON.stringify(
-          _event.data
+          event
         )}`
       );
     }
 
-    this.mailbox.enqueue(_event);
+    this.mailbox.enqueue(event);
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
@@ -448,9 +426,9 @@ export class Interpreter<
   ): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if ('to' in sendAction.params && sendAction.params.to) {
-        sendAction.params.to.send(sendAction.params._event);
+        sendAction.params.to.send(sendAction.params.event);
       } else {
-        this.send(sendAction.params._event as SCXML.Event<TEvent>);
+        this.send(sendAction.params.event);
       }
     }, sendAction.params.delay as number);
   }
@@ -504,7 +482,7 @@ export function interpret<TMachine extends AnyStateMachine>(
     TMachine['__TResolvedTypesMeta']
   > extends true
     ? TMachine
-    : 'Some implementations missing',
+    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends AnyActorBehavior>(

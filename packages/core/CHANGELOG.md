@@ -1,5 +1,149 @@
 # xstate
 
+## 5.0.0-beta.12
+
+### Major Changes
+
+- [#3990](https://github.com/statelyai/xstate/pull/3990) [`fe6db147a`](https://github.com/statelyai/xstate/commit/fe6db147a1d7c1555699ded8d37ed8cd46f7a982) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now add a `systemId` to spawned actors to reference them anywhere in the system.
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    context: ({ spawn }) => ({
+      actorRef: spawn(
+        createMachine({
+          // ...
+        }),
+        { systemId: 'actorRef' }
+      )
+    })
+  });
+  ```
+
+- [#3991](https://github.com/statelyai/xstate/pull/3991) [`98db493e4`](https://github.com/statelyai/xstate/commit/98db493e44a1aaddc74615d600a01472266679a5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `actor.onDone(...)` method is removed. Use `actor.subscribe({ complete() {... } })` instead.
+
+  ```diff
+  - actor.onDone(() => { ... })
+  + actor.subscribe({
+  +  complete() {
+  +    // ...
+  +  }
+  +})
+  ```
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- [#4020](https://github.com/statelyai/xstate/pull/4020) [`7898731b5`](https://github.com/statelyai/xstate/commit/7898731b5738ce73a7441d528b5920c946d33b5f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `fromEventObservable` actor logic creator now accepts `input`:
+
+  ```ts
+  const machine = createMachine({
+    invoke: {
+      src: fromEventObservable(({ input }) => /* ... */),
+      input: {
+        foo: 'bar'
+      }
+    }
+  });
+  ```
+
+## 5.0.0-beta.10
+
+### Major Changes
+
+- [#3971](https://github.com/statelyai/xstate/pull/3971) [`d0ba42ca9`](https://github.com/statelyai/xstate/commit/d0ba42ca9f60e15fcb08d1b3ee33f5161dc44903) Thanks [@Andarist](https://github.com/Andarist)! - `_event` has been removed from all APIs and types. It was a wrapper structure containing the `event` that users were using directly.
+
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- [#3981](https://github.com/statelyai/xstate/pull/3981) [`a225a474c`](https://github.com/statelyai/xstate/commit/a225a474c7f8ff6f1ea2aa8535a5e58a36e26dc9) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with a referenced action responding to an initial raised event being called with init event
+
+## 4.37.2
+
+### Patch Changes
+
+- [#3972](https://github.com/statelyai/xstate/pull/3972) [`2b9583a63`](https://github.com/statelyai/xstate/commit/2b9583a63c9089103365bad9419bd4a1edd43556) Thanks [@Andarist](https://github.com/Andarist)! - The "Some implementations missing" type-level error will now mention what implementations are missing.
+
+## 5.0.0-beta.8
+
+### Major Changes
+
+- [#898](https://github.com/statelyai/xstate/pull/898) [`26986f417`](https://github.com/statelyai/xstate/commit/26986f4178d34ce3f74209e89006337cc1c10dbc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Sending a string event to `actor.send('some string')` will now throw a proper error message.
+
+- [#3957](https://github.com/statelyai/xstate/pull/3957) [`423c5ab72`](https://github.com/statelyai/xstate/commit/423c5ab72f1ad7f510f94a5b4b5f98e5e8540d0e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The machine `.schema` property is now `.types`:
+
+  ```ts
+  const machine = createMachine({
+    // schema: { ... }
+    types: {} as {
+      context: { ... };
+      events: { ... };
+      // ...
+    }
+  });
+  ```
+
+  And the `.tsTypes` property is now `.types.typegen`:
+
+  ```ts
+  const machine = createMachine({
+    // tsTypes: { ... }
+    types: {} as {
+      typegen: {};
+      context: { ... };
+      events: { ... };
+      // ...
+    }
+  });
+  ```
+
+- [#3968](https://github.com/statelyai/xstate/pull/3968) [`eecb31b8f`](https://github.com/statelyai/xstate/commit/eecb31b8f43efc4580887ad850336ea74cfba537) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createEmptyActor()` function has been added to make it easier to create actors that do nothing ("empty" actors). This is useful for testing, or for some integrations such as `useActor(actor)` in `@xstate/react` that require an actor:
+
+  ```jsx
+  import { createEmptyActor } from 'xstate';
+
+  const SomeComponent = (props) => {
+    // props.actor may be undefined
+    const [state, send] = useActor(props.actor ?? createEmptyActor());
+
+    // ...
+  };
+  ```
+
+- [#3966](https://github.com/statelyai/xstate/pull/3966) [`61db63bf4`](https://github.com/statelyai/xstate/commit/61db63bf44edf0efe4774ebdec29244d7d024381) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now import the following from `xstate`:
+
+  ```js
+  import {
+    // actions
+    // sendTo (removed)
+    pure,
+
+    // interpret helpers
+    waitFor,
+
+    // actor functions
+    fromPromise,
+    fromObservable,
+    fromCallback,
+    fromEventObservable,
+    fromTransition,
+
+    // guard functions
+    stateIn,
+    not,
+    and,
+    or
+  }
+  ```
+
+  The `send` action was removed from exports; use `sendTo(...)` or `raise(...)` instead.
+
+### Patch Changes
+
+- [#3959](https://github.com/statelyai/xstate/pull/3959) [`ead287257`](https://github.com/statelyai/xstate/commit/ead28725741c99c6282bd8ab1b7c12818bd66865) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Unresolved promises will now be properly persisted. The current behavior is to restart a promise that is unresolved.
+
 ## 5.0.0-beta.7
 
 ### Major Changes
@@ -266,6 +410,48 @@
 - [#3756](https://github.com/statelyai/xstate/pull/3756) [`67d576190`](https://github.com/statelyai/xstate/commit/67d57619015803a6a7cf9f3b6dd98c10c064faff) Thanks [@Andarist](https://github.com/Andarist)! - All transitions became internal by default. The style of the `target` pattern (`.child`, `sibling`, `#id`) has now no effect on the transition type.
 
   Internal transitions don't reenter their source state when the target lies within it. You can still create external transitions (ones that reenter the source state under the mentioned circumstances) by explicitly setting `external: true` on the given transition.
+
+## 4.37.1
+
+### Patch Changes
+
+- [#3913](https://github.com/statelyai/xstate/pull/3913) [`1c1874657`](https://github.com/statelyai/xstate/commit/1c187465797cd687f311d5a2e18c91738d17f194) Thanks [@Andarist](https://github.com/Andarist)! - Fixed `forwardTo`, `escalate` and `sendUpdate` to be compatible with required action types
+
+## 4.37.0
+
+### Minor Changes
+
+- [#3835](https://github.com/statelyai/xstate/pull/3835) [`431472082`](https://github.com/statelyai/xstate/commit/431472082f8b644da9f519931207aa994052517f) Thanks [@with-heart](https://github.com/with-heart)! - The new `TagsFrom` helper type extracts the type of `tags` from a state machine when typegen is enabled:
+
+  ```ts
+  const machine = createMachine({
+    // `tags` attached to machine via typegen
+    tsTypes: {} as import('./machine.typegen').Typegen0,
+    tags: ['a', 'b'],
+    states: {
+      idle: { tags: 'c' }
+    }
+  });
+
+  type Tags = TagsFrom<typeof machine>; // 'a' | 'b' | 'c'
+  ```
+
+  If typegen is not enabled, `TagsFrom` returns `string`:
+
+  ```ts
+  const machine = createMachine({
+    tags: ['a', 'b'],
+    states: {
+      idle: { tags: 'c' }
+    }
+  });
+
+  type Tags = TagsFrom<typeof machine>; // string
+  ```
+
+### Patch Changes
+
+- [#3855](https://github.com/statelyai/xstate/pull/3855) [`02012c2be`](https://github.com/statelyai/xstate/commit/02012c2be12f89aac43479b30571688496d8f1b3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed event type narrowing in some of the builtin actions.
 
 ## 4.36.0
 

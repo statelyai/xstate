@@ -44,9 +44,9 @@ export function stop<
         actor
       }
     },
-    (_event, { state }) => {
+    (event, { state }) => {
       const actorRefOrString = isFunction(actor)
-        ? actor({ context: state.context, event: _event.data })
+        ? actor({ context: state.context, event })
         : actor;
       const actorRef =
         typeof actorRefOrString === 'string'

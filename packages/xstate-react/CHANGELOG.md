@@ -1,5 +1,65 @@
 # Changelog
 
+## 4.0.0-beta.4
+
+### Major Changes
+
+- [#3947](https://github.com/statelyai/xstate/pull/3947) [`5fa3a0c74`](https://github.com/statelyai/xstate/commit/5fa3a0c74343e400871473d375f02d3d918d1f4e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Removed the ability to pass a factory function as argument to `useMachine` and `useInterpret`.
+
+- [#4006](https://github.com/statelyai/xstate/pull/4006) [`42df9a536`](https://github.com/statelyai/xstate/commit/42df9a5360ec776ca3ce8bcd0f90873a79125bf2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `useActorRef` is introduced, which returns an `ActorRef` from actor logic:
+
+  ```ts
+  const actorRef = useActorRef(machine, { ... });
+  const anotherActorRef = useActorRef(fromPromise(...));
+  ```
+
+  ~~`useMachine`~~ is deprecated in favor of `useActor`, which works with machines and any other kind of logic
+
+  ```diff
+  -const [state, send] = useMachine(machine);
+  +const [state, send] = useActor(machine);
+  const [state, send] = useActor(fromTransition(...));
+  ```
+
+  ~~`useSpawn`~~ is removed in favor of `useActorRef`
+
+  ````diff
+  -const actorRef = useSpawn(machine);
+  +const actorRef = useActorRef(machine);
+
+  The previous use of `useActor(actorRef)` is now replaced with just using the `actorRef` directly, and with `useSelector`:
+
+  ```diff
+  -const [state, send] = useActor(actorRef);
+  +const state = useSelector(actorRef, s => s);
+  // actorRef.send(...)
+  ````
+
+- [#4006](https://github.com/statelyai/xstate/pull/4006) [`42df9a536`](https://github.com/statelyai/xstate/commit/42df9a5360ec776ca3ce8bcd0f90873a79125bf2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `useActor` has been removed from the created actor context, you should be able to replace its usage with `MyCtx.useSelector` and `MyCtx.useActorRef`.
+
+- [#3947](https://github.com/statelyai/xstate/pull/3947) [`5fa3a0c74`](https://github.com/statelyai/xstate/commit/5fa3a0c74343e400871473d375f02d3d918d1f4e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Implementations for machines on `useMachine` and `useInterpret` hooks should go directly on the machine via `machine.provide(...)`, and are no longer allowed to be passed in as options.
+
+  ```diff
+  -const [state, send] = useMachine(machine, {
+  -  actions: {
+  -    // ...
+  -  }
+  -});
+  +const [state, send] = useMachine(machine.provide({
+  +  actions: {
+  +    // ...
+  +  }
+  +}));
+  ```
+
+  `@xstate/react` will detect that the machine's config is still the same, and will not produce the "machine has changed" warning.
+
+## 3.2.2
+
+### Patch Changes
+
+- [#3919](https://github.com/statelyai/xstate/pull/3919) [`6665f0a32`](https://github.com/statelyai/xstate/commit/6665f0a32327407e8fec12240383f211094d929c) Thanks [@c-w](https://github.com/c-w)! - Updated the allowed range for the `use-isomorphic-layout-effect` dependency.
+
 ## 4.0.0-beta.3
 
 ## 4.0.0-alpha.2

@@ -13,7 +13,6 @@ import {
   UnifiedArg,
   StateMeta
 } from '../types.ts';
-import { toSCXMLEvent } from '../utils.ts';
 
 /**
  * Raises an event. This places the event in the internal event queue, so that
@@ -52,7 +51,7 @@ export function raise<
             : eventOrExpr.type
       }
     },
-    (_event, { state, actorContext }) => {
+    (event, { state, actorContext }) => {
       const params = {
         delay: options ? options.delay : undefined,
         event: eventOrExpr,
@@ -66,17 +65,20 @@ export function raise<
       const args: UnifiedArg<TContext, TExpressionEvent> &
         StateMeta<TExpressionEvent> = {
         context: state.context,
-        event: _event.data,
-        _event,
+        event,
         self: actorContext?.self ?? ({} as any),
         system: actorContext?.system
       };
       const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
-      const resolvedEvent = toSCXMLEvent(
-        typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr
-      );
+      if (typeof eventOrExpr === 'string') {
+        throw new Error(
+          `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
+        );
+      }
+      const resolvedEvent =
+        typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
 
       let resolvedDelay: number | undefined;
       if (typeof params.delay === 'string') {
@@ -98,8 +100,7 @@ export function raise<
         type: actionTypes.raise,
         params: {
           ...params,
-          _event: resolvedEvent,
-          event: resolvedEvent.data,
+          event: resolvedEvent,
           delay: resolvedDelay
         },
         execute: (actorCtx) => {

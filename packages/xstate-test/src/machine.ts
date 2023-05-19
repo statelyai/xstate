@@ -92,6 +92,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   const serializeEvent = options?.serializeEvent ?? simpleStringify;
   const serializeTransition =
     options?.serializeTransition ?? serializeMachineTransition;
+  const { events: getEvents, ...otherOptions } = options ?? {};
 
   const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
     machine as SimpleBehavior<any, any>,
@@ -112,26 +113,23 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           ? state.configuration.includes(machine.getStateNodeById(key))
           : state.matches(key);
       },
-      getEvents: (state, eventCases) =>
-        flatten(
+      events: (state) => {
+        const events =
+          typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+
+        return flatten(
           state.nextEvents.map((eventType) => {
-            const eventCaseGenerator = eventCases?.[eventType];
+            // @ts-ignore
+            if (events.some((e) => e.type === eventType)) {
+              // @ts-ignore
+              return events.filter((e) => e.type === eventType);
+            }
 
-            const cases = eventCaseGenerator
-              ? Array.isArray(eventCaseGenerator)
-                ? eventCaseGenerator
-                : eventCaseGenerator(state)
-              : [{ type: eventType }];
-
-            return (
-              // Use generated events or a plain event without payload
-              cases.map((e) => {
-                return { type: eventType, ...(e as any) };
-              })
-            );
+            return [{ type: eventType } as any]; // TODO: fix types
           })
-        ),
-      ...options
+        );
+      },
+      ...otherOptions
     }
   );
 

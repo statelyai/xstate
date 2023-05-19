@@ -30,10 +30,14 @@ describe('types', () => {
       path.test({
         events: {
           a: ({ event }) => {
-            console.log(event.valueA);
+            ((_accept: 'a') => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'b') => {})(event.type);
           },
           b: ({ event }) => {
-            console.log(event.valueB);
+            // @ts-expect-error
+            ((_accept: 'a') => {})(event.type);
+            ((_accept: 'b') => {})(event.type);
           }
         }
       });

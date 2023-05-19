@@ -5,7 +5,7 @@ import {
   interpret,
   sendTo
 } from '../src/index.ts';
-import { raise, send, sendParent, stop } from '../src/actions.ts';
+import { raise, sendParent, stop } from '../src/actions.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 
@@ -608,12 +608,14 @@ describe('predictableExec', () => {
       }
     });
 
-    service = interpret(machine)
-      .onDone(() => {
+    service = interpret(machine);
+    service.subscribe({
+      complete: () => {
         expect(service.getSnapshot().value).toBe('success');
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
@@ -633,7 +635,7 @@ describe('predictableExec', () => {
             id: 'ponger',
             src: child
           },
-          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          entry: sendTo('ponger', { type: 'PING' }),
           on: {
             PONG: 'done'
           }
@@ -775,12 +777,14 @@ describe('predictableExec', () => {
       }
     });
 
-    service = interpret(machine)
-      .onDone(() => {
+    service = interpret(machine);
+    service.subscribe({
+      complete: () => {
         expect(service.getSnapshot().value).toBe('success');
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
@@ -800,7 +804,7 @@ describe('predictableExec', () => {
             id: 'ponger',
             src: child
           },
-          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          entry: sendTo('ponger', { type: 'PING' }),
           on: {
             PONG: 'done'
           }

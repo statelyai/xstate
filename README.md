@@ -457,6 +457,12 @@ const previousState = paymentMachine.transition(reviewState, {
 // => { method: 'check' }
 ```
 
+## Sponsors
+
+Special thanks to the sponsors who support this open-source project:
+
+<a href="https://transloadit.com/"><img src="https://assets.transloadit.com/assets/images/logo-v2.svg" alt="Transloadit logo" width="200" /><br />Transloadit</a>
+
 ## SemVer Policy
 
 We understand the importance of the public contract and do not intend to release any breaking changes to the **runtime** API in a minor or patch release. We consider this with any changes we make to the XState libraries and aim to minimize their effects on existing users.

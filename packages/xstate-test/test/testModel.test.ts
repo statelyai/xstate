@@ -15,7 +15,7 @@ describe('custom test models', () => {
         }
       },
       {
-        getEvents: (state) => {
+        events: (state) => {
           if (state % 2 === 0) {
             return [{ type: 'even' }];
           }
@@ -44,7 +44,7 @@ describe('custom test models', () => {
         }
       },
       {
-        getEvents: (state) => {
+        events: (state) => {
           if (state % 2 === 0) {
             return [{ type: 'even' }];
           }

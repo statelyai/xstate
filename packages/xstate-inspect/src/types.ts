@@ -3,7 +3,6 @@ import type {
   AnyInterpreter,
   AnyState,
   AnyStateMachine,
-  SCXML,
   StateConfig
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
@@ -20,6 +19,7 @@ export interface InspectorOptions {
   iframe?: MaybeLazy<HTMLIFrameElement | null | false>;
   devTools?: MaybeLazy<XStateDevInterface>;
   serialize?: Replacer | undefined;
+  targetWindow?: Window | undefined | null;
 }
 
 export interface Inspector extends ActorRef<InspectMachineEvent, AnyState> {
@@ -73,7 +73,7 @@ export type ParsedReceiverEvent =
       state: StateConfig<any, any>;
       sessionId: string;
     }
-  | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };
+  | { type: 'service.event'; event: string; sessionId: string };
 
 export type InspectReceiver = ActorRef<ReceiverCommand, ParsedReceiverEvent>;
 

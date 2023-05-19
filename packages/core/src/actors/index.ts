@@ -1,6 +1,12 @@
-import type { EventObject, ActorRef, BaseActorRef } from '../types.ts';
+import type {
+  EventObject,
+  ActorRef,
+  BaseActorRef,
+  AnyEventObject
+} from '../types.ts';
 import { symbolObservable } from '../symbolObservable.ts';
-import { ActorStatus } from '../interpreter.ts';
+import { ActorStatus, interpret } from '../interpreter.ts';
+import { fromTransition } from './transition.ts';
 export { fromTransition } from './transition.ts';
 export { fromPromise } from './promise.ts';
 export { fromObservable, fromEventObservable } from './observable.ts';
@@ -62,4 +68,10 @@ export function toActorRef<
     stop: () => void 0,
     ...actorRefLike
   };
+}
+
+const emptyBehavior = fromTransition((_) => undefined, undefined);
+
+export function createEmptyActor(): ActorRef<AnyEventObject, undefined> {
+  return interpret(emptyBehavior);
 }

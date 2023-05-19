@@ -15,12 +15,12 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options?: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
-  const config = resolveTraversalOptions(options);
-  const serializeState = config.serializeState as (
-    ...args: Parameters<typeof config.serializeState>
+  const resolvedOptions = resolveTraversalOptions(options);
+  const serializeState = resolvedOptions.serializeState as (
+    ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
-  const fromState = config.fromState ?? behavior.initialState;
-  const adjacency = getAdjacencyMap(behavior, config);
+  const fromState = resolvedOptions.fromState ?? behavior.initialState;
+  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
 
   // weight, state, event
   const weightMap = new Map<
@@ -50,9 +50,8 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
     for (const event of Object.keys(
       adjacency[serializedState].transitions
     ) as SerializedEvent[]) {
-      const { state: nextState, event: eventObject } = adjacency[
-        serializedState
-      ].transitions[event];
+      const { state: nextState, event: eventObject } =
+        adjacency[serializedState].transitions[event];
       const nextSerializedState = serializeState(
         nextState,
         eventObject,
@@ -117,8 +116,8 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
     }
   );
 
-  if (config.toState) {
-    return paths.filter((path) => config.toState!(path.state));
+  if (resolvedOptions.toState) {
+    return paths.filter((path) => resolvedOptions.toState!(path.state));
   }
 
   return paths;
@@ -130,7 +129,7 @@ export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
 ): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
-    createDefaultMachineOptions(machine)
+    createDefaultMachineOptions(machine, options)
   );
 
   return getShortestPaths(machineToBehavior(machine), resolvedOptions);

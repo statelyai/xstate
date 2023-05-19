@@ -4,8 +4,7 @@ import {
   Spawner,
   ActorRef,
   MachineContext,
-  EventObject,
-  SCXML
+  EventObject
 } from './index.ts';
 import { invoke } from './actions/invoke.ts';
 import { interpret } from './interpreter.ts';
@@ -18,10 +17,11 @@ export function createSpawner<
   self: ActorRef<any, any> | undefined,
   machine: AnyStateMachine,
   context: TContext,
-  _event: SCXML.Event<TEvent>,
+  event: TEvent,
   mutCapturedActions: InvokeActionObject[]
 ): Spawner {
   return (src, options = {}) => {
+    const { systemId } = options;
     if (isString(src)) {
       const referenced = resolveReferencedActor(machine.options.actors[src]);
 
@@ -37,7 +37,7 @@ export function createSpawner<
             typeof input === 'function'
               ? input({
                   context,
-                  event: _event.data,
+                  event,
                   self
                 })
               : input,
@@ -51,7 +51,8 @@ export function createSpawner<
             src: actorRef, // TODO
             ref: actorRef,
             meta: undefined,
-            input
+            input,
+            systemId
           }) as any as InvokeActionObject
         );
 
@@ -68,7 +69,8 @@ export function createSpawner<
         id: options.id || 'anonymous',
         parent: self,
         input: options.input,
-        src: undefined
+        src: undefined,
+        systemId
       });
 
       mutCapturedActions.push(

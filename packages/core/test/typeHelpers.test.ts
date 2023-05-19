@@ -8,7 +8,8 @@ import {
   MachineImplementationsFrom,
   StateValueFrom,
   ActorBehavior,
-  ActorRefFrom
+  ActorRefFrom,
+  TagsFrom
 } from '../src/index.ts';
 import { TypegenMeta } from '../src/typegenTypes';
 
@@ -359,5 +360,42 @@ describe('ActorRefFrom', () => {
     }
 
     acceptActorRef(interpret(behavior).start());
+  });
+});
+
+describe('tags', () => {
+  it('derives tags from StateMachine when typegen is enabled', () => {
+    interface TypesMeta extends TypegenMeta {
+      tags: 'a' | 'b' | 'c';
+    }
+    const machine = createMachine({
+      types: {
+        typegen: {} as TypesMeta
+      }
+    });
+
+    type Tags = TagsFrom<typeof machine>;
+
+    const acceptTag = (_tag: Tags) => {};
+
+    acceptTag('a');
+    acceptTag('b');
+    acceptTag('c');
+    // @ts-expect-error d is not a valid tag
+    acceptTag('d');
+  });
+
+  it('derives string from StateMachine without typegen', () => {
+    const machine = createMachine({});
+
+    type Tags = TagsFrom<typeof machine>;
+
+    const acceptTag = (_tag: Tags) => {};
+
+    acceptTag('a');
+    acceptTag('b');
+    acceptTag('c');
+    // d is a valid tag, as is any string
+    acceptTag('d');
   });
 });

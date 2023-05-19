@@ -1,10 +1,8 @@
 import { ActorBehavior } from '../types';
-import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T> {
-  status: 'active' | 'error' | 'done';
-  canceled: boolean;
+  status: 'active' | 'error' | 'done' | 'canceled';
   data: T | undefined;
   input?: any;
 }
@@ -18,7 +16,6 @@ export function fromPromise<T>(
 
   // TODO: add event types
   const behavior: ActorBehavior<
-    | { type: string }
     | {
         type: typeof resolveEventType;
         data: T;
@@ -30,30 +27,33 @@ export function fromPromise<T>(
     T | undefined,
     PromiseInternalState<T>
   > = {
+    config: promiseCreator,
     transition: (state, event) => {
-      const _event = toSCXMLEvent(event);
-
-      if (state.canceled) {
+      if (state.status !== 'active') {
         return state;
       }
 
-      const eventObject = _event.data;
-
-      switch (_event.name) {
+      switch (event.type) {
         case resolveEventType:
-          state.status = 'done';
-          state.data = eventObject.data;
-          delete state.input;
-          return state;
+          return {
+            ...state,
+            status: 'done',
+            data: event.data,
+            input: undefined
+          };
         case rejectEventType:
-          state.status = 'error';
-          state.data = eventObject.data;
-          delete state.input;
-          return state;
+          return {
+            ...state,
+            status: 'error',
+            data: (event as any).data,
+            input: undefined
+          };
         case stopSignalType:
-          state.canceled = true;
-          delete state.input;
-          return state;
+          return {
+            ...state,
+            status: 'canceled',
+            input: undefined
+          };
         default:
           return state;
       }
@@ -71,16 +71,23 @@ export function fromPromise<T>(
 
       resolvedPromise.then(
         (response) => {
+          // TODO: remove this condition once dead letter queue lands
+          if ((self as any)._state.status !== 'active') {
+            return;
+          }
           self.send({ type: resolveEventType, data: response });
         },
         (errorData) => {
+          // TODO: remove this condition once dead letter queue lands
+          if ((self as any)._state.status !== 'active') {
+            return;
+          }
           self.send({ type: rejectEventType, data: errorData });
         }
       );
     },
     getInitialState: (_, input) => {
       return {
-        canceled: false,
         status: 'active',
         data: undefined,
         input

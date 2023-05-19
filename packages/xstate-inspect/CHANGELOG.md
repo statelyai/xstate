@@ -1,5 +1,11 @@
 # @xstate/inspect
 
+## 0.8.0
+
+### Minor Changes
+
+- [#3793](https://github.com/statelyai/xstate/pull/3793) [`f943513ca`](https://github.com/statelyai/xstate/commit/f943513cae369cf5356d383fc53a18e1858022ce) Thanks [@mdpratt](https://github.com/mdpratt)! - Add support for a custom `targetWindow`
+
 ## 0.7.1
 
 ### Patch Changes

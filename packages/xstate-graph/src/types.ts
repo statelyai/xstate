@@ -134,7 +134,6 @@ export interface VisitedContext<TState, TEvent> {
 }
 
 export interface SerializationConfig<TState, TEvent extends EventObject> {
-  eventCases: EventCaseMap<TState, TEvent>;
   serializeState: (
     state: TState,
     event: TEvent | undefined,
@@ -144,25 +143,8 @@ export interface SerializationConfig<TState, TEvent extends EventObject> {
 }
 
 export type SerializationOptions<TState, TEvent extends EventObject> = Partial<
-  Pick<
-    SerializationConfig<TState, TEvent>,
-    'eventCases' | 'serializeState' | 'serializeEvent'
-  >
+  Pick<SerializationConfig<TState, TEvent>, 'serializeState' | 'serializeEvent'>
 >;
-/**
- * A sample event object payload (_without_ the `type` property).
- *
- * @example
- *
- * ```js
- * {
- *   value: 'testValue',
- *   other: 'something',
- *   id: 42
- * }
- * ```
- */
-type EventCase<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
 export type TraversalOptions<
   TState,
@@ -172,7 +154,7 @@ export type TraversalOptions<
     Pick<
       TraversalConfig<TState, TEvent>,
       | 'filter'
-      | 'getEvents'
+      | 'events'
       | 'traversalLimit'
       | 'fromState'
       | 'stopCondition'
@@ -187,10 +169,7 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * `event` when building the adjacency map.
    */
   filter: (state: TState, event: TEvent) => boolean;
-  getEvents: (
-    state: TState,
-    cases: EventCaseMap<TState, TEvent>
-  ) => ReadonlyArray<TEvent>;
+  events: readonly TEvent[] | ((state: TState) => readonly TEvent[]);
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.
@@ -206,12 +185,6 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
   stopCondition: ((state: TState) => boolean) | undefined;
   toState: ((state: TState) => boolean) | undefined;
 }
-
-export type EventCaseMap<TState, TEvent extends EventObject> = {
-  [E in TEvent as E['type']]?:
-    | ((state: TState) => Array<EventCase<E>>)
-    | Array<EventCase<E>>;
-};
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };
 

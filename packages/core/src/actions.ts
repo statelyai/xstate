@@ -9,11 +9,10 @@ import {
   ErrorPlatformEvent,
   DoneEventObject,
   MachineContext,
-  BaseActionObject,
-  SCXML
+  BaseActionObject
 } from './types.ts';
 import * as actionTypes from './actionTypes.ts';
-import { toSCXMLEvent, isArray } from './utils.ts';
+import { isArray } from './utils.ts';
 import {
   createDynamicAction,
   isDynamicAction
@@ -22,7 +21,6 @@ export {
   send,
   sendTo,
   sendParent,
-  respond,
   forwardTo,
   escalate
 } from './actions/send.ts';
@@ -33,9 +31,10 @@ export { cancel } from './actions/cancel.ts';
 export { assign } from './actions/assign.ts';
 export { raise } from './actions/raise.ts';
 export { choose } from './actions/choose.ts';
+export { pure } from './actions/pure.ts';
 export { actionTypes };
 
-export const initEvent = toSCXMLEvent({ type: actionTypes.init });
+export const initEvent = { type: actionTypes.init };
 
 export function resolveActionObject(
   actionObject: BaseActionObject,
@@ -49,16 +48,15 @@ export function resolveActionObject(
   if (typeof dereferencedAction === 'function') {
     return createDynamicAction(
       { type: 'xstate.function', params: actionObject.params ?? {} },
-      (_event, { state }) => {
+      (event, { state }) => {
         const a: BaseActionObject = {
           type: actionObject.type,
           params: actionObject.params,
           execute: (actorCtx) => {
             return dereferencedAction({
               context: state.context,
-              event: state.event,
+              event,
               action: a,
-              _event: state._event,
               system: actorCtx.system,
               self: actorCtx.self
             });
@@ -91,7 +89,7 @@ export function toActionObject<
 
   if (typeof action === 'function') {
     const type = 'xstate.function';
-    return createDynamicAction({ type, params: {} }, (_event, { state }) => {
+    return createDynamicAction({ type, params: {} }, (event, { state }) => {
       const actionObject: BaseActionObject = {
         type,
         params: {
@@ -100,9 +98,8 @@ export function toActionObject<
         execute: (actorCtx) => {
           return action({
             context: state.context as TContext,
-            event: _event.data as TEvent,
+            event: event as TEvent,
             action: actionObject,
-            _event: _event as SCXML.Event<TEvent>,
             self: actorCtx.self,
             system: actorCtx.system
           });
@@ -191,8 +188,6 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
   return eventObject as ErrorPlatformEvent & string;
 }
 
-export function createInitEvent(
-  input: any
-): SCXML.Event<{ type: ActionTypes.Init; input: any }> {
-  return toSCXMLEvent({ type: actionTypes.init, input });
+export function createInitEvent(input: any) {
+  return { type: actionTypes.init, input } as const;
 }

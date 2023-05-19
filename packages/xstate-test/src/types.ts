@@ -97,7 +97,7 @@ export interface TestParam<TState, TEvent extends EventObject> {
   events?: {
     [TEventType in TEvent['type']]?: EventExecutor<
       TState,
-      ExtractEvent<TEvent, TEventType>
+      { type: ExtractEvent<TEvent, TEventType>['type'] }
     >;
   };
 }

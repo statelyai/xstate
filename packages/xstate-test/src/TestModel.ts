@@ -38,8 +38,7 @@ function isStateLike(state: any): state is AnyState {
     typeof state === 'object' &&
     'value' in state &&
     'context' in state &&
-    'event' in state &&
-    '_event' in state
+    'event' in state
   );
 }
 
@@ -61,9 +60,8 @@ export class TestModel<TState, TEvent extends EventObject> {
       // separate transitions, so just use event type
       serializeTransition: (state, event) =>
         `${simpleStringify(state)}|${event?.type ?? ''}`,
-      getEvents: () => [],
+      events: [],
       stateMatcher: (_, stateKey) => stateKey === '*',
-      eventCases: {},
       logger: {
         log: console.log.bind(console),
         error: console.error.bind(console)

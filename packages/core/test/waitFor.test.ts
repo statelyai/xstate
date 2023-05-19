@@ -1,6 +1,5 @@
-import { interpret } from '../src/index.ts';
+import { interpret, waitFor } from '../src/index.ts';
 import { createMachine } from '../src/index.ts';
-import { waitFor } from '../src/waitFor';
 
 describe('waitFor', () => {
   it('should wait for a condition to be true and return the emitted value', async () => {
@@ -110,6 +109,18 @@ describe('waitFor', () => {
     await expect(
       waitFor(service, (state) => state.matches('a'))
     ).resolves.toHaveProperty('value', 'a');
+  });
+
+  it('should not subscribe when the predicate immediately matches', () => {
+    const machine = createMachine({});
+
+    const actorRef = interpret(machine).start();
+    const spy = jest.fn();
+    actorRef.subscribe = spy;
+
+    waitFor(actorRef, () => true).then(() => {});
+
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('should internally unsubscribe when the predicate immediately matches the current state', async () => {

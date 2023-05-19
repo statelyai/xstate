@@ -1,4 +1,5 @@
 import { from } from 'rxjs';
+import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
 import { fromPromise } from '../src/actors';
@@ -239,6 +240,46 @@ describe('Raise events', () => {
       entry: raise(() => ({
         type: 'UNKNOWN'
       }))
+    });
+  });
+});
+
+describe('log', () => {
+  it('should narrow down the event type in the expression', () => {
+    createMachine({
+      types: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      on: {
+        FOO: {
+          actions: log(({ event }) => {
+            ((_arg: 'FOO') => {})(event.type);
+            // @ts-expect-error
+            ((_arg: 'BAR') => {})(event.type);
+          })
+        }
+      }
+    });
+  });
+});
+
+describe('stop', () => {
+  it('should narrow down the event type in the expression', () => {
+    createMachine({
+      types: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      on: {
+        FOO: {
+          actions: stop(({ event }) => {
+            ((_arg: 'FOO') => {})(event.type);
+            // @ts-expect-error
+            ((_arg: 'BAR') => {})(event.type);
+
+            return 'fakeId';
+          })
+        }
+      }
     });
   });
 });

@@ -1,6 +1,6 @@
 import { inspect } from '@xstate/inspect/server';
 import WebSocket from 'ws';
-import { createMachine, interpret, send, toSCXMLEvent } from 'xstate';
+import { createMachine, interpret, sendTo } from 'xstate';
 import { fromCallback } from 'xstate/actors';
 
 inspect({
@@ -16,12 +16,10 @@ const machine = createMachine({
     src: fromCallback((cb, receive) => {
       receive((event) => {
         if (event.type === 'PING') {
-          cb(
-            toSCXMLEvent({
-              type: 'PONG',
-              arr: [1, 2, 3]
-            })
-          );
+          cb({
+            type: 'PONG',
+            arr: [1, 2, 3]
+          });
         }
       });
     })
@@ -33,7 +31,7 @@ const machine = createMachine({
       }
     },
     active: {
-      entry: send({ type: 'PING' }, { to: 'ponger', delay: 1000 }),
+      entry: sendTo('ponger', { type: 'PING' }, { delay: 1000 }),
       on: {
         PONG: 'inactive'
       }
