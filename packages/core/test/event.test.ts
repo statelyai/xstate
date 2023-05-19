@@ -53,9 +53,9 @@ describe('events', () => {
       }
     });
 
-    const service = interpret(authClientMachine)
-      .onDone(() => done())
-      .start();
+    const service = interpret(authClientMachine);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
     service.send({ type: 'AUTH' });
   });

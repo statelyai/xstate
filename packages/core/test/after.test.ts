@@ -68,11 +68,13 @@ describe('delayed transitions', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = interpret(machine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   it('parent state should enter child state without re-entering self (relative target)', (done) => {
@@ -103,12 +105,14 @@ describe('delayed transitions', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = interpret(machine);
+    actor.subscribe({
+      complete: () => {
         expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   it('should defer a single send event for a delayed conditional transition (#886)', () => {
@@ -170,10 +174,9 @@ describe('delayed transitions', () => {
     });
 
     const withAfterState = machine.transition(undefined, { type: 'next' });
-
-    interpret(machine, { state: withAfterState })
-      .onDone(() => done())
-      .start();
+    const actor = interpret(machine, { state: withAfterState });
+    actor.subscribe({ complete: () => done() });
+    actor.start();
   });
 
   it('should execute an after transition after starting from a persisted state', (done) => {
@@ -205,7 +208,7 @@ describe('delayed transitions', () => {
 
     service.send({ type: 'NEXT' });
 
-    service.onDone(() => done());
+    service.subscribe({ complete: () => done() });
   });
 
   describe('delay expressions', () => {

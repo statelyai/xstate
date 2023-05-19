@@ -259,26 +259,6 @@ export class Interpreter<
   }
 
   /**
-   * Adds a state listener that is notified when the statechart has reached its final state.
-   * @param listener The state listener
-   */
-  public onDone(listener: EventListener<DoneEvent>): this {
-    if (this.status === ActorStatus.Stopped && this._doneEvent) {
-      listener(this._doneEvent);
-    } else {
-      this.observers.add({
-        complete: () => {
-          if (this._doneEvent) {
-            listener(this._doneEvent);
-          }
-        }
-      });
-    }
-
-    return this;
-  }
-
-  /**
    * Starts the interpreter from the initial state
    */
   public start(): this {

@@ -357,12 +357,12 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
     const actor = interpret(machine, {
       logger: () => void 0
     });
-    actor.subscribe((state) => {
-      prevState = nextState;
-      nextState = state;
-    });
-    actor
-      .onDone(() => {
+    actor.subscribe({
+      next: (state) => {
+        prevState = nextState;
+        nextState = state;
+      },
+      complete: () => {
         // Add 'final' for test230.txml which does not have a 'pass' state
         if (['final', 'pass'].includes(nextState.value as string)) {
           resolve();
@@ -375,8 +375,9 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
             )
           );
         }
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 }
 
@@ -400,8 +401,8 @@ async function runTestToCompletion(
     prevState = nextState;
     nextState = state;
   });
-  service
-    .onDone(() => {
+  service.subscribe({
+    complete: () => {
       if (nextState.value === 'fail') {
         throw new Error(
           `Reached "fail" state with event ${JSON.stringify(
@@ -410,8 +411,9 @@ async function runTestToCompletion(
         );
       }
       done = true;
-    })
-    .start();
+    }
+  });
+  service.start();
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {

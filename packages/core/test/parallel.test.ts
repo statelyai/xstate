@@ -986,11 +986,13 @@ describe('parallel states', () => {
       }
     });
 
-    const service = interpret(machine)
-      .onDone(() => {
+    const service = interpret(machine);
+    service.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
 
     service.send({ type: 'FINISH' });
   });
