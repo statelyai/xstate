@@ -447,7 +447,7 @@ describe('machine', () => {
         }
       });
 
-      const state = testMachine.initialState;
+      const state = testMachine.getInitialState();
 
       expect(state.value).toEqual({});
 

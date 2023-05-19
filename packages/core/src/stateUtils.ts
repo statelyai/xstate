@@ -1034,15 +1034,11 @@ export function microstep<
   actorCtx: AnyActorContext | undefined,
   event: TEvent
 ): State<TContext, TEvent, any> {
+  const isInit = event.type === actionTypes.init;
   const { machine } = currentState;
-  // Transition will "apply" if:
-  // - the state node is the initial state (there is no current state)
-  // - OR there are transitions
-  const willTransition = currentState._initial || transitions.length > 0;
-
   const mutConfiguration = new Set(currentState.configuration);
 
-  if (!currentState._initial && !willTransition) {
+  if (!transitions.length && !isInit) {
     const inertState = cloneState(currentState, {
       event,
       actions: [],
@@ -1054,7 +1050,7 @@ export function microstep<
   }
 
   const microstate = microstepProcedure(
-    currentState._initial
+    isInit
       ? [
           {
             target: [...currentState.configuration].filter(isAtomicStateNode),
