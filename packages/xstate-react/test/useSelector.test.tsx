@@ -1,20 +1,23 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import {
+  ActorRef,
   ActorRefFrom,
   AnyState,
   assign,
   createMachine,
+  fromTransition,
   interpret,
   StateFrom
 } from 'xstate';
 import {
   shallowEqual,
-  useInterpret,
+  useActorRef,
   useMachine,
   useSelector
 } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
+import { createEmptyActor } from 'xstate/actors';
 
 const originalConsoleError = console.error;
 
@@ -46,7 +49,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     let rerenders = 0;
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       const count = useSelector(service, (state) => state.context.count);
 
       rerenders++;
@@ -104,7 +107,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       const name = useSelector(
         service,
         (state) => state.context.name,
@@ -169,7 +172,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       const [userChanges, setUserChanges] = React.useState(0);
       const user = useSelector(
         service,
@@ -228,6 +231,47 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     fireEvent.click(sendSameButton);
     expect(nameEl.textContent).toEqual('david');
     expect(changesEl.textContent).toEqual('2');
+  });
+
+  it('should work with selecting values from initially invoked actors', () => {
+    const childMachine = createMachine({
+      id: 'childMachine',
+      initial: 'active',
+      states: {
+        active: {}
+      }
+    });
+    const machine = createMachine({
+      initial: 'active',
+      invoke: {
+        id: 'child',
+        src: childMachine
+      },
+      states: {
+        active: {}
+      }
+    });
+
+    const ChildTest: React.FC<{
+      actor: ActorRefFrom<typeof childMachine>;
+    }> = ({ actor }) => {
+      const state = useSelector(actor, (s) => s);
+
+      expect(state.value).toEqual('active');
+
+      return null;
+    };
+
+    const Test = () => {
+      const actorRef = useActorRef(machine);
+      const childActor = useSelector(
+        actorRef,
+        (s) => s.children.child as ActorRefFrom<typeof childMachine>
+      );
+      return <ChildTest actor={childActor} />;
+    };
+
+    render(<Test />);
   });
 
   it('should work with selecting values from initially spawned actors', () => {
@@ -578,7 +622,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const snapshots: AnyState[] = [];
 
     function App() {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       useSelector(service, (state) => {
         snapshots.push(state);
         return state.children.child;
@@ -606,7 +650,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     function App() {
-      const service = useInterpret(machine);
+      const service = useActorRef(machine);
       useSelector(service, () => {});
       expect(called).toBe(false);
       return null;
@@ -615,5 +659,118 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     render(<App />);
 
     expect(called).toBe(true);
+  });
+
+  it('should work with initially deferred actors spawned in lazy context', () => {
+    const childMachine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          on: { NEXT: 'two' }
+        },
+        two: {}
+      }
+    });
+
+    const machine = createMachine<{ ref: ActorRefFrom<typeof childMachine> }>({
+      context: ({ spawn }) => ({
+        ref: spawn(childMachine)
+      }),
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: { TEST: 'success' }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const App = () => {
+      const actorRef = useActorRef(machine);
+      const childRef = useSelector(actorRef, (s) => s.context.ref);
+      const childState = useSelector(childRef, (s) => s);
+
+      return (
+        <>
+          <div data-testid="child-state">{childState.value}</div>
+          <button
+            data-testid="child-send"
+            onClick={() => childRef.send({ type: 'NEXT' })}
+          ></button>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const elState = screen.getByTestId('child-state');
+    const elSend = screen.getByTestId('child-send');
+
+    expect(elState.textContent).toEqual('one');
+    fireEvent.click(elSend);
+
+    expect(elState.textContent).toEqual('two');
+  });
+
+  it('should not log any spurious errors when used with a not-started actor', () => {
+    const spy = jest.fn();
+    console.error = spy;
+
+    const machine = createMachine({});
+    const App = () => {
+      useSelector(useActorRef(machine), (s) => s);
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(spy).not.toBeCalled();
+  });
+
+  it('should work with a null actor', () => {
+    const Child = (props: {
+      actor: ActorRef<any, { count: number }> | undefined;
+    }) => {
+      const state = useSelector(props.actor ?? createEmptyActor(), (s) => s);
+
+      // @ts-expect-error
+      ((_accept: { count: number }) => {})(state);
+      ((_accept: { count: number } | undefined) => {})(state);
+
+      return <div data-testid="state">{state?.count ?? 'undefined'}</div>;
+    };
+
+    const App = () => {
+      const [actor, setActor] =
+        React.useState<ActorRef<any, { count: number }>>();
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() =>
+              setActor(interpret(fromTransition((s) => s, { count: 42 })))
+            }
+          >
+            Set actor
+          </button>
+          <Child actor={actor} />
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const button = screen.getByTestId('button');
+    const stateEl = screen.getByTestId('state');
+
+    expect(stateEl.textContent).toBe('undefined');
+
+    fireEvent.click(button);
+
+    expect(stateEl.textContent).toBe('42');
   });
 });

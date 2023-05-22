@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { ActorRefFrom, assign, createMachine, TypegenMeta } from 'xstate';
-import { createActorContext, useInterpret, useMachine } from '../src/index.ts';
+import { createActorContext, useActorRef, useMachine } from '../src/index.ts';
 
 describe('useMachine', () => {
   it('should allow to be used with a machine without any missing implementations', () => {
@@ -77,25 +77,31 @@ describe('useMachine', () => {
 
     function App() {
       // @ts-expect-error
-      useMachine(machine, {});
-      useMachine(machine, {
+      useMachine(machine);
+      useMachine(
+        machine.provide({
+          // @ts-expect-error
+          actions: {}
+        })
+      );
+      useMachine(
         // @ts-expect-error
-        actions: {}
-      });
-      // @ts-expect-error
-      useMachine(machine, {
-        actions: {
-          myAction: () => {}
-        }
-      });
-      useMachine(machine, {
-        actions: {
-          myAction: () => {}
-        },
-        delays: {
-          myDelay: () => 42
-        }
-      });
+        machine.provide({
+          actions: {
+            myAction: () => {}
+          }
+        })
+      );
+      useMachine(
+        machine.provide({
+          actions: {
+            myAction: () => {}
+          },
+          delays: {
+            myDelay: () => 42
+          }
+        })
+      );
       return null;
     }
 
@@ -129,14 +135,16 @@ describe('useMachine', () => {
     );
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          fooAction: () => {}
-        },
-        delays: {
-          barDelay: () => 100
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            fooAction: () => {}
+          },
+          delays: {
+            barDelay: () => 100
+          }
+        })
+      );
       return null;
     }
 
@@ -164,12 +172,14 @@ describe('useMachine', () => {
     });
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: () => {}
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            // it's important to use `event` here somehow to make this a possible source of information for inference
+            fooAction: () => {}
+          }
+        })
+      );
       return null;
     }
 
@@ -197,15 +207,17 @@ describe('useMachine', () => {
     });
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          fooAction: assign(({ event }) => {
-            ((_accept: 'FOO') => {})(event.type);
-            // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(event.type);
-          })
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: "test that this isn't any") => {})(event.type);
+            })
+          }
+        })
+      );
       return null;
     }
 
@@ -213,7 +225,7 @@ describe('useMachine', () => {
   });
 });
 
-describe('useInterpret', () => {
+describe('useActorRef', () => {
   it('should allow to be used with a machine without any missing implementations', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
@@ -229,7 +241,7 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(machine);
+      useActorRef(machine);
       return null;
     }
 
@@ -258,7 +270,7 @@ describe('useInterpret', () => {
 
     function App() {
       // @ts-expect-error
-      useInterpret(machine);
+      useActorRef(machine);
       return null;
     }
 
@@ -288,18 +300,18 @@ describe('useInterpret', () => {
 
     function App() {
       // @ts-expect-error
-      useInterpret(machine, {});
-      useInterpret(machine, {
+      useActorRef(machine, {});
+      useActorRef(machine, {
         // @ts-expect-error
         actions: {}
       });
       // @ts-expect-error
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           myAction: () => {}
         }
       });
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           myAction: () => {}
         },
@@ -340,7 +352,7 @@ describe('useInterpret', () => {
     );
 
     function App() {
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           fooAction: () => {}
         },
@@ -375,7 +387,7 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           // it's important to use `event` here somehow to make this a possible source of information for inference
           fooAction: () => {}
@@ -408,15 +420,17 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(machine, {
-        actions: {
-          fooAction: assign(({ event }) => {
-            ((_accept: 'FOO') => {})(event.type);
-            // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(event.type);
-          })
-        }
-      });
+      useActorRef(
+        machine.provide({
+          actions: {
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: "test that this isn't any") => {})(event.type);
+            })
+          }
+        })
+      );
       return null;
     }
 
@@ -467,7 +481,7 @@ describe('useInterpret', () => {
     };
   });
 
-  it('returned actor created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';
@@ -486,7 +500,7 @@ describe('useInterpret', () => {
     }
 
     function App() {
-      const actorRef = useInterpret(() =>
+      const actorRef = useActorRef(
         machine.provide({
           actions: {
             someAction: () => {}
@@ -500,7 +514,7 @@ describe('useInterpret', () => {
     render(<App />);
   });
 
-  it('returned actor created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';
@@ -519,7 +533,7 @@ describe('useInterpret', () => {
     }
 
     function App() {
-      const actorRef = useInterpret(() =>
+      const actorRef = useActorRef(
         machine.provide({
           actions: {
             someAction: () => {}
@@ -617,10 +631,10 @@ describe('createActorContext', () => {
       ret = <Context.Provider options={{}}>{null}</Context.Provider>;
       ret = (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             // @ts-expect-error
             actions: {}
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -639,14 +653,14 @@ describe('createActorContext', () => {
       );
       ret = (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             actions: {
               myAction: () => {}
             },
             delays: {
               myDelay: () => 42
             }
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -689,14 +703,14 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             actions: {
               fooAction: () => {}
             },
             delays: {
               barDelay: () => 100
             }
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -731,12 +745,12 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             actions: {
               // it's important to use `event` here somehow to make this a possible source of information for inference
               fooAction: () => {}
             }
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -771,7 +785,7 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          options={{
+          machine={machine.provide({
             actions: {
               fooAction: assign(({ event }) => {
                 ((_accept: 'FOO') => {})(event.type);
@@ -779,7 +793,7 @@ describe('createActorContext', () => {
                 ((_accept: "test that this isn't any") => {})(event.type);
               })
             }
-          }}
+          })}
         >
           {null}
         </Context.Provider>
@@ -789,7 +803,7 @@ describe('createActorContext', () => {
     render(<App />);
   });
 
-  it('returned actor created based on a machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';

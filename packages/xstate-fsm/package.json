@@ -21,10 +21,26 @@
   "module": "dist/xstate-fsm.esm.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate-fsm.cjs.mjs",
+        "default": "./dist/xstate-fsm.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-fsm.development.esm.js",
+        "import": "./dist/xstate-fsm.development.cjs.mjs",
+        "default": "./dist/xstate-fsm.development.cjs.js"
+      },
       "module": "./dist/xstate-fsm.esm.js",
+      "import": "./dist/xstate-fsm.cjs.mjs",
       "default": "./dist/xstate-fsm.cjs.js"
     },
     "./package.json": "./package.json"
+  },
+  "imports": {
+    "#is-development": {
+      "development": "./src/true.ts",
+      "default": "./src/false.ts"
+    }
   },
   "sideEffects": false,
   "files": [

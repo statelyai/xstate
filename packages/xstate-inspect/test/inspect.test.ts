@@ -172,9 +172,9 @@ describe('@xstate/inspect', () => {
 
       if (
         state.event.type === 'service.event' &&
-        JSON.parse(state.event.event).name === 'TEST'
+        JSON.parse(state.event.event).type === 'TEST'
       ) {
-        expect(JSON.parse(state.event.event).data).toEqual({
+        expect(JSON.parse(state.event.event)).toEqual({
           type: 'TEST',
           serialized: 'map',
           deep: {
@@ -293,13 +293,13 @@ describe('@xstate/inspect', () => {
     expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
       [
         {
-          "event": "{"name":"EV","data":{"type":"EV","value":{"unsafe":"[unsafe]"}},"$$type":"scxml","type":"external"}",
+          "event": "{"type":"EV","value":{"unsafe":"[unsafe]"}}",
           "sessionId": "x:0",
           "type": "service.event",
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[{"type":"xstate.assign","params":{"context":{"value":{"unsafe":"[unsafe]"}},"actions":[]}}],"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_event":{"name":"EV","data":{"type":"EV","value":{"unsafe":"[unsafe]"}},"$$type":"scxml","type":"external"},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","reenter":false,"eventType":"EV"}],"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[{"type":"xstate.assign","params":{"context":{"value":{"unsafe":"[unsafe]"}},"actions":[]}}],"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","reenter":false,"eventType":"EV"}],"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -315,13 +315,13 @@ describe('@xstate/inspect', () => {
     expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
       [
         {
-          "event": "{"name":"UNKNOWN","data":{"type":"UNKNOWN"},"$$type":"scxml","type":"external"}",
+          "event": "{"type":"UNKNOWN"}",
           "sessionId": "x:0",
           "type": "service.event",
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[],"event":{"type":"UNKNOWN"},"_event":{"name":"UNKNOWN","data":{"type":"UNKNOWN"},"$$type":"scxml","type":"external"},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[],"event":{"type":"UNKNOWN"},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]

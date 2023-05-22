@@ -19,11 +19,21 @@
   "module": "dist/xstate-vue.esm.js",
   "exports": {
     "./fsm": {
+      "types": {
+        "import": "./fsm/dist/xstate-vue-fsm.cjs.mjs",
+        "default": "./fsm/dist/xstate-vue-fsm.cjs.js"
+      },
       "module": "./fsm/dist/xstate-vue-fsm.esm.js",
+      "import": "./fsm/dist/xstate-vue-fsm.cjs.mjs",
       "default": "./fsm/dist/xstate-vue-fsm.cjs.js"
     },
     ".": {
+      "types": {
+        "import": "./dist/xstate-vue.cjs.mjs",
+        "default": "./dist/xstate-vue.cjs.js"
+      },
       "module": "./dist/xstate-vue.esm.js",
+      "import": "./dist/xstate-vue.cjs.mjs",
       "default": "./dist/xstate-vue.cjs.js"
     },
     "./package.json": "./package.json"
@@ -44,7 +54,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^3.0.0-beta.2",
     "vue": "^3.0.0",
-    "xstate": "^5.0.0-beta.8"
+    "xstate": "^5.0.0-beta.13"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -60,7 +70,7 @@
     "@vue/compiler-sfc": "^3.0.11",
     "@xstate/fsm": "3.0.0-beta.2",
     "vue": "^3.0.11",
-    "xstate": "5.0.0-beta.8"
+    "xstate": "5.0.0-beta.13"
   },
   "preconstruct": {
     "entrypoints": [

@@ -17,7 +17,12 @@
   "module": "dist/xstate-scxml.esm.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate-scxml.cjs.mjs",
+        "default": "./dist/xstate-scxml.cjs.js"
+      },
       "module": "./dist/xstate-scxml.esm.js",
+      "import": "./dist/xstate-scxml.cjs.mjs",
       "default": "./dist/xstate-scxml.cjs.js"
     },
     "./package.json": "./package.json"
@@ -36,7 +41,7 @@
   },
   "dependencies": {
     "xml-js": "^1.6.11",
-    "xstate": "^5.0.0-beta.8"
+    "xstate": "^5.0.0-beta.13"
   },
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15"

@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { ActorRefFrom, assign, createMachine } from 'xstate';
-import { useActor, useMachine } from '../src/index.ts';
+import { useMachine, useSelector } from '../src/index.ts';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -83,7 +83,7 @@ describe('useMachine', () => {
     }
 
     function Element({ myActor }: Props) {
-      const [current, send] = useActor(myActor);
+      const current = useSelector(myActor, (state) => state);
       const bar: number = current.context.bar;
 
       // @ts-expect-error
@@ -92,7 +92,9 @@ describe('useMachine', () => {
       return (
         <>
           {bar}
-          <div onClick={() => send({ type: 'FOO', data: 1 })}>click</div>
+          <div onClick={() => myActor.send({ type: 'FOO', data: 1 })}>
+            click
+          </div>
         </>
       );
     }

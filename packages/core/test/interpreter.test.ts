@@ -12,7 +12,6 @@ import {
   ActorRef,
   cancel,
   raise,
-  sendTo,
   stop,
   log
 } from '../src/index.ts';
@@ -22,7 +21,6 @@ import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
-import { respond } from '../src/actions.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -301,11 +299,13 @@ describe('interpreter', () => {
 
       const delayExprService = interpret(delayExprMachine, {
         clock
-      })
-        .onDone(() => {
+      });
+      delayExprService.subscribe({
+        complete: () => {
           stopped = true;
-        })
-        .start();
+        }
+      });
+      delayExprService.start();
 
       delayExprService.send({
         type: 'ACTIVATE',
@@ -354,10 +354,10 @@ describe('interpreter', () => {
             entry: raise(
               { type: 'FINISH' },
               {
-                delay: ({ context, _event }) =>
+                delay: ({ context, event }) =>
                   context.initialDelay +
                   (
-                    _event.data as Extract<
+                    event as Extract<
                       DelayExpMachineEvents,
                       { type: 'ACTIVATE' }
                     >
@@ -380,11 +380,13 @@ describe('interpreter', () => {
 
       const delayExprService = interpret(delayExprMachine, {
         clock
-      })
-        .onDone(() => {
+      });
+      delayExprService.subscribe({
+        complete: () => {
           stopped = true;
-        })
-        .start();
+        }
+      });
+      delayExprService.start();
 
       delayExprService.send({
         type: 'ACTIVATE',
@@ -460,11 +462,13 @@ describe('interpreter', () => {
         }
       );
 
-      const actor = interpret(letterMachine, { clock })
-        .onDone(() => {
+      const actor = interpret(letterMachine, { clock });
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
 
       expect(actor.getSnapshot().value).toEqual('a');
       clock.increment(100);
@@ -663,9 +667,11 @@ describe('interpreter', () => {
 
     const service = interpret(machine).start();
 
-    service.onDone(() => {
-      expect(service.getSnapshot().value).toBe('pass');
-      done();
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('pass');
+        done();
+      }
     });
   });
 
@@ -727,10 +733,13 @@ describe('interpreter', () => {
     });
 
     let state: any;
-    const deferService = interpret(deferMachine).onDone(() => done());
+    const deferService = interpret(deferMachine);
 
-    deferService.subscribe((nextState) => {
-      state = nextState;
+    deferService.subscribe({
+      next: (nextState) => {
+        state = nextState;
+      },
+      complete: done
     });
 
     // uninitialized
@@ -788,7 +797,7 @@ describe('interpreter', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+          "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
       Event: {"type":"TIMER"}",
         ],
       ]
@@ -827,82 +836,9 @@ describe('interpreter', () => {
     expect(logs).toEqual([{ count: 1 }, { count: 2 }]);
   });
 
-  it('should be able to log event origin (log action)', () => {
+  it('should receive correct event (log action)', () => {
     const logs: any[] = [];
-    const logAction = log(({ event, _event }) => ({
-      event: event.type,
-      origin: _event.origin
-    }));
-
-    const childMachine = createMachine({
-      initial: 'bar',
-      states: {
-        bar: {}
-      },
-      on: {
-        PING: {
-          actions: [respond({ type: 'PONG' })]
-        }
-      }
-    });
-
-    const parentMachine = createMachine({
-      initial: 'foo',
-      states: {
-        foo: {
-          invoke: {
-            id: 'child',
-            src: childMachine
-          }
-        }
-      },
-      on: {
-        PING_CHILD: {
-          actions: [sendTo('child', { type: 'PING' }), logAction]
-        },
-        '*': {
-          actions: [logAction]
-        }
-      }
-    });
-
-    const service = interpret(parentMachine, {
-      logger: (msg) => logs.push(msg)
-    }).start();
-
-    service.send({ type: 'PING_CHILD' });
-    service.send({ type: 'PING_CHILD' });
-
-    expect(logs.length).toBe(4);
-    expect(logs).toMatchInlineSnapshot(`
-      [
-        {
-          "event": "PING_CHILD",
-          "origin": undefined,
-        },
-        {
-          "event": "PONG",
-          "origin": {
-            "id": "child",
-          },
-        },
-        {
-          "event": "PING_CHILD",
-          "origin": undefined,
-        },
-        {
-          "event": "PONG",
-          "origin": {
-            "id": "child",
-          },
-        },
-      ]
-    `);
-  });
-
-  it('should receive correct _event (log action)', () => {
-    const logs: any[] = [];
-    const logAction = log(({ _event }) => _event.data.type);
+    const logAction = log(({ event }) => event.type);
 
     const parentMachine = createMachine({
       initial: 'foo',
@@ -966,9 +902,9 @@ describe('interpreter', () => {
     });
 
     it('should resolve send event expressions', (done) => {
-      interpret(machine)
-        .onDone(() => done())
-        .start();
+      const actor = interpret(machine);
+      actor.subscribe({ complete: () => done() });
+      actor.start();
     });
   });
 
@@ -1016,14 +952,17 @@ describe('interpreter', () => {
       });
 
       const actor = interpret(parentMachine);
-      actor.subscribe((state) => {
-        if (state.matches('start')) {
-          const childActor = state.children.child;
+      actor.subscribe({
+        next: (state) => {
+          if (state.matches('start')) {
+            const childActor = state.children.child;
 
-          expect(typeof childActor!.send).toBe('function');
-        }
+            expect(typeof childActor!.send).toBe('function');
+          }
+        },
+        complete: () => done()
       });
-      actor.onDone(() => done()).start();
+      actor.start();
     });
   });
 
@@ -1048,25 +987,25 @@ describe('interpreter', () => {
     });
 
     it('can send events with a string', (done) => {
-      const service = interpret(sendMachine)
-        .onDone(() => done())
-        .start();
+      const service = interpret(sendMachine);
+      service.subscribe({ complete: () => done() });
+      service.start();
 
       service.send({ type: 'ACTIVATE' });
     });
 
     it('can send events with an object', (done) => {
-      const service = interpret(sendMachine)
-        .onDone(() => done())
-        .start();
+      const service = interpret(sendMachine);
+      service.subscribe({ complete: () => done() });
+      service.start();
 
       service.send({ type: 'ACTIVATE' });
     });
 
     it('can send events with an object with payload', (done) => {
-      const service = interpret(sendMachine)
-        .onDone(() => done())
-        .start();
+      const service = interpret(sendMachine);
+      service.subscribe({ complete: () => done() });
+      service.start();
 
       service.send({ type: 'EVENT', id: 42 });
     });
@@ -1094,11 +1033,13 @@ describe('interpreter', () => {
         }
       });
 
-      const toggleService = interpret(toggleMachine)
-        .onDone(() => {
+      const toggleService = interpret(toggleMachine);
+      toggleService.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      toggleService.start();
 
       toggleService.send({ type: 'ACTIVATE' });
       toggleService.send({ type: 'INACTIVATE' });
@@ -1262,7 +1203,7 @@ describe('interpreter', () => {
         expect(console.warn).toMatchMockCallsInlineSnapshot(`
           [
             [
-              "Warning: Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+              "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
           Event: {"type":"TRIGGER"}",
             ],
           ]
@@ -1474,12 +1415,14 @@ describe('interpreter', () => {
       });
 
       let count: number;
-      const service = interpret(machine)
-        .onDone(() => {
+      const service = interpret(machine);
+      service.subscribe({
+        complete: () => {
           expect(count).toEqual(2);
           done();
-        })
-        .start();
+        }
+      });
+      service.start();
 
       const subscription = service.subscribe(
         (state) => (count = state.context.count)
@@ -1638,17 +1581,22 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine).onDone(() => {
-        expect(service.getSnapshot().matches('success')).toBeTruthy();
-        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
-        done();
-      });
+      const service = interpret(parentMachine);
 
-      service.subscribe((state) => {
-        if (state.matches('active')) {
-          const childActor = state.children.childActor;
+      service.subscribe({
+        next: (state) => {
+          if (state.matches('active')) {
+            const childActor = state.children.childActor;
 
-          expect(childActor).toHaveProperty('send');
+            expect(childActor).toHaveProperty('send');
+          }
+        },
+        complete: () => {
+          expect(service.getSnapshot().matches('success')).toBeTruthy();
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
+          done();
         }
       });
 
@@ -1679,9 +1627,14 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine).onDone(() => {
-        expect(service.getSnapshot().children).not.toHaveProperty('childActor');
-        done();
+      const service = interpret(parentMachine);
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
+          done();
+        }
       });
 
       service.subscribe((state) => {
@@ -1771,16 +1724,18 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine)
-        .onDone(() => {
+      const service = interpret(parentMachine);
+      service.subscribe({
+        complete: () => {
           expect(service.getSnapshot().children.machineChild).toBeUndefined();
           expect(service.getSnapshot().children.promiseChild).toBeUndefined();
           expect(
             service.getSnapshot().children.observableChild
           ).toBeUndefined();
           done();
-        })
-        .start();
+        }
+      });
+      service.start();
 
       service.subscribe((state) => {
         if (state.matches('present')) {
@@ -1849,9 +1804,10 @@ describe('interpreter', () => {
     const service = interpret(machine).start();
 
     expect(service.status).toBe(InterpreterStatus.Stopped);
-
-    service.onDone(() => {
-      done();
+    service.subscribe({
+      complete: () => {
+        done();
+      }
     });
   });
 });

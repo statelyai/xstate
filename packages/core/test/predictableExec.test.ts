@@ -608,12 +608,14 @@ describe('predictableExec', () => {
       }
     });
 
-    service = interpret(machine)
-      .onDone(() => {
+    service = interpret(machine);
+    service.subscribe({
+      complete: () => {
         expect(service.getSnapshot().value).toBe('success');
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
@@ -775,12 +777,14 @@ describe('predictableExec', () => {
       }
     });
 
-    service = interpret(machine)
-      .onDone(() => {
+    service = interpret(machine);
+    service.subscribe({
+      complete: () => {
         expect(service.getSnapshot().value).toBe('success');
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {

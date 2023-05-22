@@ -13,9 +13,27 @@ import {
   raise,
   assign,
   cancel,
-  choose
+  choose,
+  AnyStateNode
 } from 'xstate';
 import { not, stateIn } from 'xstate/guards';
+
+function appendWildcards(state: AnyStateNode) {
+  for (const t of state.transitions) {
+    if (
+      typeof t.eventType === 'string' &&
+      !!t.eventType &&
+      t.eventType !== '*' &&
+      !t.eventType.endsWith('.*')
+    ) {
+      t.eventType = `${t.eventType}.*`;
+    }
+  }
+
+  for (const key of Object.keys(state.states)) {
+    appendWildcards(state.states[key]);
+  }
+}
 
 export function mapValues<P, O extends Record<string, unknown>>(
   collection: O,
@@ -126,8 +144,8 @@ const evaluateExecutableContent = <
   TEvent extends EventObject
 >(
   context: TContext,
-  _ev: TEvent,
-  meta: StateMeta<TEvent>,
+  event: TEvent,
+  _meta: StateMeta<TEvent>,
   body: string
 ) => {
   const datamodel = context
@@ -148,7 +166,7 @@ const evaluateExecutableContent = <
   `;
 
   const fn = new Function(...args, fnBody);
-  return fn(context, meta._event);
+  return fn(context, { name: event.type, data: event });
 };
 
 function createGuard<
@@ -557,12 +575,15 @@ function scxmlToMachine(
         }, {})
     : undefined;
 
-  return createMachine({
+  const machine = createMachine({
     ...toConfig(machineElement, '(machine)', options),
     context,
-    delimiter: options.delimiter,
-    scxml: true
+    delimiter: options.delimiter
   } as any);
+
+  appendWildcards(machine.root);
+
+  return machine;
 }
 
 export function toMachine(
