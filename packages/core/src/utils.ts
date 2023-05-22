@@ -19,7 +19,8 @@ import type {
   StateValue,
   Subscribable,
   TransitionConfig,
-  TransitionConfigTarget
+  TransitionConfigTarget,
+  TODO
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -412,9 +413,12 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable: InvokeConfig<TContext, TEvent> | string | ActorBehavior<any, any>,
+  invocable:
+    | InvokeConfig<TContext, TEvent, TODO>
+    | string
+    | ActorBehavior<any, any>,
   id: string
-): InvokeConfig<TContext, TEvent> {
+): InvokeConfig<TContext, TEvent, TODO> {
   if (typeof invocable === 'object') {
     if ('src' in invocable) {
       return invocable;

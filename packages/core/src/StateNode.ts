@@ -23,7 +23,9 @@ import type {
   TransitionDefinitionMap,
   InitialTransitionDefinition,
   MachineContext,
-  BaseActionObject
+  BaseActionObject,
+  TODO,
+  AnyActorBehavior
 } from './types.ts';
 import type { State } from './State.ts';
 import * as actionTypes from './actionTypes.ts';
@@ -128,7 +130,7 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent>,
+    public config: StateNodeConfig<TContext, TEvent, TODO, TODO>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
@@ -154,7 +156,10 @@ export class StateNode<
       this.config.states
         ? mapValues(
             this.config.states,
-            (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
+            (
+              stateConfig: StateNodeConfig<TContext, TEvent, TODO, TODO>,
+              key
+            ) => {
               const stateNode = new StateNode(stateConfig, {
                 _parent: this,
                 _key: key as string,
@@ -258,7 +263,8 @@ export class StateNode<
         const generatedId = createInvokeId(this.id, i);
         const invokeConfig = toInvokeConfig(invocable, generatedId);
         const resolvedId = invokeConfig.id || generatedId;
-        const { src, systemId } = invokeConfig;
+        const src = invokeConfig.src as string | AnyActorBehavior;
+        const { systemId } = invokeConfig;
 
         const resolvedSrc = isString(src)
           ? src
@@ -279,7 +285,7 @@ export class StateNode<
         }
 
         return {
-          type: actionTypes.invoke,
+          // type: actionTypes.invoke,
           ...invokeConfig,
           src: resolvedSrc,
           id: resolvedId,

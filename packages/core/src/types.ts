@@ -1405,7 +1405,7 @@ export type Mapper<
 > = (args: {
   context: TContext;
   event: TEvent;
-  self: ActorRef<TEvent>;
+  // self: ActorRef<TEvent>;
 }) => TParams;
 
 export type PropertyMapper<

@@ -717,10 +717,9 @@ describe('typegen types', () => {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              output: {} as string
-            }
+          actors: {} as {
+            src: 'myActor';
+            output: string;
           }
         }
       },
@@ -754,10 +753,9 @@ describe('typegen types', () => {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              output: {} as string
-            }
+          actors: {} as {
+            src: 'myActor';
+            output: string;
           }
         }
       },
@@ -792,10 +790,9 @@ describe('typegen types', () => {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              output: {} as { foo: string }
-            }
+          actors: {} as {
+            src: 'myActor';
+            output: string;
           }
         }
       },

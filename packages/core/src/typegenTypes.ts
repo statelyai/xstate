@@ -7,10 +7,8 @@ import {
   Values,
   IsAny,
   ActorMap,
-  Cast,
   ParameterizedObject,
-  ActorImpl,
-  TODO
+  ActorImpl
 } from './types.ts';
 
 export interface TypegenDisabled {
@@ -148,37 +146,15 @@ export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
   resolved: Prop<TResolvedTypesMeta, 'resolved'> & AllImplementationsProvided;
 }
 
-type GenerateActorEvent<
-  TActorName,
-  TEventType,
-  TActorMap extends ActorMap
-> = TEventType extends any
-  ? {
-      type: TEventType;
-    } & Prop<TActorMap, TActorName>
-  : never;
-
 type GenerateActorEvents<
   TActors extends ActorImpl,
-  TInvokeSrcNameMap
+  _TInvokeSrcNameMap
 > = TActors extends { id: infer K }
   ? {
       type: `done.invoke.${K & string}`;
+      output: TActors['output'];
     }
   : never;
-
-// string extends keyof TActorMap
-//   ? never
-//   : Cast<
-//       {
-//         [K in keyof TInvokeSrcNameMap]: GenerateActorEvent<
-//           K,
-//           TInvokeSrcNameMap[K],
-//           TActorMap
-//         >;
-//       }[keyof TInvokeSrcNameMap],
-//       EventObject
-//     >;
 
 // we don't even have to do that much here, technically, because `T & unknown` is equivalent to `T`
 // however, this doesn't display nicely in IDE tooltips, so let's fix this
