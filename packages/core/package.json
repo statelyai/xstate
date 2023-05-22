@@ -1,37 +1,88 @@
 {
   "name": "xstate",
-  "version": "5.0.0-beta.9",
+  "version": "5.0.0-beta.13",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
   "umd:main": "dist/xstate.umd.min.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate.cjs.mjs",
+        "default": "./dist/xstate.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate.development.esm.js",
+        "import": "./dist/xstate.development.cjs.mjs",
+        "default": "./dist/xstate.development.cjs.js"
+      },
       "module": "./dist/xstate.esm.js",
       "import": "./dist/xstate.cjs.mjs",
       "default": "./dist/xstate.cjs.js"
     },
     "./guards": {
+      "types": {
+        "import": "./guards/dist/xstate-guards.cjs.mjs",
+        "default": "./guards/dist/xstate-guards.cjs.js"
+      },
+      "development": {
+        "module": "./guards/dist/xstate-guards.development.esm.js",
+        "import": "./guards/dist/xstate-guards.development.cjs.mjs",
+        "default": "./guards/dist/xstate-guards.development.cjs.js"
+      },
       "module": "./guards/dist/xstate-guards.esm.js",
       "import": "./guards/dist/xstate-guards.cjs.mjs",
       "default": "./guards/dist/xstate-guards.cjs.js"
     },
     "./actions": {
+      "types": {
+        "import": "./actions/dist/xstate-actions.cjs.mjs",
+        "default": "./actions/dist/xstate-actions.cjs.js"
+      },
+      "development": {
+        "module": "./actions/dist/xstate-actions.development.esm.js",
+        "import": "./actions/dist/xstate-actions.development.cjs.mjs",
+        "default": "./actions/dist/xstate-actions.development.cjs.js"
+      },
       "module": "./actions/dist/xstate-actions.esm.js",
       "import": "./actions/dist/xstate-actions.cjs.mjs",
       "default": "./actions/dist/xstate-actions.cjs.js"
     },
     "./dev": {
+      "types": {
+        "import": "./dev/dist/xstate-dev.cjs.mjs",
+        "default": "./dev/dist/xstate-dev.cjs.js"
+      },
+      "development": {
+        "module": "./dev/dist/xstate-dev.development.esm.js",
+        "import": "./dev/dist/xstate-dev.development.cjs.mjs",
+        "default": "./dev/dist/xstate-dev.development.cjs.js"
+      },
       "module": "./dev/dist/xstate-dev.esm.js",
       "import": "./dev/dist/xstate-dev.cjs.mjs",
       "default": "./dev/dist/xstate-dev.cjs.js"
     },
     "./actors": {
+      "types": {
+        "import": "./actors/dist/xstate-actors.cjs.mjs",
+        "default": "./actors/dist/xstate-actors.cjs.js"
+      },
+      "development": {
+        "module": "./actors/dist/xstate-actors.development.esm.js",
+        "import": "./actors/dist/xstate-actors.development.cjs.mjs",
+        "default": "./actors/dist/xstate-actors.development.cjs.js"
+      },
       "module": "./actors/dist/xstate-actors.esm.js",
       "import": "./actors/dist/xstate-actors.cjs.mjs",
       "default": "./actors/dist/xstate-actors.cjs.js"
     },
     "./package.json": "./package.json"
+  },
+  "imports": {
+    "#is-development": {
+      "development": "./src/true.ts",
+      "default": "./src/false.ts"
+    }
   },
   "sideEffects": false,
   "funding": {

@@ -567,8 +567,11 @@ describe('transient states (eventless transitions)', () => {
       ]
     });
 
-    const service = interpret(machine).onDone(() => {
-      done();
+    const service = interpret(machine);
+    service.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     service.start();
@@ -604,8 +607,11 @@ describe('transient states (eventless transitions)', () => {
       ]
     });
 
-    const service = interpret(machine).onDone(() => {
-      done();
+    const service = interpret(machine);
+    service.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     service.start();

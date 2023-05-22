@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import { useCallback, useEffect } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
@@ -27,12 +28,10 @@ export function useActor<TBehavior extends AnyActorBehavior>(
   ActorRefFrom<TBehavior>['send'],
   ActorRefFrom<TBehavior>
 ] {
-  if (process.env.NODE_ENV !== 'production') {
-    if (isActorRef(behavior)) {
-      throw new Error(
-        `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
-      );
-    }
+  if (isDevelopment && isActorRef(behavior)) {
+    throw new Error(
+      `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
+    );
   }
 
   const actorRef = useIdleInterpreter(behavior, options as any);

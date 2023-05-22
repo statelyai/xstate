@@ -20,11 +20,19 @@
   "module": "dist/xstate-solid.esm.js",
   "exports": {
     "./fsm": {
+      "types": {
+        "import": "./fsm/dist/xstate-solid-fsm.cjs.mjs",
+        "default": "./fsm/dist/xstate-solid-fsm.cjs.js"
+      },
       "module": "./fsm/dist/xstate-solid-fsm.esm.js",
       "import": "./fsm/dist/xstate-solid-fsm.cjs.mjs",
       "default": "./fsm/dist/xstate-solid-fsm.cjs.js"
     },
     ".": {
+      "types": {
+        "import": "./dist/xstate-solid.cjs.mjs",
+        "default": "./dist/xstate-solid.cjs.js"
+      },
       "module": "./dist/xstate-solid.esm.js",
       "import": "./dist/xstate-solid.cjs.mjs",
       "default": "./dist/xstate-solid.cjs.js"
@@ -52,7 +60,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^3.0.0-beta.2",
     "solid-js": "^1.6.0",
-    "xstate": "5.0.0-beta.9"
+    "xstate": "^5.0.0-beta.13"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -66,7 +74,7 @@
     "@xstate/fsm": "3.0.0-beta.2",
     "solid-js": "^1.6.0",
     "solid-testing-library": "^0.3.0",
-    "xstate": "5.0.0-beta.9"
+    "xstate": "5.0.0-beta.13"
   },
   "preconstruct": {
     "entrypoints": [

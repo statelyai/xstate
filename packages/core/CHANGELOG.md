@@ -1,5 +1,65 @@
 # xstate
 
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- [#4033](https://github.com/statelyai/xstate/pull/4033) [`9cb7cb51a`](https://github.com/statelyai/xstate/commit/9cb7cb51a0ce577d2de508aedf3773d4f80f9d46) Thanks [@Andarist](https://github.com/Andarist)! - Fixed generated TS declaration files to not include `.ts` extensions in the import/export statements.
+
+## 5.0.0-beta.12
+
+### Major Changes
+
+- [#3990](https://github.com/statelyai/xstate/pull/3990) [`fe6db147a`](https://github.com/statelyai/xstate/commit/fe6db147a1d7c1555699ded8d37ed8cd46f7a982) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now add a `systemId` to spawned actors to reference them anywhere in the system.
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    context: ({ spawn }) => ({
+      actorRef: spawn(
+        createMachine({
+          // ...
+        }),
+        { systemId: 'actorRef' }
+      )
+    })
+  });
+  ```
+
+- [#3991](https://github.com/statelyai/xstate/pull/3991) [`98db493e4`](https://github.com/statelyai/xstate/commit/98db493e44a1aaddc74615d600a01472266679a5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `actor.onDone(...)` method is removed. Use `actor.subscribe({ complete() {... } })` instead.
+
+  ```diff
+  - actor.onDone(() => { ... })
+  + actor.subscribe({
+  +  complete() {
+  +    // ...
+  +  }
+  +})
+  ```
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- [#4020](https://github.com/statelyai/xstate/pull/4020) [`7898731b5`](https://github.com/statelyai/xstate/commit/7898731b5738ce73a7441d528b5920c946d33b5f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `fromEventObservable` actor logic creator now accepts `input`:
+
+  ```ts
+  const machine = createMachine({
+    invoke: {
+      src: fromEventObservable(({ input }) => /* ... */),
+      input: {
+        foo: 'bar'
+      }
+    }
+  });
+  ```
+
+## 5.0.0-beta.10
+
+### Major Changes
+
+- [#3971](https://github.com/statelyai/xstate/pull/3971) [`d0ba42ca9`](https://github.com/statelyai/xstate/commit/d0ba42ca9f60e15fcb08d1b3ee33f5161dc44903) Thanks [@Andarist](https://github.com/Andarist)! - `_event` has been removed from all APIs and types. It was a wrapper structure containing the `event` that users were using directly.
+
 ## 5.0.0-beta.9
 
 ### Patch Changes

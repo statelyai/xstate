@@ -156,11 +156,13 @@ describe('spawning machines', () => {
         }
       }
     });
-    const service = interpret(todosMachine)
-      .onDone(() => {
+    const service = interpret(todosMachine);
+    service.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
 
     service.send({ type: 'ADD', id: 42 });
     service.send({ type: 'SET_COMPLETE', id: 42 });
@@ -198,19 +200,23 @@ describe('spawning machines', () => {
       }
     );
 
-    interpret(parentMachine)
-      .onDone(() => {
+    const actor = interpret(parentMachine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   it('should allow bidirectional communication between parent/child actors', (done) => {
-    interpret(clientMachine)
-      .onDone(() => {
+    const actor = interpret(clientMachine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 });
 
@@ -252,8 +258,11 @@ describe('spawning promises', () => {
       }
     });
 
-    const promiseService = interpret(promiseMachine).onDone(() => {
-      done();
+    const promiseService = interpret(promiseMachine);
+    promiseService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     promiseService.start();
@@ -297,8 +306,11 @@ describe('spawning promises', () => {
       }
     );
 
-    const promiseService = interpret(promiseMachine).onDone(() => {
-      done();
+    const promiseService = interpret(promiseMachine);
+    promiseService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     promiseService.start();
@@ -344,8 +356,11 @@ describe('spawning callbacks', () => {
       }
     });
 
-    const callbackService = interpret(callbackMachine).onDone(() => {
-      done();
+    const callbackService = interpret(callbackMachine);
+    callbackService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     callbackService.start();
@@ -384,8 +399,11 @@ describe('spawning observables', () => {
       }
     });
 
-    const observableService = interpret(observableMachine).onDone(() => {
-      done();
+    const observableService = interpret(observableMachine);
+    observableService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     observableService.start();
@@ -423,8 +441,11 @@ describe('spawning observables', () => {
       }
     );
 
-    const observableService = interpret(observableMachine).onDone(() => {
-      done();
+    const observableService = interpret(observableMachine);
+    observableService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     observableService.start();
@@ -464,8 +485,11 @@ describe('spawning observables', () => {
       }
     });
 
-    const observableService = interpret(observableMachine).onDone(() => {
-      done();
+    const observableService = interpret(observableMachine);
+    observableService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     observableService.start();
@@ -507,8 +531,11 @@ describe('spawning event observables', () => {
       }
     });
 
-    const observableService = interpret(observableMachine).onDone(() => {
-      done();
+    const observableService = interpret(observableMachine);
+    observableService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     observableService.start();
@@ -548,8 +575,11 @@ describe('spawning event observables', () => {
       }
     );
 
-    const observableService = interpret(observableMachine).onDone(() => {
-      done();
+    const observableService = interpret(observableMachine);
+    observableService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     observableService.start();
@@ -612,8 +642,11 @@ describe('communicating with spawned actors', () => {
       }
     });
 
-    const parentService = interpret(parentMachine).onDone(() => {
-      done();
+    const parentService = interpret(parentMachine);
+    parentService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     parentService.start();
@@ -675,8 +708,11 @@ describe('communicating with spawned actors', () => {
       }
     });
 
-    const parentService = interpret(parentMachine).onDone(() => {
-      done();
+    const parentService = interpret(parentMachine);
+    parentService.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     parentService.start();
@@ -893,8 +929,11 @@ describe('actors', () => {
         }
       });
 
-      const countService = interpret(countMachine).onDone(() => {
-        done();
+      const countService = interpret(countMachine);
+      countService.subscribe({
+        complete: () => {
+          done();
+        }
       });
       countService.start();
     });
@@ -933,8 +972,11 @@ describe('actors', () => {
         }
       });
 
-      const countService = interpret(countMachine).onDone(() => {
-        done();
+      const countService = interpret(countMachine);
+      countService.subscribe({
+        complete: () => {
+          done();
+        }
       });
       countService.start();
     });
@@ -978,8 +1020,11 @@ describe('actors', () => {
         }
       });
 
-      const pingService = interpret(pingMachine).onDone(() => {
-        done();
+      const pingService = interpret(pingMachine);
+      pingService.subscribe({
+        complete: () => {
+          done();
+        }
       });
       pingService.start();
     });
@@ -1005,11 +1050,13 @@ describe('actors', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = interpret(machine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   it('should be able to spawn machines in (lazy) initial context', (done) => {
@@ -1032,11 +1079,13 @@ describe('actors', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = interpret(machine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   // https://github.com/statelyai/xstate/issues/2507

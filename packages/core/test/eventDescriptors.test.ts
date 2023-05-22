@@ -206,16 +206,16 @@ describe('event descriptors', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
         ],
         [
-          "Warning: Infix wildcards in transition events are not allowed. Check the "event.*.bar.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "event.*.bar.*" event.",
         ],
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
         ],
         [
-          "Warning: Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
         ],
       ]
     `);
@@ -229,13 +229,13 @@ describe('event descriptors', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
         ],
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
         ],
         [
-          "Warning: Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
         ],
       ]
     `);
@@ -266,10 +266,10 @@ describe('event descriptors', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
         ],
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
         ],
       ]
     `);
@@ -283,10 +283,10 @@ describe('event descriptors', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
         ],
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
         ],
       ]
     `);

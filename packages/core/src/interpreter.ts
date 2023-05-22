@@ -1,8 +1,8 @@
+import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
 import { doneInvoke, error } from './actions.ts';
 import { stopSignalType } from './actors/index.ts';
 import { devToolsAdapter } from './dev/index.ts';
-import { IS_PRODUCTION } from './environment.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { createSystem } from './system.ts';
 import {
@@ -31,7 +31,7 @@ import {
   SendActionObject,
   Subscription
 } from './types.ts';
-import { toObserver, warn } from './utils.ts';
+import { toObserver } from './utils.ts';
 
 export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
   state: SnapshotFrom<TBehavior>
@@ -259,26 +259,6 @@ export class Interpreter<
   }
 
   /**
-   * Adds a state listener that is notified when the statechart has reached its final state.
-   * @param listener The state listener
-   */
-  public onDone(listener: EventListener<DoneEvent>): this {
-    if (this.status === ActorStatus.Stopped && this._doneEvent) {
-      listener(this._doneEvent);
-    } else {
-      this.observers.add({
-        complete: () => {
-          if (this._doneEvent) {
-            listener(this._doneEvent);
-          }
-        }
-      });
-    }
-
-    return this;
-  }
-
-  /**
    * Starts the interpreter from the initial state
    */
   public start(): this {
@@ -412,11 +392,10 @@ export class Interpreter<
 
     if (this.status === ActorStatus.Stopped) {
       // do nothing
-      if (!IS_PRODUCTION) {
+      if (isDevelopment) {
         const eventString = JSON.stringify(event);
 
-        warn(
-          false,
+        console.warn(
           `Event "${event.type.toString()}" was sent to stopped actor "${
             this.id
           } (${
