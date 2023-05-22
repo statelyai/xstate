@@ -60,9 +60,7 @@ export function useActor<TBehavior extends AnyActorBehavior>(
     actorRef.start();
 
     return () => {
-      actorRef.stop();
-      actorRef.status = InterpreterStatus.NotStarted;
-      (actorRef as any)._initState();
+      actorRef.reset();
     };
   }, [actorRef]);
 
