@@ -472,9 +472,10 @@ export type StateNodesConfig<
 export type StatesConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ParameterizedObject = ParameterizedObject
+  TAction extends ParameterizedObject,
+  TActors extends ActorImpl
 > = {
-  [K in string]: StateNodeConfig<TContext, TEvent, TAction>;
+  [K in string]: StateNodeConfig<TContext, TEvent, TAction, TActors>;
 };
 
 export type StatesDefinition<
@@ -521,55 +522,103 @@ export type TransitionsConfig<
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
-export interface InvokeConfig<
+export type InvokeConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  /**
-   * The unique identifier for the invoked machine. If not specified, this
-   * will be the machine's own `id`, or the URL (from `src`).
-   */
-  id?: string;
+  TEvent extends EventObject,
+  TActors extends ActorImpl
+> = TActors extends { src: infer TSrc }
+  ? {
+      /**
+       * The unique identifier for the invoked machine. If not specified, this
+       * will be the machine's own `id`, or the URL (from `src`).
+       */
+      id?: TActors['id'];
 
-  systemId?: string;
-  /**
-   * The source of the machine to be invoked, or the machine itself.
-   */
-  src: string | ActorBehavior<any, any>; // TODO: fix types
+      systemId?: string;
+      /**
+       * The source of the machine to be invoked, or the machine itself.
+       */
+      src: TSrc | ActorBehavior<any, any>; // TODO: fix types
 
-  input?: Mapper<TContext, TEvent, any> | any;
-  /**
-   * The transition to take upon the invoked child machine reaching its final top-level state.
-   */
-  onDone?:
-    | string
-    | SingleOrArray<
-        TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
-      >;
-  /**
-   * The transition to take upon the invoked child machine sending an error event.
-   */
-  onError?:
-    | string
-    | SingleOrArray<
-        TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent>
-      >;
+      input?: Mapper<TContext, TEvent, TActors['input']> | TActors['input'];
+      /**
+       * The transition to take upon the invoked child machine reaching its final top-level state.
+       */
+      onDone?:
+        | string
+        | SingleOrArray<
+            TransitionConfigOrTarget<
+              TContext,
+              DoneInvokeEvent<TActors['output']>,
+              TEvent
+            >
+          >;
+      /**
+       * The transition to take upon the invoked child machine sending an error event.
+       */
+      onError?:
+        | string
+        | SingleOrArray<
+            TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent>
+          >;
 
-  onSnapshot?:
-    | string
-    | SingleOrArray<
-        TransitionConfigOrTarget<TContext, SnapshotEvent<any>, TEvent>
-      >;
-  /**
-   * Meta data related to this invocation
-   */
-  meta?: MetaObject;
-}
+      onSnapshot?:
+        | string
+        | SingleOrArray<
+            TransitionConfigOrTarget<TContext, SnapshotEvent<any>, TEvent>
+          >;
+      /**
+       * Meta data related to this invocation
+       */
+      meta?: MetaObject;
+    }
+  : {
+      /**
+       * The unique identifier for the invoked machine. If not specified, this
+       * will be the machine's own `id`, or the URL (from `src`).
+       */
+      id?: string;
+
+      systemId?: string;
+      /**
+       * The source of the machine to be invoked, or the machine itself.
+       */
+      src: ActorBehavior<any, any>; // TODO: fix types
+
+      input?: Mapper<TContext, TEvent, any> | any;
+      /**
+       * The transition to take upon the invoked child machine reaching its final top-level state.
+       */
+      onDone?:
+        | string
+        | SingleOrArray<
+            TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+          >;
+      /**
+       * The transition to take upon the invoked child machine sending an error event.
+       */
+      onError?:
+        | string
+        | SingleOrArray<
+            TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent>
+          >;
+
+      onSnapshot?:
+        | string
+        | SingleOrArray<
+            TransitionConfigOrTarget<TContext, SnapshotEvent<any>, TEvent>
+          >;
+      /**
+       * Meta data related to this invocation
+       */
+      meta?: MetaObject;
+    };
 
 export interface StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ParameterizedObject = ParameterizedObject
+  TAction extends ParameterizedObject,
+  TActors extends ActorImpl
 > {
   /**
    * The initial state transition.
@@ -597,11 +646,13 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TEvent, TAction> | undefined;
+  states?: StatesConfig<TContext, TEvent, TAction, TActors> | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<string | InvokeConfig<TContext, TEvent>>;
+  invoke?: SingleOrArray<
+    TActors['src'] | InvokeConfig<TContext, TEvent, TActors>
+  >;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -722,7 +773,7 @@ export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 export interface AtomicStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateNodeConfig<TContext, TEvent> {
+> extends StateNodeConfig<TContext, TEvent, TODO, TODO> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
@@ -754,7 +805,9 @@ export interface FinalStateNodeConfig<
 export type SimpleOrStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = AtomicStateNodeConfig<TContext, TEvent> | StateNodeConfig<TContext, TEvent>;
+> =
+  | AtomicStateNodeConfig<TContext, TEvent>
+  | StateNodeConfig<TContext, TEvent, TODO, TODO>;
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
@@ -985,12 +1038,12 @@ export type MachineImplementations<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
-  TActorMap extends ActorMap = ActorMap,
+  TActors extends ActorImpl = ActorImpl,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
   TEvent,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActorMap>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActors>
 >;
 
 type InitialContext<TContext extends MachineContext> =
@@ -1009,9 +1062,14 @@ export interface MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
-  TActorMap extends ActorMap = ActorMap,
+  TActors extends ActorImpl = ActorImpl,
   TTypesMeta = TypegenDisabled
-> extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
+> extends StateNodeConfig<
+    NoInfer<TContext>,
+    NoInfer<TEvent>,
+    NoInfer<TAction>,
+    NoInfer<TActors>
+  > {
   /**
    * The initial context (extended state)
    */
@@ -1020,19 +1078,28 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
+  types?: MachineTypes<TContext, TEvent, TActors, TTypesMeta>;
+}
+
+export interface ActorImpl {
+  src: string;
+  events?: EventObject;
+  snapshot?: any;
+  input?: any;
+  output?: any;
+  id?: string;
 }
 
 export type ActorMap = Record<string, { output: any }>;
 export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActorMap extends ActorMap = ActorMap,
+  TActors extends ActorImpl,
   TTypesMeta = TypegenDisabled
 > {
   context?: TContext;
   actions?: { type: string; [key: string]: any };
-  actors?: TActorMap;
+  actors?: TActors;
   events?: TEvent;
   guards?: { type: string; [key: string]: any };
   typegen?: TTypesMeta;
@@ -1335,7 +1402,11 @@ export type Mapper<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TParams extends {}
-> = (args: { context: TContext; event: TEvent }) => TParams;
+> = (args: {
+  context: TContext;
+  event: TEvent;
+  self: ActorRef<TEvent>;
+}) => TParams;
 
 export type PropertyMapper<
   TContext extends MachineContext,

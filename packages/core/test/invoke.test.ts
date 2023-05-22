@@ -117,9 +117,16 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = createMachine<{ count: number }>(
+    const someParentMachine = createMachine(
       {
         id: 'parent',
+        types: {} as {
+          context: { count: number };
+          actors: {
+            src: 'child';
+            id: 'someService';
+          };
+        },
         context: { count: 0 },
         initial: 'start',
         states: {
@@ -353,6 +360,10 @@ describe('invoke', () => {
     const someParentMachine = createMachine(
       {
         id: 'parent',
+        types: {} as {
+          context: { count: number };
+          actors: { src: 'child'; id: 'someService' };
+        },
         context: { count: 0 },
         initial: 'start',
         states: {
@@ -1114,9 +1125,20 @@ describe('invoke', () => {
           type: 'BEGIN';
           payload: boolean;
         }
-        const promiseMachine = createMachine<{ foo: boolean }, BeginEvent>(
+        const promiseMachine = createMachine(
           {
             id: 'promise',
+            types: {} as {
+              context: { foo: boolean };
+              events: BeginEvent;
+              actors: {
+                src: 'somePromise';
+                input: {
+                  foo: boolean;
+                  event: any;
+                };
+              };
+            },
             initial: 'pending',
             context: {
               foo: true
@@ -1163,11 +1185,18 @@ describe('invoke', () => {
       });
 
       it('should be able to reuse the same promise behavior multiple times and create unique promise for each created actor', (done) => {
-        const machine = createMachine<{
-          result1: number | null;
-          result2: number | null;
-        }>(
+        const machine = createMachine(
           {
+            types: {} as {
+              context: {
+                result1: number | null;
+                result2: number | null;
+              };
+              actors: {
+                src: 'getRandomNumber';
+                output: { result: number };
+              };
+            },
             context: {
               result1: null,
               result2: null
@@ -1185,6 +1214,10 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
+                            // TODO: investigate why event is DoneInvoke<any> instead of
+                            // DoneInvoke<{result: ...}>
+                            // The type is properly inferred for:
+                            // actions: ({ event }) => event.output.result
                             actions: assign(({ event }) => ({
                               result1: event.output.result
                             }))
@@ -1260,14 +1293,20 @@ describe('invoke', () => {
         type: 'CALLBACK';
         data: number;
       }
-      const callbackMachine = createMachine<
-        {
-          foo: boolean;
-        },
-        BeginEvent | CallbackEvent
-      >(
+      const callbackMachine = createMachine(
         {
           id: 'callback',
+          types: {} as {
+            context: { foo: boolean };
+            events: BeginEvent | CallbackEvent;
+            actors: {
+              src: 'someCallback';
+              input: {
+                foo: boolean;
+                event: EventObject;
+              };
+            };
+          },
           initial: 'pending',
           context: {
             foo: true
@@ -2784,6 +2823,14 @@ describe('invoke', () => {
   it('invoke `src` can be used with invoke `input`', (done) => {
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'search';
+            input: {
+              endpoint: string;
+            };
+          };
+        },
         initial: 'searching',
         states: {
           searching: {
@@ -2818,6 +2865,15 @@ describe('invoke', () => {
   it('invoke `src` can be used with dynamic invoke `input`', async () => {
     const machine = createMachine(
       {
+        types: {} as {
+          context: { url: string };
+          actors: {
+            src: 'search';
+            input: {
+              endpoint: string;
+            };
+          };
+        },
         initial: 'searching',
         context: {
           url: 'example.com'
@@ -3212,6 +3268,16 @@ describe('actors option', () => {
   it('should provide data params to a service creator', (done) => {
     const machine = createMachine(
       {
+        types: {} as {
+          context: { count: number };
+          actors: {
+            src: 'stringService';
+            input: {
+              staticVal: string;
+              newCount: number;
+            };
+          };
+        },
         initial: 'pending',
         context: {
           count: 42

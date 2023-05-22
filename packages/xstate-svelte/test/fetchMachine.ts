@@ -1,11 +1,18 @@
 import { createMachine, assign } from 'xstate';
 
 const context = {
-  data: undefined
+  data: undefined as string | undefined
 };
 
-export const fetchMachine = createMachine<typeof context, any>({
+export const fetchMachine = createMachine({
   id: 'fetch',
+  types: {} as {
+    context: typeof context;
+    actors: {
+      src: 'fetchData';
+      output: string;
+    };
+  },
   initial: 'idle',
   context,
   states: {
@@ -21,7 +28,7 @@ export const fetchMachine = createMachine<typeof context, any>({
           actions: assign({
             data: ({ event }) => event.output
           }),
-          guard: ({ event }) => event.output.length
+          guard: ({ event }) => !!event.output.length
         }
       }
     },

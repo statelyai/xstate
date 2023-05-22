@@ -1483,6 +1483,11 @@ describe('interpreter', () => {
     it("doesn't crash cryptically on undefined return from the actor creator", () => {
       const machine = createMachine(
         {
+          types: {} as {
+            actors: {
+              src: 'testService';
+            };
+          },
           initial: 'initial',
           states: {
             initial: {

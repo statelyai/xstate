@@ -31,13 +31,18 @@ afterEach(() => {
 
 describe('useMachine hook', () => {
   const context = {
-    data: undefined
+    data: undefined as string | undefined
   };
-  const fetchMachine = createMachine<
-    typeof context,
-    { type: 'FETCH' } | DoneEventObject
-  >({
+  const fetchMachine = createMachine({
     id: 'fetch',
+    types: {} as {
+      context: typeof context;
+      events: { type: 'FETCH' } | DoneEventObject;
+      actors: {
+        src: 'fetchData';
+        output: string;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -53,7 +58,7 @@ describe('useMachine hook', () => {
             actions: assign({
               data: ({ event }) => event.output
             }),
-            guard: ({ event }) => event.output.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },

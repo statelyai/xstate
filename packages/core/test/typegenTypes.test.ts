@@ -673,10 +673,10 @@ describe('typegen types', () => {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' },
-          actors: {
-            myActor: {
-              output: {} as string
-            }
+          actors: {} as {
+            src: any;
+            output: string;
+            id: 'myActor';
           }
         }
       },

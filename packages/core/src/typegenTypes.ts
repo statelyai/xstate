@@ -8,7 +8,9 @@ import {
   IsAny,
   ActorMap,
   Cast,
-  ParameterizedObject
+  ParameterizedObject,
+  ActorImpl,
+  TODO
 } from './types.ts';
 
 export interface TypegenDisabled {
@@ -157,20 +159,26 @@ type GenerateActorEvent<
   : never;
 
 type GenerateActorEvents<
-  TActorMap extends ActorMap,
+  TActors extends ActorImpl,
   TInvokeSrcNameMap
-> = string extends keyof TActorMap
-  ? never
-  : Cast<
-      {
-        [K in keyof TInvokeSrcNameMap]: GenerateActorEvent<
-          K,
-          TInvokeSrcNameMap[K],
-          TActorMap
-        >;
-      }[keyof TInvokeSrcNameMap],
-      EventObject
-    >;
+> = TActors extends { id: infer K }
+  ? {
+      type: `done.invoke.${K & string}`;
+    }
+  : never;
+
+// string extends keyof TActorMap
+//   ? never
+//   : Cast<
+//       {
+//         [K in keyof TInvokeSrcNameMap]: GenerateActorEvent<
+//           K,
+//           TInvokeSrcNameMap[K],
+//           TActorMap
+//         >;
+//       }[keyof TInvokeSrcNameMap],
+//       EventObject
+//     >;
 
 // we don't even have to do that much here, technically, because `T & unknown` is equivalent to `T`
 // however, this doesn't display nicely in IDE tooltips, so let's fix this
@@ -190,7 +198,7 @@ export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TActorMap extends ActorMap
+  TActors extends ActorImpl
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {
@@ -199,7 +207,7 @@ export interface ResolveTypegenMeta<
       indexedEvents: MergeWithInternalEvents<
         IndexByType<
           | (string extends TEvent['type'] ? never : TEvent)
-          | GenerateActorEvents<TActorMap, Prop<TTypesMeta, 'invokeSrcNameMap'>>
+          | GenerateActorEvents<TActors, Prop<TTypesMeta, 'invokeSrcNameMap'>>
         >,
         Prop<TTypesMeta, 'internalEvents'>
       >;

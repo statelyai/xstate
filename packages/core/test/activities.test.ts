@@ -318,6 +318,11 @@ describe('invocations (activities)', () => {
     const actual: string[] = [];
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'fooActor';
+          };
+        },
         initial: 'a',
         states: {
           a: {
@@ -362,6 +367,11 @@ describe('invocations (activities)', () => {
     const actual: string[] = [];
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'fooActor';
+          };
+        },
         initial: 'a',
         states: {
           a: {

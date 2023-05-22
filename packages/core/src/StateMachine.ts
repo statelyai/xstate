@@ -25,7 +25,6 @@ import type {
 } from './typegenTypes.ts';
 import type {
   ActorContext,
-  ActorMap,
   ActorBehavior,
   EventObject,
   InternalMachineImplementations,
@@ -42,7 +41,8 @@ import type {
   PersistedMachineState,
   ParameterizedObject,
   AnyActorContext,
-  AnyEventObject
+  AnyEventObject,
+  ActorImpl
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -64,12 +64,12 @@ export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
-  TActorMap extends ActorMap = ActorMap,
+  TActors extends ActorImpl = ActorImpl,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
     TAction,
-    TActorMap
+    TActors
   >
 > implements
     ActorBehavior<
@@ -117,7 +117,7 @@ export class StateMachine<
 
   public options: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public types: MachineTypes<TContext, TEvent>;
+  public types: MachineTypes<TContext, TEvent, TActors>;
 
   public __xstatenode: true = true;
 
@@ -175,7 +175,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TAction,
-    TActorMap,
+    TActors,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -491,7 +491,7 @@ export class StateMachine<
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TAction!: TAction;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TActorMap!: TActorMap;
+  __TActorMap!: TActors;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

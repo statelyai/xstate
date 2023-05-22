@@ -169,6 +169,9 @@ describe('input', () => {
 
     const machine = createMachine(
       {
+        types: {} as {
+          actors: { src: 'child'; input: number };
+        },
         invoke: {
           src: 'child',
           input: 42
@@ -196,6 +199,12 @@ describe('input', () => {
 
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'child';
+            input: number;
+          };
+        },
         invoke: {
           src: 'child',
           input: ({ event }) => {
@@ -283,8 +292,14 @@ describe('input', () => {
 
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'child';
+            input: number;
+          };
+        },
         entry: assign(({ spawn }) => ({
-          childRef: spawn('child')
+          childRef: spawn('child') // TODO: type-check for spawn
         }))
       },
       {

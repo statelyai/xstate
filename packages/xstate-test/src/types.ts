@@ -9,7 +9,6 @@ import {
   EventObject,
   MachineConfig,
   MachineTypes,
-  ActorMap,
   State,
   StateNodeConfig,
   TransitionConfig,
@@ -17,7 +16,8 @@ import {
   TypegenDisabled,
   ExtractEvent,
   MachineImplementations,
-  MachineContext
+  MachineContext,
+  TODO
 } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
@@ -32,14 +32,14 @@ export interface TestMachineConfig<
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
   context?: MachineConfig<TContext, TEvent>['context'];
-  types?: MachineTypes<TContext, TEvent, ActorMap, TTypesMeta>;
+  types?: MachineTypes<TContext, TEvent, TODO, TTypesMeta>;
 }
 
 export interface TestStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Pick<
-    StateNodeConfig<TContext, TEvent>,
+    StateNodeConfig<TContext, TEvent, TODO, TODO>,
     | 'type'
     | 'history'
     | 'on'
@@ -63,13 +63,7 @@ export type TestMachineOptions<
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = Partial<
   Pick<
-    MachineImplementations<
-      TContext,
-      TEvent,
-      BaseActionObject,
-      ActorMap,
-      TTypesMeta
-    >,
+    MachineImplementations<TContext, TEvent, BaseActionObject, any, TTypesMeta>,
     'actions' | 'guards'
   >
 >;

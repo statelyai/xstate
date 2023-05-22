@@ -23,13 +23,21 @@ afterEach(() => {
 
 describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const context = {
-    data: undefined
+    data: undefined as undefined | string
   };
   const fetchMachine = createMachine<
     typeof context,
     { type: 'FETCH' } | DoneEventObject
   >({
     id: 'fetch',
+    types: {} as {
+      context: typeof context;
+      events: { type: 'FETCH' } | DoneEventObject;
+      actors: {
+        src: 'fetchData';
+        output: string;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -47,6 +55,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
                 return event.output;
               }
             }),
+            // TODO: this should be typed as { output: string }
             guard: ({ event }) => event.output.length
           }
         }
