@@ -6,7 +6,6 @@ import {
   Prop,
   Values,
   IsAny,
-  ActorMap,
   ParameterizedObject,
   ActorImpl
 } from './types.ts';

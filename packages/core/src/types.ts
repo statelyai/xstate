@@ -1090,7 +1090,6 @@ export interface ActorImpl {
   id?: string;
 }
 
-export type ActorMap = Record<string, { output: any }>;
 export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
