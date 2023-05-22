@@ -6,7 +6,6 @@ import {
   AnyActorBehavior,
   AnyState,
   InterpreterOptions,
-  InterpreterStatus,
   SnapshotFrom
 } from 'xstate';
 import { useIdleInterpreter } from './useActorRef.ts';
