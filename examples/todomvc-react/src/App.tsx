@@ -1,9 +1,15 @@
 import React from 'react';
 import { Todos } from './Todos';
+import { createActorContext } from '@xstate/react';
+import { todosMachine } from './todosMachine';
+
+export const TodosContext = createActorContext(todosMachine, {
+  state: JSON.parse(localStorage.getItem('todos') || 'null')
+});
 
 function App() {
   return (
-    <>
+    <TodosContext.Provider>
       <Todos />
 
       <footer className="info">
@@ -18,7 +24,7 @@ function App() {
           Part of <a href="http://todomvc.com">TodoMVC</a>
         </p>
       </footer>
-    </>
+    </TodosContext.Provider>
   );
 }
 
