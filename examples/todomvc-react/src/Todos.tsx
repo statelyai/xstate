@@ -18,8 +18,21 @@ function filterTodos(filter: TodosFilter, todos: TodoItem[]) {
 }
 
 export function Todos() {
-  const { send } = TodosContext.useActorRef();
-  const state = TodosContext.useSelector((s) => s);
+  const todosActorRef = TodosContext.useActorRef();
+  const { send } = todosActorRef;
+  const todo = TodosContext.useSelector((s) => s.context.todo);
+  const todos = TodosContext.useSelector((s) => s.context.todos);
+  const filter = TodosContext.useSelector((s) => s.context.filter);
+
+  // Persist todos
+  useEffect(() => {
+    todosActorRef.subscribe(() => {
+      localStorage.setItem(
+        'todos',
+        JSON.stringify(todosActorRef.getPersistedState?.())
+      );
+    });
+  }, [todosActorRef]);
 
   useHashChange(() => {
     send({
@@ -35,16 +48,14 @@ export function Todos() {
         type: 'filter.change',
         filter: window.location.hash.slice(2) as TodosFilter
       });
-  }, [send]);
-
-  const { todo, todos, filter } = state.context;
+  }, []);
 
   const numActiveTodos = todos.filter((todo) => !todo.completed).length;
   const allCompleted = todos.length > 0 && numActiveTodos === 0;
   const mark = !allCompleted ? 'completed' : 'active';
   const filteredTodos = filterTodos(filter, todos);
-
   const inputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (todos.length === 0) {
       inputRef.current?.focus();
@@ -52,7 +63,7 @@ export function Todos() {
   }, [todos]);
 
   return (
-    <section className="todoapp" data-state={state.toStrings()}>
+    <section className="todoapp">
       <header className="header">
         <h1>todos</h1>
         <input
@@ -60,13 +71,13 @@ export function Todos() {
           className="new-todo"
           placeholder="What needs to be done?"
           autoFocus
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              send({ type: 'newTodo.commit', value: e.currentTarget.value });
+          onKeyPress={(ev) => {
+            if (ev.key === 'Enter') {
+              send({ type: 'newTodo.commit', value: ev.currentTarget.value });
             }
           }}
-          onChange={(e) =>
-            send({ type: 'newTodo.change', value: e.currentTarget.value })
+          onChange={(ev) =>
+            send({ type: 'newTodo.change', value: ev.currentTarget.value })
           }
           value={todo}
         />
@@ -136,7 +147,6 @@ export function Todos() {
             </ul>
             {numActiveTodos < todos.length && (
               <button
-                // onClick={(_) => send('CLEAR_COMPLETED')}
                 onClick={() => send({ type: 'todos.clearCompleted' })}
                 className="clear-completed"
               >

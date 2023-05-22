@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useActor, useMachine } from '@xstate/react';
+import React, { useRef } from 'react';
+import { useActorRef, useSelector } from '@xstate/react';
 import cn from 'classnames';
 import { assign, createMachine } from 'xstate';
 import { TodosContext } from './App';
@@ -63,7 +63,7 @@ export const todoMachine = createMachine({
 
 export function Todo({ todo }: { todo: TodoItem }) {
   const todosActorRef = TodosContext.useActorRef();
-  const [state, send] = useMachine(
+  const todoActorRef = useActorRef(
     todoMachine.provide({
       actions: {
         onCommit: ({ context }) => {
@@ -86,14 +86,16 @@ export function Todo({ todo }: { todo: TodoItem }) {
       input: { todo }
     }
   );
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { send } = todoActorRef;
   const { id, completed } = todo;
-  const { title } = state.context;
+  const title = useSelector(todoActorRef, (s) => s.context.title);
+  const isEditing = useSelector(todoActorRef, (s) => s.matches('editing'));
+  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <li
       className={cn({
-        editing: state.matches('editing'),
+        editing: isEditing,
         completed
       })}
       data-todo-state={completed ? 'completed' : 'active'}
@@ -106,7 +108,6 @@ export function Todo({ todo }: { todo: TodoItem }) {
           onChange={(ev) => {
             todosActorRef.send({
               type: 'todo.mark',
-              // mark completed if checked, active if unchecked
               id: todo.id,
               mark: ev.target.checked ? 'completed' : 'active'
             });
@@ -114,7 +115,7 @@ export function Todo({ todo }: { todo: TodoItem }) {
           checked={completed}
         />
         <label
-          onDoubleClick={(e) => {
+          onDoubleClick={() => {
             send({ type: 'edit' });
           }}
         >
@@ -133,20 +134,20 @@ export function Todo({ todo }: { todo: TodoItem }) {
       <input
         className="edit"
         value={title}
-        onBlur={(_) => send({ type: 'blur' })}
+        onBlur={() => send({ type: 'blur' })}
         onChange={(ev) => {
           send({
             type: 'change',
             value: ev.target.value
           });
         }}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter') {
+        onKeyPress={(ev) => {
+          if (ev.key === 'Enter') {
             send({ type: 'blur' });
           }
         }}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
+        onKeyDown={(ev) => {
+          if (ev.key === 'Escape') {
             send({ type: 'cancel' });
           }
         }}
