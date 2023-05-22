@@ -1,23 +1,33 @@
-import { assign } from 'xstate';
-import { createModel } from 'xstate/lib/model';
+import { createMachine, assign } from 'xstate';
 
-const friendModel = createModel(
-  {
-    prevName: '',
-    name: ''
+export const friendMachine = createMachine({
+  id: 'friend',
+  types: {} as {
+    context: {
+      prevName: string;
+      name: string;
+    };
+    events:
+      | {
+          type: 'SET_NAME';
+          value: string;
+        }
+      | {
+          type: 'SAVE';
+        }
+      | {
+          type: 'EDIT';
+        }
+      | {
+          type: 'CANCEL';
+        };
+    // TODO: input
   },
-  {
-    events: {
-      SET_NAME: (value: string) => ({ value }),
-      SAVE: () => ({}),
-      EDIT: () => ({}),
-      CANCEL: () => ({})
-    }
-  }
-);
-
-export const friendMachine = friendModel.createMachine({
   initial: 'reading',
+  context: ({ input }) => ({
+    prevName: input.name,
+    name: input.name
+  }),
   states: {
     reading: {
       tags: 'read',
@@ -29,7 +39,7 @@ export const friendMachine = friendModel.createMachine({
       tags: 'form',
       on: {
         SET_NAME: {
-          actions: friendModel.assign({ name: (_, event) => event.value })
+          actions: assign({ name: ({ event }) => event.value })
         },
         SAVE: {
           target: 'saving'
@@ -42,14 +52,14 @@ export const friendMachine = friendModel.createMachine({
         // Simulate network request
         1000: {
           target: 'reading',
-          actions: friendModel.assign({ prevName: (context) => context.name })
+          actions: assign({ prevName: ({ context }) => context.name })
         }
       }
     }
   },
   on: {
     CANCEL: {
-      actions: friendModel.assign({ name: (context) => context.prevName }),
+      actions: assign({ name: ({ context }) => context.prevName }),
       target: '.reading'
     }
   }

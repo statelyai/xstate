@@ -9,7 +9,7 @@ function App() {
   return (
     <section id="app">
       <output>{state.context.count}</output>
-      <button onClick={() => send('INCREMENT')}>Count</button>
+      <button onClick={() => send({ type: 'INCREMENT' })}>Count</button>
     </section>
   );
 }

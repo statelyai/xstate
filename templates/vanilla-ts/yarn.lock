@@ -231,7 +231,7 @@ vite@^4.1.0:
   optionalDependencies:
     fsevents "~2.3.2"
 
-xstate@^4.36.0:
-  version "4.36.0"
-  resolved "https://registry.yarnpkg.com/xstate/-/xstate-4.36.0.tgz#8bc633e4670be37c4e1adb28b4649b0a951ef7f1"
-  integrity sha512-AUI+KPgyy3g4PDpZWzUy/5ubd8VymbqikNmrJx5AQfqh+AQnemkBiabGROno+am1wUl2yeuT3UDrzUTSidfa6g==
+xstate@^5.0.0-beta.8:
+  version "5.0.0-beta.8"
+  resolved "https://registry.yarnpkg.com/xstate/-/xstate-5.0.0-beta.8.tgz#b819098f486ec29a903662b7ea172bb6ad6983ad"
+  integrity sha512-vxnNy2GaOcK4S1eCJUFAZ3g++HM+E1b0vPqzNYwnJyreJKsrhNCAd5CrmsZSBh96IkvmDD0MBx55VTSKTnUelg==

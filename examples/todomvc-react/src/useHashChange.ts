@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export function useHashChange(onHashChange) {
+export function useHashChange(onHashChange: (ev: HashChangeEvent) => void) {
   useEffect(() => {
     window.addEventListener('hashchange', onHashChange);
 

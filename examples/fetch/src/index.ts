@@ -12,10 +12,10 @@ const fetchMachine = createMachine({
   }
 });
 
-const fetchService = interpret(fetchMachine)
-  .onTransition((state) => {
-    console.log(state);
-  })
-  .start();
+const fetchActor = interpret(fetchMachine);
+fetchActor.subscribe((state) => {
+  console.log(state);
+});
+fetchActor.start();
 
-fetchService.send({ type: 'FETCH' });
+fetchActor.send({ type: 'FETCH' });
