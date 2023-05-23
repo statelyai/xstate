@@ -34,7 +34,7 @@ export default function App() {
         <div>
           {state.hasTag('winner') && <h2>Winner: {state.context.winner}</h2>}
           {state.hasTag('draw') && <h2>Draw</h2>}
-          <button onClick={() => send('RESET')}>Reset</button>
+          <button onClick={() => send({ type: 'RESET' })}>Reset</button>
         </div>
       )}
       <div className="board">

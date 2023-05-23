@@ -1,5 +1,4 @@
-import { createModel } from 'xstate/lib/model';
-import { ContextFrom, EventFrom, EventObject } from 'xstate';
+import { EventObject, createMachine, assign } from 'xstate';
 
 function assertEvent<TEvent extends EventObject, Type extends TEvent['type']>(
   ev: TEvent,
@@ -12,85 +11,32 @@ function assertEvent<TEvent extends EventObject, Type extends TEvent['type']>(
 
 type Player = 'x' | 'o';
 
-const model = createModel(
-  {
-    board: Array(9).fill(null) as Array<Player | null>,
-    moves: 0,
-    player: 'x' as Player,
-    winner: undefined as Player | undefined
-  },
-  {
-    events: {
-      PLAY: (value: number) => ({ value }),
-      RESET: () => ({})
-    }
-  }
-);
-
-const isValidMove = (
-  context: ContextFrom<typeof model>,
-  event: EventFrom<typeof model>
-) => {
-  if (event.type !== 'PLAY') {
-    return false;
-  }
-
-  return context.board[event.value] === null;
+const context = {
+  board: Array(9).fill(null) as Array<Player | null>,
+  moves: 0,
+  player: 'x' as Player,
+  winner: undefined as Player | undefined
 };
 
-function checkWin(context: ContextFrom<typeof model>) {
-  const { board } = context;
-  const winningLines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6]
-  ];
-
-  for (let line of winningLines) {
-    const xWon = line.every((index) => {
-      return board[index] === 'x';
-    });
-
-    if (xWon) {
-      return true;
-    }
-
-    const oWon = line.every((index) => {
-      return board[index] === 'o';
-    });
-
-    if (oWon) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function checkDraw(context: ContextFrom<typeof model>) {
-  return context.moves === 9;
-}
-
-export const ticTacToeMachine = model.createMachine(
+export const ticTacToeMachine = createMachine(
   {
     initial: 'playing',
-    context: model.initialContext,
+    types: {} as {
+      context: typeof context;
+      events: { type: 'PLAY'; value: number } | { type: 'RESET' };
+    },
+    context,
     states: {
       playing: {
         always: [
-          { target: 'gameOver.winner', cond: 'checkWin' },
-          { target: 'gameOver.draw', cond: 'checkDraw' }
+          { target: 'gameOver.winner', guard: 'checkWin' },
+          { target: 'gameOver.draw', guard: 'checkDraw' }
         ],
         on: {
           PLAY: [
             {
               target: 'playing',
-              cond: 'isValidMove',
+              guard: 'isValidMove',
               actions: 'updateBoard'
             }
           ]
@@ -118,25 +64,65 @@ export const ticTacToeMachine = model.createMachine(
   },
   {
     actions: {
-      updateBoard: model.assign({
-        board: (context, event) => {
+      updateBoard: assign({
+        board: ({ context, event }) => {
           assertEvent(event, 'PLAY');
           const updatedBoard = [...context.board];
           updatedBoard[event.value] = context.player;
           return updatedBoard;
         },
-        moves: (context) => context.moves + 1,
-        player: (context) => (context.player === 'x' ? 'o' : 'x')
+        moves: ({ context }) => context.moves + 1,
+        player: ({ context }) => (context.player === 'x' ? 'o' : 'x')
       }),
-      resetGame: model.reset(),
-      setWinner: model.assign({
-        winner: (context) => (context.player === 'x' ? 'o' : 'x')
+      resetGame: assign(context),
+      setWinner: assign({
+        winner: ({ context }) => (context.player === 'x' ? 'o' : 'x')
       })
     },
     guards: {
-      checkWin,
-      checkDraw,
-      isValidMove
+      checkWin: ({ context }) => {
+        const { board } = context;
+        const winningLines = [
+          [0, 1, 2],
+          [3, 4, 5],
+          [6, 7, 8],
+          [0, 3, 6],
+          [1, 4, 7],
+          [2, 5, 8],
+          [0, 4, 8],
+          [2, 4, 6]
+        ];
+
+        for (let line of winningLines) {
+          const xWon = line.every((index) => {
+            return board[index] === 'x';
+          });
+
+          if (xWon) {
+            return true;
+          }
+
+          const oWon = line.every((index) => {
+            return board[index] === 'o';
+          });
+
+          if (oWon) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+      checkDraw: ({ context }) => {
+        return context.moves === 9;
+      },
+      isValidMove: ({ context, event }) => {
+        if (event.type !== 'PLAY') {
+          return false;
+        }
+
+        return context.board[event.value] === null;
+      }
     }
   }
 );

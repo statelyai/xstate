@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@xstate/react':
-    specifier: ^1.6.3
-    version: 1.6.3(@types/react@17.0.59)(react@17.0.2)(xstate@4.37.2)
+    specifier: 4.0.0-beta.5
+    version: 4.0.0-beta.5(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.13)
   react:
     specifier: ^17.0.2
     version: 17.0.2
@@ -11,8 +11,8 @@ dependencies:
     specifier: ^17.0.2
     version: 17.0.2(react@17.0.2)
   xstate:
-    specifier: ^4.37.2
-    version: 4.37.2
+    specifier: 5.0.0-beta.13
+    version: 5.0.0-beta.13
 
 devDependencies:
   '@types/react':
@@ -58,12 +58,12 @@ packages:
   /@types/scheduler@0.16.3:
     resolution: {integrity: sha512-5cJ8CB4yAx7BH1oMvdU0Jh9lrEXyPkar6F9G/ERswkCuvP4KQZfZkSjcMbAICCpQTN4OuZn8tz0HiKv9TGZgrQ==}
 
-  /@xstate/react@1.6.3(@types/react@17.0.59)(react@17.0.2)(xstate@4.37.2):
-    resolution: {integrity: sha512-NCUReRHPGvvCvj2yLZUTfR0qVp6+apc8G83oXSjN4rl89ZjyujiKrTff55bze/HrsvCsP/sUJASf2n0nzMF1KQ==}
+  /@xstate/react@4.0.0-beta.5(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.13):
+    resolution: {integrity: sha512-E/icGXFNnTJFk3aoA8VOKQ988+R2a9j/o4g6bFhBlitQuoFgtFYWUX/d1R+rc/xaYKIxtE/lPodzqCa5s39VHQ==}
     peerDependencies:
-      '@xstate/fsm': ^1.0.0
-      react: ^16.8.0 || ^17.0.0
-      xstate: ^4.11.0
+      '@xstate/fsm': ^3.0.0-beta.2
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      xstate: ^5.0.0-beta.13
     peerDependenciesMeta:
       '@xstate/fsm':
         optional: true
@@ -72,8 +72,8 @@ packages:
     dependencies:
       react: 17.0.2
       use-isomorphic-layout-effect: 1.1.2(@types/react@17.0.59)(react@17.0.2)
-      use-subscription: 1.8.0(react@17.0.2)
-      xstate: 4.37.2
+      use-sync-external-store: 1.2.0(react@17.0.2)
+      xstate: 5.0.0-beta.13
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -426,15 +426,6 @@ packages:
       react: 17.0.2
     dev: false
 
-  /use-subscription@1.8.0(react@17.0.2):
-    resolution: {integrity: sha512-LISuG0/TmmoDoCRmV5XAqYkd3UCBNM0ML3gGBndze65WITcsExCD3DTvXXTLyNcOC0heFQZzluW88bN/oC1DQQ==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
-    dependencies:
-      react: 17.0.2
-      use-sync-external-store: 1.2.0(react@17.0.2)
-    dev: false
-
   /use-sync-external-store@1.2.0(react@17.0.2):
     resolution: {integrity: sha512-eEgnFxGQ1Ife9bzYs6VLi8/4X6CObHMw9Qr9tPY43iKwsPw8xE8+EFsf/2cFZ5S3esXgpWgtSCtLNS41F+sKPA==}
     peerDependencies:
@@ -467,6 +458,6 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /xstate@4.37.2:
-    resolution: {integrity: sha512-Qm337O49CRTZ3PRyRuK6b+kvI+D3JGxXIZCTul+xEsyFCVkTFDt5jixaL1nBWcUBcaTQ9um/5CRGVItPi7fveg==}
+  /xstate@5.0.0-beta.13:
+    resolution: {integrity: sha512-cv27Y9t6xJimBZ/FBFe6Vjegai/3Gv6INFQcdsiNGrFuXXjP7IMwjytOIxL6VhlDasXcoofWQoPy95v2d284ow==}
     dev: false
