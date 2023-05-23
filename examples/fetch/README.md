@@ -1,4 +1,4 @@
-# TodoMVC
+# Fetch
 
 This is a simple fetch example built with:
 
