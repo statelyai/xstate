@@ -9,18 +9,24 @@ import {
 } from './stateUtils.ts';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
+  ActorImpl,
   ActorRef,
+  ActorRefFrom,
+  AnyActorBehavior,
   AnyState,
   AnyStateMachine,
   BaseActionObject,
   EventObject,
   HistoryValue,
   MachineContext,
+  ParameterizedObject,
   PersistedMachineState,
   Prop,
   StateConfig,
   StateValue,
-  TransitionDefinition
+  TODO,
+  TransitionDefinition,
+  WithDefault
 } from './types.ts';
 import { flatten, isString, matchesState } from './utils.ts';
 
@@ -41,7 +47,9 @@ export function isStateConfig<
 export const isState = isStateConfig;
 export class State<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
+  TEvent extends EventObject,
+  _TActions extends ParameterizedObject,
+  TActors extends ActorImpl,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -81,7 +89,14 @@ export class State<
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  public children: Record<string, ActorRef<any>>;
+  public children: TActors['id'] extends string
+    ? {
+        [K in TActors['id']]: TActors extends { id: K }
+          ? ActorRefFrom<WithDefault<TActors['logic'], AnyActorBehavior>>
+          : never;
+      }
+    : Record<string, ActorRef<any>>;
+
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -91,13 +106,13 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent, any> | StateValue,
+    stateValue: State<TContext, TEvent, TODO, TODO, any> | StateValue,
     context: TContext = {} as TContext,
     machine: AnyStateMachine
-  ): State<TContext, TEvent, any> {
+  ): State<TContext, TEvent, TODO, TODO, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TContext, TEvent>(
+        return new State<TContext, TEvent, TODO, TODO, any>(
           {
             value: stateValue.value,
             context,
@@ -121,7 +136,7 @@ export class State<
       getStateNodes(machine.root, stateValue)
     );
 
-    return new State<TContext, TEvent>(
+    return new State<TContext, TEvent, TODO, TODO, any>(
       {
         value: stateValue,
         context,
@@ -156,7 +171,7 @@ export class State<
       config.configuration ??
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
     this.transitions = config.transitions as any;
-    this.children = config.children;
+    this.children = config.children as any;
 
     this.value = getStateValue(machine.root, this.configuration);
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));

@@ -5,7 +5,8 @@ import type {
   GuardConfig,
   GuardDefinition,
   GuardPredicate,
-  MachineContext
+  MachineContext,
+  TODO
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 import { isFunction, isString } from './utils.ts';
@@ -84,7 +85,7 @@ export function evaluateGuard<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   event: TEvent,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent, TODO, TODO>
 ): boolean {
   const { machine } = state;
 

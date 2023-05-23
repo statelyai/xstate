@@ -14,13 +14,15 @@ type StateObject<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
   TResolvedTypesMeta = TypegenDisabled
-> = Pick<State<TContext, TEvent, TResolvedTypesMeta>, keyof AnyState>;
+> = Pick<State<TContext, TEvent, any, any, TResolvedTypesMeta>, keyof AnyState>;
 
 // Converts a State class type to a POJO State type. This reflects that the state
 // is being spread into a new object for reactive tracking in SolidJS
 export type CheckSnapshot<Snapshot> = Snapshot extends State<
   infer C,
   infer E,
+  infer _TActions,
+  infer _TActors,
   infer R
 >
   ? StateObject<C, E, R>

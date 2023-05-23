@@ -53,7 +53,8 @@ import {
   HistoryValue,
   InitialTransitionDefinition,
   SendActionObject,
-  StateFromMachine
+  StateFromMachine,
+  TODO
 } from '.';
 import { stopSignalType } from './actors/index.ts';
 import { ActorStatus } from './interpreter.ts';
@@ -698,7 +699,7 @@ export function getStateNodes<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode,
-  state: StateValue | State<TContext, TEvent>
+  state: StateValue | State<TContext, TEvent, TODO, TODO>
 ): Array<AnyStateNode> {
   const stateValue =
     state instanceof State
@@ -737,7 +738,7 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -756,7 +757,7 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -782,7 +783,7 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -818,7 +819,7 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  state: State<TContext, TEvent, any>,
+  state: State<TContext, TEvent, TODO, TODO, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
@@ -1030,10 +1031,10 @@ export function microstep<
   TEvent extends EventObject
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  currentState: State<TContext, TEvent, any>,
+  currentState: State<TContext, TEvent, TODO, TODO, any>,
   actorCtx: AnyActorContext | undefined,
   event: TEvent
-): State<TContext, TEvent, any> {
+): State<TContext, TEvent, TODO, TODO, any> {
   const { machine } = currentState;
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
@@ -1469,7 +1470,7 @@ export function resolveActionsAndContext<
 >(
   actions: BaseActionObject[],
   event: TEvent,
-  currentState: State<TContext, TEvent, any>,
+  currentState: State<TContext, TEvent, TODO, TODO, any>,
   actorCtx: AnyActorContext | undefined
 ): {
   nextState: AnyState;

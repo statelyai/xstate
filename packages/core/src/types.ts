@@ -93,7 +93,7 @@ export interface BaseDynamicActionObject<
   resolve: (
     event: TExpressionEvent,
     extra: {
-      state: State<TContext, TEvent>;
+      state: State<TContext, TEvent, TODO, TODO>;
       /**
        * The original action object
        */
@@ -254,14 +254,14 @@ export type GuardEvaluator<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   event: TEvent,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent, TODO, TODO>
 ) => boolean;
 
 export interface GuardMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  state: State<TContext, TEvent, any>;
+  state: State<TContext, TEvent, TODO, TODO>;
   guard: GuardDefinition<TContext, TEvent>;
   evaluate: GuardEvaluator<TContext, TEvent>;
 }
@@ -764,7 +764,7 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-export type AnyState = State<any, any, any>;
+export type AnyState = State<any, any, any, any, any>;
 
 export type AnyStateMachine = StateMachine<any, any, any, any, any>;
 
@@ -1083,11 +1083,13 @@ export interface MachineConfig<
 
 export interface ActorImpl {
   src: string;
+  id?: string;
+  logic?: AnyActorBehavior;
+  // TODO: delete all the below and replace with logic
   events?: EventObject;
   snapshot?: any;
   input?: any;
   output?: any;
-  id?: string;
 }
 
 export interface MachineTypes<
@@ -1563,7 +1565,7 @@ export interface Segment<
   /**
    * From state.
    */
-  state: State<TContext, TEvent>;
+  state: State<TContext, TEvent, TODO, TODO>;
   /**
    * Event from state.
    */
@@ -1745,6 +1747,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         State<
           TContext,
           TEvent,
+          TODO,
+          TODO,
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
             : TResolvedTypesMeta
@@ -1764,16 +1768,18 @@ export type InterpreterFrom<
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TEvent,
-  any,
-  any,
+  infer TActions,
+  infer TActors,
   infer TResolvedTypesMeta
 >
   ? Interpreter<
       ActorBehavior<
         TEvent,
-        State<TContext, TEvent, TResolvedTypesMeta>,
-        State<TContext, TEvent, TResolvedTypesMeta>,
-        PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
+        State<TContext, TEvent, TActions, TActors, TResolvedTypesMeta>,
+        State<TContext, TEvent, TActions, TActors, TResolvedTypesMeta>,
+        PersistedMachineState<
+          State<TContext, TEvent, TActions, TActors, TResolvedTypesMeta>
+        >
       >
     >
   : never;
@@ -1921,7 +1927,12 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer ____
     >
     ? TEvent
-    : R extends State<infer _, infer TEvent, infer __>
+    : R extends State<
+        infer _TContext,
+        infer TEvent,
+        infer _TActions,
+        infer _TActors
+      >
     ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
     ? TEvent
@@ -1943,7 +1954,12 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer ____
     >
     ? TContext
-    : R extends State<infer TContext, infer _, infer __>
+    : R extends State<
+        infer TContext,
+        infer _TEvents,
+        infer _TActions,
+        infer _TActors
+      >
     ? TContext
     : R extends Interpreter<infer TBehavior>
     ? TBehavior extends StateMachine<infer TContext, infer _>
@@ -1991,3 +2007,5 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
     };
   };
 };
+
+export type WithDefault<T, TDefault> = T extends undefined ? TDefault : T;

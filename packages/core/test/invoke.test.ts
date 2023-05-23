@@ -100,6 +100,9 @@ const fetcherMachine = createMachine({
 describe('invoke', () => {
   it('child can immediately respond to the parent with multiple events', () => {
     const childMachine = createMachine({
+      types: {} as {
+        events: { type: 'FORWARD_DEC' };
+      },
       id: 'child',
       initial: 'init',
       states: {
@@ -125,6 +128,7 @@ describe('invoke', () => {
           actors: {
             src: 'child';
             id: 'someService';
+            logic: typeof childMachine;
           };
         },
         context: { count: 0 },
