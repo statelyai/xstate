@@ -1686,6 +1686,27 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
+export type SimpleActorRefFrom<T> = T extends StateMachine<
+  infer TContext,
+  infer TEvent,
+  any,
+  any,
+  infer TResolvedTypesMeta
+>
+  ? ActorRef<
+      TEvent,
+      State<
+        TContext,
+        TEvent,
+        AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+          ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+          : TResolvedTypesMeta
+      >
+    >
+  : T extends ActorBehavior<infer TEvent, infer TSnapshot>
+  ? ActorRef<TEvent, TSnapshot>
+  : never;
+
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
 
 export type InterpreterFrom<

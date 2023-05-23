@@ -2,7 +2,7 @@ import type {
   AnyActorBehavior,
   SnapshotFrom,
   EventFromBehavior,
-  ActorRefFrom
+  SimpleActorRefFrom
 } from 'xstate';
 import type { CheckSnapshot, RestParams } from './types.ts';
 import { createActorRef } from './createActorRef.ts';
@@ -17,22 +17,20 @@ export function useActor<TBehavior extends AnyActorBehavior>(
 ): [
   CheckSnapshot<SnapshotFrom<TBehavior>>,
   (event: EventFromBehavior<TBehavior>) => void,
-  ActorRefFrom<TBehavior>
+  SimpleActorRefFrom<TBehavior>
 ] {
-  const actorRef = createActorRef(machine, options) as ActorRefFrom<TBehavior>;
+  const actorRef = createActorRef(
+    machine,
+    options
+  ) as SimpleActorRefFrom<TBehavior>;
 
   const [snapshot, setSnapshot] = createImmutable(
-    deriveServiceState(actorRef.getSnapshot())
+    deriveServiceState(actorRef.getSnapshot()) as SnapshotFrom<TBehavior>
   );
 
   onMount(() => {
     const { unsubscribe } = actorRef.subscribe((nextState) => {
-      setSnapshot(
-        deriveServiceState(
-          nextState,
-          unwrap(snapshot)
-        ) as SnapshotFrom<TBehavior>
-      );
+      setSnapshot(deriveServiceState(nextState, unwrap(snapshot)));
     });
 
     onCleanup(unsubscribe);

@@ -159,20 +159,6 @@ describe('useMachine hook', () => {
     render(() => <Test />);
   });
 
-  it('should provide options for the service', () => {
-    const Test = () => {
-      const [, , service] = useMachine(fetchMachine, {
-        execute: false
-      });
-
-      expect(service.options.execute).toBe(false);
-
-      return null;
-    };
-
-    render(() => <Test />);
-  });
-
   it('should accept input', () => {
     const testMachine = createMachine<{ foo: string; test: boolean }>({
       context: ({ input }) => ({
