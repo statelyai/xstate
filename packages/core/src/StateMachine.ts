@@ -463,6 +463,7 @@ export class StateMachine<
       }
     });
 
+    // TODO: remove this
     restoredState.actions = [];
 
     return restoredState;
