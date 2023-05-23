@@ -60,7 +60,6 @@ export class State<
   public actions: BaseActionObject[] = [];
   public event: TEvent;
   public _internalQueue: Array<TEvent>;
-  public _initial: boolean = false;
   /**
    * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
    *

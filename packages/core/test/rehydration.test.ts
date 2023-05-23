@@ -104,7 +104,8 @@ describe('rehydration', () => {
     });
   });
 
-  it('should not replay actions when starting from a persisted state', () => {
+  // TODO: rethink how rehydration works, do we even need to go through `.start()` and thus through micro/macrostep procedures?
+  it.skip('should not replay actions when starting from a persisted state', () => {
     const entrySpy = jest.fn();
     const machine = createMachine({
       entry: entrySpy

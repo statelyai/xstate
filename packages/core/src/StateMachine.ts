@@ -305,7 +305,6 @@ export class StateMachine<
         children: {}
       })
     );
-    preInitial._initial = true;
 
     // TODO: this shouldn't be here?
     if (actorCtx) {

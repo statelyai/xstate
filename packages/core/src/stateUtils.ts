@@ -1078,7 +1078,7 @@ export function microstep<
     children
   });
 
-  nextState.changed = currentState._initial
+  nextState.changed = isInit
     ? undefined
     : !stateValuesEqual(nextState.value, currentState.value) ||
       nextState.actions.length > 0 ||
@@ -1118,6 +1118,7 @@ function microstepProcedure(
   event: AnyEventObject,
   actorCtx: AnyActorContext | undefined
 ): typeof currentState {
+  const isInit = event.type === actionTypes.init;
   const actions: BaseActionObject[] = [];
   const historyValue = {
     ...currentState.historyValue
@@ -1132,7 +1133,7 @@ function microstepProcedure(
   const internalQueue = [...currentState._internalQueue];
 
   // Exit states
-  if (event.type !== actionTypes.init) {
+  if (!isInit) {
     exitStates(filteredTransitions, mutConfiguration, historyValue, actions);
   }
 
@@ -1146,7 +1147,8 @@ function microstepProcedure(
     actions,
     internalQueue,
     currentState,
-    historyValue
+    historyValue,
+    isInit
   );
 
   const nextConfiguration = [...mutConfiguration];
@@ -1198,7 +1200,8 @@ function enterStates(
   actions: BaseActionObject[],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
-  historyValue: HistoryValue<any, any>
+  historyValue: HistoryValue<any, any>,
+  isInit: boolean
 ): void {
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
@@ -1211,7 +1214,7 @@ function enterStates(
   );
 
   // In the initial state, the root state node is "entered".
-  if (currentState._initial) {
+  if (isInit) {
     statesForDefaultEntry.add(currentState.machine.root);
   }
 
