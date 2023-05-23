@@ -2,7 +2,7 @@ import { render, fireEvent } from '@testing-library/vue';
 import UseSpawn from './UseSpawn.vue';
 
 describe('useSpawn', () => {
-  it('should be able to spawn an actor from a behavior', async () => {
+  it('should be able to spawn an actor from actor logic', async () => {
     const { getByTestId } = render(UseSpawn);
     const button = getByTestId('count');
 

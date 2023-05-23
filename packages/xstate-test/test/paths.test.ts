@@ -42,19 +42,15 @@ describe('testModel.testPaths(...)', () => {
       })
     );
 
-    const paths = testModel.getPaths((behavior, options) => {
+    const paths = testModel.getPaths((logic, options) => {
       const actorContext = undefined as any; // TODO: figure out the simulation API
-      const initialState = behavior.getInitialState(actorContext, undefined);
+      const initialState = logic.getInitialState(actorContext, undefined);
       const events =
         typeof options.events === 'function'
           ? options.events(initialState)
           : options.events ?? [];
 
-      const nextState = behavior.transition(
-        initialState,
-        events[0],
-        actorContext
-      );
+      const nextState = logic.transition(initialState, events[0], actorContext);
       return [
         {
           state: nextState,
