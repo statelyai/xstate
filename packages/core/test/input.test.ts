@@ -137,7 +137,9 @@ describe('input', () => {
   });
 
   it('should create an observable actor with input', (done) => {
-    const observableBehavior = fromObservable(({ input }) => of(input));
+    const observableBehavior = fromObservable(
+      ({ input }: { input: { count: number } }) => of(input)
+    );
 
     const observableActor = interpret(observableBehavior, {
       input: { count: 42 }

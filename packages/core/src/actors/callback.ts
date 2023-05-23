@@ -3,7 +3,8 @@ import {
   Receiver,
   ActorBehavior,
   EventObject,
-  AnyEventObject
+  AnyEventObject,
+  ActorSystem
 } from '../types';
 import { isPromiseLike, isFunction } from '../utils';
 import { doneInvoke, error } from '../actions.ts';
@@ -16,9 +17,16 @@ export interface CallbackInternalState {
   input?: any;
 }
 
-export function fromCallback<TEvent extends EventObject>(
-  invokeCallback: InvokeCallback
-): ActorBehavior<TEvent, undefined> {
+export function fromCallback<TEvent extends EventObject, TInput>(
+  invokeCallback: InvokeCallback<AnyEventObject, AnyEventObject, TInput>
+): ActorBehavior<
+  TEvent,
+  undefined,
+  CallbackInternalState,
+  CallbackInternalState,
+  ActorSystem<any>,
+  TInput
+> {
   const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
     config: invokeCallback,
     start: (_state, { self }) => {

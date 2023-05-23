@@ -120,6 +120,17 @@ export interface ActionMeta<
   action: TAction;
 }
 
+export type InputFrom<T extends AnyActorBehavior> = T extends ActorBehavior<
+  infer _TEvent,
+  infer _TSnapshot,
+  infer _TInternalState,
+  infer _TPersisted,
+  infer _TSystem,
+  infer TInput
+>
+  ? TInput
+  : any; // TODO: never?
+
 // TODO: do not accept machines without all implementations
 // we should also accept a raw machine as a behavior here
 // or just make machine a behavior
@@ -128,7 +139,7 @@ export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: rea
   options?: Partial<{
     id: string;
     systemId?: string;
-    input: any;
+    input: T extends AnyActorBehavior ? InputFrom<T> : any;
   }>
 ) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>
   ? ActorRef<TActorEvent, TActorEmitted>
@@ -366,11 +377,12 @@ export type Receiver<TEvent extends EventObject> = (
 
 export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
-  TSentEvent extends EventObject = AnyEventObject
+  TSentEvent extends EventObject = AnyEventObject,
+  TInput = unknown
 > = (
   sendBack: (event: TSentEvent) => void,
   onReceive: Receiver<TEvent>,
-  { input }: { input: any }
+  { input }: { input: TInput }
 ) => (() => void) | Promise<any> | void;
 
 export type ActorBehaviorCreator<
@@ -1603,7 +1615,7 @@ export interface StateConfig<
   _internalQueue?: Array<TEvent>;
 }
 
-export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
+export interface InterpreterOptions<TActorBehavior extends AnyActorBehavior> {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
@@ -1639,7 +1651,7 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
   /**
    * The input data to pass to the actor.
    */
-  input?: any;
+  input?: InputFrom<TActorBehavior>;
 
   // state?:
   //   | PersistedStateFrom<TActorBehavior>
@@ -1839,7 +1851,9 @@ export interface ActorBehavior<
    * Serialized internal state used for persistence & restoration
    */
   TPersisted = TInternalState,
-  TSystem extends ActorSystem<any> = ActorSystem<any>
+  TSystem extends ActorSystem<any> = ActorSystem<any>,
+  TInput = any,
+  _TOutput = never
 > {
   config?: unknown;
   transition: (
@@ -1848,8 +1862,8 @@ export interface ActorBehavior<
     ctx: ActorContext<TEvent, TSnapshot, TSystem>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot, any>,
-    input: any
+    actorCtx: ActorContext<TEvent, TSnapshot, TSystem>,
+    input: TInput
   ) => TInternalState;
   restoreState?: (
     persistedState: TPersisted,
@@ -1867,7 +1881,7 @@ export interface ActorBehavior<
   getPersistedState?: (state: TInternalState) => TPersisted;
 }
 
-export type AnyActorBehavior = ActorBehavior<any, any, any, any>;
+export type AnyActorBehavior = ActorBehavior<any, any, any, any, any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>

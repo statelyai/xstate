@@ -235,7 +235,7 @@ describe('spawning promises', () => {
               const ref = spawn(
                 fromPromise(
                   () =>
-                    new Promise((res) => {
+                    new Promise<string>((res) => {
                       res('response');
                     })
                 ),

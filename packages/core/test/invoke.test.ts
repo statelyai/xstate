@@ -1343,22 +1343,28 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: fromCallback((cb, _receive, { input }) => {
-              if (input.foo && input.event.type === 'BEGIN') {
-                cb({
-                  type: 'CALLBACK',
-                  data: 40
-                });
-                cb({
-                  type: 'CALLBACK',
-                  data: 41
-                });
-                cb({
-                  type: 'CALLBACK',
-                  data: 42
-                });
+            someCallback: fromCallback(
+              (
+                cb,
+                _receive,
+                { input }: { input: { foo: boolean; event: any } }
+              ) => {
+                if (input.foo && input.event.type === 'BEGIN') {
+                  cb({
+                    type: 'CALLBACK',
+                    data: 40
+                  });
+                  cb({
+                    type: 'CALLBACK',
+                    data: 41
+                  });
+                  cb({
+                    type: 'CALLBACK',
+                    data: 42
+                  });
+                }
               }
-            })
+            )
           }
         }
       );

@@ -17,16 +17,24 @@ import {
 export function fromTransition<
   TState,
   TEvent extends EventObject,
-  TSystem extends ActorSystem<any>
+  TSystem extends ActorSystem<any>,
+  TInput
 >(
   transition: (
     state: TState,
     event: TEvent,
     actorContext: ActorContext<TEvent, TState, TSystem>
   ) => TState,
-  initialState: TState | (({ input }: { input: any }) => TState) // TODO: type
+  initialState: TState | (({ input }: { input: TInput }) => TState) // TODO: type
 ): ActorBehavior<TEvent, TState, TState> {
-  const behavior: ActorBehavior<TEvent, TState, TState, TState> = {
+  const behavior: ActorBehavior<
+    TEvent,
+    TState,
+    TState,
+    TState,
+    TSystem,
+    TInput
+  > = {
     config: transition,
     transition: (state, event, actorContext) => {
       return transition(state, event as TEvent, actorContext as any);

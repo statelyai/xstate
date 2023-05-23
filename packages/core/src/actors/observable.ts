@@ -2,7 +2,8 @@ import {
   Subscribable,
   ActorBehavior,
   EventObject,
-  Subscription
+  Subscription,
+  ActorSystem
 } from '../types';
 import { stopSignalType } from '../actors';
 
@@ -19,13 +20,15 @@ export type ObservablePersistedState<T> = Omit<
 >;
 
 // TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
-export function fromObservable<T, TEvent extends EventObject>(
-  observableCreator: ({ input }: { input: any }) => Subscribable<T>
+export function fromObservable<T, TEvent extends EventObject, TInput>(
+  observableCreator: ({ input }: { input: TInput }) => Subscribable<T>
 ): ActorBehavior<
   TEvent,
   T | undefined,
   ObservableInternalState<T>,
-  ObservablePersistedState<T>
+  ObservablePersistedState<T>,
+  ActorSystem<any>,
+  TInput
 > {
   const nextEventType = '$$xstate.next';
   const errorEventType = '$$xstate.error';
@@ -135,9 +138,16 @@ export function fromObservable<T, TEvent extends EventObject>(
  * @returns An event observable behavior
  */
 
-export function fromEventObservable<T extends EventObject>(
-  lazyObservable: ({ input }: { input: any }) => Subscribable<T>
-): ActorBehavior<EventObject, T | undefined> {
+export function fromEventObservable<T extends EventObject, TInput>(
+  lazyObservable: ({ input }: { input: TInput }) => Subscribable<T>
+): ActorBehavior<
+  EventObject,
+  T | undefined,
+  ObservableInternalState<T>,
+  ObservablePersistedState<T>,
+  ActorSystem<any>,
+  TInput
+> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
