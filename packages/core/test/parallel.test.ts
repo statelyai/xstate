@@ -610,9 +610,94 @@ describe('parallel states', () => {
     });
   });
 
-  it('should properly transition according to entry events on an initial state', () => {
-    expect(raisingParallelMachine.initialState.value).toEqual({
-      OUTER1: 'C',
+  it('should not resolve initial raised transitions before starting the machine', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        OUTER1: {
+          initial: 'B',
+          states: {
+            A: {},
+            B: {
+              entry: raise({ type: 'CLEAR' })
+            }
+          }
+        },
+        OUTER2: {
+          type: 'parallel',
+          states: {
+            INNER1: {
+              initial: 'ON',
+              states: {
+                OFF: {},
+                ON: {
+                  on: {
+                    CLEAR: 'OFF'
+                  }
+                }
+              }
+            },
+            INNER2: {
+              initial: 'OFF',
+              states: {
+                OFF: {},
+                ON: {}
+              }
+            }
+          }
+        }
+      }
+    });
+    expect(interpret(machine).getSnapshot().value).toEqual({
+      OUTER1: 'B',
+      OUTER2: {
+        INNER1: 'ON',
+        INNER2: 'OFF'
+      }
+    });
+  });
+
+  it('should resolve initial raised transitions after starting the machine', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        OUTER1: {
+          initial: 'B',
+          states: {
+            A: {},
+            B: {
+              entry: raise({ type: 'CLEAR' })
+            }
+          }
+        },
+        OUTER2: {
+          type: 'parallel',
+          states: {
+            INNER1: {
+              initial: 'ON',
+              states: {
+                OFF: {},
+                ON: {
+                  on: {
+                    CLEAR: 'OFF'
+                  }
+                }
+              }
+            },
+            INNER2: {
+              initial: 'OFF',
+              states: {
+                OFF: {},
+                ON: {}
+              }
+            }
+          }
+        }
+      }
+    });
+    const actorRef = interpret(machine).start();
+    expect(actorRef.getSnapshot().value).toEqual({
+      OUTER1: 'B',
       OUTER2: {
         INNER1: 'OFF',
         INNER2: 'OFF'
