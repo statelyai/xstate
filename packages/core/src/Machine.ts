@@ -30,6 +30,8 @@ export function createMachine<
   implementations?: InternalMachineImplementations<
     TContext,
     TEvent,
+    ParameterizedObject,
+    TActors,
     ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActors>
   >
 ): StateMachine<

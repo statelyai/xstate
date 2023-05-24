@@ -918,26 +918,29 @@ type MachineImplementationsGuards<
 
 type MachineImplementationsActors<
   TContext extends MachineContext,
+  TEvents extends EventObject,
+  TActors extends ActorImpl,
   TResolvedTypesMeta,
-  TEventsCausingActors = Prop<
+  _TEventsCausingActors = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'eventsCausingActors'
   >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  _TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
   _TInvokeSrcNameMap = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'invokeSrcNameMap'
   >
 > = {
   // TODO: this should require `{ src, input }` for required inputs
-  [K in keyof TEventsCausingActors]?:
-    | AnyActorBehavior
+  [K in TActors['src']]?:
+    | WithDefault<TActors['logic'], AnyActorBehavior>
     | {
-        src: AnyActorBehavior;
+        src: WithDefault<TActors['logic'], AnyActorBehavior>;
         input:
           | Mapper<
               TContext,
-              Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>,
+              // Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>,
+              TEvents,
               any
             >
           | any;
@@ -1001,6 +1004,8 @@ type GenerateGuardsImplementationsPart<
 
 type GenerateActorsImplementationsPart<
   TContext extends MachineContext,
+  TEvents extends EventObject,
+  TActors extends ActorImpl,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
   TMissingImplementations
@@ -1009,12 +1014,19 @@ type GenerateActorsImplementationsPart<
   Prop<TMissingImplementations, 'actors'>,
   TRequireMissingImplementations
 > & {
-  actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
+  actors?: MachineImplementationsActors<
+    TContext,
+    TEvents,
+    TActors,
+    TResolvedTypesMeta
+  >;
 };
 
 export type InternalMachineImplementations<
   TContext extends MachineContext,
-  _TEvent extends EventObject,
+  TEvents extends EventObject,
+  _TActions extends ParameterizedObject,
+  TActors extends ActorImpl,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<
@@ -1041,6 +1053,8 @@ export type InternalMachineImplementations<
   > &
   GenerateActorsImplementationsPart<
     TContext,
+    TEvents,
+    TActors,
     TResolvedTypesMeta,
     TRequireMissingImplementations,
     TMissingImplementations
@@ -1055,6 +1069,8 @@ export type MachineImplementations<
 > = InternalMachineImplementations<
   TContext,
   TEvent,
+  TAction,
+  TActors,
   ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActors>
 >;
 
@@ -1802,13 +1818,15 @@ export type MachineImplementationsFrom<
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TEvent,
-  any,
-  any,
+  infer TActions,
+  infer TActors,
   infer TResolvedTypesMeta
 >
   ? InternalMachineImplementations<
       TContext,
       TEvent,
+      TActions,
+      TActors,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >

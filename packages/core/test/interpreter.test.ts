@@ -13,7 +13,8 @@ import {
   cancel,
   raise,
   stop,
-  log
+  log,
+  ActorBehavior
 } from '../src/index.ts';
 import { State } from '../src/State';
 import { isObservable } from '../src/utils';
@@ -1552,39 +1553,53 @@ describe('interpreter', () => {
     });
 
     it('state.children should reference invoked child actors (promise)', (done) => {
-      const parentMachine = createMachine({
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: fromPromise(
-                () =>
-                  new Promise((res) => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 100);
-                  })
-              ),
-              onDone: [
-                {
-                  target: 'success',
-                  guard: ({ event }) => {
-                    return event.output === 42;
-                  }
-                },
-                { target: 'failure' }
-              ]
+      const parentMachine = createMachine(
+        {
+          initial: 'active',
+          types: {} as {
+            actors: {
+              src: 'num';
+              logic: ActorBehavior<any, number | undefined>;
+              output: number;
+            };
+          },
+          states: {
+            active: {
+              invoke: {
+                id: 'childActor',
+                src: 'num',
+                onDone: [
+                  {
+                    target: 'success',
+                    guard: ({ event }) => {
+                      return event.output === 42;
+                    }
+                  },
+                  { target: 'failure' }
+                ]
+              }
+            },
+            success: {
+              type: 'final'
+            },
+            failure: {
+              type: 'final'
             }
-          },
-          success: {
-            type: 'final'
-          },
-          failure: {
-            type: 'final'
+          }
+        },
+        {
+          actors: {
+            num: fromPromise(
+              () =>
+                new Promise<number>((res) => {
+                  setTimeout(() => {
+                    res(42);
+                  }, 100);
+                })
+            )
           }
         }
-      });
+      );
 
       const service = interpret(parentMachine);
 

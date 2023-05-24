@@ -170,6 +170,8 @@ export class StateMachine<
     implementations: InternalMachineImplementations<
       TContext,
       TEvent,
+      TAction,
+      TActors,
       TResolvedTypesMeta,
       true
     >

@@ -154,14 +154,20 @@ describe('typegen types', () => {
       {
         actors: {
           // TODO: add test for input?
-          myActor: fromPromise(({ input }) => {
-            input.type === 'FOO';
-            input.type === 'BAR';
-            // @x-ts-expect-error TODO: strongly type inputs for promise
-            input.type === 'BAZ';
+          myActor: fromPromise(
+            ({
+              input
+            }: {
+              input: { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' };
+            }) => {
+              input.type === 'FOO';
+              input.type === 'BAR';
+              // @x-ts-expect-error TODO: strongly type inputs for promise
+              input.type === 'BAZ';
 
-            return Promise.resolve(42);
-          })
+              return Promise.resolve(42);
+            }
+          )
         }
       }
     );

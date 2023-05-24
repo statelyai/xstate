@@ -112,7 +112,9 @@ describe('input', () => {
   });
 
   it('should create a promise with input', async () => {
-    const promiseBehavior = fromPromise(({ input }) => Promise.resolve(input));
+    const promiseBehavior = fromPromise(
+      ({ input }: { input: { count: number } }) => Promise.resolve(input)
+    );
 
     const promiseActor = interpret(promiseBehavior, {
       input: { count: 42 }

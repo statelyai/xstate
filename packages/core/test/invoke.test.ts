@@ -1170,11 +1170,17 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: fromPromise(({ input }) => {
-                return createPromise((resolve, reject) => {
-                  input.foo && input.event.payload ? resolve() : reject();
-                });
-              })
+              somePromise: fromPromise(
+                ({
+                  input
+                }: {
+                  input: { foo: boolean; event: { payload: any } };
+                }) => {
+                  return createPromise((resolve, reject) => {
+                    input.foo && input.event.payload ? resolve() : reject();
+                  });
+                }
+              )
             }
           }
         );
@@ -2859,11 +2865,13 @@ describe('invoke', () => {
       },
       {
         actors: {
-          search: fromPromise(async ({ input }) => {
-            expect(input.endpoint).toEqual('example.com');
+          search: fromPromise(
+            async ({ input }: { input: { endpoint: string } }) => {
+              expect(input.endpoint).toEqual('example.com');
 
-            return await 42;
-          })
+              return await 42;
+            }
+          )
         }
       }
     );
@@ -2903,11 +2911,13 @@ describe('invoke', () => {
       },
       {
         actors: {
-          search: fromPromise(async ({ input }) => {
-            expect(input.endpoint).toEqual('example.com');
+          search: fromPromise(
+            async ({ input }: { input: { endpoint: string } }) => {
+              expect(input.endpoint).toEqual('example.com');
 
-            return await 42;
-          })
+              return await 42;
+            }
+          )
         }
       }
     );
