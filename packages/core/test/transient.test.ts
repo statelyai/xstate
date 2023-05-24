@@ -2,6 +2,7 @@ import { AnyState, createMachine, interpret, State } from '../src/index';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { stateIn } from '../src/guards';
+import { createInitEvent } from '../src/actions';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = createMachine<typeof greetingContext>({
@@ -405,13 +406,16 @@ describe('transient states (eventless transitions)', () => {
     expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C2' });
   });
 
-  it('should determine the resolved initial state from the transient state', () => {
-    expect(greetingMachine.initialState.value).toEqual('morning');
+  it('should not resolve initial state using initial transient transitions', () => {
+    expect(greetingMachine.getInitialState().value).toEqual('pending');
   });
 
   it('should determine the resolved state from an initial transient state', () => {
-    const morningState = greetingMachine.initialState;
-    expect(morningState.value).toEqual('morning');
+    const initialState = greetingMachine.getInitialState();
+    const morningState = greetingMachine.transition(
+      initialState,
+      createInitEvent(undefined)
+    );
     const stillMorningState = greetingMachine.transition(morningState, {
       type: 'CHANGE'
     });

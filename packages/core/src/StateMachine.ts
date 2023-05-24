@@ -317,6 +317,8 @@ export class StateMachine<
       preInitial.children = nextState.children;
     }
 
+    this.setSeedChildren(preInitial, actorCtx);
+
     return preInitial;
   }
 
@@ -327,7 +329,7 @@ export class StateMachine<
     const initEvent = createInitEvent(
       (state.event as any).input
     ) as unknown as TEvent; // TODO: fix;
-    const nextState = microstep([], state, actorCtx, initEvent);
+    const nextState = microstep([], state, actorCtx, initEvent, true);
 
     const { state: macroState } = macrostep(
       nextState,
@@ -405,9 +407,40 @@ export class StateMachine<
       : { status: 'active' };
   }
 
+  private setSeedChildren(
+    restoredState: State<TContext, TEvent, TResolvedTypesMeta>,
+    actorCtx:
+      | ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+      | undefined
+  ) {
+    const children = restoredState.children;
+    restoredState.configuration.forEach((stateNode) => {
+      stateNode.invoke.forEach((invokeConfig) => {
+        const { id, src } = invokeConfig;
+
+        if (children[id]) {
+          return;
+        }
+
+        const referenced = resolveReferencedActor(this.options.actors[src]);
+
+        if (referenced) {
+          const actorRef = interpret(referenced.src, {
+            id,
+            parent: actorCtx?.self,
+            input:
+              'input' in invokeConfig ? invokeConfig.input : referenced.input
+          });
+
+          children[id] = actorRef;
+        }
+      });
+    });
+  }
+
   public restoreState(
     state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
-    _actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const children = {};
 
@@ -424,7 +457,7 @@ export class StateMachine<
         return;
       }
 
-      const actorState = behavior.restoreState?.(childState, _actorCtx);
+      const actorState = behavior.restoreState?.(childState, actorCtx);
 
       const actorRef = interpret(behavior, {
         id: actorId,
@@ -437,31 +470,7 @@ export class StateMachine<
     const restoredState: State<TContext, TEvent, TResolvedTypesMeta> =
       this.createState(new State({ ...state, children }, this));
 
-    // TODO: DRY this up
-    restoredState.configuration.forEach((stateNode) => {
-      if (stateNode.invoke) {
-        stateNode.invoke.forEach((invokeConfig) => {
-          const { id, src } = invokeConfig;
-
-          if (children[id]) {
-            return;
-          }
-
-          const referenced = resolveReferencedActor(this.options.actors[src]);
-
-          if (referenced) {
-            const actorRef = interpret(referenced.src, {
-              id,
-              parent: _actorCtx?.self,
-              input:
-                'input' in invokeConfig ? invokeConfig.input : referenced.input
-            });
-
-            children[id] = actorRef;
-          }
-        });
-      }
-    });
+    this.setSeedChildren(restoredState, actorCtx);
 
     // TODO: remove this
     restoredState.actions = [];

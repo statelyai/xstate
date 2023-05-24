@@ -1032,9 +1032,9 @@ export function microstep<
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext | undefined,
-  event: TEvent
+  event: TEvent,
+  isInit: boolean
 ): State<TContext, TEvent, any> {
-  const isInit = event.type === actionTypes.init;
   const { machine } = currentState;
   const mutConfiguration = new Set(currentState.configuration);
 
@@ -1065,7 +1065,8 @@ export function microstep<
     currentState,
     mutConfiguration,
     event,
-    actorCtx
+    actorCtx,
+    isInit
   );
 
   const { context, actions: nonRaisedActions } = microstate;
@@ -1116,9 +1117,9 @@ function microstepProcedure(
   currentState: AnyState,
   mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
-  actorCtx: AnyActorContext | undefined
+  actorCtx: AnyActorContext | undefined,
+  isInit: boolean
 ): typeof currentState {
-  const isInit = event.type === actionTypes.init;
   const actions: BaseActionObject[] = [];
   const historyValue = {
     ...currentState.historyValue
@@ -1570,7 +1571,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
   // Determine the next state based on the next microstep
   if (event.type !== actionTypes.init) {
     const transitions = selectTransitions(event, nextState);
-    nextState = microstep(transitions, state, actorCtx, event);
+    nextState = microstep(transitions, state, actorCtx, event, false);
     states.push(nextState);
   }
 
@@ -1593,7 +1594,13 @@ export function macrostep<TMachine extends AnyStateMachine>(
         const currentActions = nextState.actions;
         const nextEvent = nextState._internalQueue[0];
         const transitions = selectTransitions(nextEvent, nextState);
-        nextState = microstep(transitions, nextState, actorCtx, nextEvent);
+        nextState = microstep(
+          transitions,
+          nextState,
+          actorCtx,
+          nextEvent,
+          false
+        );
         nextState._internalQueue.shift();
         nextState.actions.unshift(...currentActions);
 
@@ -1607,7 +1614,8 @@ export function macrostep<TMachine extends AnyStateMachine>(
         enabledTransitions,
         nextState,
         actorCtx,
-        nextState.event
+        nextState.event,
+        false
       );
       nextState.actions.unshift(...currentActions);
 

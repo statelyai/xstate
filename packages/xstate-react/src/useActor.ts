@@ -4,7 +4,6 @@ import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/w
 import {
   ActorRefFrom,
   AnyActorBehavior,
-  AnyState,
   InterpreterOptions,
   InterpreterStatus,
   SnapshotFrom
@@ -15,10 +14,6 @@ import { isActorRef } from 'xstate/actors';
 function identity<T>(a: T): T {
   return a;
 }
-
-const isEqual = (prevState: AnyState, nextState: AnyState) => {
-  return prevState === nextState || nextState.changed === false;
-};
 
 export function useActor<TBehavior extends AnyActorBehavior>(
   behavior: TBehavior,
@@ -52,8 +47,7 @@ export function useActor<TBehavior extends AnyActorBehavior>(
     subscribe,
     getSnapshot,
     getSnapshot,
-    identity,
-    isEqual
+    identity
   );
 
   useEffect(() => {

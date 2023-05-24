@@ -400,10 +400,9 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     await testWaitFor(() => expect(count.textContent).toBe('42'));
   });
 
-  // TODO: enable when we implement invoke crawling in getInitialState
   // TODO: reexecuted layout effect in strict mode sees the outdated state
   // it fires after passive cleanup (that stops the machine) and before the passive setup (that restarts the machine)
-  (suiteKey === 'strict' ? it.skip : it.skip)(
+  (suiteKey === 'strict' ? it.skip : it)(
     'invoked actor should be able to receive (deferred) events that it replays when active',
     (done) => {
       const childMachine = createMachine({

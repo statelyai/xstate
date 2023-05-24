@@ -484,8 +484,7 @@ describe('machine behavior', () => {
     );
   });
 
-  // TODO: enable when we implement invoke crawling in getInitialState
-  it.skip('the initial state of a child is available before starting the parent', () => {
+  it('the initial state of a child is available before starting the parent', () => {
     const machine = createMachine({
       invoke: {
         id: 'child',
