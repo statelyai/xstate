@@ -1,4 +1,4 @@
-import { createMachine, fromPromise, interpret } from 'xstate';
+import { assign, createMachine, fromPromise, interpret } from 'xstate';
 
 async function getGreeting(name: string): Promise<{ greeting: string }> {
   return new Promise((res, rej) => {
@@ -16,6 +16,9 @@ async function getGreeting(name: string): Promise<{ greeting: string }> {
 
 const fetchMachine = createMachine({
   initial: 'idle',
+  context: {
+    data: null
+  },
   states: {
     idle: {
       on: {
@@ -25,11 +28,21 @@ const fetchMachine = createMachine({
     loading: {
       invoke: {
         src: fromPromise(({ input }) => getGreeting(input.name)),
-        input: ({ context }) => ({ name: context.name })
+        input: ({ context }) => ({ name: context.name }),
+        onDone: {
+          target: 'success',
+          actions: assign({
+            data: ({ event }) => event.output
+          })
+        },
+        onError: 'failure'
       }
     },
     success: {},
     failure: {
+      after: {
+        1000: 'loading'
+      },
       on: {
         RETRY: 'loading'
       }
@@ -39,7 +52,8 @@ const fetchMachine = createMachine({
 
 const fetchActor = interpret(fetchMachine);
 fetchActor.subscribe((state) => {
-  console.log(state);
+  console.log('Value:', state.value);
+  console.log('Context:', state.context);
 });
 fetchActor.start();
 

@@ -14,16 +14,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `;
 
-const stopwatchActor = interpret(stopwatchMachine).start();
-
 const startButton = document.querySelector<HTMLButtonElement>('#start')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
 const resetButton = document.querySelector<HTMLButtonElement>('#reset')!;
 const outputEl = document.querySelector<HTMLDivElement>('#output')!;
 
+const stopwatchActor = interpret(stopwatchMachine);
 stopwatchActor.subscribe((snapshot) => {
   outputEl.innerHTML = snapshot.context.elapsed.toString();
 });
+stopwatchActor.start();
 
 startButton.addEventListener('click', () => {
   stopwatchActor.send({ type: 'start' });

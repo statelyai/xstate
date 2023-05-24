@@ -69,7 +69,7 @@ function App() {
 
   return (
     <div className="App">
-      <TileGrid image="https://source.unsplash.com/random/400x400">
+      <TileGrid image="https://source.unsplash.com/random/?city,night">
         {state.context.tiles.map((tile, index) => {
           const x = index % 4;
           const y = Math.floor(index / 4);

@@ -1,5 +1,4 @@
-import { createMachine, assign } from 'xstate';
-import { choose, log } from 'xstate/lib/actions';
+import { createMachine, assign, choose } from 'xstate';
 
 function range(num: number): number[] {
   return Array.from(Array(num).keys());
@@ -119,7 +118,7 @@ export const tilesMachine = createMachine(
       }),
       swapTiles: assign({
         tiles: ({ context: { tiles, selected, hovered } }) => {
-          return swap(tiles, hovered?.index, selected?.index);
+          return swap(tiles, hovered!.index, selected!.index);
         }
       }),
       shuffleTiles: assign({
@@ -136,7 +135,7 @@ export const tilesMachine = createMachine(
   }
 );
 
-export function swap<T extends []>(arr: T, a: number, b: number): T {
+export function swap<T extends any[]>(arr: T, a: number, b: number): T {
   [arr[a], arr[b]] = [arr[b], arr[a]];
   return arr;
 }
