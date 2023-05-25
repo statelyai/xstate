@@ -3,7 +3,7 @@ import { useActor, createSpawn } from '../src';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { fromTransition } from 'xstate/actors';
 
-describe("usage with core's spawnBehavior", () => {
+describe("usage with core's fromTransition", () => {
   it('should be able to spawn an actor from actor logic', () => {
     const reducer = (state: number, event: { type: 'INC' }): number => {
       if (event.type === 'INC') {
