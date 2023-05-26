@@ -182,7 +182,7 @@ export function createMachine<
 
       if (stateConfig.on) {
         const transitions: Array<
-          StateMachine.Transition<TContext, TEvent>
+          StateMachine.Transition<TContext, TEvent, TState['value']>
         > = toArray(stateConfig.on[eventObject.type]);
 
         for (const transition of transitions) {
@@ -190,10 +190,13 @@ export function createMachine<
             return createUnchangedState(value, context);
           }
 
-          const { target, actions = [], cond = () => true } =
-            typeof transition === 'string'
-              ? { target: transition }
-              : transition;
+          const {
+            target,
+            actions = [],
+            cond = () => true
+          } = typeof transition === 'string'
+            ? { target: transition }
+            : transition;
 
           const isTargetless = target === undefined;
 
@@ -209,11 +212,12 @@ export function createMachine<
           }
 
           if (cond(context, eventObject)) {
-            const allActions = (isTargetless
-              ? toArray(actions)
-              : ([] as any[])
-                  .concat(stateConfig.exit, actions, nextStateConfig.entry)
-                  .filter((a) => a)
+            const allActions = (
+              isTargetless
+                ? toArray(actions)
+                : ([] as any[])
+                    .concat(stateConfig.exit, actions, nextStateConfig.entry)
+                    .filter((a) => a)
             ).map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
               toActionObject(action, (machine as any)._options.actions)
             );

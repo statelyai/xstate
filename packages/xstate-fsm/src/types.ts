@@ -86,10 +86,14 @@ export namespace StateMachine {
     assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
   }
 
-  export type Transition<TContext extends object, TEvent extends EventObject> =
-    | string
+  export type Transition<
+    TContext extends object,
+    TEvent extends EventObject,
+    TStateValue extends string
+  > =
+    | TStateValue
     | {
-        target?: string;
+        target?: TStateValue;
         actions?: SingleOrArray<Action<TContext, TEvent>>;
         cond?: (context: TContext, event: TEvent) => boolean;
       };
@@ -121,13 +125,17 @@ export namespace StateMachine {
     TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
     id?: string;
-    initial: string;
+    initial: TState['value'];
     context?: TContext;
     states: {
       [key in TState['value']]: {
         on?: {
           [K in TEvent['type']]?: SingleOrArray<
-            Transition<TContext, TEvent extends { type: K } ? TEvent : never>
+            Transition<
+              TContext,
+              TEvent extends { type: K } ? TEvent : never,
+              TState['value']
+            >
           >;
         };
         exit?: SingleOrArray<Action<TContext, TEvent>>;
@@ -157,9 +165,7 @@ export namespace StateMachine {
     TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
     send: (event: TEvent | TEvent['type']) => void;
-    subscribe: (
-      listener: StateListener<State<TContext, TEvent, TState>>
-    ) => {
+    subscribe: (listener: StateListener<State<TContext, TEvent, TState>>) => {
       unsubscribe: () => void;
     };
     start: (
