@@ -1,7 +1,7 @@
 import { assign, createMachine, fromCallback } from 'xstate';
 
 export const stopwatchMachine = createMachine({
-  id: 'toggle',
+  id: 'stopwatch',
   initial: 'stopped',
   context: {
     elapsed: 0
