@@ -63,7 +63,7 @@ npm install xstate
 ```js
 import { createMachine, interpret } from 'xstate';
 
-// Stateless machine definition
+// State machine definition
 // machine.transition(...) is a pure function used by the interpreter.
 const toggleMachine = createMachine({
   id: 'toggle',
@@ -75,78 +75,17 @@ const toggleMachine = createMachine({
 });
 
 // Machine instance with internal state
-const toggleService = interpret(toggleMachine)
-  .onTransition((state) => console.log(state.value))
-  .start();
-// => 'inactive'
+const toggleActor = interpret(toggleMachine);
+toggleActor.subscribe((state) => console.log(state.value))
+toggleActor.start();
+// => logs 'inactive'
 
-toggleService.send('TOGGLE');
-// => 'active'
+toggleActor.send({ type: 'TOGGLE' });
+// => logs 'active'
 
-toggleService.send('TOGGLE');
-// => 'inactive'
+toggleActor.send({ type: 'TOGGLE' });
+// => logs 'inactive'
 ```
-
-## Promise example
-
-[📉 See the visualization on stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
-
-<details>
-<summary>See the code</summary>
-
-```js
-import { createMachine, interpret, assign } from 'xstate';
-
-const fetchMachine = createMachine({
-  id: 'Dog API',
-  initial: 'idle',
-  context: {
-    dog: null
-  },
-  states: {
-    idle: {
-      on: {
-        FETCH: 'loading'
-      }
-    },
-    loading: {
-      invoke: {
-        id: 'fetchDog',
-        src: (context, event) =>
-          fetch('https://dog.ceo/api/breeds/image/random').then((data) =>
-            data.json()
-          ),
-        onDone: {
-          target: 'resolved',
-          actions: assign({
-            dog: (_, event) => event.data
-          })
-        },
-        onError: 'rejected'
-      },
-      on: {
-        CANCEL: 'idle'
-      }
-    },
-    resolved: {
-      type: 'final'
-    },
-    rejected: {
-      on: {
-        FETCH: 'loading'
-      }
-    }
-  }
-});
-
-const dogService = interpret(fetchMachine)
-  .onTransition((state) => console.log(state.value))
-  .start();
-
-dogService.send('FETCH');
-```
-
-</details>
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -218,7 +157,7 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, 'TIMER').value;
+const nextState = lightMachine.transition(currentState, { type: 'TIMER' }).value;
 
 // => 'yellow'
 ```
@@ -277,12 +216,12 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, 'TIMER').value;
+const nextState = lightMachine.transition(currentState, { type: 'TIMER' }).value;
 // => {
 //   red: 'walk'
 // }
 
-lightMachine.transition('red.walk', 'PED_TIMER').value;
+lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 // => {
 //   red: 'wait'
 // }
@@ -292,15 +231,15 @@ lightMachine.transition('red.walk', 'PED_TIMER').value;
 
 ```js
 // ...
-const waitState = lightMachine.transition({ red: 'walk' }, 'PED_TIMER').value;
+const waitState = lightMachine.transition({ red: 'walk' }, { type: 'PED_TIMER' }).value;
 
 // => { red: 'wait' }
 
-lightMachine.transition(waitState, 'PED_TIMER').value;
+lightMachine.transition(waitState, { type: 'PED_TIMER' }).value;
 
 // => { red: 'stop' }
 
-lightMachine.transition({ red: 'stop' }, 'TIMER').value;
+lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value;
 
 // => 'green'
 ```
@@ -369,7 +308,7 @@ const wordMachine = createMachine({
   }
 });
 
-const boldState = wordMachine.transition('bold.off', 'TOGGLE_BOLD').value;
+const boldState = wordMachine.transition('bold.off', { type: 'TOGGLE_BOLD' }).value;
 
 // {
 //   bold: 'on',
@@ -385,7 +324,7 @@ const nextState = wordMachine.transition(
     underline: 'on',
     list: 'bullets'
   },
-  'TOGGLE_ITALICS'
+  { type: 'TOGGLE_ITALICS' }
 ).value;
 
 // {
@@ -425,21 +364,21 @@ const paymentMachine = createMachine({
   }
 });
 
-const checkState = paymentMachine.transition('method.cash', 'SWITCH_CHECK');
+const checkState = paymentMachine.transition('method.cash', { type: 'SWITCH_CHECK' });
 
 // => State {
 //   value: { method: 'check' },
 //   history: State { ... }
 // }
 
-const reviewState = paymentMachine.transition(checkState, 'NEXT');
+const reviewState = paymentMachine.transition(checkState, { type: 'NEXT' });
 
 // => State {
 //   value: 'review',
 //   history: State { ... }
 // }
 
-const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
+const previousState = paymentMachine.transition(reviewState, { type: 'PREVIOUS' }).value;
 
 // => { method: 'check' }
 ```
