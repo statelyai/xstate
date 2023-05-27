@@ -130,7 +130,7 @@ function handleActions<
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
+  TState extends Typestate<TContext> = Typestate<TContext>
 >(
   fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
   implementations: {
