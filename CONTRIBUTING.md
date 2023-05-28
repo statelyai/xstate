@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to XState! Contributions like you make this project possible, and we welcome any contributions to the code base and the documentation.
+Thank you for your interest in contributing to XState! Contributors like you make this project possible, and we welcome any contributions to the code base and the documentation.
 
 There are several ways you can contribute to XState:
 
