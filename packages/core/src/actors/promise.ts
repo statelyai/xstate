@@ -7,33 +7,34 @@ export interface PromiseInternalState<T> {
   input?: any;
 }
 
-export function fromPromise<T, TInput>(
-  // TODO: add types
-  promiseCreator: ({ input }: { input: TInput }) => PromiseLike<T>
-): ActorBehavior<
-  { type: string },
+type PromiseActorEvents<T> =
+  | {
+      type: '$$xstate.resolve';
+      data: T;
+    }
+  | {
+      type: '$$xstate.reject';
+      data: unknown;
+    };
+
+export type PromiseActorBehavior<T, TInput = any> = ActorBehavior<
+  PromiseActorEvents<T>,
   T | undefined,
   PromiseInternalState<T>, // internal state
   PromiseInternalState<T>, // persisted state
   ActorSystem<any>,
   TInput
-> {
+>;
+
+export function fromPromise<T, TInput>(
+  // TODO: add types
+  promiseCreator: ({ input }: { input: TInput }) => PromiseLike<T>
+): PromiseActorBehavior<T, TInput> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
 
   // TODO: add event types
-  const behavior: ActorBehavior<
-    | {
-        type: typeof resolveEventType;
-        data: T;
-      }
-    | {
-        type: typeof rejectEventType;
-        data: any;
-      },
-    T | undefined,
-    PromiseInternalState<T>
-  > = {
+  const behavior: PromiseActorBehavior<T, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {
       if (state.status !== 'active') {

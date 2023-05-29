@@ -8,6 +8,7 @@ import { fromPromise } from '../src/actors/index.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { createMachine } from '../src/Machine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
+import { PromiseActorBehavior } from '../src/actors/promise.ts';
 
 describe('typegen types', () => {
   it('should not require implementations when creating machine using `createMachine`', () => {
@@ -759,16 +760,23 @@ describe('typegen types', () => {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          actors: {} as {
-            src: 'myActor';
-            output: string;
-          }
+          actors: {} as
+            | {
+                src: 'badActor';
+                output: string;
+                logic: PromiseActorBehavior<string>;
+              }
+            | {
+                src: 'goodActor';
+                logic: PromiseActorBehavior<number>;
+              }
         }
       },
       {
         actors: {
+          goodActor: fromPromise(() => Promise.resolve(42)),
           // @ts-expect-error
-          myActor: () => Promise.resolve(42)
+          badActor: fromPromise(() => Promise.resolve(42))
         }
       }
     );
@@ -1159,13 +1167,14 @@ describe('typegen types', () => {
           typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
-          }
+          },
+          actors: {} as never
         }
       },
       {
         // @ts-expect-error
         actors: {
-          testActor: () => Promise.resolve(42)
+          testActor: fromPromise(() => Promise.resolve(42))
         }
       }
     );

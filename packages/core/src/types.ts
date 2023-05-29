@@ -1050,15 +1050,17 @@ export type InternalMachineImplementations<
     TResolvedTypesMeta,
     TRequireMissingImplementations,
     TMissingImplementations
-  > &
-  GenerateActorsImplementationsPart<
-    TContext,
-    TEvents,
-    TActors,
-    TResolvedTypesMeta,
-    TRequireMissingImplementations,
-    TMissingImplementations
-  >;
+  > & {
+    // > //   TMissingImplementations //   TRequireMissingImplementations, //   TResolvedTypesMeta, //   TActors, //   TEvents, //   TContext, // GenerateActorsImplementationsPart<
+    actors?: {
+      [K in TActors['src']]?:
+        | (TActors & { src: K })['logic']
+        | {
+            src: (TActors & { src: K })['logic'];
+            input: Mapper<TContext, TEvents, any> | any;
+          };
+    };
+  };
 
 export type MachineImplementations<
   TContext extends MachineContext,
