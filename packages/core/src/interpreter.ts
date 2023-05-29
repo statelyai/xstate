@@ -138,10 +138,10 @@ export class Interpreter<
       ...options
     };
 
-    const { clock, logger, parent, id, systemId } = resolvedOptions;
+    const { clock, logger, parent, id, systemId, _system } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem();
+    this.system = _system ?? parent?.system ?? createSystem();
 
     if (systemId) {
       this._systemId = systemId;

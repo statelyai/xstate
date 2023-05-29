@@ -1560,6 +1560,8 @@ export interface InterpreterOptions<_TActorBehavior extends AnyActorBehavior> {
 
   sync?: boolean;
 
+  _system?: ActorSystem<any>;
+
   /**
    * The system ID to register this actor under
    */
@@ -1909,6 +1911,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  deadLetters: AnyActorRef;
 }
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
