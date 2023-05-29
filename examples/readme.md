@@ -1,13 +1,17 @@
 # Contributing an example
 
-1. Copy any of the template directories to this directory:
+1. Start a [new Vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project) from this `/examples` directory using the CLI:
 
-   - [template-js](./template-js)
-   - [template-ts](./template-ts)
-   - [template-react-ts](./template-react-ts)
-   - [template-svelte-js](./template-svelte-js)
-   - [template-svelte-ts](./template-svelte-ts)
-   - [template-vue-ts](./template-vue-ts)
+```bash
+npm create vite@latest my-example-react --template react-ts
+```
 
-2. Give it a good name (and don't forget to change the `"name"` in `package.json`)
-3. Make a PR!
+2. Install `xstate@beta` and the library-specific beta (e.g. `@xstate/react@beta`):
+
+```bash
+npm i xstate@beta @xstate/react@beta
+```
+
+3. Add your XState-powered demo code ✨
+
+4. Submit a PR!
