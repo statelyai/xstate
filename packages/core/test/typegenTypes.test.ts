@@ -1167,8 +1167,7 @@ describe('typegen types', () => {
           typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
-          },
-          actors: {} as never
+          }
         }
       },
       {
