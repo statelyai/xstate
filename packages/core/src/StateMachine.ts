@@ -291,6 +291,8 @@ export class StateMachine<
     >,
     input?: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
+    // 1. we need to resolve a single microstep here
+    // 2. while doing that -> gather actions and prebind
     const [context, actions] = this.getContextAndActions(actorCtx, input);
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
@@ -306,7 +308,9 @@ export class StateMachine<
       })
     );
 
-    // TODO: this shouldn't be here?
+    // TODO: this is literally just responsible for resolving almost~ resolved spawns (and thus resulting actor refs)
+    // but actor refs are already resolved here as `spawn` resolves them already
+    // so essentially this is just for unpacking them from actions and assigning to children
     if (actorCtx) {
       const { nextState } = resolveActionsAndContext(
         actions,
@@ -429,7 +433,8 @@ export class StateMachine<
             id,
             parent: actorCtx?.self,
             input:
-              'input' in invokeConfig ? invokeConfig.input : referenced.input
+              'input' in invokeConfig ? invokeConfig.input : referenced.input,
+            systemId: invokeConfig.systemId
           });
 
           children[id] = actorRef;
@@ -459,6 +464,7 @@ export class StateMachine<
 
       const actorState = behavior.restoreState?.(childState, actorCtx);
 
+      // TODO: this is missing parent and system registration
       const actorRef = interpret(behavior, {
         id: actorId,
         state: actorState
