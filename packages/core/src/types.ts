@@ -1020,7 +1020,6 @@ export type MachineConfig<
    */
   version?: string;
   types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
-  getContext?: (ctx: TContext) => void;
 }) &
   (Equals<TContext, MachineContext> extends true
     ? { context?: InitialContext<LowInfer<TContext>> }
