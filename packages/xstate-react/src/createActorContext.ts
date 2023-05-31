@@ -47,6 +47,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   Provider: (
     props: {
       children: React.ReactNode;
+      options?: InterpreterOptions<TMachine>;
     } & (AreAllImplementationsAssumedToBeProvided<
       TMachine['__TResolvedTypesMeta']
     > extends true
@@ -64,14 +65,16 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   function Provider({
     children,
-    machine: providedMachine = machine
+    machine: providedMachine = machine,
+    options: providedOptions = interpreterOptions
   }: {
     children: React.ReactNode;
     machine: TMachine;
+    options?: InterpreterOptions<TMachine>;
   }) {
     const actor = (useActorRef as any)(
       providedMachine,
-      interpreterOptions,
+      providedOptions,
       observerOrListener
     ) as ActorRefFrom<TMachine>;
 

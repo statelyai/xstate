@@ -351,4 +351,63 @@ describe('createActorContext', () => {
 
     expect(screen.getByTestId('count').textContent).toBe('2');
   });
+
+  it('options can be passed to the provider', () => {
+    const SomeContext = createActorContext(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              next: 'b'
+            }
+          },
+          b: {}
+        }
+      })
+    );
+    let state: any = undefined;
+
+    const Component = () => {
+      const { send } = SomeContext.useActorRef();
+      const actorState = SomeContext.useSelector((state) => state);
+
+      state = actorState;
+
+      return (
+        <div
+          data-testid="value"
+          onClick={() => {
+            send({ type: 'next' });
+          }}
+        >
+          {state.value}
+        </div>
+      );
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider options={{ state }}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    const { unmount } = render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('a');
+
+    fireEvent.click(screen.getByTestId('value'));
+
+    expect(screen.getByTestId('value').textContent).toBe('b');
+
+    // unrender app
+    unmount();
+
+    // re-render app
+    render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('b');
+  });
 });
