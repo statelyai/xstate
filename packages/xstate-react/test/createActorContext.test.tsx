@@ -1,5 +1,5 @@
-import { createMachine, assign } from 'xstate';
-import { fireEvent, screen, render } from '@testing-library/react';
+import { createMachine, assign, fromPromise } from 'xstate';
+import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
 const originalConsoleError = console.error;
@@ -299,5 +299,31 @@ describe('createActorContext', () => {
     render(<App />);
 
     expect(stubFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('should work with other types of logic', async () => {
+    const PromiseContext = createActorContext(
+      fromPromise(() => Promise.resolve(42))
+    );
+
+    const Component = () => {
+      const value = PromiseContext.useSelector((data) => data);
+
+      return <div data-testid="value">{value}</div>;
+    };
+
+    const App = () => {
+      return (
+        <PromiseContext.Provider>
+          <Component />
+        </PromiseContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('value').textContent).toBe('42');
+    });
   });
 });
