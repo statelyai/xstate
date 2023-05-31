@@ -300,4 +300,55 @@ describe('createActorContext', () => {
 
     expect(stubFn).toHaveBeenCalledTimes(1);
   });
+
+  it('should expect a constant machine reference', () => {
+    const someMachine = createMachine({
+      context: { count: 0 },
+      on: {
+        inc: {
+          actions: assign({ count: ({ context }) => context.count + 1 })
+        }
+      }
+    });
+    const stubFn = jest.fn();
+    const SomeContext = createActorContext(someMachine);
+
+    const Component = () => {
+      const { send } = SomeContext.useActorRef();
+      const count = SomeContext.useSelector((state) => state.context.count);
+      return (
+        <>
+          <span data-testid="count">{count}</span>
+          <button data-testid="button" onClick={() => send({ type: 'inc' })}>
+            Inc
+          </button>
+        </>
+      );
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider
+          machine={someMachine.provide({
+            actions: {
+              testAction: stubFn
+            }
+          })}
+        >
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    fireEvent.click(screen.getByTestId('button'));
+
+    expect(screen.getByTestId('count').textContent).toBe('1');
+
+    fireEvent.click(screen.getByTestId('button'));
+
+    expect(screen.getByTestId('count').textContent).toBe('2');
+  });
 });

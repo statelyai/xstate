@@ -85,27 +85,27 @@ export function useActorRef<TBehavior extends AnyActorBehavior>(
   machine: TBehavior,
   ...[options = {}, observerOrListener]: RestParams<TBehavior>
 ): ActorRefFrom<TBehavior> {
-  const service = useIdleInterpreter(machine, options);
+  const interpretedActor = useIdleInterpreter(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
       return;
     }
-    let sub = service.subscribe(toObserver(observerOrListener));
+    let sub = interpretedActor.subscribe(toObserver(observerOrListener));
     return () => {
       sub.unsubscribe();
     };
   }, [observerOrListener]);
 
   useEffect(() => {
-    service.start();
+    interpretedActor.start();
 
     return () => {
-      service.stop();
-      service.status = InterpreterStatus.NotStarted;
-      (service as any)._initState();
+      interpretedActor.stop();
+      interpretedActor.status = InterpreterStatus.NotStarted;
+      (interpretedActor as any)._initState();
     };
   }, []);
 
-  return service as any;
+  return interpretedActor as any;
 }

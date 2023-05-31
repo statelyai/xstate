@@ -75,7 +75,10 @@ export function createActorContext<TMachine extends AnyStateMachine>(
       observerOrListener
     ) as ActorRefFrom<TMachine>;
 
-    return React.createElement(OriginalProvider, { value: actor, children });
+    return React.createElement(OriginalProvider, {
+      value: actor,
+      children
+    });
   }
 
   Provider.displayName = `ActorProvider(${machine.id})`;
