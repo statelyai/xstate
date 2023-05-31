@@ -1022,7 +1022,7 @@ export type MachineConfig<
   types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
 }) &
   (Equals<TContext, MachineContext> extends true
-    ? { context?: TContext }
+    ? { context?: InitialContext<LowInfer<TContext>> }
     : { context: InitialContext<LowInfer<TContext>> });
 
 export type ActorMap = Record<string, { output: any }>;
