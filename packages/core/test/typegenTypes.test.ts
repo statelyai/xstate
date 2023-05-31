@@ -801,7 +801,14 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: createMachine<{ foo: string }>({})
+          myActor: createMachine({
+            types: {} as {
+              context: { foo: string };
+            },
+            context: {
+              foo: 'foo'
+            }
+          })
         }
       }
     );
@@ -1032,6 +1039,9 @@ describe('typegen types', () => {
         context: {} as {
           foo: string;
         }
+      },
+      context: {
+        foo: 'bar'
       }
     });
 
@@ -1052,6 +1062,9 @@ describe('typegen types', () => {
         context: {} as {
           foo: string;
         }
+      },
+      context: {
+        foo: 'bar'
       }
     });
 
@@ -1087,6 +1100,9 @@ describe('typegen types', () => {
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1110,6 +1126,9 @@ describe('typegen types', () => {
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1133,6 +1152,9 @@ describe('typegen types', () => {
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1157,6 +1179,9 @@ describe('typegen types', () => {
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1184,6 +1209,9 @@ describe('typegen types', () => {
             count: number;
           },
           events: {} as { type: 'INC' | 'DEC'; value: number }
+        },
+        context: {
+          count: 0
         }
       },
       {

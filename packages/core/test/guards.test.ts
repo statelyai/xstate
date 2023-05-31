@@ -15,9 +15,16 @@ describe('guard conditions', () => {
     | { type: 'TIMER_COND_OBJ' }
     | { type: 'BAD_COND' };
 
-  const lightMachine = createMachine<LightMachineCtx, LightMachineEvents>(
+  const lightMachine = createMachine(
     {
       initial: 'green',
+      types: {} as {
+        context: LightMachineCtx;
+        events: LightMachineEvents;
+      },
+      context: {
+        elapsed: 0
+      },
       states: {
         green: {
           on: {

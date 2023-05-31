@@ -284,7 +284,10 @@ describe('useMachine hook', () => {
   });
 
   it('actions should not have stale data', (done) => {
-    const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
+    const toggleMachine = createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE' };
+      },
       initial: 'inactive',
       states: {
         inactive: {
@@ -340,7 +343,10 @@ describe('useMachine hook', () => {
   it('should capture all actions', () => {
     let count = 0;
 
-    const machine = createMachine<any, { type: 'EVENT' }>({
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'EVENT' };
+      },
       initial: 'active',
       states: {
         active: {
@@ -1578,7 +1584,10 @@ describe('useMachine (strict mode)', () => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
-    const machine = createMachine<any, { type: 'FINISH' }>({
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FINISH' };
+      },
       initial: 'active',
       states: {
         active: {
@@ -1651,7 +1660,10 @@ describe('useMachine (strict mode)', () => {
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
     try {
-      const testMachine = createMachine<any, { type: 'START' }>({
+      const testMachine = createMachine({
+        types: {} as {
+          events: { type: 'START' };
+        },
         id: 'app',
         initial: 'idle',
         states: {

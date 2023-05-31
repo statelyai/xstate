@@ -1005,23 +1005,26 @@ export type ContextFactory<TContext extends MachineContext> = ({
   input: any; // TODO: fix
 }) => TContext;
 
-export interface MachineConfig<
+export type MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
   TTypesMeta = TypegenDisabled
-> extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
+> = (StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> & {
   /**
    * The initial context (extended state)
    */
-  context?: InitialContext<LowInfer<TContext>>;
   /**
    * The machine's own version.
    */
   version?: string;
   types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
-}
+  getContext?: (ctx: TContext) => void;
+}) &
+  (Equals<TContext, MachineContext> extends true
+    ? { context?: InitialContext<LowInfer<TContext>> }
+    : { context: InitialContext<LowInfer<TContext>> });
 
 export type ActorMap = Record<string, { output: any }>;
 export interface MachineTypes<

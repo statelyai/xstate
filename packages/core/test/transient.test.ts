@@ -27,7 +27,13 @@ const greetingMachine = createMachine<typeof greetingContext>({
 });
 
 describe('transient states (eventless transitions)', () => {
-  const updateMachine = createMachine<{ data: boolean; status?: string }>({
+  const updateMachine = createMachine({
+    types: {} as {
+      context: { data: boolean; status?: string };
+    },
+    context: {
+      data: true
+    },
     initial: 'G',
     states: {
       G: {

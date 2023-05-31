@@ -63,7 +63,7 @@ describe('action creators', () => {
         }
       );
 
-      const machine = createMachine<any, any>({});
+      const machine = createMachine({});
 
       const [, resolvedAction] = action.resolve(
         { type: 'EVENT' as const, value: 50 },

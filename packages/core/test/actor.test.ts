@@ -47,7 +47,10 @@ describe('spawning machines', () => {
     | { type: 'PONG' }
     | { type: 'SUCCESS' };
 
-  const serverMachine = createMachine<any, PingPongEvent>({
+  const serverMachine = createMachine({
+    types: {} as {
+      events: PingPongEvent;
+    },
     id: 'server',
     initial: 'waitPing',
     states: {

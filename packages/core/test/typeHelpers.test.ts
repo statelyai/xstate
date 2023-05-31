@@ -18,6 +18,9 @@ describe('ContextFrom', () => {
     const machine = createMachine({
       types: {
         context: {} as { counter: number }
+      },
+      context: {
+        counter: 0
       }
     });
 
@@ -41,6 +44,9 @@ describe('ContextFrom', () => {
       types: {
         typegen: {} as TypegenMeta,
         context: {} as { counter: number }
+      },
+      context: {
+        counter: 0
       }
     });
 

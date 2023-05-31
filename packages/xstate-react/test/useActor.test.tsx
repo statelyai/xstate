@@ -345,7 +345,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('actions should not use stale data in a custom entry action', (done) => {
-    const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
+    const toggleMachine = createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE' };
+      },
       initial: 'inactive',
       states: {
         inactive: {
@@ -766,7 +769,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', () => {
-    const machine = createMachine<any, { type: 'FINISH' }>({
+    const machine = createMachine({
+      types: {} as {
+        events: {
+          type: 'FINISH';
+        };
+      },
       initial: 'active',
       states: {
         active: {
@@ -849,7 +857,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
-    const testMachine = createMachine<any, { type: 'START' }>({
+    const testMachine = createMachine({
+      types: {} as {
+        events: {
+          type: 'START';
+        };
+      },
       id: 'app',
       initial: 'idle',
       states: {

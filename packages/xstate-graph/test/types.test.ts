@@ -3,7 +3,11 @@ import { getMachineShortestPaths } from '../src/index.ts';
 
 describe('types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
-    const machine = createMachine<{}, { type: 'FOO' } | { type: 'BAR' }>({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      }
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -15,7 +19,11 @@ describe('types', () => {
   });
 
   it('`getEvents` should be allowed to return a readonly array', () => {
-    const machine = createMachine<{}, { type: 'FOO' } | { type: 'BAR' }>({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      }
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -27,7 +35,11 @@ describe('types', () => {
   });
 
   it('`events` should allow known event', () => {
-    const machine = createMachine<{}, { type: 'FOO'; value: number }>({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number };
+      }
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -40,10 +52,11 @@ describe('types', () => {
   });
 
   it('`events` should not require all event types (array literal expression)', () => {
-    const machine = createMachine<
-      {},
-      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+      }
+    });
 
     getMachineShortestPaths(machine, {
       events: [{ type: 'FOO', value: 100 }]
@@ -51,10 +64,11 @@ describe('types', () => {
   });
 
   it('`events` should not require all event types (tuple)', () => {
-    const machine = createMachine<
-      {},
-      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+      }
+    });
 
     const events = [{ type: 'FOO', value: 100 }] as const;
 
@@ -64,10 +78,11 @@ describe('types', () => {
   });
 
   it('`events` should not require all event types (function)', () => {
-    const machine = createMachine<
-      {},
-      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+      }
+    });
 
     getMachineShortestPaths(machine, {
       events: () => [{ type: 'FOO', value: 100 }] as const
@@ -75,7 +90,9 @@ describe('types', () => {
   });
 
   it('`events` should not allow unknown events', () => {
-    const machine = createMachine<{}, { type: 'FOO'; value: number }>({});
+    const machine = createMachine({
+      types: { events: {} as { type: 'FOO'; value: number } }
+    });
 
     getMachineShortestPaths(machine, {
       events: [
@@ -89,10 +106,11 @@ describe('types', () => {
   });
 
   it('`events` should only allow props of a specific event', () => {
-    const machine = createMachine<
-      {},
-      { type: 'FOO'; value: number } | { type: 'BAR'; other: string }
-    >({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; other: string };
+      }
+    });
 
     getMachineShortestPaths(machine, {
       events: [

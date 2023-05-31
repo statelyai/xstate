@@ -20,7 +20,10 @@ type Events =
   | { type: 'TO_TWO_MAYBE' }
   | { type: 'TO_FINAL' };
 
-const exampleMachine = createMachine<any, Events>({
+const exampleMachine = createMachine({
+  types: {} as {
+    events: Events;
+  },
   initial: 'one',
   states: {
     one: {
