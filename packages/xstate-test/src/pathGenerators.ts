@@ -4,16 +4,16 @@ import { PathGenerator } from './types.ts';
 
 export const createShortestPathsGen =
   <TState, TEvent extends EventObject>(): PathGenerator<TState, TEvent> =>
-  (behavior, defaultOptions) => {
-    const paths = getShortestPaths(behavior, defaultOptions);
+  (logic, defaultOptions) => {
+    const paths = getShortestPaths(logic, defaultOptions);
 
     return paths;
   };
 
 export const createSimplePathsGen =
   <TState, TEvent extends EventObject>(): PathGenerator<TState, TEvent> =>
-  (behavior, defaultOptions) => {
-    const paths = getSimplePaths(behavior, defaultOptions);
+  (logic, defaultOptions) => {
+    const paths = getSimplePaths(logic, defaultOptions);
 
     return paths;
   };

@@ -1,76 +1,125 @@
 import { interpret, createMachine } from '../src/index';
 
 describe('history states', () => {
-  const historyMachine = createMachine({
-    initial: 'off',
-    states: {
-      off: {
-        on: { POWER: 'on.hist', H_POWER: 'on.H' }
-      },
-      on: {
-        initial: 'first',
-        states: {
-          first: {
-            on: { SWITCH: 'second' }
+  it('should go to the most recently visited state (explicit shallow history type)', () => {
+    const machine = createMachine({
+      initial: 'on',
+      states: {
+        on: {
+          initial: 'first',
+          states: {
+            first: {
+              on: { SWITCH: 'second' }
+            },
+            second: {},
+            hist: {
+              type: 'history',
+              history: 'shallow'
+            }
           },
-          second: {
-            on: { SWITCH: 'third' }
-          },
-          third: {},
-          H: {
-            type: 'history'
-          },
-          hist: {
-            type: 'history',
-            history: 'shallow'
+          on: {
+            POWER: 'off'
           }
         },
-        on: {
-          POWER: 'off',
-          H_POWER: 'off'
+        off: {
+          on: { POWER: 'on.hist' }
         }
       }
-    }
+    });
+
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({ on: 'second' });
   });
 
-  it('should go to the most recently visited state', () => {
-    const onSecondState = historyMachine.transition('on', { type: 'SWITCH' });
-    const offState = historyMachine.transition(onSecondState, {
-      type: 'POWER'
-    });
-
-    expect(
-      historyMachine.transition(offState, { type: 'POWER' }).value
-    ).toEqual({
-      on: 'second'
-    });
-  });
-
-  it('should go to the most recently visited state (explicit)', () => {
-    const onSecondState = historyMachine.transition('on', { type: 'SWITCH' });
-    const offState = historyMachine.transition(onSecondState, {
-      type: 'H_POWER'
-    });
-
-    expect(
-      historyMachine.transition(offState, { type: 'H_POWER' }).value
-    ).toEqual({
-      on: 'second'
-    });
-  });
-
-  it('should go to the initial state when no history present', () => {
-    expect(historyMachine.transition('off', { type: 'POWER' }).value).toEqual({
-      on: 'first'
-    });
-  });
-
-  it('should go to the initial state when no history present (explicit)', () => {
-    expect(historyMachine.transition('off', { type: 'H_POWER' }).value).toEqual(
-      {
-        on: 'first'
+  it('should go to the most recently visited state (no explicit history type)', () => {
+    const machine = createMachine({
+      initial: 'on',
+      states: {
+        on: {
+          initial: 'first',
+          states: {
+            first: {
+              on: { SWITCH: 'second' }
+            },
+            second: {},
+            hist: {
+              type: 'history'
+            }
+          },
+          on: {
+            POWER: 'off'
+          }
+        },
+        off: {
+          on: { POWER: 'on.hist' }
+        }
       }
-    );
+    });
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({ on: 'second' });
+  });
+
+  it('should go to the initial state when no history present (explicit shallow history type)', () => {
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: { POWER: 'on.hist' }
+        },
+        on: {
+          initial: 'first',
+          states: {
+            first: {},
+            second: {},
+            hist: {
+              type: 'history',
+              history: 'shallow'
+            }
+          }
+        }
+      }
+    });
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({ on: 'first' });
+  });
+
+  it('should go to the initial state when no history present (no explicit history type)', () => {
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: { POWER: 'on.hist' }
+        },
+        on: {
+          initial: 'first',
+          states: {
+            first: {},
+            second: {},
+            hist: {
+              type: 'history'
+            }
+          }
+        }
+      }
+    });
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({ on: 'first' });
   });
 
   it('should go to the most recently visited state by a transient transition', () => {
@@ -111,15 +160,15 @@ describe('history states', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const actorRef = interpret(machine).start();
 
-    service.send({ type: 'DEPLOY' });
-    service.send({ type: 'SUCCESS' });
-    service.send({ type: 'DESTROY' });
-    service.send({ type: 'DEPLOY' });
-    service.send({ type: 'FAILURE' });
+    actorRef.send({ type: 'DEPLOY' });
+    actorRef.send({ type: 'SUCCESS' });
+    actorRef.send({ type: 'DESTROY' });
+    actorRef.send({ type: 'DEPLOY' });
+    actorRef.send({ type: 'FAILURE' });
 
-    expect(service.getSnapshot().value).toEqual({ idle: 'absent' });
+    expect(actorRef.getSnapshot().value).toEqual({ idle: 'absent' });
   });
 
   it('should reenter persisted state during reentering transition targeting a history state', () => {
@@ -155,12 +204,12 @@ describe('history states', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const actorRef = interpret(machine).start();
 
-    service.send({ type: 'NEXT' });
+    actorRef.send({ type: 'NEXT' });
 
     actual.length = 0;
-    service.send({ type: 'REENTER' });
+    actorRef.send({ type: 'REENTER' });
 
     expect(actual).toEqual(['a2 exited', 'a2 entered']);
   });
@@ -177,13 +226,13 @@ describe('history states', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actorRef = interpret(machine).start();
 
-    expect(actor.getSnapshot().value).toBe('bar');
+    expect(actorRef.getSnapshot().value).toBe('bar');
   });
 
   it(`should go to the configured default target when a history state is the initial state of the transition's target`, () => {
-    const a = createMachine({
+    const machine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -204,371 +253,678 @@ describe('history states', () => {
       }
     });
 
-    const actor = interpret(a).start();
+    const actorRef = interpret(machine).start();
 
-    actor.send({ type: 'NEXT' });
+    actorRef.send({ type: 'NEXT' });
 
-    expect(actor.getSnapshot().value).toEqual({
+    expect(actorRef.getSnapshot().value).toEqual({
       bar: 'qwe'
     });
   });
 });
 
 describe('deep history states', () => {
-  const historyMachine = createMachine({
-    initial: 'off',
-    states: {
-      off: {
-        on: {
-          POWER: 'on.history',
-          DEEP_POWER: 'on.deepHistory'
-        }
-      },
-      on: {
-        initial: 'first',
-        states: {
-          first: {
-            on: { SWITCH: 'second' }
-          },
-          second: {
-            initial: 'A',
-            states: {
-              A: {
-                on: { INNER: 'B' }
-              },
-              B: {
-                initial: 'P',
-                states: {
-                  P: {
-                    on: { INNER: 'Q' }
-                  },
-                  Q: {}
-                }
-              }
-            }
-          },
-          history: { history: 'shallow' },
-          deepHistory: {
-            history: 'deep'
+  it('should go to the shallow history', () => {
+    const machine = createMachine({
+      initial: 'on',
+      states: {
+        off: {
+          on: {
+            POWER: 'on.history'
           }
         },
         on: {
-          POWER: 'off'
+          initial: 'first',
+          states: {
+            first: {
+              on: { SWITCH: 'second' }
+            },
+            second: {
+              initial: 'A',
+              states: {
+                A: {
+                  on: { INNER: 'B' }
+                },
+                B: {
+                  initial: 'P',
+                  states: {
+                    P: {},
+                    Q: {}
+                  }
+                }
+              }
+            },
+            history: { history: 'shallow' }
+          },
+          on: {
+            POWER: 'off'
+          }
         }
       }
-    }
+    });
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        second: 'A'
+      }
+    });
   });
 
-  describe('history', () => {
-    it('should go to the shallow history', () => {
-      // on.first -> on.second.A
-      const state2A = historyMachine.transition(
-        { on: 'first' },
-        { type: 'SWITCH' }
-      );
-      // on.second.A -> on.second.B.P
-      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
-
-      // on.second.B.P -> off
-      const stateOff = historyMachine.transition(state2BP, { type: 'POWER' });
-      expect(
-        historyMachine.transition(stateOff, { type: 'POWER' }).value
-      ).toEqual({
-        on: { second: 'A' }
-      });
+  it('should go to the deep history (explicit)', () => {
+    const machine = createMachine({
+      initial: 'on',
+      states: {
+        off: {
+          on: {
+            POWER: 'on.history'
+          }
+        },
+        on: {
+          initial: 'first',
+          states: {
+            first: {
+              on: { SWITCH: 'second' }
+            },
+            second: {
+              initial: 'A',
+              states: {
+                A: {
+                  on: { INNER: 'B' }
+                },
+                B: {
+                  initial: 'P',
+                  states: {
+                    P: {},
+                    Q: {}
+                  }
+                }
+              }
+            },
+            history: { history: 'deep' }
+          },
+          on: {
+            POWER: 'off'
+          }
+        }
+      }
     });
+    const actorRef = interpret(machine).start();
 
-    it('should go to the deep history (explicit)', () => {
-      // on.first -> on.second.A
-      const state2A = historyMachine.transition(
-        { on: 'first' },
-        { type: 'SWITCH' }
-      );
-      // on.second.A -> on.second.B.P
-      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'POWER' });
 
-      // on.second.B.P -> off
-      const stateOff = historyMachine.transition(state2BP, { type: 'POWER' });
-      expect(
-        historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
-      ).toEqual({
-        on: { second: { B: 'P' } }
-      });
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        second: {
+          B: 'P'
+        }
+      }
     });
+  });
 
-    it('should go to the deepest history', () => {
-      // on.first -> on.second.A
-      const state2A = historyMachine.transition(
-        { on: 'first' },
-        { type: 'SWITCH' }
-      );
-      // on.second.A -> on.second.B.P
-      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
-      // on.second.B.P -> on.second.B.Q
-      const state2BQ = historyMachine.transition(state2BP, { type: 'INNER' });
+  it('should go to the deepest history', () => {
+    const machine = createMachine({
+      initial: 'on',
+      states: {
+        off: {
+          on: {
+            POWER: 'on.history'
+          }
+        },
+        on: {
+          initial: 'first',
+          states: {
+            first: {
+              on: { SWITCH: 'second' }
+            },
+            second: {
+              initial: 'A',
+              states: {
+                A: {
+                  on: { INNER: 'B' }
+                },
+                B: {
+                  initial: 'P',
+                  states: {
+                    P: {
+                      on: { INNER: 'Q' }
+                    },
+                    Q: {}
+                  }
+                }
+              }
+            },
+            history: { history: 'deep' }
+          },
+          on: {
+            POWER: 'off'
+          }
+        }
+      }
+    });
+    const actorRef = interpret(machine).start();
 
-      // on.second.B.Q -> off
-      const stateOff = historyMachine.transition(state2BQ, { type: 'POWER' });
-      expect(
-        historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
-      ).toEqual({
-        on: { second: { B: 'Q' } }
-      });
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER' });
+    actorRef.send({ type: 'INNER' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        second: {
+          B: 'Q'
+        }
+      }
     });
   });
 });
 
 describe('parallel history states', () => {
-  const historyMachine = createMachine({
-    initial: 'off',
-    states: {
-      off: {
-        on: {
-          SWITCH: 'on', // go to the initial states
-          POWER: 'on.hist',
-          DEEP_POWER: 'on.deepHistory',
-          PARALLEL_HISTORY: [{ target: ['on.A.hist', 'on.K.hist'] }],
-          PARALLEL_SOME_HISTORY: [{ target: ['on.A.C', 'on.K.hist'] }],
-          PARALLEL_DEEP_HISTORY: [
-            { target: ['on.A.deepHistory', 'on.K.deepHistory'] }
-          ]
-        }
-      },
-      on: {
-        type: 'parallel',
-        states: {
-          A: {
-            initial: 'B',
-            states: {
-              B: {
-                on: { INNER_A: 'C' }
-              },
-              C: {
-                initial: 'D',
-                states: {
-                  D: {
-                    on: { INNER_A: 'E' }
-                  },
-                  E: {}
-                }
-              },
-              hist: { history: true },
-              deepHistory: {
-                history: 'deep'
-              }
-            }
-          },
-          K: {
-            initial: 'L',
-            states: {
-              L: {
-                on: { INNER_K: 'M' }
-              },
-              M: {
-                initial: 'N',
-                states: {
-                  N: {
-                    on: { INNER_K: 'O' }
-                  },
-                  O: {}
-                }
-              },
-              hist: { history: true },
-              deepHistory: {
-                history: 'deep'
-              }
-            }
-          },
-          hist: {
-            history: true
-          },
-          shallowHistory: {
-            history: 'shallow'
-          },
-          deepHistory: {
-            history: 'deep'
+  it('should ignore parallel state history', () => {
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: {
+            SWITCH: 'on',
+            POWER: 'on.hist'
           }
         },
         on: {
-          POWER: 'off'
+          type: 'parallel',
+          states: {
+            A: {
+              initial: 'B',
+              states: {
+                B: {
+                  on: { INNER_A: 'C' }
+                },
+                C: {
+                  initial: 'D',
+                  states: {
+                    D: {},
+                    E: {}
+                  }
+                },
+                hist: { history: true }
+              }
+            },
+            K: {
+              initial: 'L',
+              states: {
+                L: {},
+                M: {},
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            hist: {
+              history: true
+            }
+          },
+          on: {
+            POWER: 'off'
+          }
         }
       }
-    }
-  });
-
-  it('should ignore parallel state history', () => {
-    // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(historyMachine.initialState, {
-      type: 'SWITCH'
-    });
-    // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, {
-      type: 'INNER_A'
     });
 
-    const stateOff = historyMachine.transition(stateACDKL, { type: 'POWER' });
-    expect(
-      historyMachine.transition(stateOff, { type: 'POWER' }).value
-    ).toEqual({
-      on: { A: 'B', K: 'L' }
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        A: 'B',
+        K: 'L'
+      }
     });
   });
 
   it('should remember first level state history', () => {
-    // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(historyMachine.initialState, {
-      type: 'SWITCH'
-    });
-    // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, {
-      type: 'INNER_A'
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: {
+            SWITCH: 'on',
+            DEEP_POWER: 'on.deepHistory'
+          }
+        },
+        on: {
+          type: 'parallel',
+          states: {
+            A: {
+              initial: 'B',
+              states: {
+                B: {
+                  on: { INNER_A: 'C' }
+                },
+                C: {
+                  initial: 'D',
+                  states: {
+                    D: {},
+                    E: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            K: {
+              initial: 'L',
+              states: {
+                L: {},
+                M: {},
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            deepHistory: {
+              history: 'deep'
+            }
+          },
+          on: {
+            POWER: 'off'
+          }
+        }
+      }
     });
 
-    const stateOff = historyMachine.transition(stateACDKL, { type: 'POWER' });
-    expect(
-      historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
-    ).toEqual({
-      on: { A: { C: 'D' }, K: 'L' }
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'DEEP_POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        A: {
+          C: 'D'
+        },
+        K: 'L'
+      }
     });
   });
 
   it('should re-enter each regions of parallel state correctly', () => {
-    // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(historyMachine.initialState, {
-      type: 'SWITCH'
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: {
+            SWITCH: 'on',
+            DEEP_POWER: 'on.deepHistory'
+          }
+        },
+        on: {
+          type: 'parallel',
+          states: {
+            A: {
+              initial: 'B',
+              states: {
+                B: {
+                  on: { INNER_A: 'C' }
+                },
+                C: {
+                  initial: 'D',
+                  states: {
+                    D: {
+                      on: { INNER_A: 'E' }
+                    },
+                    E: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            K: {
+              initial: 'L',
+              states: {
+                L: {
+                  on: { INNER_K: 'M' }
+                },
+                M: {
+                  initial: 'N',
+                  states: {
+                    N: {
+                      on: { INNER_K: 'O' }
+                    },
+                    O: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            hist: {
+              history: true
+            },
+            shallowHistory: {
+              history: 'shallow'
+            },
+            deepHistory: {
+              history: 'deep'
+            }
+          },
+          on: {
+            POWER: 'off'
+          }
+        }
+      }
     });
-    // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, {
-      type: 'INNER_A'
-    });
-    const stateACEKL = historyMachine.transition(stateACDKL, {
-      type: 'INNER_A'
-    });
+    const actorRef = interpret(machine).start();
 
-    // INNER_K twice
-    const stateACEKMN = historyMachine.transition(stateACEKL, {
-      type: 'INNER_K'
-    });
-    const stateACEKMO = historyMachine.transition(stateACEKMN, {
-      type: 'INNER_K'
-    });
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'INNER_K' });
+    actorRef.send({ type: 'INNER_K' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'DEEP_POWER' });
 
-    const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
-    expect(
-      historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
-    ).toEqual({
-      on: { A: { C: 'E' }, K: { M: 'O' } }
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        A: { C: 'E' },
+        K: { M: 'O' }
+      }
     });
   });
 
   it('should re-enter multiple history states', () => {
-    // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(historyMachine.initialState, {
-      type: 'SWITCH'
-    });
-    // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, {
-      type: 'INNER_A'
-    });
-    const stateACEKL = historyMachine.transition(stateACDKL, {
-      type: 'INNER_A'
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: {
+            SWITCH: 'on',
+            PARALLEL_HISTORY: [{ target: ['on.A.hist', 'on.K.hist'] }]
+          }
+        },
+        on: {
+          type: 'parallel',
+          states: {
+            A: {
+              initial: 'B',
+              states: {
+                B: {
+                  on: { INNER_A: 'C' }
+                },
+                C: {
+                  initial: 'D',
+                  states: {
+                    D: {
+                      on: { INNER_A: 'E' }
+                    },
+                    E: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            K: {
+              initial: 'L',
+              states: {
+                L: {
+                  on: { INNER_K: 'M' }
+                },
+                M: {
+                  initial: 'N',
+                  states: {
+                    N: {
+                      on: { INNER_K: 'O' }
+                    },
+                    O: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            hist: {
+              history: true
+            },
+            shallowHistory: {
+              history: 'shallow'
+            },
+            deepHistory: {
+              history: 'deep'
+            }
+          },
+          on: {
+            POWER: 'off'
+          }
+        }
+      }
     });
 
-    // INNER_K twice
-    const stateACEKMN = historyMachine.transition(stateACEKL, {
-      type: 'INNER_K'
-    });
-    const stateACEKMO = historyMachine.transition(stateACEKMN, {
-      type: 'INNER_K'
-    });
+    const actorRef = interpret(machine).start();
 
-    const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
-    expect(
-      historyMachine.transition(stateOff, { type: 'PARALLEL_HISTORY' }).value
-    ).toEqual({
-      on: { A: { C: 'D' }, K: { M: 'N' } }
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'INNER_K' });
+    actorRef.send({ type: 'INNER_K' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'PARALLEL_HISTORY' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        A: { C: 'D' },
+        K: { M: 'N' }
+      }
     });
   });
 
   it('should re-enter a parallel with partial history', () => {
-    // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(historyMachine.initialState, {
-      type: 'SWITCH'
-    });
-    // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, {
-      type: 'INNER_A'
-    });
-    const stateACEKL = historyMachine.transition(stateACDKL, {
-      type: 'INNER_A'
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: {
+            SWITCH: 'on',
+            PARALLEL_SOME_HISTORY: [{ target: ['on.A.C', 'on.K.hist'] }]
+          }
+        },
+        on: {
+          type: 'parallel',
+          states: {
+            A: {
+              initial: 'B',
+              states: {
+                B: {
+                  on: { INNER_A: 'C' }
+                },
+                C: {
+                  initial: 'D',
+                  states: {
+                    D: {
+                      on: { INNER_A: 'E' }
+                    },
+                    E: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            K: {
+              initial: 'L',
+              states: {
+                L: {
+                  on: { INNER_K: 'M' }
+                },
+                M: {
+                  initial: 'N',
+                  states: {
+                    N: {
+                      on: { INNER_K: 'O' }
+                    },
+                    O: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            hist: {
+              history: true
+            },
+            shallowHistory: {
+              history: 'shallow'
+            },
+            deepHistory: {
+              history: 'deep'
+            }
+          },
+          on: {
+            POWER: 'off'
+          }
+        }
+      }
     });
 
-    // INNER_K twice
-    const stateACEKMN = historyMachine.transition(stateACEKL, {
-      type: 'INNER_K'
-    });
-    const stateACEKMO = historyMachine.transition(stateACEKMN, {
-      type: 'INNER_K'
-    });
+    const actorRef = interpret(machine).start();
 
-    const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
-    expect(
-      historyMachine.transition(stateOff, { type: 'PARALLEL_SOME_HISTORY' })
-        .value
-    ).toEqual({
-      on: { A: { C: 'D' }, K: { M: 'N' } }
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'INNER_K' });
+    actorRef.send({ type: 'INNER_K' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'PARALLEL_SOME_HISTORY' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        A: { C: 'D' },
+        K: { M: 'N' }
+      }
     });
   });
 
   it('should re-enter a parallel with full history', () => {
-    // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(historyMachine.initialState, {
-      type: 'SWITCH'
-    });
-    // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, {
-      type: 'INNER_A'
-    });
-    const stateACEKL = historyMachine.transition(stateACDKL, {
-      type: 'INNER_A'
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: {
+            SWITCH: 'on',
+            PARALLEL_DEEP_HISTORY: [
+              { target: ['on.A.deepHistory', 'on.K.deepHistory'] }
+            ]
+          }
+        },
+        on: {
+          type: 'parallel',
+          states: {
+            A: {
+              initial: 'B',
+              states: {
+                B: {
+                  on: { INNER_A: 'C' }
+                },
+                C: {
+                  initial: 'D',
+                  states: {
+                    D: {
+                      on: { INNER_A: 'E' }
+                    },
+                    E: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            K: {
+              initial: 'L',
+              states: {
+                L: {
+                  on: { INNER_K: 'M' }
+                },
+                M: {
+                  initial: 'N',
+                  states: {
+                    N: {
+                      on: { INNER_K: 'O' }
+                    },
+                    O: {}
+                  }
+                },
+                hist: { history: true },
+                deepHistory: {
+                  history: 'deep'
+                }
+              }
+            },
+            hist: {
+              history: true
+            },
+            shallowHistory: {
+              history: 'shallow'
+            },
+            deepHistory: {
+              history: 'deep'
+            }
+          },
+          on: {
+            POWER: 'off'
+          }
+        }
+      }
     });
 
-    // INNER_K twice
-    const stateACEKMN = historyMachine.transition(stateACEKL, {
-      type: 'INNER_K'
-    });
-    const stateACEKMO = historyMachine.transition(stateACEKMN, {
-      type: 'INNER_K'
-    });
+    const actorRef = interpret(machine).start();
 
-    const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
-    expect(
-      historyMachine.transition(stateOff, { type: 'PARALLEL_DEEP_HISTORY' })
-        .value
-    ).toEqual({
-      on: { A: { C: 'E' }, K: { M: 'O' } }
+    actorRef.send({ type: 'SWITCH' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'INNER_A' });
+    actorRef.send({ type: 'INNER_K' });
+    actorRef.send({ type: 'INNER_K' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'PARALLEL_DEEP_HISTORY' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: {
+        A: { C: 'E' },
+        K: { M: 'O' }
+      }
     });
-  });
-});
-
-describe('transient history', () => {
-  const transientMachine = createMachine({
-    initial: 'A',
-    states: {
-      A: {
-        on: { EVENT: 'B' }
-      },
-      B: {
-        // eventless transition
-        always: 'C'
-      },
-      C: {}
-    }
-  });
-
-  it('should have history on transient transitions', () => {
-    const nextState = transientMachine.transition('A', { type: 'EVENT' });
-    expect(nextState.value).toEqual('C');
   });
 });
 
@@ -610,49 +966,45 @@ it('internal transition to a history state should enter default history state co
 });
 
 describe('multistage history states', () => {
-  const pcWithTurboButtonMachine = createMachine({
-    initial: 'off',
-    states: {
-      off: {
-        on: { POWER: 'starting' }
-      },
-      starting: {
-        on: { STARTED: 'running.H' }
-      },
-      running: {
-        initial: 'normal',
-        states: {
-          normal: {
-            on: { SWITCH_TURBO: 'turbo' }
+  it('should go to the most recently visited state', () => {
+    const machine = createMachine({
+      initial: 'running',
+      states: {
+        running: {
+          initial: 'normal',
+          states: {
+            normal: {
+              on: { SWITCH_TURBO: 'turbo' }
+            },
+            turbo: {
+              on: { SWITCH_TURBO: 'normal' }
+            },
+            H: {
+              history: true
+            }
           },
-          turbo: {
-            on: { SWITCH_TURBO: 'normal' }
-          },
-          H: {
-            history: true
+          on: {
+            POWER: 'off'
           }
         },
-        on: {
-          POWER: 'off'
+        starting: {
+          on: { STARTED: 'running.H' }
+        },
+        off: {
+          on: { POWER: 'starting' }
         }
       }
-    }
-  });
-
-  it('should go to the most recently visited state', () => {
-    const onTurboState = pcWithTurboButtonMachine.transition('running', {
-      type: 'SWITCH_TURBO'
-    });
-    const offState = pcWithTurboButtonMachine.transition(onTurboState, {
-      type: 'POWER'
-    });
-    const loadingState = pcWithTurboButtonMachine.transition(offState, {
-      type: 'POWER'
     });
 
-    expect(
-      pcWithTurboButtonMachine.transition(loadingState, { type: 'STARTED' })
-        .value
-    ).toEqual({ running: 'turbo' });
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'SWITCH_TURBO' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'POWER' });
+    actorRef.send({ type: 'STARTED' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      running: 'turbo'
+    });
   });
 });

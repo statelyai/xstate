@@ -112,11 +112,11 @@ describe('input', () => {
   });
 
   it('should create a promise with input', async () => {
-    const promiseBehavior = fromPromise(
+    const promiseLogic = fromPromise(
       ({ input }: { input: { count: number } }) => Promise.resolve(input)
     );
 
-    const promiseActor = interpret(promiseBehavior, {
+    const promiseActor = interpret(promiseLogic, {
       input: { count: 42 }
     }).start();
 
@@ -126,12 +126,12 @@ describe('input', () => {
   });
 
   it('should create a transition function actor with input', () => {
-    const transitionBehavior = fromTransition(
+    const transitionLogic = fromTransition(
       (state) => state,
       ({ input }) => input
     );
 
-    const transitionActor = interpret(transitionBehavior, {
+    const transitionActor = interpret(transitionLogic, {
       input: { count: 42 }
     }).start();
 
@@ -139,11 +139,11 @@ describe('input', () => {
   });
 
   it('should create an observable actor with input', (done) => {
-    const observableBehavior = fromObservable(
+    const observableLogic = fromObservable(
       ({ input }: { input: { count: number } }) => of(input)
     );
 
-    const observableActor = interpret(observableBehavior, {
+    const observableActor = interpret(observableLogic, {
       input: { count: 42 }
     });
 
@@ -158,12 +158,12 @@ describe('input', () => {
   });
 
   it('should create a callback actor with input', (done) => {
-    const callbackBehavior = fromCallback((_sendBack, _receive, { input }) => {
+    const callbackLogic = fromCallback((_sendBack, _receive, { input }) => {
       expect(input).toEqual({ count: 42 });
       done();
     });
 
-    interpret(callbackBehavior, {
+    interpret(callbackLogic, {
       input: { count: 42 }
     }).start();
   });

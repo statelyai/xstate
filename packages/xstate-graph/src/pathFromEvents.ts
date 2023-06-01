@@ -1,16 +1,10 @@
-import { AnyStateMachine, EventObject } from 'xstate';
+import { ActorLogic, ActorSystem, AnyStateMachine, EventObject } from 'xstate';
 import { getAdjacencyMap } from './adjacency';
-import {
-  SerializedState,
-  SimpleBehavior,
-  StatePath,
-  Steps,
-  TraversalOptions
-} from './types';
+import { SerializedState, StatePath, Steps, TraversalOptions } from './types';
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
-  createDefaultBehaviorOptions
+  createDefaultLogicOptions
 } from './graph';
 
 function isMachine(value: any): value is AnyStateMachine {
@@ -18,30 +12,35 @@ function isMachine(value: any): value is AnyStateMachine {
 }
 
 export function getPathsFromEvents<
-  TState,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject,
+  TSnapshot,
+  TInternalState = TSnapshot,
+  TPersisted = TInternalState,
+  TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  behavior: SimpleBehavior<TState, TEvent>,
+  logic: ActorLogic<TEvent, TSnapshot, TInternalState, TPersisted, TSystem>,
   events: TEvent[],
-  options?: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions<TState, TEvent>(
+  options?: TraversalOptions<TInternalState, TEvent>
+): Array<StatePath<TInternalState, TEvent>> {
+  const resolvedOptions = resolveTraversalOptions<TInternalState, TEvent>(
     {
       events,
       ...options
     },
-    isMachine(behavior)
-      ? createDefaultMachineOptions(behavior)
-      : createDefaultBehaviorOptions(behavior)
+    isMachine(logic)
+      ? createDefaultMachineOptions(logic)
+      : createDefaultLogicOptions(logic)
   );
-  const fromState = resolvedOptions.fromState ?? behavior.initialState;
+  const actorContext = undefined as any; // TODO: figure out the simulation API
+  const fromState =
+    resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
 
   const { serializeState, serializeEvent } = resolvedOptions;
 
-  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
+  const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
-  const stateMap = new Map<SerializedState, TState>();
-  const steps: Steps<TState, TEvent> = [];
+  const stateMap = new Map<SerializedState, TInternalState>();
+  const steps: Steps<TInternalState, TEvent> = [];
 
   const serializedFromState = serializeState(
     fromState,

@@ -1,9 +1,9 @@
 import {
   Subscribable,
-  ActorBehavior,
   EventObject,
   Subscription,
-  ActorSystem
+  ActorSystem,
+  ActorLogic
 } from '../types';
 import { stopSignalType } from '../actors';
 
@@ -22,7 +22,7 @@ export type ObservablePersistedState<T> = Omit<
 // TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
 export function fromObservable<T, TEvent extends EventObject, TInput>(
   observableCreator: ({ input }: { input: TInput }) => Subscribable<T>
-): ActorBehavior<
+): ActorLogic<
   TEvent,
   T | undefined,
   ObservableInternalState<T>,
@@ -35,7 +35,7 @@ export function fromObservable<T, TEvent extends EventObject, TInput>(
   const completeEventType = '$$xstate.complete';
 
   // TODO: add event types
-  const behavior: ActorBehavior<
+  const logic: ActorLogic<
     any,
     T | undefined,
     ObservableInternalState<T>,
@@ -126,21 +126,21 @@ export function fromObservable<T, TEvent extends EventObject, TInput>(
     })
   };
 
-  return behavior;
+  return logic;
 }
 
 /**
- * Creates an event observable behavior that listens to an observable
+ * Creates event observable logic that listens to an observable
  * that delivers event objects.
  *
  *
  * @param lazyObservable A function that creates an observable
- * @returns An event observable behavior
+ * @returns Event observable logic
  */
 
 export function fromEventObservable<T extends EventObject, TInput>(
   lazyObservable: ({ input }: { input: TInput }) => Subscribable<T>
-): ActorBehavior<
+): ActorLogic<
   EventObject,
   T | undefined,
   ObservableInternalState<T>,
@@ -152,7 +152,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
   const completeEventType = '$$xstate.complete';
 
   // TODO: event types
-  const behavior: ActorBehavior<
+  const logic: ActorLogic<
     any,
     T | undefined,
     ObservableInternalState<T>,
@@ -231,5 +231,5 @@ export function fromEventObservable<T extends EventObject, TInput>(
     })
   };
 
-  return behavior;
+  return logic;
 }

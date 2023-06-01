@@ -24,8 +24,8 @@ import type {
   InitialTransitionDefinition,
   MachineContext,
   BaseActionObject,
-  TODO,
-  AnyActorBehavior
+  AnyActorLogic,
+  TODO
 } from './types.ts';
 import type { State } from './State.ts';
 import * as actionTypes from './actionTypes.ts';
@@ -255,7 +255,7 @@ export class StateNode<
   }
 
   /**
-   * The behaviors invoked as actors by this state node.
+   * The logic invoked as actors by this state node.
    */
   public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
     return memo(this, 'invoke', () =>
@@ -263,7 +263,7 @@ export class StateNode<
         const generatedId = createInvokeId(this.id, i);
         const invokeConfig = toInvokeConfig(invocable, generatedId);
         const resolvedId = invokeConfig.id || generatedId;
-        const src = invokeConfig.src as string | AnyActorBehavior;
+        const src = invokeConfig.src as string | AnyActorLogic;
         const { systemId } = invokeConfig;
 
         const resolvedSrc = isString(src)

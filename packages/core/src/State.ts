@@ -12,7 +12,7 @@ import type {
   ActorImpl,
   ActorRef,
   ActorRefFrom,
-  AnyActorBehavior,
+  AnyActorLogic,
   AnyState,
   AnyStateMachine,
   BaseActionObject,
@@ -92,7 +92,7 @@ export class State<
   public children: TActors['id'] extends string
     ? {
         [K in TActors['id']]: TActors extends { id: K }
-          ? ActorRefFrom<WithDefault<TActors['logic'], AnyActorBehavior>>
+          ? ActorRefFrom<WithDefault<TActors['logic'], AnyActorLogic>>
           : never;
       }
     : Record<string, ActorRef<any>>;

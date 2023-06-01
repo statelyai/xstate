@@ -1,7 +1,7 @@
 import {
   InvokeCallback,
   Receiver,
-  ActorBehavior,
+  ActorLogic,
   EventObject,
   AnyEventObject,
   ActorSystem
@@ -19,7 +19,7 @@ export interface CallbackInternalState {
 
 export function fromCallback<TEvent extends EventObject, TInput>(
   invokeCallback: InvokeCallback<AnyEventObject, AnyEventObject, TInput>
-): ActorBehavior<
+): ActorLogic<
   TEvent,
   undefined,
   CallbackInternalState,
@@ -27,7 +27,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
   ActorSystem<any>,
   TInput
 > {
-  const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
+  const logic: ActorLogic<TEvent, undefined, CallbackInternalState> = {
     config: invokeCallback,
     start: (_state, { self }) => {
       self.send({ type: startSignalType } as TEvent);
@@ -97,5 +97,5 @@ export function fromCallback<TEvent extends EventObject, TInput>(
     getPersistedState: ({ input }) => input
   };
 
-  return behavior;
+  return logic;
 }

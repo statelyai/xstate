@@ -10,12 +10,12 @@ import {
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
-  ActorBehavior,
+  ActorLogic,
   ActorContext,
   ActorSystem,
-  AnyActorBehavior,
+  AnyActorLogic,
   AnyStateMachine,
-  EventFromBehavior,
+  EventFromLogic,
   InterpreterFrom,
   PersistedStateFrom,
   RaiseActionObject,
@@ -33,8 +33,8 @@ import {
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
-export type SnapshotListener<TBehavior extends AnyActorBehavior> = (
-  state: SnapshotFrom<TBehavior>
+export type SnapshotListener<TLogic extends AnyActorLogic> = (
+  state: SnapshotFrom<TLogic>
 ) => void;
 
 export type EventListener<TEvent extends EventObject = EventObject> = (
@@ -69,25 +69,25 @@ const defaultOptions = {
   devTools: false
 };
 
-type InternalStateFrom<TBehavior extends ActorBehavior<any, any, any>> =
-  TBehavior extends ActorBehavior<infer _, infer __, infer TInternalState>
+type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
+  TLogic extends ActorLogic<infer _, infer __, infer TInternalState>
     ? TInternalState
     : never;
 
 export class Interpreter<
-  TBehavior extends AnyActorBehavior,
-  TEvent extends EventObject = EventFromBehavior<TBehavior>
-> implements ActorRef<TEvent, SnapshotFrom<TBehavior>>
+  TLogic extends AnyActorLogic,
+  TEvent extends EventObject = EventFromLogic<TLogic>
+> implements ActorRef<TEvent, SnapshotFrom<TLogic>>
 {
   /**
-   * The current state of the interpreted behavior.
+   * The current state of the interpreted logic.
    */
-  private _state!: InternalStateFrom<TBehavior>;
+  private _state!: InternalStateFrom<TLogic>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: Readonly<InterpreterOptions<TBehavior>>;
+  public options: Readonly<InterpreterOptions<TLogic>>;
 
   /**
    * The unique identifier for this actor relative to its parent.
@@ -98,7 +98,7 @@ export class Interpreter<
 
   private delayedEventsMap: Record<string, unknown> = {};
 
-  private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
+  private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -109,7 +109,7 @@ export class Interpreter<
   public _parent?: ActorRef<any>;
   public ref: ActorRef<TEvent>;
   // TODO: add typings for system
-  private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>, any>;
+  private _actorContext: ActorContext<TEvent, SnapshotFrom<TLogic>, any>;
 
   private _systemId: string | undefined;
 
@@ -124,15 +124,12 @@ export class Interpreter<
   public src?: string;
 
   /**
-   * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
+   * Creates a new Interpreter instance (i.e., service) for the given logic with the provided options, if any.
    *
-   * @param behavior The behavior to be interpreted
+   * @param logic The logic to be interpreted
    * @param options Interpreter options
    */
-  constructor(
-    public behavior: TBehavior,
-    options?: InterpreterOptions<TBehavior>
-  ) {
+  constructor(public logic: TLogic, options?: InterpreterOptions<TLogic>) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
@@ -183,16 +180,16 @@ export class Interpreter<
 
   private _initState() {
     this._state = this.options.state
-      ? this.behavior.restoreState
-        ? this.behavior.restoreState(this.options.state, this._actorContext)
+      ? this.logic.restoreState
+        ? this.logic.restoreState(this.options.state, this._actorContext)
         : this.options.state
-      : this.behavior.getInitialState(this._actorContext, this.options?.input);
+      : this.logic.getInitialState(this._actorContext, this.options?.input);
   }
 
   // array of functions to defer
   private _deferred: Array<(state: any) => void> = [];
 
-  private update(state: InternalStateFrom<TBehavior>): void {
+  private update(state: InternalStateFrom<TLogic>): void {
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
@@ -208,7 +205,7 @@ export class Interpreter<
       observer.next?.(snapshot);
     }
 
-    const status = this.behavior.getStatus?.(state);
+    const status = this.logic.getStatus?.(state);
 
     switch (status?.status) {
       case 'done':
@@ -225,16 +222,16 @@ export class Interpreter<
     }
   }
 
-  public subscribe(observer: Observer<SnapshotFrom<TBehavior>>): Subscription;
+  public subscribe(observer: Observer<SnapshotFrom<TLogic>>): Subscription;
   public subscribe(
-    nextListener?: (state: SnapshotFrom<TBehavior>) => void,
+    nextListener?: (state: SnapshotFrom<TLogic>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: SnapshotFrom<TBehavior>) => void)
-      | Observer<SnapshotFrom<TBehavior>>,
+      | ((state: SnapshotFrom<TLogic>) => void)
+      | Observer<SnapshotFrom<TLogic>>,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription {
@@ -273,8 +270,8 @@ export class Interpreter<
     }
     this.status = ActorStatus.Running;
 
-    if (this.behavior.start) {
-      this.behavior.start(this._state, this._actorContext);
+    if (this.logic.start) {
+      this.logic.start(this._state, this._actorContext);
     }
 
     // TODO: this notifies all subscribers but usually this is redundant
@@ -293,7 +290,7 @@ export class Interpreter<
 
   private _process(event: TEvent) {
     try {
-      const nextState = this.behavior.transition(
+      const nextState = this.logic.transition(
         this._state,
         event,
         this._actorContext
@@ -454,17 +451,17 @@ export class Interpreter<
     };
   }
 
-  public getPersistedState(): PersistedStateFrom<TBehavior> | undefined {
-    return this.behavior.getPersistedState?.(this._state);
+  public getPersistedState(): PersistedStateFrom<TLogic> | undefined {
+    return this.logic.getPersistedState?.(this._state);
   }
 
-  public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {
+  public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
     return this;
   }
 
-  public getSnapshot(): SnapshotFrom<TBehavior> {
-    return this.behavior.getSnapshot
-      ? this.behavior.getSnapshot(this._state)
+  public getSnapshot(): SnapshotFrom<TLogic> {
+    return this.logic.getSnapshot
+      ? this.logic.getSnapshot(this._state)
       : this._state;
   }
 }
@@ -483,15 +480,12 @@ export function interpret<TMachine extends AnyStateMachine>(
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: InterpreterOptions<TMachine>
 ): InterpreterFrom<TMachine>;
-export function interpret<TBehavior extends AnyActorBehavior>(
-  behavior: TBehavior,
-  options?: InterpreterOptions<TBehavior>
-): Interpreter<TBehavior>;
-export function interpret(
-  behavior: any,
-  options?: InterpreterOptions<any>
-): any {
-  const interpreter = new Interpreter(behavior, options);
+export function interpret<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options?: InterpreterOptions<TLogic>
+): Interpreter<TLogic>;
+export function interpret(logic: any, options?: InterpreterOptions<any>): any {
+  const interpreter = new Interpreter(logic, options);
 
   return interpreter;
 }

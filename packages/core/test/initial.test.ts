@@ -1,55 +1,160 @@
 import { interpret, createMachine } from '../src/index.ts';
 
-const config = {
-  initial: 'a',
-  states: {
-    a: {
-      initial: 'b',
-      states: {
-        b: {
-          initial: 'c',
-          states: {
-            c: {}
-          }
-        }
-      }
-    },
-    leaf: {}
-  }
-};
-
-const deepMachine = createMachine(config);
-
-const parallelDeepMachine = createMachine({
-  type: 'parallel',
-  states: {
-    foo: config,
-    bar: config
-  }
-});
-
-const deepParallelMachine = createMachine({
-  initial: 'one',
-  states: {
-    one: parallelDeepMachine.config,
-    two: parallelDeepMachine.config
-  }
-});
-
 describe('Initial states', () => {
   it('should return the correct initial state', () => {
-    expect(deepMachine.initialState.value).toEqual({ a: { b: 'c' } });
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          initial: 'b',
+          states: {
+            b: {
+              initial: 'c',
+              states: {
+                c: {}
+              }
+            }
+          }
+        },
+        leaf: {}
+      }
+    });
+    expect(interpret(machine).getSnapshot().value).toEqual({
+      a: { b: 'c' }
+    });
   });
 
   it('should return the correct initial state (parallel)', () => {
-    expect(parallelDeepMachine.initialState.value).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        foo: {
+          initial: 'a',
+          states: {
+            a: {
+              initial: 'b',
+              states: {
+                b: {
+                  initial: 'c',
+                  states: {
+                    c: {}
+                  }
+                }
+              }
+            },
+            leaf: {}
+          }
+        },
+        bar: {
+          initial: 'a',
+          states: {
+            a: {
+              initial: 'b',
+              states: {
+                b: {
+                  initial: 'c',
+                  states: {
+                    c: {}
+                  }
+                }
+              }
+            },
+            leaf: {}
+          }
+        }
+      }
+    });
+    expect(interpret(machine).getSnapshot().value).toEqual({
       foo: { a: { b: 'c' } },
       bar: { a: { b: 'c' } }
     });
   });
 
   it('should return the correct initial state (deep parallel)', () => {
-    expect(deepParallelMachine.initialState.value).toEqual({
+    const machine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          type: 'parallel',
+          states: {
+            foo: {
+              initial: 'a',
+              states: {
+                a: {
+                  initial: 'b',
+                  states: {
+                    b: {
+                      initial: 'c',
+                      states: {
+                        c: {}
+                      }
+                    }
+                  }
+                },
+                leaf: {}
+              }
+            },
+            bar: {
+              initial: 'a',
+              states: {
+                a: {
+                  initial: 'b',
+                  states: {
+                    b: {
+                      initial: 'c',
+                      states: {
+                        c: {}
+                      }
+                    }
+                  }
+                },
+                leaf: {}
+              }
+            }
+          }
+        },
+        two: {
+          type: 'parallel',
+          states: {
+            foo: {
+              initial: 'a',
+              states: {
+                a: {
+                  initial: 'b',
+                  states: {
+                    b: {
+                      initial: 'c',
+                      states: {
+                        c: {}
+                      }
+                    }
+                  }
+                },
+                leaf: {}
+              }
+            },
+            bar: {
+              initial: 'a',
+              states: {
+                a: {
+                  initial: 'b',
+                  states: {
+                    b: {
+                      initial: 'c',
+                      states: {
+                        c: {}
+                      }
+                    }
+                  }
+                },
+                leaf: {}
+              }
+            }
+          }
+        }
+      }
+    });
+    expect(interpret(machine).getSnapshot().value).toEqual({
       one: {
         foo: { a: { b: 'c' } },
         bar: { a: { b: 'c' } }
@@ -72,8 +177,8 @@ describe('Initial states', () => {
         }
       }
     });
-    const service = interpret(machine).start();
-    expect(service.getSnapshot().value).toEqual({ foo: 'deep' });
+    const actorRef = interpret(machine).start();
+    expect(actorRef.getSnapshot().value).toEqual({ foo: 'deep' });
   });
 
   it('should resolve multiple deep initial states', () => {

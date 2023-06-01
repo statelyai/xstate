@@ -25,7 +25,7 @@ import type {
 } from './typegenTypes.ts';
 import type {
   ActorContext,
-  ActorBehavior,
+  ActorLogic,
   EventObject,
   InternalMachineImplementations,
   InvokeActionObject,
@@ -72,7 +72,7 @@ export class StateMachine<
     TActors
   >
 > implements
-    ActorBehavior<
+    ActorLogic<
       TEvent,
       State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>,
       State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>,
@@ -235,26 +235,22 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state:
-      | State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>
-      | StateValue = this.initialState,
+    state: State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>,
     event: TEvent,
-    actorCtx?: ActorContext<
+    actorCtx: ActorContext<
       TEvent,
       State<TContext, TEvent, TAction, TActors, any>
     >
   ): State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta> {
-    const currentState =
-      state instanceof State ? state : this.resolveStateValue(state);
     // TODO: handle error events in a better way
     if (
       isErrorEvent(event) &&
-      !currentState.nextEvents.some((nextEvent) => nextEvent === event.type)
+      !state.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
       throw event.data;
     }
 
-    const { state: nextState } = macrostep(currentState, event, actorCtx);
+    const { state: nextState } = macrostep(state, event, actorCtx);
 
     return nextState;
   }
@@ -267,10 +263,9 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta> = this
-      .initialState,
+    state: State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>,
     event: TEvent,
-    actorCtx?: AnyActorContext | undefined
+    actorCtx: AnyActorContext
   ): Array<State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>> {
     return macrostep(state, event, actorCtx).microstates;
   }
@@ -287,7 +282,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: AnyActorContext | undefined,
+    actorCtx: AnyActorContext,
     input: any
   ): State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions(actorCtx, input);
@@ -322,24 +317,10 @@ export class StateMachine<
   }
 
   /**
-   * The initial State instance, which includes all actions to be executed from
-   * entering the initial state.
-   */
-  public get initialState(): State<
-    TContext,
-    TEvent,
-    TAction,
-    TActors,
-    TResolvedTypesMeta
-  > {
-    return this.getInitialState();
-  }
-
-  /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx?: ActorContext<
+    actorCtx: ActorContext<
       TEvent,
       State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>
     >,
@@ -465,17 +446,17 @@ export class StateMachine<
       const childState = actorData.state;
       const src = actorData.src;
 
-      const behavior = src
+      const logic = src
         ? resolveReferencedActor(this.options.actors[src])?.src
         : undefined;
 
-      if (!behavior) {
+      if (!logic) {
         return;
       }
 
-      const actorState = behavior.restoreState?.(childState, _actorCtx);
+      const actorState = logic.restoreState?.(childState, _actorCtx);
 
-      const actorRef = interpret(behavior, {
+      const actorRef = interpret(logic, {
         id: actorId,
         state: actorState
       });

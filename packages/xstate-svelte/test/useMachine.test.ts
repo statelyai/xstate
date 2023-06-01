@@ -2,11 +2,20 @@ import { render, fireEvent } from '@testing-library/svelte';
 import UseMachine from './UseMachine.svelte';
 import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcription.svelte';
 import { fetchMachine } from './fetchMachine';
-import { doneInvoke } from 'xstate';
+import { doneInvoke, fromCallback, interpret } from 'xstate';
 
-const persistedFetchState = fetchMachine.getPersistedState(
-  fetchMachine.transition('loading', doneInvoke('fetchData', 'persisted data'))
-);
+const actorRef = interpret(
+  fetchMachine.provide({
+    actors: {
+      fetchData: fromCallback((sendBack) => {
+        sendBack(doneInvoke('fetchData', 'persisted data'));
+      })
+    }
+  })
+).start();
+actorRef.send({ type: 'FETCH' });
+
+const persistedFetchState = actorRef.getPersistedState();
 
 const persistedFetchStateConfig = JSON.parse(
   JSON.stringify(persistedFetchState)
