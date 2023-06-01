@@ -8,6 +8,7 @@ import {
   InterpreterOptions,
   Observer,
   StateFrom,
+  TODO,
   toObserver
 } from 'xstate';
 import { MaybeLazy } from './types.ts';
@@ -21,6 +22,8 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta'],
             true
           >,
@@ -33,6 +36,8 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta']
           >,
         observerOrListener?:

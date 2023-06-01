@@ -7,6 +7,7 @@ import type {
   InterpreterOptions,
   MachineContext,
   State,
+  TODO,
   TypegenDisabled
 } from 'xstate';
 
@@ -34,6 +35,8 @@ type InternalMachineOpts<
 > = InternalMachineImplementations<
   TMachine['__TContext'],
   TMachine['__TEvent'],
+  TODO,
+  TODO,
   TMachine['__TResolvedTypesMeta'],
   RequireMissing
 >;

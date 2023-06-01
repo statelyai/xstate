@@ -7,7 +7,8 @@ import {
   interpret,
   InterpreterFrom,
   InterpreterOptions,
-  StateFrom
+  StateFrom,
+  TODO
 } from 'xstate';
 
 type Prop<T, K> = K extends keyof T ? T[K] : never;
@@ -21,6 +22,8 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta'],
             true
           >
@@ -30,6 +33,8 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta']
           >
       ];

@@ -1,4 +1,4 @@
-import { ActorLogic, ActorSystem } from '../types';
+import { ActorLogic, ActorRefFrom, ActorSystem } from '../types';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T> {
@@ -25,6 +25,8 @@ export type PromiseActorLogic<T, TInput = any> = ActorLogic<
   ActorSystem<any>,
   TInput
 >;
+
+export type PromiseActorRef<T> = ActorRefFrom<PromiseActorLogic<T>>;
 
 export function fromPromise<T, TInput>(
   // TODO: add types

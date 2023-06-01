@@ -11,14 +11,13 @@ import {
   cancel,
   raise,
   stop,
-  log,
-  ActorLogic
+  log
 } from '../src/index.ts';
 import { State } from '../src/State';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
-import { fromPromise } from '../src/actors/promise';
+import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
 
 const lightMachine = createMachine({
@@ -69,7 +68,7 @@ describe('interpreter', () => {
       const machine = createMachine({
         initial: 'idle',
         context: {
-          actor: undefined! as ActorRefFrom<ReturnType<typeof fromPromise>>
+          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown>>
         },
         states: {
           idle: {
@@ -1530,7 +1529,7 @@ describe('interpreter', () => {
           types: {} as {
             actors: {
               src: 'num';
-              logic: ActorLogic<any, number | undefined>;
+              logic: PromiseActorLogic<number>;
               output: number;
             };
           },

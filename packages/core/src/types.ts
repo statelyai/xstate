@@ -134,22 +134,14 @@ export type InputFrom<T extends AnyActorLogic> = T extends ActorLogic<
 // TODO: do not accept machines without all implementations
 // we should also accept a raw machine as actor logic here
 // or just make machine actor logic
-export type Spawner = <T extends ActorLogic<any, any> | string>( // TODO: read string from machine logic keys
+export type Spawner = <T extends AnyActorLogic | string>( // TODO: read string from machine logic keys
   logic: T,
   options?: Partial<{
     id: string;
     systemId?: string;
     input: T extends AnyActorLogic ? InputFrom<T> : any;
   }>
-) => T extends ActorLogic<
-  infer TActorEvent,
-  infer TActorEmitted,
-  infer _,
-  infer __,
-  infer ___
->
-  ? ActorRef<TActorEvent, TActorEmitted>
-  : ActorRef<any, any>; // TODO: narrow this to logic from machine
+) => ActorRefFrom<T>;
 
 export interface AssignMeta<
   TExpressionEvent extends EventObject,
@@ -1783,7 +1775,15 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     : R extends Promise<infer U>
     ? ActorRef<{ type: string }, U | undefined>
-    : R extends ActorLogic<infer TEvent, infer TSnapshot>
+    : R extends ActorLogic<
+        infer TEvent,
+        infer TSnapshot,
+        infer _,
+        infer __,
+        infer ___,
+        infer ____,
+        infer _____
+      >
     ? ActorRef<TEvent, TSnapshot>
     : never
   : never;
