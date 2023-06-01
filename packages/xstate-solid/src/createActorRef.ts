@@ -4,16 +4,16 @@ import type { RestParams } from './types.ts';
 import { onCleanup } from 'solid-js';
 import { isServer } from 'solid-js/web';
 
-export function createActorRef<TBehavior extends AnyActorLogic>(
-  behavior: TBehavior,
-  ...[options = {}]: RestParams<TBehavior>
-): ActorRefFrom<TBehavior> {
-  const actorRef = interpret(behavior, options);
+export function createActorRef<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  ...[options = {}]: RestParams<TLogic>
+): ActorRefFrom<TLogic> {
+  const actorRef = interpret(actorLogic, options);
 
   if (!isServer) {
     actorRef.start();
     onCleanup(() => actorRef.stop());
   }
 
-  return actorRef as unknown as ActorRefFrom<TBehavior>;
+  return actorRef as unknown as ActorRefFrom<TLogic>;
 }

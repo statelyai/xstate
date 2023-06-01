@@ -13,46 +13,46 @@ import {
   toObserver
 } from 'xstate';
 
-export type UseActorRefRestParams<TBehavior extends AnyActorLogic> =
-  TBehavior extends AnyStateMachine
+export type UseActorRefRestParams<TLogic extends AnyActorLogic> =
+  TLogic extends AnyStateMachine
     ? AreAllImplementationsAssumedToBeProvided<
-        TBehavior['__TResolvedTypesMeta']
+        TLogic['__TResolvedTypesMeta']
       > extends false
       ? [
-          options: InterpreterOptions<TBehavior> &
+          options: InterpreterOptions<TLogic> &
             InternalMachineImplementations<
-              TBehavior['__TContext'],
-              TBehavior['__TEvent'],
-              TBehavior['__TResolvedTypesMeta'],
+              TLogic['__TContext'],
+              TLogic['__TEvent'],
+              TLogic['__TResolvedTypesMeta'],
               true
             >,
           observerOrListener?:
-            | Observer<StateFrom<TBehavior>>
-            | ((value: StateFrom<TBehavior>) => void)
+            | Observer<StateFrom<TLogic>>
+            | ((value: StateFrom<TLogic>) => void)
         ]
       : [
-          options?: InterpreterOptions<TBehavior> &
+          options?: InterpreterOptions<TLogic> &
             InternalMachineImplementations<
-              TBehavior['__TContext'],
-              TBehavior['__TEvent'],
-              TBehavior['__TResolvedTypesMeta']
+              TLogic['__TContext'],
+              TLogic['__TEvent'],
+              TLogic['__TResolvedTypesMeta']
             >,
           observerOrListener?:
-            | Observer<StateFrom<TBehavior>>
-            | ((value: StateFrom<TBehavior>) => void)
+            | Observer<StateFrom<TLogic>>
+            | ((value: StateFrom<TLogic>) => void)
         ]
     : [
-        options?: InterpreterOptions<TBehavior>,
+        options?: InterpreterOptions<TLogic>,
         observerOrListener?:
-          | Observer<SnapshotFrom<TBehavior>>
-          | ((value: SnapshotFrom<TBehavior>) => void)
+          | Observer<SnapshotFrom<TLogic>>
+          | ((value: SnapshotFrom<TLogic>) => void)
       ];
 
-export function useActorRef<TBehavior extends AnyActorLogic>(
-  behavior: TBehavior,
-  ...[options = {}, observerOrListener]: UseActorRefRestParams<TBehavior>
-): ActorRefFrom<TBehavior> {
-  const service = interpret(behavior, options).start();
+export function useActorRef<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  ...[options = {}, observerOrListener]: UseActorRefRestParams<TLogic>
+): ActorRefFrom<TLogic> {
+  const service = interpret(actorLogic, options).start();
 
   let sub;
   onMounted(() => {
@@ -66,5 +66,5 @@ export function useActorRef<TBehavior extends AnyActorLogic>(
     sub?.unsubscribe();
   });
 
-  return service as ActorRefFrom<TBehavior>;
+  return service as ActorRefFrom<TLogic>;
 }

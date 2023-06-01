@@ -11,21 +11,21 @@ import { deriveServiceState } from './deriveServiceState.ts';
 import { createImmutable } from './createImmutable.ts';
 import { unwrap } from 'solid-js/store';
 
-export function useActor<TBehavior extends AnyActorLogic>(
-  machine: TBehavior,
-  ...[options = {}]: RestParams<TBehavior>
+export function useActor<TLogic extends AnyActorLogic>(
+  machine: TLogic,
+  ...[options = {}]: RestParams<TLogic>
 ): [
-  CheckSnapshot<SnapshotFrom<TBehavior>>,
-  (event: EventFromLogic<TBehavior>) => void,
-  SimpleActorRefFrom<TBehavior>
+  CheckSnapshot<SnapshotFrom<TLogic>>,
+  (event: EventFromLogic<TLogic>) => void,
+  SimpleActorRefFrom<TLogic>
 ] {
   const actorRef = createActorRef(
     machine,
     options
-  ) as SimpleActorRefFrom<TBehavior>;
+  ) as SimpleActorRefFrom<TLogic>;
 
   const [snapshot, setSnapshot] = createImmutable(
-    deriveServiceState(actorRef.getSnapshot()) as SnapshotFrom<TBehavior>
+    deriveServiceState(actorRef.getSnapshot()) as SnapshotFrom<TLogic>
   );
 
   onMount(() => {

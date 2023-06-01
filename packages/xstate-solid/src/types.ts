@@ -37,17 +37,14 @@ type InternalMachineOpts<
   RequireMissing
 >;
 
-export type RestParams<TBehavior extends AnyActorLogic> =
-  TBehavior extends AnyStateMachine
+export type RestParams<TLogic extends AnyActorLogic> =
+  TLogic extends AnyStateMachine
     ? AreAllImplementationsAssumedToBeProvided<
-        TBehavior['__TResolvedTypesMeta']
+        TLogic['__TResolvedTypesMeta']
       > extends false
       ? [
-          options: InterpreterOptions<TBehavior> &
-            InternalMachineOpts<TBehavior, true>
+          options: InterpreterOptions<TLogic> &
+            InternalMachineOpts<TLogic, true>
         ]
-      : [
-          options?: InterpreterOptions<TBehavior> &
-            InternalMachineOpts<TBehavior>
-        ]
-    : [options?: InterpreterOptions<TBehavior>];
+      : [options?: InterpreterOptions<TLogic> & InternalMachineOpts<TLogic>]
+    : [options?: InterpreterOptions<TLogic>];

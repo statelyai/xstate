@@ -157,6 +157,6 @@ export type TestTransitionsConfigMap<
 };
 
 export type PathGenerator<TState, TEvent extends EventObject> = (
-  behavior: ActorLogic<TEvent, TState>,
+  actorLogic: ActorLogic<TEvent, TState>,
   options: TraversalOptions<TState, TEvent>
 ) => Array<StatePath<TState, TEvent>>;

@@ -37,22 +37,22 @@ type RestParams<TMachine extends AnyActorLogic> =
         ]
     : [options?: InterpreterOptions<TMachine>];
 
-export function useActor<TBehavior extends AnyActorLogic>(
-  behavior: TBehavior,
-  ...[options = {}]: RestParams<TBehavior>
+export function useActor<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  ...[options = {}]: RestParams<TLogic>
 ): {
-  snapshot: Readable<SnapshotFrom<TBehavior>>;
-  send: (event: EventFromLogic<TBehavior>) => void;
-  actorRef: ActorRefFrom<TBehavior>;
+  snapshot: Readable<SnapshotFrom<TLogic>>;
+  send: (event: EventFromLogic<TLogic>) => void;
+  actorRef: ActorRefFrom<TLogic>;
 } {
   if (process.env.NODE_ENV !== 'production') {
-    if (isActorRef(behavior)) {
+    if (isActorRef(actorLogic)) {
       throw new Error(
         `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
       );
     }
   }
-  const actorRef = interpret(behavior, options).start();
+  const actorRef = interpret(actorLogic, options).start();
 
   onDestroy(() => actorRef.stop());
 
@@ -65,7 +65,7 @@ export function useActor<TBehavior extends AnyActorLogic>(
   return {
     snapshot,
     send: actorRef.send,
-    actorRef: actorRef as ActorRefFrom<TBehavior>
+    actorRef: actorRef as ActorRefFrom<TLogic>
   };
 }
 
