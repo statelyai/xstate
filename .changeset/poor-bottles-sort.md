@@ -1,6 +1,5 @@
 ---
 'xstate': major
-'@xstate/fsm': major
 '@xstate/react': major
 '@xstate/vue': major
 ---
