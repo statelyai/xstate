@@ -16,7 +16,7 @@ import {
   fromTransition
 } from '../src/actors/index.ts';
 import {
-  ActorBehavior,
+  ActorLogic,
   ActorContext,
   EventObject,
   SpecialTargets,
@@ -1162,7 +1162,7 @@ describe('invoke', () => {
         });
       });
 
-      it('should be able to reuse the same promise behavior multiple times and create unique promise for each created actor', (done) => {
+      it('should be able to reuse the same promise logic multiple times and create unique promise for each created actor', (done) => {
         const machine = createMachine<{
           result1: number | null;
           result2: number | null;
@@ -2199,9 +2199,9 @@ describe('invoke', () => {
     });
   });
 
-  describe('with behaviors', () => {
-    it('should work with a behavior', (done) => {
-      const countBehavior: ActorBehavior<EventObject, number> = {
+  describe('with logic', () => {
+    it('should work with actor logic', (done) => {
+      const countLogic: ActorLogic<EventObject, number> = {
         transition: (count, event) => {
           if (event.type === 'INC') {
             return count + 1;
@@ -2216,7 +2216,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: countBehavior
+          src: countLogic
         },
         on: {
           INC: {
@@ -2237,8 +2237,8 @@ describe('invoke', () => {
       countService.send({ type: 'INC' });
     });
 
-    it('behaviors should have reference to the parent', (done) => {
-      const pongBehavior: ActorBehavior<EventObject, undefined> = {
+    it('logic should have reference to the parent', (done) => {
+      const pongLogic: ActorLogic<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
@@ -2256,7 +2256,7 @@ describe('invoke', () => {
             entry: sendTo('ponger', { type: 'PING' }),
             invoke: {
               id: 'ponger',
-              src: pongBehavior
+              src: pongLogic
             },
             on: {
               PONG: 'success'

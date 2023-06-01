@@ -16,11 +16,11 @@ const reducer = (state: number, event: { type: 'INC' }): number => {
   return state;
 };
 
-const behavior = fromTransition(reducer, 0);
+const logic = fromTransition(reducer, 0);
 
 export default defineComponent({
   setup() {
-    const actorRef = useSpawn(behavior);
+    const actorRef = useSpawn(logic);
     const { state: count, send } = useActor(actorRef);
 
     return { count, send };

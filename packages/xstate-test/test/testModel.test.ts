@@ -2,7 +2,7 @@ import { TestModel } from '../src/index.ts';
 import { testUtils } from './testUtils';
 
 describe('custom test models', () => {
-  it('tests any behavior', async () => {
+  it('tests any logic', async () => {
     const model = new TestModel(
       {
         getInitialState: () => 15,
@@ -29,7 +29,7 @@ describe('custom test models', () => {
     expect(paths.length).toBeGreaterThan(0);
   });
 
-  it('tests states for any behavior', async () => {
+  it('tests states for any logic', async () => {
     const testedStateKeys: string[] = [];
 
     const model = new TestModel(

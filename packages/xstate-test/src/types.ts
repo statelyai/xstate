@@ -13,7 +13,7 @@ import {
   ExtractEvent,
   MachineImplementations,
   MachineContext,
-  ActorBehavior
+  ActorLogic
 } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
@@ -157,6 +157,6 @@ export type TestTransitionsConfigMap<
 };
 
 export type PathGenerator<TState, TEvent extends EventObject> = (
-  behavior: ActorBehavior<TEvent, TState>,
+  behavior: ActorLogic<TEvent, TState>,
   options: TraversalOptions<TState, TEvent>
 ) => Array<StatePath<TState, TEvent>>;

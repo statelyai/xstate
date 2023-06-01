@@ -11,7 +11,7 @@ import type {
   Step,
   TraversalOptions
 } from '@xstate/graph';
-import { EventObject, AnyState, ActorBehavior } from 'xstate';
+import { EventObject, AnyState, ActorLogic } from 'xstate';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createShortestPathsGen,
@@ -69,7 +69,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   constructor(
-    public behavior: ActorBehavior<TEvent, TState>,
+    public logic: ActorLogic<TEvent, TState>,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
     this.options = {
@@ -82,7 +82,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     pathGenerator: PathGenerator<TState, TEvent>,
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    const paths = pathGenerator(this.behavior, this.resolveOptions(options));
+    const paths = pathGenerator(this.logic, this.resolveOptions(options));
     return deduplicatePaths(paths).map(this.toTestPath);
   }
 
@@ -170,13 +170,13 @@ export class TestModel<TState, TEvent extends EventObject> {
     events: TEvent[],
     options?: TraversalOptions<TState, TEvent>
   ): Array<TestPath<TState, TEvent>> {
-    const paths = getPathsFromEvents(this.behavior, events, options);
+    const paths = getPathsFromEvents(this.logic, events, options);
 
     return paths.map(this.toTestPath);
   }
 
   public getAllStates(): TState[] {
-    const adj = getAdjacencyMap(this.behavior, this.options);
+    const adj = getAdjacencyMap(this.logic, this.options);
     return Object.values(adj).map((x) => x.state);
   }
 
@@ -189,7 +189,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     event: TEvent;
     nextState: TState;
   }> {
-    const adjMap = getAdjacencyMap(this.behavior, this.options);
+    const adjMap = getAdjacencyMap(this.logic, this.options);
     const adjList: Array<{
       state: TState;
       event: TEvent;

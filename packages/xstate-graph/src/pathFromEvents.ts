@@ -1,15 +1,10 @@
-import {
-  ActorBehavior,
-  ActorSystem,
-  AnyStateMachine,
-  EventObject
-} from 'xstate';
+import { ActorLogic, ActorSystem, AnyStateMachine, EventObject } from 'xstate';
 import { getAdjacencyMap } from './adjacency';
 import { SerializedState, StatePath, Steps, TraversalOptions } from './types';
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
-  createDefaultBehaviorOptions
+  createDefaultLogicOptions
 } from './graph';
 
 function isMachine(value: any): value is AnyStateMachine {
@@ -23,13 +18,7 @@ export function getPathsFromEvents<
   TPersisted = TInternalState,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  behavior: ActorBehavior<
-    TEvent,
-    TSnapshot,
-    TInternalState,
-    TPersisted,
-    TSystem
-  >,
+  logic: ActorLogic<TEvent, TSnapshot, TInternalState, TPersisted, TSystem>,
   events: TEvent[],
   options?: TraversalOptions<TInternalState, TEvent>
 ): Array<StatePath<TInternalState, TEvent>> {
@@ -38,18 +27,17 @@ export function getPathsFromEvents<
       events,
       ...options
     },
-    isMachine(behavior)
-      ? createDefaultMachineOptions(behavior)
-      : createDefaultBehaviorOptions(behavior)
+    isMachine(logic)
+      ? createDefaultMachineOptions(logic)
+      : createDefaultLogicOptions(logic)
   );
   const actorContext = undefined as any; // TODO: figure out the simulation API
   const fromState =
-    resolvedOptions.fromState ??
-    behavior.getInitialState(actorContext, undefined);
+    resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
 
   const { serializeState, serializeEvent } = resolvedOptions;
 
-  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
+  const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   const stateMap = new Map<SerializedState, TInternalState>();
   const steps: Steps<TInternalState, TEvent> = [];

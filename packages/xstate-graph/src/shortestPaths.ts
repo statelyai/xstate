@@ -3,7 +3,7 @@ import {
   AnyStateMachine,
   StateFrom,
   EventFrom,
-  ActorBehavior
+  ActorLogic
 } from 'xstate';
 import {
   SerializedEvent,
@@ -16,7 +16,7 @@ import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
 
 export function getShortestPaths<TState, TEvent extends EventObject>(
-  behavior: ActorBehavior<TEvent, TState>,
+  logic: ActorLogic<TEvent, TState>,
   options?: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
@@ -25,11 +25,11 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   ) => SerializedState;
   const fromState =
     resolvedOptions.fromState ??
-    behavior.getInitialState(
+    logic.getInitialState(
       undefined as any, // TODO: figure out the simulation API
       undefined
     );
-  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
+  const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event
   const weightMap = new Map<
