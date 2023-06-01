@@ -1,5 +1,5 @@
-import { createMachine } from '../../src/index';
-import { testAll } from '../utils';
+import { createMachine, interpret } from '../../src/index.ts';
+import { testAll } from '../utils.ts';
 
 describe('Example 6.8', () => {
   const machine = createMachine({
@@ -68,10 +68,12 @@ describe('Example 6.8', () => {
   testAll(machine, expected);
 
   it('should respect the history mechanism', () => {
-    const stateC = machine.transition({ A: 'B' }, { type: '1' });
-    const stateF = machine.transition(stateC, { type: '6' });
-    const stateActual = machine.transition(stateF, { type: '5' });
+    const actorRef = interpret(machine).start();
 
-    expect(stateActual.value).toEqual({ A: 'C' });
+    actorRef.send({ type: '1' });
+    actorRef.send({ type: '6' });
+    actorRef.send({ type: '5' });
+
+    expect(actorRef.getSnapshot().value).toEqual({ A: 'C' });
   });
 });

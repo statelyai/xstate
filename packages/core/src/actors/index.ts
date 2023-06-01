@@ -31,7 +31,7 @@ export type LifecycleSignalType =
   | typeof stopSignalType;
 
 /**
- * An object that expresses the behavior of an actor in reaction to received events,
+ * An object that expresses the actor logic in reaction to received events,
  * as well as an optionally emitted stream of values.
  *
  * @template TReceived The received event
@@ -48,7 +48,7 @@ export function isActorRef(item: any): item is ActorRef<any> {
 
 // TODO: refactor the return type, this could be written in a better way
 // but it's best to avoid unneccessary breaking changes now
-// @deprecated use `interpret(behavior)` instead
+// @deprecated use `interpret(actorLogic)` instead
 export function toActorRef<
   TEvent extends EventObject,
   TSnapshot = any,
@@ -70,8 +70,8 @@ export function toActorRef<
   };
 }
 
-const emptyBehavior = fromTransition((_) => undefined, undefined);
+const emptyLogic = fromTransition((_) => undefined, undefined);
 
 export function createEmptyActor(): ActorRef<AnyEventObject, undefined> {
-  return interpret(emptyBehavior);
+  return interpret(emptyLogic);
 }

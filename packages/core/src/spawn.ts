@@ -59,7 +59,7 @@ export function createSpawner<
       }
 
       throw new Error(
-        `Behavior '${src}' not implemented in machine '${machine.id}'`
+        `Actor logic '${src}' not implemented in machine '${machine.id}'`
       );
     } else {
       // TODO: this should also receive `src`

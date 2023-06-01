@@ -1,26 +1,35 @@
-import { EventObject, AnyStateMachine, StateFrom, EventFrom } from 'xstate';
+import {
+  EventObject,
+  AnyStateMachine,
+  StateFrom,
+  EventFrom,
+  ActorLogic
+} from 'xstate';
 import {
   SerializedEvent,
   SerializedState,
-  SimpleBehavior,
   StatePath,
   StatePlanMap,
   TraversalOptions
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
-import { machineToBehavior } from './machineToBehavior';
 
 export function getShortestPaths<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
+  logic: ActorLogic<TEvent, TState>,
   options?: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
-  const fromState = resolvedOptions.fromState ?? behavior.initialState;
-  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
+  const fromState =
+    resolvedOptions.fromState ??
+    logic.getInitialState(
+      undefined as any, // TODO: figure out the simulation API
+      undefined
+    );
+  const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event
   const weightMap = new Map<
@@ -132,5 +141,5 @@ export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
     createDefaultMachineOptions(machine, options)
   );
 
-  return getShortestPaths(machineToBehavior(machine), resolvedOptions);
+  return getShortestPaths(machine as any, resolvedOptions);
 }
