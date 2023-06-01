@@ -1816,7 +1816,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type EventFromBehavior<TLogic extends ActorLogic<any, any>> =
+export type EventFromLogic<TLogic extends ActorLogic<any, any>> =
   TLogic extends ActorLogic<
     infer TEvent,
     infer _,
