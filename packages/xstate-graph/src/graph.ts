@@ -4,12 +4,12 @@ import {
   AnyState,
   StateFrom,
   EventFrom,
-  StateMachine
+  StateMachine,
+  AnyActorLogic
 } from 'xstate';
 import type {
   SerializedEvent,
   SerializedState,
-  SimpleBehavior,
   StatePath,
   DirectedGraphEdge,
   DirectedGraphNode,
@@ -93,16 +93,18 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         })
       ) as any[];
     },
-    fromState: machine.initialState as StateFrom<TMachine>,
+    fromState: machine.getInitialState(
+      undefined as any // TODO: figure out the simulation API
+    ) as StateFrom<TMachine>,
     ...otherOptions
   };
 
   return traversalOptions;
 }
 
-export function createDefaultBehaviorOptions<
-  TBehavior extends SimpleBehavior<any, any>
->(_behavior: TBehavior): TraversalOptions<any, any> {
+export function createDefaultLogicOptions<TLogic extends AnyActorLogic>(
+  __logic: TLogic
+): TraversalOptions<any, any> {
   return {
     serializeState: (state) => JSON.stringify(state),
     serializeEvent

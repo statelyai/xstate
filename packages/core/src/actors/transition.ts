@@ -1,18 +1,13 @@
-import {
-  ActorBehavior,
-  ActorContext,
-  ActorSystem,
-  EventObject
-} from '../types';
+import { ActorLogic, ActorContext, ActorSystem, EventObject } from '../types';
 
 /**
- * Returns an actor behavior from a transition function and its initial state.
+ * Returns actor logic from a transition function and its initial state.
  *
  * A transition function is a function that takes the current state and an event and returns the next state.
  *
  * @param transition The transition function that returns the next state given the current state and event.
  * @param initialState The initial state of the transition function.
- * @returns An actor behavior
+ * @returns Actor logic
  */
 export function fromTransition<
   TState,
@@ -25,8 +20,8 @@ export function fromTransition<
     actorContext: ActorContext<TEvent, TState, TSystem>
   ) => TState,
   initialState: TState | (({ input }: { input: any }) => TState) // TODO: type
-): ActorBehavior<TEvent, TState, TState> {
-  const behavior: ActorBehavior<TEvent, TState, TState, TState> = {
+): ActorLogic<TEvent, TState, TState> {
+  const logic: ActorLogic<TEvent, TState, TState, TState> = {
     config: transition,
     transition: (state, event, actorContext) => {
       return transition(state, event as TEvent, actorContext as any);
@@ -41,5 +36,5 @@ export function fromTransition<
     restoreState: (state) => state
   };
 
-  return behavior;
+  return logic;
 }

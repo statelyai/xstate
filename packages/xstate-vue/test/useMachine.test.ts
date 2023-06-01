@@ -1,7 +1,13 @@
 import { render, fireEvent, waitFor } from '@testing-library/vue';
 import UseMachine from './UseMachine.vue';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
-import { createMachine, assign, doneInvoke } from 'xstate';
+import {
+  createMachine,
+  assign,
+  doneInvoke,
+  interpret,
+  fromCallback
+} from 'xstate';
 
 describe('useMachine composition function', () => {
   const context = {
@@ -34,12 +40,18 @@ describe('useMachine composition function', () => {
     }
   });
 
-  const persistedFetchState = fetchMachine.getPersistedState(
-    fetchMachine.transition(
-      'loading',
-      doneInvoke('fetchData', 'persisted data')
-    )
-  );
+  const actorRef = interpret(
+    fetchMachine.provide({
+      actors: {
+        fetchData: fromCallback((sendBack) => {
+          sendBack(doneInvoke('fetchData', 'persisted data'));
+        })
+      }
+    })
+  ).start();
+  actorRef.send({ type: 'FETCH' });
+
+  const persistedFetchState = actorRef.getPersistedState();
 
   it('should work with a component ', async () => {
     const { getByText, getByTestId } = render(UseMachine as any);

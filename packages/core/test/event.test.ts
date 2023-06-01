@@ -61,70 +61,68 @@ describe('events', () => {
   });
 });
 
-interface SignInContext {
-  email: string;
-  password: string;
-}
-
-interface ChangePassword {
-  type: 'changePassword';
-  password: string;
-}
-
-const authMachine = createMachine<SignInContext, ChangePassword>(
-  {
-    context: { email: '', password: '' },
-    initial: 'passwordField',
-    states: {
-      passwordField: {
-        initial: 'hidden',
-        states: {
-          hidden: {
-            on: {
-              // We want to assign the new password but remain in the hidden
-              // state
-              changePassword: {
-                actions: 'assignPassword'
-              }
-            }
-          },
-          valid: {},
-          invalid: {}
-        },
-        on: {
-          changePassword: [
-            {
-              guard: ({ event }) => event.password.length >= 10,
-              target: '.invalid',
-              actions: ['assignPassword']
-            },
-            {
-              target: '.valid',
-              actions: ['assignPassword']
-            }
-          ]
-        }
-      }
-    }
-  },
-  {
-    actions: {
-      assignPassword: assign<SignInContext, ChangePassword>({
-        password: ({ event }) => event.password
-      })
-    }
-  }
-);
-
 describe('nested transitions', () => {
   it('only take the transition of the most inner matching event', () => {
-    const password = 'xstate123';
-    const state = authMachine.transition(authMachine.initialState, {
-      type: 'changePassword',
-      password
-    });
+    interface SignInContext {
+      email: string;
+      password: string;
+    }
 
-    expect(state.value).toEqual({ passwordField: 'hidden' });
-    expect(state.context).toEqual({ password, email: '' });
+    interface ChangePassword {
+      type: 'changePassword';
+      password: string;
+    }
+
+    const authMachine = createMachine<SignInContext, ChangePassword>(
+      {
+        context: { email: '', password: '' },
+        initial: 'passwordField',
+        states: {
+          passwordField: {
+            initial: 'hidden',
+            states: {
+              hidden: {
+                on: {
+                  // We want to assign the new password but remain in the hidden
+                  // state
+                  changePassword: {
+                    actions: 'assignPassword'
+                  }
+                }
+              },
+              valid: {},
+              invalid: {}
+            },
+            on: {
+              changePassword: [
+                {
+                  guard: ({ event }) => event.password.length >= 10,
+                  target: '.invalid',
+                  actions: ['assignPassword']
+                },
+                {
+                  target: '.valid',
+                  actions: ['assignPassword']
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          assignPassword: assign<SignInContext, ChangePassword>({
+            password: ({ event }) => event.password
+          })
+        }
+      }
+    );
+    const password = 'xstate123';
+    const actorRef = interpret(authMachine).start();
+    actorRef.send({ type: 'changePassword', password });
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.value).toEqual({ passwordField: 'hidden' });
+    expect(snapshot.context).toEqual({ password, email: '' });
   });
 });

@@ -1,9 +1,4 @@
-import {
-  Subscribable,
-  ActorBehavior,
-  EventObject,
-  Subscription
-} from '../types';
+import { Subscribable, ActorLogic, EventObject, Subscription } from '../types';
 import { stopSignalType } from '../actors';
 
 export interface ObservableInternalState<T> {
@@ -21,7 +16,7 @@ export type ObservablePersistedState<T> = Omit<
 // TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
 export function fromObservable<T, TEvent extends EventObject>(
   observableCreator: ({ input }: { input: any }) => Subscribable<T>
-): ActorBehavior<
+): ActorLogic<
   TEvent,
   T | undefined,
   ObservableInternalState<T>,
@@ -32,7 +27,7 @@ export function fromObservable<T, TEvent extends EventObject>(
   const completeEventType = '$$xstate.complete';
 
   // TODO: add event types
-  const behavior: ActorBehavior<
+  const logic: ActorLogic<
     any,
     T | undefined,
     ObservableInternalState<T>,
@@ -123,26 +118,31 @@ export function fromObservable<T, TEvent extends EventObject>(
     })
   };
 
-  return behavior;
+  return logic;
 }
 
 /**
- * Creates an event observable behavior that listens to an observable
+ * Creates event observable logic that listens to an observable
  * that delivers event objects.
  *
  *
  * @param lazyObservable A function that creates an observable
- * @returns An event observable behavior
+ * @returns Event observable logic
  */
 
 export function fromEventObservable<T extends EventObject>(
   lazyObservable: ({ input }: { input: any }) => Subscribable<T>
-): ActorBehavior<EventObject, T | undefined> {
+): ActorLogic<
+  EventObject,
+  T | undefined,
+  ObservableInternalState<T>,
+  ObservablePersistedState<T>
+> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
   // TODO: event types
-  const behavior: ActorBehavior<
+  const logic: ActorLogic<
     any,
     T | undefined,
     ObservableInternalState<T>,
@@ -221,5 +221,5 @@ export function fromEventObservable<T extends EventObject>(
     })
   };
 
-  return behavior;
+  return logic;
 }

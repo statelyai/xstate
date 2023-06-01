@@ -1,10 +1,10 @@
 import isDevelopment from '#is-development';
-import { AnyActorBehavior, AnyState } from './index.ts';
+import { AnyActorLogic, AnyState } from './index.ts';
 import { errorExecution, errorPlatform } from './actionTypes.ts';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
-  ActorBehavior,
+  ActorLogic,
   AnyEventObject,
   EventObject,
   EventType,
@@ -275,7 +275,7 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   return false;
 }
 
-export function isBehavior(value: any): value is ActorBehavior<any, any> {
+export function isActorLogic(value: any): value is ActorLogic<any, any> {
   return (
     value !== null &&
     typeof value === 'object' &&
@@ -412,7 +412,7 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable: InvokeConfig<TContext, TEvent> | string | ActorBehavior<any, any>,
+  invocable: InvokeConfig<TContext, TEvent> | string | ActorLogic<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object') {
@@ -458,8 +458,8 @@ export function createInvokeId(stateNodeId: string, index: number): string {
 
 export function resolveReferencedActor(
   referenced:
-    | AnyActorBehavior
-    | { src: AnyActorBehavior; input: Mapper<any, any, any> | any }
+    | AnyActorLogic
+    | { src: AnyActorLogic; input: Mapper<any, any, any> | any }
     | undefined
 ) {
   return referenced

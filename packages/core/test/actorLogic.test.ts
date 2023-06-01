@@ -9,16 +9,16 @@ import {
 import { waitFor } from '../src/waitFor.ts';
 import { raise, sendTo } from '../src/actions.ts';
 
-describe('promise behavior (fromPromise)', () => {
+describe('promise logic (fromPromise)', () => {
   it('should interpret a promise', async () => {
-    const promiseBehavior = fromPromise(
+    const promiseLogic = fromPromise(
       () =>
         new Promise<string>((res) => {
           setTimeout(() => res('hello'), 10);
         })
     );
 
-    const actor = interpret(promiseBehavior).start();
+    const actor = interpret(promiseLogic).start();
 
     const snapshot = await waitFor(actor, (s) => s === 'hello');
 
@@ -74,12 +74,12 @@ describe('promise behavior (fromPromise)', () => {
 
   it('should not execute when reading initial state', async () => {
     let called = false;
-    const behavior = fromPromise(() => {
+    const logic = fromPromise(() => {
       called = true;
       return Promise.resolve(42);
     });
 
-    const actor = interpret(behavior);
+    const actor = interpret(logic);
 
     actor.getSnapshot();
 
@@ -87,20 +87,20 @@ describe('promise behavior (fromPromise)', () => {
   });
 
   it('should persist an unresolved promise', (done) => {
-    const promiseBehavior = fromPromise(
+    const promiseLogic = fromPromise(
       () =>
         new Promise<number>((res) => {
           setTimeout(() => res(42), 10);
         })
     );
 
-    const actor = interpret(promiseBehavior);
+    const actor = interpret(promiseLogic);
     actor.start();
 
     const resolvedPersistedState = actor.getPersistedState();
     actor.stop();
 
-    const restoredActor = interpret(promiseBehavior, {
+    const restoredActor = interpret(promiseLogic, {
       state: resolvedPersistedState
     }).start();
 
@@ -111,14 +111,14 @@ describe('promise behavior (fromPromise)', () => {
   });
 
   it('should persist a resolved promise', (done) => {
-    const promiseBehavior = fromPromise(
+    const promiseLogic = fromPromise(
       () =>
         new Promise<number>((res) => {
           res(42);
         })
     );
 
-    const actor = interpret(promiseBehavior);
+    const actor = interpret(promiseLogic);
     actor.start();
 
     setTimeout(() => {
@@ -130,7 +130,7 @@ describe('promise behavior (fromPromise)', () => {
         })
       );
 
-      const restoredActor = interpret(promiseBehavior, {
+      const restoredActor = interpret(promiseLogic, {
         state: resolvedPersistedState
       }).start();
       expect(restoredActor.getSnapshot()).toBe(42);
@@ -140,11 +140,11 @@ describe('promise behavior (fromPromise)', () => {
 
   it('should not invoke a resolved promise again', async () => {
     let createdPromises = 0;
-    const promiseBehavior = fromPromise(() => {
+    const promiseLogic = fromPromise(() => {
       createdPromises++;
       return Promise.resolve(createdPromises);
     });
-    const actor = interpret(promiseBehavior);
+    const actor = interpret(promiseLogic);
     actor.start();
 
     await new Promise((res) => setTimeout(res, 5));
@@ -157,7 +157,7 @@ describe('promise behavior (fromPromise)', () => {
     );
     expect(createdPromises).toBe(1);
 
-    const restoredActor = interpret(promiseBehavior, {
+    const restoredActor = interpret(promiseLogic, {
       state: resolvedPersistedState
     }).start();
 
@@ -167,11 +167,11 @@ describe('promise behavior (fromPromise)', () => {
 
   it('should not invoke a rejected promise again', async () => {
     let createdPromises = 0;
-    const promiseBehavior = fromPromise(() => {
+    const promiseLogic = fromPromise(() => {
       createdPromises++;
       return Promise.reject(createdPromises);
     });
-    const actor = interpret(promiseBehavior);
+    const actor = interpret(promiseLogic);
     actor.start();
 
     await new Promise((res) => setTimeout(res, 5));
@@ -184,7 +184,7 @@ describe('promise behavior (fromPromise)', () => {
     );
     expect(createdPromises).toBe(1);
 
-    const restoredActor = interpret(promiseBehavior, {
+    const restoredActor = interpret(promiseLogic, {
       state: rejectedPersistedState
     }).start();
 
@@ -193,9 +193,9 @@ describe('promise behavior (fromPromise)', () => {
   });
 });
 
-describe('transition function behavior (fromTransition)', () => {
+describe('transition function logic (fromTransition)', () => {
   it('should interpret a transition function', () => {
-    const transitionBehavior = fromTransition(
+    const transitionLogic = fromTransition(
       (state, event) => {
         if (event.type === 'toggle') {
           return {
@@ -212,7 +212,7 @@ describe('transition function behavior (fromTransition)', () => {
       { status: 'active' as 'inactive' | 'active' }
     );
 
-    const actor = interpret(transitionBehavior).start();
+    const actor = interpret(transitionLogic).start();
 
     expect(actor.getSnapshot().status).toBe('active');
 
@@ -222,7 +222,7 @@ describe('transition function behavior (fromTransition)', () => {
   });
 
   it('should persist a transition function', () => {
-    const behavior = fromTransition(
+    const logic = fromTransition(
       (state, event) => {
         if (event.type === 'activate') {
           return { status: 'active' as const };
@@ -233,7 +233,7 @@ describe('transition function behavior (fromTransition)', () => {
         status: 'inactive' as 'inactive' | 'active'
       }
     );
-    const actor = interpret(behavior).start();
+    const actor = interpret(logic).start();
     actor.send({ type: 'activate' });
     const persistedState = actor.getPersistedState();
 
@@ -241,7 +241,7 @@ describe('transition function behavior (fromTransition)', () => {
       status: 'active'
     });
 
-    const restoredActor = interpret(behavior, { state: persistedState });
+    const restoredActor = interpret(logic, { state: persistedState });
 
     restoredActor.start();
 
@@ -249,11 +249,11 @@ describe('transition function behavior (fromTransition)', () => {
   });
 });
 
-describe('observable behavior (fromObservable)', () => {
+describe('observable logic (fromObservable)', () => {
   it('should interpret an observable', async () => {
-    const observableBehavior = fromObservable(() => interval(10).pipe(take(4)));
+    const observableLogic = fromObservable(() => interval(10).pipe(take(4)));
 
-    const actor = interpret(observableBehavior).start();
+    const actor = interpret(observableLogic).start();
 
     const snapshot = await waitFor(actor, (s) => s === 3);
 
@@ -310,12 +310,12 @@ describe('observable behavior (fromObservable)', () => {
 
   it('should not execute when reading initial state', () => {
     let called = false;
-    const behavior = fromObservable(() => {
+    const logic = fromObservable(() => {
       called = true;
       return EMPTY;
     });
 
-    const actor = interpret(behavior);
+    const actor = interpret(logic);
 
     actor.getSnapshot();
 
@@ -323,7 +323,7 @@ describe('observable behavior (fromObservable)', () => {
   });
 });
 
-describe('machine behavior', () => {
+describe('machine logic', () => {
   it('should persist a machine', async () => {
     const childMachine = createMachine({
       context: {

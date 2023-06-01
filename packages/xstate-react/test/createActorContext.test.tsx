@@ -1,5 +1,5 @@
-import { createMachine, assign } from 'xstate';
-import { fireEvent, screen, render } from '@testing-library/react';
+import { createMachine, assign, fromPromise } from 'xstate';
+import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
 const originalConsoleError = console.error;
@@ -11,10 +11,10 @@ afterEach(() => {
 function checkConsoleErrorOutputForMissingProvider() {
   expect(console.error).toHaveBeenCalledTimes(3);
   expect((console.error as any).mock.calls[0][0].message.split('\n')[0]).toBe(
-    `Uncaught [Error: You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component.]`
+    `Uncaught [Error: You used a hook from \"ActorProvider\" but it's not inside a <ActorProvider> component.]`
   );
   expect((console.error as any).mock.calls[1][0].message.split('\n')[0]).toBe(
-    `Uncaught [Error: You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component.]`
+    `Uncaught [Error: You used a hook from \"ActorProvider\" but it's not inside a <ActorProvider> component.]`
   );
   expect((console.error as any).mock.calls[2][0].split('\n')[0]).toBe(
     `The above error occurred in the <App> component:`
@@ -225,7 +225,7 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeContext.Provider machine={otherMachine}>
+        <SomeContext.Provider logic={otherMachine}>
           <Component />
         </SomeContext.Provider>
       );
@@ -246,7 +246,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component."`
+      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
@@ -261,7 +261,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component."`
+      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
@@ -285,7 +285,7 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          machine={someMachine.provide({
+          logic={someMachine.provide({
             actions: {
               testAction: stubFn
             }
@@ -299,6 +299,32 @@ describe('createActorContext', () => {
     render(<App />);
 
     expect(stubFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('should work with other types of logic', async () => {
+    const PromiseContext = createActorContext(
+      fromPromise(() => Promise.resolve(42))
+    );
+
+    const Component = () => {
+      const value = PromiseContext.useSelector((data) => data);
+
+      return <div data-testid="value">{value}</div>;
+    };
+
+    const App = () => {
+      return (
+        <PromiseContext.Provider>
+          <Component />
+        </PromiseContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('value').textContent).toBe('42');
+    });
   });
 
   it('should expect a constant machine reference', () => {
@@ -329,7 +355,7 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          machine={someMachine.provide({
+          logic={someMachine.provide({
             actions: {
               testAction: stubFn
             }

@@ -631,7 +631,7 @@ describe('createActorContext', () => {
       ret = <Context.Provider options={{}}>{null}</Context.Provider>;
       ret = (
         <Context.Provider
-          machine={machine.provide({
+          logic={machine.provide({
             // @ts-expect-error
             actions: {}
           })}
@@ -641,7 +641,7 @@ describe('createActorContext', () => {
       );
       ret = (
         <Context.Provider
-          machine={machine.provide({
+          logic={machine.provide({
             actions: {
               myAction: () => {}
             },
@@ -691,7 +691,7 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          machine={machine.provide({
+          logic={machine.provide({
             actions: {
               fooAction: () => {}
             },
@@ -733,7 +733,7 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          machine={machine.provide({
+          logic={machine.provide({
             actions: {
               // it's important to use `event` here somehow to make this a possible source of information for inference
               fooAction: () => {}
@@ -773,7 +773,7 @@ describe('createActorContext', () => {
     function App() {
       return (
         <Context.Provider
-          machine={machine.provide({
+          logic={machine.provide({
             actions: {
               fooAction: assign(({ event }) => {
                 ((_accept: 'FOO') => {})(event.type);

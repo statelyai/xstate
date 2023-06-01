@@ -28,7 +28,7 @@ export const createReduxDevTools = (
             ...(options ? options.features : undefined)
           }
         },
-        service.behavior
+        service.logic
       );
 
       service.subscribe((state) => {
