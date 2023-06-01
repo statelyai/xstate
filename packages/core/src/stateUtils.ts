@@ -46,14 +46,12 @@ import {
   AnyEventObject,
   AnyHistoryValue,
   AnyState,
-  AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
   HistoryValue,
   InitialTransitionDefinition,
-  SendActionObject,
-  StateFromMachine
+  SendActionObject
 } from '.';
 import { stopSignalType } from './actors/index.ts';
 import { ActorStatus } from './interpreter.ts';
@@ -1031,7 +1029,7 @@ export function microstep<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
-  actorCtx: AnyActorContext | undefined,
+  actorCtx: AnyActorContext,
   event: TEvent
 ): State<TContext, TEvent, any> {
   const { machine } = currentState;
@@ -1120,7 +1118,7 @@ function microstepProcedure(
   currentState: AnyState,
   mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
-  actorCtx: AnyActorContext | undefined
+  actorCtx: AnyActorContext
 ): typeof currentState {
   const actions: BaseActionObject[] = [];
   const historyValue = {
@@ -1541,10 +1539,10 @@ export function resolveActionsAndContext<
   };
 }
 
-export function macrostep<TMachine extends AnyStateMachine>(
-  state: StateFromMachine<TMachine>,
-  event: TMachine['__TEvent'],
-  actorCtx: AnyActorContext | undefined
+export function macrostep(
+  state: AnyState,
+  event: EventObject,
+  actorCtx: AnyActorContext
 ): {
   state: typeof state;
   microstates: Array<typeof state>;
@@ -1554,7 +1552,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
   }
 
   let nextState = state;
-  const states: StateFromMachine<TMachine>[] = [];
+  const states: AnyState[] = [];
 
   // Handle stop event
   if (event.type === stopSignalType) {
@@ -1630,7 +1628,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 function stopStep(
   event: AnyEventObject,
   nextState: AnyState,
-  actorCtx: AnyActorContext | undefined
+  actorCtx: AnyActorContext
 ): AnyState {
   const actions: BaseActionObject[] = [];
 

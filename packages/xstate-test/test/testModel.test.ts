@@ -2,10 +2,10 @@ import { TestModel } from '../src/index.ts';
 import { testUtils } from './testUtils';
 
 describe('custom test models', () => {
-  it('tests any behavior', async () => {
+  it('tests any logic', async () => {
     const model = new TestModel(
       {
-        initialState: 15,
+        getInitialState: () => 15,
         transition: (value, event) => {
           if (event.type === 'even') {
             return value / 2;
@@ -29,12 +29,12 @@ describe('custom test models', () => {
     expect(paths.length).toBeGreaterThan(0);
   });
 
-  it('tests states for any behavior', async () => {
+  it('tests states for any logic', async () => {
     const testedStateKeys: string[] = [];
 
     const model = new TestModel(
       {
-        initialState: 15,
+        getInitialState: () => 15,
         transition: (value, event) => {
           if (event.type === 'even') {
             return value / 2;

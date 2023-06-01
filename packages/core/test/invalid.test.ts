@@ -1,57 +1,156 @@
-import { createMachine } from '../src/index';
-
-const machine = createMachine({
-  type: 'parallel',
-  states: {
-    A: {
-      initial: 'A1',
-      states: {
-        A1: {},
-        A2: {}
-      }
-    },
-    B: {
-      initial: 'B1',
-      states: {
-        B1: {},
-        B2: {}
-      }
-    }
-  }
-});
+import { createMachine } from '../src/index.ts';
 
 describe('invalid or resolved states', () => {
   it('should resolve a String state', () => {
-    expect(machine.transition('A', { type: 'E' }).value).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
+    });
+    expect(
+      machine.transition(
+        machine.resolveStateValue('A'),
+        { type: 'E' },
+        undefined as any // TODO: figure out the simulation API
+      ).value
+    ).toEqual({
       A: 'A1',
       B: 'B1'
     });
   });
 
   it('should resolve transitions from empty states', () => {
-    expect(machine.transition({ A: {}, B: {} }, { type: 'E' }).value).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
+    });
+    expect(
+      machine.transition(
+        machine.resolveStateValue({ A: {}, B: {} }),
+        { type: 'E' },
+        undefined as any // TODO: figure out the simulation API
+      ).value
+    ).toEqual({
       A: 'A1',
       B: 'B1'
     });
   });
 
   it('should allow transitioning from valid states', () => {
-    machine.transition({ A: 'A1', B: 'B1' }, { type: 'E' });
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
+    });
+    machine.transition(
+      machine.resolveStateValue({ A: 'A1', B: 'B1' }),
+      { type: 'E' },
+      undefined as any // TODO: figure out the simulation API
+    );
   });
 
   it('should reject transitioning from bad state configs', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
+    });
     expect(() =>
-      machine.transition({ A: 'A3', B: 'B3' }, { type: 'E' })
+      machine.transition(
+        machine.resolveStateValue({ A: 'A3', B: 'B3' }),
+        { type: 'E' },
+        undefined as any // TODO: figure out the simulation API
+      )
     ).toThrow();
   });
 
   it('should resolve transitioning from partially valid states', () => {
-    expect(machine.transition({ A: 'A1', B: {} }, { type: 'E' }).value).toEqual(
-      {
-        A: 'A1',
-        B: 'B1'
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
       }
-    );
+    });
+    expect(
+      machine.transition(
+        machine.resolveStateValue({ A: 'A1', B: {} }),
+        { type: 'E' },
+        undefined as any // TODO: figure out the simulation API
+      ).value
+    ).toEqual({
+      A: 'A1',
+      B: 'B1'
+    });
   });
 });
 

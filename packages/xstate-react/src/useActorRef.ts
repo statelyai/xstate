@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { useEffect, useState } from 'react';
 import {
-  AnyActorBehavior,
+  AnyActorLogic,
   AnyInterpreter,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
@@ -19,8 +19,8 @@ import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
 export function useIdleInterpreter(
-  machine: AnyActorBehavior,
-  options: Partial<InterpreterOptions<AnyActorBehavior>>
+  machine: AnyActorLogic,
+  options: Partial<InterpreterOptions<AnyActorLogic>>
 ): AnyInterpreter {
   if (isDevelopment) {
     const [initialMachine] = useState(machine);
@@ -38,7 +38,7 @@ export function useIdleInterpreter(
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
-    (actorRef.behavior as AnyStateMachine).options = (
+    (actorRef.logic as AnyStateMachine).options = (
       machine as AnyStateMachine
     ).options;
   });
@@ -46,45 +46,44 @@ export function useIdleInterpreter(
   return actorRef as any;
 }
 
-type RestParams<TBehavior extends AnyActorBehavior> =
-  TBehavior extends AnyStateMachine
-    ? AreAllImplementationsAssumedToBeProvided<
-        TBehavior['__TResolvedTypesMeta']
-      > extends false
-      ? [
-          options: InterpreterOptions<TBehavior> &
-            InternalMachineImplementations<
-              TBehavior['__TContext'],
-              TBehavior['__TEvent'],
-              TBehavior['__TResolvedTypesMeta'],
-              true
-            >,
-          observerOrListener?:
-            | Observer<StateFrom<TBehavior>>
-            | ((value: StateFrom<TBehavior>) => void)
-        ]
-      : [
-          options?: InterpreterOptions<TBehavior> &
-            InternalMachineImplementations<
-              TBehavior['__TContext'],
-              TBehavior['__TEvent'],
-              TBehavior['__TResolvedTypesMeta']
-            >,
-          observerOrListener?:
-            | Observer<StateFrom<TBehavior>>
-            | ((value: StateFrom<TBehavior>) => void)
-        ]
-    : [
-        options?: InterpreterOptions<TBehavior>,
+type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
+  ? AreAllImplementationsAssumedToBeProvided<
+      TLogic['__TResolvedTypesMeta']
+    > extends false
+    ? [
+        options: InterpreterOptions<TLogic> &
+          InternalMachineImplementations<
+            TLogic['__TContext'],
+            TLogic['__TEvent'],
+            TLogic['__TResolvedTypesMeta'],
+            true
+          >,
         observerOrListener?:
-          | Observer<SnapshotFrom<TBehavior>>
-          | ((value: SnapshotFrom<TBehavior>) => void)
-      ];
+          | Observer<StateFrom<TLogic>>
+          | ((value: StateFrom<TLogic>) => void)
+      ]
+    : [
+        options?: InterpreterOptions<TLogic> &
+          InternalMachineImplementations<
+            TLogic['__TContext'],
+            TLogic['__TEvent'],
+            TLogic['__TResolvedTypesMeta']
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TLogic>>
+          | ((value: StateFrom<TLogic>) => void)
+      ]
+  : [
+      options?: InterpreterOptions<TLogic>,
+      observerOrListener?:
+        | Observer<SnapshotFrom<TLogic>>
+        | ((value: SnapshotFrom<TLogic>) => void)
+    ];
 
-export function useActorRef<TBehavior extends AnyActorBehavior>(
-  machine: TBehavior,
-  ...[options = {}, observerOrListener]: RestParams<TBehavior>
-): ActorRefFrom<TBehavior> {
+export function useActorRef<TLogic extends AnyActorLogic>(
+  machine: TLogic,
+  ...[options = {}, observerOrListener]: RestParams<TLogic>
+): ActorRefFrom<TLogic> {
   const service = useIdleInterpreter(machine, options);
 
   useEffect(() => {

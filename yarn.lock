@@ -1892,10 +1892,10 @@
     "@nodelib/fs.scandir" "2.1.4"
     fastq "^1.6.0"
 
-"@preconstruct/cli@^2.6.4":
-  version "2.6.4"
-  resolved "https://registry.yarnpkg.com/@preconstruct/cli/-/cli-2.6.4.tgz#7a4693133335da5bc44fec28a2c1b901176098f3"
-  integrity sha512-ZGwUqz2dSK8UU75UfMm48+mIEgAzy6OpddgFLIMrMpRZQhQqbLcQ362F2RT9E4f6v0sVr5FQsGFKxPHiL4A4sw==
+"@preconstruct/cli@^2.7.0":
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/@preconstruct/cli/-/cli-2.7.0.tgz#78891a094871ebb401a2e8e42871bc208717cba7"
+  integrity sha512-reluhXnOCPYhltV9wZZe07v9Eir6+9HiwQtdsUgvmm6UndtDr1kRr2jtObnDtXTjt7LEpU4+TD43+3+Tu7Qebw==
   dependencies:
     "@babel/code-frame" "^7.5.5"
     "@babel/core" "^7.7.7"

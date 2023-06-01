@@ -3,7 +3,7 @@ import { useCallback, useEffect } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
   ActorRefFrom,
-  AnyActorBehavior,
+  AnyActorLogic,
   AnyState,
   InterpreterOptions,
   InterpreterStatus,
@@ -20,21 +20,17 @@ const isEqual = (prevState: AnyState, nextState: AnyState) => {
   return prevState === nextState || nextState.changed === false;
 };
 
-export function useActor<TBehavior extends AnyActorBehavior>(
-  behavior: TBehavior,
-  options: InterpreterOptions<TBehavior> = {}
-): [
-  SnapshotFrom<TBehavior>,
-  ActorRefFrom<TBehavior>['send'],
-  ActorRefFrom<TBehavior>
-] {
-  if (isDevelopment && isActorRef(behavior)) {
+export function useActor<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options: InterpreterOptions<TLogic> = {}
+): [SnapshotFrom<TLogic>, ActorRefFrom<TLogic>['send'], ActorRefFrom<TLogic>] {
+  if (isDevelopment && isActorRef(logic)) {
     throw new Error(
       `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
     );
   }
 
-  const actorRef = useIdleInterpreter(behavior, options as any);
+  const actorRef = useIdleInterpreter(logic, options as any);
 
   const getSnapshot = useCallback(() => {
     return actorRef.getSnapshot();

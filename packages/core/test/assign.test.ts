@@ -93,14 +93,17 @@ describe('assign', () => {
   it('applies the assignment to the external state (property assignment)', () => {
     const counterMachine = createCounterMachine();
 
-    const oneState = counterMachine.transition(counterMachine.initialState, {
+    const actorRef = interpret(counterMachine).start();
+    actorRef.send({
       type: 'DEC'
     });
+    const oneState = actorRef.getSnapshot();
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: -1, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, { type: 'DEC' });
+    actorRef.send({ type: 'DEC' });
+    const twoState = actorRef.getSnapshot();
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: -2, foo: 'bar' });
@@ -109,14 +112,17 @@ describe('assign', () => {
   it('applies the assignment to the external state', () => {
     const counterMachine = createCounterMachine();
 
-    const oneState = counterMachine.transition(counterMachine.initialState, {
+    const actorRef = interpret(counterMachine).start();
+    actorRef.send({
       type: 'INC'
     });
+    const oneState = actorRef.getSnapshot();
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 1, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, { type: 'INC' });
+    actorRef.send({ type: 'INC' });
+    const twoState = actorRef.getSnapshot();
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 2, foo: 'bar' });
@@ -124,55 +130,64 @@ describe('assign', () => {
 
   it('applies the assignment to multiple properties (property assignment)', () => {
     const counterMachine = createCounterMachine();
-    const nextState = counterMachine.transition(counterMachine.initialState, {
+    const actorRef = interpret(counterMachine).start();
+    actorRef.send({
       type: 'WIN_PROP'
     });
 
-    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties (static)', () => {
     const counterMachine = createCounterMachine();
-    const nextState = counterMachine.transition(counterMachine.initialState, {
+    const actorRef = interpret(counterMachine).start();
+    actorRef.send({
       type: 'WIN_STATIC'
     });
 
-    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties (static + prop assignment)', () => {
     const counterMachine = createCounterMachine();
-    const nextState = counterMachine.transition(counterMachine.initialState, {
+    const actorRef = interpret(counterMachine).start();
+    actorRef.send({
       type: 'WIN_MIX'
     });
 
-    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties', () => {
     const counterMachine = createCounterMachine();
-    const nextState = counterMachine.transition(counterMachine.initialState, {
+    const actorRef = interpret(counterMachine).start();
+    actorRef.send({
       type: 'WIN'
     });
 
-    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to the explicit external state (property assignment)', () => {
     const machine = createCounterMachine({ count: 50, foo: 'bar' });
-    const oneState = machine.transition(undefined, { type: 'DEC' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'DEC' });
+    const oneState = actorRef.getSnapshot();
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 49, foo: 'bar' });
 
-    const twoState = machine.transition(oneState, { type: 'DEC' });
+    actorRef.send({ type: 'DEC' });
+    const twoState = actorRef.getSnapshot();
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 48, foo: 'bar' });
 
     const machine2 = createCounterMachine({ count: 100, foo: 'bar' });
 
-    const threeState = machine2.transition(undefined, { type: 'DEC' });
+    const actorRef2 = interpret(machine2).start();
+    actorRef2.send({ type: 'DEC' });
+    const threeState = actorRef2.getSnapshot();
 
     expect(threeState.value).toEqual('counting');
     expect(threeState.context).toEqual({ count: 99, foo: 'bar' });
@@ -180,19 +195,24 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state', () => {
     const machine = createCounterMachine({ count: 50, foo: 'bar' });
-    const oneState = machine.transition(undefined, { type: 'INC' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'INC' });
+    const oneState = actorRef.getSnapshot();
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 51, foo: 'bar' });
 
-    const twoState = machine.transition(oneState, { type: 'INC' });
+    actorRef.send({ type: 'INC' });
+    const twoState = actorRef.getSnapshot();
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 52, foo: 'bar' });
 
     const machine2 = createCounterMachine({ count: 102, foo: 'bar' });
 
-    const threeState = machine2.transition(undefined, { type: 'INC' });
+    const actorRef2 = interpret(machine2).start();
+    actorRef2.send({ type: 'INC' });
+    const threeState = actorRef2.getSnapshot();
 
     expect(threeState.value).toEqual('counting');
     expect(threeState.context).toEqual({ count: 103, foo: 'bar' });
@@ -200,11 +220,12 @@ describe('assign', () => {
 
   it('should maintain state after unhandled event', () => {
     const counterMachine = createCounterMachine();
-    const { initialState } = counterMachine;
+    const actorRef = interpret(counterMachine).start();
 
-    const nextState = counterMachine.transition(initialState, {
+    actorRef.send({
       type: 'FAKE_EVENT'
     });
+    const nextState = actorRef.getSnapshot();
 
     expect(nextState.context).toBeDefined();
     expect(nextState.context).toEqual({ count: 0, foo: 'bar' });
@@ -212,11 +233,13 @@ describe('assign', () => {
 
   it('sets undefined properties', () => {
     const counterMachine = createCounterMachine();
-    const { initialState } = counterMachine;
+    const actorRef = interpret(counterMachine).start();
 
-    const nextState = counterMachine.transition(initialState, {
+    actorRef.send({
       type: 'SET_MAYBE'
     });
+
+    const nextState = actorRef.getSnapshot();
 
     expect(nextState.context.maybe).toBeDefined();
     expect(nextState.context).toEqual({
@@ -248,9 +271,10 @@ describe('assign', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, { type: 'INC', value: 30 });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'INC', value: 30 });
 
-    expect(nextState.context.count).toEqual(30);
+    expect(actorRef.getSnapshot().context.count).toEqual(30);
   });
 });
 

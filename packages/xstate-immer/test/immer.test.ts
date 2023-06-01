@@ -21,13 +21,14 @@ describe('@xstate/immer', () => {
       }
     });
 
-    const zeroState = countMachine.initialState;
-    const oneState = countMachine.transition(zeroState, { type: 'INC' });
-    const twoState = countMachine.transition(zeroState, { type: 'INC' });
+    const actorRef = interpret(countMachine).start();
+    expect(actorRef.getSnapshot().context).toEqual({ count: 0 });
 
-    expect(zeroState.context).toEqual({ count: 0 });
-    expect(oneState.context).toEqual({ count: 1 });
-    expect(twoState.context).toEqual({ count: 1 });
+    actorRef.send({ type: 'INC' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 1 });
+
+    actorRef.send({ type: 'INC' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 2 });
   });
 
   it('should perform multiple updates correctly', () => {
@@ -56,11 +57,11 @@ describe('@xstate/immer', () => {
       }
     );
 
-    const zeroState = countMachine.initialState;
-    const twoState = countMachine.transition(zeroState, { type: 'INC_TWICE' });
+    const actorRef = interpret(countMachine).start();
+    expect(actorRef.getSnapshot().context).toEqual({ count: 0 });
 
-    expect(zeroState.context).toEqual({ count: 0 });
-    expect(twoState.context).toEqual({ count: 2 });
+    actorRef.send({ type: 'INC_TWICE' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 2 });
   });
 
   it('should perform deep updates correctly', () => {
@@ -95,11 +96,11 @@ describe('@xstate/immer', () => {
       }
     );
 
-    const zeroState = countMachine.initialState;
-    const twoState = countMachine.transition(zeroState, { type: 'INC_TWICE' });
+    const actorRef = interpret(countMachine).start();
+    expect(actorRef.getSnapshot().context.foo.bar.baz).toEqual([1, 2, 3]);
 
-    expect(zeroState.context.foo.bar.baz).toEqual([1, 2, 3]);
-    expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 0, 0]);
+    actorRef.send({ type: 'INC_TWICE' });
+    expect(actorRef.getSnapshot().context.foo.bar.baz).toEqual([1, 2, 3, 0, 0]);
   });
 
   it('should create updates', () => {
@@ -133,12 +134,11 @@ describe('@xstate/immer', () => {
       }
     });
 
-    const zeroState = countMachine.initialState;
+    const actorRef = interpret(countMachine).start();
+    expect(actorRef.getSnapshot().context.foo.bar.baz).toEqual([1, 2, 3]);
 
-    const twoState = countMachine.transition(zeroState, bazUpdater.update(4));
-
-    expect(zeroState.context.foo.bar.baz).toEqual([1, 2, 3]);
-    expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 4]);
+    actorRef.send(bazUpdater.update(4));
+    expect(actorRef.getSnapshot().context.foo.bar.baz).toEqual([1, 2, 3, 4]);
   });
 
   it('should create updates (form example)', (done) => {

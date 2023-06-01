@@ -13,10 +13,17 @@ export function testMultiTransition(
   eventTypes: string
 ): AnyState {
   const computeNext = (state: AnyState | string, eventType: string) => {
-    if (typeof state === 'string' && state[0] === '{') {
-      state = JSON.parse(state);
+    if (typeof state === 'string') {
+      state =
+        state[0] === '{'
+          ? machine.resolveStateValue(JSON.parse(state))
+          : machine.resolveStateValue(state);
     }
-    const nextState = machine.transition(state, { type: eventType });
+    const nextState = machine.transition(
+      state,
+      { type: eventType },
+      undefined as any // TODO: figure out the simulation API
+    );
     return nextState;
   };
 
