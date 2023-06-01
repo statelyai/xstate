@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index';
+import { createMachine, interpret } from '../src/index.ts';
 
 describe('state meta data', () => {
   const pedestrianStates = {
@@ -73,7 +73,10 @@ describe('state meta data', () => {
   });
 
   it('states should aggregate meta data', () => {
-    const yellowState = lightMachine.transition('green', { type: 'TIMER' });
+    const actorRef = interpret(lightMachine).start();
+    actorRef.send({ type: 'TIMER' });
+    const yellowState = actorRef.getSnapshot();
+
     expect(yellowState.meta).toEqual({
       'light.yellow': {
         yellowData: 'yellow data'
@@ -84,7 +87,10 @@ describe('state meta data', () => {
   });
 
   it('states should aggregate meta data (deep)', () => {
-    expect(lightMachine.transition('yellow', { type: 'TIMER' }).meta).toEqual({
+    const actorRef = interpret(lightMachine).start();
+    actorRef.send({ type: 'TIMER' });
+    actorRef.send({ type: 'TIMER' });
+    expect(actorRef.getSnapshot().meta).toEqual({
       'light.red': {
         redData: {
           nested: {
@@ -150,9 +156,11 @@ describe('transition meta data', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.transitions.map((t) => t.meta)).toMatchInlineSnapshot(`
+    expect(actorRef.getSnapshot().transitions.map((t) => t.meta))
+      .toMatchInlineSnapshot(`
       [
         {
           "description": "Going from inactive to active",

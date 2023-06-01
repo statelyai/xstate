@@ -1,4 +1,4 @@
-import { createMachine } from '../src/index';
+import { createMachine, interpret } from '../src/index';
 
 describe('multiple', () => {
   const machine = createMachine({
@@ -136,63 +136,76 @@ describe('multiple', () => {
   });
 
   describe('transitions to parallel states', () => {
-    const stateSimple = machine.initialState;
-    const stateInitial = machine.transition(stateSimple, { type: 'INITIAL' });
-    const stateM = machine.transition(stateSimple, { type: 'DEEP_M' });
-
     it('should enter initial states of parallel states', () => {
-      expect(stateInitial.value).toEqual({
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'INITIAL' });
+      expect(actorRef.getSnapshot().value).toEqual({
         para: { A: 'B', K: 'L', P: 'Q' }
       });
     });
 
     it('should enter specific states in one region', () => {
-      expect(stateM.value).toEqual({ para: { A: 'B', K: 'M', P: 'Q' } });
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'DEEP_M' });
+      expect(actorRef.getSnapshot().value).toEqual({
+        para: { A: 'B', K: 'M', P: 'Q' }
+      });
     });
 
     it('should enter specific states in all regions', () => {
-      const stateCMR = machine.transition(stateSimple, { type: 'DEEP_CMR' });
-      expect(stateCMR.value).toEqual({ para: { A: 'C', K: 'M', P: 'R' } });
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'DEEP_CMR' });
+      expect(actorRef.getSnapshot().value).toEqual({
+        para: { A: 'C', K: 'M', P: 'R' }
+      });
     });
 
     it('should enter specific states in some regions', () => {
-      const stateMR = machine.transition(stateSimple, { type: 'DEEP_MR' });
-      expect(stateMR.value).toEqual({ para: { A: 'B', K: 'M', P: 'R' } });
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'DEEP_MR' });
+      expect(actorRef.getSnapshot().value).toEqual({
+        para: { A: 'B', K: 'M', P: 'R' }
+      });
     });
 
     it.skip('should reject two targets in the same region', () => {
-      expect(() =>
-        machine.transition(stateSimple, { type: 'BROKEN_SAME_REGION' })
-      ).toThrow();
+      const actorRef = interpret(machine).start();
+      expect(() => actorRef.send({ type: 'BROKEN_SAME_REGION' })).toThrow();
     });
 
     it.skip('should reject targets inside and outside a region', () => {
+      const actorRef = interpret(machine).start();
       expect(() =>
-        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS' })
+        actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS' })
       ).toThrow();
     });
 
     it.skip('should reject two targets in different regions', () => {
+      const actorRef = interpret(machine).start();
       expect(() =>
-        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS_2' })
+        actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS_2' })
       ).toThrow();
     });
 
     it.skip('should reject two targets in different regions at different levels', () => {
+      const actorRef = interpret(machine).start();
       expect(() =>
-        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS_3' })
+        actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS_3' })
       ).toThrow();
     });
 
     it.skip('should reject two deep targets in different regions at top level', () => {
+      // TODO: this test has the same body as the one before it, this doesn't look alright
+      const actorRef = interpret(machine).start();
       expect(() =>
-        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS_3' })
+        actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS_3' })
       ).toThrow();
     });
 
     it.skip('should reject two deep targets in different regions at different levels', () => {
+      const actorRef = interpret(machine).start();
       expect(() =>
-        machine.transition(stateSimple, { type: 'BROKEN_DIFFERENT_REGIONS_4' })
+        actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS_4' })
       ).toThrow();
     });
   });

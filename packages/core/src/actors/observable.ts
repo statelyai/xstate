@@ -137,7 +137,12 @@ export function fromObservable<T, TEvent extends EventObject>(
 
 export function fromEventObservable<T extends EventObject>(
   lazyObservable: ({ input }: { input: any }) => Subscribable<T>
-): ActorBehavior<EventObject, T | undefined> {
+): ActorBehavior<
+  EventObject,
+  T | undefined,
+  ObservableInternalState<T>,
+  ObservablePersistedState<T>
+> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 

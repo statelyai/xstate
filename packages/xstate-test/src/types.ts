@@ -1,9 +1,4 @@
-import {
-  SimpleBehavior,
-  StatePath,
-  Step,
-  TraversalOptions
-} from '@xstate/graph';
+import { StatePath, Step, TraversalOptions } from '@xstate/graph';
 import {
   BaseActionObject,
   EventObject,
@@ -17,7 +12,8 @@ import {
   TypegenDisabled,
   ExtractEvent,
   MachineImplementations,
-  MachineContext
+  MachineContext,
+  ActorBehavior
 } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
@@ -161,6 +157,6 @@ export type TestTransitionsConfigMap<
 };
 
 export type PathGenerator<TState, TEvent extends EventObject> = (
-  behavior: SimpleBehavior<TState, TEvent>,
+  behavior: ActorBehavior<TEvent, TState>,
   options: TraversalOptions<TState, TEvent>
 ) => Array<StatePath<TState, TEvent>>;

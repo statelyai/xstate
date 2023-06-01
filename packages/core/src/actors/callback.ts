@@ -18,7 +18,7 @@ export interface CallbackInternalState {
 
 export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
-): ActorBehavior<TEvent, undefined> {
+): ActorBehavior<TEvent, undefined, CallbackInternalState> {
   const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
     config: invokeCallback,
     start: (_state, { self }) => {

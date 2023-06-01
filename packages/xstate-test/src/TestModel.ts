@@ -7,12 +7,11 @@ import {
 import type {
   SerializedEvent,
   SerializedState,
-  SimpleBehavior,
   StatePath,
   Step,
   TraversalOptions
 } from '@xstate/graph';
-import { EventObject, AnyState } from 'xstate';
+import { EventObject, AnyState, ActorBehavior } from 'xstate';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createShortestPathsGen,
@@ -70,7 +69,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   constructor(
-    public behavior: SimpleBehavior<TState, TEvent>,
+    public behavior: ActorBehavior<TEvent, TState>,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
     this.options = {
