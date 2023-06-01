@@ -5,7 +5,7 @@ import {
   StateFrom,
   EventFrom,
   StateMachine,
-  AnyActorBehavior
+  AnyActorLogic
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -102,9 +102,9 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   return traversalOptions;
 }
 
-export function createDefaultBehaviorOptions<
-  TBehavior extends AnyActorBehavior
->(_behavior: TBehavior): TraversalOptions<any, any> {
+export function createDefaultLogicOptions<TLogic extends AnyActorLogic>(
+  _behavior: TLogic
+): TraversalOptions<any, any> {
   return {
     serializeState: (state) => JSON.stringify(state),
     serializeEvent

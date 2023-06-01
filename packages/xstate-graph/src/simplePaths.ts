@@ -3,7 +3,7 @@ import {
   AnyStateMachine,
   StateFrom,
   EventFrom,
-  ActorBehavior
+  ActorLogic
 } from 'xstate';
 import {
   SerializedEvent,
@@ -28,18 +28,17 @@ export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
 }
 
 export function getSimplePaths<TState, TEvent extends EventObject>(
-  behavior: ActorBehavior<TEvent, TState>,
+  logic: ActorLogic<TEvent, TState>,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
   const actorContext = undefined as any; // TODO: figure out the simulation API
   const fromState =
-    resolvedOptions.fromState ??
-    behavior.getInitialState(actorContext, undefined);
+    resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
-  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
+  const adjacency = getAdjacencyMap(logic, resolvedOptions);
   const stateMap = new Map<SerializedState, TState>();
   const visitCtx: VisitedContext<TState, TEvent> = {
     vertices: new Set(),
