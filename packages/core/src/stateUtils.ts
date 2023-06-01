@@ -1,7 +1,7 @@
+import isDevelopment from '#is-development';
 import {
   toStatePath,
   toArray,
-  warn,
   isArray,
   isFunction,
   isString,
@@ -37,7 +37,6 @@ import {
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
-import { IS_PRODUCTION } from './environment.ts';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.ts';
 import { evaluateGuard, toGuardDefinition } from './guards.ts';
 import type { StateNode } from './StateNode.ts';
@@ -47,14 +46,12 @@ import {
   AnyEventObject,
   AnyHistoryValue,
   AnyState,
-  AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
   HistoryValue,
   InitialTransitionDefinition,
-  SendActionObject,
-  StateFromMachine
+  SendActionObject
 } from '.';
 import { stopSignalType } from './actors/index.ts';
 import { ActorStatus } from './interpreter.ts';
@@ -249,9 +246,8 @@ export function getCandidates<TEvent extends EventObject>(
       return false;
     }
 
-    if (!IS_PRODUCTION) {
-      warn(
-        !/.*\*.+/.test(eventType),
+    if (isDevelopment && /.*\*.+/.test(eventType)) {
+      console.warn(
         `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${eventType}" event.`
       );
     }
@@ -270,9 +266,8 @@ export function getCandidates<TEvent extends EventObject>(
       if (partialEventToken === '*') {
         const isLastToken = tokenIndex === partialEventTokens.length - 1;
 
-        if (!IS_PRODUCTION) {
-          warn(
-            isLastToken,
+        if (isDevelopment && !isLastToken) {
+          console.warn(
             `Infix wildcards in transition events are not allowed. Check the "${eventType}" event.`
           );
         }
@@ -358,7 +353,7 @@ export function formatTransition<
   const target = resolveTarget(stateNode, normalizedTarget);
 
   // TODO: should this be part of a lint rule instead?
-  if (!IS_PRODUCTION && (transitionConfig as any).cond) {
+  if (isDevelopment && (transitionConfig as any).cond) {
     throw new Error(
       `State "${stateNode.id}" has declared \`cond\` for one of its transitions. This property has been renamed to \`guard\`. Please update your code.`
     );
@@ -1034,7 +1029,7 @@ export function microstep<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
-  actorCtx: AnyActorContext | undefined,
+  actorCtx: AnyActorContext,
   event: TEvent
 ): State<TContext, TEvent, any> {
   const { machine } = currentState;
@@ -1123,7 +1118,7 @@ function microstepProcedure(
   currentState: AnyState,
   mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
-  actorCtx: AnyActorContext | undefined
+  actorCtx: AnyActorContext
 ): typeof currentState {
   const actions: BaseActionObject[] = [];
   const historyValue = {
@@ -1544,20 +1539,20 @@ export function resolveActionsAndContext<
   };
 }
 
-export function macrostep<TMachine extends AnyStateMachine>(
-  state: StateFromMachine<TMachine>,
-  event: TMachine['__TEvent'],
-  actorCtx: AnyActorContext | undefined
+export function macrostep(
+  state: AnyState,
+  event: EventObject,
+  actorCtx: AnyActorContext
 ): {
   state: typeof state;
   microstates: Array<typeof state>;
 } {
-  if (!IS_PRODUCTION && event.type === WILDCARD) {
+  if (isDevelopment && event.type === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
 
   let nextState = state;
-  const states: StateFromMachine<TMachine>[] = [];
+  const states: AnyState[] = [];
 
   // Handle stop event
   if (event.type === stopSignalType) {
@@ -1633,7 +1628,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 function stopStep(
   event: AnyEventObject,
   nextState: AnyState,
-  actorCtx: AnyActorContext | undefined
+  actorCtx: AnyActorContext
 ): AnyState {
   const actions: BaseActionObject[] = [];
 

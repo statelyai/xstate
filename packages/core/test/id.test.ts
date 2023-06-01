@@ -1,5 +1,5 @@
 import { testAll } from './utils';
-import { createMachine } from '../src/index.ts';
+import { createMachine, interpret } from '../src/index.ts';
 
 const idMachine = createMachine({
   initial: 'A',
@@ -69,7 +69,7 @@ describe('State node IDs', () => {
   testAll(idMachine, expected);
 
   it('should work with ID + relative path', () => {
-    const brokenMachine = createMachine({
+    const machine = createMachine({
       initial: 'foo',
       on: {
         ACTION: '#bar.qux.quux'
@@ -96,8 +96,16 @@ describe('State node IDs', () => {
       }
     });
 
-    expect(brokenMachine.transition('foo', { type: 'ACTION' }).value).toEqual({
-      bar: { qux: 'quux' }
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({
+      type: 'ACTION'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      bar: {
+        qux: 'quux'
+      }
     });
   });
 });

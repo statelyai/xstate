@@ -19,11 +19,19 @@
   "module": "dist/xstate-svelte.esm.js",
   "exports": {
     "./fsm": {
+      "types": {
+        "import": "./fsm/dist/xstate-svelte-fsm.cjs.mjs",
+        "default": "./fsm/dist/xstate-svelte-fsm.cjs.js"
+      },
       "module": "./fsm/dist/xstate-svelte-fsm.esm.js",
       "import": "./fsm/dist/xstate-svelte-fsm.cjs.mjs",
       "default": "./fsm/dist/xstate-svelte-fsm.cjs.js"
     },
     ".": {
+      "types": {
+        "import": "./dist/xstate-svelte.cjs.mjs",
+        "default": "./dist/xstate-svelte.cjs.js"
+      },
       "module": "./dist/xstate-svelte.esm.js",
       "import": "./dist/xstate-svelte.cjs.mjs",
       "default": "./dist/xstate-svelte.cjs.js"
@@ -48,7 +56,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^3.0.0-beta.2",
     "svelte": "^3.55.1",
-    "xstate": "^5.0.0-beta.9"
+    "xstate": "^5.0.0-beta.13"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -61,13 +69,13 @@
   "devDependencies": {
     "@testing-library/svelte": "^3.2.2",
     "@tsconfig/svelte": "^1.0.8",
-    "@types/jest": "^29.2.5",
+    "@types/jest": "^29.5.1",
     "@xstate/fsm": "3.0.0-beta.2",
     "svelte": "^3.55.1",
     "svelte-check": "^3.2.0",
     "svelte-jester": "^2.3.2",
     "svelte-preprocess": "^5.0.0",
-    "xstate": "5.0.0-beta.9"
+    "xstate": "5.0.0-beta.13"
   },
   "preconstruct": {
     "entrypoints": [

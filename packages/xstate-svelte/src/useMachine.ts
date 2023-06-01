@@ -2,10 +2,10 @@ import { onDestroy } from 'svelte';
 import { Readable, readable } from 'svelte/store';
 import {
   ActorRefFrom,
-  AnyActorBehavior,
+  AnyActorLogic,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  EventFromBehavior,
+  EventFromLogic,
   InternalMachineImplementations,
   interpret,
   InterpreterOptions,
@@ -13,7 +13,7 @@ import {
 } from 'xstate';
 import { isActorRef } from 'xstate/actors';
 
-type RestParams<TMachine extends AnyActorBehavior> =
+type RestParams<TMachine extends AnyActorLogic> =
   TMachine extends AnyStateMachine
     ? AreAllImplementationsAssumedToBeProvided<
         TMachine['__TResolvedTypesMeta']
@@ -37,12 +37,12 @@ type RestParams<TMachine extends AnyActorBehavior> =
         ]
     : [options?: InterpreterOptions<TMachine>];
 
-export function useActor<TBehavior extends AnyActorBehavior>(
+export function useActor<TBehavior extends AnyActorLogic>(
   behavior: TBehavior,
   ...[options = {}]: RestParams<TBehavior>
 ): {
   snapshot: Readable<SnapshotFrom<TBehavior>>;
-  send: (event: EventFromBehavior<TBehavior>) => void;
+  send: (event: EventFromLogic<TBehavior>) => void;
   actorRef: ActorRefFrom<TBehavior>;
 } {
   if (process.env.NODE_ENV !== 'production') {

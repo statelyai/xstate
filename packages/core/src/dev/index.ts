@@ -1,4 +1,4 @@
-import { IS_PRODUCTION } from '../environment.ts';
+import isDevelopment from '#is-development';
 import { AnyInterpreter, DevToolsAdapter } from '../types.ts';
 
 interface DevInterface {
@@ -31,7 +31,7 @@ export function getGlobal(): typeof globalThis | undefined {
   if (typeof global !== 'undefined') {
     return global;
   }
-  if (!IS_PRODUCTION) {
+  if (isDevelopment) {
     console.warn(
       'XState could not find a global object in this environment. Please let the maintainers know and raise an issue here: https://github.com/statelyai/xstate/issues'
     );

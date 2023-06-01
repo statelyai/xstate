@@ -1,4 +1,4 @@
-import { interval } from 'rxjs';
+import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import {
   actionTypes,
@@ -16,7 +16,7 @@ import {
   fromTransition
 } from '../src/actors/index.ts';
 import {
-  ActorBehavior,
+  ActorLogic,
   ActorContext,
   EventObject,
   SpecialTargets,
@@ -158,16 +158,17 @@ describe('invoke', () => {
     service.subscribe((s) => {
       state = s;
     });
-    service
-      .onDone(() => {
+    service.subscribe({
+      complete: () => {
         // 1. The 'parent' machine will not do anything (inert transition)
         // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
         // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
         // 4. The context of the 'parent' machine will be updated from 2 to -1
 
         expect(state.context).toEqual({ count: -3 });
-      })
-      .start();
+      }
+    });
+    service.start();
 
     service.send({ type: 'FORWARD_DEC' });
   });
@@ -235,21 +236,25 @@ describe('invoke', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = interpret(machine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start()
-      .send({ type: 'GO_TO_WAITING' });
+      }
+    });
+    actor.start();
+    actor.send({ type: 'GO_TO_WAITING' });
   });
 
   it('should start services (explicit machine, invoke = machine)', (done) => {
-    interpret(fetcherMachine)
-      .onDone((_) => {
+    const actor = interpret(fetcherMachine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start()
-      .send({ type: 'GO_TO_WAITING_MACHINE' });
+      }
+    });
+    actor.start();
+    actor.send({ type: 'GO_TO_WAITING_MACHINE' });
   });
 
   it('should start services (machine as invoke config)', (done) => {
@@ -286,10 +291,9 @@ describe('invoke', () => {
         }
       }
     });
-
-    interpret(machineInvokeMachine)
-      .onDone(() => done())
-      .start();
+    const actor = interpret(machineInvokeMachine);
+    actor.subscribe({ complete: () => done() });
+    actor.start();
   });
 
   it('should start deeply nested service (machine as invoke config)', (done) => {
@@ -332,10 +336,9 @@ describe('invoke', () => {
         }
       }
     });
-
-    interpret(machineInvokeMachine)
-      .onDone(() => done())
-      .start();
+    const actor = interpret(machineInvokeMachine);
+    actor.subscribe({ complete: () => done() });
+    actor.start();
   });
 
   it('should use the service overwritten by .provide(...)', (done) => {
@@ -374,7 +377,7 @@ describe('invoke', () => {
       }
     );
 
-    interpret(
+    const actor = interpret(
       someParentMachine.provide({
         actors: {
           child: createMachine({
@@ -388,11 +391,13 @@ describe('invoke', () => {
           })
         }
       })
-    )
-      .onDone(() => {
+    );
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   describe('parent to child', () => {
@@ -428,11 +433,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(mainMachine)
-        .onDone(() => {
+      const actor = interpret(mainMachine);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
 
     it('should communicate with the child machine (invoke on state)', (done) => {
@@ -454,11 +461,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(mainMachine)
-        .onDone(() => {
+      const actor = interpret(mainMachine);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
 
     it('should transition correctly if child invocation causes it to directly go to final state', () => {
@@ -538,11 +547,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(pingMachine)
-        .onDone(() => {
+      const actor = interpret(pingMachine);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
 
     it('should not reinvoke root-level invocations', (done) => {
@@ -683,12 +694,14 @@ describe('invoke', () => {
         }
       });
 
-      const service = interpret(parent)
-        .onDone(() => {
+      const service = interpret(parent);
+      service.subscribe({
+        complete: () => {
           expect(invokeCount).toBe(1);
           done();
-        })
-        .start();
+        }
+      });
+      service.start();
 
       service.send({ type: 'START' });
     });
@@ -782,17 +795,21 @@ describe('invoke', () => {
             }
           }
         });
-        interpret(machine)
-          .onDone(() => {
+        const service = interpret(machine);
+        service.subscribe({
+          complete: () => {
             done();
-          })
-          .start();
+          }
+        });
+        service.start();
       });
 
       it('should be invoked with a promise factory and reject with ErrorExecution', (done) => {
-        interpret(invokePromiseMachine, { input: { id: 31, succeed: false } })
-          .onDone(() => done())
-          .start();
+        const actor = interpret(invokePromiseMachine, {
+          input: { id: 31, succeed: false }
+        });
+        actor.subscribe({ complete: () => done() });
+        actor.start();
       });
 
       it('should be invoked with a promise factory and surface any unhandled errors', (done) => {
@@ -852,22 +869,17 @@ describe('invoke', () => {
 
         const actor = interpret(promiseMachine);
 
-        actor.onDone(doneSpy);
         actor.subscribe({
           error: (err) => {
             // TODO: determine if err should be the full SCXML error event
             expect(err).toBeInstanceOf(Error);
             expect(err.message).toBe('test');
-          }
-        });
-        actor.start();
-
-        actor.subscribe({
-          complete() {
             expect(doneSpy).not.toHaveBeenCalled();
             done();
-          }
+          },
+          complete: doneSpy
         });
+        actor.start();
       });
 
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', (done) => {
@@ -897,10 +909,9 @@ describe('invoke', () => {
             }
           }
         });
-
-        interpret(promiseMachine)
-          .onDone(() => done())
-          .start();
+        const actor = interpret(promiseMachine);
+        actor.subscribe({ complete: () => done() });
+        actor.start();
       });
 
       it('should be invoked with a promise service and resolve through onDone for compound state nodes', (done) => {
@@ -937,12 +948,10 @@ describe('invoke', () => {
             }
           }
         );
-
-        interpret(promiseMachine)
-          .onDone(() => done())
-          .start();
+        const actor = interpret(promiseMachine);
+        actor.subscribe({ complete: () => done() });
+        actor.start();
       });
-
       it('should assign the resolved data when invoked with a promise factory', (done) => {
         const promiseMachine = createMachine<{ count: number }>({
           id: 'promise',
@@ -956,7 +965,9 @@ describe('invoke', () => {
                 ),
                 onDone: {
                   target: 'success',
-                  actions: assign({ count: ({ event }) => event.output.count })
+                  actions: assign({
+                    count: ({ event }) => event.output.count
+                  })
                 }
               }
             },
@@ -966,12 +977,14 @@ describe('invoke', () => {
           }
         });
 
-        const actor = interpret(promiseMachine)
-          .onDone(() => {
+        const actor = interpret(promiseMachine);
+        actor.subscribe({
+          complete: () => {
             expect(actor.getSnapshot().context.count).toEqual(1);
             done();
-          })
-          .start();
+          }
+        });
+        actor.start();
       });
 
       it('should assign the resolved data when invoked with a promise service', (done) => {
@@ -1006,12 +1019,14 @@ describe('invoke', () => {
           }
         );
 
-        const actor = interpret(promiseMachine)
-          .onDone(() => {
+        const actor = interpret(promiseMachine);
+        actor.subscribe({
+          complete: () => {
             expect(actor.getSnapshot().context.count).toEqual(1);
             done();
-          })
-          .start();
+          }
+        });
+        actor.start();
       });
 
       it('should provide the resolved data when invoked with a promise factory', (done) => {
@@ -1041,12 +1056,14 @@ describe('invoke', () => {
           }
         });
 
-        interpret(promiseMachine)
-          .onDone(() => {
+        const actor = interpret(promiseMachine);
+        actor.subscribe({
+          complete: () => {
             expect(count).toEqual(1);
             done();
-          })
-          .start();
+          }
+        });
+        actor.start();
       });
 
       it('should provide the resolved data when invoked with a promise service', (done) => {
@@ -1082,12 +1099,14 @@ describe('invoke', () => {
           }
         );
 
-        interpret(promiseMachine)
-          .onDone(() => {
+        const actor = interpret(promiseMachine);
+        actor.subscribe({
+          complete: () => {
             expect(count).toEqual(1);
             done();
-          })
-          .start();
+          }
+        });
+        actor.start();
       });
 
       it('should be able to specify a Promise as a service', (done) => {
@@ -1134,16 +1153,16 @@ describe('invoke', () => {
           }
         );
 
-        interpret(promiseMachine)
-          .onDone(() => done())
-          .start()
-          .send({
-            type: 'BEGIN',
-            payload: true
-          });
+        const actor = interpret(promiseMachine);
+        actor.subscribe({ complete: () => done() });
+        actor.start();
+        actor.send({
+          type: 'BEGIN',
+          payload: true
+        });
       });
 
-      it('should be able to reuse the same promise behavior multiple times and create unique promise for each created actor', (done) => {
+      it('should be able to reuse the same promise logic multiple times and create unique promise for each created actor', (done) => {
         const machine = createMachine<{
           result1: number | null;
           result2: number | null;
@@ -1216,15 +1235,17 @@ describe('invoke', () => {
           }
         );
 
-        const service = interpret(machine)
-          .onDone(() => {
+        const service = interpret(machine);
+        service.subscribe({
+          complete: () => {
             const snapshot = service.getSnapshot();
             expect(typeof snapshot.context.result1).toBe('number');
             expect(typeof snapshot.context.result2).toBe('number');
             expect(snapshot.context.result1).not.toBe(snapshot.context.result2);
             done();
-          })
-          .start();
+          }
+        });
+        service.start();
       });
     });
   });
@@ -1299,13 +1320,13 @@ describe('invoke', () => {
         }
       );
 
-      interpret(callbackMachine)
-        .onDone(() => done())
-        .start()
-        .send({
-          type: 'BEGIN',
-          payload: true
-        });
+      const actor = interpret(callbackMachine);
+      actor.subscribe({ complete: () => done() });
+      actor.start();
+      actor.send({
+        type: 'BEGIN',
+        payload: true
+      });
     });
 
     it('should transition correctly if callback function sends an event', () => {
@@ -1477,9 +1498,9 @@ describe('invoke', () => {
           }
         }
       });
-      interpret(intervalMachine)
-        .onDone(() => done())
-        .start();
+      const actor = interpret(intervalMachine);
+      actor.subscribe({ complete: () => done() });
+      actor.start();
     });
 
     it('should dispose of the callback (if disposal function provided)', () => {
@@ -1533,10 +1554,9 @@ describe('invoke', () => {
           }
         }
       });
-
-      interpret(pingPongMachine)
-        .onDone(() => done())
-        .start();
+      const actor = interpret(pingPongMachine);
+      actor.subscribe({ complete: () => done() });
+      actor.start();
     });
 
     it('should call onError upon error (sync)', (done) => {
@@ -1564,10 +1584,9 @@ describe('invoke', () => {
           }
         }
       });
-
-      interpret(errorMachine)
-        .onDone(() => done())
-        .start();
+      const actor = interpret(errorMachine);
+      actor.subscribe({ complete: () => done() });
+      actor.start();
     });
 
     it('should transition correctly upon error (sync)', () => {
@@ -1620,10 +1639,9 @@ describe('invoke', () => {
           }
         }
       });
-
-      interpret(errorMachine)
-        .onDone(() => done())
-        .start();
+      const actor = interpret(errorMachine);
+      actor.subscribe({ complete: () => done() });
+      actor.start();
     });
 
     it('should call onDone when resolved (async)', (done) => {
@@ -1640,7 +1658,9 @@ describe('invoke', () => {
               }),
               onDone: {
                 target: 'success',
-                actions: assign(({ event: { output: result } }) => ({ result }))
+                actions: assign(({ event: { output: result } }) => ({
+                  result
+                }))
               }
             }
           },
@@ -1650,12 +1670,14 @@ describe('invoke', () => {
         }
       });
 
-      const actor = interpret(asyncWithDoneMachine)
-        .onDone(() => {
+      const actor = interpret(asyncWithDoneMachine);
+      actor.subscribe({
+        complete: () => {
           expect(actor.getSnapshot().context.result).toEqual(42);
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
 
     it('should call onError only on the state which has invoked failed service', () => {
@@ -1714,10 +1736,24 @@ describe('invoke', () => {
     });
 
     it('should be able to be stringified', () => {
-      const waitingState = fetcherMachine.transition(
-        fetcherMachine.initialState,
-        { type: 'GO_TO_WAITING' }
-      );
+      const machine = createMachine({
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              GO_TO_WAITING: 'waiting'
+            }
+          },
+          waiting: {
+            invoke: {
+              src: fromCallback(() => {})
+            }
+          }
+        }
+      });
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'GO_TO_WAITING' });
+      const waitingState = actorRef.getSnapshot();
 
       expect(() => {
         JSON.stringify(waitingState);
@@ -1746,6 +1782,29 @@ describe('invoke', () => {
 
       const service = interpret(errorMachine);
       expect(() => service.start()).toThrow();
+    });
+
+    it('should work with input', (done) => {
+      const machine = createMachine({
+        types: {} as {
+          context: { foo: string };
+        },
+        initial: 'start',
+        context: { foo: 'bar' },
+        states: {
+          start: {
+            invoke: {
+              src: fromCallback((_sendBack, _onReceive, { input }) => {
+                expect(input).toEqual({ foo: 'bar' });
+                done();
+              }),
+              input: ({ context }) => context
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
     });
 
     describe('sub invoke race condition', () => {
@@ -1792,8 +1851,8 @@ describe('invoke', () => {
           state = s;
           events.push(s.event);
         });
-        service
-          .onDone(() => {
+        service.subscribe({
+          complete: () => {
             expect(events.map((e) => e.type)).toEqual([
               actionTypes.init,
               'STOPCHILD',
@@ -1801,8 +1860,9 @@ describe('invoke', () => {
             ]);
             expect(state.value).toEqual('completed');
             done();
-          })
-          .start();
+          }
+        });
+        service.start();
 
         service.send({ type: 'STOPCHILD' });
       });
@@ -1838,11 +1898,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(obsMachine)
-        .onDone(() => {
+      const service = interpret(obsMachine);
+      service.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      service.start();
     });
 
     it('should work with a finite observable', (done) => {
@@ -1880,11 +1942,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(obsMachine)
-        .onDone(() => {
+      const actor = interpret(obsMachine);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
 
     it('should receive an emitted error', (done) => {
@@ -1933,11 +1997,30 @@ describe('invoke', () => {
         }
       });
 
-      interpret(obsMachine)
-        .onDone(() => {
+      const actor = interpret(obsMachine);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
+    });
+
+    it('should work with input', (done) => {
+      const machine = createMachine({
+        invoke: {
+          src: fromObservable(({ input }) => of(input)),
+          input: 42,
+          onSnapshot: {
+            actions: ({ event }) => {
+              expect(event.data).toEqual(42);
+              done();
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
     });
   });
 
@@ -1974,11 +2057,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(obsMachine)
-        .onDone(() => {
+      const service = interpret(obsMachine);
+      service.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      service.start();
     });
 
     it('should work with a finite event observable', (done) => {
@@ -2023,11 +2108,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(obsMachine)
-        .onDone(() => {
+      const actor = interpret(obsMachine);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
 
     it('should receive an emitted error', (done) => {
@@ -2078,17 +2165,43 @@ describe('invoke', () => {
         }
       });
 
-      interpret(obsMachine)
-        .onDone(() => {
+      const actor = interpret(obsMachine);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
+    });
+
+    it('should work with input', (done) => {
+      const machine = createMachine({
+        invoke: {
+          src: fromEventObservable(({ input }) =>
+            of({
+              type: 'obs.event',
+              value: input
+            })
+          ),
+          input: 42
+        },
+        on: {
+          'obs.event': {
+            actions: ({ event }) => {
+              expect(event.value).toEqual(42);
+              done();
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
     });
   });
 
-  describe('with behaviors', () => {
-    it('should work with a behavior', (done) => {
-      const countBehavior: ActorBehavior<EventObject, number> = {
+  describe('with logic', () => {
+    it('should work with actor logic', (done) => {
+      const countLogic: ActorLogic<EventObject, number> = {
         transition: (count, event) => {
           if (event.type === 'INC') {
             return count + 1;
@@ -2103,7 +2216,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: countBehavior
+          src: countLogic
         },
         on: {
           INC: {
@@ -2124,8 +2237,8 @@ describe('invoke', () => {
       countService.send({ type: 'INC' });
     });
 
-    it('behaviors should have reference to the parent', (done) => {
-      const pongBehavior: ActorBehavior<EventObject, undefined> = {
+    it('logic should have reference to the parent', (done) => {
+      const pongLogic: ActorLogic<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
@@ -2143,7 +2256,7 @@ describe('invoke', () => {
             entry: sendTo('ponger', { type: 'PING' }),
             invoke: {
               id: 'ponger',
-              src: pongBehavior
+              src: pongLogic
             },
             on: {
               PONG: 'success'
@@ -2155,8 +2268,11 @@ describe('invoke', () => {
         }
       });
 
-      const pingService = interpret(pingMachine).onDone(() => {
-        done();
+      const pingService = interpret(pingMachine);
+      pingService.subscribe({
+        complete: () => {
+          done();
+        }
       });
       pingService.start();
     });
@@ -2289,9 +2405,9 @@ describe('invoke', () => {
     });
 
     it('should create invocations from machines in nested states', (done) => {
-      interpret(pingMachine)
-        .onDone(() => done())
-        .start();
+      const actor = interpret(pingMachine);
+      actor.subscribe({ complete: () => done() });
+      actor.start();
     });
   });
 
@@ -2342,12 +2458,15 @@ describe('invoke', () => {
     });
 
     it('should start all services at once', (done) => {
-      const service = interpret(multiple).onDone(() => {
-        expect(service.getSnapshot().context).toEqual({
-          one: 'one',
-          two: 'two'
-        });
-        done();
+      const service = interpret(multiple);
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().context).toEqual({
+            one: 'one',
+            two: 'two'
+          });
+          done();
+        }
       });
 
       service.start();
@@ -2409,12 +2528,15 @@ describe('invoke', () => {
     });
 
     it('should run services in parallel', (done) => {
-      const service = interpret(parallel).onDone(() => {
-        expect(service.getSnapshot().context).toEqual({
-          one: 'one',
-          two: 'two'
-        });
-        done();
+      const service = interpret(parallel);
+      service.subscribe({
+        complete: () => {
+          expect(service.getSnapshot().context).toEqual({
+            one: 'one',
+            two: 'two'
+          });
+          done();
+        }
       });
 
       service.start();
@@ -2542,9 +2664,9 @@ describe('invoke', () => {
         }
       });
 
-      const service = interpret(machine)
-        .onDone(() => done())
-        .start();
+      const service = interpret(machine);
+      service.subscribe({ complete: () => done() });
+      service.start();
 
       service.send({ type: 'NEXT' });
     });
@@ -2616,11 +2738,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(parent)
-        .onDone(() => {
+      const actor = interpret(parent);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
 
     it('handles escalated errors as an expression', (done) => {
@@ -2661,11 +2785,13 @@ describe('invoke', () => {
         }
       });
 
-      interpret(parent)
-        .onDone(() => {
+      const actor = interpret(parent);
+      actor.subscribe({
+        complete: () => {
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
   });
 
@@ -2698,10 +2824,9 @@ describe('invoke', () => {
         }
       }
     );
-
-    interpret(machine)
-      .onDone(() => done())
-      .start();
+    const actor = interpret(machine);
+    actor.subscribe({ complete: () => done() });
+    actor.start();
   });
 
   it('invoke `src` can be used with dynamic invoke `input`', async () => {
@@ -2735,11 +2860,11 @@ describe('invoke', () => {
       }
     );
 
-    await new Promise<void>((res) =>
-      interpret(machine)
-        .onDone(() => res())
-        .start()
-    );
+    await new Promise<void>((res) => {
+      const actor = interpret(machine);
+      actor.subscribe({ complete: () => res() });
+      actor.start();
+    });
   });
 
   describe('meta data', () => {
@@ -2805,11 +2930,13 @@ describe('invoke', () => {
       }
     );
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = interpret(machine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   it.each([
@@ -2850,7 +2977,7 @@ describe('invoke', () => {
       );
 
       expect(
-        machine.initialState.children['machine.a:invocation[0]']
+        interpret(machine).getSnapshot().children['machine.a:invocation[0]']
       ).toBeDefined();
     }
   );
@@ -3132,8 +3259,11 @@ describe('actors option', () => {
       }
     );
 
-    const service = interpret(machine).onDone(() => {
-      done();
+    const service = interpret(machine);
+    service.subscribe({
+      complete: () => {
+        done();
+      }
     });
 
     service.start();

@@ -4,8 +4,12 @@ const path = require('path');
 const cp = require('child_process');
 
 const examplesDir = path.resolve(__dirname, '..', 'examples');
+const templatesDir = path.resolve(__dirname, '..', 'templates');
 
-fs.readdirSync(examplesDir).forEach(function (example) {
+const examples = fs.readdirSync(examplesDir);
+const templates = fs.readdirSync(templatesDir);
+
+[...examples, ...templates].forEach(function (example) {
   const dirPath = path.join(examplesDir, example);
 
   if (!fs.existsSync(path.join(dirPath, 'package.json'))) {

@@ -17,6 +17,7 @@ module.exports = {
       }
     ]
   },
+  resolver: '<rootDir>/scripts/jest-resolver.js',
   globals: {
     'vue-jest': {
       // weird way of disabling ts-jest-based transformer

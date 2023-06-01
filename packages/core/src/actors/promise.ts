@@ -1,4 +1,4 @@
-import { ActorBehavior } from '../types';
+import { ActorLogic } from '../types';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T> {
@@ -10,12 +10,12 @@ export interface PromiseInternalState<T> {
 export function fromPromise<T>(
   // TODO: add types
   promiseCreator: ({ input }: { input: any }) => PromiseLike<T>
-): ActorBehavior<{ type: string }, T | undefined, PromiseInternalState<T>> {
+): ActorLogic<{ type: string }, T | undefined, PromiseInternalState<T>> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
 
   // TODO: add event types
-  const behavior: ActorBehavior<
+  const logic: ActorLogic<
     | {
         type: typeof resolveEventType;
         data: T;
@@ -99,5 +99,5 @@ export function fromPromise<T>(
     restoreState: (state) => state
   };
 
-  return behavior;
+  return logic;
 }

@@ -1,10 +1,10 @@
-import { AnyActorBehavior, AnyState } from './index.ts';
+import isDevelopment from '#is-development';
+import { AnyActorLogic, AnyState } from './index.ts';
 import { errorExecution, errorPlatform } from './actionTypes.ts';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
-import { IS_PRODUCTION } from './environment.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
-  ActorBehavior,
+  ActorLogic,
   AnyEventObject,
   EventObject,
   EventType,
@@ -275,7 +275,7 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   return false;
 }
 
-export function isBehavior(value: any): value is ActorBehavior<any, any> {
+export function isActorLogic(value: any): value is ActorLogic<any, any> {
   return (
     value !== null &&
     typeof value === 'object' &&
@@ -299,30 +299,6 @@ export function partition<T, A extends T, B extends T>(
   }
 
   return [truthy, falsy];
-}
-
-// tslint:disable-next-line:no-empty
-export let warn: (
-  condition: boolean | Error,
-  message: string
-) => void = () => {};
-
-if (!IS_PRODUCTION) {
-  warn = (condition: boolean | Error, message: string) => {
-    const error = condition instanceof Error ? condition : undefined;
-    if (!error && condition) {
-      return;
-    }
-
-    if (console !== undefined) {
-      const args: [string, ...any[]] = [`Warning: ${message}`];
-      if (error) {
-        args.push(error);
-      }
-      // tslint:disable-next-line:no-console
-      console.warn.apply(console, args);
-    }
-  };
 }
 
 export function isArray(value: any): value is any[] {
@@ -410,7 +386,7 @@ export function reportUnhandledExceptionOnInvocation(
   currentError: any,
   id: string
 ) {
-  if (!IS_PRODUCTION) {
+  if (isDevelopment) {
     const originalStackTrace = originalError.stack
       ? ` Stacktrace was '${originalError.stack}'`
       : '';
@@ -436,7 +412,7 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable: InvokeConfig<TContext, TEvent> | string | ActorBehavior<any, any>,
+  invocable: InvokeConfig<TContext, TEvent> | string | ActorLogic<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object') {
@@ -482,8 +458,8 @@ export function createInvokeId(stateNodeId: string, index: number): string {
 
 export function resolveReferencedActor(
   referenced:
-    | AnyActorBehavior
-    | { src: AnyActorBehavior; input: Mapper<any, any, any> | any }
+    | AnyActorLogic
+    | { src: AnyActorLogic; input: Mapper<any, any, any> | any }
     | undefined
 ) {
   return referenced

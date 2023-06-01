@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import {
   EventObject,
   SendActionParams,
@@ -211,10 +212,7 @@ export function forwardTo<
   target: Required<SendActionParams<TContext, TEvent>>['to'],
   options?: SendActionOptions<TContext, TEvent>
 ) {
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    (!target || typeof target === 'function')
-  ) {
+  if (isDevelopment && (!target || typeof target === 'function')) {
     const originalTarget = target;
     target = (...args) => {
       const resolvedTarget =

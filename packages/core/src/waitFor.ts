@@ -1,4 +1,5 @@
-import { ActorRef, SnapshotFrom } from '.';
+import isDevelopment from '#is-development';
+import { ActorRef, SnapshotFrom, Subscription } from './types.ts';
 
 interface WaitForOptions {
   /**
@@ -46,7 +47,7 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
   };
   return new Promise((res, rej) => {
     let done = false;
-    if (process.env.NODE_ENV !== 'production' && resolvedOptions.timeout < 0) {
+    if (isDevelopment && resolvedOptions.timeout < 0) {
       console.error(
         '`timeout` passed to `waitFor` is negative and it will reject its internal promise immediately.'
       );
@@ -55,7 +56,7 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
       resolvedOptions.timeout === Infinity
         ? undefined
         : setTimeout(() => {
-            sub.unsubscribe();
+            sub!.unsubscribe();
             rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
           }, resolvedOptions.timeout);
 
@@ -72,10 +73,15 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
       }
     }
 
+    let sub: Subscription | undefined; // avoid TDZ when disposing synchronously
+
     // See if the current snapshot already matches the predicate
     checkEmitted(actorRef.getSnapshot());
+    if (done) {
+      return;
+    }
 
-    const sub = actorRef.subscribe({
+    sub = actorRef.subscribe({
       next: checkEmitted,
       error: (err) => {
         dispose();

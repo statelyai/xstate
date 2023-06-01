@@ -17,6 +17,10 @@
   "module": "dist/xstate-graph.esm.js",
   "exports": {
     ".": {
+      "types": {
+        "import": "./dist/xstate-graph.cjs.mjs",
+        "default": "./dist/xstate-graph.cjs.js"
+      },
       "module": "./dist/xstate-graph.esm.js",
       "import": "./dist/xstate-graph.cjs.mjs",
       "default": "./dist/xstate-graph.cjs.js"
@@ -36,10 +40,10 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^5.0.0-beta.9"
+    "xstate": "^5.0.0-beta.13"
   },
   "devDependencies": {
-    "xstate": "5.0.0-beta.9"
+    "xstate": "5.0.0-beta.13"
   },
   "dependencies": {}
 }

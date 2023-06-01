@@ -1,7 +1,7 @@
 import { createMachine, interpret, StateValue } from '../src/index.ts';
-import { assign } from '../src/actions/assign';
-import { raise } from '../src/actions/raise';
-import { testMultiTransition } from './utils';
+import { assign } from '../src/actions/assign.ts';
+import { raise } from '../src/actions/raise.ts';
+import { testMultiTransition } from './utils.ts';
 
 const composerMachine = createMachine({
   initial: 'ReadOnly',
@@ -493,7 +493,7 @@ const deepFlatParallelMachine = createMachine({
 
 describe('parallel states', () => {
   it('should have initial parallel states', () => {
-    const { initialState } = wordMachine;
+    const initialState = interpret(wordMachine).getSnapshot();
 
     expect(initialState.value).toEqual({
       bold: 'off',
@@ -560,23 +560,27 @@ describe('parallel states', () => {
   });
 
   it('should have all parallel states represented in the state value', () => {
-    const nextState = wakMachine.transition(wakMachine.initialState, {
-      type: 'WAK1'
-    });
+    const actorRef = interpret(wakMachine).start();
+    actorRef.send({ type: 'WAK1' });
 
-    expect(nextState.value).toEqual({ wak1: 'wak1sonB', wak2: 'wak2sonA' });
+    expect(actorRef.getSnapshot().value).toEqual({
+      wak1: 'wak1sonB',
+      wak2: 'wak2sonA'
+    });
   });
 
   it('should have all parallel states represented in the state value (2)', () => {
-    const nextState = wakMachine.transition(wakMachine.initialState, {
-      type: 'WAK2'
-    });
+    const actorRef = interpret(wakMachine).start();
+    actorRef.send({ type: 'WAK2' });
 
-    expect(nextState.value).toEqual({ wak1: 'wak1sonA', wak2: 'wak2sonB' });
+    expect(actorRef.getSnapshot().value).toEqual({
+      wak1: 'wak1sonA',
+      wak2: 'wak2sonB'
+    });
   });
 
   it('should work with regions without states', () => {
-    expect(flatParallelMachine.initialState.value).toEqual({
+    expect(interpret(flatParallelMachine).getSnapshot().value).toEqual({
       foo: {},
       bar: {},
       baz: 'one'
@@ -584,11 +588,9 @@ describe('parallel states', () => {
   });
 
   it('should work with regions without states', () => {
-    const nextState = flatParallelMachine.transition(
-      flatParallelMachine.initialState,
-      { type: 'E' }
-    );
-    expect(nextState.value).toEqual({
+    const actorRef = interpret(flatParallelMachine).start();
+    actorRef.send({ type: 'E' });
+    expect(actorRef.getSnapshot().value).toEqual({
       foo: {},
       bar: {},
       baz: 'two'
@@ -596,11 +598,12 @@ describe('parallel states', () => {
   });
 
   it('should properly transition to relative substate', () => {
-    const nextState = composerMachine.transition(composerMachine.initialState, {
+    const actorRef = interpret(composerMachine).start();
+    actorRef.send({
       type: 'singleClickActivity'
     });
 
-    expect(nextState.value).toEqual({
+    expect(actorRef.getSnapshot().value).toEqual({
       ReadOnly: {
         StructureEdit: {
           SelectionStatus: 'SelectedActivity',
@@ -611,8 +614,45 @@ describe('parallel states', () => {
   });
 
   it('should properly transition according to entry events on an initial state', () => {
-    expect(raisingParallelMachine.initialState.value).toEqual({
-      OUTER1: 'C',
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        OUTER1: {
+          initial: 'B',
+          states: {
+            A: {},
+            B: {
+              entry: raise({ type: 'CLEAR' })
+            }
+          }
+        },
+        OUTER2: {
+          type: 'parallel',
+          states: {
+            INNER1: {
+              initial: 'ON',
+              states: {
+                OFF: {},
+                ON: {
+                  on: {
+                    CLEAR: 'OFF'
+                  }
+                }
+              }
+            },
+            INNER2: {
+              initial: 'OFF',
+              states: {
+                OFF: {},
+                ON: {}
+              }
+            }
+          }
+        }
+      }
+    });
+    expect(interpret(machine).getSnapshot().value).toEqual({
+      OUTER1: 'B',
       OUTER2: {
         INNER1: 'OFF',
         INNER2: 'OFF'
@@ -621,12 +661,12 @@ describe('parallel states', () => {
   });
 
   it('should properly transition when raising events for a parallel state', () => {
-    const nextState = raisingParallelMachine.transition(
-      raisingParallelMachine.initialState,
-      { type: 'EVENT_OUTER1_B' }
-    );
+    const actorRef = interpret(raisingParallelMachine).start();
+    actorRef.send({
+      type: 'EVENT_OUTER1_B'
+    });
 
-    expect(nextState.value).toEqual({
+    expect(actorRef.getSnapshot().value).toEqual({
       OUTER1: 'B',
       OUTER2: {
         INNER1: 'ON',
@@ -674,40 +714,36 @@ describe('parallel states', () => {
       }
     });
 
-    const savedState = simultaneousMachine.transition(
-      simultaneousMachine.initialState,
-      { type: 'SAVE' }
-    );
-    const unsavedState = simultaneousMachine.transition(savedState, {
+    const actorRef = interpret(simultaneousMachine).start();
+    actorRef.send({
+      type: 'SAVE'
+    });
+    actorRef.send({
       type: 'CHANGE',
       value: 'something'
     });
 
-    expect(unsavedState.value).toEqual({
+    expect(actorRef.getSnapshot().value).toEqual({
       editing: {},
       status: 'unsaved'
     });
 
-    expect(unsavedState.context).toEqual({
+    expect(actorRef.getSnapshot().context).toEqual({
       value: 'something'
     });
   });
 
   describe('transitions with nested parallel states', () => {
-    const initialState = nestedParallelState.initialState;
-    const simpleNextState = nestedParallelState.transition(initialState, {
-      type: 'EVENT_SIMPLE'
-    });
-    const complexNextState = nestedParallelState.transition(initialState, {
-      type: 'EVENT_COMPLEX'
-    });
-
     it('should properly transition when in a simple nested state', () => {
-      const nextState = nestedParallelState.transition(simpleNextState, {
+      const actorRef = interpret(nestedParallelState).start();
+      actorRef.send({
+        type: 'EVENT_SIMPLE'
+      });
+      actorRef.send({
         type: 'EVENT_STATE_NTJ0_WORK'
       });
 
-      expect(nextState.value).toEqual({
+      expect(actorRef.getSnapshot().value).toEqual({
         OUTER1: {
           STATE_ON: {
             STATE_NTJ0: 'STATE_WORKING_0',
@@ -719,11 +755,15 @@ describe('parallel states', () => {
     });
 
     it('should properly transition when in a complex nested state', () => {
-      const nextState = nestedParallelState.transition(complexNextState, {
+      const actorRef = interpret(nestedParallelState).start();
+      actorRef.send({
+        type: 'EVENT_COMPLEX'
+      });
+      actorRef.send({
         type: 'EVENT_STATE_NTJ0_WORK'
       });
 
-      expect(nextState.value).toEqual({
+      expect(actorRef.getSnapshot().value).toEqual({
         OUTER1: {
           STATE_ON: {
             STATE_NTJ0: 'STATE_WORKING_0',
@@ -764,9 +804,12 @@ describe('parallel states', () => {
     });
 
     it('should represent the flat nested parallel states in the state value', () => {
-      const result = machine.transition(machine.initialState, { type: 'to-B' });
+      const actorRef = interpret(machine).start();
+      actorRef.send({
+        type: 'to-B'
+      });
 
-      expect(result.value).toEqual({
+      expect(actorRef.getSnapshot().value).toEqual({
         B: {
           C: {},
           D: {}
@@ -777,13 +820,13 @@ describe('parallel states', () => {
 
   describe('deep flat parallel states', () => {
     it('should properly evaluate deep flat parallel states', () => {
-      const state1 = deepFlatParallelMachine.transition(
-        deepFlatParallelMachine.initialState,
-        { type: 'a' }
-      );
-      const state2 = deepFlatParallelMachine.transition(state1, { type: 'c' });
-      const state3 = deepFlatParallelMachine.transition(state2, { type: 'b' });
-      expect(state3.value).toEqual({
+      const actorRef = interpret(deepFlatParallelMachine).start();
+
+      actorRef.send({ type: 'a' });
+      actorRef.send({ type: 'c' });
+      actorRef.send({ type: 'b' });
+
+      expect(actorRef.getSnapshot().value).toEqual({
         V: {
           B: {
             BB: {
@@ -823,8 +866,11 @@ describe('parallel states', () => {
         }
       });
 
+      const actorRef = interpret(machine).start();
       expect(() => {
-        machine.transition(machine.initialState, { type: 'UPDATE' });
+        actorRef.send({
+          type: 'UPDATE'
+        });
       }).not.toThrow();
     });
   });
@@ -879,16 +925,13 @@ describe('parallel states', () => {
         }
       });
 
-      const openMenuState = testMachine.transition(testMachine.initialState, {
-        type: 'toggle'
-      });
+      const actorRef = interpret(testMachine).start();
 
-      const dashboardState = testMachine.transition(openMenuState, {
-        type: 'go to dashboard'
-      });
+      actorRef.send({ type: 'toggle' });
+      actorRef.send({ type: 'go to dashboard' });
 
       expect(
-        dashboardState.matches({ Menu: 'Opened', Pages: 'Dashboard' })
+        actorRef.getSnapshot().matches({ Menu: 'Opened', Pages: 'Dashboard' })
       ).toBe(true);
     });
 
@@ -921,12 +964,16 @@ describe('parallel states', () => {
         }
       });
 
-      const run1 = testMachine.transition(testMachine.initialState, {
+      const actorRef = interpret(testMachine).start();
+
+      actorRef.send({
         type: 'GOTO_FOOBAZ'
       });
-      const run2 = testMachine.transition(run1, { type: 'GOTO_FOOBAZ' });
+      actorRef.send({
+        type: 'GOTO_FOOBAZ'
+      });
 
-      expect(run2.context.log.length).toBe(2);
+      expect(actorRef.getSnapshot().context.log.length).toBe(2);
     });
   });
 
@@ -986,11 +1033,13 @@ describe('parallel states', () => {
       }
     });
 
-    const service = interpret(machine)
-      .onDone(() => {
+    const service = interpret(machine);
+    service.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
 
     service.send({ type: 'FINISH' });
   });

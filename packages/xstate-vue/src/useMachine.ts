@@ -1,14 +1,9 @@
 import { Ref, shallowRef } from 'vue';
-import {
-  ActorRefFrom,
-  AnyActorBehavior,
-  EventFrom,
-  SnapshotFrom
-} from 'xstate';
+import { ActorRefFrom, AnyActorLogic, EventFrom, SnapshotFrom } from 'xstate';
 import { UseActorRefRestParams, useActorRef } from './useActorRef.ts';
 import { isActorRef } from 'xstate/actors';
 
-export function useActor<TBehavior extends AnyActorBehavior>(
+export function useActor<TBehavior extends AnyActorLogic>(
   behavior: TBehavior,
   ...[options = {}]: UseActorRefRestParams<TBehavior>
 ): {

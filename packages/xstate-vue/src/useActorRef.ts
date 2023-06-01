@@ -1,7 +1,7 @@
 import { onBeforeUnmount, onMounted } from 'vue';
 import {
   ActorRefFrom,
-  AnyActorBehavior,
+  AnyActorLogic,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
@@ -13,7 +13,7 @@ import {
   toObserver
 } from 'xstate';
 
-export type UseActorRefRestParams<TBehavior extends AnyActorBehavior> =
+export type UseActorRefRestParams<TBehavior extends AnyActorLogic> =
   TBehavior extends AnyStateMachine
     ? AreAllImplementationsAssumedToBeProvided<
         TBehavior['__TResolvedTypesMeta']
@@ -48,7 +48,7 @@ export type UseActorRefRestParams<TBehavior extends AnyActorBehavior> =
           | ((value: SnapshotFrom<TBehavior>) => void)
       ];
 
-export function useActorRef<TBehavior extends AnyActorBehavior>(
+export function useActorRef<TBehavior extends AnyActorLogic>(
   behavior: TBehavior,
   ...[options = {}, observerOrListener]: UseActorRefRestParams<TBehavior>
 ): ActorRefFrom<TBehavior> {

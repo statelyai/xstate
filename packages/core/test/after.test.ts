@@ -30,11 +30,16 @@ afterEach(() => {
 
 describe('delayed transitions', () => {
   it('should transition after delay', () => {
-    const nextState = lightMachine.transition(lightMachine.initialState, {
-      type: after(1000, 'light.green')
-    });
+    jest.useFakeTimers();
 
-    expect(nextState.value).toEqual('yellow');
+    const actorRef = interpret(lightMachine).start();
+    expect(actorRef.getSnapshot().value).toBe('green');
+
+    jest.advanceTimersByTime(500);
+    expect(actorRef.getSnapshot().value).toBe('green');
+
+    jest.advanceTimersByTime(510);
+    expect(actorRef.getSnapshot().value).toBe('yellow');
   });
 
   it('should format transitions properly', () => {
@@ -68,11 +73,13 @@ describe('delayed transitions', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = interpret(machine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   it('parent state should enter child state without re-entering self (relative target)', (done) => {
@@ -103,12 +110,14 @@ describe('delayed transitions', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = interpret(machine);
+    actor.subscribe({
+      complete: () => {
         expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   it('should defer a single send event for a delayed conditional transition (#886)', () => {
@@ -148,7 +157,7 @@ describe('delayed transitions', () => {
   });
 
   // TODO: figure out correct behavior for restoring delayed transitions
-  it.skip('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
+  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedState`', (done) => {
     const machine = createMachine({
       id: 'machine',
       initial: 'a',
@@ -169,11 +178,13 @@ describe('delayed transitions', () => {
       }
     });
 
-    const withAfterState = machine.transition(undefined, { type: 'next' });
+    const actorRef1 = interpret(machine).start();
+    actorRef1.send({ type: 'next' });
+    const withAfterState = actorRef1.getPersistedState();
 
-    interpret(machine, { state: withAfterState })
-      .onDone(() => done())
-      .start();
+    const actorRef2 = interpret(machine, { state: withAfterState });
+    actorRef2.subscribe({ complete: () => done() });
+    actorRef2.start();
   });
 
   it('should execute an after transition after starting from a persisted state', (done) => {
@@ -205,7 +216,7 @@ describe('delayed transitions', () => {
 
     service.send({ type: 'NEXT' });
 
-    service.onDone(() => done());
+    service.subscribe({ complete: () => done() });
   });
 
   describe('delay expressions', () => {
@@ -323,11 +334,12 @@ describe('delayed transitions', () => {
           }
         }
       );
-      const { initialState } = machine;
-      const activeState = machine.transition(initialState, {
+      const actorRef = interpret(machine).start();
+      actorRef.send({
         type: 'NOEXPR',
         delay: 500
       });
+      const activeState = actorRef.getSnapshot();
       const sendActions = activeState.actions.filter(
         (a) => a.type === 'xstate.raise'
       );

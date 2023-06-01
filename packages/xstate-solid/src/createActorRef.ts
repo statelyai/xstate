@@ -1,10 +1,10 @@
-import type { ActorRefFrom, AnyActorBehavior } from 'xstate';
+import type { ActorRefFrom, AnyActorLogic } from 'xstate';
 import { interpret } from 'xstate';
 import type { RestParams } from './types.ts';
 import { onCleanup } from 'solid-js';
 import { isServer } from 'solid-js/web';
 
-export function createActorRef<TBehavior extends AnyActorBehavior>(
+export function createActorRef<TBehavior extends AnyActorLogic>(
   behavior: TBehavior,
   ...[options = {}]: RestParams<TBehavior>
 ): ActorRefFrom<TBehavior> {

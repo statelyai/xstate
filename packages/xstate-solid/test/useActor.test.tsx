@@ -752,11 +752,11 @@ describe('useActor', () => {
   });
 
   it('should rerender and trigger effects only on array size changes', () => {
-    const [actor, setActor] = createSignal(
-      createSimpleActor(['1', '3', '5', '8'])
-    );
-    const state = useSnapshot(actor);
     const Test = () => {
+      const [actor, setActor] = createSignal(
+        createSimpleActor(['1', '3', '5', '8'])
+      );
+      const state = useSnapshot(actor);
       const [change, setChange] = createSignal(0);
 
       createEffect(() => {

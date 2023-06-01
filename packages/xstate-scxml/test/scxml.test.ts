@@ -25,20 +25,20 @@ async function runTestToCompletion(
   test: SCIONTest
 ): Promise<void> {
   let done = false;
-  let nextState: AnyState = machine.initialState;
 
   const service = interpret(machine, {
-    state: nextState,
     clock: new SimulatedClock()
   });
+  let nextState: AnyState = service.getSnapshot();
   service.subscribe((state) => {
     nextState = state;
   });
-  service
-    .onDone(() => {
+  service.subscribe({
+    complete: () => {
       done = true;
-    })
-    .start();
+    }
+  });
+  service.start();
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {

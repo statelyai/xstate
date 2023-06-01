@@ -1,7 +1,7 @@
 import type {
-  AnyActorBehavior,
+  AnyActorLogic,
   SnapshotFrom,
-  EventFromBehavior,
+  EventFromLogic,
   SimpleActorRefFrom
 } from 'xstate';
 import type { CheckSnapshot, RestParams } from './types.ts';
@@ -11,12 +11,12 @@ import { deriveServiceState } from './deriveServiceState.ts';
 import { createImmutable } from './createImmutable.ts';
 import { unwrap } from 'solid-js/store';
 
-export function useActor<TBehavior extends AnyActorBehavior>(
+export function useActor<TBehavior extends AnyActorLogic>(
   machine: TBehavior,
   ...[options = {}]: RestParams<TBehavior>
 ): [
   CheckSnapshot<SnapshotFrom<TBehavior>>,
-  (event: EventFromBehavior<TBehavior>) => void,
+  (event: EventFromLogic<TBehavior>) => void,
   SimpleActorRefFrom<TBehavior>
 ] {
   const actorRef = createActorRef(

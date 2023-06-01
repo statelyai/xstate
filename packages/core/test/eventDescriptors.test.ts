@@ -76,12 +76,17 @@ describe('event descriptors', () => {
       }
     });
 
-    expect(
-      machine.transition(undefined, { type: 'event' }).matches('success')
-    ).toBeFalsy();
-    expect(
-      machine.transition(undefined, { type: 'eventually' }).matches('success')
-    ).toBeFalsy();
+    const actorRef1 = interpret(machine).start();
+
+    actorRef1.send({ type: 'event' });
+
+    expect(actorRef1.getSnapshot().matches('success')).toBeFalsy();
+
+    const actorRef2 = interpret(machine).start();
+
+    actorRef2.send({ type: 'eventually' });
+
+    expect(actorRef2.getSnapshot().matches('success')).toBeFalsy();
   });
 
   it('should support prefix matching with wildcards (+0)', () => {
@@ -99,12 +104,17 @@ describe('event descriptors', () => {
       }
     });
 
-    expect(
-      machine.transition(undefined, { type: 'event' }).matches('success')
-    ).toBeTruthy();
-    expect(
-      machine.transition(undefined, { type: 'eventually' }).matches('success')
-    ).toBeFalsy();
+    const actorRef1 = interpret(machine).start();
+
+    actorRef1.send({ type: 'event' });
+
+    expect(actorRef1.getSnapshot().matches('success')).toBeTruthy();
+
+    const actorRef2 = interpret(machine).start();
+
+    actorRef2.send({ type: 'eventually' });
+
+    expect(actorRef2.getSnapshot().matches('success')).toBeFalsy();
   });
 
   it('should support prefix matching with wildcards (+1)', () => {
@@ -122,19 +132,23 @@ describe('event descriptors', () => {
       }
     });
 
-    expect(
-      machine
-        .transition(undefined, { type: 'event.whatever' })
-        .matches('success')
-    ).toBeTruthy();
-    expect(
-      machine.transition(undefined, { type: 'eventually' }).matches('success')
-    ).toBeFalsy();
-    expect(
-      machine
-        .transition(undefined, { type: 'eventually.event' })
-        .matches('success')
-    ).toBeFalsy();
+    const actorRef1 = interpret(machine).start();
+
+    actorRef1.send({ type: 'event.whatever' });
+
+    expect(actorRef1.getSnapshot().matches('success')).toBeTruthy();
+
+    const actorRef2 = interpret(machine).start();
+
+    actorRef2.send({ type: 'eventually' });
+
+    expect(actorRef2.getSnapshot().matches('success')).toBeFalsy();
+
+    const actorRef3 = interpret(machine).start();
+
+    actorRef3.send({ type: 'eventually.event' });
+
+    expect(actorRef3.getSnapshot().matches('success')).toBeFalsy();
   });
 
   it('should support prefix matching with wildcards (+n)', () => {
@@ -152,11 +166,11 @@ describe('event descriptors', () => {
       }
     });
 
-    expect(
-      machine
-        .transition(undefined, { type: 'event.first.second' })
-        .matches('success')
-    ).toBeTruthy();
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'event.first.second' });
+
+    expect(actorRef.getSnapshot().matches('success')).toBeTruthy();
   });
 
   it('should support prefix matching with wildcards (+n, multi-prefix)', () => {
@@ -174,11 +188,11 @@ describe('event descriptors', () => {
       }
     });
 
-    expect(
-      machine
-        .transition(undefined, { type: 'event.foo.bar.first.second' })
-        .matches('success')
-    ).toBeTruthy();
+    const actorRef = interpret(machine).start();
+
+    actorRef.send({ type: 'event.foo.bar.first.second' });
+
+    expect(actorRef.getSnapshot().matches('success')).toBeTruthy();
   });
 
   it('should not match infix wildcards', () => {
@@ -197,45 +211,45 @@ describe('event descriptors', () => {
       }
     });
 
-    expect(
-      machine
-        .transition(undefined, { type: 'event.foo.bar.first.second' })
-        .matches('success')
-    ).toBeFalsy();
+    const actorRef1 = interpret(machine).start();
+
+    actorRef1.send({ type: 'event.foo.bar.first.second' });
+
+    expect(actorRef1.getSnapshot().matches('success')).toBeFalsy();
 
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
         ],
         [
-          "Warning: Infix wildcards in transition events are not allowed. Check the "event.*.bar.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "event.*.bar.*" event.",
         ],
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
         ],
         [
-          "Warning: Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
         ],
       ]
     `);
 
-    expect(
-      machine
-        .transition(undefined, { type: 'whatever.event' })
-        .matches('success')
-    ).toBeFalsy();
+    const actorRef2 = interpret(machine).start();
+
+    actorRef2.send({ type: 'whatever.event' });
+
+    expect(actorRef2.getSnapshot().matches('success')).toBeFalsy();
 
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
         ],
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
         ],
         [
-          "Warning: Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
         ],
       ]
     `);
@@ -257,36 +271,36 @@ describe('event descriptors', () => {
       }
     });
 
-    expect(
-      machine
-        .transition(undefined, { type: 'eventually.bar.baz' })
-        .matches('success')
-    ).toBeFalsy();
+    const actorRef1 = interpret(machine).start();
+
+    actorRef1.send({ type: 'eventually.bar.baz' });
+
+    expect(actorRef1.getSnapshot().matches('success')).toBeFalsy();
 
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
         ],
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
         ],
       ]
     `);
 
-    expect(
-      machine
-        .transition(undefined, { type: 'prevent.whatever' })
-        .matches('success')
-    ).toBeFalsy();
+    const actorRef2 = interpret(machine).start();
+
+    actorRef2.send({ type: 'prevent.whatever' });
+
+    expect(actorRef2.getSnapshot().matches('success')).toBeFalsy();
 
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event*.bar.*" event.",
         ],
         [
-          "Warning: Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
+          "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
         ],
       ]
     `);

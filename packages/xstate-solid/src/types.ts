@@ -1,5 +1,5 @@
 import type {
-  AnyActorBehavior,
+  AnyActorLogic,
   AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
@@ -37,7 +37,7 @@ type InternalMachineOpts<
   RequireMissing
 >;
 
-export type RestParams<TBehavior extends AnyActorBehavior> =
+export type RestParams<TBehavior extends AnyActorLogic> =
   TBehavior extends AnyStateMachine
     ? AreAllImplementationsAssumedToBeProvided<
         TBehavior['__TResolvedTypesMeta']

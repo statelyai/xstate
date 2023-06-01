@@ -1,5 +1,5 @@
+import isDevelopment from '#is-development';
 import { createInitEvent } from './actions.ts';
-import { IS_PRODUCTION } from './environment.ts';
 import { memo } from './memo.ts';
 import type { StateNode } from './StateNode.ts';
 import {
@@ -22,7 +22,7 @@ import type {
   StateValue,
   TransitionDefinition
 } from './types.ts';
-import { flatten, isString, matchesState, warn } from './utils.ts';
+import { flatten, isString, matchesState } from './utils.ts';
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -226,9 +226,8 @@ export class State<
    * @returns Whether the event will cause a transition
    */
   public can(event: TEvent): boolean {
-    if (IS_PRODUCTION) {
-      warn(
-        !!this.machine,
+    if (isDevelopment && !this.machine) {
+      console.warn(
         `state.can(...) used outside of a machine-created State object; this will always return false.`
       );
     }

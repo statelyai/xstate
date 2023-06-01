@@ -2,7 +2,7 @@ import { render, fireEvent } from '@testing-library/vue';
 import UseActorRef from './UseActorRef2.vue';
 
 describe('useActorRef', () => {
-  it('should be able to create an actor ref from a behavior', async () => {
+  it('should be able to create an actor ref from actor logic', async () => {
     const { getByTestId } = render(UseActorRef);
     const button = getByTestId('count');
 

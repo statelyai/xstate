@@ -17,20 +17,28 @@ const stripSymbolObservableMethodPlugin = ({ types: t }) => {
   };
 };
 
-// TODO: consider enabling loose mode
 module.exports = {
+  assumptions: {
+    constantReexports: true, // only matters for tests (since only there we transpile to CJS using Babel), it makes debugging easier
+    setClassMethods: true,
+    setComputedProperties: true,
+    setPublicClassFields: true,
+    setSpreadProperties: true
+  },
   presets: [
     [
       '@babel/preset-env',
       {
-        // we want to test files transpiled in the very same way as when we build dist files
-        // we don't use async functions in our public APIs though, so we can skip transforms related to them safely
-        exclude: isTest
-          ? [
-              '@babel/plugin-transform-async-to-generator',
-              '@babel/plugin-transform-regenerator'
-            ]
-          : []
+        targets: {
+          // Even though our packages are not node-only, we can use this as an approximation of the "target syntax level"
+          // as Babel doesn't support targets like "ES2022". We currently target the latest LTS version of node here.
+          // When targeting browsers, the code is usually going through some kind of bundler anyway
+          // and thus it's the user's responsibility to downlevel the code to what they need.
+          node: 16
+        },
+        exclude: [
+          '@babel/plugin-proposal-optional-chaining' // despite being supported by node 16 optional chaining was still transpiled by some reason
+        ]
       }
     ],
     ['@babel/preset-react', { runtime: 'automatic' }],

@@ -1,17 +1,18 @@
-import { EventObject } from 'xstate';
-import {
-  SerializedEvent,
-  SerializedState,
-  SimpleBehavior,
-  TraversalOptions
-} from './types';
+import { ActorLogic, ActorSystem, EventObject } from 'xstate';
+import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
 
-export function getAdjacencyMap<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  options: TraversalOptions<TState, TEvent>
-): AdjacencyMap<TState, TEvent> {
-  const { transition } = behavior;
+export function getAdjacencyMap<
+  TEvent extends EventObject,
+  TSnapshot,
+  TInternalState = TSnapshot,
+  TPersisted = TInternalState,
+  TSystem extends ActorSystem<any> = ActorSystem<any>
+>(
+  logic: ActorLogic<TEvent, TSnapshot, TInternalState, TPersisted, TSystem>,
+  options: TraversalOptions<TInternalState, TEvent>
+): AdjacencyMap<TInternalState, TEvent> {
+  const { transition } = logic;
   const {
     serializeEvent,
     serializeState,
@@ -20,16 +21,18 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
     fromState: customFromState,
     stopCondition
   } = resolveTraversalOptions(options);
-  const fromState = customFromState ?? behavior.initialState;
-  const adj: AdjacencyMap<TState, TEvent> = {};
+  const actorContext = undefined as any; // TODO: figure out the simulation API
+  const fromState =
+    customFromState ?? logic.getInitialState(actorContext, undefined);
+  const adj: AdjacencyMap<TInternalState, TEvent> = {};
 
   let iterations = 0;
   const queue: Array<{
-    nextState: TState;
+    nextState: TInternalState;
     event: TEvent | undefined;
-    prevState: TState | undefined;
+    prevState: TInternalState | undefined;
   }> = [{ nextState: fromState, event: undefined, prevState: undefined }];
-  const stateMap = new Map<SerializedState, TState>();
+  const stateMap = new Map<SerializedState, TInternalState>();
 
   while (queue.length) {
     const { nextState: state, event, prevState } = queue.shift()!;
@@ -61,7 +64,7 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
       typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
-      const nextState = transition(state, nextEvent);
+      const nextState = transition(state, nextEvent, actorContext);
 
       if (!options.filter || options.filter(nextState, nextEvent)) {
         adj[serializedState].transitions[

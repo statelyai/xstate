@@ -913,8 +913,8 @@ describe('entry/exit actions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const aa1State = machine.resolveStateValue({ A: 'A1' });
-      const service = interpret(machine, { state: aa1State }).start();
+      const service = interpret(machine).start();
+      flushTracked();
       service.send({ type: 'NEXT' });
 
       expect(flushTracked()).toEqual([
@@ -1372,13 +1372,15 @@ describe('entry/exit actions', () => {
         }
       });
 
-      interpret(parentMachine)
-        .onDone(() => {
+      const actor = interpret(parentMachine);
+      actor.subscribe({
+        complete: () => {
           expect(exitCalled).toBeTruthy();
           expect(childExitCalled).toBeTruthy();
           done();
-        })
-        .start();
+        }
+      });
+      actor.start();
     });
   });
 
@@ -2229,9 +2231,11 @@ describe('actions config', () => {
         }
       }
     );
-    const state = machine.transition('a', { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
+    const snapshot = actorRef.getSnapshot();
 
-    // expect(state.actions).toEqual([
+    // expect(snapshot.actions).toEqual([
     //   expect.objectContaining({
     //     type: 'definedAction'
     //   }),
@@ -2241,7 +2245,7 @@ describe('actions config', () => {
     // ]);
     // TODO: specify which actions other actions came from
 
-    expect(state.context).toEqual({ count: 10 });
+    expect(snapshot.context).toEqual({ count: 10 });
   });
 
   it('should work with anonymous functions (with warning)', () => {
@@ -2443,9 +2447,9 @@ describe('forwardTo()', () => {
       }
     });
 
-    const service = interpret(parent)
-      .onDone(() => done())
-      .start();
+    const service = interpret(parent);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
     service.send({ type: 'EVENT', value: 42 });
   });
@@ -2493,9 +2497,9 @@ describe('forwardTo()', () => {
       }
     });
 
-    const service = interpret(parent)
-      .onDone(() => done())
-      .start();
+    const service = interpret(parent);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
     service.send({ type: 'EVENT', value: 42 });
   });
@@ -3112,7 +3116,7 @@ describe('raise', () => {
 
     const service = interpret(machine).start();
 
-    service.onDone(() => done());
+    service.subscribe({ complete: () => done() });
 
     // Ensures that the delayed self-event is sent when in the `b` state
     service.send({ type: 'TO_B' });
@@ -3193,7 +3197,7 @@ describe('raise', () => {
 
     const service = interpret(machine).start();
 
-    service.onDone(() => done());
+    service.subscribe({ complete: () => done() });
 
     setTimeout(() => {
       // didn't transition yet
