@@ -235,7 +235,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any> {
+  ): StateMachine<TContext, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -309,7 +309,7 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, any, TEvent>) {}
+    >(_machine: StateMachine<TContext, TEvent, any, any, any>) {}
 
     acceptMachine(toggleMachine);
   });

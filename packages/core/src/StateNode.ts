@@ -117,7 +117,7 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: StateMachine<TContext, TEvent, any, any>;
+  public machine: StateMachine<TContext, TEvent, any, any, TODO, TODO>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -143,7 +143,7 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent, TODO, TODO>,
+    public config: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
@@ -169,7 +169,7 @@ export class StateNode<
         ? mapValues(
             this.config.states,
             (
-              stateConfig: StateNodeConfig<TContext, TEvent, TODO, TODO>,
+              stateConfig: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>,
               key
             ) => {
               const stateNode = new StateNode(stateConfig, {

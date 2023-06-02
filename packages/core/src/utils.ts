@@ -20,7 +20,8 @@ import type {
   Subscribable,
   TransitionConfig,
   TransitionConfigTarget,
-  TODO
+  TODO,
+  AnyActorRef
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -231,10 +232,11 @@ export function mapContext<
 >(
   mapper: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>,
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ): any {
   if (typeof mapper === 'function') {
-    return mapper({ context, event });
+    return mapper({ context, event, self });
   }
 
   const result = {} as any;
@@ -387,9 +389,12 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable: InvokeConfig<TContext, TEvent, TODO> | string | AnyActorLogic,
+  invocable:
+    | InvokeConfig<TContext, TEvent, TODO, TODO>
+    | string
+    | AnyActorLogic,
   id: string
-): InvokeConfig<TContext, TEvent, TODO> {
+): InvokeConfig<TContext, TEvent, TODO, TODO> {
   if (typeof invocable === 'object') {
     if ('src' in invocable) {
       return invocable;

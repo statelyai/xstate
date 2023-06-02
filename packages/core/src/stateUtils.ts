@@ -36,7 +36,8 @@ import {
   StateValueMap,
   TransitionConfig,
   TransitionDefinition,
-  TODO
+  TODO,
+  AnyActorRef
 } from './types.ts';
 import {
   isArray,
@@ -59,7 +60,8 @@ type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   configuration: StateNode<TContext, TEvent>[],
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ) {
   const machine = configuration[0].machine;
   const finalChildStateNode = configuration.find(
@@ -68,7 +70,7 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   );
 
   return finalChildStateNode && finalChildStateNode.output
-    ? mapContext(finalChildStateNode.output, context, event)
+    ? mapContext(finalChildStateNode.output, context, event, self)
     : undefined;
 }
 
@@ -1064,7 +1066,8 @@ function microstepProcedure(
     internalQueue,
     currentState,
     historyValue,
-    isInitial
+    isInitial,
+    actorCtx.self
   );
 
   const nextConfiguration = [...mutConfiguration];
@@ -1087,7 +1090,7 @@ function microstepProcedure(
     );
 
     const output = done
-      ? getOutput(nextConfiguration, nextState.context, event)
+      ? getOutput(nextConfiguration, nextState.context, event, actorCtx.self)
       : undefined;
 
     internalQueue.push(...nextState._internalQueue);
@@ -1116,7 +1119,8 @@ function enterStates(
   internalQueue: AnyEventObject[],
   currentState: AnyState,
   historyValue: HistoryValue<any, any>,
-  isInitial: boolean
+  isInitial: boolean,
+  self: AnyActorRef
 ): void {
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
@@ -1162,7 +1166,12 @@ function enterStates(
         done(
           parent!.id,
           stateNodeToEnter.output
-            ? mapContext(stateNodeToEnter.output, currentState.context, event)
+            ? mapContext(
+                stateNodeToEnter.output,
+                currentState.context,
+                event,
+                self
+              )
             : undefined
         )
       );

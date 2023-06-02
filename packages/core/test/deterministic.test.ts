@@ -69,7 +69,7 @@ describe('deterministic machine', () => {
           {
             type: 'TIMER'
           },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual('yellow');
     });
@@ -102,7 +102,7 @@ describe('deterministic machine', () => {
         lightMachine.transition(
           testMachine.resolveStateValue('red'),
           undefined as any,
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         )
       ).toThrow();
     });
@@ -112,7 +112,7 @@ describe('deterministic machine', () => {
         testMachine.transition(
           testMachine.resolveStateValue('a'),
           { type: 'T' },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual({
         b: 'b1'
@@ -124,7 +124,7 @@ describe('deterministic machine', () => {
         testMachine.transition(
           testMachine.resolveStateValue('fake'),
           { type: 'T' },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         )
       ).toThrow();
     });
@@ -136,7 +136,7 @@ describe('deterministic machine', () => {
           {
             type: 'T'
           },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         )
       ).toThrow();
     });
@@ -145,10 +145,10 @@ describe('deterministic machine', () => {
       expect(
         lightMachine.transition(
           lightMachine.getInitialState(
-            undefined as any // TODO: figure out the simulation API
+            {} as any // TODO: figure out the simulation API
           ),
           { type: 'TIMER' },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual('yellow');
     });
@@ -157,10 +157,10 @@ describe('deterministic machine', () => {
       expect(
         lightMachine.transition(
           lightMachine.getInitialState(
-            undefined as any // TODO: figure out the simulation API
+            {} as any // TODO: figure out the simulation API
           ),
           { type: 'TIMER' },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual('yellow');
     });
@@ -173,7 +173,7 @@ describe('deterministic machine', () => {
         lightMachine.transition(
           lightMachine.resolveStateValue({ red: 'walk' }),
           { type: 'PED_COUNTDOWN' },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual({ red: 'wait' });
     });
@@ -185,7 +185,7 @@ describe('deterministic machine', () => {
           {
             type: 'PED_COUNTDOWN'
           },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual({
         red: 'wait'
@@ -199,7 +199,7 @@ describe('deterministic machine', () => {
           {
             type: 'PED_COUNTDOWN'
           },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual({
         red: 'wait'
@@ -211,7 +211,7 @@ describe('deterministic machine', () => {
         lightMachine.transition(
           lightMachine.resolveStateValue({ red: 'stop' }),
           { type: 'TIMER' },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual('green');
     });
@@ -251,7 +251,7 @@ describe('deterministic machine', () => {
           {
             type: 'TIMER'
           },
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ).value
       ).toEqual({
         red: 'walk'
@@ -261,19 +261,19 @@ describe('deterministic machine', () => {
     it('should return the same state if no transition occurs', () => {
       const initialState = lightMachine.transition(
         lightMachine.getInitialState(
-          undefined as any // TODO: figure out the simulation API
+          {} as any // TODO: figure out the simulation API
         ),
         {
           type: 'NOTHING'
         },
-        undefined as any // TODO: figure out the simulation API
+        {} as any // TODO: figure out the simulation API
       );
       const nextState = lightMachine.transition(
         initialState,
         {
           type: 'NOTHING'
         },
-        undefined as any // TODO: figure out the simulation API
+        {} as any // TODO: figure out the simulation API
       );
 
       expect(initialState.value).toEqual(nextState.value);
@@ -307,10 +307,10 @@ describe('deterministic machine', () => {
       expect(
         machine.transition(
           machine.getInitialState(
-            undefined as any // TODO: figure out the simulation API
+            { self: {} } as any // TODO: figure out the simulation API
           ),
           { type: 'NEXT' },
-          undefined as any // TODO: figure out the simulation API
+          { self: {} } as any // TODO: figure out the simulation API
         ).value
       ).toEqual('test');
     });
@@ -321,7 +321,7 @@ describe('deterministic machine', () => {
       const walkState = lightMachine.transition(
         lightMachine.resolveStateValue({ red: 'walk' }),
         { type: 'TIMER' },
-        undefined as any // TODO: figure out the simulation API
+        {} as any // TODO: figure out the simulation API
       );
 
       expect(walkState.value).toEqual({ red: 'walk' });
