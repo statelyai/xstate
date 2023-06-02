@@ -914,37 +914,6 @@ type MachineImplementationsGuards<
   >;
 };
 
-type MachineImplementationsActors<
-  TContext extends MachineContext,
-  TEvents extends EventObject,
-  TActors extends ActorImpl,
-  TResolvedTypesMeta,
-  _TEventsCausingActors = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingActors'
-  >,
-  _TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  _TInvokeSrcNameMap = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'invokeSrcNameMap'
-  >
-> = {
-  // TODO: this should require `{ src, input }` for required inputs
-  [K in TActors['src']]?:
-    | WithDefault<TActors['logic'], AnyActorLogic>
-    | {
-        src: WithDefault<TActors['logic'], AnyActorLogic>;
-        input:
-          | Mapper<
-              TContext,
-              // Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>,
-              TEvents,
-              any
-            >
-          | any;
-      };
-};
-
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
 
 type MaybeMakeMissingImplementationsRequired<
@@ -1000,26 +969,6 @@ type GenerateGuardsImplementationsPart<
   guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
 };
 
-type GenerateActorsImplementationsPart<
-  TContext extends MachineContext,
-  TEvents extends EventObject,
-  TActors extends ActorImpl,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = MaybeMakeMissingImplementationsRequired<
-  'actors',
-  Prop<TMissingImplementations, 'actors'>,
-  TRequireMissingImplementations
-> & {
-  actors?: MachineImplementationsActors<
-    TContext,
-    TEvents,
-    TActors,
-    TResolvedTypesMeta
-  >;
-};
-
 export type InternalMachineImplementations<
   TContext extends MachineContext,
   TEvents extends EventObject,
@@ -1049,7 +998,6 @@ export type InternalMachineImplementations<
     TRequireMissingImplementations,
     TMissingImplementations
   > & {
-    // > //   TMissingImplementations //   TRequireMissingImplementations, //   TResolvedTypesMeta, //   TActors, //   TEvents, //   TContext, // GenerateActorsImplementationsPart<
     actors?: {
       [K in TActors['src']]?:
         | (TActors & { src: K })['logic']
