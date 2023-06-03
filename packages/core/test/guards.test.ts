@@ -17,6 +17,11 @@ describe('guard conditions', () => {
 
   const lightMachine = createMachine(
     {
+      types: {} as {
+        input: { elapsed?: number };
+        context: LightMachineCtx;
+        events: LightMachineEvents;
+      },
       context: ({ input = {} }) => ({
         elapsed: input.elapsed || 0
       }),

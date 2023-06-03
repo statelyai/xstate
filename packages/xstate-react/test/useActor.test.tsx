@@ -167,7 +167,11 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should accept input and provide it to the context factory', () => {
-    const testMachine = createMachine<{ foo: string; test: boolean }>({
+    const testMachine = createMachine({
+      types: {} as {
+        context: { foo: string; test: boolean };
+        input: { test: boolean };
+      },
       context: ({ input }) => ({
         foo: 'bar',
         test: input.test ?? false

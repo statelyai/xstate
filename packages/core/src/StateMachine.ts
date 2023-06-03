@@ -286,7 +286,7 @@ export class StateMachine<
       TEvent,
       State<TContext, TEvent, TActor, TResolvedTypesMeta>
     >,
-    input?: any
+    input?: TInput
   ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
