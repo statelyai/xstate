@@ -3,7 +3,6 @@ import {
   AnyStateMachine,
   EventFromLogic,
   InternalStateFrom,
-  SnapshotFrom
 } from '.';
 
 export function simulate<T extends AnyActorLogic>(
