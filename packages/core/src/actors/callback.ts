@@ -24,7 +24,7 @@ export function fromCallback<TEvent extends EventObject>(
     start: (_state, { self }) => {
       self.send({ type: startSignalType } as TEvent);
     },
-    transition: (state, event, { self, id }) => {
+    transition: (state, event, { self, id, system }) => {
       if (event.type === startSignalType) {
         const sender = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
@@ -39,7 +39,8 @@ export function fromCallback<TEvent extends EventObject>(
         };
 
         state.dispose = invokeCallback(sender, receiver, {
-          input: state.input
+          input: state.input,
+          system
         });
 
         if (isPromiseLike(state.dispose)) {

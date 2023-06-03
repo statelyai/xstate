@@ -2,6 +2,7 @@ import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { createMachine, interpret } from '../src/index.ts';
 import {
+  fromCallback,
   fromEventObservable,
   fromObservable,
   fromPromise,
@@ -365,6 +366,31 @@ describe('eventObservable logic (fromEventObservable)', () => {
     });
 
     interpret(observableLogic).start();
+  });
+});
+
+describe('callback logic (fromCallback)', () => {
+  it('should interpret a callback', () => {
+    expect.assertions(1);
+
+    const callbackLogic = fromCallback((_, receive) => {
+      receive((event) => {
+        expect(event).toEqual({ type: 'a' });
+      });
+    });
+
+    const actor = interpret(callbackLogic).start();
+
+    actor.send({ type: 'a' });
+  });
+
+  it('should have access to the system', () => {
+    expect.assertions(1);
+    const callbackLogic = fromCallback((_sendBack, _receive, { system }) => {
+      expect(system).toBeDefined();
+    });
+
+    interpret(callbackLogic).start();
   });
 });
 

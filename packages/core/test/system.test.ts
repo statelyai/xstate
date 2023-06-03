@@ -276,7 +276,7 @@ describe('system', () => {
   });
 
   it('should be accessible in other actors', () => {
-    expect.assertions(5);
+    expect.assertions(6);
     const machine = createMachine({
       invoke: [
         {
@@ -306,6 +306,11 @@ describe('system', () => {
           src: fromEventObservable(({ system }) => {
             expect(system.get('test')).toBeDefined();
             return of({ type: 'a' });
+          })
+        },
+        {
+          src: fromCallback((_sendBack, _receive, { system }) => {
+            expect(system.get('test')).toBeDefined();
           })
         }
       ]

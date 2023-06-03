@@ -376,7 +376,7 @@ export type InvokeCallback<
 > = (
   sendBack: (event: TSentEvent) => void,
   onReceive: Receiver<TEvent>,
-  { input }: { input: any }
+  { input, system }: { input: any; system: AnyActorSystem }
 ) => (() => void) | Promise<any> | void;
 
 export interface InvokeMeta {
