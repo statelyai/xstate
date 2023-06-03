@@ -84,27 +84,27 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options = {}, observerOrListener]: RestParams<TLogic>
 ): ActorRefFrom<TLogic> {
-  const interpretedActor = useIdleInterpreter(machine, options);
+  const actorRef = useIdleInterpreter(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
       return;
     }
-    let sub = interpretedActor.subscribe(toObserver(observerOrListener));
+    let sub = actorRef.subscribe(toObserver(observerOrListener));
     return () => {
       sub.unsubscribe();
     };
   }, [observerOrListener]);
 
   useEffect(() => {
-    interpretedActor.start();
+    actorRef.start();
 
     return () => {
-      interpretedActor.stop();
-      interpretedActor.status = InterpreterStatus.NotStarted;
-      (interpretedActor as any)._initState();
+      actorRef.stop();
+      actorRef.status = InterpreterStatus.NotStarted;
+      (actorRef as any)._initState();
     };
   }, []);
 
-  return interpretedActor as any;
+  return actorRef as any;
 }
