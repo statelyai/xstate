@@ -440,4 +440,35 @@ describe('createActorContext', () => {
     // Ensure that the state machine is restored to the persisted state
     expect(screen.getByTestId('value').textContent).toBe('b');
   });
+
+  it('input can be passed to the provider', () => {
+    const SomeContext = createActorContext(
+      createMachine({
+        types: {} as {
+          context: { doubled: number };
+        },
+        context: ({ input }) => ({
+          doubled: input * 2
+        })
+      })
+    );
+
+    const Component = () => {
+      const doubled = SomeContext.useSelector((state) => state.context.doubled);
+
+      return <div data-testid="value">{doubled}</div>;
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider options={{ input: 42 }}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('84');
+  });
 });
