@@ -1,3 +1,4 @@
+import { simulate } from 'xstate';
 import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
@@ -43,14 +44,14 @@ describe('testModel.testPaths(...)', () => {
     );
 
     const paths = testModel.getPaths((logic, options) => {
-      const actorContext = undefined as any; // TODO: figure out the simulation API
-      const initialState = logic.getInitialState(actorContext, undefined);
+      const simLogic = simulate(logic);
+      const initialState = simLogic.getInitialState();
       const events =
         typeof options.events === 'function'
           ? options.events(initialState)
           : options.events ?? [];
 
-      const nextState = logic.transition(initialState, events[0], actorContext);
+      const nextState = simLogic.transition(initialState, events[0]);
       return [
         {
           state: nextState,

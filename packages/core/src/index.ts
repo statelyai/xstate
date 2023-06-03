@@ -41,7 +41,7 @@ export {
 } from './actors/index.ts';
 
 export { stateIn, not, and, or } from './guards.ts';
-
+export { simulate } from './simulate.ts';
 declare global {
   interface SymbolConstructor {
     readonly observable: symbol;

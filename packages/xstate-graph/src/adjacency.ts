@@ -1,4 +1,10 @@
-import { ActorLogic, ActorSystem, EventObject } from 'xstate';
+import {
+  ActorLogic,
+  ActorSystem,
+  EventObject,
+  InternalStateFrom,
+  simulate
+} from 'xstate';
 import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
 
@@ -12,7 +18,7 @@ export function getAdjacencyMap<
   logic: ActorLogic<TEvent, TSnapshot, TInternalState, TPersisted, TSystem>,
   options: TraversalOptions<TInternalState, TEvent>
 ): AdjacencyMap<TInternalState, TEvent> {
-  const { transition } = logic;
+  const sim = simulate(logic);
   const {
     serializeEvent,
     serializeState,
@@ -21,9 +27,7 @@ export function getAdjacencyMap<
     fromState: customFromState,
     stopCondition
   } = resolveTraversalOptions(options);
-  const actorContext = undefined as any; // TODO: figure out the simulation API
-  const fromState =
-    customFromState ?? logic.getInitialState(actorContext, undefined);
+  const fromState = customFromState ?? sim.getInitialState();
   const adj: AdjacencyMap<TInternalState, TEvent> = {};
 
   let iterations = 0;
@@ -64,7 +68,10 @@ export function getAdjacencyMap<
       typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
-      const nextState = transition(state, nextEvent, actorContext);
+      const nextState = sim.transition(
+        state as InternalStateFrom<typeof logic>,
+        nextEvent
+      );
 
       if (!options.filter || options.filter(nextState, nextEvent)) {
         adj[serializedState].transitions[

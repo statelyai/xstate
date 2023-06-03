@@ -6,6 +6,7 @@ import {
   StateNode,
   StateValue
 } from '../src/index.ts';
+import { simulate } from '../src/simulate.ts';
 
 export function testMultiTransition(
   machine: AnyStateMachine,
@@ -19,11 +20,7 @@ export function testMultiTransition(
           ? machine.resolveStateValue(JSON.parse(state))
           : machine.resolveStateValue(state);
     }
-    const nextState = machine.transition(
-      state,
-      { type: eventType },
-      undefined as any // TODO: figure out the simulation API
-    );
+    const nextState = simulate(machine).transition(state, { type: eventType });
     return nextState;
   };
 

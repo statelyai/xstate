@@ -1,4 +1,10 @@
-import { ActorLogic, ActorSystem, AnyStateMachine, EventObject } from 'xstate';
+import {
+  ActorLogic,
+  ActorSystem,
+  AnyStateMachine,
+  EventObject,
+  simulate
+} from 'xstate';
 import { getAdjacencyMap } from './adjacency';
 import { SerializedState, StatePath, Steps, TraversalOptions } from './types';
 import {
@@ -31,9 +37,8 @@ export function getPathsFromEvents<
       ? createDefaultMachineOptions(logic)
       : createDefaultLogicOptions(logic)
   );
-  const actorContext = undefined as any; // TODO: figure out the simulation API
   const fromState =
-    resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
+    resolvedOptions.fromState ?? simulate(logic).getInitialState();
 
   const { serializeState, serializeEvent } = resolvedOptions;
 

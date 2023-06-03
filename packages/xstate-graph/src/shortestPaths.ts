@@ -3,7 +3,8 @@ import {
   AnyStateMachine,
   StateFrom,
   EventFrom,
-  ActorLogic
+  ActorLogic,
+  simulate
 } from 'xstate';
 import {
   SerializedEvent,
@@ -24,11 +25,7 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
   const fromState =
-    resolvedOptions.fromState ??
-    logic.getInitialState(
-      undefined as any, // TODO: figure out the simulation API
-      undefined
-    );
+    resolvedOptions.fromState ?? simulate(logic).getInitialState();
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event

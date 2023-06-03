@@ -3,7 +3,8 @@ import {
   AnyStateMachine,
   StateFrom,
   EventFrom,
-  ActorLogic
+  ActorLogic,
+  simulate
 } from 'xstate';
 import {
   SerializedEvent,
@@ -32,9 +33,8 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const actorContext = undefined as any; // TODO: figure out the simulation API
   const fromState =
-    resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
+    resolvedOptions.fromState ?? simulate(logic).getInitialState();
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;

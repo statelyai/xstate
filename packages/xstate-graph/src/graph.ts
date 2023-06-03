@@ -5,7 +5,8 @@ import {
   StateFrom,
   EventFrom,
   StateMachine,
-  AnyActorLogic
+  AnyActorLogic,
+  simulate
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -93,9 +94,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         })
       ) as any[];
     },
-    fromState: machine.getInitialState(
-      undefined as any // TODO: figure out the simulation API
-    ) as StateFrom<TMachine>,
+    fromState: simulate(machine).getInitialState() as StateFrom<TMachine>,
     ...otherOptions
   };
 

@@ -1,5 +1,6 @@
 import { interpret } from '../src/index.ts';
 import { createMachine } from '../src/Machine.ts';
+import { simulate } from '../src/simulate.ts';
 
 describe('deterministic machine', () => {
   const lightMachine = createMachine({
@@ -64,12 +65,11 @@ describe('deterministic machine', () => {
   describe('machine.transition()', () => {
     it('should properly transition states based on event-like object', () => {
       expect(
-        lightMachine.transition(
+        simulate(lightMachine).transition(
           lightMachine.resolveStateValue('green'),
           {
             type: 'TIMER'
-          },
-          undefined as any // TODO: figure out the simulation API
+          }
         ).value
       ).toEqual('yellow');
     });
@@ -97,21 +97,18 @@ describe('deterministic machine', () => {
 
     it('should throw an error if not given an event', () => {
       expect(() =>
-        lightMachine.transition(
+        simulate(lightMachine).transition(
           testMachine.resolveStateValue('red'),
-          undefined as any,
-          undefined as any // TODO: figure out the simulation API
+          undefined as any
         )
       ).toThrow();
     });
 
     it('should transition to nested states as target', () => {
       expect(
-        testMachine.transition(
-          testMachine.resolveStateValue('a'),
-          { type: 'T' },
-          undefined as any // TODO: figure out the simulation API
-        ).value
+        simulate(testMachine).transition(testMachine.resolveStateValue('a'), {
+          type: 'T'
+        }).value
       ).toEqual({
         b: 'b1'
       });
@@ -119,47 +116,37 @@ describe('deterministic machine', () => {
 
     it('should throw an error for transitions from invalid states', () => {
       expect(() =>
-        testMachine.transition(
+        simulate(testMachine).transition(
           testMachine.resolveStateValue('fake'),
-          { type: 'T' },
-          undefined as any // TODO: figure out the simulation API
+          { type: 'T' }
         )
       ).toThrow();
     });
 
     it('should throw an error for transitions from invalid substates', () => {
       expect(() =>
-        testMachine.transition(
+        simulate(testMachine).transition(
           testMachine.resolveStateValue('a.fake'),
           {
             type: 'T'
-          },
-          undefined as any // TODO: figure out the simulation API
+          }
         )
       ).toThrow();
     });
 
     it('should use the machine.initialState when an undefined state is given', () => {
       expect(
-        lightMachine.transition(
-          lightMachine.getInitialState(
-            undefined as any // TODO: figure out the simulation API
-          ),
-          { type: 'TIMER' },
-          undefined as any // TODO: figure out the simulation API
-        ).value
+        simulate(lightMachine).transition(undefined, {
+          type: 'TIMER'
+        }).value
       ).toEqual('yellow');
     });
 
     it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
       expect(
-        lightMachine.transition(
-          lightMachine.getInitialState(
-            undefined as any // TODO: figure out the simulation API
-          ),
-          { type: 'TIMER' },
-          undefined as any // TODO: figure out the simulation API
-        ).value
+        simulate(lightMachine).transition(undefined, {
+          type: 'TIMER'
+        }).value
       ).toEqual('yellow');
     });
   });
@@ -168,22 +155,20 @@ describe('deterministic machine', () => {
   describe('machine.transition() with nested states', () => {
     it('should properly transition a nested state', () => {
       expect(
-        lightMachine.transition(
+        simulate(lightMachine).transition(
           lightMachine.resolveStateValue({ red: 'walk' }),
-          { type: 'PED_COUNTDOWN' },
-          undefined as any // TODO: figure out the simulation API
+          { type: 'PED_COUNTDOWN' }
         ).value
       ).toEqual({ red: 'wait' });
     });
 
     it('should transition from initial nested states', () => {
       expect(
-        lightMachine.transition(
+        simulate(lightMachine).transition(
           lightMachine.resolveStateValue('red'),
           {
             type: 'PED_COUNTDOWN'
-          },
-          undefined as any // TODO: figure out the simulation API
+          }
         ).value
       ).toEqual({
         red: 'wait'
@@ -192,12 +177,11 @@ describe('deterministic machine', () => {
 
     it('should transition from deep initial nested states', () => {
       expect(
-        lightMachine.transition(
+        simulate(lightMachine).transition(
           lightMachine.resolveStateValue('red'),
           {
             type: 'PED_COUNTDOWN'
-          },
-          undefined as any // TODO: figure out the simulation API
+          }
         ).value
       ).toEqual({
         red: 'wait'
@@ -206,10 +190,9 @@ describe('deterministic machine', () => {
 
     it('should bubble up events that nested states cannot handle', () => {
       expect(
-        lightMachine.transition(
+        simulate(lightMachine).transition(
           lightMachine.resolveStateValue({ red: 'stop' }),
-          { type: 'TIMER' },
-          undefined as any // TODO: figure out the simulation API
+          { type: 'TIMER' }
         ).value
       ).toEqual('green');
     });
@@ -242,12 +225,11 @@ describe('deterministic machine', () => {
 
     it('should transition to the deepest initial state', () => {
       expect(
-        lightMachine.transition(
+        simulate(lightMachine).transition(
           lightMachine.resolveStateValue('yellow'),
           {
             type: 'TIMER'
-          },
-          undefined as any // TODO: figure out the simulation API
+          }
         ).value
       ).toEqual({
         red: 'walk'
@@ -255,22 +237,12 @@ describe('deterministic machine', () => {
     });
 
     it('should return the equivalent state if no transition occurs', () => {
-      const initialState = lightMachine.transition(
-        lightMachine.getInitialState(
-          undefined as any // TODO: figure out the simulation API
-        ),
-        {
-          type: 'NOTHING'
-        },
-        undefined as any // TODO: figure out the simulation API
-      );
-      const nextState = lightMachine.transition(
-        initialState,
-        {
-          type: 'NOTHING'
-        },
-        undefined as any // TODO: figure out the simulation API
-      );
+      const initialState = simulate(lightMachine).transition(undefined, {
+        type: 'NOTHING'
+      });
+      const nextState = simulate(lightMachine).transition(initialState, {
+        type: 'NOTHING'
+      });
 
       expect(initialState.value).toEqual(nextState.value);
       expect(nextState.changed).toBe(false);
@@ -289,11 +261,9 @@ describe('deterministic machine', () => {
         }
       });
       expect(
-        machine.transition(
-          machine.resolveStateValue('a'),
-          { type: 'NEXT' },
-          undefined as any // TODO: figure out the simulation API
-        ).value
+        simulate(machine).transition(machine.resolveStateValue('a'), {
+          type: 'NEXT'
+        }).value
       ).toBe('pass');
     });
   });
@@ -315,23 +285,18 @@ describe('deterministic machine', () => {
 
     it('should work with substate nodes that have the same key', () => {
       expect(
-        machine.transition(
-          machine.getInitialState(
-            undefined as any // TODO: figure out the simulation API
-          ),
-          { type: 'NEXT' },
-          undefined as any // TODO: figure out the simulation API
-        ).value
+        simulate(machine).transition(undefined, {
+          type: 'NEXT'
+        }).value
       ).toEqual('test');
     });
   });
 
   describe('forbidden events', () => {
     it('undefined transitions should forbid events', () => {
-      const walkState = lightMachine.transition(
+      const walkState = simulate(lightMachine).transition(
         lightMachine.resolveStateValue({ red: 'walk' }),
-        { type: 'TIMER' },
-        undefined as any // TODO: figure out the simulation API
+        { type: 'TIMER' }
       );
 
       expect(walkState.value).toEqual({ red: 'walk' });

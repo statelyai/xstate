@@ -5,7 +5,8 @@ import {
   EventObject,
   StateValue,
   AnyState,
-  assign
+  assign,
+  simulate
 } from 'xstate';
 import {
   getStateNodes,
@@ -206,11 +207,7 @@ describe('@xstate/graph', () => {
 
       expect(
         shortestPaths.find((path) =>
-          path.state.matches(
-            lightMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
-            ).value
-          )
+          path.state.matches(simulate(lightMachine).getInitialState().value)
         )!.steps
       ).toHaveLength(0);
     });
@@ -366,38 +363,22 @@ describe('@xstate/graph', () => {
     it('should return a single empty path for the initial state', () => {
       expect(
         getMachineSimplePaths(lightMachine).find((p) =>
-          p.state.matches(
-            lightMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
-            ).value
-          )
+          p.state.matches(simulate(lightMachine).getInitialState().value)
         )
       ).toBeDefined();
       expect(
         getMachineSimplePaths(lightMachine).find((p) =>
-          p.state.matches(
-            lightMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
-            ).value
-          )
+          p.state.matches(simulate(lightMachine).getInitialState().value)
         )!.steps
       ).toHaveLength(0);
       expect(
         getMachineSimplePaths(equivMachine).find((p) =>
-          p.state.matches(
-            equivMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
-            ).value
-          )
+          p.state.matches(simulate(equivMachine).getInitialState().value)
         )!
       ).toBeDefined();
       expect(
         getMachineSimplePaths(equivMachine).find((p) =>
-          p.state.matches(
-            equivMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
-            ).value
-          )
+          p.state.matches(simulate(equivMachine).getInitialState().value)
         )!.steps
       ).toHaveLength(0);
     });
