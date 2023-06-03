@@ -379,23 +379,6 @@ export type InvokeCallback<
   { input }: { input: any }
 ) => (() => void) | Promise<any> | void;
 
-export type ActorLogicCreator<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActorLogic extends AnyActorLogic = AnyActorLogic
-> = (
-  context: TContext,
-  event: TEvent,
-  meta: {
-    id: string;
-    data?: any;
-    src: string;
-    event: TEvent;
-    meta: MetaObject | undefined;
-    input: any;
-  }
-) => TActorLogic;
-
 export interface InvokeMeta {
   src: string;
   meta: MetaObject | undefined;
@@ -1912,6 +1895,9 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
 }
+
+export type AnyActorSystem = ActorSystem<any>;
+
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
   'value' | 'output' | 'context' | 'event' | 'done' | 'historyValue'

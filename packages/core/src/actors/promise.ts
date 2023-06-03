@@ -1,4 +1,4 @@
-import { ActorLogic } from '../types';
+import { ActorLogic, AnyActorSystem } from '../types';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T> {
@@ -9,7 +9,13 @@ export interface PromiseInternalState<T> {
 
 export function fromPromise<T>(
   // TODO: add types
-  promiseCreator: ({ input }: { input: any }) => PromiseLike<T>
+  promiseCreator: ({
+    input,
+    system
+  }: {
+    input: any;
+    system: AnyActorSystem;
+  }) => PromiseLike<T>
 ): ActorLogic<{ type: string }, T | undefined, PromiseInternalState<T>> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
@@ -58,7 +64,7 @@ export function fromPromise<T>(
           return state;
       }
     },
-    start: (state, { self }) => {
+    start: (state, { self, system }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
@@ -66,7 +72,7 @@ export function fromPromise<T>(
       }
 
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input })
+        promiseCreator({ input: state.input, system })
       );
 
       resolvedPromise.then(

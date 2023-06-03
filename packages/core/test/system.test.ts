@@ -1,9 +1,14 @@
+import { of } from 'rxjs';
 import { fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
   ActorSystem,
   assign,
   createMachine,
+  fromEventObservable,
+  fromObservable,
+  fromPromise,
+  fromTransition,
   interpret,
   sendTo,
   stop
@@ -268,5 +273,49 @@ describe('system', () => {
     });
 
     interpret(machine).start();
+  });
+
+  it('should be accessible in other actors', () => {
+    expect.assertions(5);
+    const machine = createMachine({
+      invoke: [
+        {
+          src: createMachine({}),
+          systemId: 'test'
+        },
+        {
+          src: fromPromise(({ system }) => {
+            expect(system.get('test')).toBeDefined();
+            return Promise.resolve();
+          })
+        },
+        {
+          src: fromTransition((_state, _event, { system }) => {
+            expect(system.get('test')).toBeDefined();
+            return 0;
+          }, 0),
+          systemId: 'reducer'
+        },
+        {
+          src: fromObservable(({ system }) => {
+            expect(system.get('test')).toBeDefined();
+            return of(0);
+          })
+        },
+        {
+          src: fromEventObservable(({ system }) => {
+            expect(system.get('test')).toBeDefined();
+            return of({ type: 'a' });
+          })
+        }
+      ]
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.system.get('test')).toBeDefined();
+
+    // The assertion won't be checked until the transition function gets an event
+    actor.system.get('reducer')!.send({ type: 'a' });
   });
 });
