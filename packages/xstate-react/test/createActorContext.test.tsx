@@ -426,14 +426,18 @@ describe('createActorContext', () => {
 
     fireEvent.click(screen.getByTestId('value'));
 
+    // Ensure that the state machine without restored state functions as normal
     expect(screen.getByTestId('value').textContent).toBe('b');
 
     // unrender app
     unmount();
 
+    // At this point, `state` should be `{ value: 'b' }`
+
     // re-render app
     render(<App />);
 
+    // Ensure that the state machine is restored to the persisted state
     expect(screen.getByTestId('value').textContent).toBe('b');
   });
 });
