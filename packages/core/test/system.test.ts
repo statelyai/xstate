@@ -275,8 +275,8 @@ describe('system', () => {
     interpret(machine).start();
   });
 
-  it('should be accessible in other actors', () => {
-    expect.assertions(6);
+  it('should be accessible in promise logic', () => {
+    expect.assertions(2);
     const machine = createMachine({
       invoke: [
         {
@@ -288,25 +288,95 @@ describe('system', () => {
             expect(system.get('test')).toBeDefined();
             return Promise.resolve();
           })
+        }
+      ]
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.system.get('test')).toBeDefined();
+  });
+
+  it('should be accessible in transition logic', () => {
+    expect.assertions(2);
+    const machine = createMachine({
+      invoke: [
+        {
+          src: createMachine({}),
+          systemId: 'test'
         },
+
         {
           src: fromTransition((_state, _event, { system }) => {
             expect(system.get('test')).toBeDefined();
             return 0;
           }, 0),
           systemId: 'reducer'
+        }
+      ]
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.system.get('test')).toBeDefined();
+
+    // The assertion won't be checked until the transition function gets an event
+    actor.system.get('reducer')!.send({ type: 'a' });
+  });
+
+  it('should be accessible in observable logic', () => {
+    expect.assertions(2);
+    const machine = createMachine({
+      invoke: [
+        {
+          src: createMachine({}),
+          systemId: 'test'
         },
+
         {
           src: fromObservable(({ system }) => {
             expect(system.get('test')).toBeDefined();
             return of(0);
           })
+        }
+      ]
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.system.get('test')).toBeDefined();
+  });
+
+  it('should be accessible in event observable logic', () => {
+    expect.assertions(2);
+    const machine = createMachine({
+      invoke: [
+        {
+          src: createMachine({}),
+          systemId: 'test'
         },
+
         {
           src: fromEventObservable(({ system }) => {
             expect(system.get('test')).toBeDefined();
             return of({ type: 'a' });
           })
+        }
+      ]
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.system.get('test')).toBeDefined();
+  });
+
+  it('should be accessible in callback logic', () => {
+    expect.assertions(2);
+    const machine = createMachine({
+      invoke: [
+        {
+          src: createMachine({}),
+          systemId: 'test'
         },
         {
           src: fromCallback((_sendBack, _receive, { system }) => {
@@ -319,8 +389,5 @@ describe('system', () => {
     const actor = interpret(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
-
-    // The assertion won't be checked until the transition function gets an event
-    actor.system.get('reducer')!.send({ type: 'a' });
   });
 });
