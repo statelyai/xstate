@@ -31,7 +31,12 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = simulate(machine).microstep(undefined, { type: 'GO' });
+    const { actorContext, getInitialState } = simulate(machine);
+    const states = machine.microstep(
+      getInitialState(),
+      { type: 'GO' },
+      actorContext
+    );
 
     expect(states.map((s) => s.value)).toEqual(['a', 'b', 'c', 'd']);
   });
@@ -52,9 +57,13 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = simulate(machine).microstep(
+    const { actorContext } = simulate(machine);
+    const states = machine.microstep(
       machine.resolveStateValue('first'),
-      { type: 'TRIGGER' }
+      {
+        type: 'TRIGGER'
+      },
+      actorContext
     );
 
     expect(states.map((s) => s.value)).toEqual(['second', 'third']);
@@ -81,9 +90,13 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = simulate(machine).microstep(
+    const { actorContext } = simulate(machine);
+    const states = machine.microstep(
       machine.resolveStateValue('first'),
-      { type: 'TRIGGER' }
+      {
+        type: 'TRIGGER'
+      },
+      actorContext
     );
 
     expect(states.map((s) => s.value)).toEqual(['second', 'third']);
@@ -102,7 +115,12 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = simulate(machine).microstep(undefined, { type: 'TRIGGER' });
+    const { actorContext, getInitialState } = simulate(machine);
+    const states = machine.microstep(
+      getInitialState(),
+      { type: 'TRIGGER' },
+      actorContext
+    );
 
     expect(states.map((s) => s.value)).toEqual(['second']);
   });
@@ -140,7 +158,12 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = simulate(machine).microstep(undefined, { type: 'TRIGGER' });
+    const { actorContext, getInitialState } = simulate(machine);
+    const states = machine.microstep(
+      getInitialState(),
+      { type: 'TRIGGER' },
+      actorContext
+    );
 
     expect(states.map((s) => [s.value, s._internalQueue.length])).toEqual([
       ['second', 2], // foo, bar
@@ -173,7 +196,12 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = simulate(machine).microstep(undefined, { type: 'TRIGGER' });
+    const { actorContext, getInitialState } = simulate(machine);
+    const states = machine.microstep(
+      getInitialState(),
+      { type: 'TRIGGER' },
+      actorContext
+    );
 
     expect(states.map((s) => s.actions.map((a) => a.type))).toEqual([
       ['one'],

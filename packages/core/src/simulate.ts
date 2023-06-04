@@ -39,23 +39,7 @@ export function simulate<T extends AnyActorLogic>(
     getInitialState: () => {
       return actorLogic.getInitialState(dummyActorContext, options.input);
     },
-    microstep: (
-      state: InternalStateFrom<T> = actorLogic.getInitialState(
-        dummyActorContext,
-        options.input
-      ),
-      event: EventFromLogic<T>
-    ): Array<InternalStateFrom<T>> => {
-      return (
-        'microstep' in actorLogic
-          ? (actorLogic as unknown as AnyStateMachine).microstep(
-              state,
-              event,
-              dummyActorContext
-            )
-          : [sim.transition(state, event)]
-      ) as Array<InternalStateFrom<T>>;
-    }
+    actorContext: dummyActorContext
   };
 
   return sim;
