@@ -1,18 +1,30 @@
 import {
+  AnyActorContext,
   AnyActorLogic,
   AnyStateMachine,
   EventFromLogic,
-  InternalStateFrom,
-  SnapshotFrom
+  InternalStateFrom
 } from '.';
+import { createEmptyActor } from './actors';
+
+function createMockActorContext(): AnyActorContext {
+  const emptyActor = createEmptyActor();
+  return {
+    self: emptyActor,
+    logger: console.log,
+    id: 'root_test',
+    sessionId: Math.random().toString(32).slice(2),
+    defer: () => {},
+    system: emptyActor,
+    stopChild: () => {}
+  };
+}
 
 export function simulate<T extends AnyActorLogic>(
   actorLogic: T,
   options: { input?: any } = {}
 ) {
-  const dummyActorContext: any = {
-    self: {}
-  };
+  const dummyActorContext = createMockActorContext();
 
   const sim = {
     transition: (
