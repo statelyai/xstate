@@ -94,7 +94,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         })
       ) as any[];
     },
-    fromState: simulate(machine).getInitialState() as StateFrom<TMachine>,
+    fromState: simulate(machine).getInitialState(),
     ...otherOptions
   };
 
