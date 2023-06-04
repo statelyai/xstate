@@ -1,7 +1,6 @@
 import type {
   AnyActorContext,
   AnyActorLogic,
-  AnyStateMachine,
   EventFromLogic,
   InternalStateFrom
 } from '.';
