@@ -1,0 +1,94 @@
+body {
+  font-family: sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-size: 21px;
+  line-height: 1.6;
+  background: #111;
+  color: #fefefe;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  position: relative;
+}
+
+video {
+  width: 100%;
+  box-shadow: 0 1rem 2rem #0007;
+}
+
+#player[data-state~="full"] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  padding: 10vmin;
+  background: #000c;
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#player[data-state~="full"]:after {
+  opacity: 0;
+  display: none;
+  pointer-events: none;
+}
+
+#player {
+  position: relative;
+  width: 15rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#player:after {
+  content: "▶";
+  color: white;
+  font-size: 3rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #0004;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  margin: 0 10%;
+  grid-column-gap: 2rem;
+}
+
+.App {
+  text-align: center;
+}
