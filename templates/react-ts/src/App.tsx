@@ -1,18 +1,19 @@
+import { useState } from 'react';
 import './App.css';
-import { feedbackMachine } from './feedbackMachine';
-import { useMachine } from '@xstate/react';
 
 function Feedback() {
-  const [state, send] = useMachine(feedbackMachine);
+  const [state, setState] = useState('prompt');
+  const isClosed = false;
+  const feedback = '';
 
-  if (state.matches('closed')) {
+  if (isClosed) {
     return (
       <div>
         <em>Feedback form closed.</em>
         <br />
         <button
           onClick={() => {
-            send({ type: 'restart' });
+            // Send event...
           }}
         >
           Provide more feedback
@@ -26,46 +27,46 @@ function Feedback() {
       <button
         className="close-button"
         onClick={() => {
-          send({ type: 'close' });
+          // Send event...
         }}
       >
         Close
       </button>
-      {state.matches('prompt') && (
+      {state === 'prompt' && (
         <div className="step">
           <h2>How was your experience?</h2>
           <button
             className="button"
-            onClick={() => send({ type: 'feedback.good' })}
+            onClick={() => {
+              // Send event...
+            }}
           >
             Good
           </button>
           <button
             className="button"
-            onClick={() => send({ type: 'feedback.bad' })}
+            onClick={() => {
+              // Send event...
+            }}
           >
             Bad
           </button>
         </div>
       )}
 
-      {state.matches('thanks') && (
+      {state === 'thanks' && (
         <div className="step">
           <h2>Thanks for your feedback.</h2>
-          {state.context.feedback.length > 0 && (
-            <p>"{state.context.feedback}"</p>
-          )}
+          {feedback.length > 0 && <p>"{feedback}"</p>}
         </div>
       )}
 
-      {state.matches('form') && (
+      {state === 'form' && (
         <form
           className="step"
           onSubmit={(ev) => {
             ev.preventDefault();
-            send({
-              type: 'submit'
-            });
+            // Send event...
           }}
         >
           <h2>What can we do better?</h2>
@@ -73,21 +74,18 @@ function Feedback() {
             name="feedback"
             rows={4}
             placeholder="So many things..."
-            onChange={(ev) => {
-              send({
-                type: 'feedback.update',
-                value: ev.target.value
-              });
+            onChange={() => {
+              // Send event...
             }}
           />
-          <button className="button" disabled={!state.can({ type: 'submit' })}>
+          <button className="button" disabled={false}>
             Submit
           </button>
           <button
             className="button"
             type="button"
             onClick={() => {
-              send({ type: 'back' });
+              // Send event...
             }}
           >
             Back
