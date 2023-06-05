@@ -396,10 +396,10 @@
     magic-string "^0.27.0"
     react-refresh "^0.14.0"
 
-"@xstate/react@^3.2.2":
-  version "3.2.2"
-  resolved "https://registry.yarnpkg.com/@xstate/react/-/react-3.2.2.tgz#ddf0f9d75e2c19375b1e1b7335e72cb99762aed8"
-  integrity sha512-feghXWLedyq8JeL13yda3XnHPZKwYDN5HPBLykpLeuNpr9178tQd2/3d0NrH6gSd0sG5mLuLeuD+ck830fgzLQ==
+"@xstate/react@^4.0.0-beta.5":
+  version "4.0.0-beta.5"
+  resolved "https://registry.yarnpkg.com/@xstate/react/-/react-4.0.0-beta.5.tgz#e953f074d8590c6948eb12cfb4a36a9baa77c110"
+  integrity sha512-E/icGXFNnTJFk3aoA8VOKQ988+R2a9j/o4g6bFhBlitQuoFgtFYWUX/d1R+rc/xaYKIxtE/lPodzqCa5s39VHQ==
   dependencies:
     use-isomorphic-layout-effect "^1.1.2"
     use-sync-external-store "^1.0.0"
@@ -721,10 +721,10 @@ vite@^4.1.0:
   optionalDependencies:
     fsevents "~2.3.2"
 
-xstate@^4.37.2:
-  version "4.37.2"
-  resolved "https://registry.yarnpkg.com/xstate/-/xstate-4.37.2.tgz#c5f4c1d8062784238b91e2dfddca05f821cb4eac"
-  integrity sha512-Qm337O49CRTZ3PRyRuK6b+kvI+D3JGxXIZCTul+xEsyFCVkTFDt5jixaL1nBWcUBcaTQ9um/5CRGVItPi7fveg==
+xstate@^5.0.0-beta.13:
+  version "5.0.0-beta.13"
+  resolved "https://registry.yarnpkg.com/xstate/-/xstate-5.0.0-beta.13.tgz#66f89ad99ce499e10891b60647643fea60f98643"
+  integrity sha512-cv27Y9t6xJimBZ/FBFe6Vjegai/3Gv6INFQcdsiNGrFuXXjP7IMwjytOIxL6VhlDasXcoofWQoPy95v2d284ow==
 
 yallist@^3.0.2:
   version "3.1.1"

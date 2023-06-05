@@ -1,47 +1,134 @@
 import { useReducer, useState } from 'react';
 import './App.css';
-import { assign, createMachine, raise } from 'xstate';
-import { useInterpret, useMachine, useSelector } from '@xstate/react';
+import {
+  assign,
+  createMachine,
+  fromPromise,
+  interpret,
+  raise,
+  sendTo
+} from 'xstate';
+import { useActorRef, useActor, useSelector } from '@xstate/react';
 
 const machine = createMachine(
   {
-    /** @xstate-layout N4IgpgJg5mDOIC5QDMyQEYEMDGBrAxNgDYD2sYA2gAwC6ioADmQJYAuzJAdvSAB6JUANCACeAgL7jhqDDlwA6BgCcSAWwat8MiFjzyoJEhGp0kIJrDYduZ-ggAsADgCc8gMwBWZ24DsH4WIIAEwAjFTubpFR0ZH2ktJoOnKKKuqa2roKWMa0PBZWXDx2Ho4+8s4+AGwelUH+oohuVJXyjiF18SAZycgkSqr4sACu6KpsJnks7IW2iM4eQa1Ujl6+9YGOjvIhPvaenh4+K27Vnd16vf34mRNm+dM2oMWVbu5+AYht8h5niZnylwG5wUQwYEEwrEouTuU2sRUQhxaoSo3neDQQAFpHK99h4QjUOlIun9ksQyJB8Eo4KxMEpWLdGLCZk8EYsgic3EE2nUPghOSF5HUKtVaj9OpwjHAeMDJpYHvDMR5wj4gtUfFR2t5nPYPG5eRiduFjnjHPZ7EFnFQfD5frI9Mo1BpZQVHnxEFzXuq3O11o1mvIqG5LaLbUkLn1VM75bMEJVKgKRTz0ZaA9iYjE4kTgfJWAALTCcXDwGFyuEx5wV+R+IPNJOBZERdMZ0P-MnkCBRssszGLFVqjUWoM671BXn4+xV1UEsWSIA */
+    /** @xstate-layout N4IgpgJg5mDOIC5QDMyQEYEMDGBrAxNgDYD2sYA2gAwC6ioADmQJYAuzJAdvSAB6IAWAEwAaEAE9EADgCMAOgEBOZcqEBWAOwyqQ4QF89Y1Bhy45DAE4kAtg1b5jELHjlQSJCNTpIQTWGw5uH34EIRlFOQ1ZdQA2GSkNKkU1UQlEGQEqKjkhKgBmGULFGIE1TRiDIzQnU3MrW3tHZzMsT1oePwCuHhDCgTk8xSkBATyYhKSUmTFJBCk1PMj87SihRUHhypAm2uQSC2t8CC4wOVhWTFZTnZc9g68OlnZu4MQUmfSYjSElgsmqeIxNQCLY3Mx3Q7NB4+TrPIKgXpSbJCeYyGK6PKJZKpWYCL4KDRAzTlAQaRQyUHVZpyCEOKm1ACuDAgl0o7RhT0CPUQMRiESoUW0ahig1KhI+CDyozkWVlQhRGUUZMpJlu+2sckgAU4UHwsAZ6GsbGhjE5LwR0hKOQWiioCxGMSo8wlwvkuQKugEhU9KpqaoOmog2t1+sNxpk3lN-jh3IQaioMQUmioXo2KI0AglfI0cmSBRWeTyYQyvupELOBqNrHYOqOJzkzE4ADcSLhrvT-RrQ1Wa1AEI2W9hLoEvCbfGb4XxEFQJVRS7t1RWw9XG7qoeyo11JyFSWoFAnZDIhJilFIpBKhYslMp5hpC8WQYZth3wYvu2xe-heOdWXJMMgrgsAAKeMsgASjpVVXwDd8Vx1MdYS5V4EBnNIUPnFxiDISB8AsOALgsVgEInWNdETbR1ltL55TPGIJVkORQKyXIshKEUDCfTgPDgHgwUeaMkItBAAFpiglYSZA0NQMLMSwbDsfit1jTQs0xOQpAVNFBmUJQNBkml1UUmNkOEgRzzQ4SEkY-Tyy1XsjMEqcEFKKQk0SVMhnTTM0KUK8FiPEZvVGZIbMXOzVzkBlOAgMBAKNThIAc80nJtAYylJeZyQ0vkXSRXN-M9ILHyqKCDIDcKdTkJtMCIZgICS7c3jvORJLUJEsk0FzvNmEUIlKfMpO+eVCVC8qg17BtmxquqGtjO9FnCDItM8hJup5IYkz+I9EkdDTRq7SsP1XWbkKUeQtDMhYpBWjMJWUbIVCGTR7z6fbNQsKwLBOoTUNmGQpX6PNCgFF6SyfMEyoO5crnqjkBOSndyTclN-putaEAC1ygYLItXvBl85FYAALTBOFweA4aU5C0UTL54mJa6MhTDQLy+LGFiddz5TyKR9Kw8hYc3YyhIyRYNNkKRC0lp04jyeifllZjZTYtYOL0IA */
     id: 'feedback',
     initial: 'prompt',
-    context: {
-      feedback: '',
-      seconds: 3
+    types: {} as {
+      context: {
+        feedback: string;
+        response?: any;
+      };
+      events:
+        | {
+            type: 'feedback.good';
+          }
+        | {
+            type: 'feedback.bad';
+          }
+        | {
+            type: 'feedback.update';
+            feedback: string;
+          }
+        | {
+            type: 'back';
+          }
+        | {
+            type: 'submit';
+          };
+    },
+    context: ({ input }) => ({
+      feedback: input.feedbackTemplate ?? '',
+      response: undefined
+    }),
+    invoke: {
+      src: 'toaster',
+      systemId: 'globalToaster'
     },
     states: {
       prompt: {
         entry: 'track',
         on: {
-          'feedback.good': 'thanks',
+          'feedback.good': {
+            target: 'thanks'
+          },
           'feedback.bad': {
-            target: 'form',
-            actions: assign({
-              seconds: 1
-            })
+            target: 'form'
           }
         }
       },
 
       form: {
         on: {
-          submit: {
-            cond: {
-              type: 'formValid',
-              params: {
-                minLength: 5
-              }
-            },
-            target: 'thanks'
-          },
           back: 'prompt',
+
           'feedback.update': {
             actions: 'updateFeedback'
           }
-        }
+        },
+
+        states: {
+          editing: {
+            on: {
+              submit: [
+                {
+                  guard: {
+                    type: 'formValid',
+                    params: {
+                      minLength: 5
+                    }
+                  },
+                  target: 'submitting'
+                },
+                '.invalid'
+              ]
+            },
+
+            states: {
+              undetermined: {},
+              valid: {},
+              invalid: {}
+            },
+
+            initial: 'undetermined'
+          },
+
+          submitting: {
+            invoke: {
+              src: 'submitFeedback',
+              input: ({ context }) => ({
+                feedback: context.feedback
+              }),
+              onDone: {
+                target: 'submitted',
+                actions: assign({
+                  response: ({ event }) => event.output
+                })
+              }
+            },
+
+            after: {
+              5000: {
+                target: 'error'
+              }
+            },
+
+            on: {
+              // forbidden transition
+              back: {}
+            }
+          },
+
+          error: {},
+
+          submitted: {
+            type: 'final'
+          }
+        },
+
+        initial: 'editing',
+        onDone: 'thanks'
       },
 
       thanks: {},
@@ -58,19 +145,26 @@ const machine = createMachine(
   },
   {
     actions: {
-      track: (context, event, { action }) => {
+      track: ({ event, action }) => {
         console.log('tracking', event, action);
       },
       updateFeedback: assign({
-        feedback: (_context, event) => event.value
+        feedback: ({ event }) => event.value
       })
     },
-    delays: {
-      SOME_DELAY: (context) => context.seconds * 1000
-    },
     guards: {
-      formValid: (context, event, { cond }) =>
-        context.feedback.length > cond.params.minLength
+      formValid: ({ context, guard }) =>
+        context.feedback.length > guard.params.minLength
+    },
+    actors: {
+      submitFeedback: fromPromise(async ({ input }) => {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        return {
+          status: 'success',
+          feedback: input.feedback
+        };
+      })
     }
   }
 );
@@ -115,6 +209,7 @@ function FormScreen(props) {
         name="feedback"
         rows={4}
         placeholder="So many things..."
+        defaultValue={feedback}
         onChange={(ev) => {
           actor.send({
             type: 'feedback.update',
@@ -140,7 +235,11 @@ function FormScreen(props) {
 }
 
 function Feedback() {
-  const actor = useInterpret(machine); // V5: useActorRef()
+  const actor = useActorRef(machine, {
+    input: {
+      feedbackTemplate: 'I am very mad because...'
+    }
+  });
   const state = useSelector(actor, (state) => state);
   const isClosed = useSelector(actor, (state) => state.matches('closed'));
 
@@ -158,6 +257,7 @@ function Feedback() {
       >
         Close
       </button>
+      {state.matches({ form: 'error' }) && <em>Sorry, API took too long.</em>}
       {state.matches('prompt') && (
         <div className="step">
           <h2>How was your experience?</h2>
@@ -184,12 +284,19 @@ function Feedback() {
         <div className="step">
           <h2>Thanks for your feedback.</h2>
           {state.context.feedback.length > 0 && (
-            <p>"{state.context.feedback}"</p>
+            <pre>{JSON.stringify(state.context.response, null, 2)}</pre>
           )}
         </div>
       )}
 
       {state.matches('form') && <FormScreen actor={actor} />}
+      <pre
+        style={{
+          fontSize: '2rem'
+        }}
+      >
+        {JSON.stringify(state.value, null, 2)}
+      </pre>
     </div>
   );
 }
