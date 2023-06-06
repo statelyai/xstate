@@ -1641,7 +1641,7 @@ describe('interpreter', () => {
       expect(actor.getSnapshot().children).toHaveProperty('child');
     });
 
-    it('stopped spawned actors should be cleaned up in parent', (done) => {
+    it('stopped spawned actors should be cleaned up in parent', () => {
       const childMachine = createMachine({
         initial: 'idle',
         states: {
@@ -1695,28 +1695,17 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine);
-      service.subscribe({
-        complete: () => {
-          expect(service.getSnapshot().children.machineChild).toBeUndefined();
-          expect(service.getSnapshot().children.promiseChild).toBeUndefined();
-          expect(
-            service.getSnapshot().children.observableChild
-          ).toBeUndefined();
-          done();
-        }
-      });
-      service.start();
+      const service = interpret(parentMachine).start();
 
-      service.subscribe((state) => {
-        if (state.matches('present')) {
-          expect(state.children).toHaveProperty('machineChild');
-          expect(state.children).toHaveProperty('promiseChild');
-          expect(state.children).toHaveProperty('observableChild');
+      expect(service.getSnapshot().children).toHaveProperty('machineChild');
+      expect(service.getSnapshot().children).toHaveProperty('promiseChild');
+      expect(service.getSnapshot().children).toHaveProperty('observableChild');
 
-          service.send({ type: 'NEXT' });
-        }
-      });
+      service.send({ type: 'NEXT' });
+
+      expect(service.getSnapshot().children.machineChild).toBeUndefined();
+      expect(service.getSnapshot().children.promiseChild).toBeUndefined();
+      expect(service.getSnapshot().children.observableChild).toBeUndefined();
     });
   });
 
