@@ -335,9 +335,6 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): void {
-    state.actions.forEach((action) => {
-      action.execute?.(actorCtx);
-    });
     Object.values(state.children).forEach((child) => {
       if (child.status === 0) {
         try {

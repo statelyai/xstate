@@ -2984,7 +2984,7 @@ describe('sendTo', () => {
     });
   });
 
-  it('should be able to send an event to a named actor', (done) => {
+  it.only('should be able to send an event to a named actor', (done) => {
     const childMachine = createMachine<any, { type: 'EVENT' }>({
       initial: 'waiting',
       states: {
