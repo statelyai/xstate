@@ -108,7 +108,15 @@ export namespace StateMachine {
     changed?: boolean | undefined;
     matches: <TSV extends TState['value']>(
       value: TSV
-    ) => this is { value: TSV; context: TContext };
+    ) => this is State<
+      (TState extends any
+        ? { value: TSV; context: any } extends TState
+          ? TState
+          : never
+        : never)['context'],
+      TEvent,
+      TState
+    > & { value: TSV };
   }
 
   export type AnyMachine = StateMachine.Machine<any, any, any>;
