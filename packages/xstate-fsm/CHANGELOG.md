@@ -1,5 +1,11 @@
 # @xstate/fsm
 
+## 2.0.1
+
+### Patch Changes
+
+- [#4043](https://github.com/statelyai/xstate/pull/4043) [`bc1799b36`](https://github.com/statelyai/xstate/commit/bc1799b36e6b4d6dc5373fb45775943a45a99d28) Thanks [@ksv90](https://github.com/ksv90)! - Pass around `TState['value']` type to `Transition` and `.initial` property of the machine configuration.
+
 ## 2.0.0
 
 ### Major Changes

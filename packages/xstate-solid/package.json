@@ -40,7 +40,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^2.0.0",
+    "@xstate/fsm": "^2.0.1",
     "solid-js": "^1.6.0",
     "xstate": "^4.37.2"
   },
@@ -57,7 +57,7 @@
     "@babel/preset-env": "^7.10.5",
     "@babel/preset-typescript": "^7.10.5",
     "@types/jest": "^24.0.23",
-    "@xstate/fsm": "2.0.0",
+    "@xstate/fsm": "2.0.1",
     "babel-jest": "^26.6.3",
     "babel-preset-solid": "^1.6.0",
     "jest": "^26.6.3",
