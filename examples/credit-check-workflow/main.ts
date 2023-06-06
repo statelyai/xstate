@@ -38,6 +38,10 @@ export const workflow = createMachine(
               creditCheck: ({ event }) => event.output
             })
           }
+        },
+        // timeout
+        after: {
+          PT15M: 'Timeout'
         }
       },
       EvaluateDecision: {
@@ -77,7 +81,8 @@ export const workflow = createMachine(
       },
       End: {
         type: 'final'
-      }
+      },
+      Timeout: {}
     }
   },
   {
@@ -113,6 +118,9 @@ export const workflow = createMachine(
           }
         };
       })
+    },
+    delays: {
+      PT15M: 15 * 60 * 1000
     }
   }
 );
