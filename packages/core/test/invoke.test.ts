@@ -3152,7 +3152,7 @@ describe('invoke', () => {
     expect(disposed).toBe(true);
   });
 
-  it.only('deep invocations should be stopped when the machine reaches done state', () => {
+  it('deep invocations should be stopped when the machine reaches done state', () => {
     let disposed = false;
     const childMachine = createMachine({
       invoke: {

@@ -27,7 +27,6 @@ const createIframeMock = () => {
 
   (iframe as any).contentWindow = {
     postMessage(ev) {
-      debugger;
       messages.push(ev);
     }
   };
