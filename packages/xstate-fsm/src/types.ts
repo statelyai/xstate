@@ -89,7 +89,7 @@ export namespace StateMachine {
   export type Transition<
     TContext extends object,
     TEvent extends EventObject,
-    TStateValue extends string
+    TStateValue extends string = string
   > =
     | TStateValue
     | {
