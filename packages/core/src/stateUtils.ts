@@ -1041,7 +1041,6 @@ export function microstep<
   if (!currentState._initial && !willTransition) {
     const inertState = cloneState(currentState, {
       event,
-      actions: [],
       transitions: []
     });
 
@@ -1049,7 +1048,7 @@ export function microstep<
     return inertState;
   }
 
-  const microstate = microstepProcedure(
+  const [microstate, actions] = microstepProcedure(
     currentState._initial
       ? [
           {
@@ -1078,7 +1077,7 @@ export function microstep<
   nextState.changed = currentState._initial
     ? undefined
     : !stateValuesEqual(nextState.value, currentState.value) ||
-      nextState.actions.length > 0 ||
+      actions.length > 0 ||
       context !== currentState.context;
 
   return nextState;
@@ -1090,7 +1089,7 @@ function microstepProcedure(
   mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
   actorCtx: AnyActorContext
-): typeof currentState {
+): [typeof currentState, BaseActionObject[]] {
   const actions: BaseActionObject[] = [];
   const historyValue = {
     ...currentState.historyValue
@@ -1134,7 +1133,7 @@ function microstepProcedure(
   }
 
   try {
-    const { nextState } = resolveActionsAndContext(
+    const nextState = resolveActionsAndContext(
       actions,
       event,
       currentState,
@@ -1147,17 +1146,19 @@ function microstepProcedure(
 
     internalQueue.push(...nextState._internalQueue);
 
-    return cloneState(currentState, {
-      actions: nextState.actions,
-      configuration: nextConfiguration,
-      historyValue,
-      _internalQueue: internalQueue,
-      context: nextState.context,
-      event,
-      done,
-      output,
-      children: nextState.children
-    });
+    return [
+      cloneState(currentState, {
+        configuration: nextConfiguration,
+        historyValue,
+        _internalQueue: internalQueue,
+        context: nextState.context,
+        event,
+        done,
+        output,
+        children: nextState.children
+      }),
+      actions
+    ];
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
     // See https://github.com/statelyai/rfcs/pull/4
@@ -1440,9 +1441,7 @@ export function resolveActionsAndContext<
   event: TEvent,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext | undefined
-): {
-  nextState: AnyState;
-} {
+): AnyState {
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
@@ -1502,12 +1501,9 @@ export function resolveActionsAndContext<
     resolveAction(actionObject);
   }
 
-  return {
-    nextState: cloneState(intermediateState, {
-      actions: resolvedActions,
-      _internalQueue: raiseActions.map((a) => a.params.event)
-    })
-  };
+  return cloneState(intermediateState, {
+    _internalQueue: raiseActions.map((a) => a.params.event)
+  });
 }
 
 export function macrostep(
@@ -1560,26 +1556,22 @@ export function macrostep(
       if (!nextState._internalQueue.length) {
         break;
       } else {
-        const currentActions = nextState.actions;
         const nextEvent = nextState._internalQueue[0];
         const transitions = selectTransitions(nextEvent, nextState);
         nextState = microstep(transitions, nextState, actorCtx, nextEvent);
         nextState._internalQueue.shift();
-        nextState.actions.unshift(...currentActions);
 
         states.push(nextState);
       }
     }
 
     if (enabledTransitions.length) {
-      const currentActions = nextState.actions;
       nextState = microstep(
         enabledTransitions,
         nextState,
         actorCtx,
         nextState.event
       );
-      nextState.actions.unshift(...currentActions);
 
       states.push(nextState);
     }
@@ -1613,14 +1605,7 @@ function stopStep(
     actions.push(stop(child));
   }
 
-  const { nextState: stoppedState } = resolveActionsAndContext(
-    actions,
-    event,
-    nextState,
-    actorCtx
-  );
-
-  return stoppedState;
+  return resolveActionsAndContext(actions, event, nextState, actorCtx);
 }
 
 function selectTransitions(
