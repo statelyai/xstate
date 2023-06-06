@@ -1798,7 +1798,6 @@ it('should not process events sent directly to own actor ref before initial entr
     on: {
       EV: {
         actions: () => {
-          debugger;
           actual.push('EV transition');
         }
       }
