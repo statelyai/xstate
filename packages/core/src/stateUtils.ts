@@ -13,8 +13,6 @@ import {
 import {
   BaseActionObject,
   EventObject,
-  InvokeActionObject,
-  StopActionObject,
   StateValue,
   TransitionConfig,
   TransitionDefinition,
@@ -1070,14 +1068,11 @@ export function microstep<
     actorCtx
   );
 
-  const { context, actions: nonRaisedActions } = microstate;
-
-  const children = setChildren(currentState, nonRaisedActions);
+  const { context } = microstate;
 
   const nextState = cloneState(microstate, {
     value: {}, // TODO: make optional
-    transitions,
-    children
+    transitions
   });
 
   nextState.changed = currentState._initial
@@ -1087,30 +1082,6 @@ export function microstep<
       context !== currentState.context;
 
   return nextState;
-}
-
-function setChildren(
-  currentState: AnyState,
-  nonRaisedActions: BaseActionObject[]
-) {
-  const children = { ...currentState.children };
-  for (const action of nonRaisedActions) {
-    if (
-      action.type === actionTypes.invoke &&
-      (action as InvokeActionObject).params.ref
-    ) {
-      const ref = (action as InvokeActionObject).params.ref;
-      if (ref) {
-        children[ref.id] = ref;
-      }
-    } else if (action.type === actionTypes.stop) {
-      const ref = (action as StopActionObject).params.actor;
-      if (ref) {
-        delete children[ref.id];
-      }
-    }
-  }
-  return children;
 }
 
 function microstepProcedure(
