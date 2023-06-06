@@ -31,6 +31,10 @@ describe('matches', () => {
           context: { user: { name: string }; count: number };
         };
     const machine = createMachine<MyContext, { type: string }, Typestates>({
+      context: {
+        user: null,
+        count: 0
+      },
       initial: 'idle',
       states: { idle: {}, fetched: {} }
     });
