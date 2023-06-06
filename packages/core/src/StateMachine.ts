@@ -294,7 +294,7 @@ export class StateMachine<
     preInitial._initial = true;
 
     if (actorCtx) {
-      const nextState = resolveActionsAndContext(
+      const [nextState] = resolveActionsAndContext(
         actions,
         initEvent as TEvent,
         preInitial,
@@ -384,7 +384,7 @@ export class StateMachine<
     const state =
       stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
 
-    return resolveActionsAndContext([], state.event, state, undefined);
+    return resolveActionsAndContext([], state.event, state, undefined)[0];
   }
 
   public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {

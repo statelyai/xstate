@@ -1133,7 +1133,7 @@ function microstepProcedure(
   }
 
   try {
-    const nextState = resolveActionsAndContext(
+    const [nextState, resolvedActions] = resolveActionsAndContext(
       actions,
       event,
       currentState,
@@ -1157,7 +1157,7 @@ function microstepProcedure(
         output,
         children: nextState.children
       }),
-      actions
+      resolvedActions
     ];
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
@@ -1441,7 +1441,7 @@ export function resolveActionsAndContext<
   event: TEvent,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext | undefined
-): AnyState {
+): [AnyState, BaseActionObject[]] {
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
@@ -1501,9 +1501,12 @@ export function resolveActionsAndContext<
     resolveAction(actionObject);
   }
 
-  return cloneState(intermediateState, {
-    _internalQueue: raiseActions.map((a) => a.params.event)
-  });
+  return [
+    cloneState(intermediateState, {
+      _internalQueue: raiseActions.map((a) => a.params.event)
+    }),
+    resolvedActions
+  ];
 }
 
 export function macrostep(
@@ -1523,7 +1526,7 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === stopSignalType) {
-    nextState = stopStep(event, nextState, actorCtx);
+    nextState = stopStep(event, nextState, actorCtx)[0];
     states.push(nextState);
 
     return {
@@ -1592,7 +1595,7 @@ function stopStep(
   event: AnyEventObject,
   nextState: AnyState,
   actorCtx: AnyActorContext
-): AnyState {
+) {
   const actions: BaseActionObject[] = [];
 
   for (const stateNode of nextState.configuration.sort(
