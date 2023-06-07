@@ -26,6 +26,7 @@ This package contains a minimal, 1kb implementation of [XState](https://github.c
 | Transitions (string target) |       ✅        |                      ✅                       |
 | Delayed transitions         |       ❌        |                      ✅                       |
 | Eventless transitions       |       ❌        |                      ✅                       |
+| Wildcard event descriptors  |       ❌        |                      ✅                       |
 | Nested states               |       ❌        |                      ✅                       |
 | Parallel states             |       ❌        |                      ✅                       |
 | History states              |       ❌        |                      ✅                       |
@@ -49,7 +50,7 @@ This package contains a minimal, 1kb implementation of [XState](https://github.c
 - Transition actions
 - `state.changed`
 
-If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/statelyai/xstate).
+If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, Wildcard event descriptors, etc. please use [`XState`](https://github.com/statelyai/xstate).
 
 ## Quick start
 
