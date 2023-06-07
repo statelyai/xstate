@@ -1040,7 +1040,6 @@ export function microstep<
 
   if (!currentState._initial && !willTransition) {
     const inertState = cloneState(currentState, {
-      event,
       transitions: []
     });
 
@@ -1113,6 +1112,7 @@ function microstepProcedure(
 
   // Enter states
   enterStates(
+    event,
     filteredTransitions,
     mutConfiguration,
     actions,
@@ -1152,7 +1152,6 @@ function microstepProcedure(
         historyValue,
         _internalQueue: internalQueue,
         context: nextState.context,
-        event,
         done,
         output,
         children: nextState.children
@@ -1167,6 +1166,7 @@ function microstepProcedure(
 }
 
 function enterStates(
+  event: AnyEventObject,
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
   actions: BaseActionObject[],
@@ -1218,11 +1218,7 @@ function enterStates(
         done(
           parent!.id,
           stateNodeToEnter.output
-            ? mapContext(
-                stateNodeToEnter.output,
-                currentState.context,
-                currentState.event
-              )
+            ? mapContext(stateNodeToEnter.output, currentState.context, event)
             : undefined
         )
       );
@@ -1535,18 +1531,20 @@ export function macrostep(
     };
   }
 
+  let nextEvent = event;
+
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (event.type !== actionTypes.init) {
-    const transitions = selectTransitions(event, nextState);
-    nextState = microstep(transitions, state, actorCtx, event);
+  if (nextEvent.type !== actionTypes.init) {
+    const transitions = selectTransitions(nextEvent, nextState);
+    nextState = microstep(transitions, state, actorCtx, nextEvent);
     states.push(nextState);
   }
 
   while (!nextState.done) {
-    let enabledTransitions = selectEventlessTransitions(nextState);
+    let enabledTransitions = selectEventlessTransitions(nextState, nextEvent);
 
-    if (enabledTransitions.length === 0) {
+    if (!enabledTransitions.length) {
       // TODO: this is a bit of a hack, we need to review this
       // this matches the behavior from v4 for eventless transitions
       // where for `hasAlwaysTransitions` we were always trying to resolve with a NULL event
@@ -1559,22 +1557,15 @@ export function macrostep(
       if (!nextState._internalQueue.length) {
         break;
       } else {
-        const nextEvent = nextState._internalQueue[0];
+        nextEvent = nextState._internalQueue[0];
         const transitions = selectTransitions(nextEvent, nextState);
         nextState = microstep(transitions, nextState, actorCtx, nextEvent);
         nextState._internalQueue.shift();
 
         states.push(nextState);
       }
-    }
-
-    if (enabledTransitions.length) {
-      nextState = microstep(
-        enabledTransitions,
-        nextState,
-        actorCtx,
-        nextState.event
-      );
+    } else {
+      nextState = microstep(enabledTransitions, nextState, actorCtx, nextEvent);
 
       states.push(nextState);
     }
@@ -1582,7 +1573,7 @@ export function macrostep(
 
   if (nextState.done) {
     // Perform the stop step to ensure that child actors are stopped
-    stopStep(nextState.event, nextState, actorCtx);
+    stopStep(nextEvent, nextState, actorCtx);
   }
 
   return {
@@ -1619,7 +1610,8 @@ function selectTransitions(
 }
 
 function selectEventlessTransitions(
-  nextState: AnyState
+  nextState: AnyState,
+  event: AnyEventObject
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = nextState.configuration.filter(isAtomicStateNode);
@@ -1634,12 +1626,7 @@ function selectEventlessTransitions(
       for (const transition of s.always) {
         if (
           transition.guard === undefined ||
-          evaluateGuard(
-            transition.guard,
-            nextState.context,
-            nextState.event,
-            nextState
-          )
+          evaluateGuard(transition.guard, nextState.context, event, nextState)
         ) {
           enabledTransitionSet.add(transition);
           break loop;

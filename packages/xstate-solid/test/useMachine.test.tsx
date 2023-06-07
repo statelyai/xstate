@@ -1680,37 +1680,30 @@ describe('useMachine (strict mode)', () => {
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
 
-      let currentState;
-
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
           state: JSON.parse(persistedState)
         });
-        createEffect(
-          on(
-            () => state.event,
-            () => {
-              currentState = state;
-            }
-          )
-        );
 
         return (
-          <button
-            onclick={() => send({ type: 'START' })}
-            data-testid="button"
-          />
+          <>
+            <button
+              onclick={() => send({ type: 'START' })}
+              data-testid="button"
+            />
+            {state.value}
+          </>
         );
       };
 
-      render(() => <Test />);
+      const { container } = render(() => <Test />);
 
       const button = screen.getByTestId('button');
 
       fireEvent.click(button);
       jest.advanceTimersByTime(110);
 
-      expect(currentState.matches('idle')).toBe(true);
+      expect(container.textContent).toBe('idle');
     } finally {
       jest.useRealTimers();
     }

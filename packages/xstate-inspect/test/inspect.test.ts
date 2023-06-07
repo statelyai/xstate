@@ -54,7 +54,7 @@ const createIframeMock = () => {
 };
 
 describe('@xstate/inspect', () => {
-  it('should handle circular structures in context', (done) => {
+  it('should handle circular structures in context', () => {
     const circularStructure = {
       get cycle() {
         return circularStructure;
@@ -70,16 +70,15 @@ describe('@xstate/inspect', () => {
       }
     });
 
+    const iframeMock = createIframeMock();
     const devTools = createDevTools();
 
-    devTools.onRegister(() => {
-      done();
-    });
-
     inspect({
-      iframe: false,
+      iframe: iframeMock.iframe,
       devTools
     });
+
+    iframeMock.initConnection();
 
     const service = interpret(machine).start();
 
@@ -90,9 +89,22 @@ describe('@xstate/inspect', () => {
     // stringifying the service's machine definition (which contains a circular structure)
     // and will throw an error if circular structures are not handled.
     expect(() => devTools.register(service)).not.toThrow();
+
+    expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "x:0",
+          "machine": "{"context":{"cycle":"[Circular]"},"id":"whatever","key":"whatever","type":"compound","initial":{"target":["#whatever.active"],"source":"#whatever","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"whatever.active","key":"active","type":"atomic","initial":{"target":[],"source":"#whatever.active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
+          "parent": undefined,
+          "sessionId": "x:0",
+          "state": "{"value":"active","done":false,"context":{"cycle":"[Circular]"},"historyValue":{},"_initial":false,"transitions":[],"children":{},"tags":[]}",
+          "type": "service.register",
+        },
+      ]
+    `);
   });
 
-  it('should handle circular structures in events', (done) => {
+  it('should handle circular structures in events', () => {
     const circularStructure = {
       get cycle() {
         return circularStructure;
@@ -106,35 +118,44 @@ describe('@xstate/inspect', () => {
       }
     });
 
+    const iframeMock = createIframeMock();
     const devTools = createDevTools();
 
-    devTools.onRegister((inspectedService) => {
-      function checkState(state) {
-        if (state.event.type === 'CIRCULAR') {
-          done();
-        }
-      }
-      inspectedService.subscribe(checkState);
-      checkState(inspectedService.getSnapshot());
-    });
-
     inspect({
-      iframe: false,
+      iframe: iframeMock.iframe,
       devTools
     });
+
+    iframeMock.initConnection();
 
     const service = interpret(machine).start();
 
     expect(() => devTools.register(service)).not.toThrow();
 
+    iframeMock.flushMessages();
+
     service.send({
       type: 'CIRCULAR',
       value: circularStructure
     });
+
+    expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
+      [
+        {
+          "event": "{"type":"CIRCULAR","value":{"cycle":"[Circular]"}}",
+          "sessionId": "x:0",
+          "type": "service.event",
+        },
+        {
+          "sessionId": "x:0",
+          "state": "{"value":"active","done":false,"context":{},"historyValue":{},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
+          "type": "service.state",
+        },
+      ]
+    `);
   });
 
   it('should accept a serializer', () => {
-    expect.assertions(2);
     const machine = createMachine({
       initial: 'active',
       context: {
@@ -149,9 +170,10 @@ describe('@xstate/inspect', () => {
     });
 
     const devTools = createDevTools();
+    const iframeMock = createIframeMock();
 
     inspect({
-      iframe: false,
+      iframe: iframeMock.iframe,
       devTools,
       serialize: (_key, value) => {
         if (value instanceof Map) {
@@ -160,29 +182,9 @@ describe('@xstate/inspect', () => {
 
         return value;
       }
-    })?.subscribe((state) => {
-      if (state.event.type === 'service.register') {
-        expect(JSON.parse(state.event.machine).context).toEqual({
-          map: 'map',
-          deep: {
-            map: 'map'
-          }
-        });
-      }
-
-      if (
-        state.event.type === 'service.event' &&
-        JSON.parse(state.event.event).type === 'TEST'
-      ) {
-        expect(JSON.parse(state.event.event)).toEqual({
-          type: 'TEST',
-          serialized: 'map',
-          deep: {
-            serialized: 'map'
-          }
-        });
-      }
     });
+
+    iframeMock.initConnection();
 
     const service = interpret(machine).start();
 
@@ -195,6 +197,29 @@ describe('@xstate/inspect', () => {
         serialized: new Map()
       }
     });
+
+    expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "x:0",
+          "machine": "{"context":{"map":"map","deep":{"map":"map"}},"id":"(machine)","key":"(machine)","type":"compound","initial":{"target":["#(machine).active"],"source":"#(machine)","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"(machine).active","key":"active","type":"atomic","initial":{"target":[],"source":"#(machine).active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
+          "parent": undefined,
+          "sessionId": "x:0",
+          "state": "{"value":"active","done":false,"context":{"map":"map","deep":{"map":"map"}},"historyValue":{},"_initial":false,"transitions":[],"children":{},"tags":[]}",
+          "type": "service.register",
+        },
+        {
+          "event": "{"type":"TEST","serialized":"map","deep":{"serialized":"map"}}",
+          "sessionId": "x:0",
+          "type": "service.event",
+        },
+        {
+          "sessionId": "x:0",
+          "state": "{"value":"active","done":false,"context":{"map":"map","deep":{"map":"map"}},"historyValue":{},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
+          "type": "service.state",
+        },
+      ]
+    `);
   });
 
   // TODO: the value is still available on `machine.definition.initial` and that is not handled by the serializer
@@ -299,7 +324,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","reenter":false,"eventType":"EV"}],"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","reenter":false,"eventType":"EV"}],"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -321,7 +346,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"event":{"type":"UNKNOWN"},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
