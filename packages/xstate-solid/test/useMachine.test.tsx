@@ -349,13 +349,17 @@ describe('useMachine hook', () => {
 
     const machine = createMachine<any, { type: 'EVENT' }>({
       initial: 'active',
+      context: { count: 0 },
       states: {
         active: {
           on: {
             EVENT: {
-              actions: () => {
-                count++;
-              }
+              actions: [
+                () => {
+                  count++;
+                },
+                assign({ count: ({ context }) => context.count + 1 })
+              ]
             }
           }
         }
@@ -367,7 +371,7 @@ describe('useMachine hook', () => {
       const [state, send] = useMachine(machine);
       createEffect(
         on(
-          () => state.transitions[0],
+          () => state.context.count,
           () => {
             setStateCount((c) => c + 1);
           }

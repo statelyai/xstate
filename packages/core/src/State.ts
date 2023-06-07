@@ -17,8 +17,7 @@ import type {
   PersistedMachineState,
   Prop,
   StateConfig,
-  StateValue,
-  TransitionDefinition
+  StateValue
 } from './types.ts';
 import { flatten, isString, matchesState } from './utils.ts';
 
@@ -71,10 +70,6 @@ export class State<
    */
   public configuration: Array<StateNode<TContext, TEvent>>;
   /**
-   * The transition definitions that resulted in this state.
-   */
-  public transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  /**
    * An object mapping actor names to spawned/invoked actors.
    */
   public children: Record<string, ActorRef<any>>;
@@ -119,7 +114,6 @@ export class State<
         context,
         meta: undefined,
         configuration: Array.from(configuration),
-        transitions: [],
         children: {}
       },
       machine
@@ -143,7 +137,6 @@ export class State<
     this.configuration =
       config.configuration ??
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
-    this.transitions = config.transitions as any;
     this.children = config.children;
 
     this.value = getStateValue(machine.root, this.configuration);
@@ -176,7 +169,7 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, tags, machine, ...jsonValues } = this;
+    const { configuration, tags, machine, ...jsonValues } = this;
 
     return { ...jsonValues, tags: Array.from(tags), meta: this.meta };
   }
@@ -263,8 +256,7 @@ export function cloneState<TState extends AnyState>(
 export function getPersistedState<TState extends AnyState>(
   state: TState
 ): PersistedMachineState<TState> {
-  const { configuration, transitions, tags, machine, children, ...jsonValues } =
-    state;
+  const { configuration, tags, machine, children, ...jsonValues } = state;
 
   const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
 

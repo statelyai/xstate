@@ -1039,9 +1039,7 @@ export function microstep<
   const mutConfiguration = new Set(currentState.configuration);
 
   if (!currentState._initial && !willTransition) {
-    const inertState = cloneState(currentState, {
-      transitions: []
-    });
+    const inertState = cloneState(currentState, {});
 
     inertState.changed = false;
     return inertState;
@@ -1545,15 +1543,6 @@ export function macrostep(
     let enabledTransitions = selectEventlessTransitions(nextState, nextEvent);
 
     if (!enabledTransitions.length) {
-      // TODO: this is a bit of a hack, we need to review this
-      // this matches the behavior from v4 for eventless transitions
-      // where for `hasAlwaysTransitions` we were always trying to resolve with a NULL event
-      // and if a transition was not selected the `state.transitions` stayed empty
-      // without this we get into an infinite loop in the dieHard test in `@xstate/test` for the `simplePathsTo`
-      if (nextState.configuration.some((state) => state.always)) {
-        nextState.transitions = [];
-      }
-
       if (!nextState._internalQueue.length) {
         break;
       } else {

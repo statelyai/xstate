@@ -383,34 +383,6 @@ describe('State', () => {
     });
   });
 
-  describe('.transitions', () => {
-    it('should have no transitions for the initial state', () => {
-      expect(interpret(exampleMachine).getSnapshot().transitions).toHaveLength(
-        0
-      );
-    });
-
-    it('should have transitions for the sent event', () => {
-      const actorRef = interpret(exampleMachine).start();
-      actorRef.send({ type: 'TO_TWO', foo: 'test' });
-      expect(actorRef.getSnapshot().transitions).toContainEqual(
-        expect.objectContaining({ eventType: 'TO_TWO' })
-      );
-    });
-
-    it('should have condition in the transition', () => {
-      const actorRef = interpret(exampleMachine).start();
-      actorRef.send({ type: 'TO_TWO_MAYBE' });
-
-      expect(actorRef.getSnapshot().transitions).toContainEqual(
-        expect.objectContaining({
-          eventType: 'TO_TWO_MAYBE',
-          guard: expect.objectContaining({ type: 'maybe' })
-        })
-      );
-    });
-  });
-
   describe('State.prototype.matches', () => {
     it('should keep reference to state instance after destructuring', () => {
       const { matches } = interpret(exampleMachine).getSnapshot();
