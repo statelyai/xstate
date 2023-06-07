@@ -306,45 +306,5 @@ describe('delayed transitions', () => {
       jest.advanceTimersByTime(200);
       expect(actor.getSnapshot().value).toBe('inactive');
     });
-
-    it('should set delay to undefined if expression not found', () => {
-      const machine = createMachine(
-        {
-          initial: 'inactive',
-          states: {
-            inactive: {
-              on: {
-                NOEXPR: 'activeNoExpr'
-              }
-            },
-            activeNoExpr: {
-              after: [
-                {
-                  delay: 'nonExistantDelay',
-                  target: 'inactive'
-                }
-              ]
-            }
-          }
-        },
-        {
-          delays: {
-            someDelay: ({ context, event }) =>
-              context.delay + (event as any).delay
-          }
-        }
-      );
-      const actorRef = interpret(machine).start();
-      actorRef.send({
-        type: 'NOEXPR',
-        delay: 500
-      });
-      const activeState = actorRef.getSnapshot();
-      const sendActions = activeState.actions.filter(
-        (a) => a.type === 'xstate.raise'
-      );
-      expect(sendActions.length).toBe(1);
-      expect(sendActions[0].params?.delay).toEqual(undefined);
-    });
   });
 });

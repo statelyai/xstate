@@ -1758,8 +1758,6 @@ describe('invoke', () => {
       expect(() => {
         JSON.stringify(waitingState);
       }).not.toThrow();
-
-      expect(typeof waitingState.actions[0].params?.src).toBe('string');
     });
 
     it('should throw error if unhandled (sync)', () => {

@@ -1784,3 +1784,41 @@ it('should throw if an event is received', () => {
     )
   ).toThrow();
 });
+
+it('should not process events sent directly to own actor ref before initial entry actions are processed', () => {
+  const actual: string[] = [];
+  const machine = createMachine({
+    entry: () => {
+      actual.push('initial root entry start');
+      actorRef.send({
+        type: 'EV'
+      });
+      actual.push('initial root entry end');
+    },
+    on: {
+      EV: {
+        actions: () => {
+          actual.push('EV transition');
+        }
+      }
+    },
+    initial: 'a',
+    states: {
+      a: {
+        entry: () => {
+          actual.push('initial nested entry');
+        }
+      }
+    }
+  });
+
+  const actorRef = interpret(machine);
+  actorRef.start();
+
+  expect(actual).toEqual([
+    'initial root entry start',
+    'initial root entry end',
+    'initial nested entry',
+    'EV transition'
+  ]);
+});
