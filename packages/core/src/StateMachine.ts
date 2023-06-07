@@ -381,10 +381,9 @@ export class StateMachine<
       | State<TContext, TEvent, TResolvedTypesMeta>
       | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const state =
-      stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
-
-    return resolveActionsAndContext([], state.event, state, undefined)[0];
+    return stateConfig instanceof State
+      ? stateConfig
+      : new State(stateConfig, this);
   }
 
   public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {
