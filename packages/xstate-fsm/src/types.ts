@@ -136,7 +136,7 @@ export namespace StateMachine {
     states: {
       [key in TState['value']]: {
         on?: {
-          [K in TEvent['type']]?: SingleOrArray<
+          [K in TEvent['type'] | '*']?: SingleOrArray<
             Transition<
               TContext,
               TEvent extends { type: K } ? TEvent : never,

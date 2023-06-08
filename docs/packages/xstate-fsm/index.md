@@ -23,6 +23,7 @@ The [@xstate/fsm package](https://github.com/statelyai/xstate/tree/main/packages
 | Transitions (string target) |       ✅        |                      ✅                       |
 | Delayed transitions         |       ❌        |                      ✅                       |
 | Eventless transitions       |       ❌        |                      ✅                       |
+| Wildcard transitions        |       ✅        |                      ✅                       |
 | Nested states               |       ❌        |                      ✅                       |
 | Parallel states             |       ❌        |                      ✅                       |
 | History states              |       ❌        |                      ✅                       |
@@ -149,7 +150,7 @@ The machine config has this schema:
 
 ### State config
 
-- `on` (object) - an object mapping event types (keys) to [transitions](#transition-config)
+- `on` (object) - an object mapping event types (keys) to [transitions](#transition-config); an event type of `"*"` is special, indicating a "wildcard" transition which occurs when no other transition applies
 
 ### Transition config
 

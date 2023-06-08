@@ -131,6 +131,88 @@ describe('@xstate/fsm', () => {
     expect(nextState.actions).toEqual([]);
   });
 
+  describe('when a wildcard transition is defined', () => {
+    type ParserContext = { entries: Array<Record<string, string>> };
+
+    type ParserEvent =
+      | { type: 'toggle' }
+      | { type: 'data' }
+      | { type: 'finish' };
+
+    type ParserState =
+      | { value: 'waiting'; context: ParserContext }
+      | { value: 'reading'; context: ParserContext }
+      | { value: 'done'; context: ParserContext }
+      | { value: 'error'; context: ParserContext };
+
+    const parserConfig: StateMachine.Config<
+      ParserContext,
+      ParserEvent,
+      ParserState
+    > = {
+      id: 'parser',
+      initial: 'reading',
+      context: { entries: [] },
+      states: {
+        waiting: {
+          on: {
+            toggle: 'reading',
+            finish: 'done',
+            '*': 'error'
+          }
+        },
+        reading: {
+          on: {
+            toggle: 'waiting',
+            data: 'reading',
+            finish: {
+              target: 'done',
+              cond: (context) => Object.keys(context.entries ?? {}).length > 0
+            },
+            '*': 'error'
+          }
+        },
+        done: { on: { '*': 'error' } },
+        error: {}
+      }
+    };
+
+    const parserFSM = createMachine(parserConfig);
+
+    it('should not use a wildcard when an unguarded transition matches', () => {
+      const nextState = parserFSM.transition(parserFSM.initialState, 'toggle');
+      expect(nextState.value).toBe('waiting');
+    });
+
+    it('should not use a wildcard when a guarded transition matches', () => {
+      const currentState = {
+        ...parserFSM.initialState,
+        context: { entries: [{ foo: 'bar' }] }
+      };
+      const nextState = parserFSM.transition(currentState, 'finish');
+      expect(nextState.value).toBe('done');
+    });
+
+    it('should use a wildcard when no guarded transition matches', () => {
+      const nextState = parserFSM.transition(parserFSM.initialState, 'finish');
+      expect(nextState.value).toBe('error');
+    });
+
+    it('should use a wildcard when no transition matches', () => {
+      const nextState = parserFSM.transition(
+        parserFSM.initialState,
+        'FAKE' as any
+      );
+      expect(nextState.value).toBe('error');
+    });
+
+    it("should throw an error when an event's type is the wildcard", () => {
+      expect(() =>
+        parserFSM.transition(parserFSM.initialState, '*' as any)
+      ).toThrow();
+    });
+  });
+
   it('should throw an error for undefined states', () => {
     expect(() => {
       lightFSM.transition('unknown', 'TIMER');

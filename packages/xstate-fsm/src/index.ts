@@ -25,6 +25,7 @@ export {
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
+const WILDCARD = '*';
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
@@ -180,10 +181,20 @@ export function createMachine<
         );
       }
 
+      if (!IS_PRODUCTION && eventObject.type === WILDCARD) {
+        throw new Error(
+          `An event cannot have the wildcard type ('${WILDCARD}')`
+        );
+      }
+
       if (stateConfig.on) {
         const transitions: Array<
           StateMachine.Transition<TContext, TEvent, TState['value']>
         > = toArray(stateConfig.on[eventObject.type]);
+
+        if (WILDCARD in stateConfig.on) {
+          transitions.push(...toArray(stateConfig.on[WILDCARD]));
+        }
 
         for (const transition of transitions) {
           if (transition === undefined) {
