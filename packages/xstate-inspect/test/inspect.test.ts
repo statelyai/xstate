@@ -299,7 +299,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[{"type":"xstate.assign","params":{"context":{"value":{"unsafe":"[unsafe]"}},"actions":[]}}],"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","reenter":false,"eventType":"EV"}],"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","reenter":false,"eventType":"EV"}],"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -321,7 +321,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[],"event":{"type":"UNKNOWN"},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"event":{"type":"UNKNOWN"},"_initial":false,"changed":false,"transitions":[],"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
