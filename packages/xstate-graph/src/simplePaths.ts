@@ -1,8 +1,13 @@
-import { EventObject, AnyStateMachine, StateFrom, EventFrom } from 'xstate';
+import {
+  EventObject,
+  AnyStateMachine,
+  StateFrom,
+  EventFrom,
+  ActorLogic
+} from 'xstate';
 import {
   SerializedEvent,
   SerializedState,
-  SimpleBehavior,
   StatePath,
   TraversalOptions,
   VisitedContext
@@ -19,19 +24,21 @@ export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
     createDefaultMachineOptions(machine)
   );
 
-  return getSimplePaths(machine as SimpleBehavior<any, any>, resolvedOptions);
+  return getSimplePaths(machine as any, resolvedOptions);
 }
 
 export function getSimplePaths<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
+  logic: ActorLogic<TEvent, TState>,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const fromState = resolvedOptions.fromState ?? behavior.initialState;
+  const actorContext = undefined as any; // TODO: figure out the simulation API
+  const fromState =
+    resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
-  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
+  const adjacency = getAdjacencyMap(logic, resolvedOptions);
   const stateMap = new Map<SerializedState, TState>();
   const visitCtx: VisitedContext<TState, TEvent> = {
     vertices: new Set(),

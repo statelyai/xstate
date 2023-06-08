@@ -7,7 +7,8 @@ import {
   createMachine,
   InterpreterStatus,
   PersistedMachineState,
-  raise
+  raise,
+  interpret
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { DoneEventObject } from 'xstate';
@@ -63,12 +64,18 @@ describe('useMachine hook', () => {
     }
   });
 
-  const persistedFetchState = fetchMachine.getPersistedState(
-    fetchMachine.transition(
-      'loading',
-      doneInvoke('fetchData', 'persisted data')
-    )
-  );
+  const actorRef = interpret(
+    fetchMachine.provide({
+      actors: {
+        fetchData: fromCallback((sendBack) => {
+          sendBack(doneInvoke('fetchData', 'persisted data'));
+        })
+      }
+    })
+  ).start();
+  actorRef.send({ type: 'FETCH' });
+
+  const persistedFetchState = actorRef.getPersistedState();
 
   const Fetcher = (props: {
     onFetch: () => Promise<any>;
@@ -1681,7 +1688,9 @@ describe('useMachine (strict mode)', () => {
         }
       });
 
-      const persistedState = JSON.stringify(testMachine.initialState);
+      const actorRef = interpret(testMachine).start();
+      const persistedState = JSON.stringify(actorRef.getPersistedState());
+      actorRef.stop();
 
       let currentState;
 

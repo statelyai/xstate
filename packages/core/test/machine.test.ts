@@ -1,5 +1,5 @@
-import { interpret, createMachine, assign } from '../src/index';
-import { State } from '../src/State';
+import { interpret, createMachine, assign } from '../src/index.ts';
+import { State } from '../src/State.ts';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -44,38 +44,6 @@ const lightMachine = createMachine({
   }
 });
 
-const configMachine = createMachine(
-  {
-    id: 'config',
-    initial: 'foo',
-    context: {
-      foo: 'bar'
-    },
-    states: {
-      foo: {
-        entry: 'entryAction',
-        on: {
-          EVENT: {
-            target: 'bar',
-            guard: 'someCondition'
-          }
-        }
-      },
-      bar: {}
-    }
-  },
-  {
-    actions: {
-      entryAction: () => {
-        throw new Error('original entry');
-      }
-    },
-    guards: {
-      someCondition: () => false
-    }
-  }
-);
-
 describe('machine', () => {
   describe('machine.states', () => {
     it('should properly register machine states', () => {
@@ -94,16 +62,6 @@ describe('machine', () => {
         'POWER_OUTAGE',
         'PED_COUNTDOWN'
       ]);
-    });
-  });
-
-  describe('machine.initialState', () => {
-    it('should return a State instance', () => {
-      expect(lightMachine.initialState).toBeInstanceOf(State);
-    });
-
-    it('should return the initial state', () => {
-      expect(lightMachine.initialState.value).toEqual('green');
     });
   });
 
@@ -139,10 +97,43 @@ describe('machine', () => {
 
   describe('machine.provide', () => {
     it('should override guards and actions', () => {
-      const differentMachine = configMachine.provide({
+      const machine = createMachine(
+        {
+          initial: 'foo',
+          context: {
+            foo: 'bar'
+          },
+          states: {
+            foo: {
+              entry: 'entryAction',
+              on: {
+                EVENT: {
+                  target: 'bar',
+                  guard: 'someCondition'
+                }
+              }
+            },
+            bar: {}
+          }
+        },
+        {
+          actions: {
+            entryAction: () => {
+              throw new Error('original entry');
+            }
+          },
+          guards: {
+            someCondition: () => false
+          }
+        }
+      );
+      let shouldThrow = true;
+      const differentMachine = machine.provide({
         actions: {
           entryAction: () => {
-            throw new Error('new entry');
+            if (shouldThrow) {
+              throw new Error('new entry');
+            }
           }
         },
         guards: { someCondition: () => true }
@@ -150,23 +141,26 @@ describe('machine', () => {
 
       expect(differentMachine.getContext()).toEqual({ foo: 'bar' });
 
-      const service = interpret(differentMachine);
-
       expect(() => {
-        service.start();
+        interpret(differentMachine).start();
       }).toThrowErrorMatchingInlineSnapshot(`"new entry"`);
 
-      expect(
-        differentMachine.transition('foo', { type: 'EVENT' }).value
-      ).toEqual('bar');
+      shouldThrow = false;
+      const actorRef = interpret(differentMachine).start();
+      actorRef.send({ type: 'EVENT' });
+
+      expect(actorRef.getSnapshot().value).toEqual('bar');
     });
 
     it('should not override context if not defined', () => {
-      const differentMachine = configMachine.provide({});
-
-      expect(differentMachine.initialState.context).toEqual(
-        configMachine.getContext()
-      );
+      const machine = createMachine({
+        context: {
+          foo: 'bar'
+        }
+      });
+      const differentMachine = machine.provide({});
+      const actorRef = interpret(differentMachine).start();
+      expect(actorRef.getSnapshot().context).toEqual({ foo: 'bar' });
     });
 
     it.skip('should override context (second argument)', () => {
@@ -197,9 +191,7 @@ describe('machine', () => {
     });
 
     it('machines defined without context should have a default empty object for context', () => {
-      const machine = createMachine({});
-
-      expect(machine.initialState.context).toEqual({});
+      expect(interpret(createMachine({})).getSnapshot().context).toEqual({});
     });
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
@@ -219,29 +211,29 @@ describe('machine', () => {
   });
 
   describe('machine function context', () => {
-    const testMachineConfig = {
-      initial: 'active',
-      context: () => ({
-        foo: { bar: 'baz' }
-      }),
-      states: {
-        active: {}
-      }
-    };
-
     it('context from a function should be lazily evaluated', () => {
-      const testMachine1 = createMachine(testMachineConfig);
-      const testMachine2 = createMachine(testMachineConfig);
+      const config = {
+        initial: 'active',
+        context: () => ({
+          foo: { bar: 'baz' }
+        }),
+        states: {
+          active: {}
+        }
+      };
+      const testMachine1 = createMachine(config);
+      const testMachine2 = createMachine(config);
 
-      expect(testMachine1.initialState.context).not.toBe(
-        testMachine2.initialState.context
-      );
+      const initialState1 = interpret(testMachine1).getSnapshot();
+      const initialState2 = interpret(testMachine2).getSnapshot();
 
-      expect(testMachine1.initialState.context).toEqual({
+      expect(initialState1.context).not.toBe(initialState2.context);
+
+      expect(initialState1.context).toEqual({
         foo: { bar: 'baz' }
       });
 
-      expect(testMachine2.initialState.context).toEqual({
+      expect(initialState2.context).toEqual({
         foo: { bar: 'baz' }
       });
     });
@@ -337,14 +329,16 @@ describe('machine', () => {
         }
       });
 
-      const barState = machine.transition(undefined, { type: 'NEXT' });
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'NEXT' });
+      const barState = actorRef.getSnapshot();
 
       const jsonBarState = JSON.parse(JSON.stringify(barState));
 
       expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
     });
 
-    it('should terminate on a resolved final state', (done) => {
+    it('should terminate on a resolved final state', () => {
       const machine = createMachine({
         initial: 'foo',
         states: {
@@ -357,23 +351,22 @@ describe('machine', () => {
         }
       });
 
-      const nextState = machine.transition(undefined, { type: 'NEXT' });
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'NEXT' });
+      const persistedState = actorRef.getPersistedState();
 
-      const persistedState = machine.getPersistedState(nextState);
-
-      const service = interpret(machine, { state: persistedState });
-      service.subscribe({
-        complete: () => {
-          // Should reach done state immediately
-          done();
-        }
+      const spy = jest.fn();
+      const actorRef2 = interpret(machine, { state: persistedState });
+      actorRef2.subscribe({
+        complete: spy
       });
 
-      service.start();
+      actorRef2.start();
+      expect(spy).toHaveBeenCalled();
     });
   });
 
-  describe('machine.getInitialState', () => {
+  describe('initial state', () => {
     it('should follow always transition', () => {
       const machine = createMachine({
         initial: 'a',
@@ -385,7 +378,7 @@ describe('machine', () => {
         }
       });
 
-      expect(machine.getInitialState().value).toBe('b');
+      expect(interpret(machine).getSnapshot().value).toBe('b');
     });
   });
 
@@ -448,13 +441,13 @@ describe('machine', () => {
         }
       });
 
-      const state = testMachine.initialState;
+      const actorRef = interpret(testMachine);
+      expect(actorRef.getSnapshot().value).toEqual({});
 
-      expect(state.value).toEqual({});
+      actorRef.start();
+      actorRef.send({ type: 'INC' });
 
-      const nextState = testMachine.transition(state, { type: 'INC' });
-
-      expect(nextState.context.value).toEqual(43);
+      expect(actorRef.getSnapshot().context.value).toEqual(43);
     });
   });
 });

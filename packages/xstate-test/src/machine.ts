@@ -1,4 +1,4 @@
-import { SerializedState, serializeState, SimpleBehavior } from '@xstate/graph';
+import { SerializedState, serializeState } from '@xstate/graph';
 import {
   AnyEventObject,
   AnyState,
@@ -95,7 +95,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   const { events: getEvents, ...otherOptions } = options ?? {};
 
   const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
-    machine as SimpleBehavior<any, any>,
+    machine as any,
     {
       serializeState: (state, event, prevState) => {
         // Only consider the `state` if `serializeTransition()` is opted out (empty string)

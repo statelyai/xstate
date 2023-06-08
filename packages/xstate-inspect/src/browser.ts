@@ -155,7 +155,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     const state = service.getSnapshot();
     inspectService.send({
       type: 'service.register',
-      machine: stringifyMachine(service.behavior, options?.serialize),
+      machine: stringifyMachine(service.logic, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,

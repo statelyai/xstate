@@ -25,12 +25,11 @@ async function runTestToCompletion(
   test: SCIONTest
 ): Promise<void> {
   let done = false;
-  let nextState: AnyState = machine.initialState;
 
   const service = interpret(machine, {
-    state: nextState,
     clock: new SimulatedClock()
   });
+  let nextState: AnyState = service.getSnapshot();
   service.subscribe((state) => {
     nextState = state;
   });

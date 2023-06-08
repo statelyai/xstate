@@ -25,7 +25,7 @@ export function stringifyState(state: AnyState, replacer?: Replacer): string {
     state;
   return selectivelyStringify(
     { ...stateToStringify, tags: Array.from(tags) },
-    ['context', 'event', 'actions'],
+    ['context', 'event'],
     replacer
   );
 }

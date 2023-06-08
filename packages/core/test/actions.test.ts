@@ -913,8 +913,8 @@ describe('entry/exit actions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const aa1State = machine.resolveStateValue({ A: 'A1' });
-      const service = interpret(machine, { state: aa1State }).start();
+      const service = interpret(machine).start();
+      flushTracked();
       service.send({ type: 'NEXT' });
 
       expect(flushTracked()).toEqual([
@@ -2231,9 +2231,11 @@ describe('actions config', () => {
         }
       }
     );
-    const state = machine.transition('a', { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
+    const snapshot = actorRef.getSnapshot();
 
-    // expect(state.actions).toEqual([
+    // expect(snapshot.actions).toEqual([
     //   expect.objectContaining({
     //     type: 'definedAction'
     //   }),
@@ -2243,7 +2245,7 @@ describe('actions config', () => {
     // ]);
     // TODO: specify which actions other actions came from
 
-    expect(state.context).toEqual({ count: 10 });
+    expect(snapshot.context).toEqual({ count: 10 });
   });
 
   it('should work with anonymous functions (with warning)', () => {

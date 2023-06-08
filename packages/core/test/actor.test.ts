@@ -4,7 +4,7 @@ import {
   ActorRef,
   ActorRefFrom,
   EventObject,
-  ActorBehavior,
+  ActorLogic,
   Subscribable,
   Observer,
   AnyActorRef
@@ -171,7 +171,7 @@ describe('spawning machines', () => {
     service.send({ type: 'SET_COMPLETE', id: 42 });
   });
 
-  it('should spawn referenced machines', (done) => {
+  it('should spawn referenced machines', () => {
     const childMachine = createMachine({
       entry: sendParent({ type: 'DONE' })
     });
@@ -204,12 +204,8 @@ describe('spawning machines', () => {
     );
 
     const actor = interpret(parentMachine);
-    actor.subscribe({
-      complete: () => {
-        done();
-      }
-    });
     actor.start();
+    expect(actor.getSnapshot().value).toBe('success');
   });
 
   it('should allow bidirectional communication between parent/child actors', (done) => {
@@ -373,18 +369,18 @@ describe('spawning callbacks', () => {
 
 describe('spawning observables', () => {
   it('should spawn an observable', (done) => {
-    const observableBehavior = fromObservable(() => interval(10));
+    const observableLogic = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined! as ActorRefFrom<typeof observableBehavior>
+        observableRef: undefined! as ActorRefFrom<typeof observableLogic>
       },
       states: {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(observableBehavior, { id: 'int' });
+              const ref = spawn(observableLogic, { id: 'int' });
 
               return ref;
             }
@@ -455,18 +451,18 @@ describe('spawning observables', () => {
   });
 
   it(`should read the latest snapshot of the event's origin while handling that event`, (done) => {
-    const observableBehavior = fromObservable(() => interval(10));
+    const observableLogic = fromObservable(() => interval(10));
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined! as ActorRefFrom<typeof observableBehavior>
+        observableRef: undefined! as ActorRefFrom<typeof observableLogic>
       },
       states: {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(observableBehavior, { id: 'int' });
+              const ref = spawn(observableLogic, { id: 'int' });
 
               return ref;
             }
@@ -501,22 +497,20 @@ describe('spawning observables', () => {
 
 describe('spawning event observables', () => {
   it('should spawn an event observable', (done) => {
-    const eventObservableBehavior = fromEventObservable(() =>
+    const eventObservableLogic = fromEventObservable(() =>
       interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
     );
     const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
-        observableRef: undefined! as ActorRefFrom<
-          typeof eventObservableBehavior
-        >
+        observableRef: undefined! as ActorRefFrom<typeof eventObservableLogic>
       },
       states: {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(eventObservableBehavior, { id: 'int' });
+              const ref = spawn(eventObservableLogic, { id: 'int' });
 
               return ref;
             }
@@ -852,15 +846,15 @@ describe('actors', () => {
       }
     });
 
-    const { initialState } = nullActorMachine;
-
-    // expect(initialState.context.ref!.id).toBe('null'); // TODO: identify null actors
-    expect(initialState.context.ref!.send).toBeDefined();
+    // expect(interpret(nullActorMachine).getSnapshot().context.ref!.id).toBe('null'); // TODO: identify null actors
+    expect(
+      interpret(nullActorMachine).getSnapshot().context.ref!.send
+    ).toBeDefined();
   });
 
-  describe('with behaviors', () => {
-    it('should work with a transition function behavior', (done) => {
-      const countBehavior = fromTransition((count: number, event: any) => {
+  describe('with actor logic', () => {
+    it('should work with a transition function logic', (done) => {
+      const countLogic = fromTransition((count: number, event: any) => {
         if (event.type === 'INC') {
           return count + 1;
         } else if (event.type === 'DEC') {
@@ -870,13 +864,13 @@ describe('actors', () => {
       }, 0);
 
       const countMachine = createMachine<{
-        count: ActorRefFrom<typeof countBehavior> | undefined;
+        count: ActorRefFrom<typeof countLogic> | undefined;
       }>({
         context: {
           count: undefined
         },
         entry: assign({
-          count: ({ spawn }) => spawn(countBehavior)
+          count: ({ spawn }) => spawn(countLogic)
         }),
         on: {
           INC: {
@@ -897,7 +891,7 @@ describe('actors', () => {
       countService.send({ type: 'INC' });
     });
 
-    it('should work with a promise behavior (fulfill)', (done) => {
+    it('should work with a promise logic (fulfill)', (done) => {
       const countMachine = createMachine<{
         count: ActorRefFrom<Promise<number>> | undefined;
       }>({
@@ -941,7 +935,7 @@ describe('actors', () => {
       countService.start();
     });
 
-    it('should work with a promise behavior (reject)', (done) => {
+    it('should work with a promise logic (reject)', (done) => {
       const errorMessage = 'An error occurred';
       const countMachine = createMachine<{
         count: ActorRefFrom<Promise<number>>;
@@ -984,8 +978,8 @@ describe('actors', () => {
       countService.start();
     });
 
-    it('behaviors should have reference to the parent', (done) => {
-      const pongBehavior: ActorBehavior<EventObject, undefined> = {
+    it('actor logic should have reference to the parent', (done) => {
+      const pongLogic: ActorLogic<EventObject, undefined> = {
         transition: (_state, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
@@ -997,21 +991,21 @@ describe('actors', () => {
       };
 
       const pingMachine = createMachine<{
-        ponger: ActorRefFrom<typeof pongBehavior> | undefined;
+        ponger: ActorRefFrom<typeof pongLogic> | undefined;
       }>({
         initial: 'waiting',
         context: {
           ponger: undefined
         },
         entry: assign({
-          ponger: ({ spawn }) => spawn(pongBehavior)
+          ponger: ({ spawn }) => spawn(pongLogic)
         }),
         states: {
           waiting: {
             entry: sendTo(({ context }) => context.ponger!, { type: 'PING' }),
             invoke: {
               id: 'ponger',
-              src: pongBehavior
+              src: pongLogic
             },
             on: {
               PONG: 'success'

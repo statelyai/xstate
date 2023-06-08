@@ -30,11 +30,16 @@ afterEach(() => {
 
 describe('delayed transitions', () => {
   it('should transition after delay', () => {
-    const nextState = lightMachine.transition(lightMachine.initialState, {
-      type: after(1000, 'light.green')
-    });
+    jest.useFakeTimers();
 
-    expect(nextState.value).toEqual('yellow');
+    const actorRef = interpret(lightMachine).start();
+    expect(actorRef.getSnapshot().value).toBe('green');
+
+    jest.advanceTimersByTime(500);
+    expect(actorRef.getSnapshot().value).toBe('green');
+
+    jest.advanceTimersByTime(510);
+    expect(actorRef.getSnapshot().value).toBe('yellow');
   });
 
   it('should format transitions properly', () => {
@@ -152,7 +157,7 @@ describe('delayed transitions', () => {
   });
 
   // TODO: figure out correct behavior for restoring delayed transitions
-  it.skip('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
+  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedState`', (done) => {
     const machine = createMachine({
       id: 'machine',
       initial: 'a',
@@ -173,10 +178,13 @@ describe('delayed transitions', () => {
       }
     });
 
-    const withAfterState = machine.transition(undefined, { type: 'next' });
-    const actor = interpret(machine, { state: withAfterState });
-    actor.subscribe({ complete: () => done() });
-    actor.start();
+    const actorRef1 = interpret(machine).start();
+    actorRef1.send({ type: 'next' });
+    const withAfterState = actorRef1.getPersistedState();
+
+    const actorRef2 = interpret(machine, { state: withAfterState });
+    actorRef2.subscribe({ complete: () => done() });
+    actorRef2.start();
   });
 
   it('should execute an after transition after starting from a persisted state', (done) => {
@@ -297,45 +305,6 @@ describe('delayed transitions', () => {
 
       jest.advanceTimersByTime(200);
       expect(actor.getSnapshot().value).toBe('inactive');
-    });
-
-    it('should set delay to undefined if expression not found', () => {
-      const machine = createMachine(
-        {
-          initial: 'inactive',
-          states: {
-            inactive: {
-              on: {
-                NOEXPR: 'activeNoExpr'
-              }
-            },
-            activeNoExpr: {
-              after: [
-                {
-                  delay: 'nonExistantDelay',
-                  target: 'inactive'
-                }
-              ]
-            }
-          }
-        },
-        {
-          delays: {
-            someDelay: ({ context, event }) =>
-              context.delay + (event as any).delay
-          }
-        }
-      );
-      const { initialState } = machine;
-      const activeState = machine.transition(initialState, {
-        type: 'NOEXPR',
-        delay: 500
-      });
-      const sendActions = activeState.actions.filter(
-        (a) => a.type === 'xstate.raise'
-      );
-      expect(sendActions.length).toBe(1);
-      expect(sendActions[0].params?.delay).toEqual(undefined);
     });
   });
 });

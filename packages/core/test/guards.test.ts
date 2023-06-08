@@ -1,4 +1,4 @@
-import { interpret, State, createMachine, raise } from '../src/index.ts';
+import { interpret, createMachine, raise } from '../src/index.ts';
 import { and, not, or } from '../src/guards';
 import { trackEntries } from './utils.ts';
 
@@ -7,7 +7,7 @@ describe('guard conditions', () => {
     elapsed: number;
   }
   type LightMachineEvents =
-    | { type: 'TIMER'; elapsed: number }
+    | { type: 'TIMER' }
     | {
         type: 'EMERGENCY';
         isEmergency?: boolean;
@@ -17,6 +17,9 @@ describe('guard conditions', () => {
 
   const lightMachine = createMachine(
     {
+      context: ({ input = {} }) => ({
+        elapsed: input.elapsed || 0
+      }),
       initial: 'green',
       types: {} as {
         context: LightMachineCtx;
@@ -78,48 +81,34 @@ describe('guard conditions', () => {
   );
 
   it('should transition only if condition is met', () => {
-    expect(
-      lightMachine.transition(
-        State.from(
-          'green',
-          {
-            elapsed: 50
-          },
-          lightMachine
-        ),
-        { type: 'TIMER', elapsed: 0 }
-      ).value
-    ).toEqual('green');
+    const actorRef1 = interpret(lightMachine, {
+      input: { elapsed: 50 }
+    }).start();
+    actorRef1.send({ type: 'TIMER' });
+    expect(actorRef1.getSnapshot().value).toEqual('green');
 
-    expect(
-      lightMachine.transition(
-        State.from(
-          'green',
-          {
-            elapsed: 120
-          },
-          lightMachine
-        ),
-        { type: 'TIMER', elapsed: 0 }
-      ).value
-    ).toEqual('yellow');
+    const actorRef2 = interpret(lightMachine, {
+      input: { elapsed: 120 }
+    }).start();
+    actorRef2.send({ type: 'TIMER' });
+    expect(actorRef2.getSnapshot().value).toEqual('yellow');
   });
 
   it('should transition if condition based on event is met', () => {
-    expect(
-      lightMachine.transition('green', {
-        type: 'EMERGENCY',
-        isEmergency: true
-      }).value
-    ).toEqual('red');
+    const actorRef = interpret(lightMachine).start();
+    actorRef.send({
+      type: 'EMERGENCY',
+      isEmergency: true
+    });
+    expect(actorRef.getSnapshot().value).toEqual('red');
   });
 
   it('should not transition if condition based on event is not met', () => {
-    expect(
-      lightMachine.transition('green', {
-        type: 'EMERGENCY'
-      }).value
-    ).toEqual('green');
+    const actorRef = interpret(lightMachine).start();
+    actorRef.send({
+      type: 'EMERGENCY'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('green');
   });
 
   it('should not transition if no condition is met', () => {
@@ -156,153 +145,247 @@ describe('guard conditions', () => {
   });
 
   it('should work with defined string transitions', () => {
-    const nextState = lightMachine.transition(
-      lightMachine.resolveState(
-        State.from(
-          'yellow',
-          {
-            elapsed: 150
-          },
-          lightMachine
-        )
-      ),
-      { type: 'TIMER', elapsed: 10 }
-    );
-    expect(nextState.value).toEqual('red');
+    const actorRef = interpret(lightMachine, {
+      input: { elapsed: 120 }
+    }).start();
+    actorRef.send({
+      type: 'TIMER'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('yellow');
+    actorRef.send({
+      type: 'TIMER'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('red');
   });
 
   it('should work with guard objects', () => {
-    const nextState = lightMachine.transition(
-      lightMachine.resolveState(
-        State.from(
-          'yellow',
-          {
-            elapsed: 150
-          },
-          lightMachine
-        )
-      ),
-      { type: 'TIMER_COND_OBJ' }
-    );
-    expect(nextState.value).toEqual('red');
+    const actorRef = interpret(lightMachine, {
+      input: { elapsed: 150 }
+    }).start();
+    actorRef.send({
+      type: 'TIMER'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('yellow');
+    actorRef.send({
+      type: 'TIMER_COND_OBJ'
+    });
+    expect(actorRef.getSnapshot().value).toEqual('red');
   });
 
   it('should work with defined string transitions (condition not met)', () => {
-    const nextState = lightMachine.transition(
-      lightMachine.resolveState(
-        State.from(
-          'yellow',
-          {
-            elapsed: 10
+    const machine = createMachine<LightMachineCtx, LightMachineEvents>(
+      {
+        context: {
+          elapsed: 10
+        },
+        initial: 'yellow',
+        states: {
+          green: {
+            on: {
+              TIMER: [
+                {
+                  target: 'green',
+                  guard: ({ context: { elapsed } }) => elapsed < 100
+                },
+                {
+                  target: 'yellow',
+                  guard: ({ context: { elapsed } }) =>
+                    elapsed >= 100 && elapsed < 200
+                }
+              ],
+              EMERGENCY: {
+                target: 'red',
+                guard: ({ event }) => !!event.isEmergency
+              }
+            }
           },
-          lightMachine
-        )
-      ),
-      { type: 'TIMER', elapsed: 10 }
+          yellow: {
+            on: {
+              TIMER: {
+                target: 'red',
+                guard: 'minTimeElapsed'
+              }
+            }
+          },
+          red: {}
+        }
+      },
+      {
+        guards: {
+          minTimeElapsed: ({ context: { elapsed } }) =>
+            elapsed >= 100 && elapsed < 200
+        }
+      }
     );
-    expect(nextState.value).toEqual('yellow');
+
+    const actorRef = interpret(machine).start();
+    actorRef.send({
+      type: 'TIMER'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual('yellow');
   });
 
   it('should throw if string transition is not defined', () => {
-    expect(() =>
-      lightMachine.transition('red', { type: 'BAD_COND' })
-    ).toThrow();
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            BAD_COND: {
+              guard: 'doesNotExist'
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = interpret(machine).start();
+
+    expect(() => actorRef.send({ type: 'BAD_COND' }))
+      .toThrowErrorMatchingInlineSnapshot(`
+      "Unable to evaluate guard 'doesNotExist' in transition for event 'BAD_COND' in state node '(machine).foo':
+      Guard 'doesNotExist' is not implemented.'."
+    `);
   });
 });
 
 describe('guard conditions', () => {
-  const machine = createMachine({
-    type: 'parallel',
-    states: {
-      A: {
-        initial: 'A0',
-        states: {
-          A0: {
-            on: {
-              A: 'A1'
-            }
-          },
-          A1: {
-            on: {
-              A: 'A2'
-            }
-          },
-          A2: {
-            on: {
-              A: 'A3'
-            }
-          },
-          A3: {
-            always: 'A4'
-          },
-          A4: {
-            always: 'A5'
-          },
-          A5: {}
-        }
-      },
-      B: {
-        initial: 'B0',
-        states: {
-          B0: {
-            always: [
-              {
-                target: 'B4',
-                guard: ({ state }) => state.matches('A.A4')
+  it('should guard against transition', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A2',
+          states: {
+            A0: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B0',
+          states: {
+            B0: {
+              always: [
+                {
+                  target: 'B4',
+                  guard: () => false
+                }
+              ],
+              on: {
+                T1: [
+                  {
+                    target: 'B1',
+                    guard: () => false
+                  }
+                ]
               }
-            ],
-            on: {
-              T1: [
-                {
-                  target: 'B1',
-                  guard: ({ state }) => state.matches('A.A1')
-                }
-              ],
-              T2: [
-                {
-                  target: 'B2',
-                  guard: ({ state }) => state.matches('A.A2')
-                }
-              ],
-              T3: [
-                {
-                  target: 'B3',
-                  guard: ({ state }) => state.matches('A.A3')
-                }
-              ]
-            }
-          },
-          B1: {},
-          B2: {},
-          B3: {},
-          B4: {}
+            },
+            B1: {},
+            B4: {}
+          }
         }
       }
-    }
-  });
+    });
 
-  it('should guard against transition', () => {
-    expect(
-      machine.transition({ A: 'A2', B: 'B0' }, { type: 'T1' }).value
-    ).toEqual({
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'T1' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
       A: 'A2',
       B: 'B0'
     });
   });
 
   it('should allow a matching transition', () => {
-    expect(
-      machine.transition({ A: 'A2', B: 'B0' }, { type: 'T2' }).value
-    ).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A2',
+          states: {
+            A0: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B0',
+          states: {
+            B0: {
+              always: [
+                {
+                  target: 'B4',
+                  guard: () => false
+                }
+              ],
+              on: {
+                T2: [
+                  {
+                    target: 'B2',
+                    guard: ({ state }) => state.matches('A.A2')
+                  }
+                ]
+              }
+            },
+            B1: {},
+            B2: {},
+            B4: {}
+          }
+        }
+      }
+    });
+
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'T2' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
       A: 'A2',
       B: 'B2'
     });
   });
 
   it('should check guards with interim states', () => {
-    expect(
-      machine.transition({ A: 'A2', B: 'B0' }, { type: 'A' }).value
-    ).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A2',
+          states: {
+            A2: {
+              on: {
+                A: 'A3'
+              }
+            },
+            A3: {
+              always: 'A4'
+            },
+            A4: {
+              always: 'A5'
+            },
+            A5: {}
+          }
+        },
+        B: {
+          initial: 'B0',
+          states: {
+            B0: {
+              always: [
+                {
+                  target: 'B4',
+                  guard: ({ state }) => state.matches('A.A4')
+                }
+              ]
+            },
+            B4: {}
+          }
+        }
+      }
+    });
+
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'A' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
       A: 'A5',
       B: 'B4'
     });
@@ -339,63 +422,61 @@ describe('guard conditions', () => {
 });
 
 describe('custom guards', () => {
-  interface Ctx {
-    count: number;
-  }
-  interface Events {
-    type: 'EVENT';
-    value: number;
-  }
-  const machine = createMachine<Ctx, Events>(
-    {
-      id: 'custom',
-      initial: 'inactive',
-      context: {
-        count: 0
-      },
-      states: {
-        inactive: {
-          on: {
-            EVENT: {
-              target: 'active',
-              guard: {
-                type: 'custom',
-                params: { prop: 'count', op: 'greaterThan', compare: 3 }
+  it('should evaluate custom guards', () => {
+    interface Ctx {
+      count: number;
+    }
+    interface Events {
+      type: 'EVENT';
+      value: number;
+    }
+    const machine = createMachine<Ctx, Events>(
+      {
+        id: 'custom',
+        initial: 'inactive',
+        context: {
+          count: 0
+        },
+        states: {
+          inactive: {
+            on: {
+              EVENT: {
+                target: 'active',
+                guard: {
+                  type: 'custom',
+                  params: { prop: 'count', op: 'greaterThan', compare: 3 }
+                }
               }
             }
-          }
-        },
-        active: {}
-      }
-    },
-    {
-      guards: {
-        custom: ({ context, event, guard }) => {
-          const { prop, compare, op } = guard.params;
-          if (op === 'greaterThan') {
-            return (
-              context[prop as keyof typeof context] + event.value > compare
-            );
-          }
+          },
+          active: {}
+        }
+      },
+      {
+        guards: {
+          custom: ({ context, event, guard }) => {
+            const { prop, compare, op } = guard.params;
+            if (op === 'greaterThan') {
+              return (
+                context[prop as keyof typeof context] + event.value > compare
+              );
+            }
 
-          return false;
+            return false;
+          }
         }
       }
-    }
-  );
+    );
 
-  it('should evaluate custom guards', () => {
-    const passState = machine.transition(machine.initialState, {
-      type: 'EVENT',
-      value: 4
-    });
+    const actorRef1 = interpret(machine).start();
+    actorRef1.send({ type: 'EVENT', value: 4 });
+    const passState = actorRef1.getSnapshot();
 
     expect(passState.value).toEqual('active');
 
-    const failState = machine.transition(machine.initialState, {
-      type: 'EVENT',
-      value: 3
-    });
+    const actorRef2 = interpret(machine).start();
+    actorRef2.send({ type: 'EVENT', value: 3 });
+    const failState = actorRef2.getSnapshot();
 
     expect(failState.value).toEqual('inactive');
   });
@@ -472,9 +553,14 @@ describe('referencing guards', () => {
       }
     });
 
+    const actorRef = interpret(machine).start();
+
     expect(() => {
-      machine.transition(machine.initialState, { type: 'EVENT' });
-    }).toThrow();
+      actorRef.send({ type: 'EVENT' });
+    }).toThrowErrorMatchingInlineSnapshot(`
+      "Unable to evaluate guard 'missing-predicate' in transition for event 'EVENT' in state node 'invalid-predicate.active':
+      Guard 'missing-predicate' is not implemented.'."
+    `);
   });
 });
 
@@ -545,8 +631,10 @@ describe('guards with child guards', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
-    expect(nextState.matches('b')).toBeTruthy();
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
+
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 });
 
@@ -567,9 +655,11 @@ describe('not() guard', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
 
-    expect(nextState.matches('b')).toBeTruthy();
+    actorRef.send({ type: 'EVENT' });
+
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with string', () => {
@@ -595,9 +685,10 @@ describe('not() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with object', () => {
@@ -625,9 +716,10 @@ describe('not() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with nested built-in guards', () => {
@@ -654,9 +746,10 @@ describe('not() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 });
 
@@ -677,9 +770,10 @@ describe('and() guard', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with string', () => {
@@ -705,9 +799,10 @@ describe('and() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with object', () => {
@@ -738,9 +833,10 @@ describe('and() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with nested built-in guards', () => {
@@ -771,9 +867,10 @@ describe('and() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 });
 
@@ -794,9 +891,10 @@ describe('or() guard', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with string', () => {
@@ -823,9 +921,10 @@ describe('or() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with object', () => {
@@ -856,9 +955,10 @@ describe('or() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 
   it('should guard with nested built-in guards', () => {
@@ -889,8 +989,9 @@ describe('or() guard', () => {
       }
     );
 
-    const nextState = machine.transition(undefined, { type: 'EVENT' });
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
 
-    expect(nextState.matches('b')).toBeTruthy();
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 });

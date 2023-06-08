@@ -8,6 +8,7 @@ import {
   createMachine,
   DoneEventObject,
   doneInvoke,
+  interpret,
   Interpreter,
   PersistedMachineState,
   raise,
@@ -57,13 +58,18 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     }
   });
 
-  const successFetchState = fetchMachine.transition('loading', {
-    type: 'done.invoke.fetchData',
-    output: 'persisted data'
-  });
+  const actorRef = interpret(
+    fetchMachine.provide({
+      actors: {
+        fetchData: fromCallback((sendBack) => {
+          sendBack(doneInvoke('fetchData', 'persisted data'));
+        })
+      }
+    })
+  ).start();
+  actorRef.send({ type: 'FETCH' });
 
-  const persistedSuccessFetchState =
-    fetchMachine.getPersistedState(successFetchState);
+  const persistedSuccessFetchState = actorRef.getPersistedState();
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
@@ -880,7 +886,9 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const persistedState = JSON.stringify(testMachine.initialState);
+    const actorRef = interpret(testMachine).start();
+    const persistedState = JSON.stringify(actorRef.getPersistedState());
+    actorRef.stop();
 
     let currentState: StateFrom<typeof testMachine>;
 

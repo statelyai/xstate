@@ -30,7 +30,12 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = machine.microstep(machine.initialState, { type: 'GO' });
+    const actorContext = undefined as any; // TODO: figure out the simulation API
+    const states = machine.microstep(
+      machine.getInitialState(actorContext),
+      { type: 'GO' },
+      actorContext
+    );
 
     expect(states.map((s) => s.value)).toEqual(['a', 'b', 'c', 'd']);
   });
@@ -51,10 +56,11 @@ describe('machine.microstep()', () => {
       }
     });
 
+    const actorContext = undefined as any; // TODO: figure out the simulation API
     const states = machine.microstep(
       machine.resolveStateValue('first'),
       { type: 'TRIGGER' },
-      undefined
+      actorContext
     );
 
     expect(states.map((s) => s.value)).toEqual(['second', 'third']);
@@ -81,10 +87,11 @@ describe('machine.microstep()', () => {
       }
     });
 
+    const actorContext = undefined as any; // TODO: figure out the simulation API
     const states = machine.microstep(
       machine.resolveStateValue('first'),
       { type: 'TRIGGER' },
-      undefined
+      actorContext
     );
 
     expect(states.map((s) => s.value)).toEqual(['second', 'third']);
@@ -103,7 +110,12 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = machine.microstep(machine.initialState, { type: 'TRIGGER' });
+    const actorContext = undefined as any; // TODO: figure out the simulation API
+    const states = machine.microstep(
+      machine.getInitialState(actorContext),
+      { type: 'TRIGGER' },
+      actorContext
+    );
 
     expect(states.map((s) => s.value)).toEqual(['second']);
   });
@@ -141,45 +153,18 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = machine.microstep(machine.initialState, { type: 'TRIGGER' });
+    const actorContext = undefined as any; // TODO: figure out the simulation API
+    const states = machine.microstep(
+      machine.getInitialState(actorContext),
+      { type: 'TRIGGER' },
+      actorContext
+    );
 
     expect(states.map((s) => [s.value, s._internalQueue.length])).toEqual([
       ['second', 2], // foo, bar
       ['third', 1], // bar
       ['fourth', 0], // (eventless)
       ['fifth', 0]
-    ]);
-  });
-
-  it('actions are preserved throughout microstep', () => {
-    const machine = createMachine({
-      initial: 'start',
-      states: {
-        start: {
-          on: {
-            TRIGGER: 'first'
-          }
-        },
-        first: {
-          entry: ['one'],
-          always: 'second'
-        },
-        second: {
-          entry: ['two'],
-          always: 'third'
-        },
-        third: {
-          entry: ['three']
-        }
-      }
-    });
-
-    const states = machine.microstep(machine.initialState, { type: 'TRIGGER' });
-
-    expect(states.map((s) => s.actions.map((a) => a.type))).toEqual([
-      ['one'],
-      ['one', 'two'],
-      ['one', 'two', 'three']
     ]);
   });
 });

@@ -1,12 +1,10 @@
 import { SimulatedClock } from '../src/SimulatedClock';
-import { machine as idMachine } from './fixtures/id';
 import {
   interpret,
   assign,
   sendParent,
   StateValue,
   createMachine,
-  AnyState,
   InterpreterStatus,
   ActorRefFrom,
   ActorRef,
@@ -52,11 +50,16 @@ const lightMachine = createMachine({
 describe('interpreter', () => {
   describe('initial state', () => {
     it('.getSnapshot returns the initial state', () => {
-      const service = interpret(idMachine);
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          bar: {},
+          foo: {}
+        }
+      });
+      const service = interpret(machine);
 
-      expect(service.getSnapshot().value).toEqual(
-        idMachine.getInitialState().value
-      );
+      expect(service.getSnapshot().value).toEqual('foo');
     });
 
     it('initially spawned actors should not be spawned when reading initial state', (done) => {
@@ -104,16 +107,15 @@ describe('interpreter', () => {
     });
 
     it('does not execute actions from a restored state', () => {
-      const reportSpy = jest.fn();
-      const lightMachine = createMachine({
-        id: 'light',
+      let called = false;
+      const machine = createMachine({
         initial: 'green',
         states: {
           green: {
             on: {
               TIMER: {
                 target: 'yellow',
-                actions: reportSpy
+                actions: () => (called = true)
               }
             }
           },
@@ -132,30 +134,25 @@ describe('interpreter', () => {
         }
       });
 
-      const currentState = 'green';
-      const nextState = lightMachine.transition(currentState, {
-        type: 'TIMER'
-      });
+      let actorRef = interpret(machine).start();
 
-      // saves state and recreate it
-      const recreated = JSON.parse(JSON.stringify(nextState));
-      const restoredState = lightMachine.createState(recreated);
+      actorRef.send({ type: 'TIMER' });
+      called = false;
+      const persisted = actorRef.getPersistedState();
+      actorRef = interpret(machine, { state: persisted }).start();
 
-      const service = interpret(lightMachine, { state: restoredState });
-      service.start();
-
-      expect(reportSpy).not.toHaveBeenCalled();
+      expect(called).toBe(false);
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
-      let aCalled = false;
+      let called = false;
       const machine = createMachine({
         initial: 'a',
         states: {
           a: {
             entry: () => {
               // this should not be called when starting from a different state
-              aCalled = true;
+              called = true;
             },
             always: 'b'
           },
@@ -163,13 +160,14 @@ describe('interpreter', () => {
         }
       });
 
-      const bState = machine.initialState;
+      const actorRef = interpret(machine).start();
+      called = false;
+      expect(actorRef.getSnapshot().value).toEqual('b');
+      const persisted = actorRef.getPersistedState();
 
-      expect(bState.value).toEqual('b');
+      interpret(machine, { state: persisted }).start();
 
-      interpret(machine, { state: machine.resolveStateValue('b') }).start();
-
-      expect(aCalled).toBe(false);
+      expect(called).toBe(false);
     });
   });
 
@@ -192,57 +190,33 @@ describe('interpreter', () => {
   });
 
   describe('send with delay', () => {
-    it('can send an event after a delay', () => {
-      const currentStates: Array<AnyState> = [];
-
-      const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
-      });
-      service.subscribe((state) => {
-        currentStates.push(state);
-
-        if (currentStates.length === 4) {
-          expect(currentStates.map((s) => s.value)).toEqual([
-            'green',
-            'yellow',
-            'red',
-            'green'
-          ]);
+    it('can send an event after a delay', async () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: [raise({ type: 'TIMER' }, { delay: 10 })],
+            on: {
+              TIMER: 'bar'
+            }
+          },
+          bar: {}
         }
       });
-      const clock = service.clock as SimulatedClock;
-      service.start();
+      const actorRef = interpret(machine);
+      expect(actorRef.getSnapshot().value).toBe('foo');
 
-      clock.increment(5);
-      expect(currentStates[0]!.value).toEqual('green');
+      await new Promise((res) => setTimeout(res, 10));
+      expect(actorRef.getSnapshot().value).toBe('foo');
 
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
+      actorRef.start();
+      expect(actorRef.getSnapshot().value).toBe('foo');
 
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
+      await new Promise((res) => setTimeout(res, 5));
+      expect(actorRef.getSnapshot().value).toBe('foo');
 
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual([
-        'green',
-        'yellow',
-        'red'
-      ]);
-
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual([
-        'green',
-        'yellow',
-        'red'
-      ]);
-
-      clock.increment(5);
-      expect(currentStates.map((s) => s.value)).toEqual([
-        'green',
-        'yellow',
-        'red',
-        'green'
-      ]);
+      await new Promise((res) => setTimeout(res, 10));
+      expect(actorRef.getSnapshot().value).toBe('bar');
     });
 
     it('can send an event after a delay (expression)', () => {
@@ -566,12 +540,11 @@ describe('interpreter', () => {
       expect(stopActivityState!).toEqual('off');
     });
 
-    it('should restart activities from a compound state', (done) => {
+    it('should restart activities from a compound state', () => {
       let activityActive = false;
 
-      const toggleMachine = createMachine(
+      const machine = createMachine(
         {
-          id: 'toggle',
           initial: 'inactive',
           states: {
             inactive: {
@@ -592,7 +565,6 @@ describe('interpreter', () => {
           actors: {
             blink: fromCallback(() => {
               activityActive = true;
-
               return () => {
                 activityActive = false;
               };
@@ -601,17 +573,16 @@ describe('interpreter', () => {
         }
       );
 
-      const activeState = toggleMachine.transition(toggleMachine.initialState, {
-        type: 'TOGGLE'
-      });
-      const bState = toggleMachine.transition(activeState, { type: 'SWITCH' });
+      const actorRef = interpret(machine).start();
+      actorRef.send({ type: 'TOGGLE' });
+      actorRef.send({ type: 'SWITCH' });
+      const bState = actorRef.getPersistedState();
+      actorRef.stop();
+      activityActive = false;
 
-      interpret(toggleMachine, { state: bState }).start();
+      interpret(machine, { state: bState }).start();
 
-      setTimeout(() => {
-        expect(activityActive).toBeTruthy();
-        done();
-      }, 10);
+      expect(activityActive).toBeTruthy();
     });
   });
 
@@ -1673,7 +1644,7 @@ describe('interpreter', () => {
       expect(actor.getSnapshot().children).toHaveProperty('child');
     });
 
-    it('stopped spawned actors should be cleaned up in parent', (done) => {
+    it('stopped spawned actors should be cleaned up in parent', () => {
       const childMachine = createMachine({
         initial: 'idle',
         states: {
@@ -1727,28 +1698,17 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine);
-      service.subscribe({
-        complete: () => {
-          expect(service.getSnapshot().children.machineChild).toBeUndefined();
-          expect(service.getSnapshot().children.promiseChild).toBeUndefined();
-          expect(
-            service.getSnapshot().children.observableChild
-          ).toBeUndefined();
-          done();
-        }
-      });
-      service.start();
+      const service = interpret(parentMachine).start();
 
-      service.subscribe((state) => {
-        if (state.matches('present')) {
-          expect(state.children).toHaveProperty('machineChild');
-          expect(state.children).toHaveProperty('promiseChild');
-          expect(state.children).toHaveProperty('observableChild');
+      expect(service.getSnapshot().children).toHaveProperty('machineChild');
+      expect(service.getSnapshot().children).toHaveProperty('promiseChild');
+      expect(service.getSnapshot().children).toHaveProperty('observableChild');
 
-          service.send({ type: 'NEXT' });
-        }
-      });
+      service.send({ type: 'NEXT' });
+
+      expect(service.getSnapshot().children.machineChild).toBeUndefined();
+      expect(service.getSnapshot().children.promiseChild).toBeUndefined();
+      expect(service.getSnapshot().children.observableChild).toBeUndefined();
     });
   });
 
@@ -1826,4 +1786,42 @@ it('should throw if an event is received', () => {
       'EVENT'
     )
   ).toThrow();
+});
+
+it('should not process events sent directly to own actor ref before initial entry actions are processed', () => {
+  const actual: string[] = [];
+  const machine = createMachine({
+    entry: () => {
+      actual.push('initial root entry start');
+      actorRef.send({
+        type: 'EV'
+      });
+      actual.push('initial root entry end');
+    },
+    on: {
+      EV: {
+        actions: () => {
+          actual.push('EV transition');
+        }
+      }
+    },
+    initial: 'a',
+    states: {
+      a: {
+        entry: () => {
+          actual.push('initial nested entry');
+        }
+      }
+    }
+  });
+
+  const actorRef = interpret(machine);
+  actorRef.start();
+
+  expect(actual).toEqual([
+    'initial root entry start',
+    'initial root entry end',
+    'initial nested entry',
+    'EV transition'
+  ]);
 });

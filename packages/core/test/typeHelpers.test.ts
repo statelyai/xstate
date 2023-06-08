@@ -7,7 +7,7 @@ import {
   interpret,
   MachineImplementationsFrom,
   StateValueFrom,
-  ActorBehavior,
+  ActorLogic,
   ActorRefFrom,
   TagsFrom
 } from '../src/index.ts';
@@ -334,7 +334,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(machine.initialState);
+    acceptState(interpret(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -348,24 +348,24 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(machine.initialState);
+    acceptState(interpret(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
 });
 
 describe('ActorRefFrom', () => {
-  it('should return `ActorRef` based on a `Behavior`', () => {
-    const behavior: ActorBehavior<{ type: 'TEST' }> = {
+  it('should return `ActorRef` based on actor logic', () => {
+    const logic: ActorLogic<{ type: 'TEST' }> = {
       transition: () => {},
       getInitialState: () => undefined
     };
 
-    function acceptActorRef(actorRef: ActorRefFrom<typeof behavior>) {
+    function acceptActorRef(actorRef: ActorRefFrom<typeof logic>) {
       actorRef.send({ type: 'TEST' });
     }
 
-    acceptActorRef(interpret(behavior).start());
+    acceptActorRef(interpret(logic).start());
   });
 });
 
