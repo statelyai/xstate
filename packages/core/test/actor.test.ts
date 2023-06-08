@@ -168,7 +168,7 @@ describe('spawning machines', () => {
     service.send({ type: 'SET_COMPLETE', id: 42 });
   });
 
-  it('should spawn referenced machines', (done) => {
+  it('should spawn referenced machines', () => {
     const childMachine = createMachine({
       entry: sendParent({ type: 'DONE' })
     });
@@ -201,12 +201,8 @@ describe('spawning machines', () => {
     );
 
     const actor = interpret(parentMachine);
-    actor.subscribe({
-      complete: () => {
-        done();
-      }
-    });
     actor.start();
+    expect(actor.getSnapshot().value).toBe('success');
   });
 
   it('should allow bidirectional communication between parent/child actors', (done) => {
