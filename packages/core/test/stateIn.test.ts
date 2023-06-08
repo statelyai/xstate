@@ -424,4 +424,44 @@ describe('transition "in" check', () => {
     actorRef.send({ type: 'TIMER' });
     expect(actorRef.getSnapshot().value).toEqual('green');
   });
+
+  it('should allow a guard object to reference another guard object', () => {
+    const machine = createMachine(
+      {
+        type: 'parallel',
+        // machine definition,
+        states: {
+          selected: {},
+          location: {
+            initial: 'home',
+            states: {
+              home: {
+                on: {
+                  NEXT: {
+                    target: 'success',
+                    guard: 'hasSelection'
+                  }
+                }
+              },
+              success: {}
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          hasSelection: stateIn('selected')
+        }
+      }
+    );
+
+    const actor = interpret(machine).start();
+    actor.send({
+      type: 'NEXT'
+    });
+    expect(actor.getSnapshot().value).toEqual({
+      selected: {},
+      location: 'success'
+    });
+  });
 });
