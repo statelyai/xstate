@@ -1525,7 +1525,6 @@ export interface StateConfig<
   context: TContext;
   event: TEvent;
   historyValue?: HistoryValue<TContext, TEvent>;
-  actions?: BaseActionObject[];
   meta?: any;
   configuration?: Array<StateNode<TContext, TEvent>>;
   transitions?: Array<TransitionDefinition<TContext, TEvent>>;

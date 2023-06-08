@@ -1,4 +1,5 @@
 import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import { cloneState } from '../State.ts';
 import { stop as stopActionType } from '../actionTypes.ts';
 import { ActorStatus } from '../interpreter.ts';
 import {
@@ -53,8 +54,16 @@ export function stop<
           ? state.children[actorRefOrString]
           : actorRefOrString;
 
+      let children = state.children;
+      if (actorRef) {
+        children = { ...children };
+        delete children[actorRef.id];
+      }
+
       return [
-        state,
+        cloneState(state, {
+          children
+        }),
         {
           type: 'xstate.stop',
           params: { actor: actorRef },

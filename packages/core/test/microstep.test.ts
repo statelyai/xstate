@@ -172,41 +172,4 @@ describe('machine.microstep()', () => {
       ['fifth', 0]
     ]);
   });
-
-  it('actions are preserved throughout microstep', () => {
-    const machine = createMachine({
-      initial: 'start',
-      states: {
-        start: {
-          on: {
-            TRIGGER: 'first'
-          }
-        },
-        first: {
-          entry: ['one'],
-          always: 'second'
-        },
-        second: {
-          entry: ['two'],
-          always: 'third'
-        },
-        third: {
-          entry: ['three']
-        }
-      }
-    });
-
-    const { actorContext, getInitialState } = simulate(machine);
-    const states = machine.microstep(
-      getInitialState(),
-      { type: 'TRIGGER' },
-      actorContext
-    );
-
-    expect(states.map((s) => s.actions.map((a) => a.type))).toEqual([
-      ['one'],
-      ['one', 'two'],
-      ['one', 'two', 'three']
-    ]);
-  });
 });
