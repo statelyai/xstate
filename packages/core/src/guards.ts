@@ -112,6 +112,7 @@ export function toGuardDefinition<
     guardType: string
   ) => GuardPredicate<TContext, TEvent> | GuardDefinition<TContext, TEvent>
 ): GuardDefinition<TContext, TEvent> {
+  // TODO: do this recursively and check for cycles
   if (isString(guardConfig)) {
     const predicateOrDef = getPredicate?.(guardConfig);
 
