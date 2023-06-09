@@ -1,9 +1,9 @@
 import {
   Subscribable,
+  ActorLogic,
   EventObject,
   Subscription,
-  ActorSystem,
-  ActorLogic
+  AnyActorSystem
 } from '../types';
 import { stopSignalType } from '../actors';
 
@@ -21,13 +21,19 @@ export type ObservablePersistedState<T> = Omit<
 
 // TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
 export function fromObservable<T, TEvent extends EventObject, TInput>(
-  observableCreator: ({ input }: { input: TInput }) => Subscribable<T>
+  observableCreator: ({
+    input,
+    system
+  }: {
+    input: TInput;
+    system: AnyActorSystem;
+  }) => Subscribable<T>
 ): ActorLogic<
   TEvent,
   T | undefined,
   ObservableInternalState<T>,
   ObservablePersistedState<T>,
-  ActorSystem<any>,
+  AnyActorSystem,
   TInput
 > {
   const nextEventType = '$$xstate.next';
@@ -96,12 +102,15 @@ export function fromObservable<T, TEvent extends EventObject, TInput>(
         input
       };
     },
-    start: (state, { self }) => {
+    start: (state, { self, system }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
       }
-      state.subscription = observableCreator({ input: state.input }).subscribe({
+      state.subscription = observableCreator({
+        input: state.input,
+        system
+      }).subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
         },
@@ -139,13 +148,19 @@ export function fromObservable<T, TEvent extends EventObject, TInput>(
  */
 
 export function fromEventObservable<T extends EventObject, TInput>(
-  lazyObservable: ({ input }: { input: TInput }) => Subscribable<T>
+  lazyObservable: ({
+    input,
+    system
+  }: {
+    input: TInput;
+    system: AnyActorSystem;
+  }) => Subscribable<T>
 ): ActorLogic<
   EventObject,
   T | undefined,
   ObservableInternalState<T>,
   ObservablePersistedState<T>,
-  ActorSystem<any>,
+  AnyActorSystem,
   TInput
 > {
   const errorEventType = '$$xstate.error';
@@ -200,13 +215,16 @@ export function fromEventObservable<T extends EventObject, TInput>(
         input
       };
     },
-    start: (state, { self }) => {
+    start: (state, { self, system }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
         return;
       }
 
-      state.subscription = lazyObservable({ input: state.input }).subscribe({
+      state.subscription = lazyObservable({
+        input: state.input,
+        system
+      }).subscribe({
         next: (value) => {
           self._parent?.send(value);
         },

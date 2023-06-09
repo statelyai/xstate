@@ -1,4 +1,9 @@
-import { ActorLogic, ActorRefFrom, ActorSystem } from '../types';
+import {
+  ActorLogic,
+  ActorRefFrom,
+  ActorSystem,
+  AnyActorSystem
+} from '../types';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T> {
@@ -30,7 +35,13 @@ export type PromiseActorRef<T> = ActorRefFrom<PromiseActorLogic<T>>;
 
 export function fromPromise<T, TInput>(
   // TODO: add types
-  promiseCreator: ({ input }: { input: TInput }) => PromiseLike<T>
+  promiseCreator: ({
+    input,
+    system
+  }: {
+    input: TInput;
+    system: AnyActorSystem;
+  }) => PromiseLike<T>
 ): PromiseActorLogic<T, TInput> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
@@ -68,7 +79,7 @@ export function fromPromise<T, TInput>(
           return state;
       }
     },
-    start: (state, { self }) => {
+    start: (state, { self, system }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
       if (state.status !== 'active') {
@@ -76,7 +87,7 @@ export function fromPromise<T, TInput>(
       }
 
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input })
+        promiseCreator({ input: state.input, system })
       );
 
       resolvedPromise.then(
