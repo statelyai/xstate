@@ -182,8 +182,15 @@ describe('invoke', () => {
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
-    const childMachine = createMachine<{ userId: string | undefined }>({
+    const childMachine = createMachine({
       id: 'fetch',
+      types: {} as {
+        context: { userId: string | undefined };
+        events: {
+          type: 'RESOLVE';
+          user: typeof user;
+        };
+      },
       context: ({ input }) => ({
         userId: input.userId
       }),

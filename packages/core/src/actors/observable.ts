@@ -21,7 +21,7 @@ export type ObservablePersistedState<T> = Omit<
 >;
 
 export type ObservableActorLogic<T, TInput> = ActorLogic<
-  EventObject,
+  { type: string; [k: string]: unknown },
   T | undefined,
   ObservableInternalState<T>,
   ObservablePersistedState<T>,
