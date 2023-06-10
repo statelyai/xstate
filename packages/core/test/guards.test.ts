@@ -22,7 +22,7 @@ describe('guard conditions', () => {
         context: LightMachineCtx;
         events: LightMachineEvents;
       },
-      context: ({ input }) => ({
+      context: ({ input = {} }) => ({
         elapsed: input.elapsed ?? 0
       }),
       initial: 'green',
