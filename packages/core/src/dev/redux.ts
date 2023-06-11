@@ -17,8 +17,7 @@ export const createReduxDevTools = (
           stateSanitizer: (state: State<any, any>): object => {
             return {
               value: state.value,
-              context: state.context,
-              actions: state.actions
+              context: state.context
             };
           },
           ...options,

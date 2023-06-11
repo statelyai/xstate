@@ -186,7 +186,7 @@ export class Interpreter<
   }
 
   // array of functions to defer
-  private _deferred: Array<(state: any) => void> = [];
+  private _deferred: Array<() => void> = [];
 
   private update(state: InternalStateFrom<TLogic>): void {
     // Update state
@@ -197,7 +197,7 @@ export class Interpreter<
     let deferredFn: (typeof this._deferred)[number] | undefined;
 
     while ((deferredFn = this._deferred.shift())) {
-      deferredFn(state);
+      deferredFn();
     }
 
     for (const observer of this.observers) {
