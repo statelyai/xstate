@@ -25,9 +25,6 @@ describe('guard conditions', () => {
         context: LightMachineCtx;
         events: LightMachineEvents;
       },
-      context: {
-        elapsed: 0
-      },
       states: {
         green: {
           on: {
