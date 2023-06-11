@@ -12,7 +12,6 @@ import type {
   ActorRef,
   AnyState,
   AnyStateMachine,
-  BaseActionObject,
   EventObject,
   HistoryValue,
   MachineContext,
@@ -57,7 +56,6 @@ export class State<
   public output: any; // TODO: add an explicit type for `output`
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
-  public actions: BaseActionObject[] = [];
   public event: TEvent;
   public _internalQueue: Array<TEvent>;
   public _initial: boolean = false;
@@ -102,7 +100,6 @@ export class State<
             value: stateValue.value,
             context,
             event: stateValue.event,
-            actions: [],
             meta: {},
             configuration: [], // TODO: fix,
             transitions: [],
@@ -126,7 +123,6 @@ export class State<
         value: stateValue,
         context,
         event,
-        actions: [],
         meta: undefined,
         configuration: Array.from(configuration),
         transitions: [],
@@ -149,7 +145,6 @@ export class State<
     this._internalQueue = config._internalQueue ?? [];
     this.event = config.event;
     this.historyValue = config.historyValue || {};
-    this.actions = config.actions ?? [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration =

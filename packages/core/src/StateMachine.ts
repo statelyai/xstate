@@ -285,7 +285,6 @@ export class StateMachine<
         value: {}, // TODO: this is computed in state constructor
         context,
         event: createInitEvent({}) as unknown as TEvent,
-        actions: [],
         meta: undefined,
         configuration: config,
         transitions: [],
@@ -293,17 +292,15 @@ export class StateMachine<
       })
     );
     preInitial._initial = true;
-    preInitial.actions.unshift(...actions);
 
     if (actorCtx) {
-      const { nextState } = resolveActionsAndContext(
+      const [nextState] = resolveActionsAndContext(
         actions,
         initEvent as TEvent,
         preInitial,
         actorCtx
       );
       preInitial.children = nextState.children;
-      preInitial.actions = nextState.actions;
     }
 
     return preInitial;
@@ -320,7 +317,6 @@ export class StateMachine<
 
     const preInitialState = this.getPreInitialState(actorCtx, input);
     const nextState = microstep([], preInitialState, actorCtx, initEvent);
-    nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(
       nextState,
@@ -335,9 +331,6 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): void {
-    state.actions.forEach((action) => {
-      action.execute?.(actorCtx);
-    });
     Object.values(state.children).forEach((child) => {
       if (child.status === 0) {
         try {
@@ -388,17 +381,9 @@ export class StateMachine<
       | State<TContext, TEvent, TResolvedTypesMeta>
       | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const state =
-      stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
-
-    const { nextState: resolvedState } = resolveActionsAndContext(
-      state.actions,
-      state.event,
-      state,
-      undefined
-    );
-
-    return resolvedState as State<TContext, TEvent, TResolvedTypesMeta>;
+    return stateConfig instanceof State
+      ? stateConfig
+      : new State(stateConfig, this);
   }
 
   public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {
@@ -464,8 +449,6 @@ export class StateMachine<
         });
       }
     });
-
-    restoredState.actions = [];
 
     return restoredState;
   }
