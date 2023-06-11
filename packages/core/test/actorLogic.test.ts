@@ -2,6 +2,8 @@ import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { AnyActorRef, createMachine, interpret } from '../src/index.ts';
 import {
+  fromCallback,
+  fromEventObservable,
   fromObservable,
   fromPromise,
   fromTransition
@@ -191,6 +193,16 @@ describe('promise logic (fromPromise)', () => {
     expect(restoredActor.getSnapshot()).toBe(1);
     expect(createdPromises).toBe(1);
   });
+
+  it('should have access to the system', () => {
+    expect.assertions(1);
+    const promiseLogic = fromPromise(({ system }) => {
+      expect(system).toBeDefined();
+      return Promise.resolve(42);
+    });
+
+    interpret(promiseLogic).start();
+  });
 });
 
 describe('transition function logic (fromTransition)', () => {
@@ -246,6 +258,18 @@ describe('transition function logic (fromTransition)', () => {
     restoredActor.start();
 
     expect(restoredActor.getSnapshot().status).toBe('active');
+  });
+
+  it('should have access to the system', () => {
+    expect.assertions(1);
+    const transitionLogic = fromTransition((_state, _event, { system }) => {
+      expect(system).toBeDefined();
+      return 42;
+    }, 0);
+
+    const actor = interpret(transitionLogic).start();
+
+    actor.send({ type: 'a' });
   });
 });
 
@@ -320,6 +344,53 @@ describe('observable logic (fromObservable)', () => {
     actor.getSnapshot();
 
     expect(called).toBe(false);
+  });
+
+  it('should have access to the system', () => {
+    expect.assertions(1);
+    const observableLogic = fromObservable(({ system }) => {
+      expect(system).toBeDefined();
+      return of(42);
+    });
+
+    interpret(observableLogic).start();
+  });
+});
+
+describe('eventObservable logic (fromEventObservable)', () => {
+  it('should have access to the system', () => {
+    expect.assertions(1);
+    const observableLogic = fromEventObservable(({ system }) => {
+      expect(system).toBeDefined();
+      return of({ type: 'a' });
+    });
+
+    interpret(observableLogic).start();
+  });
+});
+
+describe('callback logic (fromCallback)', () => {
+  it('should interpret a callback', () => {
+    expect.assertions(1);
+
+    const callbackLogic = fromCallback((_, receive) => {
+      receive((event) => {
+        expect(event).toEqual({ type: 'a' });
+      });
+    });
+
+    const actor = interpret(callbackLogic).start();
+
+    actor.send({ type: 'a' });
+  });
+
+  it('should have access to the system', () => {
+    expect.assertions(1);
+    const callbackLogic = fromCallback((_sendBack, _receive, { system }) => {
+      expect(system).toBeDefined();
+    });
+
+    interpret(callbackLogic).start();
   });
 });
 
@@ -589,5 +660,16 @@ describe('machine logic', () => {
 
     // TODO: should this be a "dummy actor" so that the types are accurate?
     expect(snapshot.context.ref).toBeUndefined();
+  });
+
+  it('should have access to the system', () => {
+    expect.assertions(1);
+    const machine = createMachine({
+      entry: ({ system }) => {
+        expect(system).toBeDefined();
+      }
+    });
+
+    interpret(machine).start();
   });
 });
