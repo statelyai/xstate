@@ -1893,7 +1893,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  root?: AnyActorRef;
+  root: AnyActorRef;
 }
 
 export type AnyActorSystem = ActorSystem<any>;

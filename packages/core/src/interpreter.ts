@@ -19,8 +19,7 @@ import type {
   InterpreterFrom,
   PersistedStateFrom,
   RaiseActionObject,
-  SnapshotFrom,
-  AnyActorRef
+  SnapshotFrom
 } from './types.ts';
 import {
   ActorRef,
@@ -124,8 +123,6 @@ export class Interpreter<
 
   public src?: string;
 
-  public root?: AnyActorRef;
-
   /**
    * Creates a new Interpreter instance (i.e., service) for the given logic with the provided options, if any.
    *
@@ -141,8 +138,7 @@ export class Interpreter<
     const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem();
-    this.system.root = this;
+    this.system = parent?.system ?? createSystem(this);
 
     if (systemId) {
       this._systemId = systemId;
