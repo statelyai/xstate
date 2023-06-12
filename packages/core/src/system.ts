@@ -9,6 +9,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
 
   const system: ActorSystem<T> = {
+    root,
     _bookId: () => `x:${sessionIdCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
@@ -36,8 +37,7 @@ export function createSystem<T extends ActorSystemInfo>(
 
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
-    },
-    root
+    }
   };
 
   return system;
