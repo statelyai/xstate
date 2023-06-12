@@ -19,7 +19,8 @@ import type {
   InterpreterFrom,
   PersistedStateFrom,
   RaiseActionObject,
-  SnapshotFrom
+  SnapshotFrom,
+  AnyActorRef
 } from './types.ts';
 import {
   ActorRef,
@@ -123,7 +124,7 @@ export class Interpreter<
 
   public src?: string;
 
-  public root: any;
+  public root?: AnyActorRef;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given logic with the provided options, if any.
