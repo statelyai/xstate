@@ -123,6 +123,8 @@ export class Interpreter<
 
   public src?: string;
 
+  public root: any;
+
   /**
    * Creates a new Interpreter instance (i.e., service) for the given logic with the provided options, if any.
    *
@@ -139,6 +141,7 @@ export class Interpreter<
     const self = this;
 
     this.system = parent?.system ?? createSystem();
+    this.system.root = this;
 
     if (systemId) {
       this._systemId = systemId;

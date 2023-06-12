@@ -126,6 +126,12 @@ describe('system', () => {
     expect(actor.system.get('test')).toBe(actor);
   });
 
+  it('root actor can be directly referenced by a root propoerty on the system', () => {
+    const machine = createMachine({});
+    const actor = interpret(machine, { systemId: 'test' });
+    expect(actor.system.root).toBe(actor);
+  });
+
   it('should remove invoked actor from receptionist if stopped', () => {
     const machine = createMachine({
       initial: 'active',
