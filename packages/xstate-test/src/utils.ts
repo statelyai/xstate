@@ -25,15 +25,22 @@ export function formatPathTestResult(
   const { formatColor, serializeState, serializeEvent } = resolvedOptions;
 
   const { state } = path;
-  const targetStateString = serializeState(state, null);
+
+  const targetStateString = serializeState(
+    state,
+    path.steps.length ? path.steps[path.steps.length - 1].event : undefined
+  );
 
   let errMessage = '';
   let hasFailed = false;
   errMessage +=
     '\nPath:\n' +
     testPathResult.steps
-      .map((s) => {
-        const stateString = serializeState(s.step.state, s.step.event);
+      .map((s, i, steps) => {
+        const stateString = serializeState(
+          s.step.state,
+          i > 0 ? steps[i - 1].step.event : undefined
+        );
         const eventString = serializeEvent(s.step.event);
 
         const stateResult = `\tState: ${

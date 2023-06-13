@@ -1,5 +1,4 @@
 import { createMachine, interpret } from '../src/index';
-import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { fromCallback } from '../src/actors/callback';
 
@@ -381,40 +380,6 @@ describe('State', () => {
       expect(
         exampleMachine.resolveState(stateFromConfig).nextEvents.sort()
       ).toEqual(nextEvents.sort());
-    });
-  });
-
-  describe('.event', () => {
-    it('the .event prop should be the event (string) that caused the transition', () => {
-      const actorRef = interpret(exampleMachine).start();
-
-      actorRef.send({
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(actorRef.getSnapshot().event).toEqual({
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-    });
-
-    it('the .event prop should be the event (object) that caused the transition', () => {
-      const actorRef = interpret(exampleMachine).start();
-
-      actorRef.send({
-        type: 'TO_TWO',
-        foo: 'bar'
-      });
-
-      expect(actorRef.getSnapshot().event).toEqual({
-        type: 'TO_TWO',
-        foo: 'bar'
-      });
-    });
-
-    it('the .event prop should be the initial event for the initial state', () => {
-      expect(interpret(exampleMachine).getSnapshot().event).toEqual(initEvent);
     });
   });
 

@@ -1,5 +1,4 @@
 import isDevelopment from '#is-development';
-import { createInitEvent } from './actions.ts';
 import { memo } from './memo.ts';
 import type { StateNode } from './StateNode.ts';
 import {
@@ -31,7 +30,7 @@ export function isStateConfig<
     return false;
   }
 
-  return 'value' in state && 'event' in state;
+  return 'value' in state;
 }
 
 /**
@@ -56,7 +55,6 @@ export class State<
   public output: any; // TODO: add an explicit type for `output`
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
-  public event: TEvent;
   public _internalQueue: Array<TEvent>;
   public _initial: boolean = false;
   /**
@@ -99,7 +97,6 @@ export class State<
           {
             value: stateValue.value,
             context,
-            event: stateValue.event,
             meta: {},
             configuration: [], // TODO: fix,
             transitions: [],
@@ -112,8 +109,6 @@ export class State<
       return stateValue;
     }
 
-    const event = createInitEvent({}) as unknown as TEvent; // TODO: fix
-
     const configuration = getConfiguration(
       getStateNodes(machine.root, stateValue)
     );
@@ -122,7 +117,6 @@ export class State<
       {
         value: stateValue,
         context,
-        event,
         meta: undefined,
         configuration: Array.from(configuration),
         transitions: [],
@@ -143,7 +137,6 @@ export class State<
   ) {
     this.context = config.context;
     this._internalQueue = config._internalQueue ?? [];
-    this.event = config.event;
     this.historyValue = config.historyValue || {};
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);

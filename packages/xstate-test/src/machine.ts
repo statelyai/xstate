@@ -42,13 +42,13 @@ export function createTestMachine<
 
 function serializeMachineTransition(
   state: AnyState,
-  _event: AnyEventObject | undefined,
+  event: AnyEventObject | undefined,
   prevState: AnyState | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
   // Only consider the transition via the serialized event if there actually
   // was a defined transition for the event
-  if (!state.event || state.transitions.length === 0) {
+  if (!event || state.transitions.length === 0) {
     return '';
   }
 
@@ -56,7 +56,7 @@ function serializeMachineTransition(
     ? ` from ${simpleStringify(prevState.value)}`
     : '';
 
-  return ` via ${serializeEvent(state.event)}${prevStateString}`;
+  return ` via ${serializeEvent(event)}${prevStateString}`;
 }
 
 /**
