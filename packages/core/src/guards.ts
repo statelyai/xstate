@@ -112,7 +112,7 @@ export function toGuardDefinition<
     guardType: string
   ) => GuardPredicate<TContext, TEvent> | GuardDefinition<TContext, TEvent>
 ): GuardDefinition<TContext, TEvent> {
-  // TODO: do this recursively and check for cycles - REFACTOR
+  // TODO: check for cycles and consider a refactor to more lazily evaluated guards
   if (isString(guardConfig)) {
     const predicateOrDef = getPredicate?.(guardConfig);
 
