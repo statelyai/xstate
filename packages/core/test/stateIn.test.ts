@@ -425,7 +425,7 @@ describe('transition "in" check', () => {
     expect(actorRef.getSnapshot().value).toEqual('green');
   });
 
-  it('should allow a guard object to reference another guard object', () => {
+  it('should be possible to use a referenced `stateIn` guard', () => {
     const machine = createMachine(
       {
         type: 'parallel',
