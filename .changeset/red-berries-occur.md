@@ -1,5 +1,5 @@
 ---
-'xstate': major
+'xstate': patch
 ---
 
 Guard objects can now reference other guard objects:
