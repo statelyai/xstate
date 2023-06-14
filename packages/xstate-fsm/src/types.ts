@@ -139,7 +139,11 @@ export namespace StateMachine {
           [K in TEvent['type'] | '*']?: SingleOrArray<
             Transition<
               TContext,
-              TEvent extends { type: K } ? TEvent : never,
+              K extends '*'
+                ? TEvent
+                : TEvent extends { type: K }
+                ? TEvent
+                : never,
               TState['value']
             >
           >;

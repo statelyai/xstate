@@ -1,4 +1,5 @@
 import { createMachine } from '../src';
+import { InitEvent } from '../src/types';
 
 describe('matches', () => {
   it('should allow matches to be called multiple times in a single branch of code', () => {
@@ -57,5 +58,32 @@ describe('matches', () => {
       // @ts-expect-error
       ((_accept: string) => {})(state.context.count);
     }
+  });
+
+  it('should require actions on wildcard transitions to handle all event types', () => {
+    type Context = {};
+    type FooEvent = { type: 'foo'; foo: string };
+    type BarEvent = { type: 'bar'; bar: number };
+    type Event = FooEvent | BarEvent;
+    type State = { value: 'one'; context: Context };
+    createMachine<Context, Event, State>({
+      context: {},
+      initial: 'one',
+      states: {
+        one: {
+          on: {
+            foo: {
+              target: 'one',
+              actions: (context: Context, event: InitEvent | FooEvent) => {}
+            },
+            // @ts-expect-error
+            '*': {
+              target: 'one',
+              actions: (context: Context, event: InitEvent | FooEvent) => {}
+            }
+          }
+        }
+      }
+    });
   });
 });
