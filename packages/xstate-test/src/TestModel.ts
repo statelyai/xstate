@@ -33,12 +33,7 @@ import {
 } from './utils.ts';
 
 function isStateLike(state: any): state is AnyState {
-  return (
-    typeof state === 'object' &&
-    'value' in state &&
-    'context' in state &&
-    'event' in state
-  );
+  return typeof state === 'object' && 'value' in state && 'context' in state;
 }
 
 /**
