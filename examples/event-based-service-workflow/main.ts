@@ -9,36 +9,6 @@ async function delay(ms: number): Promise<void> {
   });
 }
 
-// id: VetAppointmentWorkflow
-// name: Vet Appointment Workflow
-// description: Vet service call via events
-// version: '1.0.0'
-// specVersion: '0.8'
-// start: MakeVetAppointmentState
-// events:
-//  - name: MakeVetAppointment
-//    source: VetServiceSource
-//    type: events.vet.appointments
-//    kind: produced
-//  - name: VetAppointmentInfo
-//    source: VetServiceSource
-//    type: events.vet.appointments
-//    kind: consumed
-// states:
-//  - name: MakeVetAppointmentState
-//    type: operation
-//    actions:
-//     - name: MakeAppointmentAction
-//       eventRef:
-//        produceEventRef: MakeVetAppointment
-//        data: "${ .patientInfo }"
-//        consumeEventRef: VetAppointmentInfo
-//       actionDataFilter:
-//        results: "${ .appointmentInfo }"
-//    timeouts:
-//     actionExecTimeout: PT15M
-//    end: true
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#event-based-service-invocation
 export const workflow = createMachine(
   {
