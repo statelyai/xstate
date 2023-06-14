@@ -16,59 +16,6 @@ async function delay(ms: number): Promise<void> {
   });
 }
 
-// id: paymentconfirmation
-// version: '1.0.0'
-// specVersion: '0.8'
-// name: Payment Confirmation Workflow
-// description: Performs Payment Confirmation
-// functions: functiondefs.json
-// events: eventdefs.yml
-// states:
-// - name: PaymentReceived
-//   type: event
-//   onEvents:
-//   - eventRefs:
-//     - PaymentReceivedEvent
-//     actions:
-//     - name: checkfunds
-//       functionRef:
-//         refName: checkFundsAvailability
-//         arguments:
-//           account: "${ .accountId }"
-//           paymentamount: "${ .payment.amount }"
-//   transition: ConfirmBasedOnFunds
-// - name: ConfirmBasedOnFunds
-//   type: switch
-//   dataConditions:
-//   - condition: "${ .funds | .available == \"true\" }"
-//     transition: SendPaymentSuccess
-//   - condition: "${ .funds | .available == \"false\" }"
-//     transition: SendInsufficientResults
-//   defaultCondition:
-//     transition: SendPaymentSuccess
-// - name: SendPaymentSuccess
-//   type: operation
-//   actions:
-//   - functionRef:
-//       refName: sendSuccessEmail
-//       arguments:
-//         applicant: "${ .customer }"
-//   end:
-//     produceEvents:
-//     - eventRef: ConfirmationCompletedEvent
-//       data: "${ .payment }"
-// - name: SendInsufficientResults
-//   type: operation
-//   actions:
-//   - functionRef:
-//       refName: sendInsufficientFundsEmail
-//       arguments:
-//         applicant: "${ .customer }"
-//   end:
-//     produceEvents:
-//     - eventRef: ConfirmationCompletedEvent
-//       data: "${ .payment }"
-
 interface PaymentReceivedEvent {
   type: 'PaymentReceivedEvent';
   accountId: string;
