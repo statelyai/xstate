@@ -74,12 +74,12 @@ describe('matches', () => {
           on: {
             foo: {
               target: 'one',
-              actions: (context: Context, event: InitEvent | FooEvent) => {}
+              actions: (_context: Context, _event: InitEvent | FooEvent) => {}
             },
             // @ts-expect-error
             '*': {
               target: 'one',
-              actions: (context: Context, event: InitEvent | FooEvent) => {}
+              actions: (_context: Context, _event: InitEvent | FooEvent) => {}
             }
           }
         }
