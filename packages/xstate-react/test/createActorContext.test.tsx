@@ -327,7 +327,7 @@ describe('createActorContext', () => {
     });
   });
 
-  it('should expect a constant machine reference', () => {
+  it("should preserve machine's identity when swapping options using in-render `.provide`", () => {
     const someMachine = createMachine({
       context: { count: 0 },
       on: {
