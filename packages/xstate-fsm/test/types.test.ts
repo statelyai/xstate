@@ -60,6 +60,8 @@ describe('matches', () => {
     }
   });
 
+  // This test only works if "strictFunctionTypes" is enabled. Once that has
+  // been done, the ts-expect-error comment below turned on.
   it('should require actions on wildcard transitions to handle all event types', () => {
     type Context = {};
     type FooEvent = { type: 'foo'; foo: string };
@@ -76,7 +78,7 @@ describe('matches', () => {
               target: 'one',
               actions: (_context: Context, _event: InitEvent | FooEvent) => {}
             },
-            // @ts-expect-error
+            // @x-ts-expect-error
             '*': {
               target: 'one',
               actions: (_context: Context, _event: InitEvent | FooEvent) => {}
