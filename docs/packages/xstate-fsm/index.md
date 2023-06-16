@@ -11,7 +11,10 @@
   </a>
 </p>
 
-The [@xstate/fsm package](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) contains a minimal, 1kb implementation of [XState](https://github.com/statelyai/xstate) for **finite state machines**.
+This package contains a minimal, 1kb implementation of [XState](https://github.com/statelyai/xstate) for **finite state machines**.
+
+- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-fsm/).
+- [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
 ## Features
 
@@ -23,6 +26,7 @@ The [@xstate/fsm package](https://github.com/statelyai/xstate/tree/main/packages
 | Transitions (string target) |       ✅        |                      ✅                       |
 | Delayed transitions         |       ❌        |                      ✅                       |
 | Eventless transitions       |       ❌        |                      ✅                       |
+| Wildcard transitions        |       ✅        |                      ✅                       |
 | Nested states               |       ❌        |                      ✅                       |
 | Parallel states             |       ❌        |                      ✅                       |
 | History states              |       ❌        |                      ✅                       |
@@ -48,15 +52,15 @@ The [@xstate/fsm package](https://github.com/statelyai/xstate/tree/main/packages
 
 If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/statelyai/xstate).
 
-## Super quick start
+## Quick start
 
-**Installation**
+### Installation
 
 ```bash
 npm i @xstate/fsm
 ```
 
-**Usage (machine):**
+### Usage (machine)
 
 ```js
 import { createMachine } from '@xstate/fsm';
@@ -79,7 +83,7 @@ untoggledState.value;
 // => 'inactive'
 ```
 
-**Usage (service):**
+### Usage (service)
 
 ```js
 import { createMachine, interpret } from '@xstate/fsm';
@@ -100,9 +104,12 @@ toggleService.stop();
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Super quick start](#super-quick-start)
+- [Quick start](#quick-start)
+  - [Installation](#installation)
+  - [Usage (machine)](#usage-machine)
+  - [Usage (service)](#usage-service)
 - [API](#api)
-  - [`createMachine(config)`](#createmachineconfig)
+  - [`createMachine(config, options)`](#createmachineconfig-options)
   - [Machine config](#machine-config)
   - [State config](#state-config)
   - [Transition config](#transition-config)
@@ -149,7 +156,7 @@ The machine config has this schema:
 
 ### State config
 
-- `on` (object) - an object mapping event types (keys) to [transitions](#transition-config)
+- `on` (object) - an object mapping event types (keys) to [transitions](#transition-config); an event type of `"*"` is special, indicating a "wildcard" transition which occurs when no other transition applies
 
 ### Transition config
 
