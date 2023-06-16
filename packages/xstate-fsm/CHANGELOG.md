@@ -1,5 +1,13 @@
 # @xstate/fsm
 
+## 2.1.0
+
+### Minor Changes
+
+- [#4065](https://github.com/statelyai/xstate/pull/4065) [`3b4b1305a`](https://github.com/statelyai/xstate/commit/3b4b1305af6fa5db288ffdb3b4918a05048353e4) Thanks [@benblank](https://github.com/benblank)! - This change adds support for using "\*" as a wildcard event type in machine configs.
+
+  Because that event type previously held no special meaning, it was allowed as an event type both in configs and when transitioning and matched as any other would. As a result of changing it to be a wildcard, any code which uses "\*" as an ordinary event type will break, making this a major change.
+
 ## 2.0.1
 
 ### Patch Changes
