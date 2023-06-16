@@ -1506,7 +1506,6 @@ export interface StateConfig<
 > {
   value: StateValue;
   context: TContext;
-  event: TEvent;
   historyValue?: HistoryValue<TContext, TEvent>;
   meta?: any;
   configuration?: Array<StateNode<TContext, TEvent>>;
@@ -1899,7 +1898,7 @@ export type AnyActorSystem = ActorSystem<any>;
 
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
-  'value' | 'output' | 'context' | 'event' | 'done' | 'historyValue'
+  'value' | 'output' | 'context' | 'done' | 'historyValue'
 > & {
   children: {
     [K in keyof TState['children']]: {
