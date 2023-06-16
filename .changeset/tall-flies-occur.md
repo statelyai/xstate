@@ -1,5 +1,5 @@
 ---
-'@xstate/fsm': major
+'@xstate/fsm': minor
 ---
 
 This change adds support for using "\*" as a wildcard event type in machine configs.
