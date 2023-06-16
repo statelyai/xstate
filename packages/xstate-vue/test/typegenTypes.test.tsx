@@ -53,7 +53,7 @@ describe('useMachine', () => {
     });
   });
 
-  it('should require all missing implementations ', () => {
+  it('should require all missing implementations', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'myAction';
@@ -78,24 +78,28 @@ describe('useMachine', () => {
       setup: () => {
         // @ts-expect-error
         useMachine(machine, {});
-        useMachine(machine, {
-          // @ts-expect-error
-          actions: {}
-        });
+        useMachine(
+          machine.provide({
+            // @ts-expect-error
+            actions: {}
+          })
+        );
         // @ts-expect-error
         useMachine(machine, {
           actions: {
             myAction: () => {}
           }
         });
-        useMachine(machine, {
-          actions: {
-            myAction: () => {}
-          },
-          delays: {
-            myDelay: () => 42
-          }
-        });
+        useMachine(
+          machine.provide({
+            actions: {
+              myAction: () => {}
+            },
+            delays: {
+              myDelay: () => 42
+            }
+          })
+        );
       }
     });
   });
@@ -128,14 +132,16 @@ describe('useMachine', () => {
 
     defineComponent({
       setup: () => {
-        useMachine(machine, {
-          actions: {
-            fooAction: () => {}
-          },
-          delays: {
-            barDelay: () => 100
-          }
-        });
+        useMachine(
+          machine.provide({
+            actions: {
+              fooAction: () => {}
+            },
+            delays: {
+              barDelay: () => 100
+            }
+          })
+        );
       }
     });
   });
@@ -162,12 +168,14 @@ describe('useMachine', () => {
 
     defineComponent({
       setup: () => {
-        useMachine(machine, {
-          actions: {
-            // it's important to use `event` here somehow to make this a possible source of information for inference
-            fooAction: ({ event: _event }) => {}
-          }
-        });
+        useMachine(
+          machine.provide({
+            actions: {
+              // it's important to use `event` here somehow to make this a possible source of information for inference
+              fooAction: ({ event: _event }) => {}
+            }
+          })
+        );
       }
     });
   });
