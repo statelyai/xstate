@@ -1,4 +1,4 @@
-import {
+import type {
   ActorRefFrom,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
@@ -7,7 +7,7 @@ import {
   MissingImplementationsError,
   SnapshotFrom
 } from 'xstate';
-import { Readable } from 'svelte/store';
+import type { Readable } from 'svelte/store';
 import { useActor } from './useActor.ts';
 
 export function useMachine<TMachine extends AnyStateMachine>(
