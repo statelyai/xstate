@@ -30,7 +30,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('useMachine hook', () => {
+describe('useActor hook', () => {
   const context = {
     data: undefined
   };
@@ -1553,7 +1553,7 @@ describe('useMachine hook', () => {
   });
 });
 
-describe('useMachine (strict mode)', () => {
+describe('useActor (strict mode)', () => {
   it('should not invoke initial services more than once', () => {
     let activatedCount = 0;
     const machine = createMachine({

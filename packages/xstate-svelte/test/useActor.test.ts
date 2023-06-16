@@ -21,7 +21,7 @@ const persistedFetchStateConfig = JSON.parse(
   JSON.stringify(persistedFetchState)
 );
 
-describe('useMachine function', () => {
+describe('useActor function', () => {
   it('should work with a component', async () => {
     const { getByText, findByText, getByTestId } = render(UseActor);
     const button = getByText('Fetch');

@@ -4,7 +4,7 @@ import { render, fireEvent, screen } from 'solid-testing-library';
 import { createActorRef, useSnapshot } from '../src/index.ts';
 import { createEffect } from 'solid-js';
 
-describe('createService', () => {
+describe('createActorRef', () => {
   it('observer should be called with next state', (done) => {
     const machine = createMachine({
       initial: 'inactive',
