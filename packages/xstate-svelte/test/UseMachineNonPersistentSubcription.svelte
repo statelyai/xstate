@@ -29,5 +29,5 @@
   {#if visible}
     <!-- inlined version of this doesn't unsubscribe from the store when the content gets hidden, so we need to keep this in a separate component  -->
     <UseMachineNonPersistentSubcriptionChild {send} {snapshot} />
-  {/if}useActor
+  {/if}
 </div>
