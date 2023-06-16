@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts">
-import { useMachine } from '../src/index.ts';
+import { useActor } from '../src/index.ts';
 import { createMachine } from 'xstate';
 import { defineComponent } from 'vue';
 
@@ -24,7 +24,7 @@ const toggleMachine = createMachine({
 
 export default defineComponent({
   setup() {
-    const { snapshot, send } = useMachine(toggleMachine);
+    const { snapshot, send } = useActor(toggleMachine);
     return { snapshot, send };
   }
 });

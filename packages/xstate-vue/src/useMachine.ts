@@ -1,36 +1,29 @@
-import { Ref, shallowRef } from 'vue';
-import { ActorRefFrom, AnyActorLogic, EventFrom, SnapshotFrom } from 'xstate';
-import { UseActorRefRestParams, useActorRef } from './useActorRef.ts';
-import { isActorRef } from 'xstate/actors';
+import {
+  ActorRefFrom,
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  EventFrom,
+  InterpreterOptions,
+  MissingImplementationsError,
+  SnapshotFrom
+} from 'xstate';
+import { useActor } from './useActor.ts';
+import { Ref } from 'vue';
 
-export function useActor<TLogic extends AnyActorLogic>(
-  actorLogic: TLogic,
-  ...[options = {}]: UseActorRefRestParams<TLogic>
+/**
+ * @deprecated Use `useActor(...)` instead.
+ */
+export function useMachine<TMachine extends AnyStateMachine>(
+  machine: AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends true
+    ? TMachine
+    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
+  options: InterpreterOptions<TMachine> = {}
 ): {
-  snapshot: Ref<SnapshotFrom<TLogic>>;
-  send: (event: EventFrom<TLogic>) => void;
-  actorRef: ActorRefFrom<TLogic>;
+  snapshot: Ref<SnapshotFrom<TMachine>>;
+  send: (event: EventFrom<TMachine>) => void;
+  actorRef: ActorRefFrom<TMachine>;
 } {
-  if (process.env.NODE_ENV !== 'production') {
-    if (isActorRef(actorLogic)) {
-      throw new Error(
-        `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
-      );
-    }
-  }
-
-  function listener(nextState: SnapshotFrom<TLogic>) {
-    snapshot.value = nextState;
-  }
-
-  const actorRef = useActorRef(actorLogic, options, listener);
-  const snapshot = shallowRef(actorRef.getSnapshot());
-
-  return {
-    snapshot,
-    send: actorRef.send,
-    actorRef: actorRef as ActorRefFrom<TLogic>
-  };
+  return useActor(machine as any, options) as any;
 }
-
-export const useMachine = useActor;

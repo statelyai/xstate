@@ -1,77 +1,93 @@
 import { render, fireEvent, waitFor } from '@testing-library/vue';
 import UseActor from './UseActor.vue';
-import UseActorSimple from './UseActorSimple.vue';
-import UseActorCreateSimple from './UseActorCreateSimple.vue';
-import UseActorComponentProp from './UseActorComponentProp.vue';
+import UseMachineNoExtraOptions from './UseActorNoExtraOptions.vue';
+import {
+  createMachine,
+  assign,
+  doneInvoke,
+  interpret,
+  fromCallback
+} from 'xstate';
 
-import { createMachine, interpret, sendParent } from 'xstate';
-
-describe('useActor composable function', () => {
-  it('initial invoked actor should be immediately available', async () => {
-    const { getByTestId } = render(UseActor);
-
-    const machineStateEl = getByTestId('machine-state');
-    const actorStateEl = getByTestId('actor-state');
-
-    expect(machineStateEl.textContent).toBe('active');
-    expect(actorStateEl.textContent).toBe('active');
-  });
-
-  it('invoked actor in a standalone component should be able to receive events', async () => {
-    const childMachine = createMachine({
-      id: 'childMachine',
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            FINISH: { actions: sendParent({ type: 'FINISH' }) }
+describe('useActor composition function', () => {
+  const context = {
+    data: undefined
+  };
+  const fetchMachine = createMachine<typeof context>({
+    id: 'fetch',
+    initial: 'idle',
+    context,
+    states: {
+      idle: {
+        on: { FETCH: 'loading' }
+      },
+      loading: {
+        invoke: {
+          id: 'fetchData',
+          src: 'fetchData',
+          onDone: {
+            target: 'success',
+            actions: assign({
+              data: ({ event }) => event.output
+            }),
+            guard: ({ event }) => event.output.length
           }
         }
-      }
-    });
-    const machine = createMachine({
-      initial: 'active',
-      invoke: {
-        id: 'child',
-        src: childMachine
       },
-      states: {
-        active: {
-          on: { FINISH: 'success' }
-        },
-        success: {}
+      success: {
+        type: 'final'
       }
+    }
+  });
+
+  const actorRef = interpret(
+    fetchMachine.provide({
+      actors: {
+        fetchData: fromCallback((sendBack) => {
+          sendBack(doneInvoke('fetchData', 'persisted data'));
+        })
+      }
+    })
+  ).start();
+  actorRef.send({ type: 'FETCH' });
+
+  const persistedFetchState = actorRef.getPersistedState();
+
+  it('should work with a component ', async () => {
+    const { getByText, getByTestId } = render(UseActor as any);
+    const button = getByText('Fetch');
+    fireEvent.click(button);
+    await waitFor(() => getByText('Loading...'));
+    await waitFor(() => getByText(/Success/));
+    const dataEl = getByTestId('data');
+    expect(dataEl.textContent).toBe('some data');
+  });
+
+  it('should work with a component with rehydrated state', async () => {
+    const { getByText, getByTestId } = render(UseActor as any, {
+      props: { persistedState: persistedFetchState }
     });
+    await waitFor(() => getByText(/Success/));
+    const dataEl = getByTestId('data');
 
-    const serviceMachine = interpret(machine).start();
+    expect(dataEl.textContent).toBe('persisted data');
+  });
 
-    const { getByTestId } = render(UseActorComponentProp, {
-      props: { actor: serviceMachine.getSnapshot().children.child }
-    });
-
-    const actorStateEl = getByTestId('actor-state');
-    expect(actorStateEl.textContent).toBe('active');
-
-    await waitFor(() =>
-      expect(serviceMachine.getSnapshot().value).toBe('success')
+  it('should work with a component with rehydrated state config', async () => {
+    const persistedFetchStateConfig = JSON.parse(
+      JSON.stringify(persistedFetchState)
     );
+    const { getByText, getByTestId } = render(UseActor as any, {
+      props: { persistedState: persistedFetchStateConfig }
+    });
+    await waitFor(() => getByText(/Success/));
+    const dataEl = getByTestId('data');
+    expect(dataEl.textContent).toBe('persisted data');
   });
 
-  it('actor should provide snapshot value immediately', () => {
-    const { getByTestId } = render(UseActorSimple);
-
-    const stateEl = getByTestId('state');
-    expect(stateEl.textContent).toEqual('42');
-  });
-
-  it('should update snapshot value when actor changes', async () => {
-    const { getByTestId } = render(UseActorCreateSimple);
-
-    const stateEl = getByTestId('state');
-    const button = getByTestId('button');
-
-    expect(stateEl.textContent).toEqual('42');
-    await fireEvent.click(button);
-    expect(stateEl.textContent).toEqual('100');
+  it('should not crash without optional `options` parameter being provided', async () => {
+    expect(() => {
+      render(UseMachineNoExtraOptions as any);
+    }).not.toThrow();
   });
 });

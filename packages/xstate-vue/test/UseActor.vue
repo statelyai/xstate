@@ -1,52 +1,72 @@
 <template>
-  <div data-testid="machine-state">
-    {{ machineState.value }}
-  </div>
-  <div data-testid="actor-state">
-    {{ actorState.value }}
+  <div>
+    Hallo
+    <button v-if="snapshot.matches('idle')" @click="send({ type: 'FETCH' })">
+      Fetch
+    </button>
+    <div v-else-if="snapshot.matches('loading')">Loading...</div>
+    <div v-else-if="snapshot.matches('success')">
+      Success! Data:
+      <div data-testid="data">{{ snapshot.context.data }}</div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { useMachine, useSelector } from '../src/index.ts';
-import { createMachine, sendParent } from 'xstate';
-import { defineComponent } from 'vue';
+import { defineComponent, PropType } from 'vue';
+import { useActor } from '../src/index.ts';
+import { createMachine, assign, AnyState } from 'xstate';
+import { fromPromise } from 'xstate/actors';
 
-const childMachine = createMachine({
-  id: 'childMachine',
-  initial: 'active',
+const context = {
+  data: undefined
+};
+const fetchMachine = createMachine<typeof context, any>({
+  id: 'fetch',
+  initial: 'idle',
+  context,
   states: {
-    active: {
-      on: {
-        FINISH: { actions: sendParent({ type: 'FINISH' }) }
-      }
-    }
-  }
-});
-const machine = createMachine({
-  initial: 'active',
-  invoke: {
-    id: 'child',
-    src: childMachine
-  },
-  states: {
-    active: {
-      on: { FINISH: 'success' }
+    idle: {
+      on: { FETCH: 'loading' }
     },
-    success: {}
+    loading: {
+      invoke: {
+        id: 'fetchData',
+        src: 'fetchData',
+        onDone: {
+          target: 'success',
+          actions: assign({
+            data: ({ event }) => event.output
+          }),
+          guard: ({ event }) => event.output.length
+        }
+      }
+    },
+    success: {
+      type: 'final'
+    }
   }
 });
 
 export default defineComponent({
-  setup() {
-    const { snapshot: machineState } = useMachine(machine);
+  props: {
+    persistedState: {
+      type: Object as PropType<AnyState>
+    }
+  },
+  setup({ persistedState }) {
+    const onFetch = () =>
+      new Promise((res) => setTimeout(() => res('some data'), 50));
 
-    const actorState = useSelector(machineState.value.children.child, s=>s);
-
-    return {
-      machineState,
-      actorState
-    };
+    const { snapshot, send, actorRef } = useActor(
+      fetchMachine.provide({
+        actors: {
+          fetchData: fromPromise(onFetch)
+        }
+      }),
+      { state: persistedState }
+    );
+    return { snapshot, send, actorRef };
   }
 });
 </script>
