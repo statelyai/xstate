@@ -1,15 +1,15 @@
-import type {
-  AnyActorLogic,
-  SnapshotFrom,
-  EventFromLogic,
-  SimpleActorRefFrom
-} from 'xstate';
-import type { CheckSnapshot, RestParams } from './types.ts';
-import { createActorRef } from './createActorRef.ts';
 import { onCleanup, onMount } from 'solid-js';
-import { deriveServiceState } from './deriveServiceState.ts';
-import { createImmutable } from './createImmutable.ts';
 import { unwrap } from 'solid-js/store';
+import type {
+  ActorRefFrom,
+  AnyActorLogic,
+  EventFromLogic,
+  SnapshotFrom
+} from 'xstate';
+import { createActorRef } from './createActorRef.ts';
+import { createImmutable } from './createImmutable.ts';
+import { deriveServiceState } from './deriveServiceState.ts';
+import type { CheckSnapshot, RestParams } from './types.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   machine: TLogic,
@@ -17,12 +17,9 @@ export function useActor<TLogic extends AnyActorLogic>(
 ): [
   CheckSnapshot<SnapshotFrom<TLogic>>,
   (event: EventFromLogic<TLogic>) => void,
-  SimpleActorRefFrom<TLogic>
+  ActorRefFrom<TLogic>
 ] {
-  const actorRef = createActorRef(
-    machine,
-    options
-  ) as SimpleActorRefFrom<TLogic>;
+  const actorRef = createActorRef(machine, options);
 
   const [snapshot, setSnapshot] = createImmutable(
     deriveServiceState(actorRef.getSnapshot()) as SnapshotFrom<TLogic>
@@ -36,7 +33,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     onCleanup(unsubscribe);
   });
 
-  return [snapshot, actorRef.send, actorRef];
+  return [snapshot, actorRef.send, actorRef as any];
 }
 
 export const useMachine = useActor;
