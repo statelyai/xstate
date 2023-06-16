@@ -2,7 +2,7 @@
   export let persistedState: AnyState | undefined = undefined;
 
   import { useActor } from '../src/index.ts';
-  import UseMachineNonPersistentSubcriptionChild from './UseMachineNonPersistentSubcriptionChild.svelte';
+  import UseActorNonPersistentSubcriptionChild from './UseActorNonPersistentSubcriptionChild.svelte';
   import type { AnyState } from 'xstate';
   import { assign, createMachine } from 'xstate';
 
@@ -28,6 +28,6 @@
   <button type="button" on:click={() => (visible = !visible)}>Toggle</button>
   {#if visible}
     <!-- inlined version of this doesn't unsubscribe from the store when the content gets hidden, so we need to keep this in a separate component  -->
-    <UseMachineNonPersistentSubcriptionChild {send} {snapshot} />
+    <UseActorNonPersistentSubcriptionChild {send} {snapshot} />
   {/if}
 </div>

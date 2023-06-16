@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/svelte';
-import UseMachine from './UseMachine.svelte';
-import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcription.svelte';
+import UseActor from './UseActor.svelte';
+import UseActorNonPersistentSubcription from './UseActorNonPersistentSubcription.svelte';
 import { fetchMachine } from './fetchMachine';
 import { doneInvoke, fromCallback, interpret } from 'xstate';
 
@@ -23,7 +23,7 @@ const persistedFetchStateConfig = JSON.parse(
 
 describe('useMachine function', () => {
   it('should work with a component', async () => {
-    const { getByText, findByText, getByTestId } = render(UseMachine);
+    const { getByText, findByText, getByTestId } = render(UseActor);
     const button = getByText('Fetch');
     await fireEvent.click(button);
     await findByText('Loading...');
@@ -33,7 +33,7 @@ describe('useMachine function', () => {
   });
 
   it('should work with a component with rehydrated state', async () => {
-    const { findByText, getByTestId } = render(UseMachine, {
+    const { findByText, getByTestId } = render(UseActor, {
       persistedState: persistedFetchState
     });
     await findByText(/Success/);
@@ -42,7 +42,7 @@ describe('useMachine function', () => {
   });
 
   it('should work with a component with rehydrated state config', async () => {
-    const { findByText, getByTestId } = render(UseMachine, {
+    const { findByText, getByTestId } = render(UseActor, {
       persistedState: persistedFetchStateConfig
     });
     await findByText(/Success/);
@@ -52,7 +52,7 @@ describe('useMachine function', () => {
 
   it("should not stop the interpreter even if subscribers' count go temporarily to zero", async () => {
     const { findByText, getByTestId } = render(
-      UseMachineNonPersistentSubcription
+      UseActorNonPersistentSubcription
     );
     let incButton = await findByText(/Increment/);
 
