@@ -6,7 +6,6 @@ import {
   AnyStateMachine,
   SnapshotFrom,
   InterpreterOptions,
-  Observer,
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   StateMachine,
