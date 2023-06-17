@@ -75,222 +75,52 @@ A SolidJS hook that interprets the given `machine` and starts a service that run
   const [state, send] = useMachine(machine);
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `context`, `state`.
+- `options?` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options)
 
-**Returns** a tuple of `[state, send, service]`:
+**Returns** a tuple of `[state, send, actor]`:
 
 - `state` - Represents the current state of the machine as an XState `State` object. This is a read-only value that is tracked by SolidJS for granular reactivity.
-- `send` - A function that sends events to the running service.
-- `service` - The created service.
+- `send` - A function that sends events to the running actor.
+- `actor` - The created actor.
 
-### `useActor(actor)`
+### `useActor(actorLogic, options?)`
 
-A SolidJS hook that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
+A SolidJS hook that subscribes to emitted changes from actor.
 
 **Arguments**
 
-- `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods. Allows [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) to dynamically specify an actor.
+- `actorLogic` - Actor logic
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options)
 
 ```js
-const [state, send] = useActor(someSpawnedActor);
+const [state, send] = useActor(
+  fromPromise(() => fetch('/api').then((res) => res.json()))
+);
 ```
 
-### `createService(machine, options?)`
+### `createActorRef(actorLogic, options?)`
 
-A SolidJS hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`.
+A SolidJS hook that returns the `actor` created from the `actorLogic` with the interpreter `options`, if specified. It starts the actor and runs it for the lifetime of the component. This is similar to `useActor(...)`.
 
-`createService` returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
+`createActorRef(...)` returns a static reference (to just the actor ref) which will not rerender when its state changes.
 
 **Arguments**
 
-- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `context`, `state`.
+- `machine` - Actor logic
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options)
 
 ```js
-import { createService } from '@xstate/solid';
-import { someMachine } from '../path/to/someMachine';
+import { createActorRef } from '@xstate/solid';
+import { someLogic } from '../path/to/someLogic';
 
 const App = () => {
-  const service = createService(someMachine);
+  const actorRef = createActorRef(someLogic);
 
-  // ...
-};
-```
-
-With options:
-
-```js
-// ...
-
-const App = () => {
-  const service = createService(someMachine, {
-    actions: {
-      /* ... */
-    }
+  createEffect(() => {
+    actorRef.subscribe((snapshot) => {
+      // ...
+    });
   });
-
-  // ...
-};
-```
-
-### `useMachine(machine)` with `@xstate/fsm`
-
-A SolidJS hook that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
-
-This special `useMachine` hook is imported from `@xstate/solid/lib/fsm`
-
-**Arguments**
-
-- `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
-- `options` - An optional `options` object.
-
-**Returns** a tuple of `[state, send, service]`:
-
-- `state` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object. This is a read-only value that is tracked by SolidJS for granular reactivity.
-- `send` - A function that sends events to the running service.
-- `service` - The created `@xstate/fsm` service.
-
-**Example**
-
-```js
-import { useEffect } from 'solid-js';
-import { useMachine } from '@xstate/solid/lib/fsm';
-import { createMachine } from '@xstate/fsm';
-
-const context = {
-  data: undefined
-};
-const fetchMachine = createMachine({
-  id: 'fetch',
-  initial: 'idle',
-  context,
-  states: {
-    idle: {
-      on: { FETCH: 'loading' }
-    },
-    loading: {
-      entry: ['load'],
-      on: {
-        RESOLVE: {
-          target: 'success',
-          actions: assign({
-            data: (context, event) => event.data
-          })
-        }
-      }
-    },
-    success: {}
-  }
-});
-
-const Fetcher = ({
-  onFetch = () => new Promise((res) => res('some data'))
-}) => {
-  const [state, send] = useMachine(fetchMachine, {
-    actions: {
-      load: () => {
-        onFetch().then((res) => {
-          send({ type: 'RESOLVE', data: res });
-        });
-      }
-    }
-  });
-
-  return (
-    <Switch fallback={null}>
-      <Match when={state.value === 'idle'}>
-        <button onclick={(_) => send({ send: 'FETCH' })}>Fetch</button>;
-      </Match>
-      <Match when={state.value === 'loading'}>
-        <div>Loading...</div>;
-      </Match>
-      <Match when={state.value === 'success'}>
-        Success! Data: <div data-testid="data">{state.context.data}</div>
-      </Match>
-    </Switch>
-  );
-};
-```
-
-## Configuring Machines
-
-Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
-
-Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
-
-```js
-const fetchMachine = createMachine({
-  id: 'fetch',
-  initial: 'idle',
-  context: {
-    data: undefined,
-    error: undefined
-  },
-  states: {
-    idle: {
-      on: { FETCH: 'loading' }
-    },
-    loading: {
-      invoke: {
-        src: 'fetchData',
-        onDone: {
-          target: 'success',
-          actions: assign({
-            data: (_, event) => event.data
-          })
-        },
-        onError: {
-          target: 'failure',
-          actions: assign({
-            error: (_, event) => event.data
-          })
-        }
-      }
-    },
-    success: {
-      entry: 'notifySuccess',
-      type: 'final'
-    },
-    failure: {
-      on: {
-        RETRY: 'loading'
-      }
-    }
-  }
-});
-
-const Fetcher = ({ onResolve }) => {
-  const [state, send] = useMachine(fetchMachine, {
-    actions: {
-      notifySuccess: (ctx) => onResolve(ctx.data)
-    },
-    services: {
-      fetchData: (_, e) =>
-        fetch(`some/api/${e.query}`).then((res) => res.json())
-    }
-  });
-
-  return (
-    <Switch fallback={null}>
-      <Match when={state.matches('idle')}>
-        <button onClick={() => send({ type: 'FETCH', query: 'something' })}>
-          Search for something
-        </button>
-      </Match>
-      <Match when={state.matches('loading')}>
-        <div>Searching...</div>
-      </Match>
-      <Match when={state.matches('success')}>
-        <div>Success! Data: {state.context.data}</div>
-      </Match>
-      <Match when={state.matches('failure')}>
-        <div>
-          <p>{state.context.error.message}</p>
-          <button onClick={() => send({ type: 'RETRY' })}>Retry</button>
-        </div>
-      </Match>
-    </Switch>
-  );
 };
 ```
 
@@ -324,7 +154,7 @@ const Loader = () => {
 
 ## Persisted and Rehydrated State
 
-You can persist and rehydrate state with `useMachine(...)` via `options.state`:
+You can persist and rehydrate state with `useMachine(machine, options)` or `useActor(logic, options) via `options.state`:
 
 ```js
 // ...
@@ -343,32 +173,32 @@ const App = () => {
 }
 ```
 
-## Services
+## Actors
 
-The `service` created in `useMachine(machine)` can be referenced as the third returned value:
+The `actor` created in `useMachine(machine)` or `useActor(logic)` can be referenced as the third returned value:
 
 ```js
-//                  vvvvvvv
-const [state, send, service] = useMachine(someMachine);
+//                     vvvvv
+const [snapshot, send, actor] = useMachine(someMachine);
 ```
 
-You can subscribe to that service's state changes with the [`createEffect` hook](https://www.solidjs.com/docs/latest/api#createeffect):
+You can subscribe to that actor's snapshot changes with the [`createEffect` hook](https://www.solidjs.com/docs/latest/api#createeffect):
 
 ```js
 // ...
 
 createEffect(() => {
-  const subscription = service.subscribe((state) => {
-    // simple state logging
-    console.log(state);
+  const subscription = actor.subscribe((snapshot) => {
+    // simple snapshot logging
+    console.log(snapshot);
   });
 
   onCleanup(() => subscription.unsubscribe());
-}); // note: service should never change
+}); // note: actor should never change
 ```
 
-Or by using the [`from` utility](https://www.solidjs.com/docs/latest/api#from). Note that this returns a shallow signal and is not deeply reactive
+Or by using the [`from` utility](https://www.solidjs.com/docs/latest/api#from). Note that this returns a shallow signal and is not deeply reactive.
 
 ```js
-const serviceState = from(service); // Returns an auto updating signal that subscribes/unsubscribes for you
+const actorSnapshot = from(actor); // Returns an auto updating signal that subscribes/unsubscribes for you
 ```
