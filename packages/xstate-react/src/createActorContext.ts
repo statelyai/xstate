@@ -34,10 +34,7 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
 
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
-  interpreterOptions?: InterpreterOptions<TLogic>,
-  observerOrListener?:
-    | Observer<SnapshotFrom<TLogic>>
-    | ((value: SnapshotFrom<TLogic>) => void)
+  interpreterOptions?: InterpreterOptions<TLogic>
 ): {
   useSelector: <T>(
     selector: (snapshot: SnapshotFrom<TLogic>) => T,
@@ -87,8 +84,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
 
     const actor = (useActorRef as any)(
       providedLogic,
-      providedOptions,
-      observerOrListener
+      providedOptions
     ) as ActorRefFrom<TLogic>;
 
     return React.createElement(OriginalProvider, {
