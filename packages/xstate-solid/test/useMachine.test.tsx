@@ -11,7 +11,6 @@ import {
   interpret
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
-import { DoneEventObject } from 'xstate';
 import { fromPromise, fromCallback } from 'xstate/actors';
 import {
   createEffect,
