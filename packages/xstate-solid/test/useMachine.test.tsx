@@ -38,7 +38,7 @@ describe('useMachine hook', () => {
     id: 'fetch',
     types: {} as {
       context: typeof context;
-      events: { type: 'FETCH' } | DoneEventObject;
+      events: { type: 'FETCH' };
       actors: {
         src: 'fetchData';
         output: string;
