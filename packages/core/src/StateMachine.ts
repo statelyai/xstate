@@ -46,19 +46,8 @@ import type {
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
-export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
-
-function createDefaultOptions() {
-  return {
-    actions: {},
-    actors: {},
-    delays: {},
-    guards: {},
-    context: {}
-  };
-}
 
 export class StateMachine<
   TContext extends MachineContext,
@@ -115,7 +104,7 @@ export class StateMachine<
    */
   public delimiter: string;
 
-  public options: MachineImplementationsSimplified<TContext, TEvent>;
+  public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
   public types: MachineTypes<TContext, TEvent>;
 
@@ -135,10 +124,15 @@ export class StateMachine<
      * The raw config used to create the machine.
      */
     public config: MachineConfig<TContext, TEvent, any, any, any>,
-    options?: MachineImplementationsSimplified<TContext, TEvent>
+    implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
-    this.options = Object.assign(createDefaultOptions(), options);
+    this.implementations = {
+      actors: implementations?.actors ?? {},
+      actions: implementations?.actions ?? {},
+      delays: implementations?.delays ?? {},
+      guards: implementations?.guards ?? {}
+    };
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
@@ -180,7 +174,7 @@ export class StateMachine<
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
   > {
-    const { actions, guards, actors, delays } = this.options;
+    const { actions, guards, actors, delays } = this.implementations;
 
     return new StateMachine(this.config, {
       actions: { ...actions, ...implementations.actions },
@@ -403,7 +397,7 @@ export class StateMachine<
       const src = actorData.src;
 
       const logic = src
-        ? resolveReferencedActor(this.options.actors[src])?.src
+        ? resolveReferencedActor(this.implementations.actors[src])?.src
         : undefined;
 
       if (!logic) {
@@ -433,7 +427,9 @@ export class StateMachine<
             return;
           }
 
-          const referenced = resolveReferencedActor(this.options.actors[src]);
+          const referenced = resolveReferencedActor(
+            this.implementations.actors[src]
+          );
 
           if (referenced) {
             const actorRef = interpret(referenced.src, {
