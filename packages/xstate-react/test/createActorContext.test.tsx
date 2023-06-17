@@ -1,4 +1,4 @@
-import { createMachine, assign, fromPromise } from 'xstate';
+import { createMachine, assign, fromPromise, PersistedStateFrom } from 'xstate';
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
@@ -379,32 +379,32 @@ describe('createActorContext', () => {
   });
 
   it('options can be passed to the provider', () => {
-    const SomeContext = createActorContext(
-      createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              next: 'b'
-            }
-          },
-          b: {}
-        }
-      })
-    );
-    let state: any = undefined;
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            next: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+    const SomeContext = createActorContext(machine);
+    let persistedState: PersistedStateFrom<typeof machine> | undefined =
+      undefined;
 
     const Component = () => {
-      const { send } = SomeContext.useActorRef();
-      const actorState = SomeContext.useSelector((state) => state);
+      const actorRef = SomeContext.useActorRef();
+      const state = SomeContext.useSelector((state) => state);
 
-      state = actorState;
+      persistedState = actorRef.getPersistedState?.();
 
       return (
         <div
           data-testid="value"
           onClick={() => {
-            send({ type: 'next' });
+            actorRef.send({ type: 'next' });
           }}
         >
           {state.value}
@@ -414,7 +414,7 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeContext.Provider options={{ state }}>
+        <SomeContext.Provider options={{ state: persistedState }}>
           <Component />
         </SomeContext.Provider>
       );
