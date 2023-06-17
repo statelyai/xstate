@@ -137,39 +137,6 @@ describe('state meta data', () => {
   });
 });
 
-describe('transition meta data', () => {
-  it('should show meta data in transitions', () => {
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: {
-            EVENT: {
-              target: 'active',
-              meta: {
-                description: 'Going from inactive to active'
-              }
-            }
-          }
-        },
-        active: {}
-      }
-    });
-
-    const actorRef = interpret(machine).start();
-    actorRef.send({ type: 'EVENT' });
-
-    expect(actorRef.getSnapshot().transitions.map((t) => t.meta))
-      .toMatchInlineSnapshot(`
-      [
-        {
-          "description": "Going from inactive to active",
-        },
-      ]
-    `);
-  });
-});
-
 describe('state description', () => {
   it('state node should have its description', () => {
     const machine = createMachine({

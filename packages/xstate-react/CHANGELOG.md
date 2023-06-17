@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.0-beta.6
+
+### Major Changes
+
+- [#4041](https://github.com/statelyai/xstate/pull/4041) [`50fe8cdd4`](https://github.com/statelyai/xstate/commit/50fe8cdd4114e77c104520f9c89d471cf2173dfb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Instances of "behavior" in the codebase have been replaced with "actor logic".
+
 ## 4.0.0-beta.5
 
 ### Patch Changes
