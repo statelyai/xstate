@@ -10,8 +10,6 @@ const machine = createMachine({
     actors: {
       src: 'fetchData'; // src name (inline behaviors ideally inferred)
       id: 'fetch1' | 'fetch2'; // possible ids
-      input: { foo: string };
-      output: { result: string };
     };
   },
   invoke: {
