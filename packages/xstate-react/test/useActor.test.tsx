@@ -26,10 +26,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const context = {
     data: undefined as undefined | string
   };
-  const fetchMachine = createMachine<
-    typeof context,
-    { type: 'FETCH' } | DoneEventObject
-  >({
+  const fetchMachine = createMachine({
     id: 'fetch',
     types: {} as {
       context: typeof context;
@@ -56,8 +53,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
                 return event.output;
               }
             }),
-            // TODO: this should be typed as { output: string }
-            guard: ({ event }) => event.output.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },
