@@ -162,12 +162,6 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       parent: (service._parent as AnyInterpreter)?.sessionId
     });
 
-    inspectService.send({
-      type: 'service.event',
-      event: stringifyWithSerializer(state.event),
-      sessionId: service.sessionId
-    });
-
     if (!patchedInterpreters.has(service)) {
       patchedInterpreters.add(service);
 
