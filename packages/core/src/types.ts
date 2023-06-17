@@ -1570,6 +1570,8 @@ export interface InterpreterOptions<_TActorLogic extends AnyActorLogic> {
    * The source definition.
    */
   src?: string;
+
+  inspect?: Observer<InspectionEvent>;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1736,7 +1738,7 @@ export interface ActorContext<
   stopChild: (child: AnyActorRef) => void;
 }
 
-export type AnyActorContext = ActorContext<any, any, any>;
+export type AnyActorContext = ActorContext<any, any, AnyActorSystem>;
 
 export interface ActorLogic<
   TEvent extends EventObject,
@@ -1892,11 +1894,25 @@ export interface ActorSystemInfo {
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
+  /**
+   * @private
+   */
   _bookId: () => string;
+  /**
+   * @private
+   */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
+  /**
+   * @private
+   */
   _unregister: (actorRef: AnyActorRef) => void;
+  /**
+   * @private
+   */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  inspect: (observer: Observer<InspectionEvent>) => void;
+  _sendInspectionEvent: (event: InspectionEvent) => void;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -1912,3 +1928,53 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
     };
   };
 };
+
+export interface InspectedActorObject {
+  actorRef: AnyActorRef; // local-only
+  sessionId: string;
+  parentId?: string; // Session ID
+  systemId?: string; // Session ID
+  events: ActorCommunicationEvent[]; // events where targetId === sessionId
+  definition?: string; // JSON-stringified machine definition or URL
+  createdAt: number; // Timestamp
+  updatedAt: number; // Timestamp, derived from latest update createdAt
+  status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped, derived from latest update status
+}
+
+export interface ActorTransitionEvent {
+  type: '@xstate.transition';
+  id: string; // unique string for this actor update
+  snapshot: any;
+  event: AnyEventObject; // { type: string, ... }
+  status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped
+  sessionId: string;
+  actorRef: AnyActorRef; // Only available locally
+  sourceId?: string; // Session ID
+  createdAt: string; // Timestamp
+}
+
+export interface ActorCommunicationEvent {
+  type: '@xstate.communication';
+  id: string; // unique string for this event
+  event: AnyEventObject; // { type: string, ... }
+  sourceId?: string; // Session ID
+  targetId: string; // Session ID, required
+  createdAt: string; // Timestamp
+}
+
+export interface ActorRegistrationEvent {
+  type: '@xstate.registration';
+  actorRef: AnyActorRef;
+  sessionId: string;
+  parentId?: string;
+  systemId?: string;
+  definition?: string; // JSON-stringified definition or URL
+  createdAt: string; // Timestamp
+}
+
+export type InspectionEvent =
+  | ActorTransitionEvent
+  | ActorCommunicationEvent
+  | ActorRegistrationEvent;
+
+export type InspectorActorRef = ActorRef<InspectionEvent>;

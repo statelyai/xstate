@@ -135,10 +135,14 @@ export class Interpreter<
       ...options
     };
 
-    const { clock, logger, parent, id, systemId } = resolvedOptions;
-    const self = this;
+    const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
 
     this.system = parent?.system ?? createSystem();
+
+    if (inspect) {
+      // Always inspect at the system-level
+      this.system.inspect(inspect);
+    }
 
     if (systemId) {
       this._systemId = systemId;
@@ -154,7 +158,7 @@ export class Interpreter<
     this.src = resolvedOptions.src;
     this.ref = this;
     this._actorContext = {
-      self,
+      self: this,
       id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
@@ -176,6 +180,16 @@ export class Interpreter<
     // if destructured
     this.send = this.send.bind(this);
     this._initState();
+
+    this.system._sendInspectionEvent({
+      type: '@xstate.registration',
+      actorRef: this,
+      createdAt: Date.now().toString(),
+      sessionId: this.sessionId,
+      definition: JSON.stringify(this.logic.config),
+      parentId: this._parent?.sessionId,
+      systemId: this._systemId
+    });
   }
 
   private _initState() {
@@ -274,6 +288,17 @@ export class Interpreter<
       this.logic.start(this._state, this._actorContext);
     }
 
+    this.system._sendInspectionEvent({
+      type: '@xstate.transition',
+      actorRef: this,
+      createdAt: Date.now().toString(),
+      event: { type: 'xstate.init' },
+      id: Math.random().toString(),
+      sessionId: this.sessionId,
+      snapshot: this.getSnapshot(),
+      status: this.status
+    });
+
     // TODO: this notifies all subscribers but usually this is redundant
     // there is no real change happening here
     // we need to rethink if this needs to be refactored
@@ -295,6 +320,17 @@ export class Interpreter<
         event,
         this._actorContext
       );
+
+      this.system._sendInspectionEvent({
+        type: '@xstate.transition',
+        actorRef: this,
+        createdAt: Date.now().toString(),
+        event,
+        id: Math.random().toString(),
+        sessionId: this.sessionId,
+        snapshot: this.getSnapshot(),
+        status: this.status
+      });
 
       this.update(nextState);
 

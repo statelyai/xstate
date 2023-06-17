@@ -1,10 +1,17 @@
-import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.js';
+import {
+  ActorSystem,
+  ActorSystemInfo,
+  AnyActorRef,
+  InspectionEvent,
+  Observer
+} from './types.js';
 
 export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
   let sessionIdCounter = 0;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
+  const observers = new Set<Observer<InspectionEvent>>();
 
   const system: ActorSystem<T> = {
     _bookId: () => `x:${sessionIdCounter++}`,
@@ -34,6 +41,12 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
 
       keyedActors.set(systemId, actorRef);
       reverseKeyedActors.set(actorRef, systemId);
+    },
+    inspect: (observer) => {
+      observers.add(observer);
+    },
+    _sendInspectionEvent: (event) => {
+      observers.forEach((observer) => observer.next?.(event));
     }
   };
 

@@ -161,6 +161,14 @@ export function send<
             const target = sendAction.params.to!;
             const sentEvent = sendAction.params.event;
             actorCtx.defer(() => {
+              // actorCtx.system._sendInspectionEvent({
+              //   type: '@xstate.communication',
+              //   event,
+              //   createdAt: Date.now().toString(),
+              //   id: Math.random().toString(),
+              //   targetId: this.sessionId,
+              //   sourceId: actorCtx.self.sessionId
+              // });
               target.send(
                 sentEvent.type === actionTypes.error
                   ? {
