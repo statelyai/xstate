@@ -113,6 +113,7 @@ export function toGuardDefinition<
   ) => GuardPredicate<TContext, TEvent> | GuardDefinition<TContext, TEvent>
 ): GuardDefinition<TContext, TEvent> {
   // TODO: check for cycles and consider a refactor to more lazily evaluated guards
+  // TODO: resolve this more recursively: https://github.com/statelyai/xstate/pull/4064#discussion_r1229915724
   if (isString(guardConfig)) {
     const predicateOrDef = getPredicate?.(guardConfig);
 
