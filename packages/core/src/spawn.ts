@@ -26,12 +26,11 @@ export function createSpawner<
       const referenced = resolveReferencedActor(machine.options.actors[src]);
 
       if (referenced) {
-        const resolvedName = options.id ?? 'anon'; // TODO: better name
         const input = 'input' in options ? options.input : referenced.input;
 
         // TODO: this should also receive `src`
         const actorRef = interpret(referenced.src, {
-          id: resolvedName,
+          id: options.id,
           parent: self,
           input:
             typeof input === 'function'
@@ -63,9 +62,8 @@ export function createSpawner<
       );
     } else {
       // TODO: this should also receive `src`
-      // TODO: instead of anonymous, it should be a unique stable ID
       const actorRef = interpret(src, {
-        id: options.id || 'anonymous',
+        id: options.id,
         parent: self,
         input: options.input,
         systemId
