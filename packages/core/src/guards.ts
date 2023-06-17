@@ -109,14 +109,29 @@ export function toGuardDefinition<
   TEvent extends EventObject
 >(
   guardConfig: GuardConfig<TContext, TEvent>,
-  getPredicate?: (guardType: string) => GuardPredicate<TContext, TEvent>
+  getPredicate?: (
+    guardType: string
+  ) => GuardPredicate<TContext, TEvent> | GuardDefinition<TContext, TEvent>
 ): GuardDefinition<TContext, TEvent> {
+  // TODO: check for cycles and consider a refactor to more lazily evaluated guards
+  // TODO: resolve this more recursively: https://github.com/statelyai/xstate/pull/4064#discussion_r1229915724
   if (isString(guardConfig)) {
-    return {
-      type: guardConfig,
-      predicate: getPredicate?.(guardConfig) || undefined,
-      params: { type: guardConfig }
-    };
+    const predicateOrDef = getPredicate?.(guardConfig);
+
+    if (isFunction(predicateOrDef)) {
+      return {
+        type: guardConfig,
+        predicate: predicateOrDef,
+        params: { type: guardConfig }
+      };
+    } else if (predicateOrDef) {
+      return predicateOrDef;
+    } else {
+      return {
+        type: guardConfig,
+        params: { type: guardConfig }
+      };
+    }
   }
 
   if (isFunction(guardConfig)) {
@@ -130,13 +145,28 @@ export function toGuardDefinition<
     };
   }
 
-  return {
-    type: guardConfig.type,
-    params: guardConfig.params || guardConfig,
-    children: (
-      guardConfig.children as Array<GuardConfig<TContext, TEvent>>
-    )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
-    predicate:
-      getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
-  };
+  const predicateOrDef = getPredicate?.(guardConfig.type);
+
+  if (isFunction(predicateOrDef)) {
+    return {
+      type: guardConfig.type,
+      params: guardConfig.params || guardConfig,
+      children: (
+        guardConfig.children as Array<GuardConfig<TContext, TEvent>>
+      )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
+      predicate:
+        getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
+    };
+  } else if (predicateOrDef) {
+    return predicateOrDef;
+  } else {
+    return {
+      type: guardConfig.type,
+      params: guardConfig.params || guardConfig,
+      children: (
+        guardConfig.children as Array<GuardConfig<TContext, TEvent>>
+      )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
+      predicate: (guardConfig as any).predicate
+    };
+  }
 }

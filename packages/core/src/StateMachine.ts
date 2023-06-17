@@ -291,7 +291,6 @@ export class StateMachine<
       this.createState({
         value: {}, // TODO: this is computed in state constructor
         context,
-        event: createInitEvent({}) as unknown as TEvent,
         meta: undefined,
         configuration: config,
         transitions: [],

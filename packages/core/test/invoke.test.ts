@@ -1,13 +1,6 @@
 import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import {
-  actionTypes,
-  doneInvoke,
-  escalate,
-  forwardTo,
-  raise,
-  sendTo
-} from '../src/actions.ts';
+import { escalate, forwardTo, raise, sendTo } from '../src/actions.ts';
 import {
   fromCallback,
   fromEventObservable,
@@ -1860,7 +1853,7 @@ describe('invoke', () => {
       interpret(machine).start();
     });
 
-    describe('sub invoke race condition', () => {
+    describe('sub invoke race condition ends on the completed state', () => {
       const anotherChildMachine = createMachine({
         id: 'child',
         initial: 'start',
@@ -1896,29 +1889,10 @@ describe('invoke', () => {
         }
       });
 
-      it('ends on the completed state', (done) => {
-        const events: EventObject[] = [];
-        let state: any;
-        const service = interpret(anotherParentMachine);
-        service.subscribe((s) => {
-          state = s;
-          events.push(s.event);
-        });
-        service.subscribe({
-          complete: () => {
-            expect(events.map((e) => e.type)).toEqual([
-              actionTypes.init,
-              'STOPCHILD',
-              doneInvoke('invoked.child').type
-            ]);
-            expect(state.value).toEqual('completed');
-            done();
-          }
-        });
-        service.start();
+      const actorRef = interpret(anotherParentMachine).start();
+      actorRef.send({ type: 'STOPCHILD' });
 
-        service.send({ type: 'STOPCHILD' });
-      });
+      expect(actorRef.getSnapshot().value).toEqual('completed');
     });
   });
 
