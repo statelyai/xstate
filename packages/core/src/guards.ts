@@ -31,7 +31,7 @@ export function stateIn<
 
 export function not<
   TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject
+  TEvent extends EventObject
 >(
   guard: GuardConfig<TContext, TEvent>
 ): BooleanGuardDefinition<TContext, TEvent> {
