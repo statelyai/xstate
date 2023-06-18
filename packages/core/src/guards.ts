@@ -5,8 +5,7 @@ import type {
   GuardConfig,
   GuardDefinition,
   GuardPredicate,
-  MachineContext,
-  AnyEventObject
+  MachineContext
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 import { isFunction, isString } from './utils.ts';
