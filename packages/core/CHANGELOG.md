@@ -1,5 +1,37 @@
 # xstate
 
+## 5.0.0-beta.14
+
+### Major Changes
+
+- [#4018](https://github.com/statelyai/xstate/pull/4018) [`c59bb6a72`](https://github.com/statelyai/xstate/commit/c59bb6a7231c8adff552e76fc1ca4af5b36de927) Thanks [@Andarist](https://github.com/Andarist)! - `machine.initialState` has been removed, you can use `machine.getInitialState(...)` instead
+
+- [#4018](https://github.com/statelyai/xstate/pull/4018) [`c59bb6a72`](https://github.com/statelyai/xstate/commit/c59bb6a7231c8adff552e76fc1ca4af5b36de927) Thanks [@Andarist](https://github.com/Andarist)! - `machine.transition(...)` and `machine.getInitialState(...)` require now an `actorContext` argument
+
+- [#4063](https://github.com/statelyai/xstate/pull/4063) [`e1f633ac9`](https://github.com/statelyai/xstate/commit/e1f633ac9f9998f5f2f07382eecd7defd6f6eba5) Thanks [@Andarist](https://github.com/Andarist)! - Removed `State['transitions']`.
+
+- [#4018](https://github.com/statelyai/xstate/pull/4018) [`c59bb6a72`](https://github.com/statelyai/xstate/commit/c59bb6a7231c8adff552e76fc1ca4af5b36de927) Thanks [@Andarist](https://github.com/Andarist)! - `machine.transition` no longer accepts state values. You have to resolve the state value to a `State` before passing it to `machine.transition`
+
+- [#4041](https://github.com/statelyai/xstate/pull/4041) [`50fe8cdd4`](https://github.com/statelyai/xstate/commit/50fe8cdd4114e77c104520f9c89d471cf2173dfb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Instances of "behavior" in the codebase have been replaced with "actor logic".
+
+- [#4055](https://github.com/statelyai/xstate/pull/4055) [`eb7c8b387`](https://github.com/statelyai/xstate/commit/eb7c8b387930644bffadb2fa2fb8546aee09eb88) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `system` can now be accessed in all available actor logic creator functions:
+
+  ```ts
+  fromPromise(({ system }) => { ... });
+
+  fromTransition((state, event, { system }) => { ... });
+
+  fromObservable(({ system }) => { ... });
+
+  fromEventObservable(({ system }) => { ... });
+
+  fromCallback((sendBack, receive, { system }) => { ... });
+  ```
+
+- [#4062](https://github.com/statelyai/xstate/pull/4062) [`28603a07f`](https://github.com/statelyai/xstate/commit/28603a07ff8d8d8550927bebf5a0a0a9870bf172) Thanks [@Andarist](https://github.com/Andarist)! - Removed `State['event']`.
+
+- [#4059](https://github.com/statelyai/xstate/pull/4059) [`bbea3bc4d`](https://github.com/statelyai/xstate/commit/bbea3bc4d39c36b642d15fe4116635d592a2c5a9) Thanks [@Andarist](https://github.com/Andarist)! - Removed `State['actions']`. Actions are considered to be a side-effect of a transition, things that happen in the moment and are not meant to be persisted beyond that.
+
 ## 5.0.0-beta.13
 
 ### Patch Changes
