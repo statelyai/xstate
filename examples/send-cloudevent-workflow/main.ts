@@ -1,34 +1,6 @@
 #!/usr/bin/env vite-node --script
 import { assign, createMachine, fromPromise, interpret } from 'xstate';
 
-// id: sendcloudeventonprovision
-// version: '1.0.0'
-// specVersion: '0.8'
-// name: Send CloudEvent on provision completion
-// start: ProvisionOrdersState
-// events:
-// - name: provisioningCompleteEvent
-//   type: provisionCompleteType
-//   kind: produced
-// functions:
-// - name: provisionOrderFunction
-//   operation: http://myapis.org/provisioning.json#doProvision
-// states:
-// - name: ProvisionOrdersState
-//   type: foreach
-//   inputCollection: "${ .orders }"
-//   iterationParam: singleorder
-//   outputCollection: "${ .provisionedOrders }"
-//   actions:
-//   - functionRef:
-//       refName: provisionOrderFunction
-//       arguments:
-//         order: "${ .singleorder }"
-//   end:
-//     produceEvents:
-//     - eventRef: provisioningCompleteEvent
-//       data: "${ .provisionedOrders }"
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#send-cloudevent-on-workflow-completion-example
 export const workflow = createMachine(
   {
