@@ -8,7 +8,7 @@ import {
   interpret,
   fromCallback
 } from 'xstate';
-import { CallbackActorLogic } from 'xstate/src/actors';
+import { CallbackActorLogic } from 'xstate/actors';
 
 describe('useMachine composition function', () => {
   const context = {
