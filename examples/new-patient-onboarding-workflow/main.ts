@@ -33,53 +33,6 @@ async function delay(ms: number, errorProbability: number): Promise<void> {
   });
 }
 
-// id: patientonboarding
-// name: Patient Onboarding Workflow
-// version: '1.0.0'
-// specVersion: '0.8'
-// start: Onboard
-// states:
-//  - name: Onboard
-//    type: event
-//    onEvents:
-//     - eventRefs:
-//        - NewPatientEvent
-//       actions:
-//        - functionRef: StorePatient
-//          retryRef: ServicesNotAvailableRetryStrategy
-//          retryableErrors:
-//          - ServiceNotAvailable
-//        - functionRef: AssignDoctor
-//          retryRef: ServicesNotAvailableRetryStrategy
-//          retryableErrors:
-//          - ServiceNotAvailable
-//        - functionRef: ScheduleAppt
-//          retryRef: ServicesNotAvailableRetryStrategy
-//          retryableErrors:
-//         - ServiceNotAvailable
-//    onErrors:
-//     - errorRef: ServiceNotAvailable
-//       end: true
-//    end: true
-// events:
-//  - name: StorePatient
-//    type: new.patients.event
-//    source: newpatient/+
-// functions:
-//  - name: StoreNewPatientInfo
-//    operation: api/services.json#addPatient
-//  - name: AssignDoctor
-//    operation: api/services.json#assignDoctor
-//  - name: ScheduleAppt
-//    operation: api/services.json#scheduleAppointment
-// errors:
-//  - name: ServiceNotAvailable
-//    code: '503'
-// retries:
-//  - name: ServicesNotAvailableRetryStrategy
-//    delay: PT3S
-//    maxAttempts: 10
-
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#New-Patient-Onboarding
 export const workflow = createMachine(
   {
