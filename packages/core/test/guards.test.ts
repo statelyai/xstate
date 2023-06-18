@@ -808,6 +808,29 @@ describe('not() guard', () => {
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
+
+  it('should play nice with TypeScript', () => {
+    createMachine(
+      {
+        id: 'b',
+        types: {} as {
+          events: { type: 'EVENT' };
+        },
+        on: {
+          EVENT: {
+            target: '#b',
+            // would have been a type error
+            guard: not('falsy')
+          }
+        }
+      },
+      {
+        guards: {
+          falsy: () => false
+        }
+      }
+    );
+  });
 });
 
 describe('and() guard', () => {

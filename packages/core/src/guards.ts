@@ -5,7 +5,8 @@ import type {
   GuardConfig,
   GuardDefinition,
   GuardPredicate,
-  MachineContext
+  MachineContext,
+  AnyEventObject
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 import { isFunction, isString } from './utils.ts';
@@ -30,7 +31,7 @@ export function stateIn<
 
 export function not<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject = AnyEventObject
 >(
   guard: GuardConfig<TContext, TEvent>
 ): BooleanGuardDefinition<TContext, TEvent> {

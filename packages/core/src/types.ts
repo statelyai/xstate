@@ -322,7 +322,9 @@ export interface TransitionConfig<
   TEvent extends EventObject = TExpressionEvent,
   TAction extends ParameterizedObject = ParameterizedObject
 > {
-  guard?: GuardConfig<TContext, TExpressionEvent>;
+  guard?:
+    | GuardConfig<TContext, TExpressionEvent>
+    | BooleanGuardDefinition<TContext, TExpressionEvent>;
   actions?: BaseActions<TContext, TExpressionEvent, TEvent, TAction>;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
