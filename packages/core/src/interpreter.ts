@@ -186,7 +186,7 @@ export class Interpreter<
       actorRef: this,
       createdAt: Date.now().toString(),
       sessionId: this.sessionId,
-      definition: JSON.stringify(this.logic.config),
+      // definition: JSON.stringify(this.logic.config),
       parentId: this._parent?.sessionId,
       systemId: this._systemId
     });
@@ -321,6 +321,8 @@ export class Interpreter<
         this._actorContext
       );
 
+      this.update(nextState);
+
       this.system._sendInspectionEvent({
         type: '@xstate.transition',
         actorRef: this,
@@ -331,8 +333,6 @@ export class Interpreter<
         snapshot: this.getSnapshot(),
         status: this.status
       });
-
-      this.update(nextState);
 
       if (event.type === stopSignalType) {
         this._stopProcedure();
