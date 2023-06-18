@@ -9,8 +9,10 @@ import { ActorStatus, interpret } from '../interpreter.ts';
 import { fromTransition } from './transition.ts';
 export { fromTransition } from './transition.ts';
 export { fromPromise } from './promise.ts';
+export type { PromiseActorLogic } from './promise.ts';
 export { fromObservable, fromEventObservable } from './observable.ts';
 export { fromCallback } from './callback.ts';
+export type { CallbackActorLogic } from './callback.ts';
 
 export const startSignalType = 'xstate.init';
 export const stopSignalType = 'xstate.stop';

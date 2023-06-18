@@ -17,6 +17,19 @@ export interface CallbackInternalState {
   input?: any;
 }
 
+export type CallbackActorLogic<
+  TEvent extends EventObject,
+  TInput = any
+> = ActorLogic<
+  TEvent,
+  undefined,
+  CallbackInternalState,
+  CallbackInternalState,
+  ActorSystem<any>,
+  TInput,
+  any
+>;
+
 export function fromCallback<TEvent extends EventObject, TInput>(
   invokeCallback: InvokeCallback<AnyEventObject, AnyEventObject, TInput>
 ): ActorLogic<

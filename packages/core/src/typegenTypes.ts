@@ -7,7 +7,10 @@ import {
   Values,
   IsAny,
   ParameterizedObject,
-  ActorImpl
+  ActorImpl,
+  OutputFrom,
+  WithDefault,
+  AnyActorLogic
 } from './types.ts';
 
 export interface TypegenDisabled {
@@ -151,7 +154,7 @@ type GenerateActorEvents<
 > = TActors extends { id: infer K }
   ? {
       type: `done.invoke.${K & string}`;
-      output: TActors['output'];
+      output: OutputFrom<WithDefault<TActors['logic'], AnyActorLogic>>;
     }
   : never;
 

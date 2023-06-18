@@ -131,6 +131,18 @@ export type InputFrom<T extends AnyActorLogic> = T extends ActorLogic<
   ? TInput
   : any; // TODO: never?
 
+export type OutputFrom<T extends AnyActorLogic> = T extends ActorLogic<
+  infer _TEvent,
+  infer _TSnapshot,
+  infer _TInternalState,
+  infer _TPersisted,
+  infer _TSystem,
+  infer _TInput,
+  infer TOutput
+>
+  ? TOutput
+  : any; // TODO: never?
+
 // TODO: do not accept machines without all implementations
 // we should also accept a raw machine as actor logic here
 // or just make machine actor logic
@@ -533,7 +545,13 @@ export type InvokeConfig<
        */
       src: TSrc | ActorLogic<any, any>; // TODO: fix types
 
-      input?: Mapper<TContext, TEvent, TActors['input']> | TActors['input'];
+      input?:
+        | Mapper<
+            TContext,
+            TEvent,
+            InputFrom<WithDefault<TActors['logic'], AnyActorLogic>>
+          >
+        | InputFrom<WithDefault<TActors['logic'], AnyActorLogic>>;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */
@@ -542,7 +560,9 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              DoneInvokeEvent<TActors['output']>,
+              DoneInvokeEvent<
+                OutputFrom<WithDefault<TActors['logic'], AnyActorLogic>>
+              >,
               TEvent
             >
           >;
@@ -1049,11 +1069,6 @@ export interface ActorImpl {
   src: string;
   id?: string;
   logic?: AnyActorLogic;
-  // TODO: delete all the below and replace with logic
-  events?: EventObject;
-  snapshot?: any;
-  input?: any;
-  output?: any;
 }
 
 export interface MachineTypes<
@@ -1832,7 +1847,15 @@ export interface ActorLogic<
   getPersistedState?: (state: TInternalState) => TPersisted;
 }
 
-export type AnyActorLogic = ActorLogic<any, any, any, any>;
+export type AnyActorLogic = ActorLogic<
+  any, // event
+  any, // snapshot
+  any, // internal state
+  any, // persisted state
+  any, // system
+  any, // input
+  any // output
+>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>

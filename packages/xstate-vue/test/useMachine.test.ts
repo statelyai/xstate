@@ -8,13 +8,20 @@ import {
   interpret,
   fromCallback
 } from 'xstate';
+import { CallbackActorLogic } from 'xstate/src/actors';
 
 describe('useMachine composition function', () => {
   const context = {
     data: undefined
   };
-  const fetchMachine = createMachine<typeof context>({
+  const fetchMachine = createMachine({
     id: 'fetch',
+    types: {} as {
+      actors: {
+        src: 'fetchData';
+        logic: CallbackActorLogic<any>;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -30,7 +37,7 @@ describe('useMachine composition function', () => {
             actions: assign({
               data: ({ event }) => event.output
             }),
-            guard: ({ event }) => event.output.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },

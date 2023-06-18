@@ -28,7 +28,8 @@ export type PromiseActorLogic<T, TInput = any> = ActorLogic<
   PromiseInternalState<T>, // internal state
   PromiseInternalState<T>, // persisted state
   ActorSystem<any>,
-  TInput
+  TInput, // input
+  T // output
 >;
 
 export type PromiseActorRef<T> = ActorRefFrom<PromiseActorLogic<T>>;
