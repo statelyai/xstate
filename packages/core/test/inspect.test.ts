@@ -68,7 +68,7 @@ describe('inspect', () => {
     ]);
   });
 
-  it.only('can inspect communications between actors', async () => {
+  it('can inspect communications between actors', async () => {
     // expect.assertions(1);
     const parentMachine = createMachine({
       initial: 'waiting',
