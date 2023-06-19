@@ -169,13 +169,15 @@ export function send<
               //   targetId: this.sessionId,
               //   sourceId: actorCtx.self.sessionId
               // });
-              target.send(
+              actorContext?.system._sendTo(
+                target,
                 sentEvent.type === actionTypes.error
                   ? {
                       type: `${error(actorCtx.self.id)}`,
                       data: sentEvent.data
                     }
-                  : sendAction.params.event
+                  : sendAction.params.event,
+                actorContext.self
               );
             });
           }

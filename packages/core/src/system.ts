@@ -47,6 +47,18 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
     },
     _sendInspectionEvent: (event) => {
       observers.forEach((observer) => observer.next?.(event));
+    },
+    _sendTo: (target, event, source) => {
+      system._sendInspectionEvent({
+        type: '@xstate.communication',
+        createdAt: new Date().toString(),
+        event,
+        id: Math.random().toString(),
+        targetId: target.sessionId,
+        sourceId: source?.sessionId
+      });
+
+      target.send(event);
     }
   };
 
