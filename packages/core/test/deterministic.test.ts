@@ -87,12 +87,14 @@ describe('deterministic machine', () => {
 
       const actor = interpret(machine).start();
 
+      const previousSnapshot = actor.getSnapshot();
+
       actor.send({
         type: 'FAKE'
       });
 
       expect(actor.getSnapshot().value).toBe('a');
-      expect(actor.getSnapshot().changed).toBe(false);
+      expect(actor.getSnapshot()).toBe(previousSnapshot);
     });
 
     it('should throw an error if not given an event', () => {
@@ -232,12 +234,14 @@ describe('deterministic machine', () => {
 
       const actor = interpret(machine).start();
 
+      const previousSnapshot = actor.getSnapshot();
+
       actor.send({
         type: 'FAKE'
       });
 
       expect(actor.getSnapshot().value).toEqual({ a: 'b' });
-      expect(actor.getSnapshot().changed).toBe(false);
+      expect(actor.getSnapshot()).toBe(previousSnapshot);
     });
 
     it('should transition to the deepest initial state', () => {
@@ -254,7 +258,7 @@ describe('deterministic machine', () => {
       });
     });
 
-    it('should return the equivalent state if no transition occurs', () => {
+    it('should return the same state if no transition occurs', () => {
       const initialState = lightMachine.transition(
         lightMachine.getInitialState(
           undefined as any // TODO: figure out the simulation API
@@ -273,7 +277,7 @@ describe('deterministic machine', () => {
       );
 
       expect(initialState.value).toEqual(nextState.value);
-      expect(nextState.changed).toBe(false);
+      expect(nextState).toBe(initialState);
     });
   });
 
