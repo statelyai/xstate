@@ -286,7 +286,6 @@ export class StateMachine<
         context,
         meta: undefined,
         configuration: config,
-        transitions: [],
         children: {}
       })
     );

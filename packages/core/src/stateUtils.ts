@@ -1067,8 +1067,7 @@ export function microstep<
   const { context } = microstate;
 
   const nextState = cloneState(microstate, {
-    value: {}, // TODO: make optional
-    transitions
+    value: {} // TODO: make optional
   });
 
   nextState.changed = currentState._initial
