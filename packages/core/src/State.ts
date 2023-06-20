@@ -55,7 +55,6 @@ export class State<
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public _internalQueue: Array<TEvent>;
-  public _initial: boolean = false;
   /**
    * The enabled state nodes representative of the state value.
    */
