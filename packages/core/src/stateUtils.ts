@@ -1042,7 +1042,7 @@ export function microstep<
     return currentState;
   }
 
-  const [microstate] = microstepProcedure(
+  const microstate = microstepProcedure(
     currentState._initial
       ? [
           {
@@ -1073,7 +1073,7 @@ function microstepProcedure(
   mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
   actorCtx: AnyActorContext
-): [typeof currentState, BaseActionObject[]] {
+): typeof currentState {
   const actions: BaseActionObject[] = [];
   const historyValue = {
     ...currentState.historyValue
@@ -1118,7 +1118,7 @@ function microstepProcedure(
   }
 
   try {
-    const [nextState, resolvedActions] = resolveActionsAndContext(
+    const nextState = resolveActionsAndContext(
       actions,
       event,
       currentState,
@@ -1131,18 +1131,15 @@ function microstepProcedure(
 
     internalQueue.push(...nextState._internalQueue);
 
-    return [
-      cloneState(currentState, {
-        configuration: nextConfiguration,
-        historyValue,
-        _internalQueue: internalQueue,
-        context: nextState.context,
-        done,
-        output,
-        children: nextState.children
-      }),
-      resolvedActions
-    ];
+    return cloneState(currentState, {
+      configuration: nextConfiguration,
+      historyValue,
+      _internalQueue: internalQueue,
+      context: nextState.context,
+      done,
+      output,
+      children: nextState.children
+    });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
     // See https://github.com/statelyai/rfcs/pull/4
@@ -1422,14 +1419,12 @@ export function resolveActionsAndContext<
   event: TEvent,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext | undefined
-): [AnyState, BaseActionObject[]] {
+): AnyState {
   const { machine } = currentState;
-  const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
   let intermediateState = currentState;
 
   function handleAction(action: BaseActionObject): void {
-    resolvedActions.push(action);
     if (actorCtx?.self.status === ActorStatus.Running) {
       action.execute?.(actorCtx!);
     } else {
@@ -1482,12 +1477,9 @@ export function resolveActionsAndContext<
     resolveAction(actionObject);
   }
 
-  return [
-    cloneState(intermediateState, {
-      _internalQueue: raiseActions.map((a) => a.params.event)
-    }),
-    resolvedActions
-  ];
+  return cloneState(intermediateState, {
+    _internalQueue: raiseActions.map((a) => a.params.event)
+  });
 }
 
 export function macrostep(
