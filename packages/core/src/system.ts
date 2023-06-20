@@ -54,11 +54,13 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
         createdAt: new Date().toString(),
         event,
         id: Math.random().toString(),
-        targetId: target.sessionId,
+        targetId: target?.sessionId ?? 'deadletter',
         sourceId: source?.sessionId
       });
 
-      target.send(event);
+      event.__ = 1;
+
+      target?.send(event);
     }
   };
 

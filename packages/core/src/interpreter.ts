@@ -179,8 +179,6 @@ export class Interpreter<
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
     this.send = this.send.bind(this);
-    this._initState();
-
     this.system._sendInspectionEvent({
       type: '@xstate.registration',
       actorRef: this,
@@ -190,6 +188,7 @@ export class Interpreter<
       parentId: this._parent?.sessionId,
       systemId: this._systemId
     });
+    this._initState();
   }
 
   private _initState() {
@@ -224,8 +223,10 @@ export class Interpreter<
     switch (status?.status) {
       case 'done':
         this._stopProcedure();
-        this._doneEvent = doneInvoke(this.id, status.data);
-        this._parent?.send(this._doneEvent as any);
+        if (this._parent) {
+          this._doneEvent = doneInvoke(this.id, status.data);
+          this.system._sendTo(this._parent, this._doneEvent, this);
+        }
         this._complete();
         break;
       case 'error':
@@ -422,6 +423,16 @@ export class Interpreter<
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
     }
+    if (!('__' in event)) {
+      this.system._sendInspectionEvent({
+        type: '@xstate.communication',
+        createdAt: Date.now().toString(),
+        event,
+        id: Math.random().toString(),
+        sourceId: undefined,
+        targetId: this.sessionId
+      });
+    }
 
     if (this.status === ActorStatus.Stopped) {
       // do nothing
@@ -459,7 +470,11 @@ export class Interpreter<
   ): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if ('to' in sendAction.params && sendAction.params.to) {
-        sendAction.params.to.send(sendAction.params.event);
+        this.system._sendTo(
+          sendAction.params.to,
+          sendAction.params.event,
+          this
+        );
       } else {
         this.send(sendAction.params.event);
       }

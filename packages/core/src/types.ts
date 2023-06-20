@@ -1914,7 +1914,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   inspect: (observer: Observer<InspectionEvent>) => void;
   _sendInspectionEvent: (event: InspectionEvent) => void;
   _sendTo: (
-    target: AnyActorRef,
+    target: AnyActorRef | undefined,
     event: AnyEventObject,
     source: AnyActorRef | undefined
   ) => void;
@@ -1962,7 +1962,7 @@ export interface ActorCommunicationEvent {
   type: '@xstate.communication';
   id: string; // unique string for this event
   event: AnyEventObject; // { type: string, ... }
-  sourceId?: string; // Session ID
+  sourceId: string | undefined; // Session ID
   targetId: string; // Session ID, required
   createdAt: string; // Timestamp
 }

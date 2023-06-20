@@ -131,77 +131,151 @@ describe('inspect', () => {
 
     await waitFor(actor, (state) => state.value === 'success');
 
-    expect(events).toEqual([
-      expect.objectContaining({
-        type: '@xstate.registration'
-      }),
-      expect.objectContaining({
-        type: '@xstate.registration'
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        event: { type: 'xstate.init' }
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        event: { type: 'xstate.init' }
-      }),
-      expect.objectContaining({
-        type: '@xstate.communication',
-        event: { type: 'loadChild' },
-        sourceId: 'x:0',
-        targetId: 'x:1'
-      }),
-      expect.objectContaining({
-        type: '@xstate.registration'
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        event: { type: 'xstate.init' },
-        sessionId: 'x:2'
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        event: { type: 'loadChild' },
-        sessionId: 'x:1'
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        event: { type: 'load' },
-        sessionId: 'x:0'
-      }),
-      expect.objectContaining({
-        type: '@xstate.communication',
-        event: { type: 'toParent' },
-        sourceId: 'x:1',
-        targetId: 'x:0'
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        sessionId: 'x:0',
-        snapshot: expect.objectContaining({
-          value: 'waiting'
-        })
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        sessionId: 'x:0',
-        snapshot: expect.objectContaining({
-          value: 'success'
-        })
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        sessionId: 'x:1',
-        snapshot: expect.objectContaining({
-          value: 'loaded'
-        })
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        sessionId: 'x:2',
-        snapshot: 42
+    expect(
+      events.map((event) => {
+        if (event.type === '@xstate.communication') {
+          return {
+            type: event.type,
+            sourceId: event.sourceId,
+            targetId: event.targetId,
+            event: event.event.type
+          };
+        }
+        if (event.type === '@xstate.registration') {
+          return {
+            type: event.type,
+            sessionId: event.sessionId
+          };
+        }
+        return {
+          type: event.type,
+          sessionId: event.sessionId,
+          snapshot:
+            typeof event.snapshot === 'object' && 'value' in event.snapshot
+              ? { value: event.snapshot.value }
+              : event.snapshot,
+          event: event.event.type
+        };
       })
-    ]);
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "sessionId": "x:0",
+          "type": "@xstate.registration",
+        },
+        {
+          "sessionId": "x:1",
+          "type": "@xstate.registration",
+        },
+        {
+          "event": "xstate.init",
+          "sessionId": "x:1",
+          "snapshot": {
+            "value": "start",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "xstate.init",
+          "sessionId": "x:0",
+          "snapshot": {
+            "value": "waiting",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "load",
+          "sourceId": undefined,
+          "targetId": "x:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "loadChild",
+          "sourceId": "x:0",
+          "targetId": "x:1",
+          "type": "@xstate.communication",
+        },
+        {
+          "sessionId": "x:2",
+          "type": "@xstate.registration",
+        },
+        {
+          "event": "xstate.init",
+          "sessionId": "x:2",
+          "snapshot": undefined,
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "loadChild",
+          "sessionId": "x:1",
+          "snapshot": {
+            "value": "loading",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "load",
+          "sessionId": "x:0",
+          "snapshot": {
+            "value": "waiting",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "$$xstate.resolve",
+          "sourceId": "x:2",
+          "targetId": "x:2",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "done.invoke.(machine).loading:invocation[0]",
+          "sourceId": "x:2",
+          "targetId": "x:1",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "toParent",
+          "sourceId": "x:1",
+          "targetId": "x:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "toParent",
+          "sessionId": "x:0",
+          "snapshot": {
+            "value": "waiting",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "done.invoke.child",
+          "sourceId": "x:1",
+          "targetId": "x:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "done.invoke.child",
+          "sessionId": "x:0",
+          "snapshot": {
+            "value": "success",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "done.invoke.(machine).loading:invocation[0]",
+          "sessionId": "x:1",
+          "snapshot": {
+            "value": "loaded",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "$$xstate.resolve",
+          "sessionId": "x:2",
+          "snapshot": 42,
+          "type": "@xstate.transition",
+        },
+      ]
+    `);
   });
 });
