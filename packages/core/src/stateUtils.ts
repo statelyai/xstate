@@ -1062,8 +1062,7 @@ export function microstep<
   );
 
   return cloneState(microstate, {
-    value: {}, // TODO: make optional
-    transitions
+    value: {} // TODO: make optional
   });
 }
 

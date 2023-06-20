@@ -834,10 +834,15 @@ type MachineImplementationsGuards<
   >,
   TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
-  [K in keyof TEventsCausingGuards]?: GuardPredicate<
-    TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
-  >;
+  [K in keyof TEventsCausingGuards]?:
+    | GuardPredicate<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
+      >
+    | GuardConfig<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
+      >;
 };
 
 type MachineImplementationsActors<
@@ -1509,7 +1514,6 @@ export interface StateConfig<
   historyValue?: HistoryValue<TContext, TEvent>;
   meta?: any;
   configuration?: Array<StateNode<TContext, TEvent>>;
-  transitions?: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   output?: any;
