@@ -94,7 +94,6 @@ export class State<
             context,
             meta: {},
             configuration: [], // TODO: fix,
-            transitions: [],
             children: {}
           },
           machine
