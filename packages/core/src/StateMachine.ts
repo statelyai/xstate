@@ -293,7 +293,7 @@ export class StateMachine<
     preInitial._initial = true;
 
     if (actorCtx) {
-      const [nextState] = resolveActionsAndContext(
+      const nextState = resolveActionsAndContext(
         actions,
         initEvent as TEvent,
         preInitial,
