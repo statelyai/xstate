@@ -78,7 +78,7 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
     : undefined;
 }
 
-const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
+export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
 function getChildren<TContext extends MachineContext, TE extends EventObject>(
@@ -1028,37 +1028,22 @@ export function microstep<
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext,
-  event: TEvent
+  event: TEvent,
+  isInitial: boolean
 ): State<TContext, TEvent, any> {
-  const { machine } = currentState;
-  // Transition will "apply" if:
-  // - the state node is the initial state (there is no current state)
-  // - OR there are transitions
-  const willTransition = currentState._initial || transitions.length > 0;
-
   const mutConfiguration = new Set(currentState.configuration);
 
-  if (!currentState._initial && !willTransition) {
+  if (!transitions.length) {
     return currentState;
   }
 
   const microstate = microstepProcedure(
-    currentState._initial
-      ? [
-          {
-            target: [...currentState.configuration].filter(isAtomicStateNode),
-            source: machine.root,
-            reenter: true,
-            actions: [],
-            eventType: null as any,
-            toJSON: null as any // TODO: fix
-          }
-        ]
-      : transitions,
+    transitions,
     currentState,
     mutConfiguration,
     event,
-    actorCtx
+    actorCtx,
+    isInitial
   );
 
   return cloneState(microstate, {
@@ -1071,7 +1056,8 @@ function microstepProcedure(
   currentState: AnyState,
   mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
-  actorCtx: AnyActorContext
+  actorCtx: AnyActorContext,
+  isInitial: boolean
 ): typeof currentState {
   const actions: BaseActionObject[] = [];
   const historyValue = {
@@ -1087,7 +1073,7 @@ function microstepProcedure(
   const internalQueue = [...currentState._internalQueue];
 
   // Exit states
-  if (!currentState._initial) {
+  if (!isInitial) {
     exitStates(filteredTransitions, mutConfiguration, historyValue, actions);
   }
 
@@ -1102,7 +1088,8 @@ function microstepProcedure(
     actions,
     internalQueue,
     currentState,
-    historyValue
+    historyValue,
+    isInitial
   );
 
   const nextConfiguration = [...mutConfiguration];
@@ -1153,7 +1140,8 @@ function enterStates(
   actions: BaseActionObject[],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
-  historyValue: HistoryValue<any, any>
+  historyValue: HistoryValue<any, any>,
+  isInitial: boolean
 ): void {
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
@@ -1166,7 +1154,7 @@ function enterStates(
   );
 
   // In the initial state, the root state node is "entered".
-  if (currentState._initial) {
+  if (isInitial) {
     statesForDefaultEntry.add(currentState.machine.root);
   }
 
@@ -1513,7 +1501,7 @@ export function macrostep(
   // Determine the next state based on the next microstep
   if (nextEvent.type !== actionTypes.init) {
     const transitions = selectTransitions(nextEvent, nextState);
-    nextState = microstep(transitions, state, actorCtx, nextEvent);
+    nextState = microstep(transitions, state, actorCtx, nextEvent, false);
     states.push(nextState);
   }
 
@@ -1526,13 +1514,25 @@ export function macrostep(
       } else {
         nextEvent = nextState._internalQueue[0];
         const transitions = selectTransitions(nextEvent, nextState);
-        nextState = microstep(transitions, nextState, actorCtx, nextEvent);
+        nextState = microstep(
+          transitions,
+          nextState,
+          actorCtx,
+          nextEvent,
+          false
+        );
         nextState._internalQueue.shift();
 
         states.push(nextState);
       }
     } else {
-      nextState = microstep(enabledTransitions, nextState, actorCtx, nextEvent);
+      nextState = microstep(
+        enabledTransitions,
+        nextState,
+        actorCtx,
+        nextEvent,
+        false
+      );
 
       states.push(nextState);
     }
