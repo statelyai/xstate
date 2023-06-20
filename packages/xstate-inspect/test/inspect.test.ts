@@ -148,7 +148,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":"active","done":false,"context":{},"historyValue":{},"_initial":false,"changed":false,"children":{},"tags":[]}",
+          "state": "{"value":"active","done":false,"context":{},"historyValue":{},"_initial":false,"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -215,7 +215,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":"active","done":false,"context":{"map":"map","deep":{"map":"map"}},"historyValue":{},"_initial":false,"changed":false,"children":{},"tags":[]}",
+          "state": "{"value":"active","done":false,"context":{"map":"map","deep":{"map":"map"}},"historyValue":{},"_initial":false,"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -324,7 +324,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"_initial":false,"changed":true,"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"_initial":false,"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -346,7 +346,7 @@ describe('@xstate/inspect', () => {
         },
         {
           "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"_initial":false,"changed":false,"children":{},"tags":[]}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"_initial":false,"children":{},"tags":[]}",
           "type": "service.state",
         },
       ]

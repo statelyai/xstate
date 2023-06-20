@@ -1039,13 +1039,10 @@ export function microstep<
   const mutConfiguration = new Set(currentState.configuration);
 
   if (!currentState._initial && !willTransition) {
-    const inertState = cloneState(currentState, {});
-
-    inertState.changed = false;
-    return inertState;
+    return currentState;
   }
 
-  const [microstate, actions] = microstepProcedure(
+  const [microstate] = microstepProcedure(
     currentState._initial
       ? [
           {
@@ -1064,20 +1061,10 @@ export function microstep<
     actorCtx
   );
 
-  const { context } = microstate;
-
-  const nextState = cloneState(microstate, {
+  return cloneState(microstate, {
     value: {}, // TODO: make optional
     transitions
   });
-
-  nextState.changed = currentState._initial
-    ? undefined
-    : !stateValuesEqual(nextState.value, currentState.value) ||
-      actions.length > 0 ||
-      context !== currentState.context;
-
-  return nextState;
 }
 
 function microstepProcedure(
