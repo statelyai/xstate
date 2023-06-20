@@ -87,12 +87,14 @@ describe('deterministic machine', () => {
 
       const actor = interpret(machine).start();
 
+      const previousSnapshot = actor.getSnapshot();
+
       actor.send({
         type: 'FAKE'
       });
 
       expect(actor.getSnapshot().value).toBe('a');
-      expect(actor.getSnapshot().changed).toBe(false);
+      expect(actor.getSnapshot()).toBe(previousSnapshot);
     });
 
     it('should throw an error if not given an event', () => {
@@ -135,16 +137,18 @@ describe('deterministic machine', () => {
     });
 
     it('should use the machine.initialState when an undefined state is given', () => {
+      const simLightMachine = simulate(lightMachine);
       expect(
-        simulate(lightMachine).transition(undefined, {
+        simLightMachine.transition(simLightMachine.getInitialState(), {
           type: 'TIMER'
         }).value
       ).toEqual('yellow');
     });
 
     it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
+      const simLightMachine = simulate(lightMachine);
       expect(
-        simulate(lightMachine).transition(undefined, {
+        simLightMachine.transition(simLightMachine.getInitialState(), {
           type: 'TIMER'
         }).value
       ).toEqual('yellow');
@@ -215,12 +219,14 @@ describe('deterministic machine', () => {
 
       const actor = interpret(machine).start();
 
+      const previousSnapshot = actor.getSnapshot();
+
       actor.send({
         type: 'FAKE'
       });
 
       expect(actor.getSnapshot().value).toEqual({ a: 'b' });
-      expect(actor.getSnapshot().changed).toBe(false);
+      expect(actor.getSnapshot()).toBe(previousSnapshot);
     });
 
     it('should transition to the deepest initial state', () => {
@@ -236,16 +242,20 @@ describe('deterministic machine', () => {
       });
     });
 
-    it('should return the equivalent state if no transition occurs', () => {
-      const initialState = simulate(lightMachine).transition(undefined, {
-        type: 'NOTHING'
-      });
-      const nextState = simulate(lightMachine).transition(initialState, {
+    it('should return the same state if no transition occurs', () => {
+      const simLightMachine = simulate(lightMachine);
+      const initialState = simLightMachine.transition(
+        simLightMachine.getInitialState(),
+        {
+          type: 'NOTHING'
+        }
+      );
+      const nextState = simLightMachine.transition(initialState, {
         type: 'NOTHING'
       });
 
       expect(initialState.value).toEqual(nextState.value);
-      expect(nextState.changed).toBe(false);
+      expect(nextState).toBe(initialState);
     });
   });
 
@@ -284,8 +294,9 @@ describe('deterministic machine', () => {
     });
 
     it('should work with substate nodes that have the same key', () => {
+      const simMachine = simulate(machine);
       expect(
-        simulate(machine).transition(undefined, {
+        simMachine.transition(simMachine.getInitialState(), {
           type: 'NEXT'
         }).value
       ).toEqual('test');

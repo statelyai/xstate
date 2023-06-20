@@ -45,15 +45,17 @@ export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  function listener(nextState: StateFrom<TMachine>) {
-    if (nextState.changed) {
-      state.value = nextState;
+  function listener(nextSnapshot: StateFrom<TMachine>) {
+    if (nextSnapshot !== snapshot) {
+      snapshot = nextSnapshot;
+      state.value = snapshot;
     }
   }
 
   const service = useInterpret(getMachine, options, listener);
 
-  const state = shallowRef(service.getSnapshot());
+  let snapshot = service.getSnapshot();
+  const state = shallowRef(snapshot);
 
   return { state, send: service.send, service } as any;
 }

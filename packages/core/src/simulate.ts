@@ -27,16 +27,13 @@ export function simulate<T extends AnyActorLogic>(
 
   const sim = {
     transition: (
-      state: InternalStateFrom<T> = actorLogic.getInitialState(
-        dummyActorContext,
-        options.input
-      ),
+      state: InternalStateFrom<T>,
       event: EventFromLogic<T>
     ): InternalStateFrom<T> => {
       return actorLogic.transition(state, event, dummyActorContext);
     },
-    getInitialState: () => {
-      return actorLogic.getInitialState(dummyActorContext, options.input);
+    getInitialState: (input = options.input) => {
+      return actorLogic.getInitialState(dummyActorContext, input);
     },
     actorContext: dummyActorContext
   };
