@@ -1913,7 +1913,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   inspect: (observer: Observer<InspectionEvent>) => void;
   _sendInspectionEvent: (event: InspectionEvent) => void;
-  _sendTo: (
+  sendTo: (
     target: AnyActorRef | undefined,
     event: AnyEventObject,
     source: AnyActorRef | undefined

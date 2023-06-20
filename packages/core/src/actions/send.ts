@@ -169,7 +169,7 @@ export function send<
               //   targetId: this.sessionId,
               //   sourceId: actorCtx.self.sessionId
               // });
-              actorContext?.system._sendTo(
+              actorContext?.system.sendTo(
                 target,
                 sentEvent.type === actionTypes.error
                   ? {

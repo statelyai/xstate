@@ -81,22 +81,14 @@ export function fromPromise<T>(
           if ((self as any)._state.status !== 'active') {
             return;
           }
-          system._sendTo(
-            self,
-            { type: resolveEventType, data: response },
-            self
-          );
+          system.sendTo(self, { type: resolveEventType, data: response }, self);
         },
         (errorData) => {
           // TODO: remove this condition once dead letter queue lands
           if ((self as any)._state.status !== 'active') {
             return;
           }
-          system._sendTo(
-            self,
-            { type: rejectEventType, data: errorData },
-            self
-          );
+          system.sendTo(self, { type: rejectEventType, data: errorData }, self);
         }
       );
     },

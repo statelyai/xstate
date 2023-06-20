@@ -225,7 +225,7 @@ export class Interpreter<
         this._stopProcedure();
         if (this._parent) {
           this._doneEvent = doneInvoke(this.id, status.data);
-          this.system._sendTo(this._parent, this._doneEvent, this);
+          this.system.sendTo(this._parent, this._doneEvent, this);
         }
         this._complete();
         break;
@@ -470,11 +470,7 @@ export class Interpreter<
   ): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if ('to' in sendAction.params && sendAction.params.to) {
-        this.system._sendTo(
-          sendAction.params.to,
-          sendAction.params.event,
-          this
-        );
+        this.system.sendTo(sendAction.params.to, sendAction.params.event, this);
       } else {
         this.send(sendAction.params.event);
       }
