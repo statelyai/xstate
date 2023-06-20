@@ -458,54 +458,72 @@ describe('interpreter', () => {
   });
 
   describe('activities (deprecated)', () => {
-    let activityState = 'off';
-
-    const activityMachine = createMachine(
-      {
-        id: 'activity',
-        initial: 'on',
-        states: {
-          on: {
-            invoke: 'myActivity',
-            on: {
-              TURN_OFF: 'off'
-            }
-          },
-          off: {}
-        }
-      },
-      {
-        actors: {
-          myActivity: fromCallback(() => {
-            activityState = 'on';
-            return () => (activityState = 'off');
-          })
-        }
-      }
-    );
-
     it('should start activities', () => {
+      const spy = jest.fn();
+
+      const activityMachine = createMachine(
+        {
+          id: 'activity',
+          initial: 'on',
+          states: {
+            on: {
+              invoke: 'myActivity',
+              on: {
+                TURN_OFF: 'off'
+              }
+            },
+            off: {}
+          }
+        },
+        {
+          actors: {
+            myActivity: fromCallback(spy)
+          }
+        }
+      );
       const service = interpret(activityMachine);
 
       service.start();
 
-      expect(activityState).toEqual('on');
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should stop activities', () => {
+      const spy = jest.fn();
+
+      const activityMachine = createMachine(
+        {
+          id: 'activity',
+          initial: 'on',
+          states: {
+            on: {
+              invoke: 'myActivity',
+              on: {
+                TURN_OFF: 'off'
+              }
+            },
+            off: {}
+          }
+        },
+        {
+          actors: {
+            myActivity: fromCallback(() => spy)
+          }
+        }
+      );
       const service = interpret(activityMachine);
 
       service.start();
 
-      expect(activityState).toEqual('on');
+      expect(spy).not.toHaveBeenCalled();
 
       service.send({ type: 'TURN_OFF' });
 
-      expect(activityState).toEqual('off');
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should stop activities upon stopping the service', () => {
-      let stopActivityState: string;
+      const spy = jest.fn();
 
       const stopActivityMachine = createMachine(
         {
@@ -523,21 +541,18 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            myActivity: fromCallback(() => {
-              stopActivityState = 'on';
-              return () => (stopActivityState = 'off');
-            })
+            myActivity: fromCallback(() => spy)
           }
         }
       );
 
       const stopActivityService = interpret(stopActivityMachine).start();
 
-      expect(stopActivityState!).toEqual('on');
+      expect(spy).not.toHaveBeenCalled();
 
       stopActivityService.stop();
 
-      expect(stopActivityState!).toEqual('off');
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should restart activities from a compound state', () => {

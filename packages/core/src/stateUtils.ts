@@ -1499,7 +1499,7 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === stopSignalType) {
-    nextState = stopStep(event, nextState, actorCtx)[0];
+    nextState = stopStep(event, nextState, actorCtx);
     states.push(nextState);
 
     return {
