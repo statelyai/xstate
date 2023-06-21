@@ -44,7 +44,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      actorRef.reset(actorRef.getPersistedState());
+      actorRef.reset();
     };
   }, [actorRef]);
 
