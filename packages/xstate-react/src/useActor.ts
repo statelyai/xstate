@@ -1,23 +1,14 @@
 import isDevelopment from '#is-development';
 import { useCallback, useEffect } from 'react';
-import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import {
   ActorRefFrom,
   AnyActorLogic,
-  AnyState,
   InterpreterOptions,
   SnapshotFrom
 } from 'xstate';
 import { useIdleInterpreter } from './useActorRef.ts';
 import { isActorRef } from 'xstate/actors';
-
-function identity<T>(a: T): T {
-  return a;
-}
-
-const isEqual = (prevState: AnyState, nextState: AnyState) => {
-  return prevState === nextState || nextState.changed === false;
-};
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -43,12 +34,10 @@ export function useActor<TLogic extends AnyActorLogic>(
     [actorRef]
   );
 
-  const actorSnapshot = useSyncExternalStoreWithSelector(
+  const actorSnapshot = useSyncExternalStore(
     subscribe,
     getSnapshot,
-    getSnapshot,
-    identity,
-    isEqual
+    getSnapshot
   );
 
   useEffect(() => {

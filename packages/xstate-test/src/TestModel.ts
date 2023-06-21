@@ -33,12 +33,7 @@ import {
 } from './utils.ts';
 
 function isStateLike(state: any): state is AnyState {
-  return (
-    typeof state === 'object' &&
-    'value' in state &&
-    'context' in state &&
-    'event' in state
-  );
+  return typeof state === 'object' && 'value' in state && 'context' in state;
 }
 
 /**
@@ -235,7 +230,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
         try {
           this.testStateSync(params, step.state, options);
-        } catch (err) {
+        } catch (err: any) {
           testStepResult.state.error = err;
 
           throw err;
@@ -243,7 +238,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
         try {
           this.testTransitionSync(params, step);
-        } catch (err) {
+        } catch (err: any) {
           testStepResult.event.error = err;
 
           throw err;
@@ -252,11 +247,11 @@ export class TestModel<TState, TEvent extends EventObject> {
 
       try {
         this.testStateSync(params, path.state, options);
-      } catch (err) {
+      } catch (err: any) {
         testPathResult.state.error = err.message;
         throw err;
       }
-    } catch (err) {
+    } catch (err: any) {
       // TODO: make option
       err.message += formatPathTestResult(path, testPathResult, this.options);
       throw err;
@@ -289,7 +284,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
         try {
           await this.testState(params, step.state, options);
-        } catch (err) {
+        } catch (err: any) {
           testStepResult.state.error = err;
 
           throw err;
@@ -297,7 +292,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
         try {
           await this.testTransition(params, step);
-        } catch (err) {
+        } catch (err: any) {
           testStepResult.event.error = err;
 
           throw err;
@@ -306,11 +301,11 @@ export class TestModel<TState, TEvent extends EventObject> {
 
       try {
         await this.testState(params, path.state, options);
-      } catch (err) {
+      } catch (err: any) {
         testPathResult.state.error = err.message;
         throw err;
       }
-    } catch (err) {
+    } catch (err: any) {
       // TODO: make option
       err.message += formatPathTestResult(path, testPathResult, this.options);
       throw err;

@@ -369,9 +369,9 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
         } else {
           reject(
             new Error(
-              `Reached "fail" state with event ${JSON.stringify(
-                nextState.event
-              )} from state ${JSON.stringify(prevState?.value)}`
+              `Reached "fail" state from state ${JSON.stringify(
+                prevState?.value
+              )}`
             )
           );
         }
@@ -405,9 +405,7 @@ async function runTestToCompletion(
     complete: () => {
       if (nextState.value === 'fail') {
         throw new Error(
-          `Reached "fail" state with event ${JSON.stringify(
-            nextState.event
-          )} from state ${JSON.stringify(prevState?.value)}`
+          `Reached "fail" state from state ${JSON.stringify(prevState?.value)}`
         );
       }
       done = true;

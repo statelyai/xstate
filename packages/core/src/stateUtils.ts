@@ -78,7 +78,7 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
     : undefined;
 }
 
-const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
+export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
 function getChildren<TContext extends MachineContext, TE extends EventObject>(
@@ -567,7 +567,7 @@ export function resolveTarget(
           resolvedTarget
         );
         return targetStateNode;
-      } catch (err) {
+      } catch (err: any) {
         throw new Error(
           `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
         );
@@ -1028,59 +1028,27 @@ export function microstep<
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext,
-  event: TEvent
+  event: TEvent,
+  isInitial: boolean
 ): State<TContext, TEvent, any> {
-  const { machine } = currentState;
-  // Transition will "apply" if:
-  // - the state node is the initial state (there is no current state)
-  // - OR there are transitions
-  const willTransition = currentState._initial || transitions.length > 0;
-
   const mutConfiguration = new Set(currentState.configuration);
 
-  if (!currentState._initial && !willTransition) {
-    const inertState = cloneState(currentState, {
-      event,
-      transitions: []
-    });
-
-    inertState.changed = false;
-    return inertState;
+  if (!transitions.length) {
+    return currentState;
   }
 
-  const [microstate, actions] = microstepProcedure(
-    currentState._initial
-      ? [
-          {
-            target: [...currentState.configuration].filter(isAtomicStateNode),
-            source: machine.root,
-            reenter: true,
-            actions: [],
-            eventType: null as any,
-            toJSON: null as any // TODO: fix
-          }
-        ]
-      : transitions,
+  const microstate = microstepProcedure(
+    transitions,
     currentState,
     mutConfiguration,
     event,
-    actorCtx
+    actorCtx,
+    isInitial
   );
 
-  const { context } = microstate;
-
-  const nextState = cloneState(microstate, {
-    value: {}, // TODO: make optional
-    transitions
+  return cloneState(microstate, {
+    value: {} // TODO: make optional
   });
-
-  nextState.changed = currentState._initial
-    ? undefined
-    : !stateValuesEqual(nextState.value, currentState.value) ||
-      actions.length > 0 ||
-      context !== currentState.context;
-
-  return nextState;
 }
 
 function microstepProcedure(
@@ -1088,8 +1056,9 @@ function microstepProcedure(
   currentState: AnyState,
   mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
-  actorCtx: AnyActorContext
-): [typeof currentState, BaseActionObject[]] {
+  actorCtx: AnyActorContext,
+  isInitial: boolean
+): typeof currentState {
   const actions: BaseActionObject[] = [];
   const historyValue = {
     ...currentState.historyValue
@@ -1104,7 +1073,7 @@ function microstepProcedure(
   const internalQueue = [...currentState._internalQueue];
 
   // Exit states
-  if (!currentState._initial) {
+  if (!isInitial) {
     exitStates(filteredTransitions, mutConfiguration, historyValue, actions);
   }
 
@@ -1113,12 +1082,14 @@ function microstepProcedure(
 
   // Enter states
   enterStates(
+    event,
     filteredTransitions,
     mutConfiguration,
     actions,
     internalQueue,
     currentState,
-    historyValue
+    historyValue,
+    isInitial
   );
 
   const nextConfiguration = [...mutConfiguration];
@@ -1133,7 +1104,7 @@ function microstepProcedure(
   }
 
   try {
-    const [nextState, resolvedActions] = resolveActionsAndContext(
+    const nextState = resolveActionsAndContext(
       actions,
       event,
       currentState,
@@ -1146,19 +1117,15 @@ function microstepProcedure(
 
     internalQueue.push(...nextState._internalQueue);
 
-    return [
-      cloneState(currentState, {
-        configuration: nextConfiguration,
-        historyValue,
-        _internalQueue: internalQueue,
-        context: nextState.context,
-        event,
-        done,
-        output,
-        children: nextState.children
-      }),
-      resolvedActions
-    ];
+    return cloneState(currentState, {
+      configuration: nextConfiguration,
+      historyValue,
+      _internalQueue: internalQueue,
+      context: nextState.context,
+      done,
+      output,
+      children: nextState.children
+    });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
     // See https://github.com/statelyai/rfcs/pull/4
@@ -1167,12 +1134,14 @@ function microstepProcedure(
 }
 
 function enterStates(
+  event: AnyEventObject,
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
   actions: BaseActionObject[],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
-  historyValue: HistoryValue<any, any>
+  historyValue: HistoryValue<any, any>,
+  isInitial: boolean
 ): void {
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
@@ -1185,7 +1154,7 @@ function enterStates(
   );
 
   // In the initial state, the root state node is "entered".
-  if (currentState._initial) {
+  if (isInitial) {
     statesForDefaultEntry.add(currentState.machine.root);
   }
 
@@ -1218,11 +1187,7 @@ function enterStates(
         done(
           parent!.id,
           stateNodeToEnter.output
-            ? mapContext(
-                stateNodeToEnter.output,
-                currentState.context,
-                currentState.event
-              )
+            ? mapContext(stateNodeToEnter.output, currentState.context, event)
             : undefined
         )
       );
@@ -1441,14 +1406,12 @@ export function resolveActionsAndContext<
   event: TEvent,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext | undefined
-): [AnyState, BaseActionObject[]] {
+): AnyState {
   const { machine } = currentState;
-  const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
   let intermediateState = currentState;
 
   function handleAction(action: BaseActionObject): void {
-    resolvedActions.push(action);
     if (actorCtx?.self.status === ActorStatus.Running) {
       action.execute?.(actorCtx!);
     } else {
@@ -1501,12 +1464,9 @@ export function resolveActionsAndContext<
     resolveAction(actionObject);
   }
 
-  return [
-    cloneState(intermediateState, {
-      _internalQueue: raiseActions.map((a) => a.params.event)
-    }),
-    resolvedActions
-  ];
+  return cloneState(intermediateState, {
+    _internalQueue: raiseActions.map((a) => a.params.event)
+  });
 }
 
 export function macrostep(
@@ -1526,7 +1486,7 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === stopSignalType) {
-    nextState = stopStep(event, nextState, actorCtx)[0];
+    nextState = stopStep(event, nextState, actorCtx);
     states.push(nextState);
 
     return {
@@ -1535,45 +1495,43 @@ export function macrostep(
     };
   }
 
+  let nextEvent = event;
+
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (event.type !== actionTypes.init) {
-    const transitions = selectTransitions(event, nextState);
-    nextState = microstep(transitions, state, actorCtx, event);
+  if (nextEvent.type !== actionTypes.init) {
+    const transitions = selectTransitions(nextEvent, nextState);
+    nextState = microstep(transitions, state, actorCtx, nextEvent, false);
     states.push(nextState);
   }
 
   while (!nextState.done) {
-    let enabledTransitions = selectEventlessTransitions(nextState);
+    let enabledTransitions = selectEventlessTransitions(nextState, nextEvent);
 
-    if (enabledTransitions.length === 0) {
-      // TODO: this is a bit of a hack, we need to review this
-      // this matches the behavior from v4 for eventless transitions
-      // where for `hasAlwaysTransitions` we were always trying to resolve with a NULL event
-      // and if a transition was not selected the `state.transitions` stayed empty
-      // without this we get into an infinite loop in the dieHard test in `@xstate/test` for the `simplePathsTo`
-      if (nextState.configuration.some((state) => state.always)) {
-        nextState.transitions = [];
-      }
-
+    if (!enabledTransitions.length) {
       if (!nextState._internalQueue.length) {
         break;
       } else {
-        const nextEvent = nextState._internalQueue[0];
+        nextEvent = nextState._internalQueue[0];
         const transitions = selectTransitions(nextEvent, nextState);
-        nextState = microstep(transitions, nextState, actorCtx, nextEvent);
+        nextState = microstep(
+          transitions,
+          nextState,
+          actorCtx,
+          nextEvent,
+          false
+        );
         nextState._internalQueue.shift();
 
         states.push(nextState);
       }
-    }
-
-    if (enabledTransitions.length) {
+    } else {
       nextState = microstep(
         enabledTransitions,
         nextState,
         actorCtx,
-        nextState.event
+        nextEvent,
+        false
       );
 
       states.push(nextState);
@@ -1582,7 +1540,7 @@ export function macrostep(
 
   if (nextState.done) {
     // Perform the stop step to ensure that child actors are stopped
-    stopStep(nextState.event, nextState, actorCtx);
+    stopStep(nextEvent, nextState, actorCtx);
   }
 
   return {
@@ -1619,7 +1577,8 @@ function selectTransitions(
 }
 
 function selectEventlessTransitions(
-  nextState: AnyState
+  nextState: AnyState,
+  event: AnyEventObject
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = nextState.configuration.filter(isAtomicStateNode);
@@ -1634,12 +1593,7 @@ function selectEventlessTransitions(
       for (const transition of s.always) {
         if (
           transition.guard === undefined ||
-          evaluateGuard(
-            transition.guard,
-            nextState.context,
-            nextState.event,
-            nextState
-          )
+          evaluateGuard(transition.guard, nextState.context, event, nextState)
         ) {
           enabledTransitionSet.add(transition);
           break loop;

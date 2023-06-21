@@ -1,5 +1,4 @@
 import isDevelopment from '#is-development';
-import { createInitEvent } from './actions.ts';
 import { memo } from './memo.ts';
 import type { StateNode } from './StateNode.ts';
 import {
@@ -18,8 +17,7 @@ import type {
   PersistedMachineState,
   Prop,
   StateConfig,
-  StateValue,
-  TransitionDefinition
+  StateValue
 } from './types.ts';
 import { flatten, isString, matchesState } from './utils.ts';
 
@@ -31,7 +29,7 @@ export function isStateConfig<
     return false;
   }
 
-  return 'value' in state && 'event' in state;
+  return 'value' in state;
 }
 
 /**
@@ -56,26 +54,11 @@ export class State<
   public output: any; // TODO: add an explicit type for `output`
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
-  public event: TEvent;
   public _internalQueue: Array<TEvent>;
-  public _initial: boolean = false;
-  /**
-   * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
-   *
-   * - Its value is not equal to its previous value, or:
-   * - It has any new actions (side-effects) to execute.
-   *
-   * An initial state (with no history) will return `undefined`.
-   */
-  public changed: boolean | undefined;
   /**
    * The enabled state nodes representative of the state value.
    */
   public configuration: Array<StateNode<TContext, TEvent>>;
-  /**
-   * The transition definitions that resulted in this state.
-   */
-  public transitions: Array<TransitionDefinition<TContext, TEvent>>;
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
@@ -99,10 +82,8 @@ export class State<
           {
             value: stateValue.value,
             context,
-            event: stateValue.event,
             meta: {},
             configuration: [], // TODO: fix,
-            transitions: [],
             children: {}
           },
           machine
@@ -112,8 +93,6 @@ export class State<
       return stateValue;
     }
 
-    const event = createInitEvent({}) as unknown as TEvent; // TODO: fix
-
     const configuration = getConfiguration(
       getStateNodes(machine.root, stateValue)
     );
@@ -122,10 +101,8 @@ export class State<
       {
         value: stateValue,
         context,
-        event,
         meta: undefined,
         configuration: Array.from(configuration),
-        transitions: [],
         children: {}
       },
       machine
@@ -143,14 +120,12 @@ export class State<
   ) {
     this.context = config.context;
     this._internalQueue = config._internalQueue ?? [];
-    this.event = config.event;
     this.historyValue = config.historyValue || {};
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration =
       config.configuration ??
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
-    this.transitions = config.transitions as any;
     this.children = config.children;
 
     this.value = getStateValue(machine.root, this.configuration);
@@ -183,7 +158,7 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, tags, machine, ...jsonValues } = this;
+    const { configuration, tags, machine, ...jsonValues } = this;
 
     return { ...jsonValues, tags: Array.from(tags), meta: this.meta };
   }
@@ -270,8 +245,7 @@ export function cloneState<TState extends AnyState>(
 export function getPersistedState<TState extends AnyState>(
   state: TState
 ): PersistedMachineState<TState> {
-  const { configuration, transitions, tags, machine, children, ...jsonValues } =
-    state;
+  const { configuration, tags, machine, children, ...jsonValues } = state;
 
   const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
 

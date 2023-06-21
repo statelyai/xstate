@@ -1,21 +1,22 @@
 {
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
     "target": "esnext",
     "isolatedModules": true,
     "moduleResolution": "node16",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "strictNullChecks": true,
-    "downlevelIteration": true,
-    "experimentalDecorators": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
-    "strictPropertyInitialization": true
+    "alwaysStrict": true,
+    "noImplicitAny": false,
+    "noImplicitThis": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": false,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true
   },
   "exclude": ["examples", "templates"]
 }
