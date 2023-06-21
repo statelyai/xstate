@@ -291,7 +291,7 @@ describe('error path trace', () => {
             }
           }
         });
-      } catch (err) {
+      } catch (err: any) {
         expect(err.message).toEqual(expect.stringContaining('test error'));
         expect(err.message).toMatchInlineSnapshot(`
           "test error
