@@ -5,12 +5,18 @@
     "moduleResolution": "node16",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "strictNullChecks": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
-    "strictPropertyInitialization": true
+    "alwaysStrict": true,
+    "noImplicitAny": false,
+    "noImplicitThis": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": false,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true
   },
   "exclude": ["examples", "templates"]
 }
