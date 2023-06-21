@@ -1571,7 +1571,6 @@ export interface StateConfig<
   historyValue?: HistoryValue<TContext, TEvent>;
   meta?: any;
   configuration?: Array<StateNode<TContext, TEvent>>;
-  transitions?: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   output?: any;

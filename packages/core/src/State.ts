@@ -63,16 +63,6 @@ export class State<
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public _internalQueue: Array<TEvent>;
-  public _initial: boolean = false;
-  /**
-   * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
-   *
-   * - Its value is not equal to its previous value, or:
-   * - It has any new actions (side-effects) to execute.
-   *
-   * An initial state (with no history) will return `undefined`.
-   */
-  public changed: boolean | undefined;
   /**
    * The enabled state nodes representative of the state value.
    */
@@ -109,7 +99,6 @@ export class State<
             context,
             meta: {},
             configuration: [], // TODO: fix,
-            transitions: [],
             children: {}
           },
           machine
