@@ -1,5 +1,5 @@
 import { inspect } from '@xstate/inspect/server';
-import WebSocket from 'ws';
+import WebSocket = require('ws');
 import { createMachine, interpret, sendTo } from 'xstate';
 import { fromCallback } from 'xstate/actors';
 

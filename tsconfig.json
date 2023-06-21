@@ -1,16 +1,11 @@
 {
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
     "target": "esnext",
     "isolatedModules": true,
     "moduleResolution": "node16",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "strictNullChecks": true,
-    "downlevelIteration": true,
-    "experimentalDecorators": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
