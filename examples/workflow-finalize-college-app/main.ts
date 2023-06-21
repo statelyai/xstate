@@ -1,4 +1,3 @@
-#!/usr/bin/env vite-node --script
 import { assign, createMachine, fromPromise, interpret } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#finalize-college-application-example

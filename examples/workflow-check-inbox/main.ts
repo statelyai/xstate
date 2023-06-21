@@ -1,4 +1,3 @@
-#!/usr/bin/env vite-node --script
 import {
   assign,
   createMachine,
