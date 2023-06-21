@@ -45,7 +45,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^2.0.1",
+    "@xstate/fsm": "^2.1.0",
     "svelte": "^3.24.1",
     "xstate": "^4.37.2"
   },
