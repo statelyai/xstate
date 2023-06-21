@@ -26,7 +26,7 @@ const createIframeMock = () => {
   const iframe = new EventTarget() as HTMLIFrameElement;
 
   (iframe as any).contentWindow = {
-    postMessage(ev) {
+    postMessage(ev: any) {
       messages.push(ev);
     }
   };

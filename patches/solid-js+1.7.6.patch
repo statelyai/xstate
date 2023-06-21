@@ -1,0 +1,49 @@
+diff --git a/node_modules/solid-js/package.json b/node_modules/solid-js/package.json
+index f0a0483..4cc5e9f 100644
+--- a/node_modules/solid-js/package.json
++++ b/node_modules/solid-js/package.json
+@@ -45,6 +45,7 @@
+   ],
+   "exports": {
+     ".": {
++      "types": "./types/index.d.ts",
+       "worker": {
+         "import": {
+           "types": "./types/index.d.ts",
+@@ -103,6 +104,7 @@
+       "default": "./dist/solid.js"
+     },
+     "./store": {
++      "types": "./store/types/index.d.ts",
+       "worker": {
+         "import": {
+           "types": "./store/types/index.d.ts",
+@@ -153,6 +155,7 @@
+     },
+     "./store/dist/*": "./store/dist/*",
+     "./web": {
++      "types": "./web/types/index.d.ts",
+       "worker": {
+         "import": {
+           "types": "./web/types/index.d.ts",
+diff --git a/node_modules/solid-js/store/types/package.json b/node_modules/solid-js/store/types/package.json
+new file mode 100644
+index 0000000..a3c15a7
+--- /dev/null
++++ b/node_modules/solid-js/store/types/package.json
+@@ -0,0 +1 @@
++{ "type": "commonjs" }
+diff --git a/node_modules/solid-js/types/package.json b/node_modules/solid-js/types/package.json
+new file mode 100644
+index 0000000..a3c15a7
+--- /dev/null
++++ b/node_modules/solid-js/types/package.json
+@@ -0,0 +1 @@
++{ "type": "commonjs" }
+diff --git a/node_modules/solid-js/web/types/package.json b/node_modules/solid-js/web/types/package.json
+new file mode 100644
+index 0000000..a3c15a7
+--- /dev/null
++++ b/node_modules/solid-js/web/types/package.json
+@@ -0,0 +1 @@
++{ "type": "commonjs" }

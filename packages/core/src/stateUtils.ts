@@ -164,7 +164,7 @@ function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
     }
   }
 
-  const stateValue = {};
+  const stateValue: StateValue = {};
   for (const childStateNode of childStateNodes) {
     stateValue[childStateNode.key] = getValueFromAdj(childStateNode, adjList);
   }

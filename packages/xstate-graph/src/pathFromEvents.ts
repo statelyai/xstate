@@ -1,6 +1,12 @@
 import { ActorLogic, ActorSystem, AnyStateMachine, EventObject } from 'xstate';
 import { getAdjacencyMap } from './adjacency';
-import { SerializedState, StatePath, Steps, TraversalOptions } from './types';
+import {
+  SerializedEvent,
+  SerializedState,
+  StatePath,
+  Steps,
+  TraversalOptions
+} from './types';
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
@@ -57,7 +63,7 @@ export function getPathsFromEvents<
       event
     });
 
-    const eventSerial = serializeEvent(event);
+    const eventSerial = serializeEvent(event) as SerializedEvent;
     const { state: nextState, event: _nextEvent } =
       adjacency[stateSerial].transitions[eventSerial];
 
