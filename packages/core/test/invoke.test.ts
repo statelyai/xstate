@@ -2383,8 +2383,8 @@ describe('invoke', () => {
       actor.start();
     });
 
-    // This doesn't fail when isolated!!
-    it.only('onSnapshot should work', () => {
+    // TODO: this doesn't fail when isolated (it.only)!
+    it('onSnapshot should work', () => {
       expect.assertions(1);
       const seenValues: StateValue[] = [];
 
