@@ -144,7 +144,7 @@ export function createMachine<
       matches: createMatcher(fsmConfig.initial)
     },
     transition: (
-      state: StateMachine.State<TContext, TEvent, TState>,
+      state: string | StateMachine.State<TContext, TEvent, TState>,
       event: TEvent
     ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
@@ -160,8 +160,9 @@ export function createMachine<
       }
 
       if (stateConfig.on) {
-        const transitions: Array<StateMachine.Transition<TContext, TEvent>> =
-          toArray(stateConfig.on[event.type as keyof typeof stateConfig.on]);
+        const transitions = toArray(
+          stateConfig.on[event.type as keyof typeof stateConfig.on]
+        ) as Array<StateMachine.Transition<TContext, TEvent>>;
 
         for (const transition of transitions) {
           if (transition === undefined) {

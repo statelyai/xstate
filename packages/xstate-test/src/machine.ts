@@ -115,7 +115,9 @@ export function createTestModel<TMachine extends AnyStateMachine>(
 ): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
   validateMachine(machine);
 
-  const serializeEvent = options?.serializeEvent ?? simpleStringify;
+  const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
+    event: AnyEventObject
+  ) => string;
   const serializeTransition =
     options?.serializeTransition ?? serializeMachineTransition;
   const { events: getEvents, ...otherOptions } = options ?? {};
