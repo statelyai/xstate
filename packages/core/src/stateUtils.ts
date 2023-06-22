@@ -1393,7 +1393,7 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    actions.push(...s.exit.flat(), ...s.invoke.map((def) => stop(def.id)));
+    actions.push(...s.exit, ...s.invoke.map((def) => stop(def.id)));
     mutConfiguration.delete(s);
   }
 }
