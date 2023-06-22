@@ -7,7 +7,8 @@ import {
   AnyInterpreter,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
-  InvokeActionObject
+  InvokeActionObject,
+  TODO
 } from '../index.ts';
 import { actionTypes, error } from '../actions.ts';
 import { resolveReferencedActor } from '../utils.ts';
@@ -105,7 +106,7 @@ export function invoke<
             parent.send({
               type: 'xstate.snapshot.' + id,
               data: snapshot
-            });
+            } as TODO);
           });
         }
 
