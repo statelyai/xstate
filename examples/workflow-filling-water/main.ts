@@ -1,4 +1,3 @@
-#!/usr/bin/env vite-node --script
 import { assign, createMachine, interpret } from 'xstate';
 
 async function delay(ms: number, errorProbability: number = 0): Promise<void> {

@@ -354,7 +354,7 @@ export class StateNode<
         guardPassed =
           !guard ||
           evaluateGuard<TContext, TEvent>(guard, resolvedContext, event, state);
-      } catch (err) {
+      } catch (err: any) {
         throw new Error(
           `Unable to evaluate guard '${
             guard!.type
