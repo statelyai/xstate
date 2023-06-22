@@ -1,0 +1,470 @@
+[
+  {
+    "value": { "Up": "Clone collection" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      {
+        "type": "xstate.invoke",
+        "params": {
+          "src": "cloneCollection",
+          "id": "cloneCollection",
+          "type": "xstate.invoke"
+        }
+      }
+    ],
+    "event": { "type": "UP" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": true,
+    "children": {
+      "cloneCollection": {
+        "state": {
+          "value": "running",
+          "done": false,
+          "context": {},
+          "historyValue": {},
+          "actions": [
+            {
+              "type": "xstate.invoke",
+              "params": {
+                "src": "upDownService",
+                "id": "upDownService",
+                "type": "xstate.invoke"
+              }
+            },
+            { "type": "init", "params": {} }
+          ],
+          "event": { "type": "xstate.init" },
+          "_internalQueue": [],
+          "_initial": false,
+          "children": {
+            "upDownService": {
+              "state": { "status": "active" },
+              "src": "upDownService"
+            }
+          }
+        },
+        "src": "cloneCollection"
+      }
+    }
+  },
+  {
+    "value": { "Up": "Recreate indexes" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      {
+        "type": "xstate.stop",
+        "params": { "actor": { "id": "cloneCollection" } }
+      },
+      {
+        "type": "xstate.invoke",
+        "params": {
+          "src": "recreateIndexes",
+          "id": "recreateIndexes",
+          "type": "xstate.invoke"
+        }
+      }
+    ],
+    "event": { "type": "done.invoke.cloneCollection" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": true,
+    "children": {
+      "recreateIndexes": {
+        "state": {
+          "value": "running",
+          "done": false,
+          "context": {},
+          "historyValue": {},
+          "actions": [
+            {
+              "type": "xstate.invoke",
+              "params": {
+                "src": "upDownService",
+                "id": "upDownService",
+                "type": "xstate.invoke"
+              }
+            },
+            { "type": "init", "params": {} }
+          ],
+          "event": { "type": "xstate.init" },
+          "_internalQueue": [],
+          "_initial": false,
+          "children": {
+            "upDownService": {
+              "state": { "status": "active" },
+              "src": "upDownService"
+            }
+          }
+        },
+        "src": "recreateIndexes"
+      }
+    }
+  },
+  {
+    "value": { "Up": "Create new List" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      {
+        "type": "xstate.stop",
+        "params": { "actor": { "id": "recreateIndexes" } }
+      },
+      {
+        "type": "xstate.invoke",
+        "params": {
+          "src": "createNewList",
+          "id": "createNewList",
+          "type": "xstate.invoke"
+        }
+      }
+    ],
+    "event": { "type": "done.invoke.recreateIndexes" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": true,
+    "children": {
+      "createNewList": {
+        "state": {
+          "value": "running",
+          "done": false,
+          "context": {},
+          "historyValue": {},
+          "actions": [
+            {
+              "type": "xstate.invoke",
+              "params": {
+                "src": "upDownService",
+                "id": "upDownService",
+                "type": "xstate.invoke"
+              }
+            },
+            { "type": "init", "params": {} }
+          ],
+          "event": { "type": "xstate.init" },
+          "_internalQueue": [],
+          "_initial": false,
+          "children": {
+            "upDownService": {
+              "state": { "status": "active" },
+              "src": "upDownService"
+            }
+          }
+        },
+        "src": "createNewList"
+      }
+    }
+  },
+  {
+    "value": { "Up": "Update sample data" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      {
+        "type": "xstate.stop",
+        "params": { "actor": { "id": "createNewList" } }
+      },
+      {
+        "type": "xstate.invoke",
+        "params": {
+          "src": "updateSampleDate",
+          "id": "updateSampleDate",
+          "type": "xstate.invoke"
+        }
+      }
+    ],
+    "event": { "type": "done.invoke.createNewList" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": true,
+    "children": {
+      "updateSampleDate": {
+        "state": {
+          "value": "running",
+          "done": false,
+          "context": {},
+          "historyValue": {},
+          "actions": [
+            {
+              "type": "xstate.invoke",
+              "params": {
+                "src": "upDownService",
+                "id": "upDownService",
+                "type": "xstate.invoke"
+              }
+            },
+            { "type": "init", "params": {} }
+          ],
+          "event": { "type": "xstate.init" },
+          "_internalQueue": [],
+          "_initial": false,
+          "children": {
+            "upDownService": {
+              "state": { "status": "active" },
+              "src": "upDownService"
+            }
+          }
+        },
+        "src": "updateSampleDate"
+      }
+    }
+  },
+  {
+    "value": { "Up": "copy views" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      {
+        "type": "xstate.stop",
+        "params": { "actor": { "id": "updateSampleDate" } }
+      },
+      {
+        "type": "xstate.invoke",
+        "params": {
+          "src": "copyViews",
+          "id": "copyViews",
+          "type": "xstate.invoke"
+        }
+      }
+    ],
+    "event": { "type": "done.invoke.updateSampleDate" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": true,
+    "children": {
+      "copyViews": {
+        "state": {
+          "value": "running",
+          "done": false,
+          "context": {},
+          "historyValue": {},
+          "actions": [
+            {
+              "type": "xstate.invoke",
+              "params": {
+                "src": "upDownService",
+                "id": "upDownService",
+                "type": "xstate.invoke"
+              }
+            },
+            { "type": "init", "params": {} }
+          ],
+          "event": { "type": "xstate.init" },
+          "_internalQueue": [],
+          "_initial": false,
+          "children": {
+            "upDownService": {
+              "state": { "status": "active" },
+              "src": "upDownService"
+            }
+          }
+        },
+        "src": "copyViews"
+      }
+    }
+  },
+  {
+    "value": { "Up": "Done" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      { "type": "xstate.stop", "params": { "actor": { "id": "copyViews" } } }
+    ],
+    "event": { "type": "done.state.UpDownMaschine.Up" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": false,
+    "children": {}
+  },
+  {
+    "value": { "Down": "Delete collection" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      {
+        "type": "xstate.invoke",
+        "params": {
+          "src": "deleteCollection",
+          "id": "deleteCollection",
+          "type": "xstate.invoke"
+        }
+      }
+    ],
+    "event": { "type": "DOWN" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": true,
+    "children": {
+      "deleteCollection": {
+        "state": {
+          "value": "running",
+          "done": false,
+          "context": {},
+          "historyValue": {},
+          "actions": [
+            {
+              "type": "xstate.invoke",
+              "params": {
+                "src": "upDownService",
+                "id": "upDownService",
+                "type": "xstate.invoke"
+              }
+            },
+            { "type": "init", "params": {} }
+          ],
+          "event": { "type": "xstate.init" },
+          "_internalQueue": [],
+          "_initial": false,
+          "children": {
+            "upDownService": {
+              "state": { "status": "active" },
+              "src": "upDownService"
+            }
+          }
+        },
+        "src": "deleteCollection"
+      }
+    }
+  },
+  {
+    "value": { "Down": "Delete List" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      {
+        "type": "xstate.stop",
+        "params": { "actor": { "id": "deleteCollection" } }
+      },
+      {
+        "type": "xstate.invoke",
+        "params": {
+          "src": "deleteList",
+          "id": "deleteList",
+          "type": "xstate.invoke"
+        }
+      }
+    ],
+    "event": { "type": "done.invoke.deleteCollection" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": true,
+    "children": {
+      "deleteList": {
+        "state": {
+          "value": "running",
+          "done": false,
+          "context": {},
+          "historyValue": {},
+          "actions": [
+            {
+              "type": "xstate.invoke",
+              "params": {
+                "src": "upDownService",
+                "id": "upDownService",
+                "type": "xstate.invoke"
+              }
+            },
+            { "type": "init", "params": {} }
+          ],
+          "event": { "type": "xstate.init" },
+          "_internalQueue": [],
+          "_initial": false,
+          "children": {
+            "upDownService": {
+              "state": { "status": "active" },
+              "src": "upDownService"
+            }
+          }
+        },
+        "src": "deleteList"
+      }
+    }
+  },
+  {
+    "value": { "Down": "Delete Views" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      { "type": "xstate.stop", "params": { "actor": { "id": "deleteList" } } },
+      {
+        "type": "xstate.invoke",
+        "params": {
+          "src": "deleteViews",
+          "id": "deleteViews",
+          "type": "xstate.invoke"
+        }
+      }
+    ],
+    "event": { "type": "done.invoke.deleteList" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": true,
+    "children": {
+      "deleteViews": {
+        "state": {
+          "value": "running",
+          "done": false,
+          "context": {},
+          "historyValue": {},
+          "actions": [
+            {
+              "type": "xstate.invoke",
+              "params": {
+                "src": "upDownService",
+                "id": "upDownService",
+                "type": "xstate.invoke"
+              }
+            },
+            { "type": "init", "params": {} }
+          ],
+          "event": { "type": "xstate.init" },
+          "_internalQueue": [],
+          "_initial": false,
+          "children": {
+            "upDownService": {
+              "state": { "status": "active" },
+              "src": "upDownService"
+            }
+          }
+        },
+        "src": "deleteViews"
+      }
+    }
+  },
+  {
+    "value": { "Down": "Done" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [
+      { "type": "xstate.stop", "params": { "actor": { "id": "deleteViews" } } }
+    ],
+    "event": { "type": "done.state.UpDownMaschine.Down" },
+    "_internalQueue": [],
+    "_initial": false,
+    "changed": false,
+    "children": {}
+  },
+  {
+    "value": { "Down": "Done" },
+    "done": false,
+    "context": {},
+    "historyValue": {},
+    "actions": [],
+    "event": { "type": "done.state.UpDownMaschine.Down" },
+    "_internalQueue": [],
+    "_initial": false,
+    "children": {}
+  }
+]
