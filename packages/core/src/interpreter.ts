@@ -304,9 +304,12 @@ export class Interpreter<
       }
     } catch (err) {
       // TODO: properly handle errors
-      if (this.observers.size > 0) {
-        this.observers.forEach((observer) => {
-          observer.error?.(err);
+      const errorCallbacks = Array.from(this.observers)
+        .map((observer) => observer.error)
+        .filter(Boolean) as ((err: any) => void)[];
+      if (errorCallbacks.length > 0) {
+        errorCallbacks.forEach((errorCallback) => {
+          errorCallback(err);
         });
         this.stop();
       } else {

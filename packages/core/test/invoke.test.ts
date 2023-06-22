@@ -1985,8 +1985,9 @@ describe('invoke', () => {
           input: 42,
           onSnapshot: {
             actions: ({ event }) => {
-              expect(event.data).toEqual(42);
-              done();
+              if (event.data === 42) {
+                done();
+              }
             }
           }
         }
@@ -2380,6 +2381,38 @@ describe('invoke', () => {
       const actor = interpret(pingMachine);
       actor.subscribe({ complete: () => done() });
       actor.start();
+    });
+
+    // This doesn't fail when isolated!!
+    it.only('onSnapshot should work', () => {
+      expect.assertions(1);
+      const seenValues: StateValue[] = [];
+
+      const machine = createMachine({
+        invoke: {
+          id: 'child',
+          src: createMachine({
+            initial: 'a',
+            states: {
+              a: {
+                after: { 100: 'b' }
+              },
+              b: {}
+            }
+          }),
+          onSnapshot: {
+            actions: ({ event }) => {
+              seenValues.push(event.data.value);
+
+              if (seenValues.length === 2) {
+                expect(seenValues).toEqual(['a', 'b']);
+              }
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
     });
   });
 

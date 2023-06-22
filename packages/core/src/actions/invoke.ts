@@ -31,7 +31,7 @@ export function invoke<
     { type: invokeActionType, params: invokeDef },
     (event, { state, actorContext }) => {
       const type = actionTypes.invoke;
-      const { id, src } = invokeDef;
+      const { id, src, onSnapshot } = invokeDef;
 
       let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
@@ -99,6 +99,16 @@ export function invoke<
           }
           return;
         }
+        if (onSnapshot) {
+          actorRef.subscribe((snapshot) => {
+            console.log('snapshot', snapshot);
+            parent.send({
+              type: 'xstate.snapshot.' + id,
+              data: snapshot
+            });
+          });
+        }
+
         actorCtx.defer(() => {
           if (actorRef.status === ActorStatus.Stopped) {
             return;
