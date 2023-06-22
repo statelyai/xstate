@@ -52,7 +52,7 @@ function toActionObject<TContext extends object, TEvent extends EventObject>(
 }
 
 function createMatcher(value: string) {
-  return (stateValue) => value === stateValue;
+  return (stateValue: string) => value === stateValue;
 }
 
 function createUnchangedState<
@@ -89,7 +89,7 @@ function handleActions<
         tmpContext = action.assignment(nextContext, eventObject);
       } else {
         Object.keys(action.assignment).forEach((key) => {
-          tmpContext[key] =
+          tmpContext[key as keyof TContext] =
             typeof action.assignment[key] === 'function'
               ? action.assignment[key](nextContext, eventObject)
               : action.assignment[key];
@@ -117,7 +117,9 @@ export function createMachine<
 ): StateMachine.Machine<TContext, TEvent, TState> {
   if (isDevelopment) {
     Object.keys(fsmConfig.states).forEach((state) => {
-      if (fsmConfig.states[state].states) {
+      if (
+        'states' in fsmConfig.states[state as keyof typeof fsmConfig.states]
+      ) {
         throw new Error(`Nested finite states not supported.
             Please check the configuration for the "${state}" state.`);
       }
@@ -125,9 +127,9 @@ export function createMachine<
   }
 
   const [initialActions, initialContext] = handleActions(
-    toArray(fsmConfig.states[fsmConfig.initial].entry).map((action) =>
-      toActionObject(action, implementations.actions)
-    ),
+    toArray(
+      fsmConfig.states[fsmConfig.initial as keyof typeof fsmConfig.states].entry
+    ).map((action) => toActionObject(action, implementations.actions)),
     fsmConfig.context!,
     INIT_EVENT as TEvent
   );
@@ -159,7 +161,7 @@ export function createMachine<
 
       if (stateConfig.on) {
         const transitions: Array<StateMachine.Transition<TContext, TEvent>> =
-          toArray(stateConfig.on[event.type]);
+          toArray(stateConfig.on[event.type as keyof typeof stateConfig.on]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
@@ -180,7 +182,8 @@ export function createMachine<
           const isTargetless = target === undefined;
 
           const nextStateValue = target ?? value;
-          const nextStateConfig = fsmConfig.states[nextStateValue];
+          const nextStateConfig =
+            fsmConfig.states[nextStateValue as keyof typeof fsmConfig.states];
 
           if (isDevelopment && !nextStateConfig) {
             throw new Error(

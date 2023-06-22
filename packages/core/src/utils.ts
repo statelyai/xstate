@@ -106,15 +106,16 @@ export function pathToStateValue(statePath: string[]): StateValue {
     return statePath[0];
   }
 
-  const value = {};
+  const value: StateValue = {};
   let marker = value;
 
   for (let i = 0; i < statePath.length - 1; i++) {
     if (i === statePath.length - 2) {
       marker[statePath[i]] = statePath[i + 1];
     } else {
-      marker[statePath[i]] = {};
-      marker = marker[statePath[i]];
+      const previous = marker;
+      marker = {};
+      previous[statePath[i]] = marker;
     }
   }
 

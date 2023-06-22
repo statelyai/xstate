@@ -154,7 +154,7 @@ describe('predictableExec', () => {
             src: fromCallback((_sendBack, _receive, { input }) => {
               eventArg = input.event;
             }),
-            input: ({ event }) => ({ event })
+            input: ({ event }: any) => ({ event })
           }
         }
       }
@@ -681,7 +681,7 @@ describe('predictableExec', () => {
               expect(input.updated).toBe(true);
               return Promise.resolve();
             }),
-            input: ({ context }) => ({
+            input: ({ context }: any) => ({
               updated: context.updated
             })
           }

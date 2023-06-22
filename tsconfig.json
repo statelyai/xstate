@@ -10,7 +10,7 @@
     "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
     "alwaysStrict": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "noImplicitThis": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": false,
