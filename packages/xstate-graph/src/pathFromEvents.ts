@@ -33,9 +33,9 @@ export function getPathsFromEvents<
       events,
       ...options
     },
-    isMachine(logic)
+    (isMachine(logic)
       ? createDefaultMachineOptions(logic)
-      : createDefaultLogicOptions(logic)
+      : createDefaultLogicOptions()) as TraversalOptions<TInternalState, TEvent>
   );
   const actorContext = undefined as any; // TODO: figure out the simulation API
   const fromState =
