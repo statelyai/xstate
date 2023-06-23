@@ -11,6 +11,7 @@ export * from './types.ts';
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
+const WILDCARD = '*';
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
@@ -108,7 +109,7 @@ function handleActions<
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
+  TState extends Typestate<TContext> = Typestate<TContext>
 >(
   fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
   implementations: {
@@ -159,10 +160,20 @@ export function createMachine<
         );
       }
 
+      if (isDevelopment && event.type === WILDCARD) {
+        throw new Error(
+          `An event cannot have the wildcard type ('${WILDCARD}')`
+        );
+      }
+
       if (stateConfig.on) {
         const transitions = toArray(
-          stateConfig.on[event.type as keyof typeof stateConfig.on]
-        ) as Array<StateMachine.Transition<TContext, TEvent>>;
+          stateConfig.on[event.type as keyof typeof stateConfig.on] as any
+        ) as Array<StateMachine.Transition<TContext, TEvent, TState['value']>>;
+
+        if (WILDCARD in stateConfig.on) {
+          transitions.push(...toArray(stateConfig.on[WILDCARD]));
+        }
 
         for (const transition of transitions) {
           if (transition === undefined) {
