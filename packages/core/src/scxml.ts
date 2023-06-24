@@ -7,20 +7,19 @@ import { raise } from './actions/raise.ts';
 import { send } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 import { not, stateIn } from './guards.ts';
+import { createMachine } from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
   BaseActionObject,
-  createMachine
-} from './index.ts';
-import {
+  StateNodeConfig,
   ChooseCondition,
   DelayExpr,
   EventObject,
   SendExpr,
   StateMeta
 } from './types.ts';
-import { flatten, isString, mapValues } from './utils.ts';
+import { mapValues } from './utils.ts';
 
 function appendWildcards(state: AnyStateNode) {
   for (const t of state.transitions) {
@@ -48,13 +47,9 @@ function getAttribute(
 
 function indexedRecord<T extends {}>(
   items: T[],
-  identifier: string | ((item: T) => string)
+  identifierFn: (item: T) => string
 ): Record<string, T> {
   const record: Record<string, T> = {};
-
-  const identifierFn = isString(identifier)
-    ? (item) => item[identifier]
-    : identifier;
 
   items.forEach((item) => {
     const key = identifierFn(item);
@@ -317,21 +312,25 @@ function mapActions(elements: XMLElement[]): BaseActionObject[] {
   return mapped;
 }
 
+type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
+
 function toConfig(
   nodeJson: XMLElement,
   id: string,
   options: ScxmlToMachineOptions
-) {
+): StateNodeConfig<any, any, any, any> {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   const { elements } = nodeJson;
 
   switch (nodeJson.name) {
     case 'history': {
+      const history =
+        (getAttribute(nodeJson, 'type') as HistoryAttributeValue) || 'shallow';
       if (!elements) {
         return {
           id,
-          history: nodeJson.attributes!.type || 'shallow'
+          history
         };
       }
 
@@ -340,7 +339,6 @@ function toConfig(
       );
 
       const target = getAttribute(transitionElement, 'target');
-      const history = getAttribute(nodeJson, 'type') || 'shallow';
 
       return {
         id,
@@ -450,15 +448,13 @@ function toConfig(
     });
 
     const onEntry = onEntryElements
-      ? flatten(
-          onEntryElements.map((onEntryElement) =>
-            mapActions(onEntryElement.elements!)
-          )
+      ? onEntryElements.flatMap((onEntryElement) =>
+          mapActions(onEntryElement.elements!)
         )
       : undefined;
 
     const onExit = onExitElements
-      ? onExitElements.map((onExitElement) =>
+      ? onExitElements.flatMap((onExitElement) =>
           mapActions(onExitElement.elements!)
         )
       : undefined;
@@ -546,7 +542,7 @@ function scxmlToMachine(
           }
 
           return acc;
-        }, {})
+        }, {} as Record<string, unknown>)
     : undefined;
 
   const machine = createMachine({

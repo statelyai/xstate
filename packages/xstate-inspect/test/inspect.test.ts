@@ -4,9 +4,9 @@ import { createDevTools, inspect } from '../src/index.ts';
 // mute the warning about this not being implemented by jsdom
 window.open = () => null;
 
-const windowListenersUsedArguments: Array<any[]> = [];
+const windowListenersUsedArguments: Array<any> = [];
 const windowAddEventListener = window.addEventListener;
-window.addEventListener = function (...args: any[]) {
+window.addEventListener = function (...args: any) {
   windowListenersUsedArguments.push(args);
   return windowAddEventListener.apply(this, args);
 };
@@ -26,7 +26,7 @@ const createIframeMock = () => {
   const iframe = new EventTarget() as HTMLIFrameElement;
 
   (iframe as any).contentWindow = {
-    postMessage(ev) {
+    postMessage(ev: any) {
       messages.push(ev);
     }
   };

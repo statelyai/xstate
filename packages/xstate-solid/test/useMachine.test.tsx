@@ -1453,12 +1453,11 @@ describe('useMachine hook', () => {
       }
     });
     const Display = () => {
-      const [state, , service] = useMachine(machine);
       onCleanup(() => {
         expect(service.status).toBe(InterpreterStatus.Stopped);
         done();
       });
-
+      const [state, , service] = useMachine(machine);
       return <div>{state.toString()}</div>;
     };
     const Counter = () => {

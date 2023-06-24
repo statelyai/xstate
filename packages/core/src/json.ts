@@ -65,7 +65,7 @@ export function machineToJSON(stateNode: StateNode): StateNodeConfig {
       });
     }),
     invoke: stateNode.invoke,
-    states: {}
+    states: {} as Record<string, StateNodeConfig>
   };
 
   Object.values(stateNode.states).forEach((sn) => {

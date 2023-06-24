@@ -9,6 +9,7 @@ import {
   Observer,
   StateFrom,
   TODO,
+  Subscription,
   toObserver
 } from 'xstate';
 import { MaybeLazy } from './types.ts';
@@ -64,7 +65,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 
   const service = interpret(machineWithConfig, interpreterOptions).start();
 
-  let sub;
+  let sub: Subscription | undefined;
   onMounted(() => {
     if (observerOrListener) {
       sub = service.subscribe(toObserver(observerOrListener as any));

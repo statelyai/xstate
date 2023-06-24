@@ -165,7 +165,7 @@ function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
     }
   }
 
-  const stateValue = {};
+  const stateValue: StateValue = {};
   for (const childStateNode of childStateNodes) {
     stateValue[childStateNode.key] = getValueFromAdj(childStateNode, adjList);
   }
@@ -1394,7 +1394,7 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    actions.push(...s.exit.flat(), ...s.invoke.map((def) => stop(def.id)));
+    actions.push(...s.exit, ...s.invoke.map((def) => stop(def.id)));
     mutConfiguration.delete(s);
   }
 }

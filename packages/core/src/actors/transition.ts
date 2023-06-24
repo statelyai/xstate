@@ -22,7 +22,7 @@ export function fromTransition<
   ) => TState,
   initialState: TState | (({ input }: { input: TInput }) => TState) // TODO: type
 ): ActorLogic<TEvent, TState, TState> {
-  const logic: ActorLogic<TEvent, TState, TState, TState, TSystem, TInput> = {
+  const logic: ActorLogic<TEvent, TState, TState> = {
     config: transition,
     transition: (state, event, actorContext) => {
       return transition(state, event as TEvent, actorContext as any);
