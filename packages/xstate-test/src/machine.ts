@@ -9,7 +9,8 @@ import {
   StateFrom,
   TypegenConstraint,
   TypegenDisabled,
-  MachineContext
+  MachineContext,
+  StateValue
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -40,15 +41,40 @@ export function createTestMachine<
   return createMachine(config, options as any);
 }
 
+function stateValuesEqual(
+  a: StateValue | undefined,
+  b: StateValue | undefined
+): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === undefined || b === undefined) {
+    return false;
+  }
+
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a === b;
+  }
+
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every((key) => stateValuesEqual(a[key], b[key]))
+  );
+}
+
 function serializeMachineTransition(
   state: AnyState,
-  _event: AnyEventObject | undefined,
+  event: AnyEventObject | undefined,
   prevState: AnyState | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
-  // Only consider the transition via the serialized event if there actually
-  // was a defined transition for the event
-  if (!state.event || state.transitions.length === 0) {
+  // TODO: the stateValuesEqual check here is very likely not exactly correct
+  // but I'm not sure what the correct check is and what this is trying to do
+  if (!event || (prevState && stateValuesEqual(prevState.value, state.value))) {
     return '';
   }
 
@@ -56,7 +82,7 @@ function serializeMachineTransition(
     ? ` from ${simpleStringify(prevState.value)}`
     : '';
 
-  return ` via ${serializeEvent(state.event)}${prevStateString}`;
+  return ` via ${serializeEvent(event)}${prevStateString}`;
 }
 
 /**
@@ -89,7 +115,9 @@ export function createTestModel<TMachine extends AnyStateMachine>(
 ): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
   validateMachine(machine);
 
-  const serializeEvent = options?.serializeEvent ?? simpleStringify;
+  const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
+    event: AnyEventObject
+  ) => string;
   const serializeTransition =
     options?.serializeTransition ?? serializeMachineTransition;
   const { events: getEvents, ...otherOptions } = options ?? {};

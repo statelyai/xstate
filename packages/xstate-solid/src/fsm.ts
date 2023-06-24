@@ -64,7 +64,9 @@ export function useService<TService extends StateMachine.AnyService>(
     // we'd have to track the "original" state to check if the current one is different from it
     // (for that purpose we can't use the derived one created by `createImmutable` as that's a copy of the original)
     setNewState(currentService.state as StateFrom<TService>);
-    const { unsubscribe } = currentService.subscribe(setNewState);
+    const { unsubscribe } = currentService.subscribe(
+      setNewState as (state: StateMachine.AnyState) => void
+    );
     onCleanup(unsubscribe);
     return false;
   });

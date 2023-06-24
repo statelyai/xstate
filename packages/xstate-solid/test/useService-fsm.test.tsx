@@ -253,7 +253,7 @@ describe('useService hook for fsm', () => {
   });
 
   it('service state should handle array context changes', () => {
-    const arrayMachine = (value) =>
+    const arrayMachine = (value: string[]) =>
       createMachine({
         context: { value },
         initial: 'idle',

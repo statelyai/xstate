@@ -102,9 +102,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   return traversalOptions;
 }
 
-export function createDefaultLogicOptions<TLogic extends AnyActorLogic>(
-  __logic: TLogic
-): TraversalOptions<any, any> {
+export function createDefaultLogicOptions(): TraversalOptions<any, any> {
   return {
     serializeState: (state) => JSON.stringify(state),
     serializeEvent

@@ -32,17 +32,17 @@ describe('Example 6.16', () => {
   });
 
   const expected: Record<string, Record<string, StateValue | undefined>> = {
-    '{"A":"D", "B":"F"}': {
+    '{"A":"D","B":"F"}': {
       1: { A: 'C', B: 'E' },
       2: undefined,
       '1, 5, 3': { A: 'C', B: 'F' }
     },
-    '{"A":"C", "B":"E"}': {
+    '{"A":"C","B":"E"}': {
       1: undefined,
       2: { A: 'D', B: 'E' },
       5: { A: 'C', B: 'G' }
     },
-    '{"A":"C", "B":"G"}': {
+    '{"A":"C","B":"G"}': {
       1: undefined,
       2: undefined,
       3: { A: 'C', B: 'F' }

@@ -1,5 +1,11 @@
 # @xstate/immer
 
+## 0.3.3
+
+### Patch Changes
+
+- [#4030](https://github.com/statelyai/xstate/pull/4030) [`bcb811587`](https://github.com/statelyai/xstate/commit/bcb81158746dbf0ff9d586f6d7a3e548794bef3b) Thanks [@SimeonC](https://github.com/SimeonC)! - Bump immer peer dependency to allow v10
+
 ## 0.3.2
 
 ### Patch Changes
