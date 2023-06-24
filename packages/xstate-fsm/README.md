@@ -26,6 +26,7 @@ This package contains a minimal, 1kb implementation of [XState](https://github.c
 | Transitions (string target) |       ✅        |                      ✅                       |
 | Delayed transitions         |       ❌        |                      ✅                       |
 | Eventless transitions       |       ❌        |                      ✅                       |
+| Wildcard transitions        |       ✅        |                      ✅                       |
 | Nested states               |       ❌        |                      ✅                       |
 | Parallel states             |       ❌        |                      ✅                       |
 | History states              |       ❌        |                      ✅                       |

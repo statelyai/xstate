@@ -38,8 +38,8 @@ export type LifecycleSignalType =
  * @template TSnapshot The emitted value
  */
 
-export function isSignal(eventType: string): eventType is LifecycleSignalType {
-  return eventType === startSignalType || eventType === stopSignalType;
+export function isSignal(event: EventObject): event is LifecycleSignal {
+  return event.type === startSignalType || event.type === stopSignalType;
 }
 
 export function isActorRef(item: any): item is ActorRef<any> {

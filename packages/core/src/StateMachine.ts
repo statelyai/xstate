@@ -43,7 +43,8 @@ import type {
   PersistedMachineState,
   ParameterizedObject,
   AnyActorContext,
-  AnyEventObject
+  AnyEventObject,
+  AnyActorRef
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -409,7 +410,7 @@ export class StateMachine<
     state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
     _actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const children = {};
+    const children: Record<string, AnyActorRef> = {};
 
     Object.keys(state.children).forEach((actorId) => {
       const actorData = state.children[actorId];

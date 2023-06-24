@@ -18,9 +18,9 @@
 
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
-📖 [Read the documentation](https://stately.ai/docs/xstate)
+### ✨ Create state machines visually → [state.new](https://state.new)
 
-💙 [Explore our catalogue of examples](https://xstate-catalogue.com/)
+📖 [Read the documentation](https://stately.ai/docs/xstate)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
@@ -63,7 +63,7 @@ npm install xstate
 ```js
 import { createMachine, interpret } from 'xstate';
 
-// Stateless machine definition
+// State machine definition
 // machine.transition(...) is a pure function used by the interpreter.
 const toggleMachine = createMachine({
   id: 'toggle',
@@ -75,78 +75,17 @@ const toggleMachine = createMachine({
 });
 
 // Machine instance with internal state
-const toggleService = interpret(toggleMachine)
-  .onTransition((state) => console.log(state.value))
-  .start();
-// => 'inactive'
+const toggleActor = interpret(toggleMachine);
+toggleActor.subscribe((state) => console.log(state.value))
+toggleActor.start();
+// => logs 'inactive'
 
 toggleService.send({ type: 'TOGGLE' });
-// => 'active'
+// => logs 'active'
 
 toggleService.send({ type: 'TOGGLE' });
-// => 'inactive'
+// => logs 'inactive'
 ```
-
-## Promise example
-
-[📉 See the visualization on stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
-
-<details>
-<summary>See the code</summary>
-
-```js
-import { createMachine, interpret, assign } from 'xstate';
-
-const fetchMachine = createMachine({
-  id: 'Dog API',
-  initial: 'idle',
-  context: {
-    dog: null
-  },
-  states: {
-    idle: {
-      on: {
-        FETCH: 'loading'
-      }
-    },
-    loading: {
-      invoke: {
-        id: 'fetchDog',
-        src: (context, event) =>
-          fetch('https://dog.ceo/api/breeds/image/random').then((data) =>
-            data.json()
-          ),
-        onDone: {
-          target: 'resolved',
-          actions: assign({
-            dog: (_, event) => event.data
-          })
-        },
-        onError: 'rejected'
-      },
-      on: {
-        CANCEL: 'idle'
-      }
-    },
-    resolved: {
-      type: 'final'
-    },
-    rejected: {
-      on: {
-        FETCH: 'loading'
-      }
-    }
-  }
-});
-
-const dogService = interpret(fetchMachine)
-  .onTransition((state) => console.log(state.value))
-  .start();
-
-dogService.send({ type: 'FETCH' });
-```
-
-</details>
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->

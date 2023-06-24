@@ -1,4 +1,5 @@
 import {
+  AnyActorContext,
   EventObject,
   LogExpr,
   MachineContext,
@@ -62,7 +63,7 @@ export function log<
             label,
             value: resolvedValue
           },
-          execute: (actorCtx) => {
+          execute: (actorCtx: AnyActorContext) => {
             if (label) {
               actorCtx.logger?.(label, resolvedValue);
             } else {

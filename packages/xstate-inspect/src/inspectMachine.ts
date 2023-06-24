@@ -12,7 +12,7 @@ export type InspectMachineEvent =
   | { type: 'xstate.inspecting'; client: Pick<ActorRef<any>, 'send'> };
 
 export function createInspectMachine(
-  devTools: XStateDevInterface = globalThis.__xstate__,
+  devTools: XStateDevInterface = (globalThis as any).__xstate__,
   options?: { serialize?: Replacer | undefined }
 ) {
   const serviceMap = new Map<string, Interpreter<any, any>>();

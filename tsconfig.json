@@ -9,14 +9,7 @@
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
-    "alwaysStrict": true,
-    "noImplicitAny": false,
-    "noImplicitThis": true,
-    "strictBindCallApply": true,
-    "strictFunctionTypes": false,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "useUnknownInCatchVariables": true
+    "strict": true
   },
   "exclude": ["examples", "templates"]
 }

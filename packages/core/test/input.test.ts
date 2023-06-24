@@ -198,7 +198,7 @@ describe('input', () => {
       {
         invoke: {
           src: 'child',
-          input: ({ event }) => {
+          input: ({ event }: any) => {
             return event.input + 100;
           }
         }
@@ -267,7 +267,7 @@ describe('input', () => {
                 return {};
               }
             }),
-            input: ({ event }) => event.input + 100
+            input: ({ event }: any) => event.input + 100
           }
         }
       }
@@ -296,7 +296,7 @@ describe('input', () => {
                 return {};
               }
             }),
-            input: ({ event }) => event.input + 100
+            input: ({ event }: any) => event.input + 100
           }
         }
       }
@@ -372,7 +372,7 @@ describe('input', () => {
     const machine = createMachine({
       invoke: {
         src: createMachine({}),
-        input: ({ self }) => spy(self)
+        input: ({ self }: any) => spy(self)
       }
     });
 
@@ -394,7 +394,7 @@ describe('input', () => {
         actors: {
           child: {
             src: createMachine({}),
-            input: ({ self }) => spy(self)
+            input: ({ self }: any) => spy(self)
           }
         }
       }
