@@ -54,7 +54,7 @@ export function send<
   return createDynamicAction<
     TContext,
     TEvent,
-    AnyEventObject,
+    TEvent,
     SendActionObject<AnyEventObject>,
     SendActionParams<TContext, TEvent>
   >(

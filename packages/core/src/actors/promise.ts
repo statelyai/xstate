@@ -7,6 +7,22 @@ export interface PromiseInternalState<T> {
   input?: any;
 }
 
+const resolveEventType = '$$xstate.resolve';
+const rejectEventType = '$$xstate.reject';
+
+export type PromiseEvent<T> =
+  | {
+      type: typeof resolveEventType;
+      data: T;
+    }
+  | {
+      type: typeof rejectEventType;
+      data: any;
+    }
+  | {
+      type: 'xstate.stop';
+    };
+
 export function fromPromise<T>(
   // TODO: add types
   promiseCreator: ({
@@ -16,20 +32,10 @@ export function fromPromise<T>(
     input: any;
     system: AnyActorSystem;
   }) => PromiseLike<T>
-): ActorLogic<{ type: string }, T | undefined, PromiseInternalState<T>> {
-  const resolveEventType = '$$xstate.resolve';
-  const rejectEventType = '$$xstate.reject';
-
-  // TODO: add event types
+): ActorLogic<PromiseEvent<T>, T | undefined, PromiseInternalState<T>> {
+  // TODO: add event types, consider making the `PromiseEvent` a private type or smth alike
   const logic: ActorLogic<
-    | {
-        type: typeof resolveEventType;
-        data: T;
-      }
-    | {
-        type: typeof rejectEventType;
-        data: any;
-      },
+    PromiseEvent<T>,
     T | undefined,
     PromiseInternalState<T>
   > = {
