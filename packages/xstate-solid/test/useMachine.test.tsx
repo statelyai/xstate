@@ -355,13 +355,17 @@ describe('useMachine hook', () => {
         events: { type: 'EVENT' };
       },
       initial: 'active',
+      context: { count: 0 },
       states: {
         active: {
           on: {
             EVENT: {
-              actions: () => {
-                count++;
-              }
+              actions: [
+                () => {
+                  count++;
+                },
+                assign({ count: ({ context }) => context.count + 1 })
+              ]
             }
           }
         }
@@ -373,7 +377,7 @@ describe('useMachine hook', () => {
       const [state, send] = useMachine(machine);
       createEffect(
         on(
-          () => state.transitions[0],
+          () => state.context.count,
           () => {
             setStateCount((c) => c + 1);
           }
@@ -1451,12 +1455,11 @@ describe('useMachine hook', () => {
       }
     });
     const Display = () => {
-      const [state, , service] = useMachine(machine);
       onCleanup(() => {
         expect(service.status).toBe(InterpreterStatus.Stopped);
         done();
       });
-
+      const [state, , service] = useMachine(machine);
       return <div>{state.toString()}</div>;
     };
     const Counter = () => {
@@ -1692,37 +1695,30 @@ describe('useMachine (strict mode)', () => {
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
 
-      let currentState;
-
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
           state: JSON.parse(persistedState)
         });
-        createEffect(
-          on(
-            () => state.event,
-            () => {
-              currentState = state;
-            }
-          )
-        );
 
         return (
-          <button
-            onclick={() => send({ type: 'START' })}
-            data-testid="button"
-          />
+          <>
+            <button
+              onclick={() => send({ type: 'START' })}
+              data-testid="button"
+            />
+            {state.value}
+          </>
         );
       };
 
-      render(() => <Test />);
+      const { container } = render(() => <Test />);
 
       const button = screen.getByTestId('button');
 
       fireEvent.click(button);
       jest.advanceTimersByTime(110);
 
-      expect(currentState.matches('idle')).toBe(true);
+      expect(container.textContent).toBe('idle');
     } finally {
       jest.useRealTimers();
     }

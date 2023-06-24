@@ -1,13 +1,6 @@
 import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import {
-  actionTypes,
-  doneInvoke,
-  escalate,
-  forwardTo,
-  raise,
-  sendTo
-} from '../src/actions.ts';
+import { escalate, forwardTo, raise, sendTo } from '../src/actions.ts';
 import {
   fromCallback,
   fromEventObservable,
@@ -47,7 +40,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      output: { user: ({ event }) => event.user }
+      output: { user: ({ event }: any) => event.user }
     },
     failure: {
       entry: sendParent({ type: 'REJECT' })
@@ -72,7 +65,7 @@ const fetcherMachine = createMachine({
     waiting: {
       invoke: {
         src: fetchMachine,
-        input: ({ context }) => ({
+        input: ({ context }: any) => ({
           userId: context.selectedUserId
         }),
         onDone: {
@@ -194,7 +187,7 @@ describe('invoke', () => {
         },
         success: {
           type: 'final',
-          output: { user: ({ event }) => event.user }
+          output: { user: ({ event }: any) => event.user }
         },
         failure: {
           entry: sendParent({ type: 'REJECT' })
@@ -224,7 +217,7 @@ describe('invoke', () => {
         waiting: {
           invoke: {
             src: childMachine,
-            input: ({ context }) => ({
+            input: ({ context }: any) => ({
               userId: context.selectedUserId
             }),
             onDone: {
@@ -769,7 +762,7 @@ describe('invoke', () => {
                   }
                 })
               ),
-              input: ({ context }) => context,
+              input: ({ context }: any) => context,
               onDone: {
                 target: 'success',
                 guard: ({ context, event }) => {
@@ -1142,7 +1135,7 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
-                  input: ({ context, event }) => ({
+                  input: ({ context, event }: any) => ({
                     foo: context.foo,
                     event: event
                   }),
@@ -1293,7 +1286,7 @@ describe('invoke', () => {
             first: {
               invoke: {
                 src: 'someCallback',
-                input: ({ context, event }) => ({
+                input: ({ context, event }: any) => ({
                   foo: context.foo,
                   event: event
                 })
@@ -1808,7 +1801,7 @@ describe('invoke', () => {
                 expect(input).toEqual({ foo: 'bar' });
                 done();
               }),
-              input: ({ context }) => context
+              input: ({ context }: any) => context
             }
           }
         }
@@ -1817,7 +1810,7 @@ describe('invoke', () => {
       interpret(machine).start();
     });
 
-    describe('sub invoke race condition', () => {
+    describe('sub invoke race condition ends on the completed state', () => {
       const anotherChildMachine = createMachine({
         id: 'child',
         initial: 'start',
@@ -1853,29 +1846,10 @@ describe('invoke', () => {
         }
       });
 
-      it('ends on the completed state', (done) => {
-        const events: EventObject[] = [];
-        let state: any;
-        const service = interpret(anotherParentMachine);
-        service.subscribe((s) => {
-          state = s;
-          events.push(s.event);
-        });
-        service.subscribe({
-          complete: () => {
-            expect(events.map((e) => e.type)).toEqual([
-              actionTypes.init,
-              'STOPCHILD',
-              doneInvoke('invoked.child').type
-            ]);
-            expect(state.value).toEqual('completed');
-            done();
-          }
-        });
-        service.start();
+      const actorRef = interpret(anotherParentMachine).start();
+      actorRef.send({ type: 'STOPCHILD' });
 
-        service.send({ type: 'STOPCHILD' });
-      });
+      expect(actorRef.getSnapshot().value).toEqual('completed');
     });
   });
 
@@ -2850,7 +2824,7 @@ describe('invoke', () => {
           searching: {
             invoke: {
               src: 'search',
-              input: ({ context }) => ({ endpoint: context.url }),
+              input: ({ context }: any) => ({ endpoint: context.url }),
               onDone: 'success'
             }
           },
@@ -3244,7 +3218,7 @@ describe('actors option', () => {
           pending: {
             invoke: {
               src: 'stringService',
-              input: ({ context }) => ({
+              input: ({ context }: any) => ({
                 staticVal: 'hello',
                 newCount: context.count * 2 // TODO: types
               }),

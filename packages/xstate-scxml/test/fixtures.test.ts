@@ -8,7 +8,7 @@ const testGroups = {
 };
 
 describe('toSCXML', () => {
-  const testGroupKeys = Object.keys(testGroups);
+  const testGroupKeys = Object.keys(testGroups) as (keyof typeof testGroups)[];
   // const testGroupKeys = ['scxml-prefix-event-name-matching'];
 
   testGroupKeys.forEach((testGroupName) => {

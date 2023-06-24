@@ -62,10 +62,13 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   onDestroy(() => service.stop());
 
-  const state = readable(service.getSnapshot(), (set) => {
-    return service.subscribe((state) => {
-      if (state.changed) {
-        set(state);
+  let snapshot = service.getSnapshot();
+
+  const state = readable(snapshot, (set) => {
+    return service.subscribe((nextSnapshot) => {
+      if (snapshot !== nextSnapshot) {
+        snapshot = nextSnapshot;
+        set(snapshot);
       }
     }).unsubscribe;
   });

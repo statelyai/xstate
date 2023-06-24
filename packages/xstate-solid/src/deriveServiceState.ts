@@ -7,7 +7,6 @@ function isState(state: any): state is AnyState {
     typeof state === 'object' &&
     'value' in state &&
     'context' in state &&
-    'event' in state &&
     'can' in state &&
     'matches' in state
   );
@@ -37,7 +36,7 @@ export const deriveServiceState = <
       matches:
         prevState && isState(prevState)
           ? prevState.matches
-          : function (parentStateValue: any) {
+          : function (this: AnyState, parentStateValue: string) {
               return matchesState(parentStateValue, this.value);
             }
     } as StateReturnType;

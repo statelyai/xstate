@@ -1,4 +1,4 @@
-import { assign, createMachine } from 'xstate';
+import { StateFrom, assign, createMachine } from 'xstate';
 import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
@@ -111,7 +111,7 @@ describe('die hard example', () => {
 
     const options = {
       states: {
-        pending: (state) => {
+        pending: (state: StateFrom<typeof dieHardMachine>) => {
           expect(jugs.five).not.toEqual(4);
           expect(jugs.three).toEqual(state.context.three);
           expect(jugs.five).toEqual(state.context.five);
@@ -260,10 +260,10 @@ describe('error path trace', () => {
       initial: 'first',
       states: {
         first: {
-          on: { NEXT: 'second' }
+          on: { NEXT_1: 'second' }
         },
         second: {
-          on: { NEXT: 'third' }
+          on: { NEXT_2: 'third' }
         },
         third: {}
       }
@@ -271,42 +271,43 @@ describe('error path trace', () => {
 
     const testModel = createTestModel(machine);
 
-    const paths = testModel.getShortestPaths({
-      toState: (state) => state.matches('third')
-    });
-
     it('should generate the right number of paths', () => {
-      expect(paths.length).toEqual(1);
+      expect(
+        testModel.getShortestPaths({
+          toState: (state) => state.matches('third')
+        }).length
+      ).toEqual(1);
     });
 
-    paths.forEach((path) => {
-      it('should show an error path trace', async () => {
-        try {
-          await testModel.testPath(path, {
-            states: {
-              third: () => {
-                throw new Error('test error');
-              }
+    it('should show an error path trace', async () => {
+      const path = testModel.getShortestPaths({
+        toState: (state) => state.matches('third')
+      })[0];
+      try {
+        await testModel.testPath(path, {
+          states: {
+            third: () => {
+              throw new Error('test error');
             }
-          });
-        } catch (err) {
-          expect(err.message).toEqual(expect.stringContaining('test error'));
-          expect(err.message).toMatchInlineSnapshot(`
-              "test error
-              Path:
-              	State: {"value":"first"}
-              	Event: {"type":"NEXT"}
+          }
+        });
+      } catch (err: any) {
+        expect(err.message).toEqual(expect.stringContaining('test error'));
+        expect(err.message).toMatchInlineSnapshot(`
+          "test error
+          Path:
+          	State: {"value":"first"}
+          	Event: {"type":"NEXT_1"}
 
-              	State: {"value":"second"} via {"type":"NEXT"}
-              	Event: {"type":"NEXT"}
+          	State: {"value":"second"} via {"type":"NEXT_1"}
+          	Event: {"type":"NEXT_2"}
 
-              	State: {"value":"third"} via {"type":"NEXT"}"
-            `);
-          return;
-        }
+          	State: {"value":"third"} via {"type":"NEXT_2"}"
+        `);
+        return;
+      }
 
-        throw new Error('Should have failed');
-      });
+      throw new Error('Should have failed');
     });
   });
 });

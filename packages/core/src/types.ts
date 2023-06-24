@@ -10,6 +10,7 @@ import {
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
+import { PromiseEvent } from './actors/promise.ts';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -834,10 +835,15 @@ type MachineImplementationsGuards<
   >,
   TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
-  [K in keyof TEventsCausingGuards]?: GuardPredicate<
-    TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
-  >;
+  [K in keyof TEventsCausingGuards]?:
+    | GuardPredicate<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
+      >
+    | GuardConfig<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
+      >;
 };
 
 type MachineImplementationsActors<
@@ -889,52 +895,60 @@ type GenerateActionsImplementationsPart<
   TResolvedTypesMeta,
   TRequireMissingImplementations,
   TMissingImplementations
-> = MaybeMakeMissingImplementationsRequired<
-  'actions',
-  Prop<TMissingImplementations, 'actions'>,
-  TRequireMissingImplementations
-> & {
-  actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
-};
-
-type GenerateDelaysImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = MaybeMakeMissingImplementationsRequired<
-  'delays',
-  Prop<TMissingImplementations, 'delays'>,
-  TRequireMissingImplementations
-> & {
-  delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
-};
-
-type GenerateGuardsImplementationsPart<
-  TContext extends MachineContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> = MaybeMakeMissingImplementationsRequired<
-  'guards',
-  Prop<TMissingImplementations, 'guards'>,
-  TRequireMissingImplementations
-> & {
-  guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
-};
+> = Compute<
+  MaybeMakeMissingImplementationsRequired<
+    'actions',
+    Prop<TMissingImplementations, 'actions'>,
+    TRequireMissingImplementations
+  > & {
+    actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
+  }
+>;
 
 type GenerateActorsImplementationsPart<
   TContext extends MachineContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
   TMissingImplementations
-> = MaybeMakeMissingImplementationsRequired<
-  'actors',
-  Prop<TMissingImplementations, 'actors'>,
-  TRequireMissingImplementations
-> & {
-  actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
-};
+> = Compute<
+  MaybeMakeMissingImplementationsRequired<
+    'actors',
+    Prop<TMissingImplementations, 'actors'>,
+    TRequireMissingImplementations
+  > & {
+    actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
+  }
+>;
+
+type GenerateDelaysImplementationsPart<
+  TContext extends MachineContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = Compute<
+  MaybeMakeMissingImplementationsRequired<
+    'delays',
+    Prop<TMissingImplementations, 'delays'>,
+    TRequireMissingImplementations
+  > & {
+    delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
+  }
+>;
+
+type GenerateGuardsImplementationsPart<
+  TContext extends MachineContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = Compute<
+  MaybeMakeMissingImplementationsRequired<
+    'guards',
+    Prop<TMissingImplementations, 'guards'>,
+    TRequireMissingImplementations
+  > & {
+    guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
+  }
+>;
 
 export type InternalMachineImplementations<
   TContext extends MachineContext,
@@ -951,6 +965,12 @@ export type InternalMachineImplementations<
   TRequireMissingImplementations,
   TMissingImplementations
 > &
+  GenerateActorsImplementationsPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > &
   GenerateDelaysImplementationsPart<
     TContext,
     TResolvedTypesMeta,
@@ -958,12 +978,6 @@ export type InternalMachineImplementations<
     TMissingImplementations
   > &
   GenerateGuardsImplementationsPart<
-    TContext,
-    TResolvedTypesMeta,
-    TRequireMissingImplementations,
-    TMissingImplementations
-  > &
-  GenerateActorsImplementationsPart<
     TContext,
     TResolvedTypesMeta,
     TRequireMissingImplementations,
@@ -1508,11 +1522,9 @@ export interface StateConfig<
 > {
   value: StateValue;
   context: TContext;
-  event: TEvent;
   historyValue?: HistoryValue<TContext, TEvent>;
   meta?: any;
   configuration?: Array<StateNode<TContext, TEvent>>;
-  transitions?: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   output?: any;
@@ -1570,7 +1582,7 @@ export interface InterpreterOptions<_TActorLogic extends AnyActorLogic> {
   src?: string;
 }
 
-export type AnyInterpreter = Interpreter<any>;
+export type AnyInterpreter = Interpreter<any, any>;
 
 // Based on RxJS types
 export type Observer<T> = {
@@ -1662,8 +1674,14 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         >
       >
     : R extends Promise<infer U>
-    ? ActorRef<{ type: string }, U | undefined>
-    : R extends ActorLogic<infer TEvent, infer TSnapshot>
+    ? ActorRef<PromiseEvent<U>, U | undefined>
+    : R extends ActorLogic<
+        infer TEvent,
+        infer TSnapshot,
+        infer _,
+        infer __,
+        infer ___
+      >
     ? ActorRef<TEvent, TSnapshot>
     : never
   : never;
@@ -1749,7 +1767,7 @@ export interface ActorLogic<
   config?: unknown;
   transition: (
     state: TInternalState,
-    message: TEvent | LifecycleSignal,
+    message: TEvent,
     ctx: ActorContext<TEvent, TSnapshot, TSystem>
   ) => TInternalState;
   getInitialState: (
@@ -1901,7 +1919,7 @@ export type AnyActorSystem = ActorSystem<any>;
 
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
-  'value' | 'output' | 'context' | 'event' | 'done' | 'historyValue'
+  'value' | 'output' | 'context' | 'done' | 'historyValue'
 > & {
   children: {
     [K in keyof TState['children']]: {

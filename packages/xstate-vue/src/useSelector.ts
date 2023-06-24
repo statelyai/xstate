@@ -1,5 +1,5 @@
 import { onMounted, onBeforeUnmount, shallowRef } from 'vue';
-import { ActorRef, SnapshotFrom } from 'xstate';
+import { ActorRef, SnapshotFrom, Subscription } from 'xstate';
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
@@ -18,7 +18,7 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
     }
   };
 
-  let sub;
+  let sub: Subscription | undefined;
   onMounted(() => {
     const initialSelected = selector(actor.getSnapshot());
     updateSelectedIfChanged(initialSelected);

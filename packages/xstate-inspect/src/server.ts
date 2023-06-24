@@ -4,24 +4,30 @@ import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
 import { Inspector, Replacer } from './types.ts';
 import { stringify } from './utils.ts';
+import { XStateDevInterface } from 'xstate/dev';
 
 const services = new Set<Interpreter<any>>();
 const serviceMap = new Map<string, Interpreter<any>>();
 const serviceListeners = new Set<any>();
 
 function createDevTools() {
-  globalThis.__xstate__ = {
+  const unregister: XStateDevInterface['unregister'] = (service) => {
+    services.delete(service);
+    serviceMap.delete(service.sessionId);
+  };
+  const devTools: XStateDevInterface = {
     services,
     register: (service) => {
       services.add(service);
       serviceMap.set(service.sessionId, service);
       serviceListeners.forEach((listener) => listener(service));
 
-      service.onStop(() => {
-        services.delete(service);
-        serviceMap.delete(service.sessionId);
+      service.subscribe({
+        complete: () => unregister(service),
+        error: () => unregister(service)
       });
     },
+    unregister,
     onRegister: (listener) => {
       serviceListeners.add(listener);
       services.forEach((service) => listener(service));
@@ -33,6 +39,8 @@ function createDevTools() {
       };
     }
   };
+  (globalThis as any).__xstate__ = devTools;
+  return devTools;
 }
 
 interface ServerInspectorOptions {
@@ -42,9 +50,9 @@ interface ServerInspectorOptions {
 
 export function inspect(options: ServerInspectorOptions): Inspector {
   const { server } = options;
-  createDevTools();
+  const devTools = createDevTools();
   const inspectService = interpret(
-    createInspectMachine(globalThis.__xstate__, options)
+    createInspectMachine(devTools, options)
   ).start();
   let client: ActorRef<any, undefined> = toActorRef({
     name: '@@xstate/ws-client',
@@ -75,7 +83,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     });
   });
 
-  globalThis.__xstate__.onRegister((service: Interpreter<any>) => {
+  devTools.onRegister((service: Interpreter<any>) => {
     inspectService.send({
       type: 'service.register',
       machine: JSON.stringify(service.logic), // TODO: rename `machine` property

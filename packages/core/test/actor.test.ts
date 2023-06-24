@@ -852,6 +852,54 @@ describe('actors', () => {
     ).toBeDefined();
   });
 
+  it('should stop multiple inline spawned actors that have no explicit ids', () => {
+    const cleanup1 = jest.fn();
+    const cleanup2 = jest.fn();
+
+    const parent = createMachine({
+      context: ({ spawn }) => ({
+        ref1: spawn(fromCallback(() => cleanup1)),
+        ref2: spawn(fromCallback(() => cleanup2))
+      })
+    });
+    const actorRef = interpret(parent).start();
+
+    expect(Object.keys(actorRef.getSnapshot().children).length).toBe(2);
+
+    actorRef.stop();
+
+    expect(cleanup1).toBeCalledTimes(1);
+    expect(cleanup2).toBeCalledTimes(1);
+  });
+
+  it('should stop multiple referenced spawned actors that have no explicit ids', () => {
+    const cleanup1 = jest.fn();
+    const cleanup2 = jest.fn();
+
+    const parent = createMachine(
+      {
+        context: ({ spawn }) => ({
+          ref1: spawn('child1'),
+          ref2: spawn('child2')
+        })
+      },
+      {
+        actors: {
+          child1: fromCallback(() => cleanup1),
+          child2: fromCallback(() => cleanup2)
+        }
+      }
+    );
+    const actorRef = interpret(parent).start();
+
+    expect(Object.keys(actorRef.getSnapshot().children).length).toBe(2);
+
+    actorRef.stop();
+
+    expect(cleanup1).toBeCalledTimes(1);
+    expect(cleanup2).toBeCalledTimes(1);
+  });
+
   describe('with actor logic', () => {
     it('should work with a transition function logic', (done) => {
       const countLogic = fromTransition((count: number, event: any) => {
