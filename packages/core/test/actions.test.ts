@@ -3041,7 +3041,13 @@ describe('sendTo', () => {
 
   it('should be able to read from event', () => {
     expect.assertions(1);
-    const machine = createMachine<any, any>({
+    const machine = createMachine({
+      types: {
+        events: {} as {
+          type: 'EVENT';
+          value: string;
+        }
+      },
       initial: 'a',
       context: ({ spawn }) => ({
         foo: spawn(

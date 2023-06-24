@@ -95,9 +95,11 @@ export declare namespace StateMachine {
     guard?: (context: TContext, event: TEvent) => boolean;
   }
 
-  export type Transition<TContext extends object, TEvent extends EventObject> =
-    | string
-    | TransitionObject<TContext, TEvent>;
+  export type Transition<
+    TContext extends object,
+    TEvent extends EventObject,
+    TStateValue extends string = string
+  > = TStateValue | TransitionObject<TContext, TEvent>;
   export interface State<
     TContext extends object,
     TEvent extends EventObject,
@@ -109,9 +111,15 @@ export declare namespace StateMachine {
     changed?: boolean | undefined;
     matches: <TSV extends TState['value']>(
       value: TSV
-    ) => this is TState extends { value: TSV }
-      ? TState & { value: TSV }
-      : never;
+    ) => this is State<
+      (TState extends any
+        ? { value: TSV; context: any } extends TState
+          ? TState
+          : never
+        : never)['context'],
+      TEvent,
+      TState
+    > & { value: TSV };
   }
 
   export type AnyMachine = StateMachine.Machine<any, any, any>;
@@ -123,16 +131,22 @@ export declare namespace StateMachine {
   export interface Config<
     TContext extends object,
     TEvent extends EventObject,
-    TState extends Typestate<TContext> = { value: any; context: TContext }
+    TState extends Typestate<TContext> = Typestate<TContext>
   > {
     id?: string;
-    initial: string;
+    initial: TState['value'];
     context?: TContext;
     states: {
       [key in TState['value']]: {
         on?: {
-          [K in TEvent['type']]?: SingleOrArray<
-            Transition<TContext, TEvent extends { type: K } ? TEvent : never>
+          [K in TEvent['type'] | '*']?: SingleOrArray<
+            K extends '*'
+              ? Transition<TContext, TEvent, TState['value']>
+              : Transition<
+                  TContext,
+                  TEvent extends { type: K } ? TEvent : never,
+                  TState['value']
+                >
           >;
         };
         exit?: SingleOrArray<Action<TContext, TEvent>>;
@@ -162,9 +176,7 @@ export declare namespace StateMachine {
     TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
     send: (event: TEvent) => void;
-    subscribe: (
-      listener: StateListener<State<TContext, TEvent, TState>>
-    ) => {
+    subscribe: (listener: StateListener<State<TContext, TEvent, TState>>) => {
       unsubscribe: () => void;
     };
     start: (

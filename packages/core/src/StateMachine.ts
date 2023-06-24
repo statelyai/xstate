@@ -15,7 +15,8 @@ import {
   microstep,
   resolveActionsAndContext,
   resolveStateValue,
-  transitionNode
+  transitionNode,
+  isAtomicStateNode
 } from './stateUtils.ts';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -42,7 +43,8 @@ import type {
   PersistedMachineState,
   ParameterizedObject,
   AnyActorContext,
-  AnyEventObject
+  AnyEventObject,
+  AnyActorRef
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -280,14 +282,12 @@ export class StateMachine<
         context,
         meta: undefined,
         configuration: config,
-        transitions: [],
         children: {}
       })
     );
-    preInitial._initial = true;
 
     if (actorCtx) {
-      const [nextState] = resolveActionsAndContext(
+      const nextState = resolveActionsAndContext(
         actions,
         initEvent as TEvent,
         preInitial,
@@ -309,7 +309,22 @@ export class StateMachine<
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
     const preInitialState = this.getPreInitialState(actorCtx, input);
-    const nextState = microstep([], preInitialState, actorCtx, initEvent);
+    const nextState = microstep(
+      [
+        {
+          target: [...preInitialState.configuration].filter(isAtomicStateNode),
+          source: this.root,
+          reenter: true,
+          actions: [],
+          eventType: null as any,
+          toJSON: null as any // TODO: fix
+        }
+      ],
+      preInitialState,
+      actorCtx,
+      initEvent,
+      true
+    );
 
     const { state: macroState } = macrostep(
       nextState,
@@ -389,7 +404,7 @@ export class StateMachine<
     state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
     _actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const children = {};
+    const children: Record<string, AnyActorRef> = {};
 
     Object.keys(state.children).forEach((actorId) => {
       const actorData = state.children[actorId];
