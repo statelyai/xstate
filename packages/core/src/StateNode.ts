@@ -269,12 +269,12 @@ export class StateNode<
           : src;
 
         if (
-          !this.machine.options.actors[resolvedId] &&
+          !this.machine.implementations.actors[resolvedId] &&
           typeof src !== 'string' &&
           !('type' in src)
         ) {
-          this.machine.options.actors = {
-            ...this.machine.options.actors,
+          this.machine.implementations.actors = {
+            ...this.machine.implementations.actors,
             // TODO: this should accept `src` as-is
             [resolvedId]: src
           };
@@ -350,7 +350,7 @@ export class StateNode<
         guardPassed =
           !guard ||
           evaluateGuard<TContext, TEvent>(guard, resolvedContext, event, state);
-      } catch (err) {
+      } catch (err: any) {
         throw new Error(
           `Unable to evaluate guard '${
             guard!.type

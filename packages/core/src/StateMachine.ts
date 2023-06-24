@@ -15,7 +15,8 @@ import {
   microstep,
   resolveActionsAndContext,
   resolveStateValue,
-  transitionNode
+  transitionNode,
+  isAtomicStateNode
 } from './stateUtils.ts';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -42,23 +43,13 @@ import type {
   PersistedMachineState,
   ParameterizedObject,
   AnyActorContext,
-  AnyEventObject
+  AnyEventObject,
+  AnyActorRef
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
-export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
-
-function createDefaultOptions() {
-  return {
-    actions: {},
-    actors: {},
-    delays: {},
-    guards: {},
-    context: {}
-  };
-}
 
 export class StateMachine<
   TContext extends MachineContext,
@@ -115,7 +106,7 @@ export class StateMachine<
    */
   public delimiter: string;
 
-  public options: MachineImplementationsSimplified<TContext, TEvent>;
+  public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
   public types: MachineTypes<TContext, TEvent>;
 
@@ -135,10 +126,15 @@ export class StateMachine<
      * The raw config used to create the machine.
      */
     public config: MachineConfig<TContext, TEvent, any, any, any>,
-    options?: MachineImplementationsSimplified<TContext, TEvent>
+    implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
-    this.options = Object.assign(createDefaultOptions(), options);
+    this.implementations = {
+      actors: implementations?.actors ?? {},
+      actions: implementations?.actions ?? {},
+      delays: implementations?.delays ?? {},
+      guards: implementations?.guards ?? {}
+    };
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
@@ -180,7 +176,7 @@ export class StateMachine<
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
   > {
-    const { actions, guards, actors, delays } = this.options;
+    const { actions, guards, actors, delays } = this.implementations;
 
     return new StateMachine(this.config, {
       actions: { ...actions, ...implementations.actions },
@@ -286,14 +282,12 @@ export class StateMachine<
         context,
         meta: undefined,
         configuration: config,
-        transitions: [],
         children: {}
       })
     );
-    preInitial._initial = true;
 
     if (actorCtx) {
-      const [nextState] = resolveActionsAndContext(
+      const nextState = resolveActionsAndContext(
         actions,
         initEvent as TEvent,
         preInitial,
@@ -315,7 +309,22 @@ export class StateMachine<
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
     const preInitialState = this.getPreInitialState(actorCtx, input);
-    const nextState = microstep([], preInitialState, actorCtx, initEvent);
+    const nextState = microstep(
+      [
+        {
+          target: [...preInitialState.configuration].filter(isAtomicStateNode),
+          source: this.root,
+          reenter: true,
+          actions: [],
+          eventType: null as any,
+          toJSON: null as any // TODO: fix
+        }
+      ],
+      preInitialState,
+      actorCtx,
+      initEvent,
+      true
+    );
 
     const { state: macroState } = macrostep(
       nextState,
@@ -395,7 +404,7 @@ export class StateMachine<
     state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
     _actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const children = {};
+    const children: Record<string, AnyActorRef> = {};
 
     Object.keys(state.children).forEach((actorId) => {
       const actorData = state.children[actorId];
@@ -403,7 +412,7 @@ export class StateMachine<
       const src = actorData.src;
 
       const logic = src
-        ? resolveReferencedActor(this.options.actors[src])?.src
+        ? resolveReferencedActor(this.implementations.actors[src])?.src
         : undefined;
 
       if (!logic) {
@@ -433,7 +442,9 @@ export class StateMachine<
             return;
           }
 
-          const referenced = resolveReferencedActor(this.options.actors[src]);
+          const referenced = resolveReferencedActor(
+            this.implementations.actors[src]
+          );
 
           if (referenced) {
             const actorRef = interpret(referenced.src, {

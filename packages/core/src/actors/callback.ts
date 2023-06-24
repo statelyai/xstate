@@ -9,17 +9,17 @@ import { isPromiseLike, isFunction } from '../utils';
 import { doneInvoke, error } from '../actions.ts';
 import { startSignalType, stopSignalType, isSignal } from '../actors/index.ts';
 
-export interface CallbackInternalState {
+export interface CallbackInternalState<TEvent extends EventObject> {
   canceled: boolean;
-  receivers: Set<(e: EventObject) => void>;
+  receivers: Set<(e: TEvent) => void>;
   dispose: void | (() => void) | Promise<any>;
   input?: any;
 }
 
 export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
-): ActorLogic<TEvent, undefined, CallbackInternalState> {
-  const logic: ActorLogic<TEvent, undefined, CallbackInternalState> = {
+): ActorLogic<TEvent, undefined, CallbackInternalState<TEvent>> {
+  const logic: ActorLogic<TEvent, undefined, CallbackInternalState<TEvent>> = {
     config: invokeCallback,
     start: (_state, { self }) => {
       self.send({ type: startSignalType } as TEvent);
@@ -67,14 +67,12 @@ export function fromCallback<TEvent extends EventObject>(
         return state;
       }
 
-      if (isSignal(event.type)) {
+      if (isSignal(event)) {
         // TODO: unrecognized signal
         return state;
       }
 
-      if (!isSignal(event.type)) {
-        state.receivers.forEach((receiver) => receiver(event));
-      }
+      state.receivers.forEach((receiver) => receiver(event));
 
       return state;
     },
