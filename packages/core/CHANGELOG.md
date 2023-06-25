@@ -1,5 +1,15 @@
 # xstate
 
+## 4.38.0
+
+### Minor Changes
+
+- [#4098](https://github.com/statelyai/xstate/pull/4098) [`ae7691811`](https://github.com/statelyai/xstate/commit/ae7691811d0ac92294532ce1e5ede3898ecffbc7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `log`, `pure`, `choose`, and `stop` actions were added to the main export:
+
+  ```ts
+  import { log, pure, choose, stop } from 'xstate';
+  ```
+
 ## 4.37.2
 
 ### Patch Changes
