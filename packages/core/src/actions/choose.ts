@@ -30,7 +30,7 @@ export function choose<
           condition.guard &&
           toGuardDefinition(
             condition.guard,
-            (guardType) => state.machine.options.guards[guardType]
+            (guardType) => state.machine.implementations.guards[guardType]
           );
         return !guard || evaluateGuard(guard, state.context, event, state);
       })?.actions;

@@ -89,7 +89,8 @@ export function evaluateGuard<
 ): boolean {
   const { machine } = state;
 
-  const predicate = machine?.options?.guards?.[guard.type] ?? guard.predicate;
+  const predicate =
+    machine?.implementations?.guards?.[guard.type] ?? guard.predicate;
 
   if (!predicate) {
     throw new Error(`Guard '${guard.type}' is not implemented.'.`);

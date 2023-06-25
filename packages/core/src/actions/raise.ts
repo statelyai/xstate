@@ -69,7 +69,7 @@ export function raise<
         self: actorContext?.self ?? ({} as any),
         system: actorContext?.system
       };
-      const delaysMap = state.machine.options.delays;
+      const delaysMap = state.machine.implementations.delays;
 
       // TODO: helper function for resolving Expr
       if (typeof eventOrExpr === 'string') {

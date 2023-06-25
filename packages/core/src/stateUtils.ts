@@ -348,7 +348,7 @@ export function formatTransition<
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
-  const { guards } = stateNode.machine.options;
+  const { guards } = stateNode.machine.implementations;
   const target = resolveTarget(stateNode, normalizedTarget);
 
   // TODO: should this be part of a lint rule instead?
@@ -1423,7 +1423,7 @@ export function resolveActionsAndContext<
   function resolveAction(actionObject: BaseActionObject) {
     const executableActionObject = resolveActionObject(
       actionObject,
-      machine.options.actions
+      machine.implementations.actions
     );
 
     if (isDynamicAction(executableActionObject)) {

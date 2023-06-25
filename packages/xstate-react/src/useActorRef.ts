@@ -39,9 +39,9 @@ export function useIdleInterpreter(
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
-    (actorRef.logic as AnyStateMachine).options = (
+    (actorRef.logic as AnyStateMachine).implementations = (
       machine as AnyStateMachine
-    ).options;
+    ).implementations;
   });
 
   return actorRef as any;
