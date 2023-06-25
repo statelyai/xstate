@@ -144,7 +144,7 @@ export default class extends Component {
 ```
 
 If using Ember versions older than [Ember 4.5](https://blog.emberjs.com/ember-4-5-released), it is recommended to also have the [plain functions polyfill](https://github.com/ember-polyfills/ember-functions-as-helper-polyfill) 
-installed so that you can use `state.matches` and other xstate-provided APIs from the template.
+installed so that you can use `state.matches(...)` and other XState-provided APIs from the template.
 
 ## Custom integration
 
