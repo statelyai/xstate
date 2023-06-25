@@ -8,9 +8,7 @@ import {
   ActorRefFrom,
   AnyStateMachine,
   StateNode,
-  actions
-} from '../src/index';
-import {
+  actions,
   pure,
   sendParent,
   log,
@@ -19,7 +17,7 @@ import {
   stop,
   send,
   raise
-} from '../src/actions';
+} from '../src/index';
 
 const seen = new WeakSet<AnyStateMachine>();
 

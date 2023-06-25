@@ -31,6 +31,10 @@ export {
   sendParent,
   sendUpdate,
   raise,
+  log,
+  pure,
+  choose,
+  stop,
   forwardTo,
   interpret,
   Interpreter,
@@ -51,7 +55,11 @@ const {
   sendUpdate,
   forwardTo,
   doneInvoke,
-  raise
+  raise,
+  log,
+  pure,
+  choose,
+  stop
 } = actions;
 
 declare global {
