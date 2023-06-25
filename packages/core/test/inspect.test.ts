@@ -7,9 +7,12 @@ import {
   sendTo,
   waitFor
 } from '../src';
+const WebSocket = require('ws');
+
+const server = new WebSocket.Server({ port: 8080 });
 
 describe('inspect', () => {
-  it('the .inspect option can observe inspection events', () => {
+  it('the .inspect option can observe inspection events', async () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -33,10 +36,15 @@ describe('inspect', () => {
       inspect: {
         next(event) {
           events.push(event);
+          // push events to websocket server
+          server.clients.forEach((client) => {
+            client.send(JSON.stringify(event));
+          });
         }
       }
     });
     actor.start();
+
     actor.send({ type: 'NEXT' });
     actor.send({ type: 'NEXT' });
 
@@ -66,9 +74,9 @@ describe('inspect', () => {
         })
       })
     ]);
-  });
+  }, 20000);
 
-  it('can inspect communications between actors', async () => {
+  it.only('can inspect communications between actors', async () => {
     // expect.assertions(1);
     const parentMachine = createMachine({
       initial: 'waiting',
@@ -122,9 +130,17 @@ describe('inspect', () => {
       inspect: {
         next: (event) => {
           events.push(event);
+
+          // push events to websocket server
+          server.clients.forEach((client) => {
+            client.send(JSON.stringify(event));
+          });
         }
       }
     });
+
+    // wait 10 seconds
+    await new Promise((resolve) => setTimeout(resolve, 10000));
 
     actor.start();
     actor.send({ type: 'load' });
@@ -277,5 +293,5 @@ describe('inspect', () => {
         },
       ]
     `);
-  });
+  }, 20000);
 });
