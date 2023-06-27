@@ -268,12 +268,12 @@ export class StateNode<
           : src;
 
         if (
-          !this.machine.options.actors[resolvedId] &&
+          !this.machine.implementations.actors[resolvedId] &&
           typeof src !== 'string' &&
           !('type' in src)
         ) {
-          this.machine.options.actors = {
-            ...this.machine.options.actors,
+          this.machine.implementations.actors = {
+            ...this.machine.implementations.actors,
             // TODO: this should accept `src` as-is
             [resolvedId]: src
           };
