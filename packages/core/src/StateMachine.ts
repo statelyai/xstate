@@ -112,11 +112,6 @@ export class StateMachine<
    */
   public version?: string;
 
-  /**
-   * The string delimiter for serializing the path to a string. The default is "."
-   */
-  public delimiter: string;
-
   public options: MachineImplementationsSimplified<TContext, TEvent>;
 
   public types: MachineTypes<TContext, TEvent>;
@@ -141,7 +136,6 @@ export class StateMachine<
   ) {
     this.id = config.id || '(machine)';
     this.options = Object.assign(createDefaultOptions(), options);
-    this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
     this.transition = this.transition.bind(this);
@@ -358,7 +352,7 @@ export class StateMachine<
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
-    const fullPath = stateId.split(this.delimiter);
+    const fullPath = stateId.split(STATE_DELIMITER);
     const relativePath = fullPath.slice(1);
     const resolvedStateId = isStateId(fullPath[0])
       ? fullPath[0].slice(STATE_IDENTIFIER.length)
