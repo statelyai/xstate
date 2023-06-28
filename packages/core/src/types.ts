@@ -646,10 +646,6 @@ export interface StateNodeConfig<
    */
   id?: string | undefined;
   /**
-   * The string delimiter for serializing the path to a string. The default is "."
-   */
-  delimiter?: string;
-  /**
    * The order this state node appears. Corresponds to the implicit document order.
    */
   order?: number;
