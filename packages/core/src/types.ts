@@ -232,7 +232,7 @@ export type GuardPredicate<
   args: {
     context: TContext;
     event: TEvent;
-  } & GuardMeta<TContext, TEvent>
+  } & GuardArgs<TContext, TEvent>
 ) => boolean;
 
 export interface DefaultGuardObject<
@@ -256,7 +256,7 @@ export type GuardEvaluator<
   state: State<TContext, TEvent>
 ) => boolean;
 
-export interface GuardMeta<
+export interface GuardArgs<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
