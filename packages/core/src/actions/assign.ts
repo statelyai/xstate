@@ -5,7 +5,7 @@ import type {
   MachineContext,
   AssignActionObject,
   DynamicAssignAction,
-  AssignMeta,
+  AssignArgs,
   InvokeActionObject,
   LowInfer
 } from '../types.ts';
@@ -53,7 +53,7 @@ export function assign<
         );
       }
 
-      const args: AssignMeta<TContext, TExpressionEvent, TEvent> = {
+      const args: AssignArgs<TContext, TExpressionEvent, TEvent> = {
         context: state.context,
         event,
         action,

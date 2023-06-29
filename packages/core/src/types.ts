@@ -106,12 +106,12 @@ export interface BaseDynamicActionObject<
   ) => [AnyState, TResolvedAction];
 
   /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
-  (args: ActionMeta<TContext, TExpressionEvent, ParameterizedObject>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, ParameterizedObject>): void;
 }
 
 export type MachineContext = Record<string, any>;
 
-export interface ActionMeta<
+export interface ActionArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject
@@ -139,11 +139,11 @@ export type Spawner = <T extends ActorLogic<any, any> | string>( // TODO: read s
   ? ActorRef<TActorEvent, TActorEmitted>
   : ActorRef<any, any>; // TODO: narrow this to logic from machine
 
-export interface AssignMeta<
+export interface AssignArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   _TEvent extends EventObject
-> extends ActionMeta<TContext, TExpressionEvent> {
+> extends ActionArgs<TContext, TExpressionEvent> {
   action: BaseActionObject;
   event: TExpressionEvent;
   spawn: Spawner;
@@ -154,7 +154,7 @@ export type ActionFunction<
   TExpressionEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   _TEvent extends EventObject = TExpressionEvent
-> = (args: ActionMeta<TContext, TExpressionEvent, TAction>) => void;
+> = (args: ActionArgs<TContext, TExpressionEvent, TAction>) => void;
 
 export interface ChooseCondition<
   TContext extends MachineContext,
@@ -1289,14 +1289,14 @@ export type Assigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
-> = (args: AssignMeta<TContext, TExpressionEvent, TEvent>) => Partial<TContext>;
+> = (args: AssignArgs<TContext, TExpressionEvent, TEvent>) => Partial<TContext>;
 
 export type PartialAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TKey extends keyof TContext
-> = (args: AssignMeta<TContext, TExpressionEvent, TEvent>) => TContext[TKey];
+> = (args: AssignArgs<TContext, TExpressionEvent, TEvent>) => TContext[TKey];
 
 export type PropertyAssigner<
   TContext extends MachineContext,

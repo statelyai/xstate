@@ -2,7 +2,7 @@ import {
   EventObject,
   BaseActionObject,
   assign as xstateAssign,
-  AssignMeta,
+  AssignArgs,
   MachineContext,
   DynamicAssignAction
 } from 'xstate';
@@ -12,7 +12,7 @@ export type ImmerAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
-> = (args: AssignMeta<Draft<TContext>, TExpressionEvent, TEvent>) => void;
+> = (args: AssignArgs<Draft<TContext>, TExpressionEvent, TEvent>) => void;
 
 export interface ImmerAssignAction<
   TContext extends MachineContext,
