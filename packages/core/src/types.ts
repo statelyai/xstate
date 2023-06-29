@@ -438,7 +438,7 @@ export type DelayedTransitions<
     >
   | Array<
       TransitionConfig<TContext, TEvent> & {
-        delay: number | string | Expr<TContext, TEvent, number>;
+        delay: number | string | ExprWithMeta<TContext, TEvent, number>;
       }
     >;
 
@@ -1164,7 +1164,7 @@ export interface DynamicStopActionObject<
     actor:
       | string
       | ActorRef<any>
-      | Expr<TContext, TExpressionEvent, ActorRef<any> | string>;
+      | ExprWithMeta<TContext, TExpressionEvent, ActorRef<any> | string>;
   };
 }
 
@@ -1222,12 +1222,6 @@ export interface SendActionObject<
     internal: boolean;
   };
 }
-
-export type Expr<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  T
-> = (arg: UnifiedArg<TContext, TEvent>) => T;
 
 export type ExprWithMeta<
   TContext extends MachineContext,
