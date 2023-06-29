@@ -16,7 +16,6 @@ import {
   BaseDynamicActionObject,
   Cast,
   EventFrom,
-  ExprWithMeta,
   InferEvent,
   SendActionObject,
   SendActionOptions,
@@ -244,7 +243,7 @@ export function escalate<
   TEvent extends EventObject,
   TErrorData = any
 >(
-  errorData: TErrorData | ExprWithMeta<TContext, TEvent, TErrorData>,
+  errorData: TErrorData | ((args: UnifiedArg<TContext, TEvent>) => TErrorData),
   options?: SendActionParams<TContext, TEvent>
 ) {
   return sendParent<TContext, TEvent>(
@@ -274,7 +273,10 @@ export function sendTo<
   TEvent extends EventObject,
   TActor extends AnyActorRef
 >(
-  actor: TActor | string | ExprWithMeta<TContext, TEvent, TActor | string>,
+  actor:
+    | TActor
+    | string
+    | ((args: UnifiedArg<TContext, TEvent>) => TActor | string),
   event:
     | EventFrom<TActor>
     | SendExpr<

@@ -430,7 +430,10 @@ export type DelayedTransitions<
     >
   | Array<
       TransitionConfig<TContext, TEvent> & {
-        delay: number | string | ExprWithMeta<TContext, TEvent, number>;
+        delay:
+          | number
+          | string
+          | ((args: UnifiedArg<TContext, TEvent>) => number);
       }
     >;
 
@@ -1155,7 +1158,9 @@ export interface DynamicStopActionObject<
     actor:
       | string
       | ActorRef<any>
-      | ExprWithMeta<TContext, TExpressionEvent, ActorRef<any> | string>;
+      | ((
+          args: UnifiedArg<TContext, TExpressionEvent>
+        ) => ActorRef<any> | string);
   };
 }
 
@@ -1169,12 +1174,12 @@ export interface StopActionObject {
 export type DelayExpr<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = ExprWithMeta<TContext, TEvent, number>;
+> = (args: UnifiedArg<TContext, TEvent>) => number;
 
 export type LogExpr<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = ExprWithMeta<TContext, TEvent, any>;
+> = (args: UnifiedArg<TContext, TEvent>) => unknown;
 
 export interface DynamicLogAction<
   TContext extends MachineContext,
@@ -1214,17 +1219,11 @@ export interface SendActionObject<
   };
 }
 
-export type ExprWithMeta<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  T
-> = (args: UnifiedArg<TContext, TEvent>) => T;
-
 export type SendExpr<
   TContext extends MachineContext,
-  TEvent extends EventObject,
+  TExpressionEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
-> = ExprWithMeta<TContext, TEvent, TSentEvent>;
+> = (args: UnifiedArg<TContext, TExpressionEvent>) => TSentEvent;
 
 export enum SpecialTargets {
   Parent = '#_parent',
@@ -1238,7 +1237,7 @@ export interface SendActionOptions<
   to?:
     | string
     | ActorRef<any, any>
-    | ExprWithMeta<TContext, TEvent, string | ActorRef<any, any>>;
+    | ((args: UnifiedArg<TContext, TEvent>) => string | ActorRef<any, any>);
 }
 
 export interface RaiseActionOptions<
@@ -1271,7 +1270,7 @@ export interface DynamicCancelActionObject<
 > {
   type: ActionTypes.Cancel;
   params: {
-    sendId: string | ExprWithMeta<TContext, TExpressionEvent, string>;
+    sendId: string | ((args: UnifiedArg<TContext, TExpressionEvent>) => string);
   };
 }
 

@@ -8,9 +8,9 @@ import {
   BaseDynamicActionObject,
   DynamicStopActionObject,
   EventObject,
-  ExprWithMeta,
   MachineContext,
-  StopActionObject
+  StopActionObject,
+  UnifiedArg
 } from '../types.ts';
 import { isFunction } from '../utils.ts';
 
@@ -28,7 +28,7 @@ export function stop<
   actorRef:
     | string
     | ActorRef<any>
-    | ExprWithMeta<TContext, TExpressionEvent, ActorRef<any> | string>
+    | ((args: UnifiedArg<TContext, TExpressionEvent>) => ActorRef<any> | string)
 ): BaseDynamicActionObject<
   TContext,
   TExpressionEvent,
