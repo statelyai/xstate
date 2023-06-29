@@ -53,10 +53,7 @@ export function assign<
         );
       }
 
-      const args: AssignMeta<TExpressionEvent, TEvent> & {
-        context: TContext;
-        event: TExpressionEvent;
-      } = {
+      const args: AssignMeta<TContext, TExpressionEvent, TEvent> = {
         context: state.context,
         event,
         action,

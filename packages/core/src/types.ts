@@ -80,6 +80,8 @@ export interface UnifiedArg<
 > {
   context: TContext;
   event: TEvent;
+  self: ActorRef<TEvent>;
+  system: ActorSystem<any>;
 }
 
 export interface BaseDynamicActionObject<
@@ -104,20 +106,16 @@ export interface BaseDynamicActionObject<
   ) => [AnyState, TResolvedAction];
 
   /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
-  (
-    args: {
-      context: TContext;
-      event: TExpressionEvent;
-    } & ActionMeta<TEvent, ParameterizedObject>
-  ): void;
+  (args: ActionMeta<TContext, TExpressionEvent, ParameterizedObject>): void;
 }
 
 export type MachineContext = Record<string, any>;
 
 export interface ActionMeta<
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject
-> extends StateMeta<TEvent> {
+> extends UnifiedArg<TContext, TEvent> {
   action: TAction;
 }
 
@@ -142,9 +140,10 @@ export type Spawner = <T extends ActorLogic<any, any> | string>( // TODO: read s
   : ActorRef<any, any>; // TODO: narrow this to logic from machine
 
 export interface AssignMeta<
+  TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   _TEvent extends EventObject
-> extends StateMeta<TExpressionEvent> {
+> extends ActionMeta<TContext, TExpressionEvent> {
   action: BaseActionObject;
   event: TExpressionEvent;
   spawn: Spawner;
@@ -154,13 +153,8 @@ export type ActionFunction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
-  TEvent extends EventObject = TExpressionEvent
-> = (
-  args: {
-    context: TContext;
-    event: TExpressionEvent;
-  } & ActionMeta<TEvent, TAction>
-) => void;
+  _TEvent extends EventObject = TExpressionEvent
+> = (args: ActionMeta<TContext, TExpressionEvent, TAction>) => void;
 
 export interface ChooseCondition<
   TContext extends MachineContext,
@@ -1227,7 +1221,7 @@ export type ExprWithMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
   T
-> = (args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent>) => T;
+> = (args: UnifiedArg<TContext, TEvent>) => T;
 
 export type SendExpr<
   TContext extends MachineContext,
@@ -1295,24 +1289,14 @@ export type Assigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
-> = (
-  args: {
-    context: TContext;
-    event: TExpressionEvent;
-  } & AssignMeta<TExpressionEvent, TEvent>
-) => Partial<TContext>;
+> = (args: AssignMeta<TContext, TExpressionEvent, TEvent>) => Partial<TContext>;
 
 export type PartialAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TKey extends keyof TContext
-> = (
-  args: {
-    context: TContext;
-    event: TExpressionEvent;
-  } & AssignMeta<TExpressionEvent, TEvent>
-) => TContext[TKey];
+> = (args: AssignMeta<TContext, TExpressionEvent, TEvent>) => TContext[TKey];
 
 export type PropertyAssigner<
   TContext extends MachineContext,
@@ -1491,11 +1475,6 @@ export interface Segment<
    * Event from state.
    */
   event: TEvent;
-}
-
-export interface StateMeta<TEvent extends EventObject> {
-  self: ActorRef<TEvent>;
-  system: ActorSystem<any>;
 }
 
 export interface StateLike<TContext extends MachineContext> {

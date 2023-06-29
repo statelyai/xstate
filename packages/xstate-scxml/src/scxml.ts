@@ -7,7 +7,6 @@ import {
   createMachine,
   BaseActionObject,
   AnyStateMachine,
-  StateMeta,
   sendTo,
   log,
   raise,
@@ -143,7 +142,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   event: TEvent,
-  _meta: StateMeta<TEvent>,
+  _meta: any,
   body: string
 ) => {
   const datamodel = context

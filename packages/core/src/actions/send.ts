@@ -20,7 +20,6 @@ import {
   InferEvent,
   SendActionObject,
   SendActionOptions,
-  StateMeta,
   UnifiedArg
 } from '../index.ts';
 import { actionTypes, error } from '../actions.ts';
@@ -86,7 +85,7 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent> = {
+      const args: UnifiedArg<TContext, TEvent> = {
         context: state.context,
         event,
         self: actorContext?.self ?? (null as any),

@@ -12,12 +12,7 @@ export type ImmerAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
-> = (
-  args: { context: Draft<TContext>; event: TExpressionEvent } & AssignMeta<
-    TExpressionEvent,
-    TEvent
-  >
-) => void;
+> = (args: AssignMeta<Draft<TContext>, TExpressionEvent, TEvent>) => void;
 
 export interface ImmerAssignAction<
   TContext extends MachineContext,
