@@ -141,8 +141,7 @@ export type Spawner = <T extends ActorLogic<any, any> | string>( // TODO: read s
 
 export interface AssignArgs<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  _TEvent extends EventObject
+  TExpressionEvent extends EventObject
 > extends ActionArgs<TContext, TExpressionEvent> {
   action: BaseActionObject;
   event: TExpressionEvent;
@@ -152,8 +151,7 @@ export interface AssignArgs<
 export type ActionFunction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  _TEvent extends EventObject = TExpressionEvent
+  TAction extends ParameterizedObject = ParameterizedObject
 > = (args: ActionArgs<TContext, TExpressionEvent, TAction>) => void;
 
 export interface ChooseCondition<
@@ -172,7 +170,7 @@ export type Action<
 > =
   | ActionType
   | ParameterizedObject
-  | ActionFunction<TContext, TExpressionEvent, ParameterizedObject, TEvent>
+  | ActionFunction<TContext, TExpressionEvent, ParameterizedObject>
   | BaseDynamicActionObject<TContext, TExpressionEvent, TEvent, any, any>; // TODO: fix last param
 
 /**
@@ -198,7 +196,7 @@ export type BaseAction<
     >
   | TAction
   | SimpleActionsFrom<TAction>['type']
-  | ActionFunction<TContext, TExpressionEvent, TAction, TEvent>;
+  | ActionFunction<TContext, TExpressionEvent, TAction>;
 
 export type BaseActions<
   TContext extends MachineContext,
@@ -796,8 +794,7 @@ type MachineImplementationsActions<
     | ActionFunction<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
-        ParameterizedObject, // TODO: when bringing back parametrized actions this should accept something like `Cast<Prop<TIndexedActions, K>, ParameterizedObject>`. At the moment we need to keep this type argument consistent with what is provided to the fake callable signature within `BaseDynamicActionObject`
-        Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
+        ParameterizedObject // TODO: when bringing back parametrized actions this should accept something like `Cast<Prop<TIndexedActions, K>, ParameterizedObject>`. At the moment we need to keep this type argument consistent with what is provided to the fake callable signature within `BaseDynamicActionObject`
       >;
 };
 
@@ -1287,24 +1284,21 @@ export interface CancelActionObject extends BaseActionObject {
 
 export type Assigner<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
-> = (args: AssignArgs<TContext, TExpressionEvent, TEvent>) => Partial<TContext>;
+  TExpressionEvent extends EventObject
+> = (args: AssignArgs<TContext, TExpressionEvent>) => Partial<TContext>;
 
 export type PartialAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject,
   TKey extends keyof TContext
-> = (args: AssignArgs<TContext, TExpressionEvent, TEvent>) => TContext[TKey];
+> = (args: AssignArgs<TContext, TExpressionEvent>) => TContext[TKey];
 
 export type PropertyAssigner<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TExpressionEvent extends EventObject
 > = {
   [K in keyof TContext]?:
-    | PartialAssigner<TContext, TExpressionEvent, TEvent, K>
+    | PartialAssigner<TContext, TExpressionEvent, K>
     | TContext[K];
 };
 
@@ -1340,8 +1334,8 @@ export type DynamicAssignAction<
   AssignActionObject<TContext> | RaiseActionObject<TContext, TExpressionEvent>,
   {
     assignment:
-      | Assigner<TContext, TExpressionEvent, TEvent>
-      | PropertyAssigner<TContext, TExpressionEvent, TEvent>;
+      | Assigner<TContext, TExpressionEvent>
+      | PropertyAssigner<TContext, TExpressionEvent>;
   }
 >;
 

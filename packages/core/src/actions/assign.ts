@@ -26,8 +26,8 @@ export function assign<
   TEvent extends EventObject = TExpressionEvent
 >(
   assignment:
-    | Assigner<LowInfer<TContext>, TExpressionEvent, TEvent>
-    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent, TEvent>
+    | Assigner<LowInfer<TContext>, TExpressionEvent>
+    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent>
 ): DynamicAssignAction<TContext, TExpressionEvent, TEvent> {
   return createDynamicAction<
     TContext,
@@ -53,7 +53,7 @@ export function assign<
         );
       }
 
-      const args: AssignArgs<TContext, TExpressionEvent, TEvent> = {
+      const args: AssignArgs<TContext, TExpressionEvent> = {
         context: state.context,
         event,
         action,
