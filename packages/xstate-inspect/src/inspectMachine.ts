@@ -3,6 +3,7 @@ import { XStateDevInterface } from 'xstate/dev';
 import { stringifyMachine, stringifyState } from './serialize.ts';
 
 import { ReceiverEvent, Replacer } from './types.ts';
+import { stringify } from './utils.ts';
 
 export type InspectMachineEvent =
   | ReceiverEvent
@@ -84,7 +85,7 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               context.client?.send({
                 type: 'service.register',
-                machine: stringifyMachine(service.logic, options?.serialize),
+                machine: stringify(service.logic, options?.serialize),
                 state: stringifyState(
                   service.getSnapshot(),
                   options?.serialize
