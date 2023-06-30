@@ -9,7 +9,7 @@ import {
 import { XStateDevInterface } from 'xstate/dev';
 import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
-import { stringifyMachine, stringifyState } from './serialize.ts';
+import { stringifyState } from './serialize.ts';
 import type {
   Inspector,
   InspectorOptions,
