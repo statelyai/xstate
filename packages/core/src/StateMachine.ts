@@ -1,6 +1,5 @@
-import { error, createInitEvent, initEvent } from './actions.ts';
+import { error, createInitEvent, assign } from './actions.ts';
 import { STATE_DELIMITER } from './constants.ts';
-import { createSpawner } from './spawn.ts';
 import { getPersistedState, State } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import { interpret } from './interpreter.ts';
@@ -30,7 +29,6 @@ import type {
   ActorMap,
   EventObject,
   InternalMachineImplementations,
-  InvokeActionObject,
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
@@ -71,28 +69,6 @@ export class StateMachine<
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     >
 {
-  private getContextAndActions(
-    actorCtx?: ActorContext<any, any>,
-    input?: any
-  ): [TContext, InvokeActionObject[]] {
-    const actions: InvokeActionObject[] = [];
-    const { context } = this.config;
-    const resolvedContext =
-      typeof context === 'function'
-        ? context({
-            spawn: createSpawner(
-              actorCtx?.self,
-              this,
-              undefined as any, // TODO: this requires `| undefined` for all referenced dynamic inputs that are spawnable in the context factory,
-              createInitEvent(input),
-              actions
-            ),
-            input
-          })
-        : context;
-
-    return [resolvedContext || ({} as TContext), actions];
-  }
   /**
    * The machine's own version.
    */
@@ -263,28 +239,30 @@ export class StateMachine<
    */
   private getPreInitialState(
     actorCtx: AnyActorContext,
-    input: any
+    initEvent: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const [context, actions] = this.getContextAndActions(actorCtx, input);
-    const config = getInitialConfiguration(this.root);
+    const { context } = this.config;
+
     const preInitial = this.resolveState(
       this.createState({
         value: {}, // TODO: this is computed in state constructor
-        context,
+        context:
+          typeof context !== 'function' && context ? context : ({} as TContext),
         meta: undefined,
-        configuration: config,
+        configuration: getInitialConfiguration(this.root),
         children: {}
       })
     );
 
-    if (actorCtx) {
-      const nextState = resolveActionsAndContext(
-        actions,
+    if (typeof context === 'function') {
+      const assignment = ({ spawn, event }: any) =>
+        context({ spawn, input: event.input });
+      return resolveActionsAndContext(
+        [assign(assignment)],
         initEvent as TEvent,
         preInitial,
         actorCtx
       );
-      preInitial.children = nextState.children;
     }
 
     return preInitial;
@@ -299,7 +277,7 @@ export class StateMachine<
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
-    const preInitialState = this.getPreInitialState(actorCtx, input);
+    const preInitialState = this.getPreInitialState(actorCtx, initEvent);
     const nextState = microstep(
       [
         {
