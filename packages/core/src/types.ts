@@ -686,9 +686,7 @@ export interface StateNodeDefinition<
 export interface StateMachineDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateNodeDefinition<TContext, TEvent> {
-  context: TContext;
-}
+> extends StateNodeDefinition<TContext, TEvent> {}
 
 export type AnyStateNode = StateNode<any, any>;
 

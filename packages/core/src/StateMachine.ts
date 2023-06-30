@@ -44,7 +44,8 @@ import type {
   ParameterizedObject,
   AnyActorContext,
   AnyEventObject,
-  AnyActorRef
+  AnyActorRef,
+  Equals
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -70,10 +71,6 @@ export class StateMachine<
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     >
 {
-  // TODO: this getter should be removed
-  public getContext(input?: any): TContext {
-    return this.getContextAndActions(undefined, input)[0];
-  }
   private getContextAndActions(
     actorCtx?: ActorContext<any, any>,
     input?: any
@@ -203,14 +200,14 @@ export class StateMachine<
   }
 
   public resolveStateValue(
-    stateValue: StateValue
+    stateValue: StateValue,
+    ...[context]: Equals<TContext, MachineContext> extends true
+      ? []
+      : [TContext]
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const resolvedStateValue = resolveStateValue(this.root, stateValue);
-    const resolvedContext = this.getContext();
 
-    return this.resolveState(
-      State.from(resolvedStateValue, resolvedContext, this)
-    );
+    return this.resolveState(State.from(resolvedStateValue, context, this));
   }
 
   /**
@@ -362,10 +359,7 @@ export class StateMachine<
   }
 
   public get definition(): StateMachineDefinition<TContext, TEvent> {
-    return {
-      context: this.getContext(),
-      ...this.root.definition
-    };
+    return this.root.definition;
   }
 
   public toJSON() {
