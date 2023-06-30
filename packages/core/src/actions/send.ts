@@ -16,11 +16,9 @@ import {
   BaseDynamicActionObject,
   Cast,
   EventFrom,
-  ExprWithMeta,
   InferEvent,
   SendActionObject,
   SendActionOptions,
-  StateMeta,
   UnifiedArg
 } from '../index.ts';
 import { actionTypes, error } from '../actions.ts';
@@ -86,7 +84,7 @@ export function send<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent> = {
+      const args: UnifiedArg<TContext, TEvent> = {
         context: state.context,
         event,
         self: actorContext?.self ?? (null as any),
@@ -245,7 +243,7 @@ export function escalate<
   TEvent extends EventObject,
   TErrorData = any
 >(
-  errorData: TErrorData | ExprWithMeta<TContext, TEvent, TErrorData>,
+  errorData: TErrorData | ((args: UnifiedArg<TContext, TEvent>) => TErrorData),
   options?: SendActionParams<TContext, TEvent>
 ) {
   return sendParent<TContext, TEvent>(
@@ -275,7 +273,10 @@ export function sendTo<
   TEvent extends EventObject,
   TActor extends AnyActorRef
 >(
-  actor: TActor | string | ExprWithMeta<TContext, TEvent, TActor | string>,
+  actor:
+    | TActor
+    | string
+    | ((args: UnifiedArg<TContext, TEvent>) => TActor | string),
   event:
     | EventFrom<TActor>
     | SendExpr<

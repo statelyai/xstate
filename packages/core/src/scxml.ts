@@ -16,8 +16,7 @@ import {
   ChooseCondition,
   DelayExpr,
   EventObject,
-  SendExpr,
-  StateMeta
+  SendExpr
 } from './types.ts';
 import { mapValues } from './utils.ts';
 
@@ -127,7 +126,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   event: TEvent,
-  _meta: StateMeta<TEvent>,
+  _meta: any,
   body: string
 ) => {
   const scope = ['const _sessionid = "NOT_IMPLEMENTED";']

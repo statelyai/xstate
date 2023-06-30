@@ -8,9 +8,9 @@ import {
   BaseDynamicActionObject,
   DynamicStopActionObject,
   EventObject,
-  Expr,
   MachineContext,
-  StopActionObject
+  StopActionObject,
+  UnifiedArg
 } from '../types.ts';
 import { isFunction } from '../utils.ts';
 
@@ -28,7 +28,7 @@ export function stop<
   actorRef:
     | string
     | ActorRef<any>
-    | Expr<TContext, TExpressionEvent, ActorRef<any> | string>
+    | ((args: UnifiedArg<TContext, TExpressionEvent>) => ActorRef<any> | string)
 ): BaseDynamicActionObject<
   TContext,
   TExpressionEvent,
@@ -45,9 +45,14 @@ export function stop<
         actor
       }
     },
-    (event, { state }) => {
+    (event, { state, actorContext }) => {
       const actorRefOrString = isFunction(actor)
-        ? actor({ context: state.context, event })
+        ? actor({
+            context: state.context,
+            event,
+            self: actorContext?.self ?? ({} as any),
+            system: actorContext?.system
+          })
         : actor;
       const actorRef =
         typeof actorRefOrString === 'string'
