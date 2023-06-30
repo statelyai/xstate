@@ -1404,7 +1404,7 @@ export function resolveActionsAndContext<
   actions: BaseActionObject[],
   event: TEvent,
   currentState: State<TContext, TEvent, any>,
-  actorCtx: AnyActorContext | undefined
+  actorCtx: AnyActorContext
 ): AnyState {
   const { machine } = currentState;
   const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
