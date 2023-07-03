@@ -29,10 +29,3 @@ export function stringifyState(state: AnyState, replacer?: Replacer): string {
     replacer
   );
 }
-
-export function stringifyMachine(
-  machine: AnyStateMachine,
-  replacer?: Replacer
-): string {
-  return selectivelyStringify(machine.definition, ['context'], replacer);
-}

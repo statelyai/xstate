@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as pkgUp from 'pkg-up';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { AnyState, AnyStateMachine, interpret } from '../src/index.ts';
-import { toMachine } from '../src/scxml';
+import { toMachine, sanitizeStateId } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
 const TEST_FRAMEWORK = path.dirname(
@@ -426,7 +426,7 @@ async function runTestToCompletion(
       (stateNode) => stateNode.id
     );
 
-    expect(stateIds).toContain(nextConfiguration[0]);
+    expect(stateIds).toContain(sanitizeStateId(nextConfiguration[0]));
   });
 }
 
@@ -467,9 +467,7 @@ describe('scxml', () => {
       ) as SCIONTest;
 
       execTest(`${testGroupName}/${testName}`, async () => {
-        const machine = toMachine(scxmlDefinition, {
-          delimiter: '$'
-        });
+        const machine = toMachine(scxmlDefinition);
 
         try {
           await runTestToCompletion(machine, scxmlTest);
