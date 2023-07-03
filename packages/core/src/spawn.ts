@@ -23,7 +23,9 @@ export function createSpawner<
   return (src, options = {}) => {
     const { systemId } = options;
     if (isString(src)) {
-      const referenced = resolveReferencedActor(machine.options.actors[src]);
+      const referenced = resolveReferencedActor(
+        machine.implementations.actors[src]
+      );
 
       if (referenced) {
         const input = 'input' in options ? options.input : referenced.input;

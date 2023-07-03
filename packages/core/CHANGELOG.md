@@ -1,5 +1,42 @@
 # xstate
 
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- [#4080](https://github.com/statelyai/xstate/pull/4080) [`94526df03`](https://github.com/statelyai/xstate/commit/94526df034bb83fa88d6751a317e9964f83f54cd) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `machine.options` property has been renamed to `machine.implementations`
+
+- [#4078](https://github.com/statelyai/xstate/pull/4078) [`43fcdecf2`](https://github.com/statelyai/xstate/commit/43fcdecf27106370745404be0d9878dd69faf9a3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed spawned actors cleanup when multiple actors were spawned without explicit IDs assigned to them.
+
+- [#4083](https://github.com/statelyai/xstate/pull/4083) [`163528529`](https://github.com/statelyai/xstate/commit/163528529d7887b093b308c1f92911f025f437c7) Thanks [@Andarist](https://github.com/Andarist)! - Remove `State['changed']`. A new instance of `State` is being created if there are matching transitions for the received event. If there are no matching transitions then the current state is being returned.
+
+- [#4064](https://github.com/statelyai/xstate/pull/4064) [`047897265`](https://github.com/statelyai/xstate/commit/04789726500e97d0a0a63681fc7abf66f97195b3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Guard objects can now reference other guard objects:
+
+  ```ts
+  const machine = createMachine(
+    {
+      initial: 'home',
+      states: {
+        home: {
+          on: {
+            NEXT: {
+              target: 'success',
+              guard: 'hasSelection'
+            }
+          }
+        },
+        success: {}
+      }
+    },
+    {
+      guards: {
+        // `hasSelection` is a guard object that references the `stateIn` guard
+        hasSelection: stateIn('selected')
+      }
+    }
+  );
+  ```
+
 ## 5.0.0-beta.14
 
 ### Major Changes
