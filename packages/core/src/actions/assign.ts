@@ -5,7 +5,7 @@ import type {
   MachineContext,
   AssignActionObject,
   DynamicAssignAction,
-  AssignMeta,
+  AssignArgs,
   InvokeActionObject,
   LowInfer
 } from '../types.ts';
@@ -26,8 +26,8 @@ export function assign<
   TEvent extends EventObject = TExpressionEvent
 >(
   assignment:
-    | Assigner<LowInfer<TContext>, TExpressionEvent, TEvent>
-    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent, TEvent>
+    | Assigner<LowInfer<TContext>, TExpressionEvent>
+    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent>
 ): DynamicAssignAction<TContext, TExpressionEvent, TEvent> {
   return createDynamicAction<
     TContext,
@@ -53,10 +53,7 @@ export function assign<
         );
       }
 
-      const args: AssignMeta<TExpressionEvent, TEvent> & {
-        context: TContext;
-        event: TExpressionEvent;
-      } = {
+      const args: AssignArgs<TContext, TExpressionEvent> = {
         context: state.context,
         event,
         action,

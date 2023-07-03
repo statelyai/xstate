@@ -7,7 +7,6 @@ import {
   createMachine,
   BaseActionObject,
   AnyStateMachine,
-  StateMeta,
   sendTo,
   log,
   raise,
@@ -143,7 +142,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   event: TEvent,
-  _meta: StateMeta<TEvent>,
+  _meta: any,
   body: string
 ) => {
   const datamodel = context
@@ -353,8 +352,7 @@ type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
 
 function toConfig(
   nodeJson: XMLElement,
-  id: string,
-  options: ScxmlToMachineOptions
+  id: string
 ): StateNodeConfig<any, any, any, any> {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
@@ -504,7 +502,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: scxmlToMachine(content, options)
+        src: scxmlToMachine(content)
       };
     });
 
@@ -521,9 +519,7 @@ function toConfig(
       ...(nodeJson.name === 'final' ? { type: 'final' } : undefined),
       ...(stateElements.length
         ? {
-            states: mapValues(states, (state, key) =>
-              toConfig(state, key, options)
-            )
+            states: mapValues(states, (state, key) => toConfig(state, key))
           }
         : undefined),
       ...(transitionElements.length ? { on } : undefined),
@@ -536,14 +532,7 @@ function toConfig(
   return { id, ...(nodeJson.name === 'final' ? { type: 'final' } : undefined) };
 }
 
-export interface ScxmlToMachineOptions {
-  delimiter?: string;
-}
-
-function scxmlToMachine(
-  scxmlJson: XMLElement,
-  options: ScxmlToMachineOptions
-): AnyStateMachine {
+function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -574,9 +563,8 @@ function scxmlToMachine(
     : undefined;
 
   const machine = createMachine({
-    ...toConfig(machineElement, '(machine)', options),
-    context,
-    delimiter: options.delimiter
+    ...toConfig(machineElement, '(machine)'),
+    context
   } as any);
 
   appendWildcards(machine.root);
@@ -584,10 +572,7 @@ function scxmlToMachine(
   return machine;
 }
 
-export function toMachine(
-  xml: string,
-  options: ScxmlToMachineOptions
-): AnyStateMachine {
+export function toMachine(xml: string): AnyStateMachine {
   const json = xml2js(xml) as XMLElement;
-  return scxmlToMachine(json, options);
+  return scxmlToMachine(json);
 }

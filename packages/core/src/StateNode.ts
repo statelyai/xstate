@@ -39,7 +39,7 @@ import {
 import { evaluateGuard } from './guards.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { memo } from './memo.ts';
-import { NULL_EVENT } from './constants.ts';
+import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 
 const EMPTY_OBJECT = {};
 
@@ -138,8 +138,7 @@ export class StateNode<
     this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
-      this.config.id ||
-      [this.machine.id, ...this.path].join(this.machine.delimiter);
+      this.config.id || [this.machine.id, ...this.path].join(STATE_DELIMITER);
     this.type =
       this.config.type ||
       (this.config.states && Object.keys(this.config.states).length

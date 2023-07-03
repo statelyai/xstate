@@ -35,7 +35,12 @@ import {
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
-import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.ts';
+import {
+  STATE_IDENTIFIER,
+  NULL_EVENT,
+  WILDCARD,
+  STATE_DELIMITER
+} from './constants.ts';
 import { evaluateGuard, toGuardDefinition } from './guards.ts';
 import type { StateNode } from './StateNode.ts';
 import { isDynamicAction } from '../actions/dynamicAction.ts';
@@ -528,7 +533,7 @@ export function formatInitialTransition<
   return formatTransition(stateNode, {
     target: toArray(_target.target).map((t) => {
       if (isString(t)) {
-        return isStateId(t) ? t : `${stateNode.machine.delimiter}${t}`;
+        return isStateId(t) ? t : `${STATE_DELIMITER}${t}`;
       }
 
       return t;
@@ -554,7 +559,7 @@ export function resolveTarget(
       return stateNode.machine.getStateNodeById(target);
     }
 
-    const isInternalTarget = target[0] === stateNode.machine.delimiter;
+    const isInternalTarget = target[0] === STATE_DELIMITER;
     // If internal target is defined on machine,
     // do not include machine key on target
     if (isInternalTarget && !stateNode.parent) {
@@ -670,10 +675,7 @@ export function getStateNodeByPath(
       // throw e;
     }
   }
-  const arrayStatePath = toStatePath(
-    statePath,
-    stateNode.machine.delimiter
-  ).slice();
+  const arrayStatePath = toStatePath(statePath).slice();
   let currentStateNode: AnyStateNode = stateNode;
   while (arrayStatePath.length) {
     const key = arrayStatePath.shift()!;
@@ -697,10 +699,7 @@ export function getStateNodes<
   stateNode: AnyStateNode,
   state: StateValue | State<TContext, TEvent, TODO, TODO>
 ): Array<AnyStateNode> {
-  const stateValue =
-    state instanceof State
-      ? state.value
-      : toStateValue(state, stateNode.machine.delimiter);
+  const stateValue = state instanceof State ? state.value : toStateValue(state);
 
   if (isString(stateValue)) {
     return [stateNode, stateNode.states[stateValue]];

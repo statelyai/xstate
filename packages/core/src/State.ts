@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { STATE_DELIMITER } from './constants.ts';
 import { memo } from './memo.ts';
 import type { StateNode } from './StateNode.ts';
 import {
@@ -154,10 +155,7 @@ export class State<
    * @param stateValue
    * @param delimiter The character(s) that separate each subpath in the string state node path.
    */
-  public toStrings(
-    stateValue: StateValue = this.value,
-    delimiter: string = '.'
-  ): string[] {
+  public toStrings(stateValue: StateValue = this.value): string[] {
     if (isString(stateValue)) {
       return [stateValue];
     }
@@ -165,9 +163,7 @@ export class State<
 
     return valueKeys.concat(
       ...valueKeys.map((key) =>
-        this.toStrings(stateValue[key], delimiter).map(
-          (s) => key + delimiter + s
-        )
+        this.toStrings(stateValue[key]).map((s) => key + STATE_DELIMITER + s)
       )
     );
   }
