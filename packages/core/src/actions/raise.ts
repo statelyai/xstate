@@ -10,8 +10,7 @@ import {
   AnyInterpreter,
   RaiseActionParams,
   NoInfer,
-  UnifiedArg,
-  StateMeta
+  UnifiedArg
 } from '../types.ts';
 
 /**
@@ -62,8 +61,7 @@ export function raise<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const args: UnifiedArg<TContext, TExpressionEvent> &
-        StateMeta<TExpressionEvent> = {
+      const args: UnifiedArg<TContext, TExpressionEvent> = {
         context: state.context,
         event,
         self: actorContext?.self ?? ({} as any),

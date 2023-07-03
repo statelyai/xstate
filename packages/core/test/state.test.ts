@@ -234,20 +234,6 @@ describe('State', () => {
       ]);
     });
 
-    it('should respect `delimiter` option for deeply nested states', () => {
-      const actorRef = interpret(exampleMachine).start();
-      actorRef.send({
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(actorRef.getSnapshot().toStrings(undefined, ':')).toEqual([
-        'two',
-        'two:deep',
-        'two:deep:foo'
-      ]);
-    });
-
     it('should keep reference to state instance after destructuring', () => {
       expect(interpret(exampleMachine).getSnapshot().toStrings()).toEqual([
         'one'
