@@ -81,7 +81,7 @@ const testGroups = {
 };
 
 describe('scxml', () => {
-  const testGroupKeys = Object.keys(testGroups);
+  const testGroupKeys = Object.keys(testGroups) as (keyof typeof testGroups)[];
   // const testGroupKeys = ['scxml-prefix-event-name-matching'];
 
   testGroupKeys.forEach((testGroupName) => {
@@ -106,9 +106,7 @@ describe('scxml', () => {
       });
 
       it.skip(`${testGroupName}/${testName}`, async () => {
-        const machine = toMachine(scxmlDefinition, {
-          delimiter: '$'
-        });
+        const machine = toMachine(scxmlDefinition);
 
         await runTestToCompletion(machine as any, scxmlTest); // TODO: fix
       }, 2000);

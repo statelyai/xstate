@@ -36,7 +36,7 @@ export const deriveServiceState = <
       matches:
         prevState && isState(prevState)
           ? prevState.matches
-          : function (parentStateValue: any) {
+          : function (this: AnyState, parentStateValue: string) {
               return matchesState(parentStateValue, this.value);
             }
     } as StateReturnType;

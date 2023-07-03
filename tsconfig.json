@@ -5,12 +5,11 @@
     "moduleResolution": "node16",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "strictNullChecks": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
-    "strictPropertyInitialization": true
+    "strict": true
   },
   "exclude": ["examples", "templates"]
 }

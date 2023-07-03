@@ -9,7 +9,7 @@ import {
 import { XStateDevInterface } from 'xstate/dev';
 import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
-import { stringifyMachine, stringifyState } from './serialize.ts';
+import { stringifyState } from './serialize.ts';
 import type {
   Inspector,
   InspectorOptions,
@@ -32,6 +32,11 @@ export function createDevTools(): XStateDevInterface {
   const services = new Set<AnyInterpreter>();
   const serviceListeners = new Set<ServiceListener>();
 
+  const unregister: XStateDevInterface['unregister'] = (service) => {
+    services.delete(service);
+    serviceMap.delete(service.sessionId);
+  };
+
   return {
     services,
     register: (service) => {
@@ -40,16 +45,11 @@ export function createDevTools(): XStateDevInterface {
       serviceListeners.forEach((listener) => listener(service));
 
       service.subscribe({
-        complete() {
-          services.delete(service);
-          serviceMap.delete(service.sessionId);
-        }
+        complete: () => unregister(service),
+        error: () => unregister(service)
       });
     },
-    unregister: (service) => {
-      services.delete(service);
-      serviceMap.delete(service.sessionId);
-    },
+    unregister,
     onRegister: (listener) => {
       serviceListeners.add(listener);
       services.forEach((service) => listener(service));
@@ -69,7 +69,7 @@ const defaultInspectorOptions = {
     document.querySelector<HTMLIFrameElement>('iframe[data-xstate]'),
   devTools: () => {
     const devTools = createDevTools();
-    globalThis.__xstate__ = devTools;
+    (globalThis as any).__xstate__ = devTools;
     return devTools;
   },
   serialize: undefined,
@@ -155,7 +155,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     const state = service.getSnapshot();
     inspectService.send({
       type: 'service.register',
-      machine: stringifyMachine(service.logic, options?.serialize),
+      machine: stringify(service.logic, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
@@ -263,8 +263,12 @@ export function createWindowReceiver(
       }
       targetWindow.postMessage(event, '*');
     },
-    subscribe(next, onError?, onComplete?) {
-      const observer = toObserver(next, onError, onComplete);
+    subscribe(
+      next: (value: ParsedReceiverEvent) => void,
+      error?: (error: any) => void,
+      complete?: () => void
+    ) {
+      const observer = toObserver(next, error, complete);
 
       observers.add(observer);
 
@@ -304,8 +308,12 @@ export function createWebSocketReceiver(
     send(event) {
       ws.send(stringify(event, options.serialize));
     },
-    subscribe(next, onError?, onComplete?) {
-      const observer = toObserver(next, onError, onComplete);
+    subscribe(
+      next: (value: ParsedReceiverEvent) => void,
+      error?: (error: any) => void,
+      complete?: () => void
+    ) {
+      const observer = toObserver(next, error, complete);
 
       observers.add(observer);
 

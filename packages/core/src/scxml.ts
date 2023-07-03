@@ -7,20 +7,22 @@ import { raise } from './actions/raise.ts';
 import { send } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 import { not, stateIn } from './guards.ts';
+import { createMachine } from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
   BaseActionObject,
-  createMachine
-} from './index.ts';
-import {
+  StateNodeConfig,
   ChooseCondition,
   DelayExpr,
   EventObject,
-  SendExpr,
-  StateMeta
+  SendExpr
 } from './types.ts';
-import { flatten, isString, mapValues } from './utils.ts';
+import { mapValues } from './utils.ts';
+
+export function sanitizeStateId(id: string) {
+  return id.replace(/\./g, '$');
+}
 
 function appendWildcards(state: AnyStateNode) {
   for (const t of state.transitions) {
@@ -48,13 +50,9 @@ function getAttribute(
 
 function indexedRecord<T extends {}>(
   items: T[],
-  identifier: string | ((item: T) => string)
+  identifierFn: (item: T) => string
 ): Record<string, T> {
   const record: Record<string, T> = {};
-
-  const identifierFn = isString(identifier)
-    ? (item) => item[identifier]
-    : identifier;
 
   items.forEach((item) => {
     const key = identifierFn(item);
@@ -76,7 +74,9 @@ function executableContent(elements: XMLElement[]) {
 function getTargets(targetAttr?: string | number): string[] | undefined {
   // return targetAttr ? [`#${targetAttr}`] : undefined;
   return targetAttr
-    ? `${targetAttr}`.split(/\s+/).map((target) => `#${target}`)
+    ? `${targetAttr}`
+        .split(/\s+/)
+        .map((target) => `#${sanitizeStateId(target)}`)
     : undefined;
 }
 
@@ -126,7 +126,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   event: TEvent,
-  _meta: StateMeta<TEvent>,
+  _meta: any,
   body: string
 ) => {
   const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
@@ -317,21 +317,21 @@ function mapActions(elements: XMLElement[]): BaseActionObject[] {
   return mapped;
 }
 
-function toConfig(
-  nodeJson: XMLElement,
-  id: string,
-  options: ScxmlToMachineOptions
-) {
+type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
+
+function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   const { elements } = nodeJson;
 
   switch (nodeJson.name) {
     case 'history': {
+      const history =
+        (getAttribute(nodeJson, 'type') as HistoryAttributeValue) || 'shallow';
       if (!elements) {
         return {
           id,
-          history: nodeJson.attributes!.type || 'shallow'
+          history
         };
       }
 
@@ -340,12 +340,11 @@ function toConfig(
       );
 
       const target = getAttribute(transitionElement, 'target');
-      const history = getAttribute(nodeJson, 'type') || 'shallow';
 
       return {
         id,
         history,
-        target: target ? `#${target}` : undefined
+        target: target ? `#${sanitizeStateId(target as string)}` : undefined
       };
     }
     default:
@@ -377,9 +376,8 @@ function toConfig(
       (element) => element.name === 'onexit'
     );
 
-    const states: Record<string, any> = indexedRecord(
-      stateElements,
-      (item) => `${item.attributes!.id}`
+    const states: Record<string, any> = indexedRecord(stateElements, (item) =>
+      sanitizeStateId(`${item.attributes!.id}`)
     );
 
     const initialElement = !initial
@@ -389,7 +387,7 @@ function toConfig(
     if (initialElement && initialElement.elements!.length) {
       initial = initialElement.elements!.find(
         (element) => element.name === 'transition'
-      )!.attributes!.target;
+      )!.attributes!.target as string;
     } else if (!initial && !initialElement && stateElements.length) {
       initial = stateElements[0].attributes!.id;
     }
@@ -450,15 +448,13 @@ function toConfig(
     });
 
     const onEntry = onEntryElements
-      ? flatten(
-          onEntryElements.map((onEntryElement) =>
-            mapActions(onEntryElement.elements!)
-          )
+      ? onEntryElements.flatMap((onEntryElement) =>
+          mapActions(onEntryElement.elements!)
         )
       : undefined;
 
     const onExit = onExitElements
-      ? onExitElements.map((onExitElement) =>
+      ? onExitElements.flatMap((onExitElement) =>
           mapActions(onExitElement.elements!)
         )
       : undefined;
@@ -479,26 +475,24 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: scxmlToMachine(content, options)
+        src: scxmlToMachine(content)
       };
     });
 
     return {
-      id,
+      id: sanitizeStateId(id),
       ...(initial
         ? {
             initial: String(initial)
               .split(' ')
-              .map((id) => `#${id}`)
+              .map((id) => `#${sanitizeStateId(id)}`)
           }
         : undefined),
       ...(parallel ? { type: 'parallel' } : undefined),
       ...(nodeJson.name === 'final' ? { type: 'final' } : undefined),
       ...(stateElements.length
         ? {
-            states: mapValues(states, (state, key) =>
-              toConfig(state, key, options)
-            )
+            states: mapValues(states, (state, key) => toConfig(state, key))
           }
         : undefined),
       ...(transitionElements.length ? { on } : undefined),
@@ -512,14 +506,7 @@ function toConfig(
   return { id, ...(nodeJson.name === 'final' ? { type: 'final' } : undefined) };
 }
 
-export interface ScxmlToMachineOptions {
-  delimiter?: string;
-}
-
-function scxmlToMachine(
-  scxmlJson: XMLElement,
-  options: ScxmlToMachineOptions
-): AnyStateMachine {
+function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -546,13 +533,12 @@ function scxmlToMachine(
           }
 
           return acc;
-        }, {})
+        }, {} as Record<string, unknown>)
     : undefined;
 
   const machine = createMachine({
-    ...toConfig(machineElement, '(machine)', options),
-    context,
-    delimiter: options.delimiter
+    ...toConfig(machineElement, '(machine)'),
+    context
   });
 
   appendWildcards(machine.root);
@@ -560,10 +546,7 @@ function scxmlToMachine(
   return machine;
 }
 
-export function toMachine(
-  xml: string,
-  options: ScxmlToMachineOptions
-): AnyStateMachine {
+export function toMachine(xml: string): AnyStateMachine {
   const json = xml2js(xml) as XMLElement;
-  return scxmlToMachine(json, options);
+  return scxmlToMachine(json);
 }

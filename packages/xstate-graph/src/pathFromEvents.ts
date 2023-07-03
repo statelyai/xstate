@@ -6,7 +6,13 @@ import {
   simulate
 } from 'xstate';
 import { getAdjacencyMap } from './adjacency';
-import { SerializedState, StatePath, Steps, TraversalOptions } from './types';
+import {
+  SerializedEvent,
+  SerializedState,
+  StatePath,
+  Steps,
+  TraversalOptions
+} from './types';
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
@@ -33,9 +39,9 @@ export function getPathsFromEvents<
       events,
       ...options
     },
-    isMachine(logic)
+    (isMachine(logic)
       ? createDefaultMachineOptions(logic)
-      : createDefaultLogicOptions(logic)
+      : createDefaultLogicOptions()) as TraversalOptions<TInternalState, TEvent>
   );
   const fromState =
     resolvedOptions.fromState ?? simulate(logic).getInitialState();
@@ -62,7 +68,7 @@ export function getPathsFromEvents<
       event
     });
 
-    const eventSerial = serializeEvent(event);
+    const eventSerial = serializeEvent(event) as SerializedEvent;
     const { state: nextState, event: _nextEvent } =
       adjacency[stateSerial].transitions[eventSerial];
 

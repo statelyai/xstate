@@ -13,8 +13,8 @@ const resolveSerializedStateValue = (
   serialized: string
 ) =>
   serialized[0] === '{'
-    ? machine.resolveStateValue(JSON.parse(serialized))
-    : machine.resolveStateValue(serialized);
+    ? machine.resolveStateValue(JSON.parse(serialized), {})
+    : machine.resolveStateValue(serialized, {});
 
 export function testMultiTransition(
   machine: AnyStateMachine,

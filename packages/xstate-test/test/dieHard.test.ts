@@ -1,4 +1,4 @@
-import { assign, createMachine } from 'xstate';
+import { StateFrom, assign, createMachine } from 'xstate';
 import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
@@ -111,7 +111,7 @@ describe('die hard example', () => {
 
     const options = {
       states: {
-        pending: (state) => {
+        pending: (state: StateFrom<typeof dieHardMachine>) => {
           expect(jugs.five).not.toEqual(4);
           expect(jugs.three).toEqual(state.context.three);
           expect(jugs.five).toEqual(state.context.five);
@@ -291,7 +291,7 @@ describe('error path trace', () => {
             }
           }
         });
-      } catch (err) {
+      } catch (err: any) {
         expect(err.message).toEqual(expect.stringContaining('test error'));
         expect(err.message).toMatchInlineSnapshot(`
           "test error
