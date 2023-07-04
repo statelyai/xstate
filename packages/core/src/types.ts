@@ -1749,30 +1749,28 @@ export interface ActorLogic<
 
 export type AnyActorLogic = ActorLogic<any, any, any, any>;
 
-export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TSnapshot>
-    ? TSnapshot
-    : R extends Interpreter<infer TLogic>
-    ? SnapshotFrom<TLogic>
-    : R extends StateMachine<
-        infer _,
-        infer __,
-        infer ___,
-        infer ____,
-        infer _____
-      >
-    ? StateFrom<R>
-    : R extends ActorLogic<
-        infer _,
-        infer TSnapshot,
-        infer __,
-        infer ___,
-        infer ____
-      >
-    ? TSnapshot
-    : R extends ActorContext<infer _, infer TSnapshot, infer __>
-    ? TSnapshot
-    : never
+export type SnapshotFrom<T> = T extends ActorRef<infer _, infer TSnapshot>
+  ? TSnapshot
+  : T extends Interpreter<infer TLogic>
+  ? SnapshotFrom<TLogic>
+  : T extends StateMachine<
+      infer _,
+      infer __,
+      infer ___,
+      infer ____,
+      infer _____
+    >
+  ? StateFrom<T>
+  : T extends ActorLogic<
+      infer _,
+      infer TSnapshot,
+      infer __,
+      infer ___,
+      infer ____
+    >
+  ? TSnapshot
+  : T extends ActorContext<infer _, infer TSnapshot, infer __>
+  ? TSnapshot
   : never;
 
 export type EventFromLogic<TLogic extends ActorLogic<any, any>> =

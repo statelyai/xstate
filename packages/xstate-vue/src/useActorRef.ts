@@ -10,6 +10,7 @@ import {
   Observer,
   SnapshotFrom,
   StateFrom,
+  Subscription,
   toObserver
 } from 'xstate';
 
@@ -54,7 +55,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
 ): ActorRefFrom<TLogic> {
   const service = interpret(actorLogic, options).start();
 
-  let sub;
+  let sub: Subscription;
   onMounted(() => {
     if (observerOrListener) {
       sub = service.subscribe(toObserver(observerOrListener as any));

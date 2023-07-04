@@ -23,7 +23,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     snapshot.value = nextState;
   }
 
-  const actorRef = useActorRef(actorLogic, options, listener);
+  const actorRef = useActorRef(actorLogic, options, listener as any);
   const snapshot = shallowRef(actorRef.getSnapshot());
 
   return {

@@ -33,7 +33,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     onCleanup(unsubscribe);
   });
 
-  return [snapshot, actorRef.send, actorRef as any];
+  return [snapshot as any, actorRef.send, actorRef as any];
 }
 
 export const useMachine = useActor;
