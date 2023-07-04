@@ -641,18 +641,6 @@ describe('createActorContext', () => {
       );
       ret = (
         <Context.Provider
-          // @ts-expect-error
-          options={{
-            actions: {
-              myAction: () => {}
-            }
-          }}
-        >
-          {null}
-        </Context.Provider>
-      );
-      ret = (
-        <Context.Provider
           logic={machine.provide({
             actions: {
               myAction: () => {}

@@ -35,50 +35,40 @@ export function invoke<
       const { id, src, onSnapshot } = invokeDef;
 
       let resolvedInvokeAction: InvokeActionObject;
-      if (isActorRef(src)) {
+
+      const referenced = resolveReferencedActor(
+        state.machine.implementations.actors[src]
+      );
+
+      if (!referenced) {
+        resolvedInvokeAction = {
+          type,
+          params: invokeDef
+        } as InvokeActionObject;
+      } else {
+        const input = 'input' in invokeDef ? invokeDef.input : referenced.input;
+        const ref = interpret(referenced.src, {
+          id,
+          src,
+          parent: actorContext?.self,
+          systemId: invokeDef.systemId,
+          input:
+            typeof input === 'function'
+              ? input({
+                  context: state.context,
+                  event,
+                  self: actorContext?.self
+                })
+              : input
+        });
+
         resolvedInvokeAction = {
           type,
           params: {
             ...invokeDef,
-            ref: src
+            ref
           }
         } as InvokeActionObject;
-      } else {
-        const referenced = resolveReferencedActor(
-          state.machine.options.actors[src]
-        );
-
-        if (!referenced) {
-          resolvedInvokeAction = {
-            type,
-            params: invokeDef
-          } as InvokeActionObject;
-        } else {
-          const input =
-            'input' in invokeDef ? invokeDef.input : referenced.input;
-          const ref = interpret(referenced.src, {
-            id,
-            src,
-            parent: actorContext?.self,
-            systemId: invokeDef.systemId,
-            input:
-              typeof input === 'function'
-                ? input({
-                    context: state.context,
-                    event,
-                    self: actorContext?.self
-                  })
-                : input
-          });
-
-          resolvedInvokeAction = {
-            type,
-            params: {
-              ...invokeDef,
-              ref
-            }
-          } as InvokeActionObject;
-        }
       }
 
       const actorRef = resolvedInvokeAction.params.ref!;

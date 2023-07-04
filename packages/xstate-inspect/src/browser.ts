@@ -9,7 +9,7 @@ import {
 import { XStateDevInterface } from 'xstate/dev';
 import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
-import { stringifyMachine, stringifyState } from './serialize.ts';
+import { stringifyState } from './serialize.ts';
 import type {
   Inspector,
   InspectorOptions,
@@ -155,7 +155,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     const state = service.getSnapshot();
     inspectService.send({
       type: 'service.register',
-      machine: stringifyMachine(service.logic, options?.serialize),
+      machine: stringify(service.logic, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
