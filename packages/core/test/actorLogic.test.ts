@@ -282,6 +282,18 @@ describe('transition function logic (fromTransition)', () => {
 
     actor.send({ type: 'a' });
   });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+    const transitionLogic = fromTransition((_state, _event, { self }) => {
+      expect(self.send).toBeDefined();
+      return 42;
+    }, 0);
+
+    const actor = interpret(transitionLogic).start();
+
+    actor.send({ type: 'a' });
+  });
 });
 
 describe('observable logic (fromObservable)', () => {
