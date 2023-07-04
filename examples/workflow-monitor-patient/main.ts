@@ -1,4 +1,3 @@
-#!/usr/bin/env vite-node --script
 import { createMachine, interpret } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#monitor-patient-vital-signs-example

@@ -4,9 +4,9 @@ import { createDevTools, inspect } from '../src/index.ts';
 // mute the warning about this not being implemented by jsdom
 window.open = () => null;
 
-const windowListenersUsedArguments: Array<any[]> = [];
+const windowListenersUsedArguments: Array<any> = [];
 const windowAddEventListener = window.addEventListener;
-window.addEventListener = function (...args: any[]) {
+window.addEventListener = function (...args: any) {
   windowListenersUsedArguments.push(args);
   return windowAddEventListener.apply(this, args);
 };
@@ -26,7 +26,7 @@ const createIframeMock = () => {
   const iframe = new EventTarget() as HTMLIFrameElement;
 
   (iframe as any).contentWindow = {
-    postMessage(ev) {
+    postMessage(ev: any) {
       messages.push(ev);
     }
   };
@@ -94,7 +94,7 @@ describe('@xstate/inspect', () => {
       [
         {
           "id": "x:0",
-          "machine": "{"context":{"cycle":"[Circular]"},"id":"whatever","key":"whatever","type":"compound","initial":{"target":["#whatever.active"],"source":"#whatever","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"whatever.active","key":"active","type":"atomic","initial":{"target":[],"source":"#whatever.active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
+          "machine": "{"id":"whatever","key":"whatever","type":"compound","initial":{"target":["#whatever.active"],"source":"#whatever","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"whatever.active","key":"active","type":"atomic","initial":{"target":[],"source":"#whatever.active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
           "parent": undefined,
           "sessionId": "x:0",
           "state": "{"value":"active","done":false,"context":{"cycle":"[Circular]"},"historyValue":{},"children":{},"tags":[]}",
@@ -202,7 +202,7 @@ describe('@xstate/inspect', () => {
       [
         {
           "id": "x:0",
-          "machine": "{"context":{"map":"map","deep":{"map":"map"}},"id":"(machine)","key":"(machine)","type":"compound","initial":{"target":["#(machine).active"],"source":"#(machine)","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"(machine).active","key":"active","type":"atomic","initial":{"target":[],"source":"#(machine).active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
+          "machine": "{"id":"(machine)","key":"(machine)","type":"compound","initial":{"target":["#(machine).active"],"source":"#(machine)","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"(machine).active","key":"active","type":"atomic","initial":{"target":[],"source":"#(machine).active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
           "parent": undefined,
           "sessionId": "x:0",
           "state": "{"value":"active","done":false,"context":{"map":"map","deep":{"map":"map"}},"historyValue":{},"children":{},"tags":[]}",

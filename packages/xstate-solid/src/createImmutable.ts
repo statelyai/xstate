@@ -3,8 +3,8 @@ import { createStore } from 'solid-js/store';
 import { deepClone, isWrappable } from './deepClone.ts';
 import { batch } from 'solid-js';
 
-const resolvePath = (path: any[], obj = {}) => {
-  let current = obj;
+const resolvePath = (path: any[], obj = {}): unknown => {
+  let current: any = obj;
   // tslint:disable-next-line:prefer-for-of
   for (let i = 0; i < path.length; i++) {
     current = current?.[path[i]];

@@ -44,7 +44,7 @@ export function invoke<
         } as InvokeActionObject;
       } else {
         const referenced = resolveReferencedActor(
-          state.machine.options.actors[src]
+          state.machine.implementations.actors[src]
         );
 
         if (!referenced) {

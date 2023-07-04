@@ -1,4 +1,4 @@
-import { EventObject, ExprWithMeta, MachineContext } from '../types.ts';
+import { EventObject, MachineContext, UnifiedArg } from '../types.ts';
 import { cancel as cancelActionType } from '../actionTypes.ts';
 import { isFunction } from '../utils.ts';
 import {
@@ -22,7 +22,7 @@ export function cancel<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(
-  sendId: string | ExprWithMeta<TContext, TExpressionEvent, string>
+  sendId: string | ((args: UnifiedArg<TContext, TExpressionEvent>) => string)
 ): BaseDynamicActionObject<
   TContext,
   TExpressionEvent,

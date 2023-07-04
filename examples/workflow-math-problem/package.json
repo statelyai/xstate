@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "./main.ts",
+    "start": "vite-node --script ./main.ts",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

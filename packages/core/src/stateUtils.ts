@@ -35,7 +35,12 @@ import {
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
-import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants.ts';
+import {
+  STATE_IDENTIFIER,
+  NULL_EVENT,
+  WILDCARD,
+  STATE_DELIMITER
+} from './constants.ts';
 import { evaluateGuard, toGuardDefinition } from './guards.ts';
 import type { StateNode } from './StateNode.ts';
 import { isDynamicAction } from '../actions/dynamicAction.ts';
@@ -164,7 +169,7 @@ function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
     }
   }
 
-  const stateValue = {};
+  const stateValue: StateValue = {};
   for (const childStateNode of childStateNodes) {
     stateValue[childStateNode.key] = getValueFromAdj(childStateNode, adjList);
   }
@@ -347,7 +352,7 @@ export function formatTransition<
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
-  const { guards } = stateNode.machine.options;
+  const { guards } = stateNode.machine.implementations;
   const target = resolveTarget(stateNode, normalizedTarget);
 
   // TODO: should this be part of a lint rule instead?
@@ -527,7 +532,7 @@ export function formatInitialTransition<
   return formatTransition(stateNode, {
     target: toArray(_target.target).map((t) => {
       if (isString(t)) {
-        return isStateId(t) ? t : `${stateNode.machine.delimiter}${t}`;
+        return isStateId(t) ? t : `${STATE_DELIMITER}${t}`;
       }
 
       return t;
@@ -553,7 +558,7 @@ export function resolveTarget(
       return stateNode.machine.getStateNodeById(target);
     }
 
-    const isInternalTarget = target[0] === stateNode.machine.delimiter;
+    const isInternalTarget = target[0] === STATE_DELIMITER;
     // If internal target is defined on machine,
     // do not include machine key on target
     if (isInternalTarget && !stateNode.parent) {
@@ -567,7 +572,7 @@ export function resolveTarget(
           resolvedTarget
         );
         return targetStateNode;
-      } catch (err) {
+      } catch (err: any) {
         throw new Error(
           `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
         );
@@ -669,10 +674,7 @@ export function getStateNodeByPath(
       // throw e;
     }
   }
-  const arrayStatePath = toStatePath(
-    statePath,
-    stateNode.machine.delimiter
-  ).slice();
+  const arrayStatePath = toStatePath(statePath).slice();
   let currentStateNode: AnyStateNode = stateNode;
   while (arrayStatePath.length) {
     const key = arrayStatePath.shift()!;
@@ -696,10 +698,7 @@ export function getStateNodes<
   stateNode: AnyStateNode,
   state: StateValue | State<TContext, TEvent>
 ): Array<AnyStateNode> {
-  const stateValue =
-    state instanceof State
-      ? state.value
-      : toStateValue(state, stateNode.machine.delimiter);
+  const stateValue = state instanceof State ? state.value : toStateValue(state);
 
   if (isString(stateValue)) {
     return [stateNode, stateNode.states[stateValue]];
@@ -1393,7 +1392,7 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    actions.push(...s.exit.flat(), ...s.invoke.map((def) => stop(def.id)));
+    actions.push(...s.exit, ...s.invoke.map((def) => stop(def.id)));
     mutConfiguration.delete(s);
   }
 }
@@ -1422,7 +1421,7 @@ export function resolveActionsAndContext<
   function resolveAction(actionObject: BaseActionObject) {
     const executableActionObject = resolveActionObject(
       actionObject,
-      machine.options.actions
+      machine.implementations.actions
     );
 
     if (isDynamicAction(executableActionObject)) {

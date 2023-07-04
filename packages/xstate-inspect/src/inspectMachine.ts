@@ -1,8 +1,9 @@
 import { ActorRef, assign, createMachine, Interpreter } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { stringifyMachine, stringifyState } from './serialize.ts';
+import { stringifyState } from './serialize.ts';
 
 import { ReceiverEvent, Replacer } from './types.ts';
+import { stringify } from './utils.ts';
 
 export type InspectMachineEvent =
   | ReceiverEvent
@@ -12,7 +13,7 @@ export type InspectMachineEvent =
   | { type: 'xstate.inspecting'; client: Pick<ActorRef<any>, 'send'> };
 
 export function createInspectMachine(
-  devTools: XStateDevInterface = globalThis.__xstate__,
+  devTools: XStateDevInterface = (globalThis as any).__xstate__,
   options?: { serialize?: Replacer | undefined }
 ) {
   const serviceMap = new Map<string, Interpreter<any, any>>();
@@ -84,7 +85,7 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               context.client?.send({
                 type: 'service.register',
-                machine: stringifyMachine(service.logic, options?.serialize),
+                machine: stringify(service.logic, options?.serialize),
                 state: stringifyState(
                   service.getSnapshot(),
                   options?.serialize
