@@ -1,19 +1,19 @@
-import type {
-  EventObject,
-  Assigner,
-  PropertyAssigner,
-  MachineContext,
-  AssignActionObject,
-  DynamicAssignAction,
-  AssignArgs,
-  InvokeActionObject,
-  LowInfer
-} from '../types.ts';
-import * as actionTypes from '../actionTypes.ts';
 import { createDynamicAction } from '../../actions/dynamicAction.ts';
-import { isFunction } from '../utils.ts';
-import { createSpawner } from '../spawn.ts';
 import { cloneState } from '../State.ts';
+import * as actionTypes from '../actionTypes.ts';
+import { createSpawner } from '../spawn.ts';
+import type {
+  AnyActorRef,
+  AssignActionObject,
+  AssignArgs,
+  Assigner,
+  DynamicAssignAction,
+  EventObject,
+  LowInfer,
+  MachineContext,
+  PropertyAssigner
+} from '../types.ts';
+import { isFunction } from '../utils.ts';
 
 /**
  * Updates the current context of the machine.
@@ -45,25 +45,19 @@ export function assign<
       }
     },
     (event, { state, action, actorContext }) => {
-      const capturedActions: InvokeActionObject[] = [];
-
       if (!state.context) {
         throw new Error(
           'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
         );
       }
 
+      const spawnedChildren: Record<string, AnyActorRef> = {};
+
       const args: AssignArgs<TContext, TExpressionEvent> = {
         context: state.context,
         event,
         action,
-        spawn: createSpawner(
-          actorContext?.self,
-          state.machine,
-          state.context,
-          event,
-          capturedActions
-        ),
+        spawn: createSpawner(actorContext, state, event, spawnedChildren),
         self: actorContext?.self ?? ({} as any),
         system: actorContext?.system
       };
@@ -84,13 +78,18 @@ export function assign<
 
       return [
         cloneState(state, {
-          context: updatedContext
+          context: updatedContext,
+          children: Object.keys(spawnedChildren).length
+            ? {
+                ...state.children,
+                ...spawnedChildren
+              }
+            : state.children
         }),
         {
           type: actionTypes.assign,
           params: {
-            context: updatedContext,
-            actions: capturedActions
+            context: updatedContext
           }
         } as AssignActionObject<TContext>
       ];
