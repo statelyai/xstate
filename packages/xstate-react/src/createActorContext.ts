@@ -6,7 +6,6 @@ import {
   AnyStateMachine,
   SnapshotFrom,
   InterpreterOptions,
-  Observer,
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   StateMachine,
@@ -32,49 +31,49 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
       >
     : never;
 
-export function createActorContext<TMachine extends AnyActorLogic>(
-  actorLogic: TMachine,
-  interpreterOptions?: InterpreterOptions<TMachine>,
-  observerOrListener?:
-    | Observer<SnapshotFrom<TMachine>>
-    | ((value: SnapshotFrom<TMachine>) => void)
+export function createActorContext<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  interpreterOptions?: InterpreterOptions<TLogic>
 ): {
   useSelector: <T>(
-    selector: (snapshot: SnapshotFrom<TMachine>) => T,
+    selector: (snapshot: SnapshotFrom<TLogic>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
-  useActorRef: () => ActorRefFrom<TMachine>;
+  useActorRef: () => ActorRefFrom<TLogic>;
   Provider: (
     props: {
       children: React.ReactNode;
-    } & (TMachine extends AnyStateMachine
+      options?: InterpreterOptions<TLogic>;
+    } & (TLogic extends AnyStateMachine
       ? AreAllImplementationsAssumedToBeProvided<
-          TMachine['__TResolvedTypesMeta']
+          TLogic['__TResolvedTypesMeta']
         > extends true
         ? {
-            logic?: TMachine;
+            logic?: TLogic;
           }
         : {
-            logic: ToMachinesWithProvidedImplementations<TMachine>;
+            logic: ToMachinesWithProvidedImplementations<TLogic>;
           }
-      : { logic?: TMachine })
+      : { logic?: TLogic })
   ) => React.ReactElement<any, any>;
 } {
-  const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
+  const ReactContext = React.createContext<ActorRefFrom<TLogic> | null>(null);
 
   const OriginalProvider = ReactContext.Provider;
 
   function Provider({
     children,
     logic: providedLogic = actorLogic,
-    machine
+    machine,
+    options: providedOptions = interpreterOptions
   }: {
     children: React.ReactNode;
-    logic: TMachine;
+    logic: TLogic;
     /**
      * @deprecated Use `logic` instead.
      */
     machine?: never;
+    options?: InterpreterOptions<TLogic>;
   }) {
     if (machine) {
       throw new Error(
@@ -84,17 +83,19 @@ export function createActorContext<TMachine extends AnyActorLogic>(
 
     const actor = (useActorRef as any)(
       providedLogic,
-      interpreterOptions,
-      observerOrListener
-    ) as ActorRefFrom<TMachine>;
+      providedOptions
+    ) as ActorRefFrom<TLogic>;
 
-    return React.createElement(OriginalProvider, { value: actor, children });
+    return React.createElement(OriginalProvider, {
+      value: actor,
+      children
+    });
   }
 
   // TODO: add properties to actor ref to make more descriptive
   Provider.displayName = `ActorProvider`;
 
-  function useContext(): ActorRefFrom<TMachine> {
+  function useContext(): ActorRefFrom<TLogic> {
     const actor = React.useContext(ReactContext);
 
     if (!actor) {
@@ -107,7 +108,7 @@ export function createActorContext<TMachine extends AnyActorLogic>(
   }
 
   function useSelector<T>(
-    selector: (snapshot: SnapshotFrom<TMachine>) => T,
+    selector: (snapshot: SnapshotFrom<TLogic>) => T,
     compare?: (a: T, b: T) => boolean
   ): T {
     const actor = useContext();

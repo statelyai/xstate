@@ -1443,9 +1443,9 @@ describe('useActor hook', () => {
       }
     });
     const Display = () => {
-      const [state, , service] = useActor(machine);
+      const [state, , actorRef] = useActor(machine);
       onCleanup(() => {
-        expect(service.status).toBe(InterpreterStatus.Stopped);
+        expect(actorRef.status).toBe(InterpreterStatus.Stopped);
         done();
       });
 

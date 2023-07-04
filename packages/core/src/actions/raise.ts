@@ -10,8 +10,7 @@ import {
   AnyInterpreter,
   RaiseActionParams,
   NoInfer,
-  UnifiedArg,
-  StateMeta
+  UnifiedArg
 } from '../types.ts';
 
 /**
@@ -62,14 +61,13 @@ export function raise<
             ? eventOrExpr.name
             : eventOrExpr.type
       };
-      const args: UnifiedArg<TContext, TExpressionEvent> &
-        StateMeta<TExpressionEvent> = {
+      const args: UnifiedArg<TContext, TExpressionEvent> = {
         context: state.context,
         event,
         self: actorContext?.self ?? ({} as any),
         system: actorContext?.system
       };
-      const delaysMap = state.machine.options.delays;
+      const delaysMap = state.machine.implementations.delays;
 
       // TODO: helper function for resolving Expr
       if (typeof eventOrExpr === 'string') {

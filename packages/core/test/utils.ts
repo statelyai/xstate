@@ -7,6 +7,14 @@ import {
   StateValue
 } from '../src/index.ts';
 
+const resolveSerializedStateValue = (
+  machine: AnyStateMachine,
+  serialized: string
+) =>
+  serialized[0] === '{'
+    ? machine.resolveStateValue(JSON.parse(serialized), {})
+    : machine.resolveStateValue(serialized, {});
+
 export function testMultiTransition(
   machine: AnyStateMachine,
   fromState: string,
@@ -14,10 +22,7 @@ export function testMultiTransition(
 ): AnyState {
   const computeNext = (state: AnyState | string, eventType: string) => {
     if (typeof state === 'string') {
-      state =
-        state[0] === '{'
-          ? machine.resolveStateValue(JSON.parse(state))
-          : machine.resolveStateValue(state);
+      state = resolveSerializedStateValue(machine, state);
     }
     const nextState = machine.transition(
       state,
@@ -52,7 +57,9 @@ export function testAll(
 
         if (toState === undefined) {
           // undefined means that the state didn't transition
-          expect(resultState.changed).toBe(false);
+          expect(resultState.value).toEqual(
+            resolveSerializedStateValue(machine, fromState).value
+          );
         } else if (typeof toState === 'string') {
           expect(matchesState(toState, resultState.value)).toBeTruthy();
         } else {

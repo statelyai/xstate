@@ -12,14 +12,14 @@ import { deriveServiceState } from './deriveServiceState.ts';
 import type { CheckSnapshot, RestParams } from './types.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
-  machine: TLogic,
+  actorLogic: TLogic,
   ...[options = {}]: RestParams<TLogic>
 ): [
   CheckSnapshot<SnapshotFrom<TLogic>>,
   (event: EventFromLogic<TLogic>) => void,
   ActorRefFrom<TLogic>
 ] {
-  const actorRef = createActorRef(machine, options);
+  const actorRef = createActorRef(actorLogic, options);
 
   const [snapshot, setSnapshot] = createImmutable(
     deriveServiceState(actorRef.getSnapshot()) as SnapshotFrom<TLogic>

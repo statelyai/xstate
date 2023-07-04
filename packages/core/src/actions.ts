@@ -34,8 +34,6 @@ export { choose } from './actions/choose.ts';
 export { pure } from './actions/pure.ts';
 export { actionTypes };
 
-export const initEvent = { type: actionTypes.init };
-
 export function resolveActionObject(
   actionObject: BaseActionObject,
   actionFunctionMap: ActionFunctionMap<any, any>

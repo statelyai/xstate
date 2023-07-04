@@ -659,11 +659,11 @@ describe('useMachine hook for fsm', () => {
     });
 
     const Display = () => {
-      const [state, , service] = useMachine(machine);
       onCleanup(() => {
         expect(service.status).toBe(InterpreterStatus.Stopped);
         done();
       });
+      const [state, , service] = useMachine(machine);
 
       return <div>{state.toString()}</div>;
     };

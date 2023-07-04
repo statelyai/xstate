@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { STATE_DELIMITER } from './constants.ts';
 import { memo } from './memo.ts';
 import type { StateNode } from './StateNode.ts';
 import {
@@ -55,16 +56,6 @@ export class State<
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public _internalQueue: Array<TEvent>;
-  public _initial: boolean = false;
-  /**
-   * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
-   *
-   * - Its value is not equal to its previous value, or:
-   * - It has any new actions (side-effects) to execute.
-   *
-   * An initial state (with no history) will return `undefined`.
-   */
-  public changed: boolean | undefined;
   /**
    * The enabled state nodes representative of the state value.
    */
@@ -94,7 +85,6 @@ export class State<
             context,
             meta: {},
             configuration: [], // TODO: fix,
-            transitions: [],
             children: {}
           },
           machine
@@ -150,10 +140,7 @@ export class State<
    * @param stateValue
    * @param delimiter The character(s) that separate each subpath in the string state node path.
    */
-  public toStrings(
-    stateValue: StateValue = this.value,
-    delimiter: string = '.'
-  ): string[] {
+  public toStrings(stateValue: StateValue = this.value): string[] {
     if (isString(stateValue)) {
       return [stateValue];
     }
@@ -161,9 +148,7 @@ export class State<
 
     return valueKeys.concat(
       ...valueKeys.map((key) =>
-        this.toStrings(stateValue[key], delimiter).map(
-          (s) => key + delimiter + s
-        )
+        this.toStrings(stateValue[key]).map((s) => key + STATE_DELIMITER + s)
       )
     );
   }

@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as pkgUp from 'pkg-up';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { AnyState, AnyStateMachine, interpret } from '../src/index.ts';
-import { toMachine } from '../src/scxml';
+import { toMachine, sanitizeStateId } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
 const TEST_FRAMEWORK = path.dirname(
@@ -191,7 +191,7 @@ const testGroups: Record<string, string[]> = {
     // 'test245.txml', // conversion of namelist not implemented yet
     'test247.txml',
     // 'test250.txml', // this is a manual test - we could test it by snapshoting logged valued
-    'test252.txml',
+    // 'test252.txml', // this expects the parent to not receive the event sent from the canceled child's exit action
     // 'test253.txml', // _event.origintype not implemented yet
     // 'test276.txml', // <invoke src="...">
     // 'test277.txml', // illegal expression in datamodel creates unbound variable
@@ -426,7 +426,7 @@ async function runTestToCompletion(
       (stateNode) => stateNode.id
     );
 
-    expect(stateIds).toContain(nextConfiguration[0]);
+    expect(stateIds).toContain(sanitizeStateId(nextConfiguration[0]));
   });
 }
 
@@ -467,9 +467,7 @@ describe('scxml', () => {
       ) as SCIONTest;
 
       execTest(`${testGroupName}/${testName}`, async () => {
-        const machine = toMachine(scxmlDefinition, {
-          delimiter: '$'
-        });
+        const machine = toMachine(scxmlDefinition);
 
         try {
           await runTestToCompletion(machine, scxmlTest);

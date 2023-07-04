@@ -71,11 +71,10 @@ describe('action creators', () => {
           state: machine.createState({
             context: { delay: 100 },
             value: {},
-            transitions: [],
             children: {}
           }) as any, // TODO: fix
           action,
-          actorContext: undefined
+          actorContext: {} as any
         }
       );
 

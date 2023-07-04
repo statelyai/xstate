@@ -1,5 +1,11 @@
 /* @jsxImportSource solid-js */
-import { ActorRefFrom, AnyState, assign, createMachine } from 'xstate';
+import {
+  ActorRefFrom,
+  AnyState,
+  StateFrom,
+  assign,
+  createMachine
+} from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { useSnapshot, createActorRef, useMachine } from '../src/index.ts';
 import { createMemo, createSignal, from } from 'solid-js';
@@ -32,7 +38,8 @@ describe('usage of selectors with reactive service state', () => {
       const service = createActorRef(machine);
       const serviceState = from(service);
 
-      const selector = (state) => state.context.count;
+      const selector = (state: StateFrom<typeof machine> | undefined) =>
+        state?.context.count;
       rerenders++;
 
       return (
@@ -99,7 +106,7 @@ describe('usage of selectors with reactive service state', () => {
 
       return (
         <div>
-          <div data-testid="name">{name}</div>
+          <div data-testid="name">{name()}</div>
           <button
             data-testid="sendUpper"
             onclick={() => service.send({ type: 'CHANGE', value: 'DAVID' })}
@@ -155,7 +162,8 @@ describe('usage of selectors with reactive service state', () => {
       })
     });
 
-    const selector = (state) => state.context.count;
+    const selector = (state: StateFrom<typeof childMachine>) =>
+      state.context.count;
 
     const App = () => {
       const [state] = useMachine(parentMachine);

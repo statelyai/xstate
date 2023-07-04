@@ -11,6 +11,7 @@ export * from './types.ts';
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
+const WILDCARD = '*';
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
@@ -52,7 +53,7 @@ function toActionObject<TContext extends object, TEvent extends EventObject>(
 }
 
 function createMatcher(value: string) {
-  return (stateValue) => value === stateValue;
+  return (stateValue: string) => value === stateValue;
 }
 
 function createUnchangedState<
@@ -89,7 +90,7 @@ function handleActions<
         tmpContext = action.assignment(nextContext, eventObject);
       } else {
         Object.keys(action.assignment).forEach((key) => {
-          tmpContext[key] =
+          tmpContext[key as keyof TContext] =
             typeof action.assignment[key] === 'function'
               ? action.assignment[key](nextContext, eventObject)
               : action.assignment[key];
@@ -108,7 +109,7 @@ function handleActions<
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
+  TState extends Typestate<TContext> = Typestate<TContext>
 >(
   fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
   implementations: {
@@ -117,7 +118,9 @@ export function createMachine<
 ): StateMachine.Machine<TContext, TEvent, TState> {
   if (isDevelopment) {
     Object.keys(fsmConfig.states).forEach((state) => {
-      if (fsmConfig.states[state].states) {
+      if (
+        'states' in fsmConfig.states[state as keyof typeof fsmConfig.states]
+      ) {
         throw new Error(`Nested finite states not supported.
             Please check the configuration for the "${state}" state.`);
       }
@@ -125,9 +128,9 @@ export function createMachine<
   }
 
   const [initialActions, initialContext] = handleActions(
-    toArray(fsmConfig.states[fsmConfig.initial].entry).map((action) =>
-      toActionObject(action, implementations.actions)
-    ),
+    toArray(
+      fsmConfig.states[fsmConfig.initial as keyof typeof fsmConfig.states].entry
+    ).map((action) => toActionObject(action, implementations.actions)),
     fsmConfig.context!,
     INIT_EVENT as TEvent
   );
@@ -142,7 +145,7 @@ export function createMachine<
       matches: createMatcher(fsmConfig.initial)
     },
     transition: (
-      state: StateMachine.State<TContext, TEvent, TState>,
+      state: string | StateMachine.State<TContext, TEvent, TState>,
       event: TEvent
     ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
@@ -157,9 +160,20 @@ export function createMachine<
         );
       }
 
+      if (isDevelopment && event.type === WILDCARD) {
+        throw new Error(
+          `An event cannot have the wildcard type ('${WILDCARD}')`
+        );
+      }
+
       if (stateConfig.on) {
-        const transitions: Array<StateMachine.Transition<TContext, TEvent>> =
-          toArray(stateConfig.on[event.type]);
+        const transitions = toArray(
+          stateConfig.on[event.type as keyof typeof stateConfig.on] as any
+        ) as Array<StateMachine.Transition<TContext, TEvent, TState['value']>>;
+
+        if (WILDCARD in stateConfig.on) {
+          transitions.push(...toArray(stateConfig.on[WILDCARD]));
+        }
 
         for (const transition of transitions) {
           if (transition === undefined) {
@@ -180,7 +194,8 @@ export function createMachine<
           const isTargetless = target === undefined;
 
           const nextStateValue = target ?? value;
-          const nextStateConfig = fsmConfig.states[nextStateValue];
+          const nextStateConfig =
+            fsmConfig.states[nextStateValue as keyof typeof fsmConfig.states];
 
           if (isDevelopment && !nextStateConfig) {
             throw new Error(

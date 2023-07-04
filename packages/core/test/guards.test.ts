@@ -555,6 +555,70 @@ describe('referencing guards', () => {
       Guard 'missing-predicate' is not implemented.'."
     `);
   });
+
+  it('should be possible to reference a composite guard that only uses inline predicates', () => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT: {
+                target: 'b',
+                guard: 'referenced'
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        guards: {
+          referenced: not(() => false)
+        }
+      }
+    );
+
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
+
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+  });
+
+  it('should be possible to reference a composite guard that references other guards recursively', () => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT: {
+                target: 'b',
+                guard: 'referenced'
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        guards: {
+          truthy: () => true,
+          falsy: () => false,
+          referenced: or([
+            () => false,
+            not('truthy'),
+            and([not('falsy'), 'truthy'])
+          ])
+        }
+      }
+    );
+
+    const actorRef = interpret(machine).start();
+    actorRef.send({ type: 'EVENT' });
+
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+  });
 });
 
 describe('guards - other', () => {
