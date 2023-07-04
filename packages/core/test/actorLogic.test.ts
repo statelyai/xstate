@@ -435,6 +435,15 @@ describe('callback logic (fromCallback)', () => {
 
     interpret(callbackLogic).start();
   });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+    const callbackLogic = fromCallback((_sendBack, _receive, { self }) => {
+      expect(self.send).toBeDefined();
+    });
+
+    interpret(callbackLogic).start();
+  });
 });
 
 describe('machine logic', () => {

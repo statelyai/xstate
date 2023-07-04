@@ -3,7 +3,9 @@ import {
   Receiver,
   ActorLogic,
   EventObject,
-  AnyEventObject
+  AnyEventObject,
+  ActorRefFrom,
+  TODO
 } from '../types';
 import { isPromiseLike, isFunction } from '../utils';
 import { doneInvoke, error } from '../actions.ts';
@@ -16,10 +18,20 @@ export interface CallbackInternalState<TEvent extends EventObject> {
   input?: any;
 }
 
+export type CallbackActorLogic<TEvent extends EventObject> = ActorLogic<
+  TEvent,
+  undefined,
+  CallbackInternalState<TEvent>
+>;
+
+export type CallbackActorRef<TEvent extends EventObject> = ActorRefFrom<
+  CallbackActorLogic<TEvent>
+>;
+
 export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
-): ActorLogic<TEvent, undefined, CallbackInternalState<TEvent>> {
-  const logic: ActorLogic<TEvent, undefined, CallbackInternalState<TEvent>> = {
+): CallbackActorLogic<TEvent> {
+  const logic: CallbackActorLogic<TEvent> = {
     config: invokeCallback,
     start: (_state, { self }) => {
       self.send({ type: startSignalType } as TEvent);
@@ -40,7 +52,8 @@ export function fromCallback<TEvent extends EventObject>(
 
         state.dispose = invokeCallback(sender, receiver, {
           input: state.input,
-          system
+          system,
+          self: self as TODO
         });
 
         if (isPromiseLike(state.dispose)) {
