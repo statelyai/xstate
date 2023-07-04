@@ -378,6 +378,16 @@ describe('observable logic (fromObservable)', () => {
 
     interpret(observableLogic).start();
   });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+    const observableLogic = fromObservable(({ self }) => {
+      expect(self.send).toBeDefined();
+      return of(42);
+    });
+
+    interpret(observableLogic).start();
+  });
 });
 
 describe('eventObservable logic (fromEventObservable)', () => {
@@ -385,6 +395,16 @@ describe('eventObservable logic (fromEventObservable)', () => {
     expect.assertions(1);
     const observableLogic = fromEventObservable(({ system }) => {
       expect(system).toBeDefined();
+      return of({ type: 'a' });
+    });
+
+    interpret(observableLogic).start();
+  });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+    const observableLogic = fromEventObservable(({ self }) => {
+      expect(self.send).toBeDefined();
       return of({ type: 'a' });
     });
 

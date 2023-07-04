@@ -3,7 +3,8 @@ import {
   ActorLogic,
   EventObject,
   Subscription,
-  AnyActorSystem
+  AnyActorSystem,
+  ActorRefFrom
 } from '../types';
 import { stopSignalType } from '../actors';
 
@@ -19,21 +20,26 @@ export type ObservablePersistedState<T> = Omit<
   'subscription'
 >;
 
+export type ObservableActorLogic<T> = ActorLogic<
+  EventObject,
+  T | undefined,
+  ObservableInternalState<T>,
+  ObservablePersistedState<T>
+>;
+
+export type ObservableActorRef<T> = ActorRefFrom<ObservableActorLogic<T>>;
+
 // TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
-export function fromObservable<T, TEvent extends EventObject>(
+export function fromObservable<T>(
   observableCreator: ({
     input,
     system
   }: {
     input: any;
     system: AnyActorSystem;
+    self: ObservableActorRef<T>;
   }) => Subscribable<T>
-): ActorLogic<
-  TEvent,
-  T | undefined,
-  ObservableInternalState<T>,
-  ObservablePersistedState<T>
-> {
+): ObservableActorLogic<T> {
   const nextEventType = '$$xstate.next';
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
@@ -107,7 +113,8 @@ export function fromObservable<T, TEvent extends EventObject>(
       }
       state.subscription = observableCreator({
         input: state.input,
-        system
+        system,
+        self
       }).subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
@@ -151,13 +158,9 @@ export function fromEventObservable<T extends EventObject>(
   }: {
     input: any;
     system: AnyActorSystem;
+    self: ObservableActorRef<T>;
   }) => Subscribable<T>
-): ActorLogic<
-  EventObject,
-  T | undefined,
-  ObservableInternalState<T>,
-  ObservablePersistedState<T>
-> {
+): ObservableActorLogic<T> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
@@ -218,7 +221,8 @@ export function fromEventObservable<T extends EventObject>(
 
       state.subscription = lazyObservable({
         input: state.input,
-        system
+        system,
+        self
       }).subscribe({
         next: (value) => {
           self._parent?.send(value);
