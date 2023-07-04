@@ -1,4 +1,4 @@
-import { createMachine, assign, fromPromise } from 'xstate';
+import { createMachine, assign, fromPromise, PersistedStateFrom } from 'xstate';
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
@@ -325,5 +325,150 @@ describe('createActorContext', () => {
     await waitFor(() => {
       expect(screen.getByTestId('value').textContent).toBe('42');
     });
+  });
+
+  it("should preserve machine's identity when swapping options using in-render `.provide`", () => {
+    const someMachine = createMachine({
+      context: { count: 0 },
+      on: {
+        inc: {
+          actions: assign({ count: ({ context }) => context.count + 1 })
+        }
+      }
+    });
+    const stubFn = jest.fn();
+    const SomeContext = createActorContext(someMachine);
+
+    const Component = () => {
+      const { send } = SomeContext.useActorRef();
+      const count = SomeContext.useSelector((state) => state.context.count);
+      return (
+        <>
+          <span data-testid="count">{count}</span>
+          <button data-testid="button" onClick={() => send({ type: 'inc' })}>
+            Inc
+          </button>
+        </>
+      );
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider
+          logic={someMachine.provide({
+            actions: {
+              testAction: stubFn
+            }
+          })}
+        >
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    fireEvent.click(screen.getByTestId('button'));
+
+    expect(screen.getByTestId('count').textContent).toBe('1');
+
+    fireEvent.click(screen.getByTestId('button'));
+
+    expect(screen.getByTestId('count').textContent).toBe('2');
+  });
+
+  it('options can be passed to the provider', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            next: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+    const SomeContext = createActorContext(machine);
+    let persistedState: PersistedStateFrom<typeof machine> | undefined =
+      undefined;
+
+    const Component = () => {
+      const actorRef = SomeContext.useActorRef();
+      const state = SomeContext.useSelector((state) => state);
+
+      persistedState = actorRef.getPersistedState?.();
+
+      return (
+        <div
+          data-testid="value"
+          onClick={() => {
+            actorRef.send({ type: 'next' });
+          }}
+        >
+          {state.value}
+        </div>
+      );
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider options={{ state: persistedState }}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    const { unmount } = render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('a');
+
+    fireEvent.click(screen.getByTestId('value'));
+
+    // Ensure that the state machine without restored state functions as normal
+    expect(screen.getByTestId('value').textContent).toBe('b');
+
+    // unrender app
+    unmount();
+
+    // At this point, `state` should be `{ value: 'b' }`
+
+    // re-render app
+    render(<App />);
+
+    // Ensure that the state machine is restored to the persisted state
+    expect(screen.getByTestId('value').textContent).toBe('b');
+  });
+
+  it('input can be passed to the provider', () => {
+    const SomeContext = createActorContext(
+      createMachine({
+        types: {} as {
+          context: { doubled: number };
+        },
+        context: ({ input }) => ({
+          doubled: input * 2
+        })
+      })
+    );
+
+    const Component = () => {
+      const doubled = SomeContext.useSelector((state) => state.context.doubled);
+
+      return <div data-testid="value">{doubled}</div>;
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider options={{ input: 42 }}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('84');
   });
 });

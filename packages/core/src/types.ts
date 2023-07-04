@@ -2,7 +2,6 @@ import type { StateNode } from './StateNode.ts';
 import type { State } from './State.ts';
 import type { ActorStatus, Clock, Interpreter } from './interpreter.ts';
 import type { StateMachine } from './StateMachine.ts';
-import type { LifecycleSignal } from './actors/index.ts';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
@@ -101,7 +100,7 @@ export interface BaseDynamicActionObject<
        * The original action object
        */
       action: ParameterizedObject;
-      actorContext: AnyActorContext | undefined;
+      actorContext: AnyActorContext;
     }
   ) => [AnyState, TResolvedAction];
 
