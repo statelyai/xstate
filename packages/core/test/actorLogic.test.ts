@@ -203,6 +203,17 @@ describe('promise logic (fromPromise)', () => {
 
     interpret(promiseLogic).start();
   });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+
+    const promiseLogic = fromPromise(({ self }) => {
+      expect(self.send).toBeDefined();
+      return Promise.resolve(42);
+    });
+
+    interpret(promiseLogic).start();
+  });
 });
 
 describe('transition function logic (fromTransition)', () => {
