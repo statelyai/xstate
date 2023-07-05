@@ -11,7 +11,7 @@ import { useActor } from './useActor.ts';
 import { Ref } from 'vue';
 
 /**
- * @deprecated Use `useActor(...)` instead.
+ * @alias useActor
  */
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<

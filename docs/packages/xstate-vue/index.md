@@ -36,7 +36,7 @@ By using the global variable `XStateVueFSM`
 
 ```vue
 <template>
-  <button @click="send('TOGGLE')">
+  <button @click="send({ type: 'TOGGLE' })">
     {{
       state.value === 'inactive'
         ? 'Click to activate'
@@ -76,72 +76,44 @@ export default {
 
 ## API
 
-### `useMachine(machine, options?)`
+### `useActor(actorLogic, options?)`
 
 A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that interprets the given `machine` and starts a service that runs for the lifetime of the component.
 
 **Arguments**
 
-- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `actors`, `delays`, `immediate`, `context`, or `state`.
+- `actorLogic` - Actor logic, such as a machine from `createMachine(...)` or promise logic from `fromPromise(...)`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options)
 
-**Returns** `{ state, send, service}`:
+**Returns** `{ snapshot, send, actorRef }`:
 
-- `state` - Represents the current state of the machine as an XState `State` object.
-- `send` - A function that sends events to the running service.
-- `service` - The created service.
+- `snapshot` - Represents the current snapshot of the actor.
+- `send` - A function that sends events to the running actorRef.
+- `actorRef` - The created actorRef.
 
-### `useActor(actor, getSnapshot)`
+### `useMachine(machine, options?)`
 
-A [Vue composition function](https://vuejs.org/guide/extras/composition-api-faq.html) that provides access to an existing [actor](https://xstate.js.org/docs/guides/actors.html).
+Alias for `useActor(machine, options?)`
 
-_Since 0.5.0_
+### `useActorRef(actorLogic, options?)`
 
-**Arguments**
-
-- `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
-- `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist.
-
-```js
-import { useActor } from '@xstate/vue';
-
-export default {
-  props: ['someSpawnedActor'],
-  setup(props) {
-    const { state, send } = useActor(props.someSpawnedActor);
-    return { state, send };
-  }
-};
-```
-
-To subscribe to changes on the an actor whilst retaining reactivity from props or another reactive variable, Vue's [computed](https://vuejs.org/api/reactivity-core.html#computed) can be used.
-
-```js
-const { state, send } = useActor(computed(() => props.someSpawnedActor));
-```
-
-### `useInterpret(machine, options?, observer?)`
-
-A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that returns the `service` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `service` with the `observer`, if provided.
-
-_Since 0.5.0_
+A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that returns the `actorRef` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `actorRef` with the `observer`, if provided.
 
 **Arguments**
 
-- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `actorLogic` - Actor logic, such as a machine from `createMachine(...)` or promise logic from `fromPromise(...)`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options)
 - `observer` (optional) - an observer or listener that listens to state updates:
   - an observer (e.g., `{ next: (state) => {/* ... */} }`)
   - or a listener (e.g., `(state) => {/* ... */}`)
 
 ```js
-import { useInterpret } from '@xstate/vue';
+import { useActorRef } from '@xstate/vue';
 import { someMachine } from '../path/to/someMachine';
 export default {
   setup() {
-    const service = useInterpret(someMachine);
-    return service;
+    const actorRef = useActorRef(someMachine);
+    return actorRef;
   }
 };
 ```
@@ -149,17 +121,19 @@ export default {
 With options + listener:
 
 ```js
-import { useInterpret } from '@xstate/vue';
+import { useActorRef } from '@xstate/vue';
 import { someMachine } from '../path/to/someMachine';
 export default {
   setup() {
-    const service = useInterpret(
-      someMachine,
-      {
+    const actorRef = useActorRef(
+      someMachine.provide({
         actions: {
-          /* ... */
+          someAction: () => {
+            // ...
+          }
         }
-      },
+      }),
+      undefined,
       (state) => {
         // subscribes to state changes
         console.log(state.value);
@@ -170,7 +144,7 @@ export default {
 };
 ```
 
-### `useSelector(actor, selector, compare?, getSnapshot?)`
+### `useSelector(actorRef, selector, compare?, getSnapshot?)`
 
 A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that returns the selected value from the snapshot of an `actor`, such as a service. This hook will only cause a rerender if the selected value changes, as determined by the optional `compare` function.
 
@@ -178,7 +152,7 @@ _Since 0.6.0_
 
 **Arguments**
 
-- `actor` - a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
+- `actorRef` - an actor ref
 - `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
 - `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
 - `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
@@ -190,9 +164,9 @@ import { useSelector } from '@xstate/vue';
 const selectCount = (state) => state.context.count;
 
 export default {
-  props: ['service'],
+  props: ['actorRef'],
   setup(props) {
-    const count = useSelector(props.service, selectCount);
+    const count = useSelector(props.actorRef, selectCount);
     // ...
     return { count };
   }
@@ -208,29 +182,29 @@ const selectUser = (state) => state.context.user;
 const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
 
 export default {
-  props: ['service'],
+  props: ['actorRef'],
   setup(props) {
-    const user = useSelector(props.service, selectUser, compareUser);
+    const user = useSelector(props.actorRef, selectUser, compareUser);
     // ...
     return { user };
   }
 };
 ```
 
-With `useInterpret(...)`:
+With `useActorRef(...)`:
 
 ```js
-import { useInterpret, useSelector } from '@xstate/vue';
+import { useActorRef, useSelector } from '@xstate/vue';
 import { someMachine } from '../path/to/someMachine';
 
 const selectCount = (state) => state.context.count;
 
 export default {
   setup() {
-    const service = useInterpret(someMachine);
-    const count = useSelector(service, selectCount);
+    const actorRef = useActorRef(someMachine);
+    const count = useSelector(actorRef, selectCount);
     // ...
-    return { count, service };
+    return { count, actorRef };
   }
 };
 ```
@@ -378,25 +352,13 @@ const persistedState = JSON.parse(
 
 export default {
   setup() {
-    const { state, send } = useMachine(someMachine, {
+    const { snapshot, send } = useMachine(someMachine, {
       state: persistedState
     });
 
-    // state will initially be that persisted state, not the machine's initialState
-    return { state, send };
+    // snapshot will initially be that persisted state, not the machine's initialState
+    return { snapshot, send };
   }
 };
 </script>
 ```
-
-## Migration from 0.4.0
-
-- For spawned actors created using `invoke` or `spawn(...)`, use the `useActor()` hook instead of `useService()`:
-
-  ```diff
-  -import { useService } from '@xstate/vue';
-  +import { useActor } from '@xstate/vue';
-
-  -const {state, send} = useService(someActor);
-  +const {state, send} = useActor(someActor);
-  ```
