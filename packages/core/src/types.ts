@@ -1057,7 +1057,7 @@ export type Transitions<
 export enum ActionTypes {
   Stop = 'xstate.stop',
   Raise = 'xstate.raise',
-  Send = 'xstate.send',
+  SendTo = 'xstate.sendTo',
   Cancel = 'xstate.cancel',
   Assign = 'xstate.assign',
   After = 'xstate.after',
@@ -1203,16 +1203,15 @@ export interface LogActionObject extends BuiltInActionObject {
   };
 }
 
-export interface SendActionObject<
+export interface SendToActionObject<
   TSentEvent extends EventObject = AnyEventObject
 > extends BaseActionObject {
-  type: 'xstate.send';
+  type: 'xstate.sendTo';
   params: {
-    to: ActorRef<TSentEvent> | undefined;
+    to: ActorRef<TSentEvent>;
     event: TSentEvent;
     delay?: number;
     id: string | number;
-    internal: boolean;
   };
 }
 
@@ -1227,15 +1226,10 @@ export enum SpecialTargets {
   Internal = '#_internal'
 }
 
-export interface SendActionOptions<
+export interface SendToActionOptions<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends RaiseActionOptions<TContext, TEvent> {
-  to?:
-    | string
-    | ActorRef<any, any>
-    | ((args: UnifiedArg<TContext, TEvent>) => string | ActorRef<any, any>);
-}
+> extends RaiseActionOptions<TContext, TEvent> {}
 
 export interface RaiseActionOptions<
   TContext extends MachineContext,
@@ -1253,11 +1247,11 @@ export interface RaiseActionParams<
   event: TEvent | SendExpr<TContext, TExpressionEvent, TEvent>;
 }
 
-export interface SendActionParams<
+export interface SendToActionParams<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject = EventObject
-> extends SendActionOptions<TContext, TEvent> {
+> extends SendToActionOptions<TContext, TEvent> {
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
 }
 

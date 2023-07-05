@@ -54,7 +54,7 @@ import {
   DelayedTransitionDefinition,
   HistoryValue,
   InitialTransitionDefinition,
-  SendActionObject
+  SendToActionObject
 } from '.';
 import { stopSignalType } from './actors/index.ts';
 import { ActorStatus } from './interpreter.ts';
@@ -1438,9 +1438,7 @@ export function resolveActionsAndContext<
       intermediateState = nextState;
 
       if (
-        (resolvedAction.type === actionTypes.raise ||
-          (resolvedAction.type === actionTypes.send &&
-            (resolvedAction as SendActionObject).params.internal)) &&
+        resolvedAction.type === actionTypes.raise &&
         typeof (resolvedAction as any).params.delay !== 'number'
       ) {
         raiseActions.push(resolvedAction);
