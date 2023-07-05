@@ -1443,11 +1443,11 @@ describe('useActor hook', () => {
       }
     });
     const Display = () => {
-      const [state, , actorRef] = useActor(machine);
       onCleanup(() => {
         expect(actorRef.status).toBe(InterpreterStatus.Stopped);
         done();
       });
+      const [state, , actorRef] = useActor(machine);
 
       return <div>{state.toString()}</div>;
     };
