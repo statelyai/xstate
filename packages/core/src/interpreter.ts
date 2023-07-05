@@ -28,7 +28,7 @@ import {
   InteropSubscribable,
   InterpreterOptions,
   Observer,
-  SendActionObject,
+  SendToActionObject,
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
@@ -419,7 +419,7 @@ export class Interpreter<
 
   // TODO: make private (and figure out a way to do this within the machine)
   public delaySend(
-    sendAction: SendActionObject | RaiseActionObject<any, any, any>
+    sendAction: SendToActionObject | RaiseActionObject<any, any, any>
   ): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if ('to' in sendAction.params && sendAction.params.to) {

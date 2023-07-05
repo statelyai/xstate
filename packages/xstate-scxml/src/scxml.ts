@@ -268,10 +268,7 @@ function mapAction<
       };
 
       if (target) {
-        return sendTo(target as string, convertedEvent, {
-          ...scxmlParams,
-          to: target as string | undefined
-        });
+        return sendTo(target as string, convertedEvent, scxmlParams);
       }
 
       return raise<TContext, TEvent, TEvent>(convertedEvent as TEvent, {

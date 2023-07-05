@@ -4,10 +4,10 @@ import { cancel } from './actions/cancel.ts';
 import { choose } from './actions/choose.ts';
 import { log } from './actions/log.ts';
 import { raise } from './actions/raise.ts';
-import { send } from './actions/send.ts';
+import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 import { not, stateIn } from './guards.ts';
-import { createMachine } from './index.ts';
+import { AnyActorRef, SpecialTargets, createMachine } from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
@@ -242,11 +242,18 @@ return (${delayToMs})(${element.attributes!.delayexpr});
         };
       }
 
-      return send<TContext, TEvent>(convertedEvent, {
-        delay: convertedDelay,
-        to: target as string | undefined,
-        id: id as string | undefined
-      });
+      if (target === SpecialTargets.Internal) {
+        return raise(convertedEvent as TEvent);
+      }
+
+      return sendTo<TContext, TEvent, AnyActorRef>(
+        typeof target === 'string' ? target : ({ self }) => self,
+        convertedEvent,
+        {
+          delay: convertedDelay,
+          id: id as string | undefined
+        }
+      );
     }
     case 'log': {
       const label = element.attributes!.label;
