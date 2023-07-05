@@ -1,5 +1,25 @@
 # Changelog
 
+## 4.0.0-beta.7
+
+### Major Changes
+
+- [#4050](https://github.com/statelyai/xstate/pull/4050) [`fc88dc8e6`](https://github.com/statelyai/xstate/commit/fc88dc8e6d3fbc4ee8a1e0bdb538bab560b7a695) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `options` prop has been added (back) to the `Context.Provider` component returned from `createActorContext`:
+
+  ```tsx
+  const SomeContext = createActorContext(someMachine);
+
+  // ...
+
+  <SomeContext.Provider options={{ input: 42 }}>
+    {/* ... */}
+  </SomeContext.Provider>;
+  ```
+
+### Minor Changes
+
+- [#4050](https://github.com/statelyai/xstate/pull/4050) [`fc88dc8e6`](https://github.com/statelyai/xstate/commit/fc88dc8e6d3fbc4ee8a1e0bdb538bab560b7a695) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `observerOrListener` argument has been removed from the 3rd argument of `createActorContext(logic, options)`.
+
 ## 4.0.0-beta.6
 
 ### Major Changes
