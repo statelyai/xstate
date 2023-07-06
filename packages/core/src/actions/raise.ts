@@ -1,5 +1,7 @@
+import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
 import {
+  ActionArgs,
   AnyActorContext,
   AnyInterpreter,
   AnyState,
@@ -8,73 +10,64 @@ import {
   MachineContext,
   NoInfer,
   RaiseActionOptions,
-  SendExpr,
-  UnifiedArg
+  SendExpr
 } from '../types.ts';
-import { BuiltinAction } from './_shared.ts';
 
-class RaiseResolver<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> extends BuiltinAction<TContext, TExpressionEvent, TEvent> {
-  static event:
-    | EventObject
-    | SendExpr<MachineContext, EventObject, EventObject>;
-  static id: string | undefined;
-  static delay:
-    | string
-    | number
-    | DelayExpr<MachineContext, EventObject>
-    | undefined;
-  static resolve(
-    _: AnyActorContext,
-    state: AnyState,
-    args: UnifiedArg<any, any>
-  ) {
-    const { event: eventOrExpr, id, delay } = this;
-
-    const delaysMap = state.machine.implementations.delays;
-
-    if (typeof eventOrExpr === 'string') {
-      throw new Error(
-        `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
-      );
-    }
-    const resolvedEvent =
-      typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
-
-    let resolvedDelay: number | undefined;
-    if (typeof delay === 'string') {
-      const configDelay = delaysMap && delaysMap[delay];
-      resolvedDelay =
-        typeof configDelay === 'function' ? configDelay(args) : configDelay;
-    } else {
-      resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
-    }
-    return [
-      typeof resolvedDelay !== 'number'
-        ? cloneState(state, {
-            _internalQueue: state._internalQueue.concat(resolvedEvent)
-          })
-        : state,
-      { event: resolvedEvent, id, delay: resolvedDelay }
-    ];
+function resolve(
+  _: AnyActorContext,
+  state: AnyState,
+  args: ActionArgs<any, any>,
+  {
+    event: eventOrExpr,
+    id,
+    delay
+  }: {
+    event: EventObject | SendExpr<MachineContext, EventObject, EventObject>;
+    id: string | undefined;
+    delay: string | number | DelayExpr<MachineContext, EventObject> | undefined;
   }
-  static execute(
-    actorContext: AnyActorContext,
-    params: {
-      event: EventObject;
-      id: string | undefined;
-      delay: number | undefined;
-    }
-  ) {
-    if (typeof params.delay === 'number') {
-      (actorContext.self as AnyInterpreter).delaySend(
-        params as typeof params & { delay: number }
-      );
-      return;
-    }
+) {
+  const delaysMap = state.machine.implementations.delays;
+
+  if (typeof eventOrExpr === 'string') {
+    throw new Error(
+      `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
+    );
+  }
+  const resolvedEvent =
+    typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
+
+  let resolvedDelay: number | undefined;
+  if (typeof delay === 'string') {
+    const configDelay = delaysMap && delaysMap[delay];
+    resolvedDelay =
+      typeof configDelay === 'function' ? configDelay(args) : configDelay;
+  } else {
+    resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
+  }
+  return [
+    typeof resolvedDelay !== 'number'
+      ? cloneState(state, {
+          _internalQueue: state._internalQueue.concat(resolvedEvent)
+        })
+      : state,
+    { event: resolvedEvent, id, delay: resolvedDelay }
+  ];
+}
+
+function execute(
+  actorContext: AnyActorContext,
+  params: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+  }
+) {
+  if (typeof params.delay === 'number') {
+    (actorContext.self as AnyInterpreter).delaySend(
+      params as typeof params & { delay: number }
+    );
+    return;
   }
 }
 
@@ -95,9 +88,18 @@ export function raise<
     | SendExpr<TContext, TExpressionEvent, NoInfer<TEvent>>,
   options?: RaiseActionOptions<TContext, TExpressionEvent>
 ) {
-  return class Raise extends RaiseResolver<TContext, TExpressionEvent, TEvent> {
-    static event = eventOrExpr as any;
-    static id = options?.id;
-    static delay = options?.delay as any;
-  };
+  function raise(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
+    }
+  }
+
+  raise.event = eventOrExpr;
+  raise.id = options?.id;
+  raise.delay = options?.delay;
+
+  raise.resolve = resolve;
+  raise.execute = execute;
+
+  return raise;
 }

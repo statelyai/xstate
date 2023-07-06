@@ -1,130 +1,123 @@
 import isDevelopment from '#is-development';
+import { actionTypes, error } from '../actions.ts';
 import {
-  EventObject,
-  SendToActionParams,
-  SpecialTargets,
-  SendExpr,
-  AnyEventObject,
-  MachineContext
-} from '../types.ts';
-import {
+  ActionArgs,
   ActorRef,
   AnyActorContext,
   AnyActorRef,
+  AnyEventObject,
   AnyInterpreter,
   AnyState,
   Cast,
   DelayExpr,
   EventFrom,
+  EventObject,
   InferEvent,
+  MachineContext,
+  SendExpr,
   SendToActionOptions,
+  SendToActionParams,
+  SpecialTargets,
   UnifiedArg
-} from '../index.ts';
-import { actionTypes, error } from '../actions.ts';
-import { BuiltinAction } from './_shared.ts';
+} from '../types.ts';
 
-class SendToResolver<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> extends BuiltinAction<TContext, TExpressionEvent, TEvent> {
-  static to:
-    | AnyActorRef
-    | string
-    | ((args: UnifiedArg<MachineContext, EventObject>) => AnyActorRef | string);
-  static event:
-    | EventObject
-    | SendExpr<MachineContext, EventObject, EventObject>;
-  static id: string | undefined;
-  static delay:
-    | string
-    | number
-    | DelayExpr<MachineContext, EventObject>
-    | undefined;
+function resolve(
+  actorContext: AnyActorContext,
+  state: AnyState,
+  args: ActionArgs<any, any>,
+  {
+    to,
+    event: eventOrExpr,
+    id,
+    delay
+  }: {
+    to:
+      | AnyActorRef
+      | string
+      | ((
+          args: UnifiedArg<MachineContext, EventObject>
+        ) => AnyActorRef | string);
+    event: EventObject | SendExpr<MachineContext, EventObject, EventObject>;
+    id: string | undefined;
+    delay: string | number | DelayExpr<MachineContext, EventObject> | undefined;
+  }
+) {
+  const delaysMap = state.machine.implementations.delays;
 
-  static resolve(
-    actorContext: AnyActorContext,
-    state: AnyState,
-    args: UnifiedArg<any, any>
-  ) {
-    const { to, event: eventOrExpr, id, delay } = this;
-    const delaysMap = state.machine.implementations.delays;
+  if (typeof eventOrExpr === 'string') {
+    throw new Error(
+      `Only event objects may be used with sendTo; use sendTo({ type: "${eventOrExpr}" }) instead`
+    );
+  }
+  const resolvedEvent =
+    typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
 
-    if (typeof eventOrExpr === 'string') {
+  let resolvedDelay: number | undefined;
+  if (typeof delay === 'string') {
+    const configDelay = delaysMap && delaysMap[delay];
+    resolvedDelay =
+      typeof configDelay === 'function' ? configDelay(args) : configDelay;
+  } else {
+    resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
+  }
+
+  const resolvedTarget = typeof to === 'function' ? to(args) : to;
+  let targetActorRef: AnyActorRef | undefined;
+
+  if (typeof resolvedTarget === 'string') {
+    if (resolvedTarget === SpecialTargets.Parent) {
+      targetActorRef = actorContext?.self._parent;
+    } else if (resolvedTarget === SpecialTargets.Internal) {
+      targetActorRef = actorContext?.self;
+    } else if (resolvedTarget.startsWith('#_')) {
+      // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
+      // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
+      targetActorRef = state.children[resolvedTarget.slice(2)];
+    } else {
+      targetActorRef = state.children[resolvedTarget];
+    }
+    if (!targetActorRef) {
       throw new Error(
-        `Only event objects may be used with sendTo; use sendTo({ type: "${eventOrExpr}" }) instead`
+        `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
       );
     }
-    const resolvedEvent =
-      typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
-
-    let resolvedDelay: number | undefined;
-    if (typeof delay === 'string') {
-      const configDelay = delaysMap && delaysMap[delay];
-      resolvedDelay =
-        typeof configDelay === 'function' ? configDelay(args) : configDelay;
-    } else {
-      resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
-    }
-
-    const resolvedTarget = typeof to === 'function' ? to(args) : to;
-    let targetActorRef: AnyActorRef | undefined;
-
-    if (typeof resolvedTarget === 'string') {
-      if (resolvedTarget === SpecialTargets.Parent) {
-        targetActorRef = actorContext?.self._parent;
-      } else if (resolvedTarget === SpecialTargets.Internal) {
-        targetActorRef = actorContext?.self;
-      } else if (resolvedTarget.startsWith('#_')) {
-        // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
-        // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
-        targetActorRef = state.children[resolvedTarget.slice(2)];
-      } else {
-        targetActorRef = state.children[resolvedTarget];
-      }
-      if (!targetActorRef) {
-        throw new Error(
-          `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
-        );
-      }
-    } else {
-      targetActorRef = resolvedTarget || actorContext?.self;
-    }
-
-    return [
-      state,
-      { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
-    ];
+  } else {
+    targetActorRef = resolvedTarget || actorContext?.self;
   }
-  static execute(
-    actorContext: AnyActorContext,
-    params: {
-      to: AnyActorRef;
-      event: EventObject;
-      id: string | undefined;
-      delay: number | undefined;
-    }
-  ) {
-    if (typeof params.delay === 'number') {
-      (actorContext.self as AnyInterpreter).delaySend(
-        params as typeof params & { delay: number }
-      );
-      return;
-    }
 
-    const { to, event } = params;
-
-    actorContext.defer(() => {
-      to.send(
-        event.type === actionTypes.error
-          ? {
-              type: `${error(actorContext.self.id)}`,
-              data: (event as any).data
-            }
-          : event
-      );
-    });
+  return [
+    state,
+    { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
+  ];
+}
+function execute(
+  actorContext: AnyActorContext,
+  params: {
+    to: AnyActorRef;
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
   }
+) {
+  if (typeof params.delay === 'number') {
+    (actorContext.self as AnyInterpreter).delaySend(
+      params as typeof params & { delay: number }
+    );
+    return;
+  }
+
+  const { to, event } = params;
+
+  actorContext.defer(() => {
+    to.send(
+      event.type === actionTypes.error
+        ? {
+            type: `${error(actorContext.self.id)}`,
+            data: (event as any).data
+          }
+        : event
+    );
+  });
 }
 
 /**
@@ -155,16 +148,21 @@ export function sendTo<
       >,
   options?: SendToActionOptions<TContext, TExpressionEvent>
 ) {
-  return class SendTo extends SendToResolver<
-    TContext,
-    TExpressionEvent,
-    TEvent
-  > {
-    static to = to as any;
-    static event = eventOrExpr as any;
-    static id = options?.id;
-    static delay = options?.delay as any;
-  };
+  function sendTo(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
+    }
+  }
+
+  sendTo.to = to;
+  sendTo.event = eventOrExpr;
+  sendTo.id = options?.id;
+  sendTo.delay = options?.delay;
+
+  sendTo.resolve = resolve;
+  sendTo.execute = execute;
+
+  return sendTo;
 }
 
 /**

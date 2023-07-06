@@ -1,36 +1,31 @@
+import isDevelopment from '#is-development';
 import {
   AnyActorContext,
   AnyInterpreter,
   AnyState,
   EventObject,
   MachineContext,
-  UnifiedArg
+  ActionArgs
 } from '../types.ts';
-import { BuiltinAction } from './_shared.ts';
 
 type ResolvableSendId<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject
-> = string | ((args: UnifiedArg<TContext, TExpressionEvent>) => string);
+> = string | ((args: ActionArgs<TContext, TExpressionEvent>) => string);
 
-class CancelResolver<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> extends BuiltinAction<TContext, TExpressionEvent, TEvent> {
-  static sendId: ResolvableSendId<any, any>;
-  static resolve(
-    _: AnyActorContext,
-    state: AnyState,
-    args: UnifiedArg<any, any>
-  ) {
-    const { sendId } = this;
-    const resolvedSendId = typeof sendId === 'function' ? sendId(args) : sendId;
-    return [state, resolvedSendId];
-  }
-  static execute(actorContext: AnyActorContext, resolvedSendId: string) {
-    (actorContext.self as AnyInterpreter).cancel(resolvedSendId);
-  }
+function resolve(
+  _: AnyActorContext,
+  state: AnyState,
+  actionArgs: ActionArgs<any, any>,
+  { sendId }: { sendId: ResolvableSendId<any, any> }
+) {
+  const resolvedSendId =
+    typeof sendId === 'function' ? sendId(actionArgs) : sendId;
+  return [state, resolvedSendId];
+}
+
+function execute(actorContext: AnyActorContext, resolvedSendId: string) {
+  (actorContext.self as AnyInterpreter).cancel(resolvedSendId);
 }
 
 /**
@@ -45,11 +40,16 @@ export function cancel<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(sendId: ResolvableSendId<TContext, TExpressionEvent>) {
-  return class Cancel extends CancelResolver<
-    TContext,
-    TExpressionEvent,
-    TEvent
-  > {
-    static sendId = sendId;
-  };
+  function cancel(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
+    }
+  }
+
+  cancel.sendId = sendId;
+
+  cancel.resolve = resolve;
+  cancel.execute = execute;
+
+  return cancel;
 }

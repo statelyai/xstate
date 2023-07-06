@@ -1,48 +1,44 @@
+import isDevelopment from '#is-development';
 import {
+  ActionArgs,
   AnyActorContext,
+  AnyState,
   EventObject,
   LogExpr,
   MachineContext
 } from '../types.ts';
-import { AnyState, UnifiedArg } from '../index.ts';
-import { BuiltinAction } from './_shared.ts';
 
 type ResolvableLogValue<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject
 > = string | LogExpr<TContext, TExpressionEvent>;
 
-class LogResolver<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> extends BuiltinAction<TContext, TExpressionEvent, TEvent> {
-  static value: ResolvableLogValue<any, any>;
-  static label: string | undefined;
-  static resolve(
-    _: AnyActorContext,
-    state: AnyState,
-    args: UnifiedArg<any, any>
-  ) {
-    const { value, label } = this;
-
-    return [
-      state,
-      {
-        value: typeof value === 'function' ? value(args) : value,
-        label
-      }
-    ];
-  }
-  static execute(
-    { logger }: AnyActorContext,
-    { value, label }: { value: unknown; label: string | undefined }
-  ) {
-    if (label) {
-      logger(label, value);
-    } else {
-      logger(value);
+function resolve(
+  _: AnyActorContext,
+  state: AnyState,
+  actionArgs: ActionArgs<any, any>,
+  {
+    value,
+    label
+  }: { value: ResolvableLogValue<any, any>; label: string | undefined }
+) {
+  return [
+    state,
+    {
+      value: typeof value === 'function' ? value(actionArgs) : value,
+      label
     }
+  ];
+}
+
+function execute(
+  { logger }: AnyActorContext,
+  { value, label }: { value: unknown; label: string | undefined }
+) {
+  if (label) {
+    logger(label, value);
+  } else {
+    logger(value);
   }
 }
 
@@ -65,8 +61,17 @@ export function log<
   }) => ({ context, event }),
   label?: string
 ) {
-  return class Log extends LogResolver<TContext, TExpressionEvent, TEvent> {
-    static value = value;
-    static label = label;
-  };
+  function log(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
+    }
+  }
+
+  log.value = value;
+  log.label = label;
+
+  log.resolve = resolve;
+  log.execute = execute;
+
+  return log;
 }

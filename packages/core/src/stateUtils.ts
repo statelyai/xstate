@@ -1420,7 +1420,8 @@ export function resolveActionsAndContext<
     const [nextState, params, actions] = resolved.resolve(
       actorCtx,
       intermediateState,
-      args
+      args,
+      resolved // this holds all params
     );
     intermediateState = nextState;
 
@@ -1428,7 +1429,7 @@ export function resolveActionsAndContext<
       if (actorCtx?.self.status === ActorStatus.Running) {
         resolved.execute(actorCtx!, params);
       } else {
-        actorCtx?.defer(() => resolved.execute(actorCtx!, params));
+        actorCtx?.defer(resolved.execute.bind(null, actorCtx!, params));
       }
     }
 

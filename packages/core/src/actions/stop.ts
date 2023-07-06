@@ -1,6 +1,8 @@
+import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
 import { ActorStatus } from '../interpreter.ts';
 import {
+  ActionArgs,
   ActorRef,
   AnyActorContext,
   AnyState,
@@ -8,7 +10,6 @@ import {
   MachineContext,
   UnifiedArg
 } from '../types.ts';
-import { BuiltinAction } from './_shared.ts';
 
 type ResolvableActorRef<
   TContext extends MachineContext,
@@ -18,54 +19,46 @@ type ResolvableActorRef<
   | ActorRef<any>
   | ((args: UnifiedArg<TContext, TExpressionEvent>) => ActorRef<any> | string);
 
-class StopResolver<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject
-> extends BuiltinAction<TContext, TExpressionEvent, TEvent> {
-  static actorRef: ResolvableActorRef<any, any>;
-  static resolve(
-    _: AnyActorContext,
-    state: AnyState,
-    args: UnifiedArg<any, any>
-  ) {
-    const { actorRef } = this;
+function resolve(
+  _: AnyActorContext,
+  state: AnyState,
+  args: ActionArgs<any, any>,
+  { actorRef }: { actorRef: ResolvableActorRef<any, any> }
+) {
+  const actorRefOrString =
+    typeof actorRef === 'function' ? actorRef(args) : actorRef;
+  const resolvedActorRef: ActorRef<any, any> | undefined =
+    typeof actorRefOrString === 'string'
+      ? state.children[actorRefOrString]
+      : actorRefOrString;
 
-    const actorRefOrString =
-      typeof actorRef === 'function' ? actorRef(args) : actorRef;
-    const resolvedActorRef: ActorRef<any, any> | undefined =
-      typeof actorRefOrString === 'string'
-        ? state.children[actorRefOrString]
-        : actorRefOrString;
-
-    let children = state.children;
-    if (resolvedActorRef) {
-      children = { ...children };
-      delete children[resolvedActorRef.id];
-    }
-    return [
-      cloneState(state, {
-        children
-      }),
-      resolvedActorRef
-    ];
+  let children = state.children;
+  if (resolvedActorRef) {
+    children = { ...children };
+    delete children[resolvedActorRef.id];
   }
-  static execute(
-    actorContext: AnyActorContext,
-    actorRef: ActorRef<any, any> | undefined
-  ) {
-    if (!actorRef) {
-      return;
-    }
-    if (actorRef.status !== ActorStatus.Running) {
-      actorContext.stopChild(actorRef);
-      return;
-    }
-    // TODO: recheck why this one has to be deferred
-    actorContext.defer(() => {
-      actorContext.stopChild(actorRef);
-    });
+  return [
+    cloneState(state, {
+      children
+    }),
+    resolvedActorRef
+  ];
+}
+function execute(
+  actorContext: AnyActorContext,
+  actorRef: ActorRef<any, any> | undefined
+) {
+  if (!actorRef) {
+    return;
   }
+  if (actorRef.status !== ActorStatus.Running) {
+    actorContext.stopChild(actorRef);
+    return;
+  }
+  // TODO: recheck why this one has to be deferred
+  actorContext.defer(() => {
+    actorContext.stopChild(actorRef);
+  });
 }
 
 /**
@@ -79,7 +72,16 @@ export function stop<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
 >(actorRef: ResolvableActorRef<TContext, TExpressionEvent>) {
-  return class Stop extends StopResolver<TContext, TExpressionEvent, TEvent> {
-    static actorRef = actorRef;
-  };
+  function stop(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
+    }
+  }
+
+  stop.actorRef = actorRef;
+
+  stop.resolve = resolve;
+  stop.execute = execute;
+
+  return stop;
 }
