@@ -1,67 +1,73 @@
 import isDevelopment from '#is-development';
 import {
   EventObject,
-  SendActionParams,
+  SendToActionParams,
   SpecialTargets,
   SendExpr,
   AnyEventObject,
   MachineContext
 } from '../types.ts';
-import { send as sendActionType } from '../actionTypes.ts';
+import { sendTo as sendToActionType } from '../actionTypes.ts';
 import { isFunction, isString } from '../utils.ts';
 import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import {
+  ActorRef,
   AnyActorRef,
   AnyInterpreter,
   BaseDynamicActionObject,
   Cast,
   EventFrom,
-  ExprWithMeta,
   InferEvent,
-  SendActionObject,
-  SendActionOptions,
-  StateMeta,
+  SendToActionObject,
+  SendToActionOptions,
   UnifiedArg
 } from '../index.ts';
 import { actionTypes, error } from '../actions.ts';
 
 /**
- * Sends an event. This returns an action that will be read by an interpreter to
- * send the event in the next step, after the current step is finished executing.
+ * Sends an event to an actor.
  *
- * @deprecated Use the `sendTo(...)` action creator instead.
- *
- * @param eventOrExpr The event to send.
- * @param options Options to pass into the send event:
+ * @param actor The `ActorRef` to send the event to.
+ * @param event The event to send, or an expression that evaluates to the event to send
+ * @param options Send action options
  *  - `id` - The unique send event identifier (used with `cancel()`).
  *  - `delay` - The number of milliseconds to delay the sending of the event.
- *  - `to` - The target of this event (by default, the machine the event was sent from).
  */
-export function send<
+export function sendTo<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TSentEvent extends EventObject = AnyEventObject
+  TActor extends AnyActorRef
 >(
-  eventOrExpr: TSentEvent | SendExpr<TContext, TEvent, AnyEventObject>,
-  options?: SendActionOptions<TContext, TEvent>
+  actor:
+    | TActor
+    | string
+    | ((args: UnifiedArg<TContext, TEvent>) => TActor | string),
+  eventOrExpr:
+    | EventFrom<TActor>
+    | SendExpr<
+        TContext,
+        TEvent,
+        InferEvent<Cast<EventFrom<TActor>, EventObject>>
+      >,
+  options?: SendToActionOptions<TContext, TEvent>
 ): BaseDynamicActionObject<
   TContext,
   TEvent,
   TEvent,
-  SendActionObject<AnyEventObject>,
-  SendActionParams<TContext, TEvent>
+  SendToActionObject<AnyEventObject>,
+  SendToActionParams<TContext, TEvent>
 > {
   return createDynamicAction<
     TContext,
     TEvent,
     TEvent,
-    SendActionObject<AnyEventObject>,
-    SendActionParams<TContext, TEvent>
+    SendToActionObject<AnyEventObject>,
+    SendToActionParams<TContext, TEvent>
   >(
     {
-      type: sendActionType,
+      type: sendToActionType,
       params: {
-        to: options ? options.to : undefined,
+        to: actor,
         delay: options ? options.delay : undefined,
         event: eventOrExpr,
         id:
@@ -69,12 +75,12 @@ export function send<
             ? options.id
             : isFunction(eventOrExpr)
             ? eventOrExpr.name
-            : eventOrExpr.type
+            : (eventOrExpr as TEvent).type
       }
     },
     (event, { actorContext, state }) => {
       const params = {
-        to: options ? options.to : undefined,
+        to: actor,
         delay: options ? options.delay : undefined,
         event: eventOrExpr,
         // TODO: don't auto-generate IDs here like that
@@ -84,9 +90,9 @@ export function send<
             ? options.id
             : isFunction(eventOrExpr)
             ? eventOrExpr.name
-            : eventOrExpr.type
+            : (eventOrExpr as TEvent).type
       };
-      const args: UnifiedArg<TContext, TEvent> & StateMeta<TEvent> = {
+      const args: UnifiedArg<TContext, TEvent> = {
         context: state.context,
         event,
         self: actorContext?.self ?? (null as any),
@@ -142,17 +148,16 @@ export function send<
         targetActorRef = resolvedTarget || actorContext?.self;
       }
 
-      const resolvedAction: SendActionObject = {
-        type: actionTypes.send,
+      const resolvedAction: SendToActionObject = {
+        type: actionTypes.sendTo,
         params: {
           ...params,
           to: targetActorRef,
           event: resolvedEvent,
-          delay: resolvedDelay,
-          internal: resolvedTarget === SpecialTargets.Internal
+          delay: resolvedDelay
         },
         execute: (actorCtx) => {
-          const sendAction = resolvedAction as SendActionObject;
+          const sendAction = resolvedAction as SendToActionObject;
 
           if (typeof sendAction.params.delay === 'number') {
             (actorCtx.self as AnyInterpreter).delaySend(sendAction);
@@ -191,13 +196,19 @@ export function sendParent<
   TSentEvent extends EventObject = AnyEventObject
 >(
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>,
-  options?: SendActionOptions<TContext, TEvent>
+  options?: SendToActionOptions<TContext, TEvent>
 ) {
-  return send<TContext, TEvent, TSentEvent>(event, {
-    ...options,
-    to: SpecialTargets.Parent
-  });
+  return sendTo<TContext, TEvent, AnyActorRef>(
+    SpecialTargets.Parent,
+    event,
+    options
+  );
 }
+
+type Target<TContext extends MachineContext, TEvent extends EventObject> =
+  | string
+  | ActorRef<any, any>
+  | ((args: UnifiedArg<TContext, TEvent>) => string | ActorRef<any, any>);
 
 /**
  * Forwards (sends) an event to a specified service.
@@ -209,8 +220,8 @@ export function forwardTo<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  target: Required<SendActionParams<TContext, TEvent>>['to'],
-  options?: SendActionOptions<TContext, TEvent>
+  target: Target<TContext, TEvent>,
+  options?: SendToActionOptions<TContext, TEvent>
 ) {
   if (isDevelopment && (!target || typeof target === 'function')) {
     const originalTarget = target;
@@ -227,10 +238,11 @@ export function forwardTo<
       return resolvedTarget;
     };
   }
-  return send<TContext, TEvent>(({ event }) => event, {
-    ...options,
-    to: target
-  });
+  return sendTo<TContext, TEvent, AnyActorRef>(
+    target,
+    ({ event }: any) => event,
+    options
+  );
 }
 
 /**
@@ -245,48 +257,13 @@ export function escalate<
   TEvent extends EventObject,
   TErrorData = any
 >(
-  errorData: TErrorData | ExprWithMeta<TContext, TEvent, TErrorData>,
-  options?: SendActionParams<TContext, TEvent>
+  errorData: TErrorData | ((args: UnifiedArg<TContext, TEvent>) => TErrorData),
+  options?: SendToActionParams<TContext, TEvent>
 ) {
-  return sendParent<TContext, TEvent>(
-    (arg) => {
-      return {
-        type: actionTypes.error,
-        data: isFunction(errorData) ? errorData(arg) : errorData
-      };
-    },
-    {
-      ...options,
-      to: SpecialTargets.Parent
-    }
-  );
-}
-
-/**
- * Sends an event to an actor.
- *
- * @param actor The `ActorRef` to send the event to.
- * @param event The event to send, or an expression that evaluates to the event to send
- * @param options Send action options
- * @returns An XState send action object
- */
-export function sendTo<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends AnyActorRef
->(
-  actor: TActor | string | ExprWithMeta<TContext, TEvent, TActor | string>,
-  event:
-    | EventFrom<TActor>
-    | SendExpr<
-        TContext,
-        TEvent,
-        InferEvent<Cast<EventFrom<TActor>, EventObject>>
-      >,
-  options?: SendActionOptions<TContext, TEvent>
-) {
-  return send<TContext, TEvent, any>(event, {
-    ...options,
-    to: actor
-  });
+  return sendParent<TContext, TEvent>((arg) => {
+    return {
+      type: actionTypes.error,
+      data: isFunction(errorData) ? errorData(arg) : errorData
+    };
+  }, options);
 }

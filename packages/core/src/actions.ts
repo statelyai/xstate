@@ -17,13 +17,7 @@ import {
   createDynamicAction,
   isDynamicAction
 } from '../actions/dynamicAction.ts';
-export {
-  send,
-  sendTo,
-  sendParent,
-  forwardTo,
-  escalate
-} from './actions/send.ts';
+export { sendTo, sendParent, forwardTo, escalate } from './actions/send.ts';
 
 export { stop } from './actions/stop.ts';
 export { log } from './actions/log.ts';
@@ -33,8 +27,6 @@ export { raise } from './actions/raise.ts';
 export { choose } from './actions/choose.ts';
 export { pure } from './actions/pure.ts';
 export { actionTypes };
-
-export const initEvent = { type: actionTypes.init };
 
 export function resolveActionObject(
   actionObject: BaseActionObject,

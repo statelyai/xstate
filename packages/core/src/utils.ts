@@ -28,11 +28,10 @@ export function keys<T extends object>(value: T): Array<keyof T & string> {
 
 export function matchesState(
   parentStateId: StateValue,
-  childStateId: StateValue,
-  delimiter: string = STATE_DELIMITER
+  childStateId: StateValue
 ): boolean {
-  const parentStateValue = toStateValue(parentStateId, delimiter);
-  const childStateValue = toStateValue(childStateId, delimiter);
+  const parentStateValue = toStateValue(parentStateId);
+  const childStateValue = toStateValue(childStateId);
 
   if (isString(childStateValue)) {
     if (isString(parentStateValue)) {
@@ -56,16 +55,13 @@ export function matchesState(
   });
 }
 
-export function toStatePath(
-  stateId: string | string[],
-  delimiter: string
-): string[] {
+export function toStatePath(stateId: string | string[]): string[] {
   try {
     if (isArray(stateId)) {
       return stateId;
     }
 
-    return stateId.toString().split(delimiter);
+    return stateId.toString().split(STATE_DELIMITER);
   } catch (e) {
     throw new Error(`'${stateId}' is not a valid state path.`);
   }
@@ -81,8 +77,7 @@ export function isStateLike(state: any): state is AnyState {
 }
 
 export function toStateValue(
-  stateValue: StateLike<any> | StateValue | string[],
-  delimiter: string
+  stateValue: StateLike<any> | StateValue | string[]
 ): StateValue {
   if (isStateLike(stateValue)) {
     return stateValue.value;
@@ -96,7 +91,7 @@ export function toStateValue(
     return stateValue as StateValue;
   }
 
-  const statePath = toStatePath(stateValue as string, delimiter);
+  const statePath = toStatePath(stateValue as string);
 
   return pathToStateValue(statePath);
 }

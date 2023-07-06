@@ -139,7 +139,9 @@ describe('machine', () => {
         guards: { someCondition: () => true }
       });
 
-      expect(differentMachine.getContext()).toEqual({ foo: 'bar' });
+      expect(interpret(differentMachine).getSnapshot().context).toEqual({
+        foo: 'bar'
+      });
 
       expect(() => {
         interpret(differentMachine).start();
