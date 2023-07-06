@@ -478,7 +478,7 @@ export type TransitionConfigOrTarget<
   TransitionConfigTarget | TransitionConfig<TContext, TExpressionEvent, TEvent>
 >;
 
-export type TransitionsConfigMap<
+export type TransitionsConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > = {
@@ -486,24 +486,6 @@ export type TransitionsConfigMap<
     ? TransitionConfigOrTarget<TContext, TEvent>
     : TransitionConfigOrTarget<TContext, ExtractEvent<TEvent, K>, TEvent>;
 };
-
-type TransitionsConfigArray<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = Array<
-  // distribute the union
-  | (TEvent extends EventObject
-      ? TransitionConfig<TContext, TEvent> & { event: TEvent['type'] }
-      : never)
-  | (TransitionConfig<TContext, TEvent> & { event: '*' })
->;
-
-export type TransitionsConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> =
-  | TransitionsConfigMap<TContext, TEvent>
-  | TransitionsConfigArray<TContext, TEvent>;
 
 export interface InvokeConfig<
   TContext extends MachineContext,
