@@ -19,7 +19,8 @@ import type {
   InterpreterFrom,
   PersistedStateFrom,
   RaiseActionObject,
-  SnapshotFrom
+  SnapshotFrom,
+  AnyActorRef
 } from './types.ts';
 import {
   ActorRef,
@@ -418,16 +419,29 @@ export class Interpreter<
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
-  public delaySend(
-    sendAction: SendToActionObject | RaiseActionObject<any, any, any>
-  ): void {
-    this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
-      if ('to' in sendAction.params && sendAction.params.to) {
-        sendAction.params.to.send(sendAction.params.event);
+  public delaySend({
+    event,
+    id,
+    delay,
+    to
+  }: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number;
+    to?: AnyActorRef;
+  }): void {
+    const timerId = this.clock.setTimeout(() => {
+      if (to) {
+        to.send(event);
       } else {
-        this.send(sendAction.params.event);
+        this.send(event as TEvent);
       }
-    }, sendAction.params.delay as number);
+    }, delay);
+
+    // TODO: consider the rehydration story here
+    if (id) {
+      this.delayedEventsMap[id] = timerId;
+    }
   }
 
   // TODO: make private (and figure out a way to do this within the machine)

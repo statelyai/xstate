@@ -2,7 +2,6 @@ import { Attributes, Element as XMLElement, js2xml } from 'xml-js';
 import {
   AnyStateMachine,
   BaseActionObject,
-  RaiseActionObject,
   StateNode,
   TransitionDefinition
 } from 'xstate';
@@ -26,21 +25,20 @@ export function functionToExpr(fn: Function): string {
   return fn.toString();
 }
 
-function raiseActionToSCXML(
-  raiseAction: RaiseActionObject<any, any>
-): XMLElement {
+function raiseActionToSCXML(raiseAction: any): XMLElement {
   return {
     type: 'element',
     name: 'raise',
     attributes: {
-      event: raiseAction.params.event.type
+      event: raiseAction.event.type
     }
   };
 }
 
 function actionToSCXML(action: BaseActionObject): XMLElement {
+  // TODO: this won't work rn since we don't keep `builtinAction.type` around
   if (action.type === 'xstate.raise') {
-    return raiseActionToSCXML(action as RaiseActionObject<any, any>);
+    return raiseActionToSCXML(action);
   }
 
   return {

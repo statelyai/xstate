@@ -1,19 +1,74 @@
-import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import { cloneState } from '../State.ts';
-import * as actionTypes from '../actionTypes.ts';
 import { createSpawner } from '../spawn.ts';
 import type {
+  AnyActorContext,
   AnyActorRef,
-  AssignActionObject,
+  AnyState,
   AssignArgs,
   Assigner,
-  DynamicAssignAction,
   EventObject,
   LowInfer,
   MachineContext,
-  PropertyAssigner
+  PropertyAssigner,
+  UnifiedArg
 } from '../types.ts';
-import { isFunction } from '../utils.ts';
+import { BuiltinAction } from './_shared.ts';
+
+class AssignResolver<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject
+> extends BuiltinAction<TContext, TExpressionEvent, TEvent> {
+  static assignment: Assigner<any, any> | PropertyAssigner<any, any>;
+  static resolve(
+    actorContext: AnyActorContext,
+    state: AnyState,
+    args: UnifiedArg<any, any>
+  ) {
+    if (!state.context) {
+      throw new Error(
+        'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
+      );
+    }
+    const { assignment } = this;
+    const spawnedChildren: Record<string, AnyActorRef> = {};
+
+    const assignArgs: AssignArgs<any, any> = {
+      context: state.context,
+      event: args.event,
+      action: null as any, // TODO
+      spawn: createSpawner(actorContext, state, args.event, spawnedChildren),
+      self: actorContext?.self,
+      system: actorContext?.system
+    };
+    let partialUpdate: Record<string, unknown> = {};
+    if (typeof assignment === 'function') {
+      partialUpdate = assignment(assignArgs);
+    } else {
+      for (const key of Object.keys(assignment)) {
+        const propAssignment = assignment[key];
+        partialUpdate[key] =
+          typeof propAssignment === 'function'
+            ? propAssignment(assignArgs)
+            : propAssignment;
+      }
+    }
+
+    const updatedContext = Object.assign({}, state.context, partialUpdate);
+
+    return [
+      cloneState(state, {
+        context: updatedContext,
+        children: Object.keys(spawnedChildren).length
+          ? {
+              ...state.children,
+              ...spawnedChildren
+            }
+          : state.children
+      })
+    ];
+  }
+}
 
 /**
  * Updates the current context of the machine.
@@ -28,71 +83,12 @@ export function assign<
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent>
     | PropertyAssigner<LowInfer<TContext>, TExpressionEvent>
-): DynamicAssignAction<TContext, TExpressionEvent, TEvent> {
-  return createDynamicAction<
+) {
+  return class Assign extends AssignResolver<
     TContext,
     TExpressionEvent,
-    TEvent,
-    AssignActionObject<TContext>,
-    {
-      assignment: typeof assignment;
-    }
-  >(
-    {
-      type: actionTypes.assign,
-      params: {
-        assignment
-      }
-    },
-    (event, { state, action, actorContext }) => {
-      if (!state.context) {
-        throw new Error(
-          'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
-        );
-      }
-
-      const spawnedChildren: Record<string, AnyActorRef> = {};
-
-      const args: AssignArgs<TContext, TExpressionEvent> = {
-        context: state.context,
-        event,
-        action,
-        spawn: createSpawner(actorContext, state, event, spawnedChildren),
-        self: actorContext?.self ?? ({} as any),
-        system: actorContext?.system
-      };
-
-      let partialUpdate: Partial<TContext> = {};
-      if (isFunction(assignment)) {
-        partialUpdate = assignment(args);
-      } else {
-        for (const key of Object.keys(assignment)) {
-          const propAssignment = assignment[key];
-          partialUpdate[key as keyof TContext] = isFunction(propAssignment)
-            ? propAssignment(args)
-            : propAssignment;
-        }
-      }
-
-      const updatedContext = Object.assign({}, state.context, partialUpdate);
-
-      return [
-        cloneState(state, {
-          context: updatedContext,
-          children: Object.keys(spawnedChildren).length
-            ? {
-                ...state.children,
-                ...spawnedChildren
-              }
-            : state.children
-        }),
-        {
-          type: actionTypes.assign,
-          params: {
-            context: updatedContext
-          }
-        } as AssignActionObject<TContext>
-      ];
-    }
-  );
+    TEvent
+  > {
+    static assignment = assignment;
+  };
 }

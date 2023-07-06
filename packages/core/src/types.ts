@@ -83,31 +83,6 @@ export interface UnifiedArg<
   system: ActorSystem<any>;
 }
 
-export interface BaseDynamicActionObject<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TEvent extends EventObject,
-  TResolvedAction extends BaseActionObject,
-  TDynamicParams extends Record<string, any>
-> {
-  type: `xstate.${string}`;
-  params: TDynamicParams;
-  resolve: (
-    event: TExpressionEvent,
-    extra: {
-      state: State<TContext, TEvent>;
-      /**
-       * The original action object
-       */
-      action: ParameterizedObject;
-      actorContext: AnyActorContext;
-    }
-  ) => [AnyState, TResolvedAction];
-
-  /** @deprecated an internal signature that doesn't exist at runtime. Its existence helps TS to choose a better code path in the inference algorithm  */
-  (args: ActionArgs<TContext, TExpressionEvent, ParameterizedObject>): void;
-}
-
 export type MachineContext = Record<string, any>;
 
 export interface ActionArgs<
@@ -169,8 +144,7 @@ export type Action<
 > =
   | ActionType
   | ParameterizedObject
-  | ActionFunction<TContext, TExpressionEvent, ParameterizedObject>
-  | BaseDynamicActionObject<TContext, TExpressionEvent, TEvent, any, any>; // TODO: fix last param
+  | ActionFunction<TContext, TExpressionEvent, ParameterizedObject>;
 
 /**
  * Extracts action objects that have no extra properties.
@@ -186,13 +160,6 @@ export type BaseAction<
   TAction extends ParameterizedObject,
   TEvent extends EventObject
 > =
-  | BaseDynamicActionObject<
-      TContext,
-      TExpressionEvent,
-      TEvent,
-      any, // TODO: at the very least this should include TAction, but probably at a covariant position or something, we really need to rethink how action objects are typed
-      any
-    >
   | TAction
   | SimpleActionsFrom<TAction>['type']
   | ActionFunction<TContext, TExpressionEvent, TAction>;
@@ -654,8 +621,9 @@ export interface StateNodeDefinition<
   states: StatesDefinition<TContext, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  entry: BaseActionObject[];
-  exit: BaseActionObject[];
+  // TODO: establish what a definition really is
+  entry: Action<any, any, any>[];
+  exit: Action<any, any, any>[];
   meta: any;
   order: number;
   output?: FinalStateNodeConfig<TContext, TEvent>['output'];
@@ -1217,7 +1185,7 @@ export interface RaiseActionOptions<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  id?: string | number;
+  id?: string;
   delay?: number | string | DelayExpr<TContext, TEvent>;
 }
 
@@ -1365,7 +1333,7 @@ export interface TransitionDefinition<
 > extends Omit<TransitionConfig<TContext, TEvent>, 'target'> {
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
-  actions: BaseActionObject[];
+  actions: Action<any, any, any>[];
   reenter: boolean;
   guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | '*';

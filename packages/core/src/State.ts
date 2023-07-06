@@ -20,7 +20,7 @@ import type {
   StateConfig,
   StateValue
 } from './types.ts';
-import { flatten, isString, matchesState } from './utils.ts';
+import { flatten, matchesState } from './utils.ts';
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -141,7 +141,7 @@ export class State<
    * @param delimiter The character(s) that separate each subpath in the string state node path.
    */
   public toStrings(stateValue: StateValue = this.value): string[] {
-    if (isString(stateValue)) {
+    if (typeof stateValue === 'string') {
       return [stateValue];
     }
     const valueKeys = Object.keys(stateValue);

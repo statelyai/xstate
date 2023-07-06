@@ -1,22 +1,10 @@
 import {
-  Action,
-  EventObject,
-  SingleOrArray,
-  ActionFunction,
-  ActionFunctionMap,
   ActionTypes,
   DoneEvent,
   ErrorPlatformEvent,
-  DoneEventObject,
-  MachineContext,
-  BaseActionObject
+  DoneEventObject
 } from './types.ts';
 import * as actionTypes from './actionTypes.ts';
-import { isArray } from './utils.ts';
-import {
-  createDynamicAction,
-  isDynamicAction
-} from '../actions/dynamicAction.ts';
 export { sendTo, sendParent, forwardTo, escalate } from './actions/send.ts';
 
 export { stop } from './actions/stop.ts';
@@ -27,97 +15,6 @@ export { raise } from './actions/raise.ts';
 export { choose } from './actions/choose.ts';
 export { pure } from './actions/pure.ts';
 export { actionTypes };
-
-export function resolveActionObject(
-  actionObject: BaseActionObject,
-  actionFunctionMap: ActionFunctionMap<any, any>
-): BaseActionObject {
-  if (isDynamicAction(actionObject)) {
-    return actionObject;
-  }
-  const dereferencedAction = actionFunctionMap[actionObject.type];
-
-  if (typeof dereferencedAction === 'function') {
-    return createDynamicAction(
-      { type: 'xstate.function', params: actionObject.params ?? {} },
-      (event, { state }) => {
-        const a: BaseActionObject = {
-          type: actionObject.type,
-          params: actionObject.params,
-          execute: (actorCtx) => {
-            return dereferencedAction({
-              context: state.context,
-              event,
-              action: a,
-              system: actorCtx.system,
-              self: actorCtx.self
-            });
-          }
-        };
-
-        return [state, a];
-      }
-    );
-  } else if (dereferencedAction) {
-    return dereferencedAction;
-  } else {
-    return actionObject;
-  }
-}
-
-export function toActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action: BaseActionObject | ActionFunction<TContext, TEvent> | string
-): BaseActionObject {
-  if (isDynamicAction(action)) {
-    return action;
-  }
-
-  if (typeof action === 'string') {
-    return { type: action, params: {} };
-  }
-
-  if (typeof action === 'function') {
-    const type = 'xstate.function';
-    return createDynamicAction({ type, params: {} }, (event, { state }) => {
-      const actionObject: BaseActionObject = {
-        type,
-        params: {
-          function: action
-        },
-        execute: (actorCtx) => {
-          return action({
-            context: state.context as TContext,
-            event: event as TEvent,
-            action: actionObject,
-            self: actorCtx.self,
-            system: actorCtx.system
-          });
-        }
-      };
-
-      return [state, actionObject];
-    });
-  }
-
-  // action is already a BaseActionObject
-  return action;
-}
-
-export const toActionObjects = <
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action?: SingleOrArray<Action<TContext, TEvent>>
-): BaseActionObject[] => {
-  if (!action) {
-    return [];
-  }
-  const actions = isArray(action) ? action : [action];
-  return actions.map(toActionObject);
-};
 
 /**
  * Returns an event type that represents an implicit event that

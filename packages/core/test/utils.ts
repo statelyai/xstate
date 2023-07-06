@@ -84,16 +84,12 @@ export function trackEntries(machine: AnyStateMachine) {
     state: StateNode<any, any>,
     stateDescription: string
   ) {
-    state.entry.unshift(
-      toActionObject(function __testEntryTracker() {
-        logs.push(`enter: ${stateDescription}`);
-      })
-    );
-    state.exit.unshift(
-      toActionObject(function __testExitTracker() {
-        logs.push(`exit: ${stateDescription}`);
-      })
-    );
+    state.entry.unshift(function __testEntryTracker() {
+      logs.push(`enter: ${stateDescription}`);
+    });
+    state.exit.unshift(function __testExitTracker() {
+      logs.push(`exit: ${stateDescription}`);
+    });
   }
 
   function addTrackingActionsRecursively(state: StateNode<any, any>) {

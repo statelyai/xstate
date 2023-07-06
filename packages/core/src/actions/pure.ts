@@ -1,14 +1,42 @@
-import { EventObject, SingleOrArray, MachineContext } from '../types.ts';
-import { pure as pureActionType } from '../actionTypes.ts';
-import { createDynamicAction } from '../../actions/dynamicAction.ts';
 import {
+  EventObject,
+  SingleOrArray,
+  MachineContext,
+  AnyActorContext,
   BaseActionObject,
-  BaseDynamicActionObject,
-  DynamicPureActionObject,
-  PureActionObject
-} from '..';
+  AnyState,
+  UnifiedArg
+} from '../types.ts';
 import { toArray } from '../utils.ts';
-import { toActionObjects } from '../actions.ts';
+import { BuiltinAction } from './_shared.ts';
+
+class PureResolver<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject
+> extends BuiltinAction<TContext, TExpressionEvent, TEvent> {
+  static get: ({
+    context,
+    event
+  }: {
+    context: MachineContext;
+    event: EventObject;
+  }) => SingleOrArray<BaseActionObject | string> | undefined;
+
+  static resolve(
+    _: AnyActorContext,
+    state: AnyState,
+    args: UnifiedArg<any, any>
+  ) {
+    const { get } = this;
+
+    return [
+      state,
+      undefined,
+      toArray(get({ context: state.context, event: args.event }))
+    ];
+  }
+}
 
 export function pure<
   TContext extends MachineContext,
@@ -22,33 +50,8 @@ export function pure<
     context: TContext;
     event: TExpressionEvent;
   }) => SingleOrArray<BaseActionObject | string> | undefined
-): BaseDynamicActionObject<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  PureActionObject,
-  DynamicPureActionObject<TContext, TExpressionEvent>['params']
-> {
-  return createDynamicAction(
-    {
-      type: pureActionType,
-      params: {
-        get: getActions
-      }
-    },
-    (event, { state }) => {
-      return [
-        state,
-        {
-          type: pureActionType,
-          params: {
-            actions:
-              toArray(
-                toActionObjects(getActions({ context: state.context, event }))
-              ) ?? []
-          }
-        }
-      ];
-    }
-  );
+) {
+  return class Pure extends PureResolver<TContext, TExpressionEvent, TEvent> {
+    static get = getActions as any;
+  };
 }

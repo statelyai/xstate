@@ -1,13 +1,37 @@
-import { EventObject, MachineContext, UnifiedArg } from '../types.ts';
-import { cancel as cancelActionType } from '../actionTypes.ts';
-import { isFunction } from '../utils.ts';
 import {
+  AnyActorContext,
   AnyInterpreter,
-  BaseDynamicActionObject,
-  CancelActionObject,
-  DynamicCancelActionObject
-} from '../index.ts';
-import { createDynamicAction } from '../../actions/dynamicAction.ts';
+  AnyState,
+  EventObject,
+  MachineContext,
+  UnifiedArg
+} from '../types.ts';
+import { BuiltinAction } from './_shared.ts';
+
+type ResolvableSendId<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject
+> = string | ((args: UnifiedArg<TContext, TExpressionEvent>) => string);
+
+class CancelResolver<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject
+> extends BuiltinAction<TContext, TExpressionEvent, TEvent> {
+  static sendId: ResolvableSendId<any, any>;
+  static resolve(
+    _: AnyActorContext,
+    state: AnyState,
+    args: UnifiedArg<any, any>
+  ) {
+    const { sendId } = this;
+    const resolvedSendId = typeof sendId === 'function' ? sendId(args) : sendId;
+    return [state, resolvedSendId];
+  }
+  static execute(actorContext: AnyActorContext, resolvedSendId: string) {
+    (actorContext.self as AnyInterpreter).cancel(resolvedSendId);
+  }
+}
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -16,51 +40,16 @@ import { createDynamicAction } from '../../actions/dynamicAction.ts';
  *
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
-
 export function cancel<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
->(
-  sendId: string | ((args: UnifiedArg<TContext, TExpressionEvent>) => string)
-): BaseDynamicActionObject<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  CancelActionObject,
-  DynamicCancelActionObject<TContext, TExpressionEvent>['params']
-> {
-  return createDynamicAction(
-    {
-      type: cancelActionType,
-      params: {
-        sendId
-      }
-    },
-    (event, { state, actorContext }) => {
-      const resolvedSendId = isFunction(sendId)
-        ? sendId({
-            context: state.context,
-            event,
-            self: actorContext?.self ?? ({} as any),
-            system: actorContext?.system
-          })
-        : sendId;
-
-      return [
-        state,
-        {
-          type: 'xstate.cancel',
-          params: {
-            sendId: resolvedSendId
-          },
-          execute: (actorCtx) => {
-            const interpreter = actorCtx.self as AnyInterpreter;
-
-            interpreter.cancel(resolvedSendId);
-          }
-        } as CancelActionObject
-      ];
-    }
-  );
+>(sendId: ResolvableSendId<TContext, TExpressionEvent>) {
+  return class Cancel extends CancelResolver<
+    TContext,
+    TExpressionEvent,
+    TEvent
+  > {
+    static sendId = sendId;
+  };
 }

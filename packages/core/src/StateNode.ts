@@ -2,7 +2,6 @@ import {
   mapValues,
   flatten,
   toArray,
-  isString,
   toInvokeConfig,
   toTransitionConfigArray,
   createInvokeId
@@ -24,11 +23,11 @@ import type {
   InitialTransitionDefinition,
   MachineContext,
   BaseActionObject,
-  AnyActorLogic
+  AnyActorLogic,
+  Action
 } from './types.ts';
 import type { State } from './State.ts';
 import * as actionTypes from './actionTypes.ts';
-import { toActionObjects } from './actions.ts';
 import { formatInitialTransition, formatTransition } from './stateUtils.ts';
 import {
   getDelayedTransitions,
@@ -91,11 +90,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: BaseActionObject[];
+  public entry: Action<any, any, any>[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: BaseActionObject[];
+  public exit: Action<any, any, any>[];
   /**
    * The parent state node.
    */
@@ -180,8 +179,8 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toActionObjects(this.config.entry);
-    this.exit = toActionObjects(this.config.exit);
+    this.entry = toArray(this.config.entry);
+    this.exit = toArray(this.config.exit);
 
     this.meta = this.config.meta;
     this.output =
@@ -261,11 +260,9 @@ export class StateNode<
         const src = invokeConfig.src as string | AnyActorLogic;
         const { systemId } = invokeConfig;
 
-        const resolvedSrc = isString(src)
-          ? src
-          : !('type' in src)
-          ? resolvedId
-          : src;
+        // TODO: resolving should not happen here
+        const resolvedSrc =
+          typeof src === 'string' ? src : !('type' in src) ? resolvedId : src;
 
         if (
           !this.machine.implementations.actors[resolvedId] &&
