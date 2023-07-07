@@ -46,6 +46,7 @@ export function cancel<
     }
   }
 
+  cancel.type = 'xstate.cancel';
   cancel.sendId = sendId;
 
   cancel.resolve = resolve;

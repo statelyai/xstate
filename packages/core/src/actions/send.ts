@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { actionTypes, error } from '../actions.ts';
+import { constantPrefixes, error } from '../actions.ts';
 import {
   ActionArgs,
   ActorRef,
@@ -110,7 +110,7 @@ function execute(
 
   actorContext.defer(() => {
     to.send(
-      event.type === actionTypes.error
+      event.type === constantPrefixes.error
         ? {
             type: `${error(actorContext.self.id)}`,
             data: (event as any).data
@@ -154,6 +154,7 @@ export function sendTo<
     }
   }
 
+  sendTo.type = 'xstate.sendTo';
   sendTo.to = to;
   sendTo.event = eventOrExpr;
   sendTo.id = options?.id;
@@ -246,7 +247,7 @@ export function escalate<
 ) {
   return sendParent<TContext, TExpressionEvent, EventObject>((arg) => {
     return {
-      type: actionTypes.error,
+      type: constantPrefixes.error,
       data:
         typeof errorData === 'function' ? (errorData as any)(arg) : errorData
     };

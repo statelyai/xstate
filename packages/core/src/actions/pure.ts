@@ -52,6 +52,7 @@ export function pure<
     }
   }
 
+  pure.type = 'xstate.pure';
   pure.get = getActions;
   pure.resolve = resolve;
 

@@ -94,6 +94,7 @@ export function raise<
     }
   }
 
+  raise.type = 'xstate.raise';
   raise.event = eventOrExpr;
   raise.id = options?.id;
   raise.delay = options?.delay;

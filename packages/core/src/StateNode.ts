@@ -1,6 +1,6 @@
 import type { State } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
-import * as actionTypes from './actionTypes.ts';
+import * as actionTypes from './constantPrefixes.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
 import { memo } from './memo.ts';
@@ -277,7 +277,7 @@ export class StateNode<
         }
 
         return {
-          type: actionTypes.invoke,
+          type: 'xstate.invoke',
           ...invokeConfig,
           src: resolvedSrc,
           id: resolvedId,
@@ -286,7 +286,7 @@ export class StateNode<
             const { onDone, onError, ...invokeDefValues } = invokeConfig;
             return {
               ...invokeDefValues,
-              type: actionTypes.invoke,
+              type: 'xstate.invoke',
               src: resolvedSrc,
               id: resolvedId
             };

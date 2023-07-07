@@ -46,6 +46,7 @@ export function choose<
     }
   }
 
+  choose.type = 'xstate.choose';
   choose.branches = branches;
 
   choose.resolve = resolve;

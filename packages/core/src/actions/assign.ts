@@ -92,6 +92,7 @@ export function assign<
     }
   }
 
+  assign.type = 'xstate.assign';
   assign.assignment = assignment;
 
   assign.resolve = resolve;

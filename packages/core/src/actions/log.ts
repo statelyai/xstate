@@ -67,6 +67,7 @@ export function log<
     }
   }
 
+  log.type = 'xstate.log';
   log.value = value;
   log.label = label;
 

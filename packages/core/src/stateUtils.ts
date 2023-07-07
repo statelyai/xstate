@@ -1,12 +1,13 @@
 import isDevelopment from '#is-development';
 import { State, cloneState } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { actionTypes, after, done, raise } from './actions.ts';
+import { constantPrefixes, after, done, raise } from './actions.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
 import { stopSignalType } from './actors/index.ts';
 import {
+  INIT_TYPE,
   NULL_EVENT,
   STATE_DELIMITER,
   STATE_IDENTIFIER,
@@ -1491,7 +1492,7 @@ export function macrostep(
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (nextEvent.type !== actionTypes.init) {
+  if (nextEvent.type !== INIT_TYPE) {
     const transitions = selectTransitions(nextEvent, nextState);
     nextState = microstep(transitions, state, actorCtx, nextEvent, false);
     states.push(nextState);

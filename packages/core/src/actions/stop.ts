@@ -78,6 +78,7 @@ export function stop<
     }
   }
 
+  stop.type = 'xstate.stop';
   stop.actorRef = actorRef;
 
   stop.resolve = resolve;

@@ -64,11 +64,6 @@ export interface ParameterizedObject {
   params?: Record<string, any>;
 }
 
-export interface BuiltInActionObject extends ParameterizedObject {
-  type: `xstate.${string}`;
-  params: Record<string, any>;
-}
-
 export interface UnifiedArg<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -970,24 +965,14 @@ export type Transitions<
   TEvent extends EventObject
 > = Array<TransitionDefinition<TContext, TEvent>>;
 
-export enum ActionTypes {
-  Stop = 'xstate.stop',
-  Raise = 'xstate.raise',
-  SendTo = 'xstate.sendTo',
-  Cancel = 'xstate.cancel',
-  Assign = 'xstate.assign',
+export enum ConstantPrefix {
   After = 'xstate.after',
   DoneState = 'done.state',
   DoneInvoke = 'done.invoke',
-  Log = 'xstate.log',
-  Init = 'xstate.init',
-  Invoke = 'xstate.invoke',
   ErrorExecution = 'error.execution',
   ErrorCommunication = 'error.communication',
   ErrorPlatform = 'error.platform',
-  ErrorCustom = 'xstate.error',
-  Pure = 'xstate.pure',
-  Choose = 'xstate.choose'
+  ErrorCustom = 'xstate.error'
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
@@ -1007,7 +992,7 @@ export interface SnapshotEvent<TData> {
 
 export interface ErrorExecutionEvent extends EventObject {
   src: string;
-  type: ActionTypes.ErrorExecution;
+  type: ConstantPrefix.ErrorExecution;
   data: any;
 }
 
@@ -1031,14 +1016,6 @@ export type LogExpr<
   TContext extends MachineContext,
   TEvent extends EventObject
 > = (args: UnifiedArg<TContext, TEvent>) => unknown;
-
-export interface LogActionObject extends BuiltInActionObject {
-  type: ActionTypes.Log;
-  params: {
-    label: string | undefined;
-    value: any;
-  };
-}
 
 export type SendExpr<
   TContext extends MachineContext,

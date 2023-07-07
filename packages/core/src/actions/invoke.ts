@@ -115,6 +115,7 @@ export function invoke<
     }
   }
 
+  invoke.type = 'xstate.invoke';
   invoke.id = id;
   invoke.systemId = systemId;
   invoke.src = src;
