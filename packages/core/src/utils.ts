@@ -338,31 +338,20 @@ export function toTransitionConfigArray<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  event: TEvent['type'] | typeof NULL_EVENT | '*',
   configLike: SingleOrArray<
     TransitionConfig<TContext, TEvent> | TransitionConfigTarget
   >
-): Array<
-  TransitionConfig<TContext, TEvent> & {
-    event: TEvent['type'] | typeof NULL_EVENT | '*';
-  }
-> {
-  const transitions = toArrayStrict(configLike).map((transitionLike) => {
+): Array<TransitionConfig<TContext, TEvent>> {
+  return toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string'
     ) {
-      return { target: transitionLike, event };
+      return { target: transitionLike };
     }
 
-    return { ...transitionLike, event };
-  }) as Array<
-    TransitionConfig<TContext, TEvent> & {
-      event: TEvent['type'] | typeof NULL_EVENT | '*';
-    } // TODO: fix 'as' (remove)
-  >;
-
-  return transitions;
+    return transitionLike;
+  });
 }
 
 export function normalizeTarget<

@@ -25,16 +25,17 @@ export function sanitizeStateId(id: string) {
 }
 
 function appendWildcards(state: AnyStateNode) {
-  for (const t of state.transitions) {
-    if (
-      typeof t.eventType === 'string' &&
-      !!t.eventType &&
-      t.eventType !== '*' &&
-      !t.eventType.endsWith('.*')
-    ) {
-      t.eventType = `${t.eventType}.*`;
+  const newTransitions: typeof state.transitions = new Map();
+
+  for (const [descriptor, transitions] of state.transitions) {
+    if (descriptor !== '*' && !descriptor.endsWith('.*')) {
+      newTransitions.set(`${descriptor}.*`, transitions);
+    } else {
+      newTransitions.set(descriptor, transitions);
     }
   }
+
+  state.transitions = newTransitions;
 
   for (const key of Object.keys(state.states)) {
     appendWildcards(state.states[key]);
@@ -400,7 +401,7 @@ function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
     }
 
     const always: any[] = [];
-    const on: any[] = [];
+    const on: Record<string, any> = [];
 
     transitionElements.map((value) => {
       const events = ((getAttribute(value, 'event') as string) || '').split(
@@ -439,7 +440,6 @@ function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
         }
 
         const transitionConfig = {
-          event: eventType,
           target: getTargets(targets),
           ...(value.elements ? executableContent(value.elements) : undefined),
           ...guardObject,
@@ -449,7 +449,12 @@ function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
         if (eventType === NULL_EVENT) {
           always.push(transitionConfig);
         } else {
-          on.push(transitionConfig);
+          let existing = on[eventType];
+          if (!existing) {
+            existing = [];
+            on[eventType] = existing;
+          }
+          existing.push(transitionConfig);
         }
       });
     });
@@ -502,7 +507,7 @@ function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
             states: mapValues(states, (state, key) => toConfig(state, key))
           }
         : undefined),
-      ...(transitionElements.length ? { on } : undefined),
+      on,
       ...(always.length ? { always } : undefined),
       ...(onEntry ? { entry: onEntry } : undefined),
       ...(onExit ? { exit: onExit } : undefined),

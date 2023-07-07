@@ -470,7 +470,7 @@ describe('transient states (eventless transitions)', () => {
     expect(actorRef.getSnapshot().value).toBe('b');
   });
 
-  it('should not select wildcard for eventless transition (array `.on`)', () => {
+  it('should not select wildcard for eventless transition', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -479,29 +479,9 @@ describe('transient states (eventless transitions)', () => {
         },
         b: {
           always: 'pass',
-          on: [{ event: '*', target: 'fail' }]
-        },
-        fail: {},
-        pass: {}
-      }
-    });
-
-    const actorRef = interpret(machine).start();
-    actorRef.send({ type: 'FOO' });
-
-    expect(actorRef.getSnapshot().value).toBe('pass');
-  });
-
-  it('should not select wildcard for eventless transition (with `always`)', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: { FOO: 'b' }
-        },
-        b: {
-          always: 'pass',
-          on: [{ event: '*', target: 'fail' }]
+          on: {
+            '*': 'fail'
+          }
         },
         fail: {},
         pass: {}
