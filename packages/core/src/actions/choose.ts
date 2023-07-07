@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import {
   EventObject,
-  ChooseCondition,
+  ChooseBranch,
   MachineContext,
   AnyActorContext,
   AnyState,
@@ -17,7 +17,7 @@ function resolve(
   {
     branches
   }: {
-    branches: Array<ChooseCondition<MachineContext, EventObject>>;
+    branches: Array<ChooseBranch<MachineContext, EventObject>>;
   }
 ) {
   const matchedActions = branches.find((condition) => {
@@ -39,7 +39,7 @@ export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
->(branches: Array<ChooseCondition<TContext, TExpressionEvent>>) {
+>(branches: Array<ChooseBranch<TContext, TExpressionEvent>>) {
   function choose(_: ActionArgs<TContext, TExpressionEvent>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

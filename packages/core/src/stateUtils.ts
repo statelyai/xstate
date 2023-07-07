@@ -1,53 +1,50 @@
 import isDevelopment from '#is-development';
-import {
-  toStatePath,
-  toArray,
-  isArray,
-  toTransitionConfigArray,
-  normalizeTarget,
-  toStateValue,
-  mapContext
-} from './utils.ts';
-import {
-  BaseActionObject,
-  EventObject,
-  StateValue,
-  TransitionConfig,
-  TransitionDefinition,
-  SingleOrArray,
-  DelayExpr,
-  StateValueMap,
-  InitialTransitionConfig,
-  MachineContext
-} from './types.ts';
-import { cloneState, State } from './State.ts';
-import { after, done, actionTypes, raise } from './actions.ts';
+import { State, cloneState } from './State.ts';
+import type { StateNode } from './StateNode.ts';
+import { actionTypes, after, done, raise } from './actions.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
+import { stopSignalType } from './actors/index.ts';
 import {
-  STATE_IDENTIFIER,
   NULL_EVENT,
-  WILDCARD,
-  STATE_DELIMITER
+  STATE_DELIMITER,
+  STATE_IDENTIFIER,
+  WILDCARD
 } from './constants.ts';
 import { evaluateGuard, toGuardDefinition } from './guards.ts';
-import type { StateNode } from './StateNode.ts';
+import { ActorStatus } from './interpreter.ts';
 import {
   Action,
+  ActionArgs,
   AnyActorContext,
   AnyEventObject,
   AnyHistoryValue,
   AnyState,
   AnyStateNode,
   AnyTransitionDefinition,
+  DelayExpr,
   DelayedTransitionDefinition,
+  EventObject,
   HistoryValue,
+  InitialTransitionConfig,
   InitialTransitionDefinition,
-  SendToActionObject
-} from '.';
-import { stopSignalType } from './actors/index.ts';
-import { ActorStatus } from './interpreter.ts';
+  MachineContext,
+  SingleOrArray,
+  StateValue,
+  StateValueMap,
+  TransitionConfig,
+  TransitionDefinition
+} from './types.ts';
+import {
+  isArray,
+  mapContext,
+  normalizeTarget,
+  toArray,
+  toStatePath,
+  toStateValue,
+  toTransitionConfigArray
+} from './utils.ts';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1033,7 +1030,7 @@ function microstepProcedure(
   actorCtx: AnyActorContext,
   isInitial: boolean
 ): typeof currentState {
-  const actions: BaseActionObject[] = [];
+  const actions: Action<any, any, any>[] = [];
   const historyValue = {
     ...currentState.historyValue
   };
@@ -1111,7 +1108,7 @@ function enterStates(
   event: AnyEventObject,
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  actions: BaseActionObject[],
+  actions: Action<any, any, any>[],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
   historyValue: HistoryValue<any, any>,
@@ -1339,7 +1336,7 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  actions: BaseActionObject[]
+  actions: Action<any, any, any>[]
 ) {
   const statesToExit = computeExitSet(
     transitions,
@@ -1370,6 +1367,17 @@ function exitStates(
     actions.push(...s.exit, ...s.invoke.map((def) => stop(def.id)));
     mutConfiguration.delete(s);
   }
+}
+
+interface BuiltinAction {
+  (): void;
+  resolve: (
+    actorContext: AnyActorContext,
+    state: AnyState,
+    actionArgs: ActionArgs<any, any>,
+    action: unknown
+  ) => [newState: AnyState, params: unknown, actions?: Action<any, any, any>[]];
+  execute: (actorContext: AnyActorContext, params: unknown) => void;
 }
 
 export function resolveActionsAndContext<
@@ -1417,7 +1425,9 @@ export function resolveActionsAndContext<
       continue;
     }
 
-    const [nextState, params, actions] = resolved.resolve(
+    const builtinAction = resolved as BuiltinAction;
+
+    const [nextState, params, actions] = builtinAction.resolve(
       actorCtx,
       intermediateState,
       args,
@@ -1427,9 +1437,9 @@ export function resolveActionsAndContext<
 
     if ('execute' in resolved) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolved.execute(actorCtx!, params);
+        builtinAction.execute(actorCtx!, params);
       } else {
-        actorCtx?.defer(resolved.execute.bind(null, actorCtx!, params));
+        actorCtx?.defer(builtinAction.execute.bind(null, actorCtx!, params));
       }
     }
 
@@ -1531,7 +1541,7 @@ function stopStep(
   nextState: AnyState,
   actorCtx: AnyActorContext
 ) {
-  const actions: BaseActionObject[] = [];
+  const actions: Action<any, any, any>[] = [];
 
   for (const stateNode of nextState.configuration.sort(
     (a, b) => b.order - a.order

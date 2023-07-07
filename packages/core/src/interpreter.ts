@@ -18,7 +18,6 @@ import type {
   EventFromLogic,
   InterpreterFrom,
   PersistedStateFrom,
-  RaiseActionObject,
   SnapshotFrom,
   AnyActorRef
 } from './types.ts';
@@ -29,7 +28,6 @@ import {
   InteropSubscribable,
   InterpreterOptions,
   Observer,
-  SendToActionObject,
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';

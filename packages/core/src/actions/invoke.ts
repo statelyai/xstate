@@ -26,7 +26,7 @@ function resolve(
     id: string;
     systemId: string | undefined;
     src: string;
-    input: any;
+    input?: any;
   }
 ) {
   const referenced = resolveReferencedActor(
@@ -107,7 +107,7 @@ export function invoke<
   id: string;
   systemId: string | undefined;
   src: string;
-  input: any;
+  input?: any;
 }) {
   function invoke(_: ActionArgs<TContext, TExpressionEvent>) {
     if (isDevelopment) {

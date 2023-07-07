@@ -101,5 +101,8 @@ export function raise<
   raise.resolve = resolve;
   raise.execute = execute;
 
-  return raise;
+  return raise as {
+    (args: ActionArgs<TContext, TExpressionEvent>): void;
+    _out_TEvent?: TEvent;
+  };
 }

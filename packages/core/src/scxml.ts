@@ -7,16 +7,20 @@ import { raise } from './actions/raise.ts';
 import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 import { not, stateIn } from './guards.ts';
-import { AnyActorRef, SpecialTargets, createMachine } from './index.ts';
+import {
+  ActionFunction,
+  MachineContext,
+  SpecialTargets,
+  createMachine
+} from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
-  BaseActionObject,
-  StateNodeConfig,
-  ChooseCondition,
+  ChooseBranch,
   DelayExpr,
   EventObject,
-  SendExpr
+  SendExpr,
+  StateNodeConfig
 } from './types.ts';
 import { mapValues } from './utils.ts';
 
@@ -169,18 +173,15 @@ function createGuard<
   };
 }
 
-function mapAction<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(element: XMLElement): BaseActionObject {
+function mapAction(element: XMLElement): ActionFunction<any, any, any> {
   switch (element.name) {
     case 'raise': {
-      return raise<TContext, TEvent, TEvent>({
+      return raise({
         type: element.attributes!.event!
-      } as TEvent);
+      });
     }
     case 'assign': {
-      return assign<TContext, TEvent>(({ context, event, ...meta }) => {
+      return assign(({ context, event, ...meta }) => {
         const fnBody = `
 
 ${element.attributes!.location};
@@ -205,8 +206,11 @@ return ${element.attributes!.sendidexpr};
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: TEvent | SendExpr<TContext, TEvent>;
-      let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
+      let convertedEvent: EventObject | SendExpr<MachineContext, EventObject>;
+      let convertedDelay:
+        | number
+        | DelayExpr<MachineContext, EventObject>
+        | undefined;
 
       const params =
         element.elements &&
@@ -220,7 +224,7 @@ return ${element.attributes!.sendidexpr};
         }, '');
 
       if (event && !params) {
-        convertedEvent = { type: event } as TEvent;
+        convertedEvent = { type: event as string };
       } else {
         convertedEvent = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
@@ -244,10 +248,10 @@ return (${delayToMs})(${element.attributes!.delayexpr});
       }
 
       if (target === SpecialTargets.Internal) {
-        return raise(convertedEvent as TEvent);
+        return raise(convertedEvent);
       }
 
-      return sendTo<TContext, TEvent, AnyActorRef>(
+      return sendTo(
         typeof target === 'string' ? target : ({ self }) => self,
         convertedEvent,
         {
@@ -259,7 +263,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
     case 'log': {
       const label = element.attributes!.label;
 
-      return log<TContext, any>(
+      return log(
         ({ context, event, ...meta }) => {
           const fnBody = `
 return ${element.attributes!.expr};
@@ -271,9 +275,9 @@ return ${element.attributes!.expr};
       );
     }
     case 'if': {
-      const conds: Array<ChooseCondition<TContext, TEvent>> = [];
+      const branches: Array<ChooseBranch<MachineContext, EventObject>> = [];
 
-      let current: ChooseCondition<TContext, TEvent> = {
+      let current: ChooseBranch<MachineContext, EventObject> = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };
@@ -285,24 +289,24 @@ return ${element.attributes!.expr};
 
         switch (el.name) {
           case 'elseif':
-            conds.push(current);
+            branches.push(current);
             current = {
               guard: createGuard(el.attributes!.cond as string),
               actions: []
             };
             break;
           case 'else':
-            conds.push(current);
+            branches.push(current);
             current = { actions: [] };
             break;
           default:
-            (current.actions as any[]).push(mapAction<TContext, TEvent>(el));
+            (current.actions as any[]).push(mapAction(el));
             break;
         }
       }
 
-      conds.push(current);
-      return choose(conds);
+      branches.push(current);
+      return choose(branches);
     }
     default:
       throw new Error(
@@ -311,8 +315,8 @@ return ${element.attributes!.expr};
   }
 }
 
-function mapActions(elements: XMLElement[]): BaseActionObject[] {
-  const mapped: BaseActionObject[] = [];
+function mapActions(elements: XMLElement[]): ActionFunction<any, any, any>[] {
+  const mapped: ActionFunction<any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

@@ -1,7 +1,7 @@
 import { Attributes, Element as XMLElement, js2xml } from 'xml-js';
 import {
+  Action,
   AnyStateMachine,
-  BaseActionObject,
   StateNode,
   TransitionDefinition
 } from 'xstate';
@@ -35,9 +35,9 @@ function raiseActionToSCXML(raiseAction: any): XMLElement {
   };
 }
 
-function actionToSCXML(action: BaseActionObject): XMLElement {
+function actionToSCXML(action: Action<any, any>): XMLElement {
   // TODO: this won't work rn since we don't keep `builtinAction.type` around
-  if (action.type === 'xstate.raise') {
+  if ((action as any).type === 'xstate.raise') {
     return raiseActionToSCXML(action);
   }
 
@@ -93,7 +93,7 @@ function doneDataToSCXML(data: any): XMLElement {
 
 function actionsToSCXML(
   name: 'onentry' | 'onexit',
-  actions: Array<BaseActionObject>
+  actions: Array<Action<any, any>>
 ): XMLElement {
   return {
     type: 'element',

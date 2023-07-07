@@ -218,7 +218,7 @@ export class State<
     });
   }
 
-  public get meta() {
+  public get meta(): Record<string, any> {
     return this.configuration.reduce((acc, stateNode) => {
       if (stateNode.meta !== undefined) {
         acc[stateNode.id] = stateNode.meta;

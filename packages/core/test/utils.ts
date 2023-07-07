@@ -1,4 +1,3 @@
-import { toActionObject } from '../src/actions.ts';
 import {
   AnyState,
   AnyStateMachine,
