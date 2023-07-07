@@ -21,7 +21,7 @@ describe('event descriptors', () => {
     expect(service.getSnapshot().value).toBe('C');
   });
 
-  it('should not use wildcard transition over explicit one when using object `.on` config - even if wildcard comes first', () => {
+  it('should prioritize explicit descriptor even if wildcard comes first', () => {
     const machine = createMachine({
       initial: 'A',
       states: {
@@ -38,6 +38,69 @@ describe('event descriptors', () => {
 
     const service = interpret(machine).start();
     service.send({ type: 'NEXT' });
+    expect(service.getSnapshot().value).toBe('pass');
+  });
+
+  it('should prioritize explicit descriptor even if a partial one comes first', () => {
+    const machine = createMachine({
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            'foo.*': 'fail',
+            'foo.bar': 'pass'
+          }
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'foo.bar' });
+    expect(service.getSnapshot().value).toBe('pass');
+  });
+
+  it('should prioritize a longer descriptor even if the shorter one comes first', () => {
+    const machine = createMachine({
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            'foo.*': 'fail',
+            'foo.bar.*': 'pass'
+          }
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'foo.bar.baz' });
+    expect(service.getSnapshot().value).toBe('pass');
+  });
+
+  it(`should use a shorter descriptor if the longer one doesn't match`, () => {
+    const machine = createMachine({
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            'foo.bar.*': {
+              target: 'fail',
+              guard: () => false
+            },
+            'foo.*': 'pass'
+          }
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'foo.bar.baz' });
     expect(service.getSnapshot().value).toBe('pass');
   });
 
