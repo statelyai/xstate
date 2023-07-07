@@ -1419,7 +1419,7 @@ export function resolveActionsAndContext<
       //
       // entry: ({ action }) => {}
       // exit: assign(({ action }) => {})
-      action: action as any
+      action: typeof action === 'string' ? { type: action } : (action as any)
     };
 
     if (!('resolve' in resolved)) {
