@@ -1413,7 +1413,12 @@ export function resolveActionsAndContext<
       event,
       self: actorCtx?.self,
       system: actorCtx?.system,
-      action: null as any // TODO: fix this
+      // TODO: figure out story for `action` and inline actions
+      // what those ones should receive?
+      //
+      // entry: ({ action }) => {}
+      // exit: assign(({ action }) => {})
+      action: action as any
     };
 
     if (!('resolve' in resolved)) {
