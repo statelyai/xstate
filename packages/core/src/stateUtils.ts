@@ -297,7 +297,9 @@ export function getDelayedTransitions<
     const delayRef =
       typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
     const eventType = after(delayRef, stateNode.id);
-    stateNode.entry.push(raise({ type: eventType } as TEvent, { delay }));
+    stateNode.entry.push(
+      raise({ type: eventType } as TEvent, { id: eventType, delay })
+    );
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
