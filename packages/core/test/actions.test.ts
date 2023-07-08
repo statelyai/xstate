@@ -1874,7 +1874,7 @@ describe('purely defined actions', () => {
       idle: {
         on: {
           SINGLE: {
-            actions: pure<any, any>((ctx, e) => {
+            actions: pure((ctx, e) => {
               if (ctx.items.length > 0) {
                 return {
                   type: 'SINGLE_EVENT',
@@ -1885,7 +1885,7 @@ describe('purely defined actions', () => {
             })
           },
           NONE: {
-            actions: pure<any, any>((ctx, e) => {
+            actions: pure((ctx, e) => {
               if (ctx.items.length > 5) {
                 return {
                   type: 'SINGLE_EVENT',
@@ -1896,7 +1896,7 @@ describe('purely defined actions', () => {
             })
           },
           EACH: {
-            actions: pure<any, any>((ctx) =>
+            actions: pure((ctx) =>
               ctx.items.map((item: any, index: number) => ({
                 type: 'EVENT',
                 item,
@@ -1905,7 +1905,7 @@ describe('purely defined actions', () => {
             )
           },
           AS_STRINGS: {
-            actions: pure<any, any>(() => ['SOME_ACTION'])
+            actions: pure(() => ['SOME_ACTION'])
           }
         }
       }
@@ -1968,6 +1968,21 @@ describe('purely defined actions', () => {
     );
 
     expect(nextState.actions).toEqual([{ type: 'SOME_ACTION' }]);
+  });
+
+  it('should allow function actions in pure', () => {
+    let called = false;
+    const machine = createMachine({
+      entry: pure(() => [
+        () => {
+          called = true;
+        }
+      ])
+    });
+
+    interpret(machine).start();
+
+    expect(called).toBeTruthy();
   });
 });
 
@@ -2930,15 +2945,19 @@ describe('assign action order', () => {
       count: number;
     }
 
-    const machine = createMachine<CountCtx>({
+    const machine = createMachine({
+      schema: {} as {
+        context: CountCtx;
+      },
       context: { count: 0 },
       entry: [
         (ctx) => captured.push(ctx.count), // 0
         pure(() => {
           return [
-            assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
+            assign({ count: (ctx) => ctx.count + 1 }),
             { type: 'capture', exec: (ctx: any) => captured.push(ctx.count) }, // 1
-            assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
+            assign({ count: (ctx) => ctx.count + 1 }),
+            () => {}
           ];
         }),
         (ctx) => captured.push(ctx.count) // 2
