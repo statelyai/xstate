@@ -207,6 +207,20 @@ export class StateNode<
    * The well-structured state node definition.
    */
   public get definition(): StateNodeDefinition<TContext, TEvent> {
+    const toSerializableActon = (action: Action<any, any, any>) => {
+      if (typeof action === 'string') {
+        return { type: action };
+      }
+      if (typeof action === 'function') {
+        if ('resolve' in action) {
+          return { type: (action as any).type };
+        }
+        return {
+          type: action.name
+        };
+      }
+      return action;
+    };
     return {
       id: this.id,
       key: this.key,
@@ -216,13 +230,13 @@ export class StateNode<
         ? {
             target: this.initial.target,
             source: this,
-            actions: this.initial.actions,
+            actions: this.initial.actions.map(toSerializableActon),
             eventType: null as any,
             reenter: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
-              actions: this.initial!.actions,
+              actions: this.initial!.actions.map(toSerializableActon),
               eventType: null as any
             })
           }
@@ -232,9 +246,12 @@ export class StateNode<
         return state.definition;
       }) as StatesDefinition<TContext, TEvent>,
       on: this.on,
-      transitions: [...this.transitions.values()].flat(),
-      entry: this.entry,
-      exit: this.exit,
+      transitions: [...this.transitions.values()].flat().map((t) => ({
+        ...t,
+        actions: t.actions.map(toSerializableActon)
+      })),
+      entry: this.entry.map(toSerializableActon),
+      exit: this.exit.map(toSerializableActon),
       meta: this.meta,
       order: this.order || -1,
       output: this.output,
