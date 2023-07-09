@@ -123,7 +123,7 @@ export class StateNode<
   public description?: string;
 
   public tags: string[] = [];
-  public transitions!: Array<TransitionDefinition<TContext, TEvent>>;
+  public transitions!: Map<string, TransitionDefinition<TContext, TEvent>[]>;
   public always?: Array<TransitionDefinition<TContext, TEvent>>;
 
   constructor(
@@ -198,8 +198,8 @@ export class StateNode<
   public _initialize() {
     this.transitions = formatTransitions(this);
     if (this.config.always) {
-      this.always = toTransitionConfigArray(NULL_EVENT, this.config.always).map(
-        (t) => formatTransition(this, t)
+      this.always = toTransitionConfigArray(this.config.always).map((t) =>
+        formatTransition(this, NULL_EVENT, t)
       );
     }
 
@@ -237,7 +237,7 @@ export class StateNode<
         return state.definition;
       }) as StatesDefinition<TContext, TEvent>,
       on: this.on,
-      transitions: this.transitions,
+      transitions: [...this.transitions.values()].flat(),
       entry: this.entry,
       exit: this.exit,
       meta: this.meta,
@@ -310,11 +310,13 @@ export class StateNode<
     return memo(this, 'on', () => {
       const transitions = this.transitions;
 
-      return transitions.reduce((map, transition) => {
-        map[transition.eventType] = map[transition.eventType] || [];
-        map[transition.eventType].push(transition as any);
-        return map;
-      }, {} as TransitionDefinitionMap<TContext, TEvent>);
+      return [...transitions]
+        .flatMap(([descriptor, t]) => t.map((t) => [descriptor, t] as const))
+        .reduce((map: any, [descriptor, transition]) => {
+          map[descriptor] = map[descriptor] || [];
+          map[descriptor].push(transition);
+          return map;
+        }, {} as TransitionDefinitionMap<TContext, TEvent>);
     });
   }
 
@@ -431,15 +433,18 @@ export class StateNode<
    */
   public get ownEvents(): Array<TEvent['type']> {
     const events = new Set(
-      this.transitions
-        .filter((transition) => {
-          return !(
-            !transition.target &&
-            !transition.actions.length &&
-            !transition.reenter
+      [...this.transitions.keys()].filter((descriptor) => {
+        return this.transitions
+          .get(descriptor)!
+          .some(
+            (transition) =>
+              !(
+                !transition.target &&
+                !transition.actions.length &&
+                !transition.reenter
+              )
           );
-        })
-        .map((transition) => transition.eventType)
+      })
     );
 
     return Array.from(events);

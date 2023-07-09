@@ -139,11 +139,22 @@ describe('json', () => {
 
     const revivedMachine = createMachine(machineObject);
 
-    expect(revivedMachine.states.active.transitions).toMatchInlineSnapshot(`
+    expect([...revivedMachine.states.active.transitions.values()].flat())
+      .toMatchInlineSnapshot(`
       [
         {
           "actions": [],
-          "event": "done.invoke.active:invocation[0]",
+          "eventType": "EVENT",
+          "guard": undefined,
+          "reenter": false,
+          "source": "#active",
+          "target": [
+            "#(machine).foo",
+          ],
+          "toJSON": [Function],
+        },
+        {
+          "actions": [],
           "eventType": "done.invoke.active:invocation[0]",
           "guard": undefined,
           "reenter": false,
@@ -155,7 +166,6 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "event": "error.platform.active:invocation[0]",
           "eventType": "error.platform.active:invocation[0]",
           "guard": undefined,
           "reenter": false,
@@ -165,26 +175,16 @@ describe('json', () => {
           ],
           "toJSON": [Function],
         },
-        {
-          "actions": [],
-          "event": "EVENT",
-          "eventType": "EVENT",
-          "guard": undefined,
-          "reenter": false,
-          "source": "#active",
-          "target": [
-            "#(machine).foo",
-          ],
-          "toJSON": [Function],
-        },
       ]
     `);
 
     // 1. onDone
     // 2. onError
     // 3. EVENT
-    expect(revivedMachine.getStateNodeById('active').transitions.length).toBe(
-      3
-    );
+    expect(
+      [
+        ...revivedMachine.getStateNodeById('active').transitions.values()
+      ].flatMap((t) => t).length
+    ).toBe(3);
   });
 });

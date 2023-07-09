@@ -4,10 +4,10 @@ import { cancel } from './actions/cancel.ts';
 import { choose } from './actions/choose.ts';
 import { log } from './actions/log.ts';
 import { raise } from './actions/raise.ts';
-import { send } from './actions/send.ts';
+import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 import { not, stateIn } from './guards.ts';
-import { createMachine } from './index.ts';
+import { AnyActorRef, SpecialTargets, createMachine } from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
@@ -25,16 +25,17 @@ export function sanitizeStateId(id: string) {
 }
 
 function appendWildcards(state: AnyStateNode) {
-  for (const t of state.transitions) {
-    if (
-      typeof t.eventType === 'string' &&
-      !!t.eventType &&
-      t.eventType !== '*' &&
-      !t.eventType.endsWith('.*')
-    ) {
-      t.eventType = `${t.eventType}.*`;
+  const newTransitions: typeof state.transitions = new Map();
+
+  for (const [descriptor, transitions] of state.transitions) {
+    if (descriptor !== '*' && !descriptor.endsWith('.*')) {
+      newTransitions.set(`${descriptor}.*`, transitions);
+    } else {
+      newTransitions.set(descriptor, transitions);
     }
   }
+
+  state.transitions = newTransitions;
 
   for (const key of Object.keys(state.states)) {
     appendWildcards(state.states[key]);
@@ -242,11 +243,18 @@ return (${delayToMs})(${element.attributes!.delayexpr});
         };
       }
 
-      return send<TContext, TEvent>(convertedEvent, {
-        delay: convertedDelay,
-        to: target as string | undefined,
-        id: id as string | undefined
-      });
+      if (target === SpecialTargets.Internal) {
+        return raise(convertedEvent as TEvent);
+      }
+
+      return sendTo<TContext, TEvent, AnyActorRef>(
+        typeof target === 'string' ? target : ({ self }) => self,
+        convertedEvent,
+        {
+          delay: convertedDelay,
+          id: id as string | undefined
+        }
+      );
     }
     case 'log': {
       const label = element.attributes!.label;
@@ -396,7 +404,7 @@ function toConfig(
     }
 
     const always: any[] = [];
-    const on: any[] = [];
+    const on: Record<string, any> = [];
 
     transitionElements.map((value) => {
       const events = ((getAttribute(value, 'event') as string) || '').split(
@@ -435,7 +443,6 @@ function toConfig(
         }
 
         const transitionConfig = {
-          event: eventType,
           target: getTargets(targets),
           ...(value.elements ? executableContent(value.elements) : undefined),
           ...guardObject,
@@ -445,7 +452,12 @@ function toConfig(
         if (eventType === NULL_EVENT) {
           always.push(transitionConfig);
         } else {
-          on.push(transitionConfig);
+          let existing = on[eventType];
+          if (!existing) {
+            existing = [];
+            on[eventType] = existing;
+          }
+          existing.push(transitionConfig);
         }
       });
     });
@@ -498,7 +510,7 @@ function toConfig(
             states: mapValues(states, (state, key) => toConfig(state, key))
           }
         : undefined),
-      ...(transitionElements.length ? { on } : undefined),
+      on,
       ...(always.length ? { always } : undefined),
       ...(onEntry ? { entry: onEntry } : undefined),
       ...(onExit ? { exit: onExit } : undefined),

@@ -144,7 +144,7 @@ export interface TestTransitionConfig<
   ) => void;
 }
 
-export type TestTransitionsConfigMap<
+export type TestTransitionsConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
