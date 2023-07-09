@@ -74,7 +74,7 @@ describe('action creators', () => {
             children: {}
           }) as any, // TODO: fix
           action,
-          actorContext: undefined
+          actorContext: {} as any
         }
       );
 

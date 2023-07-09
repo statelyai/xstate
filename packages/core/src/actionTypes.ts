@@ -3,7 +3,7 @@ import { ActionTypes } from './types.ts';
 // xstate-specific action types
 export const stop = ActionTypes.Stop;
 export const raise = ActionTypes.Raise;
-export const send = ActionTypes.Send;
+export const sendTo = ActionTypes.SendTo;
 export const cancel = ActionTypes.Cancel;
 export const assign = ActionTypes.Assign;
 export const after = ActionTypes.After;

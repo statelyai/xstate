@@ -120,7 +120,7 @@ const testGroups: Record<string, string[]> = {
   // script: ['test0', 'test1', 'test2'], // <script/> conversion not implemented
   // 'script-src': ['test0', 'test1', 'test2', 'test3'], // <script/> conversion not implemented
   'scxml-prefix-event-name-matching': [
-    'star0'
+    // 'star0' // this relies on the source order of transitions where * is first and it's supposed to get macthed over an explicit descriptor
     // prefix event matching not implemented yet
     // 'test0',
     // 'test1'

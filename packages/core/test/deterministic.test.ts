@@ -281,27 +281,6 @@ describe('deterministic machine', () => {
     });
   });
 
-  describe('machine.transition() with array `.on` configs', () => {
-    it('should properly transition based on an event', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: [{ event: 'NEXT', target: 'pass' }]
-          },
-          pass: {}
-        }
-      });
-      expect(
-        machine.transition(
-          machine.resolveStateValue('a'),
-          { type: 'NEXT' },
-          undefined as any // TODO: figure out the simulation API
-        ).value
-      ).toBe('pass');
-    });
-  });
-
   describe('state key names', () => {
     const machine = createMachine({
       initial: 'test',

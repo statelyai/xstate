@@ -54,7 +54,7 @@ import {
   DelayedTransitionDefinition,
   HistoryValue,
   InitialTransitionDefinition,
-  SendActionObject
+  SendToActionObject
 } from '.';
 import { stopSignalType } from './actors/index.ts';
 import { ActorStatus } from './interpreter.ts';
@@ -232,59 +232,58 @@ export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
   receivedEventType: TEvent['type']
 ): Array<TransitionDefinition<any, TEvent>> {
-  const candidates = stateNode.transitions.filter((transition) => {
-    const { eventType } = transition;
-    // First, check the trivial case: event names are exactly equal
-    if (eventType === receivedEventType) {
-      return true;
-    }
+  const candidates =
+    stateNode.transitions.get(receivedEventType) ||
+    [...stateNode.transitions.keys()]
+      .filter((descriptor) => {
+        // check if transition is a wildcard transition,
+        // which matches any non-transient events
+        if (descriptor === WILDCARD) {
+          return true;
+        }
 
-    // Then, check if transition is a wildcard transition,
-    // which matches any non-transient events
-    if (eventType === WILDCARD) {
-      return true;
-    }
+        if (!descriptor.endsWith('.*')) {
+          return false;
+        }
 
-    if (!eventType.endsWith('.*')) {
-      return false;
-    }
-
-    if (isDevelopment && /.*\*.+/.test(eventType)) {
-      console.warn(
-        `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${eventType}" event.`
-      );
-    }
-
-    const partialEventTokens = eventType.split('.');
-    const eventTokens = receivedEventType.split('.');
-
-    for (
-      let tokenIndex = 0;
-      tokenIndex < partialEventTokens.length;
-      tokenIndex++
-    ) {
-      const partialEventToken = partialEventTokens[tokenIndex];
-      const eventToken = eventTokens[tokenIndex];
-
-      if (partialEventToken === '*') {
-        const isLastToken = tokenIndex === partialEventTokens.length - 1;
-
-        if (isDevelopment && !isLastToken) {
+        if (isDevelopment && /.*\*.+/.test(descriptor)) {
           console.warn(
-            `Infix wildcards in transition events are not allowed. Check the "${eventType}" event.`
+            `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${descriptor}" event.`
           );
         }
 
-        return isLastToken;
-      }
+        const partialEventTokens = descriptor.split('.');
+        const eventTokens = receivedEventType.split('.');
 
-      if (partialEventToken !== eventToken) {
-        return false;
-      }
-    }
+        for (
+          let tokenIndex = 0;
+          tokenIndex < partialEventTokens.length;
+          tokenIndex++
+        ) {
+          const partialEventToken = partialEventTokens[tokenIndex];
+          const eventToken = eventTokens[tokenIndex];
 
-    return true;
-  });
+          if (partialEventToken === '*') {
+            const isLastToken = tokenIndex === partialEventTokens.length - 1;
+
+            if (isDevelopment && !isLastToken) {
+              console.warn(
+                `Infix wildcards in transition events are not allowed. Check the "${descriptor}" transition.`
+              );
+            }
+
+            return isLastToken;
+          }
+
+          if (partialEventToken !== eventToken) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => b.length - a.length)
+      .flatMap((key) => stateNode.transitions.get(key)!);
 
   return candidates;
 }
@@ -335,7 +334,11 @@ export function getDelayedTransitions<
   return delayedTransitions.map((delayedTransition) => {
     const { delay } = delayedTransition;
     return {
-      ...formatTransition(stateNode, delayedTransition),
+      ...formatTransition(
+        stateNode,
+        delayedTransition.event,
+        delayedTransition
+      ),
       delay
     };
   });
@@ -346,9 +349,8 @@ export function formatTransition<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode,
-  transitionConfig: TransitionConfig<TContext, TEvent> & {
-    event: TEvent['type'] | typeof NULL_EVENT | '*';
-  }
+  descriptor: string,
+  transitionConfig: TransitionConfig<TContext, TEvent>
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
@@ -373,7 +375,7 @@ export function formatTransition<
     target,
     source: stateNode,
     reenter,
-    eventType: transitionConfig.event,
+    eventType: descriptor,
     toJSON: () => ({
       ...transition,
       source: `#${stateNode.id}`,
@@ -387,95 +389,76 @@ export function formatTransition<
 export function formatTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject
->(stateNode: AnyStateNode): Array<AnyTransitionDefinition> {
-  const transitionConfigs: Array<
-    TransitionConfig<TContext, TEvent> & {
-      event: string;
-    }
-  > = [];
-  if (Array.isArray(stateNode.config.on)) {
-    transitionConfigs.push(...stateNode.config.on);
-  } else if (stateNode.config.on) {
-    const { [WILDCARD]: wildcardConfigs = [], ...namedTransitionConfigs } =
-      stateNode.config.on;
-    for (const eventType of Object.keys(namedTransitionConfigs)) {
-      if (eventType === NULL_EVENT) {
+>(
+  stateNode: AnyStateNode
+): Map<string, TransitionDefinition<TContext, TEvent>[]> {
+  const transitions = new Map<
+    string,
+    TransitionDefinition<TContext, AnyEventObject>[]
+  >();
+  if (stateNode.config.on) {
+    for (const descriptor of Object.keys(stateNode.config.on)) {
+      if (descriptor === NULL_EVENT) {
         throw new Error(
           'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
         );
       }
-      const eventTransitionConfigs = toTransitionConfigArray<TContext, TEvent>(
-        eventType,
-        namedTransitionConfigs![eventType as string]
+      const transitionsConfig = stateNode.config.on[descriptor];
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(transitionsConfig).map((t) =>
+          formatTransition(stateNode, descriptor, t)
+        )
       );
-
-      transitionConfigs.push(...eventTransitionConfigs);
-      // TODO: add dev-mode validation for unreachable transitions
     }
-    transitionConfigs.push(
-      ...toTransitionConfigArray(
-        WILDCARD,
-        wildcardConfigs as SingleOrArray<
-          TransitionConfig<TContext, TEvent> & {
-            event: '*';
-          }
-        >
+  }
+  if (stateNode.config.onDone) {
+    const descriptor = String(done(stateNode.id));
+    transitions.set(
+      descriptor,
+      toTransitionConfigArray(stateNode.config.onDone).map((t) =>
+        formatTransition(stateNode, descriptor, t)
       )
     );
   }
-  const doneConfig = stateNode.config.onDone
-    ? toTransitionConfigArray(
-        String(done(stateNode.id)),
-        stateNode.config.onDone
-      )
-    : [];
-  const invokeConfig = stateNode.invoke.flatMap((invokeDef) => {
-    const settleTransitions: any[] = [];
+  for (const invokeDef of stateNode.invoke) {
     if (invokeDef.onDone) {
-      settleTransitions.push(
-        ...toTransitionConfigArray(
-          `done.invoke.${invokeDef.id}`,
-          invokeDef.onDone
+      const descriptor = `done.invoke.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onDone).map((t) =>
+          formatTransition(stateNode, descriptor, t)
         )
       );
     }
     if (invokeDef.onError) {
-      settleTransitions.push(
-        ...toTransitionConfigArray(
-          `error.platform.${invokeDef.id}`,
-          invokeDef.onError
+      const descriptor = `error.platform.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onError).map((t) =>
+          formatTransition(stateNode, descriptor, t)
         )
       );
     }
     if (invokeDef.onSnapshot) {
-      settleTransitions.push(
-        ...toTransitionConfigArray(
-          `xstate.snapshot.${invokeDef.id}`,
-          invokeDef.onSnapshot
+      const descriptor = `xstate.snapshot.${invokeDef.id}`;
+      transitions.set(
+        descriptor,
+        toTransitionConfigArray(invokeDef.onSnapshot).map((t) =>
+          formatTransition(stateNode, descriptor, t)
         )
       );
     }
-    return settleTransitions;
-  });
-  const delayedTransitions = stateNode.after;
-  const formattedTransitions = [
-    ...doneConfig,
-    ...invokeConfig,
-    ...transitionConfigs
-  ].flatMap(
-    (
-      transitionConfig: TransitionConfig<TContext, TEvent> & {
-        event: TEvent['type'] | '*';
-      }
-    ) =>
-      toArray(transitionConfig).map((transition) =>
-        formatTransition(stateNode, transition)
-      )
-  );
-  for (const delayedTransition of delayedTransitions) {
-    formattedTransitions.push(delayedTransition as any);
   }
-  return formattedTransitions;
+  for (const delayedTransition of stateNode.after) {
+    let existing = transitions.get(delayedTransition.eventType);
+    if (!existing) {
+      existing = [];
+      transitions.set(delayedTransition.eventType, existing);
+    }
+    existing.push(delayedTransition);
+  }
+  return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
 
 export function formatInitialTransition<
@@ -529,7 +512,7 @@ export function formatInitialTransition<
     return transition;
   }
 
-  return formatTransition(stateNode, {
+  return formatTransition(stateNode, '__INITIAL__', {
     target: toArray(_target.target).map((t) => {
       if (isString(t)) {
         return isStateId(t) ? t : `${STATE_DELIMITER}${t}`;
@@ -537,8 +520,7 @@ export function formatInitialTransition<
 
       return t;
     }),
-    actions: _target.actions,
-    event: null as any
+    actions: _target.actions
   }) as InitialTransitionDefinition<TContext, TEvent>;
 }
 
@@ -1404,7 +1386,7 @@ export function resolveActionsAndContext<
   actions: BaseActionObject[],
   event: TEvent,
   currentState: State<TContext, TEvent, any>,
-  actorCtx: AnyActorContext | undefined
+  actorCtx: AnyActorContext
 ): AnyState {
   const { machine } = currentState;
   const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
@@ -1438,9 +1420,7 @@ export function resolveActionsAndContext<
       intermediateState = nextState;
 
       if (
-        (resolvedAction.type === actionTypes.raise ||
-          (resolvedAction.type === actionTypes.send &&
-            (resolvedAction as SendActionObject).params.internal)) &&
+        resolvedAction.type === actionTypes.raise &&
         typeof (resolvedAction as any).params.delay !== 'number'
       ) {
         raiseActions.push(resolvedAction);

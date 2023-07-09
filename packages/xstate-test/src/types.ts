@@ -144,7 +144,7 @@ export interface TestTransitionConfig<
   test?: (state: State<TContext, TEvent>, testContext: TTestContext) => void;
 }
 
-export type TestTransitionsConfigMap<
+export type TestTransitionsConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext

@@ -19,16 +19,17 @@ import {
 import { not, stateIn } from 'xstate/guards';
 
 function appendWildcards(state: AnyStateNode) {
-  for (const t of state.transitions) {
-    if (
-      typeof t.eventType === 'string' &&
-      !!t.eventType &&
-      t.eventType !== '*' &&
-      !t.eventType.endsWith('.*')
-    ) {
-      t.eventType = `${t.eventType}.*`;
+  const newTransitions: typeof state.transitions = new Map();
+
+  for (const [descriptor, transitions] of state.transitions) {
+    if (descriptor !== '*' && !descriptor.endsWith('.*')) {
+      newTransitions.set(`${descriptor}.*`, transitions);
+    } else {
+      newTransitions.set(descriptor, transitions);
     }
   }
+
+  state.transitions = newTransitions;
 
   for (const key of Object.keys(state.states)) {
     appendWildcards(state.states[key]);
@@ -268,10 +269,7 @@ function mapAction<
       };
 
       if (target) {
-        return sendTo(target as string, convertedEvent, {
-          ...scxmlParams,
-          to: target as string | undefined
-        });
+        return sendTo(target as string, convertedEvent, scxmlParams);
       }
 
       return raise<TContext, TEvent, TEvent>(convertedEvent as TEvent, {
@@ -425,7 +423,10 @@ function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
       initial = stateElements[0].attributes!.id;
     }
 
-    const on = transitionElements.flatMap((value) => {
+    const always: any[] = [];
+    const on: Record<string, any> = {};
+
+    transitionElements.flatMap((value) => {
       const events = ((getAttribute(value, 'event') as string) || '').split(
         /\s+/
       );
@@ -461,13 +462,23 @@ function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
           }
         }
 
-        return {
-          event,
+        const transitionConfig = {
           target: getTargets(targets),
           ...(value.elements ? executableContent(value.elements) : undefined),
           ...guardObject,
           internal
         };
+
+        if (event === '') {
+          always.push(transitionConfig);
+        } else {
+          let existing = on[event];
+          if (!existing) {
+            existing = [];
+            on[event] = existing;
+          }
+          existing.push(transitionConfig);
+        }
       });
     });
 
@@ -519,7 +530,7 @@ function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
             states: mapValues(states, (state, key) => toConfig(state, key))
           }
         : undefined),
-      ...(transitionElements.length ? { on } : undefined),
+      on,
       ...(onEntry ? { entry: onEntry } : undefined),
       ...(onExit ? { exit: onExit } : undefined),
       ...(invoke.length ? { invoke } : undefined)

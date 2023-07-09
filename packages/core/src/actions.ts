@@ -17,13 +17,7 @@ import {
   createDynamicAction,
   isDynamicAction
 } from '../actions/dynamicAction.ts';
-export {
-  send,
-  sendTo,
-  sendParent,
-  forwardTo,
-  escalate
-} from './actions/send.ts';
+export { sendTo, sendParent, forwardTo, escalate } from './actions/send.ts';
 
 export { stop } from './actions/stop.ts';
 export { log } from './actions/log.ts';

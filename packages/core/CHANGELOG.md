@@ -1,5 +1,11 @@
 # xstate
 
+## 5.0.0-beta.16
+
+### Major Changes
+
+- [#4119](https://github.com/statelyai/xstate/pull/4119) [`fd2280f4e`](https://github.com/statelyai/xstate/commit/fd2280f4ee2b8be4f8e079f492551aef488604fb) Thanks [@Andarist](https://github.com/Andarist)! - Removed the deprecated `send` action creator. Please use `sendTo` when sending events to other actors or `raise` when sending to itself.
+
 ## 5.0.0-beta.15
 
 ### Patch Changes
