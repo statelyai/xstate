@@ -1,5 +1,47 @@
 # xstate
 
+## 5.0.0-beta.17
+
+### Major Changes
+
+- [#4127](https://github.com/statelyai/xstate/pull/4127) [`cdaddc266`](https://github.com/statelyai/xstate/commit/cdaddc2667f9021cd9452206aab1227d5a5c229c) Thanks [@Andarist](https://github.com/Andarist)! - IDs for delayed events are no longer derived from event types so this won't work automatically:
+
+  ```ts
+  entry: raise({ type: 'TIMER' }, { delay: 200 });
+  exit: cancel('TIMER');
+  ```
+
+  Please use explicit IDs:
+
+  ```ts
+  entry: raise({ type: 'TIMER' }, { delay: 200, id: 'myTimer' });
+  exit: cancel('myTimer');
+  ```
+
+- [#4127](https://github.com/statelyai/xstate/pull/4127) [`cdaddc266`](https://github.com/statelyai/xstate/commit/cdaddc2667f9021cd9452206aab1227d5a5c229c) Thanks [@Andarist](https://github.com/Andarist)! - All builtin action creators (`assign`, `sendTo`, etc) are now returning _functions_. They exact shape of those is considered an implementation detail of XState and users are meant to only pass around the returned values.
+
+### Patch Changes
+
+- [#4123](https://github.com/statelyai/xstate/pull/4123) [`b13bfcb08`](https://github.com/statelyai/xstate/commit/b13bfcb081ba3c7216159b90999ddd90448024f1) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to configure transitions using arrays:
+
+  ```ts
+  createMachine({
+    on: [{ event: 'FOO', target: '#id' }]
+    // ...
+  });
+  ```
+
+  Only regular object-based configs will be supported from now on:
+
+  ```ts
+  createMachine({
+    on: {
+      FOO: '#id'
+    }
+    // ...
+  });
+  ```
+
 ## 5.0.0-beta.16
 
 ### Major Changes
