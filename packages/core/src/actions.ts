@@ -609,6 +609,7 @@ export function pure<
         | BaseActionObject
         | BaseActionObject['type']
         | ActionObject<TContext, TExpressionEvent, TEvent>
+        | ActionFunction<TContext, TExpressionEvent>
       >
     | undefined
 ): PureAction<TContext, TExpressionEvent, TEvent> {
