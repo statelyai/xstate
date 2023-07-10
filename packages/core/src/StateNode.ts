@@ -41,6 +41,21 @@ import {
 
 const EMPTY_OBJECT = {};
 
+const toSerializableActon = (action: Action<any, any, any>) => {
+  if (typeof action === 'string') {
+    return { type: action };
+  }
+  if (typeof action === 'function') {
+    if ('resolve' in action) {
+      return { type: (action as any).type };
+    }
+    return {
+      type: action.name
+    };
+  }
+  return action;
+};
+
 interface StateNodeOptions<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -207,20 +222,6 @@ export class StateNode<
    * The well-structured state node definition.
    */
   public get definition(): StateNodeDefinition<TContext, TEvent> {
-    const toSerializableActon = (action: Action<any, any, any>) => {
-      if (typeof action === 'string') {
-        return { type: action };
-      }
-      if (typeof action === 'function') {
-        if ('resolve' in action) {
-          return { type: (action as any).type };
-        }
-        return {
-          type: action.name
-        };
-      }
-      return action;
-    };
     return {
       id: this.id,
       key: this.key,
