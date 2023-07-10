@@ -36,7 +36,6 @@ function raiseActionToSCXML(raiseAction: any): XMLElement {
 }
 
 function actionToSCXML(action: Action<any, any>): XMLElement {
-  // TODO: this won't work rn since we don't keep `builtinAction.type` around
   if ((action as any).type === 'xstate.raise') {
     return raiseActionToSCXML(action);
   }
