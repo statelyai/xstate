@@ -460,7 +460,7 @@ describe('StateNode', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map((t) => t.eventType)).toEqual([
+    expect([...transitions.keys()]).toEqual([
       'TIMER',
       'POWER_OUTAGE',
       'FORBIDDEN_EVENT'

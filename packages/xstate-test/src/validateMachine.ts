@@ -12,16 +12,19 @@ export const validateMachine = (machine: AnyStateMachine) => {
     if (state.after.length > 0) {
       throw new Error('After events on test machines are not supported');
     }
-    const actions = [...state.entry, ...state.exit];
-
-    state.transitions.forEach((transition) => {
-      actions.push(...transition.actions);
-    });
-
-    actions.forEach((action) => {
+    // TODO: this doesn't account for always transitions
+    [
+      ...state.entry,
+      ...state.exit,
+      ...[...state.transitions.values()].flatMap((t) =>
+        t.flatMap((t) => t.actions)
+      )
+    ].forEach((action) => {
+      // TODO: this doesn't check referenced actions, only the inline ones
       if (
-        action.type.startsWith('xstate.') &&
-        typeof (action as any).params.delay === 'number'
+        typeof action === 'function' &&
+        'resolve' in action &&
+        typeof (action as any).delay === 'number'
       ) {
         throw new Error('Delayed actions on test machines are not supported');
       }

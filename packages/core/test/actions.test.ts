@@ -2283,7 +2283,9 @@ describe('actions config', () => {
 });
 
 describe('action meta', () => {
-  it('should provide the original action', (done) => {
+  it('should provide the original action', () => {
+    const spy = jest.fn();
+
     const testMachine = createMachine(
       {
         id: 'test',
@@ -2302,15 +2304,49 @@ describe('action meta', () => {
       {
         actions: {
           entryAction: ({ action }) => {
-            expect(action.type).toEqual('entryAction');
-            expect(action.params?.value).toEqual('something');
-            done();
+            spy(action);
           }
         }
       }
     );
 
     interpret(testMachine).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'entryAction',
+      params: {
+        value: 'something'
+      }
+    });
+  });
+
+  it('should provide the action in its object form even if it was configured as string', () => {
+    const spy = jest.fn();
+
+    const testMachine = createMachine(
+      {
+        id: 'test',
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: 'entryAction'
+          }
+        }
+      },
+      {
+        actions: {
+          entryAction: ({ action }) => {
+            spy(action);
+          }
+        }
+      }
+    );
+
+    interpret(testMachine).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'entryAction'
+    });
   });
 });
 

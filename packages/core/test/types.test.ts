@@ -160,11 +160,11 @@ describe('Nested parallel stateSchema', () => {
 
 describe('Raise events', () => {
   it('should accept a valid event type', () => {
-    interface Context {}
-
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
-    createMachine<Context, Events>({
+    createMachine({
+      types: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
       entry: raise({
         type: 'FOO'
       })
@@ -172,11 +172,11 @@ describe('Raise events', () => {
   });
 
   it('should reject an invalid event type', () => {
-    interface Context {}
-
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
-    createMachine<Context, Events>({
+    createMachine({
+      types: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
       entry: raise({
         // @ts-expect-error
         type: 'UNKNOWN'
@@ -184,12 +184,21 @@ describe('Raise events', () => {
     });
   });
 
+  it('should reject a string event type', () => {
+    const event: { type: string } = { type: 'something' };
+
+    createMachine({
+      types: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      // @ts-expect-error
+      entry: raise(event)
+    });
+  });
+
   it('should provide a narrowed down expression event type when used as a transition action', () => {
-    interface Context {}
-
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
-    createMachine<Context, Events>({
+    createMachine({
       types: {
         context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
@@ -202,7 +211,7 @@ describe('Raise events', () => {
             ((_arg: 'BAR') => {})(event.type);
 
             return {
-              type: 'BAR'
+              type: 'BAR' as const
             };
           })
         }
@@ -211,27 +220,19 @@ describe('Raise events', () => {
   });
 
   it('should accept a valid event type returned from an expression', () => {
-    interface Context {}
-
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
-    createMachine<Context, Events>({
+    createMachine({
       types: {
         context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       entry: raise(() => ({
-        type: 'BAR'
+        type: 'BAR' as const
       }))
     });
   });
 
   it('should reject an invalid event type returned from an expression', () => {
-    interface Context {}
-
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
-    createMachine<Context, Events>({
+    createMachine({
       types: {
         context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
@@ -240,6 +241,19 @@ describe('Raise events', () => {
       entry: raise(() => ({
         type: 'UNKNOWN'
       }))
+    });
+  });
+
+  it('should reject a string event type returned from an expression', () => {
+    const event: { type: string } = { type: 'something' };
+
+    createMachine({
+      types: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      // @ts-expect-error
+      entry: raise(() => event)
     });
   });
 });

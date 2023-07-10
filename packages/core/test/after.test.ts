@@ -1,5 +1,5 @@
 import { createMachine, interpret } from '../src/index.ts';
-import { after } from '../src/actions';
+import { after } from '../src/actions.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -47,9 +47,7 @@ describe('delayed transitions', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map((t) => t.eventType)).toEqual([
-      after(1000, greenNode.id)
-    ]);
+    expect([...transitions.keys()]).toEqual([after(1000, greenNode.id)]);
   });
 
   it('should be able to transition with delay from nested initial state', (done) => {
