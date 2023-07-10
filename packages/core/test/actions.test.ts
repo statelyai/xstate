@@ -2945,19 +2945,15 @@ describe('assign action order', () => {
       count: number;
     }
 
-    const machine = createMachine({
-      schema: {} as {
-        context: CountCtx;
-      },
+    const machine = createMachine<CountCtx>({
       context: { count: 0 },
       entry: [
         (ctx) => captured.push(ctx.count), // 0
         pure(() => {
           return [
-            assign({ count: (ctx) => ctx.count + 1 }),
+            assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
             { type: 'capture', exec: (ctx: any) => captured.push(ctx.count) }, // 1
-            assign({ count: (ctx) => ctx.count + 1 }),
-            () => {}
+            assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
           ];
         }),
         (ctx) => captured.push(ctx.count) // 2
