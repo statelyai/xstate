@@ -1,5 +1,11 @@
 # @xstate/fsm
 
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- [#4138](https://github.com/statelyai/xstate/pull/4138) [`461e3983a`](https://github.com/statelyai/xstate/commit/461e3983a0e9d51c43a4b0e7370354b7dea24e5f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed missing `.mjs` proxy files for condition-based builds.
+
 ## 2.1.0
 
 ### Minor Changes
