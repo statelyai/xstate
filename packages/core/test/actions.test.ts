@@ -2442,6 +2442,21 @@ describe('purely defined actions', () => {
 
     expect(spy).toBeCalled();
   });
+
+  it('should allow function actions in pure', () => {
+    let called = false;
+    const machine = createMachine({
+      entry: pure(() => [
+        () => {
+          called = true;
+        }
+      ])
+    });
+
+    interpret(machine).start();
+
+    expect(called).toBeTruthy();
+  });
 });
 
 describe('forwardTo()', () => {

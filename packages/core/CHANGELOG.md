@@ -1,5 +1,24 @@
 # xstate
 
+## 4.38.1
+
+### Patch Changes
+
+- [#4130](https://github.com/statelyai/xstate/pull/4130) [`e659fac5d`](https://github.com/statelyai/xstate/commit/e659fac5d82e283e1298122814763c59af9a2375) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `pure(...)` action creator is now properly typed so that it allows function actions:
+
+  ```ts
+  actions: pure(() => [
+    // now allowed!
+    (context, event) => { ... }
+  ])
+  ```
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- [#4138](https://github.com/statelyai/xstate/pull/4138) [`461e3983a`](https://github.com/statelyai/xstate/commit/461e3983a0e9d51c43a4b0e7370354b7dea24e5f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed missing `.mjs` proxy files for condition-based builds.
+
 ## 5.0.0-beta.17
 
 ### Major Changes
@@ -83,6 +102,16 @@
       }
     }
   );
+  ```
+
+## 4.38.0
+
+### Minor Changes
+
+- [#4098](https://github.com/statelyai/xstate/pull/4098) [`ae7691811`](https://github.com/statelyai/xstate/commit/ae7691811d0ac92294532ce1e5ede3898ecffbc7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `log`, `pure`, `choose`, and `stop` actions were added to the main export:
+
+  ```ts
+  import { log, pure, choose, stop } from 'xstate';
   ```
 
 ## 5.0.0-beta.14
