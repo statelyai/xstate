@@ -1,19 +1,19 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
 import {
-  EventObject,
-  SendExpr,
-  DelayExpr,
-  ChooseCondition,
-  createMachine,
-  BaseActionObject,
+  ActionFunction,
   AnyStateMachine,
-  sendTo,
-  log,
-  raise,
+  AnyStateNode,
   assign,
   cancel,
   choose,
-  AnyStateNode,
+  ChooseBranch,
+  createMachine,
+  DelayExpr,
+  EventObject,
+  log,
+  raise,
+  SendExpr,
+  sendTo,
   StateNodeConfig
 } from 'xstate';
 import { not, stateIn } from 'xstate/guards';
@@ -188,18 +188,15 @@ function createGuard<
   };
 }
 
-function mapAction<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(element: XMLElement): BaseActionObject {
+function mapAction(element: XMLElement): ActionFunction<any, any, any, any> {
   switch (element.name) {
     case 'raise': {
-      return raise<any, any>({
+      return raise({
         type: element.attributes!.event!
-      } as TEvent);
+      });
     }
     case 'assign': {
-      return assign<TContext, TEvent>(({ context, event, ...meta }) => {
+      return assign(({ context, event, ...meta }) => {
         const fnBody = `
             return {'${element.attributes!.location}': ${
           element.attributes!.expr
@@ -223,8 +220,8 @@ function mapAction<
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: TEvent | SendExpr<TContext, TEvent>;
-      let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
+      let convertedEvent: EventObject | SendExpr<any, any>;
+      let convertedDelay: number | DelayExpr<any, any> | undefined;
 
       const params =
         element.elements &&
@@ -238,7 +235,7 @@ function mapAction<
         }, '');
 
       if (event && !params) {
-        convertedEvent = { type: event } as TEvent;
+        convertedEvent = { type: event as string };
       } else {
         convertedEvent = ({ context, event, ...meta }) => {
           const fnBody = `
@@ -272,7 +269,7 @@ function mapAction<
         return sendTo(target as string, convertedEvent, scxmlParams);
       }
 
-      return raise<TContext, TEvent, TEvent>(convertedEvent as TEvent, {
+      return raise(convertedEvent, {
         delay: convertedDelay,
         id: id as string | undefined
       });
@@ -280,7 +277,7 @@ function mapAction<
     case 'log': {
       const label = element.attributes!.label;
 
-      return log<TContext, any, any>(
+      return log(
         ({ context, event, ...meta }) => {
           const fnBody = `
               return ${element.attributes!.expr};
@@ -292,9 +289,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: Array<ChooseCondition<TContext, any>> = [];
+      const branches: Array<ChooseBranch<any, any>> = [];
 
-      let current: ChooseCondition<TContext, any> = {
+      let current: ChooseBranch<any, any> = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };
@@ -306,24 +303,24 @@ function mapAction<
 
         switch (el.name) {
           case 'elseif':
-            conds.push(current);
+            branches.push(current);
             current = {
               guard: createGuard(el.attributes!.cond as string),
               actions: []
             };
             break;
           case 'else':
-            conds.push(current);
+            branches.push(current);
             current = { actions: [] };
             break;
           default:
-            (current.actions as any[]).push(mapAction<TContext, TEvent>(el));
+            (current.actions as any[]).push(mapAction(el));
             break;
         }
       }
 
-      conds.push(current);
-      return choose(conds);
+      branches.push(current);
+      return choose(branches);
     }
     default:
       throw new Error(
@@ -332,8 +329,10 @@ function mapAction<
   }
 }
 
-function mapActions(elements: XMLElement[]): BaseActionObject[] {
-  const mapped: BaseActionObject[] = [];
+function mapActions(
+  elements: XMLElement[]
+): ActionFunction<any, any, any, any>[] {
+  const mapped: ActionFunction<any, any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

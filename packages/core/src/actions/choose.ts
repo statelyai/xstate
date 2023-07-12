@@ -1,49 +1,55 @@
-import { EventObject, ChooseCondition, MachineContext } from '../types.ts';
-import * as actionTypes from '../actionTypes.ts';
-import { createDynamicAction } from '../../actions/dynamicAction.ts';
-import { evaluateGuard, toGuardDefinition } from '../guards.ts';
+import isDevelopment from '#is-development';
 import {
-  BaseDynamicActionObject,
-  ChooseAction,
-  ResolvedChooseAction
-} from '../index.ts';
-import { toActionObjects } from '../actions.ts';
+  EventObject,
+  ChooseBranch,
+  MachineContext,
+  AnyActorContext,
+  AnyState,
+  ActionArgs
+} from '../types.ts';
+import { evaluateGuard, toGuardDefinition } from '../guards.ts';
+import { toArray } from '../utils.ts';
+
+function resolve(
+  _: AnyActorContext,
+  state: AnyState,
+  actionArgs: ActionArgs<any, any>,
+  {
+    branches
+  }: {
+    branches: Array<ChooseBranch<MachineContext, EventObject>>;
+  }
+) {
+  const matchedActions = branches.find((condition) => {
+    const guard =
+      condition.guard &&
+      toGuardDefinition(
+        condition.guard,
+        (guardType) => state.machine.implementations.guards[guardType]
+      );
+    return (
+      !guard || evaluateGuard(guard, state.context, actionArgs.event, state)
+    );
+  })?.actions;
+
+  return [state, undefined, toArray(matchedActions)];
+}
 
 export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
->(
-  guards: Array<ChooseCondition<TContext, TExpressionEvent>>
-): BaseDynamicActionObject<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  ResolvedChooseAction,
-  ChooseAction<TContext, TExpressionEvent>['params']
-> {
-  return createDynamicAction(
-    { type: actionTypes.choose, params: { guards } },
-    (event, { state }) => {
-      const matchedActions = guards.find((condition) => {
-        const guard =
-          condition.guard &&
-          toGuardDefinition(
-            condition.guard,
-            (guardType) => state.machine.implementations.guards[guardType]
-          );
-        return !guard || evaluateGuard(guard, state.context, event, state);
-      })?.actions;
-
-      return [
-        state,
-        {
-          type: actionTypes.choose,
-          params: {
-            actions: toActionObjects(matchedActions)
-          }
-        }
-      ];
+>(branches: Array<ChooseBranch<TContext, TExpressionEvent>>) {
+  function choose(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
     }
-  );
+  }
+
+  choose.type = 'xstate.choose';
+  choose.branches = branches;
+
+  choose.resolve = resolve;
+
+  return choose;
 }

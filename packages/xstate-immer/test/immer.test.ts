@@ -104,7 +104,14 @@ describe('@xstate/immer', () => {
   });
 
   it('should create updates', () => {
-    const context = {
+    interface MyContext {
+      foo: {
+        bar: {
+          baz: number[];
+        };
+      };
+    }
+    const context: MyContext = {
       foo: {
         bar: {
           baz: [1, 2, 3]
@@ -119,7 +126,13 @@ describe('@xstate/immer', () => {
       context.foo.bar.baz.push(event.input);
     });
 
-    const countMachine = createMachine<typeof context>({
+    const countMachine = createMachine({
+      types: {
+        context: {} as MyContext,
+        events: {} as
+          | ImmerUpdateEvent<'UPDATE_BAZ', number>
+          | ImmerUpdateEvent<'OTHER', string>
+      },
       id: 'count',
       context,
       initial: 'active',

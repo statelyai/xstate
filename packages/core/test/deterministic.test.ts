@@ -1,4 +1,4 @@
-import { interpret } from '../src/index.ts';
+import { fromCallback, interpret } from '../src/index.ts';
 import { createMachine } from '../src/Machine.ts';
 
 describe('deterministic machine', () => {
@@ -282,19 +282,26 @@ describe('deterministic machine', () => {
   });
 
   describe('state key names', () => {
-    const machine = createMachine({
-      initial: 'test',
-      states: {
-        test: {
-          invoke: ['activity'],
-          entry: ['onEntry'],
-          on: {
-            NEXT: 'test'
-          },
-          exit: ['onExit']
+    const machine = createMachine(
+      {
+        initial: 'test',
+        states: {
+          test: {
+            invoke: ['activity'],
+            entry: ['onEntry'],
+            on: {
+              NEXT: 'test'
+            },
+            exit: ['onExit']
+          }
+        }
+      },
+      {
+        actors: {
+          activity: fromCallback(() => () => {})
         }
       }
-    });
+    );
 
     it('should work with substate nodes that have the same key', () => {
       expect(

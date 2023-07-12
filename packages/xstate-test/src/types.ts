@@ -1,6 +1,5 @@
 import { StatePath, Step, TraversalOptions } from '@xstate/graph';
 import {
-  BaseActionObject,
   EventObject,
   MachineConfig,
   MachineTypes,
@@ -12,8 +11,9 @@ import {
   ExtractEvent,
   MachineImplementations,
   MachineContext,
-  TODO,
-  ActorLogic
+  ActorLogic,
+  ParameterizedObject,
+  TODO
 } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
@@ -59,7 +59,13 @@ export type TestMachineOptions<
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = Partial<
   Pick<
-    MachineImplementations<TContext, TEvent, BaseActionObject, any, TTypesMeta>,
+    MachineImplementations<
+      TContext,
+      TEvent,
+      ParameterizedObject,
+      any,
+      TTypesMeta
+    >,
     'actions' | 'guards'
   >
 >;

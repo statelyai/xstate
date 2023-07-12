@@ -1,5 +1,5 @@
 import { createMachine, interpret } from '../src/index.ts';
-import { after } from '../src/actions';
+import { after } from '../src/actions.ts';
 
 const lightMachine = createMachine({
   id: 'light',

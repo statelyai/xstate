@@ -26,7 +26,7 @@ import type {
   TODO,
   WithDefault
 } from './types.ts';
-import { flatten, isString, matchesState } from './utils.ts';
+import { flatten, matchesState } from './utils.ts';
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -156,7 +156,7 @@ export class State<
    * @param delimiter The character(s) that separate each subpath in the string state node path.
    */
   public toStrings(stateValue: StateValue = this.value): string[] {
-    if (isString(stateValue)) {
+    if (typeof stateValue === 'string') {
       return [stateValue];
     }
     const valueKeys = Object.keys(stateValue);
@@ -233,7 +233,7 @@ export class State<
     });
   }
 
-  public get meta() {
+  public get meta(): Record<string, any> {
     return this.configuration.reduce((acc, stateNode) => {
       if (stateNode.meta !== undefined) {
         acc[stateNode.id] = stateNode.meta;
