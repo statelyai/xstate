@@ -302,15 +302,10 @@ export class Interpreter<
         this._complete();
       }
     } catch (err) {
-      // TODO: properly handle errors
-      if (this.observers.size > 0) {
-        this.observers.forEach((observer) => {
-          observer.error?.(err);
-        });
-        this.stop();
-      } else {
-        throw err;
-      }
+      this.observers.forEach((observer) => {
+        observer.error?.(err);
+      });
+      throw err;
     }
   }
 
