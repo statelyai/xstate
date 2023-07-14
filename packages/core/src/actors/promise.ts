@@ -29,7 +29,7 @@ export type PromiseActorEvents<T> =
     };
 
 export type PromiseActorLogic<T, TInput = any> = ActorLogic<
-  PromiseActorEvents<T>,
+  { type: string; [k: string]: unknown },
   T | undefined,
   PromiseInternalState<T>, // internal state
   PromiseInternalState<T>, // persisted state
@@ -63,7 +63,7 @@ export function fromPromise<T, TInput>(
           return {
             ...state,
             status: 'done',
-            data: event.data,
+            data: (event as any).data,
             input: undefined
           };
         case rejectEventType:

@@ -17,7 +17,8 @@ import {
   assign,
   createMachine,
   interpret,
-  sendParent
+  sendParent,
+  EventFrom
 } from '../src/index.ts';
 
 const user = { name: 'David' };
@@ -121,6 +122,7 @@ describe('invoke', () => {
           actors: {
             src: 'child';
             id: 'someService';
+            events: EventFrom<typeof childMachine>;
             logic: typeof childMachine;
           };
         },
@@ -2831,6 +2833,7 @@ describe('invoke', () => {
             input: {
               endpoint: string;
             };
+            output: number;
           };
         },
         initial: 'searching',
@@ -2851,13 +2854,11 @@ describe('invoke', () => {
       },
       {
         actors: {
-          search: fromPromise(
-            async ({ input }: { input: { endpoint: string } }) => {
-              expect(input.endpoint).toEqual('example.com');
+          search: fromPromise(async ({ input }) => {
+            expect(input.endpoint).toEqual('example.com');
 
-              return await 42;
-            }
-          )
+            return 42;
+          })
         }
       }
     );

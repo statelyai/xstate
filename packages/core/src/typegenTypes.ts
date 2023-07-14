@@ -10,7 +10,8 @@ import {
   ActorImpl,
   OutputFrom,
   WithDefault,
-  AnyActorLogic
+  AnyActorLogic,
+  IndexByProp
 } from './types.ts';
 
 export interface TypegenDisabled {
@@ -93,6 +94,7 @@ export interface TypegenMeta extends TypegenEnabled {
 
 export interface ResolvedTypegenMeta extends TypegenMeta {
   resolved: TypegenMeta & {
+    indexedActors: Record<string, ActorImpl>;
     indexedActions: Record<string, ParameterizedObject>;
     indexedEvents: Record<string, EventObject>;
   };
@@ -182,6 +184,9 @@ export interface ResolveTypegenMeta<
   resolved: {
     enabled: TTypesMeta & {
       indexedActions: IndexByType<TAction>;
+      indexedActors: string extends TActors['src']
+        ? Record<keyof Prop<TTypesMeta, 'eventsCausingActors'>, ActorImpl>
+        : IndexByProp<TActors, 'src'>;
       indexedEvents: MergeWithInternalEvents<
         IndexByType<
           | (string extends TEvent['type'] ? never : TEvent)
@@ -194,6 +199,7 @@ export interface ResolveTypegenMeta<
       AllImplementationsProvided &
       AllowAllEvents & {
         indexedActions: IndexByType<TAction>;
+        indexedActors: IndexByProp<TActors, 'src'>;
         indexedEvents: Record<string, TEvent> & {
           __XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__: { output: any };
         };

@@ -22,11 +22,11 @@ export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Merge<M, N> = Omit<M, keyof N> & N;
-// TODO: replace in v5 with:
-// export type IndexByType<T extends { type: string }> = { [E in T as E['type']]: E; };
-export type IndexByType<T extends { type: string }> = {
-  [K in T['type']]: T extends any ? (K extends T['type'] ? T : never) : never;
+export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
+  [E in T as E[P]]: E;
 };
+
+export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 
 export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   ? true
@@ -797,6 +797,57 @@ type MachineImplementationsActions<
   >;
 };
 
+type DefaultToConstraint<T, D> = undefined extends T ? D : T & D;
+
+// TODO: remove actorImpl thing
+export type ActorImplToActorLogic<T extends ActorImpl> = ActorLogic<
+  DefaultToConstraint<T['events'], { type: string }>,
+  DefaultToConstraint<T['snapshot'], any>,
+  any,
+  any,
+  AnyActorSystem,
+  T['input'],
+  T['output']
+>;
+
+type MachineImplementationsActors<
+  TContext extends MachineContext,
+  TResolvedTypesMeta,
+  TEventsCausingActors = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingActors'
+  >,
+  TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  _TInvokeSrcNameMap = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'invokeSrcNameMap'
+  >
+> = {
+  // TODO: this should require `{ src, input }` for required inputs
+  [K in keyof TIndexedActors]?:
+    | ActorImplToActorLogic<Cast<TIndexedActors[K], ActorImpl>>
+    | {
+        src: ActorImplToActorLogic<Cast<TIndexedActors[K], ActorImpl>>;
+        input:
+          | Mapper<
+              TContext,
+              Cast<
+                Prop<
+                  TIndexedEvents,
+                  K extends keyof TEventsCausingActors
+                    ? TEventsCausingActors[K]
+                    : TIndexedEvents[keyof TIndexedEvents]
+                >,
+                EventObject
+              >,
+              // TODO: this should be the input type
+              any
+            >
+          | any;
+      };
+};
+
 type MachineImplementationsDelays<
   TContext extends MachineContext,
   TResolvedTypesMeta,
@@ -863,20 +914,20 @@ type GenerateActionsImplementationsPart<
   }
 >;
 
-// type GenerateActorsImplementationsPart<
-//   TContext extends MachineContext,
-//   TResolvedTypesMeta,
-//   TRequireMissingImplementations,
-//   TMissingImplementations
-// > = Compute<
-//   MaybeMakeMissingImplementationsRequired<
-//     'actors',
-//     Prop<TMissingImplementations, 'actors'>,
-//     TRequireMissingImplementations
-//   > & {
-//     actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
-//   }
-// >;
+type GenerateActorsImplementationsPart<
+  TContext extends MachineContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = Compute<
+  MaybeMakeMissingImplementationsRequired<
+    'actors',
+    Prop<TMissingImplementations, 'actors'>,
+    TRequireMissingImplementations
+  > & {
+    actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
+  }
+>;
 
 type GenerateDelaysImplementationsPart<
   TContext extends MachineContext,
@@ -919,39 +970,34 @@ export type InternalMachineImplementations<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'missingImplementations'
   >
-> = GenerateActionsImplementationsPart<
-  TContext,
-  TResolvedTypesMeta,
-  TRequireMissingImplementations,
-  TMissingImplementations
-> &
-  // GenerateActorsImplementationsPart<
-  //   TContext,
-  //   TResolvedTypesMeta,
-  //   TRequireMissingImplementations,
-  //   TMissingImplementations
-  // > &
-  GenerateDelaysImplementationsPart<
-    TContext,
-    TResolvedTypesMeta,
-    TRequireMissingImplementations,
-    TMissingImplementations
-  > &
-  GenerateGuardsImplementationsPart<
-    TContext,
-    TResolvedTypesMeta,
-    TRequireMissingImplementations,
-    TMissingImplementations
-  > & {
-    actors?: {
-      [K in TActors['src']]?:
-        | (TActors & { src: K })['logic']
-        | {
-            src: (TActors & { src: K })['logic'];
-            input: Mapper<TContext, TEvents, any> | any;
-          };
-    };
-  };
+> =
+  // TODO: remove per-Generate* Computes
+  Compute<
+    GenerateActionsImplementationsPart<
+      TContext,
+      TResolvedTypesMeta,
+      TRequireMissingImplementations,
+      TMissingImplementations
+    > &
+      GenerateActorsImplementationsPart<
+        TContext,
+        TResolvedTypesMeta,
+        TRequireMissingImplementations,
+        TMissingImplementations
+      > &
+      GenerateDelaysImplementationsPart<
+        TContext,
+        TResolvedTypesMeta,
+        TRequireMissingImplementations,
+        TMissingImplementations
+      > &
+      GenerateGuardsImplementationsPart<
+        TContext,
+        TResolvedTypesMeta,
+        TRequireMissingImplementations,
+        TMissingImplementations
+      >
+  >;
 
 export type MachineImplementations<
   TContext extends MachineContext,
@@ -1005,6 +1051,11 @@ export interface MachineConfig<
 export interface ActorImpl {
   src: string;
   id?: string;
+  events?: EventObject;
+  snapshot?: any;
+  input?: any;
+  output?: any;
+
   logic?: AnyActorLogic;
 }
 
@@ -1526,7 +1577,7 @@ export interface ActorLogic<
   TPersisted = TInternalState,
   TSystem extends ActorSystem<any> = ActorSystem<any>,
   TInput = any,
-  _TOutput = never
+  TOutput = unknown
 > {
   config?: unknown;
   transition: (
@@ -1552,6 +1603,7 @@ export interface ActorLogic<
    * @returns Persisted state
    */
   getPersistedState?: (state: TInternalState) => TPersisted;
+  _out_TOutput?: TOutput; // temp hack to use this type param so we can error properly, ideally this should appear somewhere in the type, perhaps in the `getStatus`?
 }
 
 export type AnyActorLogic = ActorLogic<
