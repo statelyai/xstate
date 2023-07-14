@@ -48,14 +48,7 @@ export function fromTransition<
   const logic: ActorLogic<TEvent, TState, TState, TState> = {
     config: transition,
     transition: (state, event, actorContext) => {
-      const nextState = transition(state, event as TEvent, actorContext as any);
-
-      actorContext.self._parent?.send({
-        type: `xstate.snapshot.${actorContext.id}`,
-        data: nextState
-      });
-
-      return nextState;
+      return transition(state, event as TEvent, actorContext as any);
     },
     getInitialState: (_, input) => {
       return typeof initialState === 'function'

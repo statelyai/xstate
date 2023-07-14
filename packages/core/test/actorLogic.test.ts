@@ -1,6 +1,6 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { AnyActorRef, createMachine, interpret } from '../src/index.ts';
+import { createMachine, interpret } from '../src/index.ts';
 import {
   fromCallback,
   fromEventObservable,
@@ -293,44 +293,6 @@ describe('transition function logic (fromTransition)', () => {
     const actor = interpret(transitionLogic).start();
 
     actor.send({ type: 'a' });
-  });
-
-  it('can pass along self-reference to parent', (done) => {
-    const machine = createMachine({
-      types: {} as {
-        events: { type: 'request'; ref: AnyActorRef };
-      },
-      invoke: {
-        id: 'what',
-        src: fromTransition((state, event, { self }) => {
-          if (state === 'idle') {
-            self._parent?.send({ type: 'request', ref: self });
-            return 'waiting';
-          }
-
-          if (event.type === 'response') {
-            return 'success';
-          }
-
-          return state;
-        }, 'idle'),
-        onSnapshot: {
-          actions: ({ event }) => {
-            if (event.data === 'success') {
-              done();
-            }
-          }
-        }
-      },
-      entry: sendTo('what', { type: 'hello' }),
-      on: {
-        request: {
-          actions: sendTo(({ event }) => event.ref, { type: 'response' })
-        }
-      }
-    });
-
-    interpret(machine).start();
   });
 });
 
