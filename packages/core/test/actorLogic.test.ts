@@ -1,6 +1,6 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { createMachine, interpret } from '../src/index.ts';
+import { AnyActorRef, createMachine, interpret } from '../src/index.ts';
 import {
   fromCallback,
   fromEventObservable,
@@ -443,6 +443,40 @@ describe('callback logic (fromCallback)', () => {
     });
 
     interpret(callbackLogic).start();
+  });
+
+  it('can send self reference in an event to parent', (done) => {
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'PING'; ref: AnyActorRef };
+      },
+      invoke: {
+        src: fromCallback((sendBack, receive, { self }) => {
+          receive((event) => {
+            switch (event.type) {
+              case 'PONG': {
+                done();
+              }
+            }
+          });
+
+          sendBack({
+            type: 'PING',
+            ref: self
+          });
+        })
+      },
+      on: {
+        PING: {
+          actions: sendTo(
+            ({ event }) => event.ref,
+            ({ event }) => ({ type: 'PONG' })
+          )
+        }
+      }
+    });
+
+    interpret(machine).start();
   });
 });
 
