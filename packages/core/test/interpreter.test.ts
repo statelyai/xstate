@@ -1467,11 +1467,15 @@ describe('interpreter', () => {
 
   describe('actors', () => {
     it("doesn't crash cryptically on undefined return from the actor creator", () => {
+      const child = fromCallback(() => {
+        // nothing
+      });
       const machine = createMachine(
         {
           types: {} as {
             actors: {
               src: 'testService';
+              logic: typeof child;
             };
           },
           initial: 'initial',
@@ -1485,9 +1489,7 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            testService: fromCallback(() => {
-              // nothing
-            })
+            testService: child
           }
         }
       );

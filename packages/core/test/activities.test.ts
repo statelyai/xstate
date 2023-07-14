@@ -316,11 +316,24 @@ describe('invocations (activities)', () => {
   it('should start a new actor when leaving an invoking state and entering a new one that invokes the same actor type', () => {
     let counter = 0;
     const actual: string[] = [];
+
+    const fooActor = fromCallback(() => {
+      let localId = counter;
+      counter++;
+
+      actual.push(`start ${localId}`);
+
+      return () => {
+        actual.push(`stop ${localId}`);
+      };
+    });
+
     const machine = createMachine(
       {
         types: {} as {
           actors: {
             src: 'fooActor';
+            logic: typeof fooActor;
           };
         },
         initial: 'a',
@@ -342,16 +355,7 @@ describe('invocations (activities)', () => {
       },
       {
         actors: {
-          fooActor: fromCallback(() => {
-            let localId = counter;
-            counter++;
-
-            actual.push(`start ${localId}`);
-
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          })
+          fooActor
         }
       }
     );
@@ -365,11 +369,24 @@ describe('invocations (activities)', () => {
   it('should start a new actor when reentering the invoking state during a reentering self transition', () => {
     let counter = 0;
     const actual: string[] = [];
+
+    const fooActor = fromCallback(() => {
+      let localId = counter;
+      counter++;
+
+      actual.push(`start ${localId}`);
+
+      return () => {
+        actual.push(`stop ${localId}`);
+      };
+    });
+
     const machine = createMachine(
       {
         types: {} as {
           actors: {
             src: 'fooActor';
+            logic: typeof fooActor;
           };
         },
         initial: 'a',
@@ -389,16 +406,7 @@ describe('invocations (activities)', () => {
       },
       {
         actors: {
-          fooActor: fromCallback(() => {
-            let localId = counter;
-            counter++;
-
-            actual.push(`start ${localId}`);
-
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          })
+          fooActor
         }
       }
     );

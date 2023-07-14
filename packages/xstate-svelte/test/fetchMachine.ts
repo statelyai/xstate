@@ -1,4 +1,4 @@
-import { createMachine, assign } from 'xstate';
+import { createMachine, assign, ActorLogicFrom } from 'xstate';
 
 const context = {
   data: undefined as string | undefined
@@ -10,7 +10,7 @@ export const fetchMachine = createMachine({
     context: typeof context;
     actors: {
       src: 'fetchData';
-      output: string;
+      logic: ActorLogicFrom<Promise<string>>;
     };
   },
   initial: 'idle',

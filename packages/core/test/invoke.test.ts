@@ -2,6 +2,7 @@ import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { escalate, forwardTo, raise, sendTo } from '../src/actions.ts';
 import {
+  PromiseActorLogic,
   fromCallback,
   fromEventObservable,
   fromObservable,
@@ -18,7 +19,8 @@ import {
   createMachine,
   interpret,
   sendParent,
-  EventFrom
+  EventFrom,
+  ActorLogicFrom
 } from '../src/index.ts';
 
 const user = { name: 'David' };
@@ -361,7 +363,11 @@ describe('invoke', () => {
         id: 'parent',
         types: {} as {
           context: { count: number };
-          actors: { src: 'child'; id: 'someService' };
+          actors: {
+            src: 'child';
+            id: 'someService';
+            logic: typeof childMachine;
+          };
         },
         context: { count: 0 },
         initial: 'start',
@@ -1124,6 +1130,15 @@ describe('invoke', () => {
           type: 'BEGIN';
           payload: boolean;
         }
+
+        const promiseActor = fromPromise(
+          ({ input }: { input: { foo: boolean; event: { payload: any } } }) => {
+            return createPromise((resolve, reject) => {
+              input.foo && input.event.payload ? resolve() : reject();
+            });
+          }
+        );
+
         const promiseMachine = createMachine(
           {
             id: 'promise',
@@ -1132,10 +1147,7 @@ describe('invoke', () => {
               events: BeginEvent;
               actors: {
                 src: 'somePromise';
-                input: {
-                  foo: boolean;
-                  event: any;
-                };
+                logic: typeof promiseActor;
               };
             },
             initial: 'pending',
@@ -1151,7 +1163,7 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
-                  input: ({ context, event }: any) => ({
+                  input: ({ context, event }) => ({
                     foo: context.foo,
                     event: event
                   }),
@@ -1165,17 +1177,7 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: fromPromise(
-                ({
-                  input
-                }: {
-                  input: { foo: boolean; event: { payload: any } };
-                }) => {
-                  return createPromise((resolve, reject) => {
-                    input.foo && input.event.payload ? resolve() : reject();
-                  });
-                }
-              )
+              somePromise: promiseActor
             }
           }
         );
@@ -1199,7 +1201,7 @@ describe('invoke', () => {
               };
               actors: {
                 src: 'getRandomNumber';
-                output: { result: number };
+                logic: PromiseActorLogic<{ result: number }>;
               };
             },
             context: {
@@ -1298,6 +1300,32 @@ describe('invoke', () => {
         type: 'CALLBACK';
         data: number;
       }
+
+      const someCallback = fromCallback(
+        (
+          cb,
+          _receive: (cb: (ev: BeginEvent | CallbackEvent) => void) => void,
+          {
+            input
+          }: { input: { foo: boolean; event: BeginEvent | CallbackEvent } }
+        ) => {
+          if (input.foo && input.event.type === 'BEGIN') {
+            cb({
+              type: 'CALLBACK',
+              data: 40
+            });
+            cb({
+              type: 'CALLBACK',
+              data: 41
+            });
+            cb({
+              type: 'CALLBACK',
+              data: 42
+            });
+          }
+        }
+      );
+
       const callbackMachine = createMachine(
         {
           id: 'callback',
@@ -1306,10 +1334,7 @@ describe('invoke', () => {
             events: BeginEvent | CallbackEvent;
             actors: {
               src: 'someCallback';
-              input: {
-                foo: boolean;
-                event: EventObject;
-              };
+              logic: typeof someCallback;
             };
           },
           initial: 'pending',
@@ -1325,7 +1350,7 @@ describe('invoke', () => {
             first: {
               invoke: {
                 src: 'someCallback',
-                input: ({ context, event }: any) => ({
+                input: ({ context, event }) => ({
                   foo: context.foo,
                   event: event
                 })
@@ -1344,28 +1369,7 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: fromCallback(
-              (
-                cb,
-                _receive,
-                { input }: { input: { foo: boolean; event: any } }
-              ) => {
-                if (input.foo && input.event.type === 'BEGIN') {
-                  cb({
-                    type: 'CALLBACK',
-                    data: 40
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 41
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 42
-                  });
-                }
-              }
-            )
+            someCallback
           }
         }
       );
@@ -2830,10 +2834,12 @@ describe('invoke', () => {
         types: {} as {
           actors: {
             src: 'search';
-            input: {
-              endpoint: string;
-            };
-            output: number;
+            logic: PromiseActorLogic<
+              number,
+              {
+                endpoint: string;
+              }
+            >;
           };
         },
         initial: 'searching',
@@ -2874,9 +2880,12 @@ describe('invoke', () => {
           context: { url: string };
           actors: {
             src: 'search';
-            input: {
-              endpoint: string;
-            };
+            logic: PromiseActorLogic<
+              number,
+              {
+                endpoint: string;
+              }
+            >;
           };
         },
         initial: 'searching',
@@ -2887,7 +2896,7 @@ describe('invoke', () => {
           searching: {
             invoke: {
               src: 'search',
-              input: ({ context }: any) => ({ endpoint: context.url }),
+              input: ({ context }) => ({ endpoint: context.url }),
               onDone: 'success'
             }
           },
@@ -2898,13 +2907,11 @@ describe('invoke', () => {
       },
       {
         actors: {
-          search: fromPromise(
-            async ({ input }: { input: { endpoint: string } }) => {
-              expect(input.endpoint).toEqual('example.com');
+          search: fromPromise(async ({ input }) => {
+            expect(input.endpoint).toEqual('example.com');
 
-              return await 42;
-            }
-          )
+            return 42;
+          })
         }
       }
     );
@@ -3279,10 +3286,13 @@ describe('actors option', () => {
           context: { count: number };
           actors: {
             src: 'stringService';
-            input: {
-              staticVal: string;
-              newCount: number;
-            };
+            logic: PromiseActorLogic<
+              boolean,
+              {
+                staticVal: string;
+                newCount: number;
+              }
+            >;
           };
         },
         initial: 'pending',
@@ -3293,7 +3303,7 @@ describe('actors option', () => {
           pending: {
             invoke: {
               src: 'stringService',
-              input: ({ context }: any) => ({
+              input: ({ context }) => ({
                 staticVal: 'hello',
                 newCount: context.count * 2 // TODO: types
               }),
@@ -3310,9 +3320,7 @@ describe('actors option', () => {
           stringService: fromPromise(({ input }) => {
             expect(input).toEqual({ newCount: 84, staticVal: 'hello' });
 
-            return new Promise<void>((res) => {
-              res();
-            });
+            return Promise.resolve(true);
           })
         }
       }

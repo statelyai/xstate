@@ -8,7 +8,8 @@ import {
   InterpreterStatus,
   PersistedMachineState,
   raise,
-  interpret
+  interpret,
+  ActorLogicFrom
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { fromPromise, fromCallback } from 'xstate/actors';
@@ -40,7 +41,7 @@ describe('useMachine hook', () => {
       events: { type: 'FETCH' };
       actors: {
         src: 'fetchData';
-        output: string;
+        logic: ActorLogicFrom<Promise<string>>;
       };
     },
     initial: 'idle',

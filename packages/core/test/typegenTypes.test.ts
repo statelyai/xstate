@@ -1,4 +1,5 @@
 import {
+  ActorLogic,
   assign,
   interpret,
   MachineContext,
@@ -681,8 +682,8 @@ describe('typegen types', () => {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' },
           actors: {} as {
-            src: any;
-            output: string;
+            src: 'callThing';
+            logic: PromiseActorLogic<string>;
             id: 'myActor';
           }
         }
@@ -719,6 +720,8 @@ describe('typegen types', () => {
       };
     }
 
+    const child = fromPromise(() => Promise.resolve('foo'));
+
     createMachine(
       {
         types: {
@@ -726,13 +729,13 @@ describe('typegen types', () => {
           events: {} as { type: 'FOO' },
           actors: {} as {
             src: 'myActor';
-            output: string;
+            logic: typeof child;
           }
         }
       },
       {
         actors: {
-          myActor: fromPromise(() => Promise.resolve('foo'))
+          myActor: child
         }
       }
     );
@@ -799,6 +802,8 @@ describe('typegen types', () => {
       };
     }
 
+    const child = createMachine<{ foo: string }>({});
+
     createMachine(
       {
         types: {
@@ -806,13 +811,13 @@ describe('typegen types', () => {
           events: {} as { type: 'FOO' },
           actors: {} as {
             src: 'myActor';
-            output: string;
+            logic: typeof child;
           }
         }
       },
       {
         actors: {
-          myActor: createMachine<{ foo: string }>({})
+          myActor: child
         }
       }
     );
@@ -951,7 +956,7 @@ describe('typegen types', () => {
           fooActor: fromCallback((_send, onReceive) => {
             onReceive((event) => {
               ((_accept: string) => {})(event.type);
-              // @x-ts-expect-error TODO: determine how to get parent event type here
+              // @ts-expect-error TODO: determine how to get parent event type here
               event.unknown;
             });
           })

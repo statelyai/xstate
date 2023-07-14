@@ -7,9 +7,8 @@ import {
   Values,
   IsAny,
   ParameterizedObject,
-  ActorImpl,
+  ProvidedActor,
   OutputFrom,
-  WithDefault,
   AnyActorLogic,
   IndexByProp
 } from './types.ts';
@@ -94,7 +93,7 @@ export interface TypegenMeta extends TypegenEnabled {
 
 export interface ResolvedTypegenMeta extends TypegenMeta {
   resolved: TypegenMeta & {
-    indexedActors: Record<string, ActorImpl>;
+    indexedActors: Record<string, ProvidedActor>;
     indexedActions: Record<string, ParameterizedObject>;
     indexedEvents: Record<string, EventObject>;
   };
@@ -151,12 +150,12 @@ export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
 }
 
 type GenerateActorEvents<
-  TActors extends ActorImpl,
+  TActor extends ProvidedActor,
   _TInvokeSrcNameMap
-> = TActors extends { id: infer K }
+> = TActor extends { id: infer K }
   ? {
       type: `done.invoke.${K & string}`;
-      output: OutputFrom<WithDefault<TActors['logic'], AnyActorLogic>>;
+      output: OutputFrom<TActor['logic']>;
     }
   : never;
 
@@ -178,19 +177,22 @@ export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TActors extends ActorImpl
+  TActor extends ProvidedActor
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {
     enabled: TTypesMeta & {
       indexedActions: IndexByType<TAction>;
-      indexedActors: string extends TActors['src']
-        ? Record<keyof Prop<TTypesMeta, 'eventsCausingActors'>, ActorImpl>
-        : IndexByProp<TActors, 'src'>;
+      indexedActors: string extends TActor['src']
+        ? Record<
+            keyof Prop<TTypesMeta, 'eventsCausingActors'>,
+            { logic: AnyActorLogic }
+          >
+        : IndexByProp<TActor, 'src'>;
       indexedEvents: MergeWithInternalEvents<
         IndexByType<
           | (string extends TEvent['type'] ? never : TEvent)
-          | GenerateActorEvents<TActors, Prop<TTypesMeta, 'invokeSrcNameMap'>>
+          | GenerateActorEvents<TActor, Prop<TTypesMeta, 'invokeSrcNameMap'>>
         >,
         Prop<TTypesMeta, 'internalEvents'>
       >;
@@ -199,7 +201,7 @@ export interface ResolveTypegenMeta<
       AllImplementationsProvided &
       AllowAllEvents & {
         indexedActions: IndexByType<TAction>;
-        indexedActors: IndexByProp<TActors, 'src'>;
+        indexedActors: IndexByProp<TActor, 'src'>;
         indexedEvents: Record<string, TEvent> & {
           __XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__: { output: any };
         };

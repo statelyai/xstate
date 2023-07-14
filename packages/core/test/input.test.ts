@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { assign, interpret } from '../src';
+import { AnyActorLogic, assign, interpret } from '../src';
 import { createMachine } from '../src/Machine';
 import {
   fromCallback,
@@ -171,10 +171,17 @@ describe('input', () => {
   it('should provide a static inline input to the referenced actor', () => {
     const spy = jest.fn();
 
+    const child = createMachine({
+      context: ({ input }: { input: number }) => {
+        spy(input);
+        return {};
+      }
+    });
+
     const machine = createMachine(
       {
         types: {} as {
-          actors: { src: 'child'; input: number };
+          actors: { src: 'child'; logic: typeof child };
         },
         invoke: {
           src: 'child',
@@ -183,12 +190,7 @@ describe('input', () => {
       },
       {
         actors: {
-          child: createMachine({
-            context: ({ input }) => {
-              spy(input);
-              return {};
-            }
-          })
+          child
         }
       }
     );
@@ -201,12 +203,19 @@ describe('input', () => {
   it('should provide a dynamic inline input to the referenced actor', () => {
     const spy = jest.fn();
 
+    const child = createMachine({
+      context: ({ input }: { input: number }) => {
+        spy(input);
+        return {};
+      }
+    });
+
     const machine = createMachine(
       {
         types: {} as {
           actors: {
             src: 'child';
-            input: number;
+            logic: typeof child;
           };
         },
         invoke: {
@@ -218,12 +227,7 @@ describe('input', () => {
       },
       {
         actors: {
-          child: createMachine({
-            context: ({ input }) => {
-              spy(input);
-              return {};
-            }
-          })
+          child
         }
       }
     );
@@ -299,7 +303,7 @@ describe('input', () => {
         types: {} as {
           actors: {
             src: 'child';
-            input: number;
+            logic: AnyActorLogic;
           };
         },
         entry: assign(({ spawn }) => ({

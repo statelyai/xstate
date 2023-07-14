@@ -31,7 +31,7 @@ export type CallbackActorLogic<
 >;
 
 export function fromCallback<TEvent extends EventObject, TInput>(
-  invokeCallback: InvokeCallback<AnyEventObject, AnyEventObject, TInput>
+  invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): ActorLogic<
   TEvent,
   undefined,

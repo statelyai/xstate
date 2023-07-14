@@ -2,6 +2,7 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
+  ActorLogicFrom,
   ActorRef,
   ActorRefFrom,
   assign,
@@ -33,7 +34,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       events: { type: 'FETCH' } | DoneEventObject;
       actors: {
         src: 'fetchData';
-        output: string;
+        logic: ActorLogicFrom<Promise<string>>;
       };
     },
     initial: 'idle',

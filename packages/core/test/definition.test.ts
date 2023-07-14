@@ -1,4 +1,4 @@
-import { createMachine } from '../src/index.ts';
+import { AnyActorLogic, createMachine } from '../src/index.ts';
 
 describe('definition', () => {
   it('should provide invoke definitions', () => {
@@ -7,9 +7,11 @@ describe('definition', () => {
         actors:
           | {
               src: 'foo';
+              logic: AnyActorLogic;
             }
           | {
               src: 'bar';
+              logic: AnyActorLogic;
             };
       },
       id: 'invoke',

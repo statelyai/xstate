@@ -9,10 +9,9 @@ import {
 } from './stateUtils.ts';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
-  ActorImpl,
+  ProvidedActor,
   ActorRef,
   ActorRefFrom,
-  AnyActorLogic,
   AnyState,
   AnyStateMachine,
   EventObject,
@@ -23,8 +22,7 @@ import type {
   Prop,
   StateConfig,
   StateValue,
-  TODO,
-  WithDefault
+  TODO
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -47,7 +45,7 @@ export class State<
   TContext extends MachineContext,
   TEvent extends EventObject,
   _TActions extends ParameterizedObject,
-  TActors extends ActorImpl,
+  TActor extends ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -71,10 +69,10 @@ export class State<
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  public children: TActors['id'] extends string
+  public children: TActor['id'] extends string
     ? {
-        [K in TActors['id']]: TActors extends { id: K }
-          ? ActorRefFrom<WithDefault<TActors['logic'], AnyActorLogic>>
+        [K in TActor['id']]: TActor extends { id: K }
+          ? ActorRefFrom<TActor['logic']>
           : never;
       }
     : Record<string, ActorRef<any>>;
