@@ -470,7 +470,7 @@ describe('callback logic (fromCallback)', () => {
         PING: {
           actions: sendTo(
             ({ event }) => event.ref,
-            ({ event }) => ({ type: 'PONG' })
+            () => ({ type: 'PONG' })
           )
         }
       }
