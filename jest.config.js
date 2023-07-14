@@ -6,6 +6,9 @@ const os = require('os');
  */
 module.exports = {
   setupFilesAfterEnv: ['@xstate-repo/jest-utils/setup'],
+  testEnvironmentOptions: {
+    customExportConditions: ['development']
+  },
   transform: {
     [constants.DEFAULT_JS_PATTERN]: 'babel-jest',
     '^.+\\.vue$': '@vue/vue3-jest',
@@ -17,7 +20,6 @@ module.exports = {
       }
     ]
   },
-  resolver: '<rootDir>/scripts/jest-resolver.js',
   globals: {
     'vue-jest': {
       // weird way of disabling ts-jest-based transformer
