@@ -154,9 +154,13 @@ describe('usage of selectors with reactive service state', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      childActor: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as {
+        context: {
+          childActor?: ActorRefFrom<typeof childMachine>;
+        };
+      },
+      context: {},
       entry: assign({
         childActor: ({ spawn }) => spawn(childMachine)
       })
@@ -167,7 +171,7 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const [actorState, actorSend] = useActor(state.context.childActor);
+      const [actorState, actorSend] = useActor(state.context.childActor!);
 
       return (
         <div>
@@ -205,9 +209,13 @@ describe('usage of selectors with reactive service state', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      childActor: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as {
+        context: {
+          childActor?: ActorRefFrom<typeof childMachine>;
+        };
+      },
+      context: {},
       entry: assign({
         childActor: ({ spawn }) => spawn(childMachine)
       })
@@ -220,7 +228,7 @@ describe('usage of selectors with reactive service state', () => {
         `${prop()} ${stateValue.context.count}`;
       return (
         <div data-testid="value">
-          {value(state.context.childActor.getSnapshot()!)}
+          {value(state.context.childActor!.getSnapshot()!)}
         </div>
       );
     };
@@ -307,9 +315,13 @@ describe('usage of selectors with reactive service state', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      childActor: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as {
+        context: {
+          childActor?: ActorRefFrom<typeof childMachine>;
+        };
+      },
+      context: {},
       entry: assign({
         childActor: ({ spawn }) => spawn(childMachine)
       })
@@ -318,7 +330,7 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const [actorState, actorSend] = useActor(state.context.childActor);
+      const [actorState, actorSend] = useActor(state.context.childActor!);
       const value = createMemo(() => `${prop()} ${actorState().context.count}`);
       return (
         <div>

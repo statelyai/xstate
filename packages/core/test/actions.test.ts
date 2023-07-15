@@ -2461,7 +2461,13 @@ describe('purely defined actions', () => {
 
 describe('forwardTo()', () => {
   it('should forward an event to a service', (done) => {
-    const child = createMachine<any, { type: 'EVENT'; value: number }>({
+    const child = createMachine({
+      types: {} as {
+        events: {
+          type: 'EVENT';
+          value: number;
+        };
+      },
       id: 'child',
       initial: 'active',
       states: {
@@ -2476,10 +2482,17 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = createMachine<
-      any,
-      { type: 'EVENT'; value: number } | { type: 'SUCCESS' }
-    >({
+    const parent = createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'EVENT';
+              value: number;
+            }
+          | {
+              type: 'SUCCESS';
+            };
+      },
       id: 'parent',
       initial: 'first',
       states: {
@@ -2506,7 +2519,13 @@ describe('forwardTo()', () => {
   });
 
   it('should forward an event to a service (dynamic)', (done) => {
-    const child = createMachine<any, { type: 'EVENT'; value: number }>({
+    const child = createMachine({
+      types: {} as {
+        events: {
+          type: 'EVENT';
+          value: number;
+        };
+      },
       id: 'child',
       initial: 'active',
       states: {
@@ -2934,12 +2953,14 @@ describe('choose', () => {
 describe('sendParent', () => {
   // https://github.com/statelyai/xstate/issues/711
   it('TS: should compile for any event', () => {
-    interface ChildContext {}
     interface ChildEvent {
       type: 'CHILD';
     }
 
-    const child = createMachine<ChildContext, ChildEvent>({
+    const child = createMachine({
+      types: {} as {
+        events: ChildEvent;
+      },
       id: 'child',
       initial: 'start',
       states: {
@@ -2956,7 +2977,10 @@ describe('sendParent', () => {
 
 describe('sendTo', () => {
   it('should be able to send an event to an actor', (done) => {
-    const childMachine = createMachine<any, { type: 'EVENT' }>({
+    const childMachine = createMachine({
+      types: {} as {
+        events: { type: 'EVENT' };
+      },
       initial: 'waiting',
       states: {
         waiting: {
@@ -2981,7 +3005,10 @@ describe('sendTo', () => {
   });
 
   it('should be able to send an event from expression to an actor', (done) => {
-    const childMachine = createMachine<any, { type: 'EVENT'; count: number }>({
+    const childMachine = createMachine({
+      types: {} as {
+        events: { type: 'EVENT'; count: number };
+      },
       initial: 'waiting',
       states: {
         waiting: {
@@ -3011,7 +3038,10 @@ describe('sendTo', () => {
   });
 
   it('should report a type error for an invalid event', () => {
-    const childMachine = createMachine<any, { type: 'EVENT' }>({
+    const childMachine = createMachine({
+      types: {} as {
+        events: { type: 'EVENT' };
+      },
       initial: 'waiting',
       states: {
         waiting: {
@@ -3036,7 +3066,10 @@ describe('sendTo', () => {
   });
 
   it('should be able to send an event to a named actor', (done) => {
-    const childMachine = createMachine<any, { type: 'EVENT' }>({
+    const childMachine = createMachine({
+      types: {} as {
+        events: { type: 'EVENT' };
+      },
       initial: 'waiting',
       states: {
         waiting: {
@@ -3063,7 +3096,10 @@ describe('sendTo', () => {
   });
 
   it('should be able to send an event directly to an ActorRef', (done) => {
-    const childMachine = createMachine<any, { type: 'EVENT' }>({
+    const childMachine = createMachine({
+      types: {} as {
+        events: { type: 'EVENT' };
+      },
       initial: 'waiting',
       states: {
         waiting: {
@@ -3093,11 +3129,8 @@ describe('sendTo', () => {
   it('should be able to read from event', () => {
     expect.assertions(1);
     const machine = createMachine({
-      types: {
-        events: {} as {
-          type: 'EVENT';
-          value: string;
-        }
+      types: {} as {
+        events: { type: 'EVENT'; value: string };
       },
       initial: 'a',
       context: ({ spawn }) => ({

@@ -6,7 +6,6 @@ describe('types', () => {
     const machine = createMachine({
       id: 'test',
       types: {
-        context: {} as any,
         events: {} as
           | { type: 'a'; valueA: boolean }
           | { type: 'b'; valueB: number }
