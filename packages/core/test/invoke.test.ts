@@ -20,6 +20,9 @@ import {
   sendParent
 } from '../src/index.ts';
 
+declare const process: any;
+beforeAll(() => process.actual().removeAllListeners('uncaughtException'));
+
 const user = { name: 'David' };
 
 const fetchMachine = createMachine<{ userId: string | undefined }>({
@@ -130,7 +133,7 @@ describe('invoke', () => {
                 actions: assign({ count: ({ context }) => context.count - 1 })
               },
               FORWARD_DEC: {
-                actions: sendTo('child', { type: 'FORWARD_DEC' })
+                actions: sendTo('someService', { type: 'FORWARD_DEC' })
               }
             }
           },
@@ -833,11 +836,20 @@ describe('invoke', () => {
             done();
           }
         });
+
+        // process.actual().on('unhandledRejection', (err) => {
+        //   expect(err.message).toBe('test');
+        // });
+
+        process.actual().on('uncaughtException', (err) => {
+          expect(err.message).toBe('test');
+        });
+
         service.start();
       });
 
       // tslint:disable-next-line:max-line-length
-      it('should be invoked with a promise factory and stop on unhandled onError target', (done) => {
+      it('unhandled rejections should not be swallowed', (done) => {
         const doneSpy = jest.fn();
 
         const promiseMachine = createMachine({
@@ -862,16 +874,11 @@ describe('invoke', () => {
 
         const actor = interpret(promiseMachine);
 
-        actor.subscribe({
-          error: (err) => {
-            // TODO: determine if err should be the full SCXML error event
-            expect(err).toBeInstanceOf(Error);
-            expect(err.message).toBe('test');
-            expect(doneSpy).not.toHaveBeenCalled();
-            done();
-          },
-          complete: doneSpy
+        process.actual().on('unhandledRejection', (err) => {
+          expect(err.message).toBe('test');
+          done();
         });
+
         actor.start();
       });
 

@@ -1,5 +1,6 @@
 const { constants } = require('jest-config');
-const os = require('os');
+const actualProcess = process;
+process.actual = () => actualProcess;
 
 /**
  * @type {import('@jest/types').Config.InitialOptions}

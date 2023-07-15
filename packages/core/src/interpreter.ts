@@ -270,7 +270,14 @@ export class Interpreter<
     this.status = ActorStatus.Running;
 
     if (this.logic.start) {
-      this.logic.start(this._state, this._actorContext);
+      try {
+        this.logic.start(this._state, this._actorContext);
+      } catch (err) {
+        this.observers.forEach((observer) => {
+          observer.error?.(err);
+        });
+        throw err;
+      }
     }
 
     // TODO: this notifies all subscribers but usually this is redundant
