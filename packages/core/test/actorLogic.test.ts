@@ -537,6 +537,36 @@ describe('machine logic', () => {
     expect(newActor.getSnapshot().children.child.getSnapshot().value).toBe('c');
   });
 
+  it('should persist and restore an invoked promise', async () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(async () => {
+          // delay 1s
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return 42;
+        }),
+        onDone: {
+          target: '.success'
+        }
+      },
+      initial: 'waiting',
+      states: {
+        waiting: {},
+        success: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+    const persistedState = actor.getPersistedState();
+
+    actor.stop();
+
+    const actor2 = interpret(machine, { state: persistedState });
+    actor2.start();
+
+    await waitFor(actor2, (state) => state.value === 'success');
+  });
+
   it('should return the initial persisted state of a non-started actor', () => {
     const machine = createMachine({
       initial: 'idle',

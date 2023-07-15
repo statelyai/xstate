@@ -389,7 +389,8 @@ export class StateMachine<
 
       const actorRef = interpret(logic, {
         id: actorId,
-        state: actorState
+        state: actorState,
+        parent: _actorCtx.self
       });
 
       children[actorId] = actorRef;
