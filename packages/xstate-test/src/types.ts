@@ -1,6 +1,5 @@
 import { StatePath, Step, TraversalOptions } from '@xstate/graph';
 import {
-  BaseActionObject,
   EventObject,
   MachineConfig,
   MachineTypes,
@@ -13,7 +12,8 @@ import {
   ExtractEvent,
   MachineImplementations,
   MachineContext,
-  ActorLogic
+  ActorLogic,
+  ParameterizedObject
 } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
@@ -62,7 +62,7 @@ export type TestMachineOptions<
     MachineImplementations<
       TContext,
       TEvent,
-      BaseActionObject,
+      ParameterizedObject,
       ActorMap,
       TTypesMeta
     >,

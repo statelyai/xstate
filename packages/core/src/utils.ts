@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { AnyActorLogic, AnyState } from './index.ts';
-import { errorExecution, errorPlatform } from './actionTypes.ts';
+import { errorExecution, errorPlatform } from './constantPrefixes.ts';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
@@ -33,8 +33,8 @@ export function matchesState(
   const parentStateValue = toStateValue(parentStateId);
   const childStateValue = toStateValue(childStateId);
 
-  if (isString(childStateValue)) {
-    if (isString(parentStateValue)) {
+  if (typeof childStateValue === 'string') {
+    if (typeof parentStateValue === 'string') {
       return childStateValue === parentStateValue;
     }
 
@@ -42,7 +42,7 @@ export function matchesState(
     return false;
   }
 
-  if (isString(parentStateValue)) {
+  if (typeof parentStateValue === 'string') {
     return parentStateValue in childStateValue;
   }
 
@@ -182,7 +182,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
     return [[]];
   }
 
-  if (isString(stateValue)) {
+  if (typeof stateValue === 'string') {
     return [[stateValue]];
   }
 
@@ -232,7 +232,7 @@ export function mapContext<
   context: TContext,
   event: TEvent
 ): any {
-  if (isFunction(mapper)) {
+  if (typeof mapper === 'function') {
     return mapper({ context, event });
   }
 
@@ -242,7 +242,7 @@ export function mapContext<
   for (const key of Object.keys(mapper)) {
     const subMapper = mapper[key];
 
-    if (isFunction(subMapper)) {
+    if (typeof subMapper === 'function') {
       result[key] = subMapper(args);
     } else {
       result[key] = subMapper;
@@ -263,8 +263,8 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   // Check if shape matches the Promise/A+ specification for a "thenable".
   if (
     value !== null &&
-    (isFunction(value) || typeof value === 'object') &&
-    isFunction(value.then)
+    (typeof value === 'function' || typeof value === 'object') &&
+    typeof value.then === 'function'
   ) {
     return true;
   }
@@ -301,21 +301,10 @@ export function isArray(value: any): value is any[] {
   return Array.isArray(value);
 }
 
-// tslint:disable-next-line:ban-types
-export function isFunction(value: any): value is Function {
-  return typeof value === 'function';
-}
-
-export function isString(value: any): value is string {
-  return typeof value === 'string';
-}
-
 export function isObservable<T>(value: any): value is Subscribable<T> {
-  try {
-    return 'subscribe' in value && isFunction(value.subscribe);
-  } catch (e) {
-    return false;
-  }
+  return (
+    !!value && 'subscribe' in value && typeof value.subscribe === 'function'
+  );
 }
 
 export const uniqueId = (() => {

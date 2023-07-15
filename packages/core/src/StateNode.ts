@@ -1,46 +1,60 @@
+import type { State } from './State.ts';
+import type { StateMachine } from './StateMachine.ts';
+import * as actionTypes from './constantPrefixes.ts';
+import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
+import { evaluateGuard } from './guards.ts';
+import { memo } from './memo.ts';
 import {
-  mapValues,
-  flatten,
-  toArray,
-  isString,
-  toInvokeConfig,
-  toTransitionConfigArray,
-  createInvokeId
-} from './utils.ts';
+  formatInitialTransition,
+  formatTransition,
+  formatTransitions,
+  getCandidates,
+  getDelayedTransitions
+} from './stateUtils.ts';
 import type {
-  EventObject,
-  HistoryStateNodeConfig,
-  StateNodeDefinition,
-  TransitionDefinition,
+  Action,
+  AnyActorLogic,
   DelayedTransitionDefinition,
-  StateNodeConfig,
-  StatesDefinition,
-  StateNodesConfig,
+  EventObject,
   FinalStateNodeConfig,
+  HistoryStateNodeConfig,
+  InitialTransitionDefinition,
   InvokeDefinition,
+  MachineContext,
   Mapper,
   PropertyMapper,
-  TransitionDefinitionMap,
-  InitialTransitionDefinition,
-  MachineContext,
-  BaseActionObject,
-  AnyActorLogic
+  StateNodeConfig,
+  StateNodeDefinition,
+  StateNodesConfig,
+  StatesDefinition,
+  TransitionDefinition,
+  TransitionDefinitionMap
 } from './types.ts';
-import type { State } from './State.ts';
-import * as actionTypes from './actionTypes.ts';
-import { toActionObjects } from './actions.ts';
-import { formatInitialTransition, formatTransition } from './stateUtils.ts';
 import {
-  getDelayedTransitions,
-  formatTransitions,
-  getCandidates
-} from './stateUtils.ts';
-import { evaluateGuard } from './guards.ts';
-import type { StateMachine } from './StateMachine.ts';
-import { memo } from './memo.ts';
-import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
+  createInvokeId,
+  flatten,
+  mapValues,
+  toArray,
+  toInvokeConfig,
+  toTransitionConfigArray
+} from './utils.ts';
 
 const EMPTY_OBJECT = {};
+
+const toSerializableActon = (action: Action<any, any, any>) => {
+  if (typeof action === 'string') {
+    return { type: action };
+  }
+  if (typeof action === 'function') {
+    if ('resolve' in action) {
+      return { type: (action as any).type };
+    }
+    return {
+      type: action.name
+    };
+  }
+  return action;
+};
 
 interface StateNodeOptions<
   TContext extends MachineContext,
@@ -91,11 +105,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: BaseActionObject[];
+  public entry: Action<any, any, any>[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: BaseActionObject[];
+  public exit: Action<any, any, any>[];
   /**
    * The parent state node.
    */
@@ -180,8 +194,8 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toActionObjects(this.config.entry);
-    this.exit = toActionObjects(this.config.exit);
+    this.entry = toArray(this.config.entry);
+    this.exit = toArray(this.config.exit);
 
     this.meta = this.config.meta;
     this.output =
@@ -217,13 +231,13 @@ export class StateNode<
         ? {
             target: this.initial.target,
             source: this,
-            actions: this.initial.actions,
+            actions: this.initial.actions.map(toSerializableActon),
             eventType: null as any,
             reenter: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
-              actions: this.initial!.actions,
+              actions: this.initial!.actions.map(toSerializableActon),
               eventType: null as any
             })
           }
@@ -233,9 +247,12 @@ export class StateNode<
         return state.definition;
       }) as StatesDefinition<TContext, TEvent>,
       on: this.on,
-      transitions: [...this.transitions.values()].flat(),
-      entry: this.entry,
-      exit: this.exit,
+      transitions: [...this.transitions.values()].flat().map((t) => ({
+        ...t,
+        actions: t.actions.map(toSerializableActon)
+      })),
+      entry: this.entry.map(toSerializableActon),
+      exit: this.exit.map(toSerializableActon),
       meta: this.meta,
       order: this.order || -1,
       output: this.output,
@@ -261,11 +278,9 @@ export class StateNode<
         const src = invokeConfig.src as string | AnyActorLogic;
         const { systemId } = invokeConfig;
 
-        const resolvedSrc = isString(src)
-          ? src
-          : !('type' in src)
-          ? resolvedId
-          : src;
+        // TODO: resolving should not happen here
+        const resolvedSrc =
+          typeof src === 'string' ? src : !('type' in src) ? resolvedId : src;
 
         if (
           !this.machine.implementations.actors[resolvedId] &&
@@ -280,7 +295,7 @@ export class StateNode<
         }
 
         return {
-          type: actionTypes.invoke,
+          type: 'xstate.invoke',
           ...invokeConfig,
           src: resolvedSrc,
           id: resolvedId,
@@ -289,7 +304,7 @@ export class StateNode<
             const { onDone, onError, ...invokeDefValues } = invokeConfig;
             return {
               ...invokeDefValues,
-              type: actionTypes.invoke,
+              type: 'xstate.invoke',
               src: resolvedSrc,
               id: resolvedId
             };
@@ -331,7 +346,7 @@ export class StateNode<
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
-    const actions: BaseActionObject[] = [];
+    const actions: Action<any, any, any>[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 

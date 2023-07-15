@@ -1,5 +1,66 @@
 # xstate
 
+## 4.38.1
+
+### Patch Changes
+
+- [#4130](https://github.com/statelyai/xstate/pull/4130) [`e659fac5d`](https://github.com/statelyai/xstate/commit/e659fac5d82e283e1298122814763c59af9a2375) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `pure(...)` action creator is now properly typed so that it allows function actions:
+
+  ```ts
+  actions: pure(() => [
+    // now allowed!
+    (context, event) => { ... }
+  ])
+  ```
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- [#4138](https://github.com/statelyai/xstate/pull/4138) [`461e3983a`](https://github.com/statelyai/xstate/commit/461e3983a0e9d51c43a4b0e7370354b7dea24e5f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed missing `.mjs` proxy files for condition-based builds.
+
+## 5.0.0-beta.17
+
+### Major Changes
+
+- [#4127](https://github.com/statelyai/xstate/pull/4127) [`cdaddc266`](https://github.com/statelyai/xstate/commit/cdaddc2667f9021cd9452206aab1227d5a5c229c) Thanks [@Andarist](https://github.com/Andarist)! - IDs for delayed events are no longer derived from event types so this won't work automatically:
+
+  ```ts
+  entry: raise({ type: 'TIMER' }, { delay: 200 });
+  exit: cancel('TIMER');
+  ```
+
+  Please use explicit IDs:
+
+  ```ts
+  entry: raise({ type: 'TIMER' }, { delay: 200, id: 'myTimer' });
+  exit: cancel('myTimer');
+  ```
+
+- [#4127](https://github.com/statelyai/xstate/pull/4127) [`cdaddc266`](https://github.com/statelyai/xstate/commit/cdaddc2667f9021cd9452206aab1227d5a5c229c) Thanks [@Andarist](https://github.com/Andarist)! - All builtin action creators (`assign`, `sendTo`, etc) are now returning _functions_. They exact shape of those is considered an implementation detail of XState and users are meant to only pass around the returned values.
+
+### Patch Changes
+
+- [#4123](https://github.com/statelyai/xstate/pull/4123) [`b13bfcb08`](https://github.com/statelyai/xstate/commit/b13bfcb081ba3c7216159b90999ddd90448024f1) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to configure transitions using arrays:
+
+  ```ts
+  createMachine({
+    on: [{ event: 'FOO', target: '#id' }]
+    // ...
+  });
+  ```
+
+  Only regular object-based configs will be supported from now on:
+
+  ```ts
+  createMachine({
+    on: {
+      FOO: '#id'
+    }
+    // ...
+  });
+  ```
+
 ## 5.0.0-beta.16
 
 ### Major Changes
@@ -41,6 +102,16 @@
       }
     }
   );
+  ```
+
+## 4.38.0
+
+### Minor Changes
+
+- [#4098](https://github.com/statelyai/xstate/pull/4098) [`ae7691811`](https://github.com/statelyai/xstate/commit/ae7691811d0ac92294532ce1e5ede3898ecffbc7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `log`, `pure`, `choose`, and `stop` actions were added to the main export:
+
+  ```ts
+  import { log, pure, choose, stop } from 'xstate';
   ```
 
 ## 5.0.0-beta.14

@@ -172,11 +172,9 @@ describe('Nested parallel stateSchema', () => {
 
 describe('Raise events', () => {
   it('should accept a valid event type', () => {
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
     createMachine({
       types: {} as {
-        events: Events;
+        events: { type: 'FOO' } | { type: 'BAR' };
       },
       entry: raise({
         type: 'FOO'
@@ -185,11 +183,9 @@ describe('Raise events', () => {
   });
 
   it('should reject an invalid event type', () => {
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
     createMachine({
       types: {} as {
-        events: Events;
+        events: { type: 'FOO' } | { type: 'BAR' };
       },
       entry: raise({
         // @ts-expect-error
@@ -198,12 +194,22 @@ describe('Raise events', () => {
     });
   });
 
-  it('should provide a narrowed down expression event type when used as a transition action', () => {
-    type Events = { type: 'FOO' } | { type: 'BAR' };
+  it('should reject a string event type', () => {
+    const event: { type: string } = { type: 'something' };
 
     createMachine({
       types: {
-        events: {} as Events
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      // @ts-expect-error
+      entry: raise(event)
+    });
+  });
+
+  it('should provide a narrowed down expression event type when used as a transition action', () => {
+    createMachine({
+      types: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       on: {
         FOO: {
@@ -213,8 +219,8 @@ describe('Raise events', () => {
             ((_arg: 'BAR') => {})(event.type);
 
             return {
-              type: 'BAR'
-            } as const; // TODO: can we remove `as const`?
+              type: 'BAR' as const
+            };
           })
         }
       }
@@ -222,32 +228,37 @@ describe('Raise events', () => {
   });
 
   it('should accept a valid event type returned from an expression', () => {
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
     createMachine({
       types: {
-        events: {} as Events
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
-      entry: raise(
-        () =>
-          ({
-            type: 'BAR'
-          } as const) // TODO: can we remove `as const`?
-      )
+      entry: raise(() => ({
+        type: 'BAR' as const
+      }))
     });
   });
 
   it('should reject an invalid event type returned from an expression', () => {
-    type Events = { type: 'FOO' } | { type: 'BAR' };
-
     createMachine({
       types: {
-        events: {} as Events
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       // @ts-expect-error
       entry: raise(() => ({
         type: 'UNKNOWN'
       }))
+    });
+  });
+
+  it('should reject a string event type returned from an expression', () => {
+    const event: { type: string } = { type: 'something' };
+
+    createMachine({
+      types: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      // @ts-expect-error
+      entry: raise(() => event)
     });
   });
 });

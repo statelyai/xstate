@@ -1,24 +1,46 @@
+import isDevelopment from '#is-development';
 import {
+  ActionArgs,
   AnyActorContext,
+  AnyState,
   EventObject,
   LogExpr,
-  MachineContext,
-  LogActionObject
+  MachineContext
 } from '../types.ts';
-import { log as logActionType } from '../actionTypes.ts';
-import { createDynamicAction } from '../../actions/dynamicAction.ts';
-import { BaseDynamicActionObject, DynamicLogAction } from '../index.ts';
 
-const defaultLogExpr = <TContext, TEvent extends EventObject>({
-  context,
-  event
-}: {
-  context: TContext;
-  event: TEvent;
-}) => ({
-  context,
-  event
-});
+type ResolvableLogValue<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject
+> = string | LogExpr<TContext, TExpressionEvent>;
+
+function resolve(
+  _: AnyActorContext,
+  state: AnyState,
+  actionArgs: ActionArgs<any, any>,
+  {
+    value,
+    label
+  }: { value: ResolvableLogValue<any, any>; label: string | undefined }
+) {
+  return [
+    state,
+    {
+      value: typeof value === 'function' ? value(actionArgs) : value,
+      label
+    }
+  ];
+}
+
+function execute(
+  { logger }: AnyActorContext,
+  { value, label }: { value: unknown; label: string | undefined }
+) {
+  if (label) {
+    logger(label, value);
+  } else {
+    logger(value);
+  }
+}
 
 /**
  *
@@ -28,50 +50,29 @@ const defaultLogExpr = <TContext, TEvent extends EventObject>({
  *  - `event` - the event that caused this action to be executed.
  * @param label The label to give to the logged expression.
  */
-
 export function log<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent
 >(
-  expr: string | LogExpr<TContext, TExpressionEvent> = defaultLogExpr,
+  value: ResolvableLogValue<TContext, TExpressionEvent> = ({
+    context,
+    event
+  }) => ({ context, event }),
   label?: string
-): BaseDynamicActionObject<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  LogActionObject,
-  DynamicLogAction<TContext, TExpressionEvent, TEvent>['params']
-> {
-  return createDynamicAction(
-    { type: logActionType, params: { label, expr } },
-    (event, { state, actorContext }) => {
-      const resolvedValue =
-        typeof expr === 'function'
-          ? expr({
-              context: state.context,
-              event,
-              self: actorContext?.self ?? ({} as any),
-              system: actorContext?.system
-            })
-          : expr;
-      return [
-        state,
-        {
-          type: 'xstate.log',
-          params: {
-            label,
-            value: resolvedValue
-          },
-          execute: (actorCtx: AnyActorContext) => {
-            if (label) {
-              actorCtx.logger?.(label, resolvedValue);
-            } else {
-              actorCtx.logger?.(resolvedValue);
-            }
-          }
-        } as LogActionObject
-      ];
+) {
+  function log(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
     }
-  );
+  }
+
+  log.type = 'xstate.log';
+  log.value = value;
+  log.label = label;
+
+  log.resolve = resolve;
+  log.execute = execute;
+
+  return log;
 }

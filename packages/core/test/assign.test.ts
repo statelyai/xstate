@@ -325,35 +325,31 @@ describe('assign meta', () => {
     expect(actor.getSnapshot().context.count).toEqual(11);
   });
 
-  it(
-    'a parameterized action that resolves to assign() should be provided the original' +
-      'action in the action meta',
-    (done) => {
-      const machine = createMachine(
-        {
-          on: {
-            EVENT: {
-              actions: {
-                type: 'inc',
-                params: { value: 5 }
-              }
+  it('a parameterized action that resolves to assign() should be provided the original action in the action meta', (done) => {
+    const machine = createMachine(
+      {
+        on: {
+          EVENT: {
+            actions: {
+              type: 'inc',
+              params: { value: 5 }
             }
           }
-        },
-        {
-          actions: {
-            inc: assign(({ context, action }) => {
-              expect(action).toEqual({ type: 'inc', params: { value: 5 } });
-              done();
-              return context;
-            })
-          }
         }
-      );
+      },
+      {
+        actions: {
+          inc: assign(({ context, action }) => {
+            expect(action).toEqual({ type: 'inc', params: { value: 5 } });
+            done();
+            return context;
+          })
+        }
+      }
+    );
 
-      const service = interpret(machine).start();
+    const service = interpret(machine).start();
 
-      service.send({ type: 'EVENT' });
-    }
-  );
+    service.send({ type: 'EVENT' });
+  });
 });

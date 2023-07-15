@@ -1,63 +1,51 @@
 import isDevelopment from '#is-development';
-import {
-  toStatePath,
-  toArray,
-  isArray,
-  isFunction,
-  isString,
-  toTransitionConfigArray,
-  normalizeTarget,
-  toStateValue,
-  mapContext
-} from './utils.ts';
-import {
-  BaseActionObject,
-  EventObject,
-  StateValue,
-  TransitionConfig,
-  TransitionDefinition,
-  SingleOrArray,
-  DelayExpr,
-  StateValueMap,
-  RaiseActionObject,
-  InitialTransitionConfig,
-  MachineContext
-} from './types.ts';
-import { cloneState, State } from './State.ts';
-import {
-  after,
-  done,
-  toActionObjects,
-  actionTypes,
-  resolveActionObject,
-  raise
-} from './actions.ts';
+import { State, cloneState } from './State.ts';
+import type { StateNode } from './StateNode.ts';
+import { constantPrefixes, after, done, raise } from './actions.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
+import { stopSignalType } from './actors/index.ts';
 import {
-  STATE_IDENTIFIER,
+  INIT_TYPE,
   NULL_EVENT,
-  WILDCARD,
-  STATE_DELIMITER
+  STATE_DELIMITER,
+  STATE_IDENTIFIER,
+  WILDCARD
 } from './constants.ts';
 import { evaluateGuard, toGuardDefinition } from './guards.ts';
-import type { StateNode } from './StateNode.ts';
-import { isDynamicAction } from '../actions/dynamicAction.ts';
+import { ActorStatus } from './interpreter.ts';
 import {
+  Action,
+  ActionArgs,
   AnyActorContext,
   AnyEventObject,
   AnyHistoryValue,
   AnyState,
   AnyStateNode,
   AnyTransitionDefinition,
+  DelayExpr,
   DelayedTransitionDefinition,
+  EventObject,
   HistoryValue,
+  InitialTransitionConfig,
   InitialTransitionDefinition,
-  SendToActionObject
-} from '.';
-import { stopSignalType } from './actors/index.ts';
-import { ActorStatus } from './interpreter.ts';
+  MachineContext,
+  SingleOrArray,
+  StateValue,
+  StateValueMap,
+  TransitionConfig,
+  TransitionDefinition
+} from './types.ts';
+import {
+  isArray,
+  mapContext,
+  normalizeTarget,
+  toArray,
+  toStatePath,
+  toStateValue,
+  toTransitionConfigArray
+} from './utils.ts';
 
 type Configuration<
   TContext extends MachineContext,
@@ -306,9 +294,12 @@ export function getDelayedTransitions<
     delay: string | number | DelayExpr<TContext, TEvent>,
     i: number
   ) => {
-    const delayRef = isFunction(delay) ? `${stateNode.id}:delay[${i}]` : delay;
+    const delayRef =
+      typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
     const eventType = after(delayRef, stateNode.id);
-    stateNode.entry.push(raise({ type: eventType } as TEvent, { delay }));
+    stateNode.entry.push(
+      raise({ type: eventType } as TEvent, { id: eventType, delay })
+    );
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
@@ -320,9 +311,10 @@ export function getDelayedTransitions<
       })
     : Object.keys(afterConfig).flatMap((delay, i) => {
         const configTransition = afterConfig[delay];
-        const resolvedTransition = isString(configTransition)
-          ? { target: configTransition }
-          : configTransition;
+        const resolvedTransition =
+          typeof configTransition === 'string'
+            ? { target: configTransition }
+            : configTransition;
         const resolvedDelay = !isNaN(+delay) ? +delay : delay;
         const eventType = mutateEntryExit(resolvedDelay, i);
         return toArray(resolvedTransition).map((transition) => ({
@@ -365,7 +357,7 @@ export function formatTransition<
   }
   const transition = {
     ...transitionConfig,
-    actions: toActionObjects(toArray(transitionConfig.actions)),
+    actions: toArray(transitionConfig.actions),
     guard: transitionConfig.guard
       ? toGuardDefinition(
           transitionConfig.guard,
@@ -468,15 +460,16 @@ export function formatInitialTransition<
   stateNode: AnyStateNode,
   _target: SingleOrArray<string> | InitialTransitionConfig<TContext, TEvent>
 ): InitialTransitionDefinition<TContext, TEvent> {
-  if (isString(_target) || isArray(_target)) {
+  if (typeof _target === 'string' || isArray(_target)) {
     const targets = toArray(_target).map((t) => {
       // Resolve state string keys (which represent children)
       // to their state node
-      const descStateNode = isString(t)
-        ? isStateId(t)
-          ? stateNode.machine.getStateNodeById(t)
-          : stateNode.states[t]
-        : t;
+      const descStateNode =
+        typeof t === 'string'
+          ? isStateId(t)
+            ? stateNode.machine.getStateNodeById(t)
+            : stateNode.states[t]
+          : t;
 
       if (!descStateNode) {
         throw new Error(
@@ -514,7 +507,7 @@ export function formatInitialTransition<
 
   return formatTransition(stateNode, '__INITIAL__', {
     target: toArray(_target.target).map((t) => {
-      if (isString(t)) {
+      if (typeof t === 'string') {
         return isStateId(t) ? t : `${STATE_DELIMITER}${t}`;
       }
 
@@ -533,7 +526,7 @@ export function resolveTarget(
     return undefined;
   }
   return targets.map((target) => {
-    if (!isString(target)) {
+    if (typeof target !== 'string') {
       return target;
     }
     if (isStateId(target)) {
@@ -682,7 +675,7 @@ export function getStateNodes<
 ): Array<AnyStateNode> {
   const stateValue = state instanceof State ? state.value : toStateValue(state);
 
-  if (isString(stateValue)) {
+  if (typeof stateValue === 'string') {
     return [stateNode, stateNode.states[stateValue]];
   }
 
@@ -799,7 +792,7 @@ export function transitionNode<
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
-  if (isString(stateValue)) {
+  if (typeof stateValue === 'string') {
     return transitionAtomicNode(stateNode, stateValue, state, event);
   }
 
@@ -1040,7 +1033,7 @@ function microstepProcedure(
   actorCtx: AnyActorContext,
   isInitial: boolean
 ): typeof currentState {
-  const actions: BaseActionObject[] = [];
+  const actions: Action<any, any, any>[] = [];
   const historyValue = {
     ...currentState.historyValue
   };
@@ -1118,7 +1111,7 @@ function enterStates(
   event: AnyEventObject,
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  actions: BaseActionObject[],
+  actions: Action<any, any, any>[],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
   historyValue: HistoryValue<any, any>,
@@ -1346,7 +1339,7 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  actions: BaseActionObject[]
+  actions: Action<any, any, any>[]
 ) {
   const statesToExit = computeExitSet(
     transitions,
@@ -1379,73 +1372,96 @@ function exitStates(
   }
 }
 
+interface BuiltinAction {
+  (): void;
+  resolve: (
+    actorContext: AnyActorContext,
+    state: AnyState,
+    actionArgs: ActionArgs<any, any>,
+    action: unknown
+  ) => [newState: AnyState, params: unknown, actions?: Action<any, any, any>[]];
+  execute: (actorContext: AnyActorContext, params: unknown) => void;
+}
+
 export function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  actions: BaseActionObject[],
+  actions: Action<any, any, any>[],
   event: TEvent,
   currentState: State<TContext, TEvent, any>,
   actorCtx: AnyActorContext
 ): AnyState {
   const { machine } = currentState;
-  const raiseActions: Array<RaiseActionObject<TContext, TEvent>> = [];
-  let intermediateState = currentState;
-
-  function handleAction(action: BaseActionObject): void {
-    if (actorCtx?.self.status === ActorStatus.Running) {
-      action.execute?.(actorCtx!);
-    } else {
-      actorCtx?.defer(() => action.execute?.(actorCtx!));
-    }
-  }
-
-  function resolveAction(actionObject: BaseActionObject) {
-    const executableActionObject = resolveActionObject(
-      actionObject,
-      machine.implementations.actions
-    );
-
-    if (isDynamicAction(executableActionObject)) {
-      const [nextState, resolvedAction] = executableActionObject.resolve(
-        event,
-        {
-          state: intermediateState,
-          action: actionObject,
-          actorContext: actorCtx
-        }
-      );
-      const matchedActions = resolvedAction.params?.actions;
-
-      intermediateState = nextState;
-
-      if (
-        resolvedAction.type === actionTypes.raise &&
-        typeof (resolvedAction as any).params.delay !== 'number'
-      ) {
-        raiseActions.push(resolvedAction);
-      }
-
-      // TODO: remove the check; just handleAction
-      if (resolvedAction.type !== actionTypes.pure) {
-        handleAction(resolvedAction);
-      }
-
-      toActionObjects(matchedActions).forEach(resolveAction);
-
-      return;
-    }
-
-    handleAction(executableActionObject);
-  }
-
-  for (const actionObject of actions) {
-    resolveAction(actionObject);
-  }
-
-  return cloneState(intermediateState, {
-    _internalQueue: raiseActions.map((a) => a.params.event)
+  // TODO: this `cloneState` is really just a hack to prevent infinite loops
+  // we need to take another look at how internal queue is managed
+  let intermediateState = cloneState(currentState, {
+    _internalQueue: []
   });
+
+  for (const action of actions) {
+    const resolved =
+      typeof action === 'function'
+        ? action
+        : machine.implementations.actions[
+            typeof action === 'string' ? action : action.type
+          ];
+
+    if (!resolved) {
+      continue;
+    }
+
+    const args = {
+      context: intermediateState.context,
+      event,
+      self: actorCtx?.self,
+      system: actorCtx?.system,
+      // TODO: figure out story for `action` and inline actions
+      // what those ones should receive?
+      //
+      // entry: ({ action }) => {}
+      // exit: assign(({ action }) => {})
+      action: typeof action === 'string' ? { type: action } : (action as any)
+    };
+
+    if (!('resolve' in resolved)) {
+      if (actorCtx?.self.status === ActorStatus.Running) {
+        resolved(args);
+      } else {
+        actorCtx?.defer(() => resolved(args));
+      }
+      continue;
+    }
+
+    const builtinAction = resolved as BuiltinAction;
+
+    const [nextState, params, actions] = builtinAction.resolve(
+      actorCtx,
+      intermediateState,
+      args,
+      resolved // this holds all params
+    );
+    intermediateState = nextState;
+
+    if ('execute' in resolved) {
+      if (actorCtx?.self.status === ActorStatus.Running) {
+        builtinAction.execute(actorCtx!, params);
+      } else {
+        actorCtx?.defer(builtinAction.execute.bind(null, actorCtx!, params));
+      }
+    }
+
+    if (actions) {
+      intermediateState = resolveActionsAndContext(
+        actions,
+        event,
+        intermediateState,
+        actorCtx
+      );
+    }
+  }
+
+  return intermediateState;
 }
 
 export function macrostep(
@@ -1478,7 +1494,7 @@ export function macrostep(
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (nextEvent.type !== actionTypes.init) {
+  if (nextEvent.type !== INIT_TYPE) {
     const transitions = selectTransitions(nextEvent, nextState);
     nextState = microstep(transitions, state, actorCtx, nextEvent, false);
     states.push(nextState);
@@ -1533,7 +1549,7 @@ function stopStep(
   nextState: AnyState,
   actorCtx: AnyActorContext
 ) {
-  const actions: BaseActionObject[] = [];
+  const actions: Action<any, any, any>[] = [];
 
   for (const stateNode of nextState.configuration.sort(
     (a, b) => b.order - a.order
@@ -1613,7 +1629,7 @@ export function stateValuesEqual(
     return false;
   }
 
-  if (isString(a) || isString(b)) {
+  if (typeof a === 'string' || typeof b === 'string') {
     return a === b;
   }
 
