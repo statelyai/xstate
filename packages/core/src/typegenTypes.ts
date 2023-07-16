@@ -183,6 +183,7 @@ export interface ResolveTypegenMeta<
   resolved: {
     enabled: TTypesMeta & {
       indexedActions: IndexByType<TAction>;
+      // TODO: add `id` based on typegen information (in both branches)
       indexedActors: string extends TActor['src']
         ? Record<
             keyof Prop<TTypesMeta, 'eventsCausingActors'>,
@@ -207,6 +208,7 @@ export interface ResolveTypegenMeta<
         };
         invokeSrcNameMap: Record<
           string,
+          // TODO: remove this hack
           '__XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__'
         >;
       };

@@ -811,10 +811,9 @@ type MachineImplementationsActors<
                 >,
                 EventObject
               >,
-              // TODO: this should be the input type
-              any
+              InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>
             >
-          | any;
+          | InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>;
       };
 };
 
