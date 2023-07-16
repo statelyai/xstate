@@ -1221,10 +1221,7 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
-                            // TODO: investigate why event is DoneInvoke<any> instead of
-                            // DoneInvoke<{result: ...}>
-                            // The type is properly inferred for:
-                            // actions: ({ event }) => event.output.result
+                            // TODO: we get DoneInvokeEvent<any> here, this gets fixed with https://github.com/microsoft/TypeScript/pull/48838
                             actions: assign(({ event }) => ({
                               result1: event.output.result
                             }))
@@ -3279,7 +3276,7 @@ describe('invoke', () => {
 });
 
 describe('actors option', () => {
-  it('should provide data params to a service creator', (done) => {
+  it('should provide input to an actor creator', (done) => {
     const machine = createMachine(
       {
         types: {} as {
@@ -3305,7 +3302,7 @@ describe('actors option', () => {
               src: 'stringService',
               input: ({ context }) => ({
                 staticVal: 'hello',
-                newCount: context.count * 2 // TODO: types
+                newCount: context.count * 2
               }),
               onDone: 'success'
             }

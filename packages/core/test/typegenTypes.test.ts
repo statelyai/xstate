@@ -132,7 +132,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should limit event type provided to an actor', () => {
+  it(`should limit event type provided to the actor's input factory`, () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
@@ -155,21 +155,16 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          // TODO: add test for input?
-          myActor: fromPromise(
-            ({
-              input
-            }: {
-              input: { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' };
-            }) => {
-              input.type === 'FOO';
-              input.type === 'BAR';
-              // @x-ts-expect-error TODO: strongly type inputs for promise
-              input.type === 'BAZ';
-
-              return Promise.resolve(42);
+          myActor: {
+            src: fromPromise(() => Promise.resolve(42)),
+            input: ({ event }) => {
+              event.type === 'FOO';
+              event.type === 'BAR';
+              // @ts-expect-error
+              event.type === 'BAZ';
+              return null;
             }
-          )
+          }
         }
       }
     );
@@ -763,23 +758,16 @@ describe('typegen types', () => {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          actors: {} as
-            | {
-                src: 'badActor';
-                output: string;
-                logic: PromiseActorLogic<string>;
-              }
-            | {
-                src: 'goodActor';
-                logic: PromiseActorLogic<number>;
-              }
+          actors: {} as {
+            src: 'myActor';
+            logic: PromiseActorLogic<string>;
+          }
         }
       },
       {
         actors: {
-          goodActor: fromPromise(() => Promise.resolve(42)),
           // @ts-expect-error
-          badActor: fromPromise(() => Promise.resolve(42))
+          myActor: fromPromise(() => Promise.resolve(42))
         }
       }
     );
@@ -1162,7 +1150,7 @@ describe('typegen types', () => {
     );
   });
 
-  it.skip('should error on a provided actor where there are no declared actors', () => {
+  it('should error on a provided actor where there are no events leading it its invocation', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: never;
       invokeSrcNameMap: never;
@@ -1178,6 +1166,7 @@ describe('typegen types', () => {
         }
       },
       {
+        // TODO: determine the exact behavior here and how eventsCausingActors + TActor should interact with each other
         // @x-ts-expect-error
         actors: {
           testActor: fromPromise(() => Promise.resolve(42))

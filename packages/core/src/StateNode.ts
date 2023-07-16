@@ -298,7 +298,6 @@ export class StateNode<
         }
 
         return {
-          // type: actionTypes.invoke,
           ...invokeConfig,
           src: resolvedSrc,
           id: resolvedId,

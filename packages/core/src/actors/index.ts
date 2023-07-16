@@ -1,18 +1,16 @@
-import type {
-  EventObject,
-  ActorRef,
-  BaseActorRef,
-  AnyEventObject
-} from '../types.ts';
-import { symbolObservable } from '../symbolObservable.ts';
 import { ActorStatus, interpret } from '../interpreter.ts';
+import { symbolObservable } from '../symbolObservable.ts';
+import type {
+  ActorRef,
+  AnyEventObject,
+  BaseActorRef,
+  EventObject
+} from '../types.ts';
 import { fromTransition } from './transition.ts';
+export { fromCallback, type CallbackActorLogic } from './callback.ts';
+export { fromEventObservable, fromObservable } from './observable.ts';
+export { fromPromise, type PromiseActorLogic } from './promise.ts';
 export { fromTransition } from './transition.ts';
-export { fromPromise } from './promise.ts';
-export type { PromiseActorLogic } from './promise.ts';
-export { fromObservable, fromEventObservable } from './observable.ts';
-export { fromCallback } from './callback.ts';
-export type { CallbackActorLogic } from './callback.ts';
 
 export const startSignalType = 'xstate.init';
 export const stopSignalType = 'xstate.stop';

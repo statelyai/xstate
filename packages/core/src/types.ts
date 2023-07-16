@@ -930,8 +930,8 @@ type GenerateGuardsImplementationsPart<
 
 export type InternalMachineImplementations<
   TContext extends MachineContext,
-  TEvents extends EventObject,
-  _TActions extends ParameterizedObject,
+  TEvent extends EventObject,
+  _TAction extends ParameterizedObject,
   TActor extends ProvidedActor,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
@@ -1073,9 +1073,9 @@ export enum ConstantPrefix {
   ErrorCustom = 'xstate.error'
 }
 
-export interface DoneInvokeEvent<TData> extends EventObject {
+export interface DoneInvokeEvent<TOutput> {
   type: `done.invoke.${string}`;
-  output: TData;
+  output: TOutput;
 }
 
 export interface ErrorEvent<TErrorData> {
@@ -1179,11 +1179,7 @@ export type Mapper<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TParams extends {}
-> = (args: {
-  context: TContext;
-  event: TEvent;
-  // self: ActorRef<TEvent>;
-}) => TParams;
+> = (args: { context: TContext; event: TEvent }) => TParams;
 
 export type PropertyMapper<
   TContext extends MachineContext,
@@ -1302,7 +1298,7 @@ export interface StateConfig<
   _internalQueue?: Array<TEvent>;
 }
 
-export interface InterpreterOptions<TActorBehavior extends AnyActorLogic> {
+export interface InterpreterOptions<TLogic extends AnyActorLogic> {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
@@ -1338,7 +1334,7 @@ export interface InterpreterOptions<TActorBehavior extends AnyActorLogic> {
   /**
    * The input data to pass to the actor.
    */
-  input?: InputFrom<TActorBehavior>;
+  input?: InputFrom<TLogic>;
 
   // state?:
   //   | PersistedStateFrom<TActorLogic>
@@ -1474,17 +1470,17 @@ export type InterpreterFrom<
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TEvent,
-  infer TActions,
+  infer TAction,
   infer TActor,
   infer TResolvedTypesMeta
 >
   ? Interpreter<
       ActorLogic<
         TEvent,
-        State<TContext, TEvent, TActions, TActor, TResolvedTypesMeta>,
-        State<TContext, TEvent, TActions, TActor, TResolvedTypesMeta>,
+        State<TContext, TEvent, TAction, TActor, TResolvedTypesMeta>,
+        State<TContext, TEvent, TAction, TActor, TResolvedTypesMeta>,
         PersistedMachineState<
-          State<TContext, TEvent, TActions, TActor, TResolvedTypesMeta>
+          State<TContext, TEvent, TAction, TActor, TResolvedTypesMeta>
         >
       >
     >
@@ -1496,14 +1492,14 @@ export type MachineImplementationsFrom<
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TEvent,
-  infer TActions,
+  infer TAction,
   infer TActor,
   infer TResolvedTypesMeta
 >
   ? InternalMachineImplementations<
       TContext,
       TEvent,
-      TActions,
+      TAction,
       TActor,
       TResolvedTypesMeta,
       TRequireMissingImplementations
@@ -1657,7 +1653,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     : R extends State<
         infer _TContext,
         infer TEvent,
-        infer _TActions,
+        infer _TAction,
         infer _TActor
       >
     ? TEvent
@@ -1683,8 +1679,8 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TContext
     : R extends State<
         infer TContext,
-        infer _TEvents,
-        infer _TActions,
+        infer _TEvent,
+        infer _TAction,
         infer _TActor
       >
     ? TContext

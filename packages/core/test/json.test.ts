@@ -1,7 +1,7 @@
 import { createMachine, assign } from '../src/index';
 import * as machineSchema from '../src/machine.schema.json';
 
-const Ajv = require('ajv');
+import Ajv from 'ajv';
 
 const ajv = new Ajv();
 const validate = ajv.compile(machineSchema);

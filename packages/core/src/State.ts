@@ -44,7 +44,7 @@ export const isState = isStateConfig;
 export class State<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  _TActions extends ParameterizedObject,
+  _TAction extends ParameterizedObject,
   TActor extends ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled
 > {

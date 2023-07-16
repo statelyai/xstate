@@ -395,8 +395,7 @@ export class StateMachine<
     const children: Record<string, AnyActorRef> = {};
 
     Object.keys(state.children).forEach((actorId) => {
-      // @ts-ignore
-      const actorData = state.children[actorId];
+      const actorData = state.children[actorId as keyof typeof state.children];
       const childState = actorData.state;
       const src = actorData.src;
 
@@ -464,7 +463,7 @@ export class StateMachine<
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TAction!: TAction;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TActorMap!: TActor;
+  __TActor!: TActor;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }
