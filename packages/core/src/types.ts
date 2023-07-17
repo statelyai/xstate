@@ -202,14 +202,14 @@ export type GuardEvaluator<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   event: TEvent,
-  state: State<TContext, TEvent, TODO, TODO>
+  state: State<TContext, TEvent, TODO>
 ) => boolean;
 
 export interface GuardArgs<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  state: State<TContext, TEvent, TODO, TODO>;
+  state: State<TContext, TEvent, TODO>;
   guard: GuardDefinition<TContext, TEvent>;
   evaluate: GuardEvaluator<TContext, TEvent>;
 }
@@ -679,7 +679,7 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-export type AnyState = State<any, any, any, any, any>;
+export type AnyState = State<any, any, any, any>;
 
 export type AnyStateMachine = StateMachine<any, any, any, any, any>;
 
@@ -1268,7 +1268,7 @@ export interface Segment<
   /**
    * From state.
    */
-  state: State<TContext, TEvent, TODO, TODO>;
+  state: State<TContext, TEvent, TODO>;
   /**
    * Event from state.
    */
@@ -1442,7 +1442,6 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TContext,
           TEvent,
           TODO,
-          TODO,
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
             : TResolvedTypesMeta
@@ -1477,10 +1476,10 @@ export type InterpreterFrom<
   ? Interpreter<
       ActorLogic<
         TEvent,
-        State<TContext, TEvent, TAction, TActor, TResolvedTypesMeta>,
-        State<TContext, TEvent, TAction, TActor, TResolvedTypesMeta>,
+        State<TContext, TEvent, TActor, TResolvedTypesMeta>,
+        State<TContext, TEvent, TActor, TResolvedTypesMeta>,
         PersistedMachineState<
-          State<TContext, TEvent, TAction, TActor, TResolvedTypesMeta>
+          State<TContext, TEvent, TActor, TResolvedTypesMeta>
         >
       >
     >

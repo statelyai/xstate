@@ -344,7 +344,7 @@ export class StateNode<
   }
 
   public next(
-    state: State<TContext, TEvent, TODO, TODO>,
+    state: State<TContext, TEvent, TODO>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;

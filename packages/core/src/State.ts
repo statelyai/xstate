@@ -44,7 +44,6 @@ export const isState = isStateConfig;
 export class State<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  _TAction extends ParameterizedObject,
   TActor extends ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled
 > {
@@ -86,13 +85,13 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent, TODO, TODO, any> | StateValue,
+    stateValue: State<TContext, TEvent, TODO, any> | StateValue,
     context: TContext = {} as TContext,
     machine: AnyStateMachine
-  ): State<TContext, TEvent, TODO, TODO, any> {
+  ): State<TContext, TEvent, TODO, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TContext, TEvent, TODO, TODO, any>(
+        return new State<TContext, TEvent, TODO, any>(
           {
             value: stateValue.value,
             context,
@@ -111,7 +110,7 @@ export class State<
       getStateNodes(machine.root, stateValue)
     );
 
-    return new State<TContext, TEvent, TODO, TODO, any>(
+    return new State<TContext, TEvent, TODO, any>(
       {
         value: stateValue,
         context,
