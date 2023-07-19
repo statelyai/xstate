@@ -211,6 +211,12 @@ describe('invoke', () => {
     });
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          selectedUserId: string;
+          user?: typeof user;
+        };
+      },
       id: 'fetcher',
       initial: 'idle',
       context: {
@@ -266,10 +272,13 @@ describe('invoke', () => {
   });
 
   it('should start services (machine as invoke config)', (done) => {
-    const machineInvokeMachine = createMachine<
-      any,
-      { type: 'SUCCESS'; data: number }
-    >({
+    const machineInvokeMachine = createMachine({
+      types: {} as {
+        events: {
+          type: 'SUCCESS';
+          data: number;
+        };
+      },
       id: 'machine-invoke',
       initial: 'pending',
       states: {
@@ -305,10 +314,13 @@ describe('invoke', () => {
   });
 
   it('should start deeply nested service (machine as invoke config)', (done) => {
-    const machineInvokeMachine = createMachine<
-      any,
-      { type: 'SUCCESS'; data: number }
-    >({
+    const machineInvokeMachine = createMachine({
+      types: {} as {
+        events: {
+          type: 'SUCCESS';
+          data: number;
+        };
+      },
       id: 'parent',
       initial: 'a',
       states: {

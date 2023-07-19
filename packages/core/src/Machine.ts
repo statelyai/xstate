@@ -42,7 +42,7 @@ export function createMachine<
   ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActor>
 > {
   return new StateMachine<any, any, any, any, any>(
-    config,
+    config as any,
     implementations as any
   );
 }

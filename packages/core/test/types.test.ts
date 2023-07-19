@@ -20,9 +20,8 @@ function noop(_x: unknown) {
 describe('Raise events', () => {
   it('should accept a valid event type', () => {
     createMachine({
-      types: {
-        context: {} as { counter: number },
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
       },
       entry: raise({
         type: 'FOO'
@@ -32,9 +31,8 @@ describe('Raise events', () => {
 
   it('should reject an invalid event type', () => {
     createMachine({
-      types: {
-        context: {} as { counter: number },
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
       },
       entry: raise({
         // @ts-expect-error
@@ -48,7 +46,6 @@ describe('Raise events', () => {
 
     createMachine({
       types: {
-        context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       // @ts-expect-error
@@ -59,7 +56,6 @@ describe('Raise events', () => {
   it('should provide a narrowed down expression event type when used as a transition action', () => {
     createMachine({
       types: {
-        context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       on: {
@@ -81,7 +77,6 @@ describe('Raise events', () => {
   it('should accept a valid event type returned from an expression', () => {
     createMachine({
       types: {
-        context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       entry: raise(() => ({
@@ -93,7 +88,6 @@ describe('Raise events', () => {
   it('should reject an invalid event type returned from an expression', () => {
     createMachine({
       types: {
-        context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       // @ts-expect-error
@@ -108,7 +102,6 @@ describe('Raise events', () => {
 
     createMachine({
       types: {
-        context: {} as { counter: number },
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       // @ts-expect-error
@@ -165,69 +158,101 @@ describe('context', () => {
     });
   });
 
-  it('should infer context type from `config.context` when there is no `schema.context`', () => {
+  it('context should be required if present in types', () => {
     createMachine(
+      // @ts-expect-error
       {
-        context: {
-          foo: 'test'
-        }
-      },
-      {
-        actions: {
-          someAction: ({ context }) => {
-            ((_accept: string) => {})(context.foo);
-            // @ts-expect-error
-            ((_accept: number) => {})(context.foo);
-          }
+        types: {} as {
+          context: { count: number };
         }
       }
     );
-  });
 
-  it('should not use actions as possible inference sites', () => {
-    createMachine(
-      {
-        types: {
-          context: {} as {
-            count: number;
-          }
-        },
-        entry: () => {}
-      },
-      {
-        actions: {
-          someAction: ({ context }) => {
-            ((_accept: number) => {})(context.count);
-            // @ts-expect-error
-            ((_accept: string) => {})(context.count);
-          }
-        }
-      }
-    );
-  });
-
-  it('should work with generic context', () => {
-    function createMachineWithExtras<TContext extends MachineContext>(
-      context: TContext
-    ): StateMachine<TContext, any, any> {
-      return createMachine({ context });
-    }
-
-    createMachineWithExtras({ counter: 42 });
-  });
-
-  it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
     createMachine({
+      types: {} as {
+        context: { count: number };
+      },
+      context: {
+        count: 0
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        context: { count: number };
+      },
+      context: () => ({
+        count: 0
+      })
+    });
+  });
+});
+
+it('should infer context type from `config.context` when there is no `schema.context`', () => {
+  createMachine(
+    {
+      context: {
+        foo: 'test'
+      }
+    },
+    {
+      actions: {
+        someAction: ({ context }) => {
+          ((_accept: string) => {})(context.foo);
+          // @ts-expect-error
+          ((_accept: number) => {})(context.foo);
+        }
+      }
+    }
+  );
+});
+
+it('should not use actions as possible inference sites', () => {
+  createMachine(
+    {
       types: {
         context: {} as {
-          literalTest: 'foo' | 'bar';
+          count: number;
         }
       },
       context: {
-        // @ts-expect-error
-        literalTest: 'anything'
+        count: 0
+      },
+      entry: () => {}
+    },
+    {
+      actions: {
+        someAction: ({ context }) => {
+          ((_accept: number) => {})(context.count);
+          // @ts-expect-error
+          ((_accept: string) => {})(context.count);
+        }
       }
-    });
+    }
+  );
+});
+
+it('should work with generic context', () => {
+  function createMachineWithExtras<TContext extends MachineContext>(
+    context: TContext
+  ): StateMachine<TContext, any, any> {
+    return createMachine({ context });
+  }
+
+  createMachineWithExtras({ counter: 42 });
+});
+
+it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
+  createMachine({
+    types: {
+      context: {} as {
+        literalTest: 'foo' | 'bar';
+      }
+    },
+    context: {
+      // @ts-expect-error
+      literalTest: 'anything'
+    }
   });
 });
 
@@ -267,14 +292,19 @@ describe('events', () => {
   });
 
   it('event type should be inferrable from a simple state machine type', () => {
-    const toggleMachine = createMachine<
-      {
-        count: number;
+    const toggleMachine = createMachine({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        events: {
+          type: 'TOGGLE';
+        };
       },
-      {
-        type: 'TOGGLE';
+      context: {
+        count: 0
       }
-    >({});
+    });
 
     function acceptMachine<
       TContext extends {},
@@ -295,6 +325,9 @@ describe('events', () => {
           | {
               type: 'EVENT_WITHOUT_FLAG';
             }
+      },
+      context: {
+        count: 0
       },
       on: {
         EVENT_WITH_FLAG: {
@@ -321,6 +354,9 @@ describe('events', () => {
               type: 'EVENT_WITHOUT_FLAG';
             }
       },
+      context: {
+        count: 0
+      },
       on: {
         '*': {
           actions: ({ event }) => {
@@ -341,6 +377,9 @@ describe('events', () => {
         types: {
           context: {} as { numbers: number[] },
           events: {} as { type: 'ADD'; number: number }
+        },
+        context: {
+          numbers: []
         }
       },
       {
@@ -365,6 +404,9 @@ describe('events', () => {
           count: number;
         }
       },
+      context: {
+        count: 0
+      },
       on: {
         FOO: {
           actions: ({ event }) => {
@@ -382,6 +424,9 @@ describe('interpreter', () => {
       createMachine({
         types: {
           context: {} as { count: number }
+        },
+        context: {
+          count: 0
         }
       })
     );
@@ -1044,6 +1089,9 @@ describe('actor types', () => {
         context: {
           foo: string;
         };
+      },
+      context: {
+        foo: ''
       }
     });
 
@@ -1054,6 +1102,10 @@ describe('actor types', () => {
           id: 'child';
           logic: typeof child;
         };
+      },
+      invoke: {
+        id: 'child',
+        src: child
       }
     });
 
@@ -1170,6 +1222,9 @@ describe('actions', () => {
       types: {
         context: {} as { count: number }
       },
+      context: {
+        count: 0
+      },
       entry: [
         'foo',
         assign(({ context }) => {
@@ -1186,6 +1241,9 @@ describe('actions', () => {
     createMachine({
       types: {
         context: {} as { count: number }
+      },
+      context: {
+        count: 0
       },
       on: {
         FOO: {
@@ -1218,6 +1276,10 @@ describe('actions', () => {
           childRef: ActorRefFrom<typeof childMachine>;
         }
       },
+      context: ({ spawn }) => ({
+        count: 0,
+        childRef: spawn(childMachine)
+      }),
       entry: stop(({ context }) => {
         ((_accept: number) => {})(context.count);
         // @ts-expect-error
@@ -1242,6 +1304,10 @@ describe('actions', () => {
           childRef: ActorRefFrom<typeof childMachine>;
         }
       },
+      context: ({ spawn }) => ({
+        count: 0,
+        childRef: spawn(childMachine)
+      }),
       on: {
         FOO: {
           actions: stop(({ context }) => {
@@ -1261,6 +1327,9 @@ describe('actions', () => {
         context: {} as {
           count: number;
         }
+      },
+      context: {
+        count: 0
       },
       entry: stop(
         // @ts-expect-error
@@ -1282,6 +1351,11 @@ describe('actions', () => {
           promiseRef: ActorRefFrom<Promise<string>>;
         }
       },
+      context: ({ spawn }) => ({
+        count: 0,
+        childRef: spawn(childMachine),
+        promiseRef: spawn(fromPromise(() => Promise.resolve('foo')))
+      }),
       entry: [
         stop(({ context }) => {
           ((_accept: number) => {})(context.count);
