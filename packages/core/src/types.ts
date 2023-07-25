@@ -306,7 +306,8 @@ export type InvokeCallback<
   onReceive: Receiver<TEvent>,
   {
     input,
-    system
+    system,
+    self
   }: { input: any; system: AnyActorSystem; self: CallbackActorRef<TEvent> }
 ) => (() => void) | Promise<any> | void;
 
