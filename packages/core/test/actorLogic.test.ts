@@ -1,6 +1,6 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { createMachine, interpret } from '../src/index.ts';
+import { AnyActorRef, createMachine, interpret } from '../src/index.ts';
 import {
   fromCallback,
   fromEventObservable,
@@ -203,6 +203,17 @@ describe('promise logic (fromPromise)', () => {
 
     interpret(promiseLogic).start();
   });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+
+    const promiseLogic = fromPromise(({ self }) => {
+      expect(self.send).toBeDefined();
+      return Promise.resolve(42);
+    });
+
+    interpret(promiseLogic).start();
+  });
 });
 
 describe('transition function logic (fromTransition)', () => {
@@ -264,6 +275,18 @@ describe('transition function logic (fromTransition)', () => {
     expect.assertions(1);
     const transitionLogic = fromTransition((_state, _event, { system }) => {
       expect(system).toBeDefined();
+      return 42;
+    }, 0);
+
+    const actor = interpret(transitionLogic).start();
+
+    actor.send({ type: 'a' });
+  });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+    const transitionLogic = fromTransition((_state, _event, { self }) => {
+      expect(self.send).toBeDefined();
       return 42;
     }, 0);
 
@@ -355,6 +378,16 @@ describe('observable logic (fromObservable)', () => {
 
     interpret(observableLogic).start();
   });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+    const observableLogic = fromObservable(({ self }) => {
+      expect(self.send).toBeDefined();
+      return of(42);
+    });
+
+    interpret(observableLogic).start();
+  });
 });
 
 describe('eventObservable logic (fromEventObservable)', () => {
@@ -362,6 +395,16 @@ describe('eventObservable logic (fromEventObservable)', () => {
     expect.assertions(1);
     const observableLogic = fromEventObservable(({ system }) => {
       expect(system).toBeDefined();
+      return of({ type: 'a' });
+    });
+
+    interpret(observableLogic).start();
+  });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+    const observableLogic = fromEventObservable(({ self }) => {
+      expect(self.send).toBeDefined();
       return of({ type: 'a' });
     });
 
@@ -391,6 +434,49 @@ describe('callback logic (fromCallback)', () => {
     });
 
     interpret(callbackLogic).start();
+  });
+
+  it('should have reference to self', () => {
+    expect.assertions(1);
+    const callbackLogic = fromCallback((_sendBack, _receive, { self }) => {
+      expect(self.send).toBeDefined();
+    });
+
+    interpret(callbackLogic).start();
+  });
+
+  it('can send self reference in an event to parent', (done) => {
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'PING'; ref: AnyActorRef };
+      },
+      invoke: {
+        src: fromCallback((sendBack, receive, { self }) => {
+          receive((event) => {
+            switch (event.type) {
+              case 'PONG': {
+                done();
+              }
+            }
+          });
+
+          sendBack({
+            type: 'PING',
+            ref: self
+          });
+        })
+      },
+      on: {
+        PING: {
+          actions: sendTo(
+            ({ event }) => event.ref,
+            () => ({ type: 'PONG' })
+          )
+        }
+      }
+    });
+
+    interpret(machine).start();
   });
 });
 
