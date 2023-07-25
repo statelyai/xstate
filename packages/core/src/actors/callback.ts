@@ -7,7 +7,7 @@ import {
   ActorRefFrom,
   TODO
 } from '../types';
-import { isPromiseLike, isFunction } from '../utils';
+import { isPromiseLike } from '../utils';
 import { doneInvoke, error } from '../actions.ts';
 import { startSignalType, stopSignalType, isSignal } from '../actors/index.ts';
 
@@ -74,7 +74,7 @@ export function fromCallback<TEvent extends EventObject>(
       if (event.type === stopSignalType) {
         state.canceled = true;
 
-        if (isFunction(state.dispose)) {
+        if (typeof state.dispose === 'function') {
           state.dispose();
         }
         return state;

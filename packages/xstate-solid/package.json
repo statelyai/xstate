@@ -58,9 +58,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^3.0.0-beta.2",
+    "@xstate/fsm": "^3.0.0-beta.3",
     "solid-js": "^1.6.0",
-    "xstate": "^5.0.0-beta.15"
+    "xstate": "^5.0.0-beta.18"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -71,10 +71,10 @@
     }
   },
   "devDependencies": {
-    "@xstate/fsm": "3.0.0-beta.2",
+    "@xstate/fsm": "3.0.0-beta.3",
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
-    "xstate": "5.0.0-beta.15"
+    "xstate": "5.0.0-beta.18"
   },
   "preconstruct": {
     "entrypoints": [

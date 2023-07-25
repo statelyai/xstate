@@ -25,11 +25,11 @@ const lightMachine = createMachine({
   initial: 'green',
   states: {
     green: {
-      entry: [raise({ type: 'TIMER' }, { delay: 10 })],
+      entry: [raise({ type: 'TIMER' }, { id: 'TIMER1', delay: 10 })],
       on: {
         TIMER: 'yellow',
         KEEP_GOING: {
-          actions: [cancel('TIMER')]
+          actions: [cancel('TIMER1')]
         }
       }
     },
@@ -911,10 +911,13 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<
-        any,
-        { type: 'NEXT'; password: string }
-      >({
+      const parentMachine = createMachine({
+        types: {} as {
+          events: {
+            type: 'NEXT';
+            password: string;
+          };
+        },
         id: 'parent',
         initial: 'start',
         states: {
