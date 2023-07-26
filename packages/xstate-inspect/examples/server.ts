@@ -13,8 +13,8 @@ const machine = createMachine({
   initial: 'inactive',
   invoke: {
     id: 'ponger',
-    src: fromCallback(({ sendBack, onReceive }) => {
-      onReceive((event) => {
+    src: fromCallback(({ sendBack, receive }) => {
+      receive((event) => {
         if (event.type === 'PING') {
           sendBack({
             type: 'PONG',
