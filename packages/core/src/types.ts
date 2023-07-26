@@ -307,30 +307,6 @@ type ExtractWithSimpleSupport<T extends { type: string }> = T extends any
     : never
   : never;
 
-export type Receiver<TEvent extends EventObject> = (
-  listener: {
-    bivarianceHack(event: TEvent): void;
-  }['bivarianceHack']
-) => void;
-
-export type InvokeCallback<
-  TEvent extends EventObject = AnyEventObject,
-  TSentEvent extends EventObject = AnyEventObject,
-  TInput = unknown
-> = ({
-  input,
-  system,
-  self,
-  sendBack,
-  receive
-}: {
-  input: TInput;
-  system: AnyActorSystem;
-  self: CallbackActorRef<TEvent>;
-  sendBack: (event: TSentEvent) => void;
-  receive: Receiver<TEvent>;
-}) => (() => void) | Promise<any> | void;
-
 export interface InvokeMeta {
   src: string;
   meta: MetaObject | undefined;
