@@ -152,9 +152,11 @@ export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
 type GenerateActorEvents<
   TActor extends ProvidedActor,
   _TInvokeSrcNameMap
-> = TActor extends { id: infer K }
+> = TActor extends any
   ? {
-      type: `done.invoke.${K & string}`;
+      type: TActor['id'] extends string
+        ? `done.invoke.${TActor['id']}`
+        : `done.invoke.${string}`;
       output: OutputFrom<TActor['logic']>;
     }
   : never;
