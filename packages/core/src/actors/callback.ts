@@ -58,10 +58,12 @@ export function fromCallback<TEvent extends EventObject, TInput>(
           state.receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback(sender, receiver, {
+        state.dispose = invokeCallback({
           input: state.input,
           system,
-          self: self as TODO
+          self: self as TODO,
+          sendBack: sender,
+          receive: receiver
         });
 
         if (isPromiseLike(state.dispose)) {

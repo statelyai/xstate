@@ -317,15 +317,19 @@ export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
   TInput = unknown
-> = (
-  sendBack: (event: TSentEvent) => void,
-  onReceive: Receiver<TEvent>,
-  {
-    input,
-    system,
-    self
-  }: { input: TInput; system: AnyActorSystem; self: CallbackActorRef<TEvent> }
-) => (() => void) | Promise<any> | void;
+> = ({
+  input,
+  system,
+  self,
+  sendBack,
+  receive
+}: {
+  input: TInput;
+  system: AnyActorSystem;
+  self: CallbackActorRef<TEvent>;
+  sendBack: (event: TSentEvent) => void;
+  receive: Receiver<TEvent>;
+}) => (() => void) | Promise<any> | void;
 
 export interface InvokeMeta {
   src: string;

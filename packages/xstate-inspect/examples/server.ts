@@ -13,10 +13,10 @@ const machine = createMachine({
   initial: 'inactive',
   invoke: {
     id: 'ponger',
-    src: fromCallback((cb, receive) => {
-      receive((event) => {
+    src: fromCallback(({ sendBack, onReceive }) => {
+      onReceive((event) => {
         if (event.type === 'PING') {
-          cb({
+          sendBack({
             type: 'PONG',
             arr: [1, 2, 3]
           });

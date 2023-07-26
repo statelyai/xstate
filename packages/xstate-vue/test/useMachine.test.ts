@@ -50,7 +50,7 @@ describe('useMachine composition function', () => {
   const actorRef = interpret(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback((sendBack) => {
+        fetchData: fromCallback(({ sendBack }) => {
           sendBack(doneInvoke('fetchData', 'persisted data'));
         })
       }
