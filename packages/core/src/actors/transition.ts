@@ -1,4 +1,20 @@
-import { ActorLogic, ActorContext, ActorSystem, EventObject } from '../types';
+import {
+  ActorLogic,
+  ActorContext,
+  ActorSystem,
+  EventObject,
+  ActorRefFrom
+} from '../types';
+
+export type TransitionActorLogic<
+  TState,
+  TEvent extends EventObject
+> = ActorLogic<TEvent, TState, TState, TState>;
+
+export type TransitionActorRef<
+  TState,
+  TEvent extends EventObject
+> = ActorRefFrom<TransitionActorLogic<TState, TEvent>>;
 
 /**
  * Returns actor logic from a transition function and its initial state.
@@ -20,9 +36,17 @@ export function fromTransition<
     event: TEvent,
     actorContext: ActorContext<TEvent, TState, TSystem>
   ) => TState,
-  initialState: TState | (({ input }: { input: TInput }) => TState) // TODO: type
-): ActorLogic<TEvent, TState, TState> {
-  const logic: ActorLogic<TEvent, TState, TState> = {
+  initialState:
+    | TState
+    | (({
+        input,
+        self
+      }: {
+        input: TInput;
+        self: TransitionActorRef<TState, TEvent>;
+      }) => TState) // TODO: type
+): TransitionActorLogic<TState, TEvent> {
+  return {
     config: transition,
     transition: (state, event, actorContext) => {
       return transition(state, event as TEvent, actorContext as any);
@@ -36,6 +60,4 @@ export function fromTransition<
     getPersistedState: (state) => state,
     restoreState: (state) => state
   };
-
-  return logic;
 }

@@ -9,7 +9,8 @@ import {
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
-import { PromiseActorEvents, PromiseActorLogic } from './actors/promise.ts';
+import { PromiseActorLogic } from './actors/promise.ts';
+import { CallbackActorRef } from './actors/callback.ts';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -319,7 +320,11 @@ export type InvokeCallback<
 > = (
   sendBack: (event: TSentEvent) => void,
   onReceive: Receiver<TEvent>,
-  { input, system }: { input: TInput; system: AnyActorSystem }
+  {
+    input,
+    system,
+    self
+  }: { input: TInput; system: AnyActorSystem; self: CallbackActorRef<TEvent> }
 ) => (() => void) | Promise<any> | void;
 
 export interface InvokeMeta {

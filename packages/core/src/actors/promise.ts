@@ -48,6 +48,7 @@ export function fromPromise<T, TInput>(
   }: {
     input: TInput;
     system: AnyActorSystem;
+    self: PromiseActorRef<T>;
   }) => PromiseLike<T>
 ): PromiseActorLogic<T, TInput> {
   // TODO: add event types
@@ -91,7 +92,7 @@ export function fromPromise<T, TInput>(
       }
 
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input, system })
+        promiseCreator({ input: state.input, system, self })
       );
 
       resolvedPromise.then(
