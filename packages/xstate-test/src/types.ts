@@ -12,9 +12,10 @@ import {
   MachineImplementations,
   MachineContext,
   ActorLogic,
-  ParameterizedObject,
-  TODO
+  ParameterizedObject
 } from 'xstate';
+
+type TODO = any;
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
   TraversalOptions<TState, TEvent> & {

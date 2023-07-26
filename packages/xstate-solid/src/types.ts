@@ -6,26 +6,27 @@ import type {
   InternalMachineImplementations,
   InterpreterOptions,
   MachineContext,
+  ProvidedActor,
   State,
-  TODO,
   TypegenDisabled
 } from 'xstate';
 
 type StateObject<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
+  TActor extends ProvidedActor = ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled
-> = Pick<State<TContext, TEvent, any, TResolvedTypesMeta>, keyof AnyState>;
+> = Pick<State<TContext, TEvent, TActor, TResolvedTypesMeta>, keyof AnyState>;
 
 // Converts a State class type to a POJO State type. This reflects that the state
 // is being spread into a new object for reactive tracking in SolidJS
 export type CheckSnapshot<Snapshot> = Snapshot extends State<
   infer TContext,
   infer TEvents,
-  infer _TActors,
+  infer TActor,
   infer TResolvedTypesMeta
 >
-  ? StateObject<TContext, TEvents, TResolvedTypesMeta>
+  ? StateObject<TContext, TEvents, TActor, TResolvedTypesMeta>
   : Snapshot;
 
 type InternalMachineOpts<
@@ -34,8 +35,8 @@ type InternalMachineOpts<
 > = InternalMachineImplementations<
   TMachine['__TContext'],
   TMachine['__TEvent'],
-  TODO,
-  TODO,
+  TMachine['__TAction'],
+  TMachine['__TActor'],
   TMachine['__TResolvedTypesMeta'],
   RequireMissing
 >;

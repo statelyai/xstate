@@ -1172,7 +1172,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should error on a provided actor where there are no events leading it its invocation', () => {
+  it('should error on a provided actor where there are no events leading to it its invocation', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: never;
       invokeSrcNameMap: never;
