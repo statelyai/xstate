@@ -10,6 +10,7 @@ import {
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
 import { PromiseEvent } from './actors/promise.ts';
+import { CallbackActorRef } from './actors/callback.ts';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -303,7 +304,11 @@ export type InvokeCallback<
 > = (
   sendBack: (event: TSentEvent) => void,
   onReceive: Receiver<TEvent>,
-  { input, system }: { input: any; system: AnyActorSystem }
+  {
+    input,
+    system,
+    self
+  }: { input: any; system: AnyActorSystem; self: CallbackActorRef<TEvent> }
 ) => (() => void) | Promise<any> | void;
 
 export interface InvokeMeta {
@@ -906,23 +911,25 @@ export type ContextFactory<TContext extends MachineContext> = ({
   input: any; // TODO: fix
 }) => TContext;
 
-export interface MachineConfig<
+export type MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TActorMap extends ActorMap = ActorMap,
   TTypesMeta = TypegenDisabled
-> extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
+> = (StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> & {
   /**
    * The initial context (extended state)
    */
-  context?: InitialContext<LowInfer<TContext>>;
   /**
    * The machine's own version.
    */
   version?: string;
   types?: MachineTypes<TContext, TEvent, TActorMap, TTypesMeta>;
-}
+}) &
+  (Equals<TContext, MachineContext> extends true
+    ? { context?: InitialContext<LowInfer<TContext>> }
+    : { context: InitialContext<LowInfer<TContext>> });
 
 export type ActorMap = Record<string, { output: any }>;
 export interface MachineTypes<

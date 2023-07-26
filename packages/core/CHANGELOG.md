@@ -1,5 +1,45 @@
 # xstate
 
+## 5.0.0-beta.19
+
+### Major Changes
+
+- [#4049](https://github.com/statelyai/xstate/pull/4049) [`afc690046`](https://github.com/statelyai/xstate/commit/afc690046ce800965c132c0feda55edcf6489fc9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - If context types are specified in the machine config, the `context` property will now be required:
+
+  ```ts
+  // ❌ TS error
+  createMachine({
+    types: {} as {
+      context: { count: number };
+    }
+    // Missing context property
+  });
+
+  // ✅ OK
+  createMachine({
+    types: {} as {
+      context: { count: number };
+    },
+    context: {
+      count: 0
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#4117](https://github.com/statelyai/xstate/pull/4117) [`c7c3cb459`](https://github.com/statelyai/xstate/commit/c7c3cb4593c0e3e4943ec866d8d0729629271456) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actor logic creators now have access to `self`:
+
+  ```ts
+  const promiseLogic = fromPromise(({ self }) => { ... });
+
+  const observableLogic = fromObservable(({ self }) => { ... });
+
+  const callbackLogic = fromCallback((sendBack, receive, { self }) => { ... });
+
+  const transitionLogic = fromTransition((state, event, { self }) => { ... }, ...);
+  ```
+
 ## 4.38.1
 
 ### Patch Changes

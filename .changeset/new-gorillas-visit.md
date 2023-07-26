@@ -1,5 +1,5 @@
 ---
-"xstate": major
+'xstate': major
 ---
 
 Removed `State['transitions']`.

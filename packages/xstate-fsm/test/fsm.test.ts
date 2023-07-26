@@ -198,7 +198,7 @@ describe('@xstate/fsm', () => {
         initial: 'fail',
         states: { pass: {}, fail: {} }
       });
-      expect(() => machine.transition('fail', { type: '*'  as any})).toThrow(
+      expect(() => machine.transition('fail', { type: '*' as any })).toThrow(
         /wildcard type/
       );
     });

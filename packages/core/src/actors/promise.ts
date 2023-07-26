@@ -1,4 +1,4 @@
-import { ActorLogic, AnyActorSystem } from '../types';
+import { ActorLogic, ActorRef, ActorRefFrom, AnyActorSystem } from '../types';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T> {
@@ -23,6 +23,13 @@ export type PromiseEvent<T> =
       type: 'xstate.stop';
     };
 
+export type PromiseActorLogic<T> = ActorLogic<
+  PromiseEvent<T>,
+  T | undefined,
+  PromiseInternalState<T>
+>;
+export type PromiseActorRef<T> = ActorRefFrom<PromiseActorLogic<T>>;
+
 export function fromPromise<T>(
   // TODO: add types
   promiseCreator: ({
@@ -31,8 +38,9 @@ export function fromPromise<T>(
   }: {
     input: any;
     system: AnyActorSystem;
+    self: PromiseActorRef<T>;
   }) => PromiseLike<T>
-): ActorLogic<PromiseEvent<T>, T | undefined, PromiseInternalState<T>> {
+): PromiseActorLogic<T> {
   // TODO: add event types, consider making the `PromiseEvent` a private type or smth alike
   const logic: ActorLogic<
     PromiseEvent<T>,
@@ -78,7 +86,7 @@ export function fromPromise<T>(
       }
 
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input, system })
+        promiseCreator({ input: state.input, system, self })
       );
 
       resolvedPromise.then(

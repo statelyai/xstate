@@ -47,8 +47,12 @@ describe('getMachineShortestPaths', () => {
   });
 
   it('finds the shortest paths from a state to another state', () => {
-    const m = createMachine<{ count: number }>({
+    const m = createMachine({
+      types: {} as {
+        context: { count: number };
+      },
       initial: 'a',
+      context: { count: 0 },
       states: {
         a: {
           on: {
