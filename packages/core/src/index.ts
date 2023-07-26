@@ -26,6 +26,7 @@ export {
   mapState,
   actions,
   assign,
+  cancel,
   send,
   sendTo,
   sendParent,
@@ -49,6 +50,7 @@ export {
 
 const {
   assign,
+  cancel,
   send,
   sendTo,
   sendParent,
