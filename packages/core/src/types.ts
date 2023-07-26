@@ -516,49 +516,7 @@ export type InvokeConfig<
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = IsLiteralString<TActor['src']> extends true
-  ?
-      | DistributeActors<TContext, TEvent, TActor>
-      | {
-          /**
-           * The unique identifier for the invoked machine. If not specified, this
-           * will be the machine's own `id`, or the URL (from `src`).
-           */
-          id?: string;
-
-          systemId?: string;
-          /**
-           * The source of the machine to be invoked, or the machine itself.
-           */
-          src: AnyActorLogic; // TODO: fix types
-
-          input?: Mapper<TContext, TEvent, any> | any;
-          /**
-           * The transition to take upon the invoked child machine reaching its final top-level state.
-           */
-          onDone?:
-            | string
-            | SingleOrArray<
-                TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
-              >;
-          /**
-           * The transition to take upon the invoked child machine sending an error event.
-           */
-          onError?:
-            | string
-            | SingleOrArray<
-                TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent>
-              >;
-
-          onSnapshot?:
-            | string
-            | SingleOrArray<
-                TransitionConfigOrTarget<TContext, SnapshotEvent<any>, TEvent>
-              >;
-          /**
-           * Meta data related to this invocation
-           */
-          meta?: MetaObject;
-        }
+  ? DistributeActors<TContext, TEvent, TActor>
   : {
       /**
        * The unique identifier for the invoked machine. If not specified, this

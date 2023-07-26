@@ -1099,30 +1099,30 @@ describe('actor types', () => {
       types: {} as {
         actors: {
           src: 'child';
-          id: 'child';
+          id: 'someChild';
           logic: typeof child;
         };
       },
       invoke: {
-        id: 'child',
-        src: child
+        id: 'someChild',
+        src: 'child'
       }
     });
 
     const snapshot = interpret(machine).getSnapshot();
 
     ((_accept: string | undefined) => {})(
-      snapshot.children.child.getSnapshot()?.context.foo
+      snapshot.children.someChild.getSnapshot()?.context.foo
     );
 
     ((_accept: string) => {})(
       // @ts-expect-error
-      snapshot.children.child.getSnapshot()?.context.foo
+      snapshot.children.someChild.getSnapshot()?.context.foo
     );
 
     ((_accept: number | undefined) => {})(
       // @ts-expect-error
-      snapshot.children.child.getSnapshot()?.context.foo
+      snapshot.children.someChild.getSnapshot()?.context.foo
     );
   });
 
@@ -1214,7 +1214,7 @@ describe('actor types', () => {
     });
   });
 
-  it(`should allow anonymous inline actors outside of the configured ones`, () => {
+  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
     const child1 = createMachine({
       context: {
         counter: 0
@@ -1234,35 +1234,8 @@ describe('actor types', () => {
           logic: typeof child1;
         };
       },
+      // @ts-expect-error
       invoke: {
-        src: child2
-      }
-    });
-  });
-
-  it(`should allow any id on anonymous inline actor outside of the configured ones`, () => {
-    const child1 = createMachine({
-      context: {
-        counter: 0
-      }
-    });
-
-    const child2 = createMachine({
-      context: {
-        answer: ''
-      }
-    });
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child1;
-        };
-      },
-      invoke: {
-        id: 'test',
         src: child2
       }
     });
