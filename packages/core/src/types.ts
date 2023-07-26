@@ -445,7 +445,9 @@ export type TransitionsConfig<
     : TransitionConfigOrTarget<TContext, ExtractEvent<TEvent, K>, TEvent>;
 };
 
-export type InvokeConfig<
+type IsLiteralString<T extends string> = string extends T ? false : true;
+
+type DistributeActors<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor
@@ -456,7 +458,7 @@ export type InvokeConfig<
         /**
          * The source of the machine to be invoked, or the machine itself.
          */
-        src: TSrc | ActorLogic<any, any>; // TODO: fix types
+        src: TSrc;
 
         input?:
           | Mapper<TContext, TEvent, InputFrom<TActor['logic']>>
@@ -507,6 +509,56 @@ export type InvokeConfig<
             id?: string;
           })
     >
+  : never;
+
+export type InvokeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
+> = IsLiteralString<TActor['src']> extends true
+  ?
+      | DistributeActors<TContext, TEvent, TActor>
+      | {
+          /**
+           * The unique identifier for the invoked machine. If not specified, this
+           * will be the machine's own `id`, or the URL (from `src`).
+           */
+          id?: string;
+
+          systemId?: string;
+          /**
+           * The source of the machine to be invoked, or the machine itself.
+           */
+          src: AnyActorLogic; // TODO: fix types
+
+          input?: Mapper<TContext, TEvent, any> | any;
+          /**
+           * The transition to take upon the invoked child machine reaching its final top-level state.
+           */
+          onDone?:
+            | string
+            | SingleOrArray<
+                TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>, TEvent>
+              >;
+          /**
+           * The transition to take upon the invoked child machine sending an error event.
+           */
+          onError?:
+            | string
+            | SingleOrArray<
+                TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent>
+              >;
+
+          onSnapshot?:
+            | string
+            | SingleOrArray<
+                TransitionConfigOrTarget<TContext, SnapshotEvent<any>, TEvent>
+              >;
+          /**
+           * Meta data related to this invocation
+           */
+          meta?: MetaObject;
+        }
   : {
       /**
        * The unique identifier for the invoked machine. If not specified, this
@@ -518,7 +570,7 @@ export type InvokeConfig<
       /**
        * The source of the machine to be invoked, or the machine itself.
        */
-      src: AnyActorLogic; // TODO: fix types
+      src: AnyActorLogic | string; // TODO: fix types
 
       input?: Mapper<TContext, TEvent, any> | any;
       /**

@@ -1139,7 +1139,7 @@ describe('actor types', () => {
       },
       invoke: {
         id: 'ok1',
-        src: child
+        src: 'child'
       }
     });
   });
@@ -1158,7 +1158,7 @@ describe('actor types', () => {
       // @ts-expect-error
       invoke: {
         id: 'child',
-        src: child
+        src: 'child'
       }
     });
   });
@@ -1176,7 +1176,7 @@ describe('actor types', () => {
       },
       // @ts-expect-error
       invoke: {
-        src: child
+        src: 'child'
       }
     });
   });
@@ -1192,7 +1192,7 @@ describe('actor types', () => {
         };
       },
       invoke: {
-        src: child
+        src: 'child'
       }
     });
   });
@@ -1209,7 +1209,61 @@ describe('actor types', () => {
       },
       invoke: {
         id: 'someId',
-        src: child
+        src: 'child'
+      }
+    });
+  });
+
+  it(`should allow anonymous inline actors outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+        };
+      },
+      invoke: {
+        src: child2
+      }
+    });
+  });
+
+  it(`should allow any id on anonymous inline actor outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child1;
+        };
+      },
+      invoke: {
+        id: 'test',
+        src: child2
       }
     });
   });
