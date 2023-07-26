@@ -28,7 +28,7 @@ export type PromiseActorEvents<T> =
       type: 'xstate.stop';
     };
 
-export type PromiseActorLogic<T, TInput = any> = ActorLogic<
+export type PromiseActorLogic<T, TInput = unknown> = ActorLogic<
   { type: string; [k: string]: unknown },
   T | undefined,
   PromiseInternalState<T>, // internal state

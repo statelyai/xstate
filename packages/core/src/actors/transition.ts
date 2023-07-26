@@ -16,7 +16,7 @@ export type TransitionActorLogic<
 export type TransitionActorRef<
   TState,
   TEvent extends EventObject
-> = ActorRefFrom<TransitionActorLogic<TState, TEvent, any>>;
+> = ActorRefFrom<TransitionActorLogic<TState, TEvent, unknown>>;
 
 /**
  * Returns actor logic from a transition function and its initial state.

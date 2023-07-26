@@ -94,7 +94,7 @@ export type InputFrom<T extends AnyActorLogic> = T extends ActorLogic<
   infer TInput
 >
   ? TInput
-  : any; // TODO: never?
+  : never;
 
 export type OutputFrom<T extends AnyActorLogic> = T extends ActorLogic<
   infer _TEvent,
@@ -106,7 +106,7 @@ export type OutputFrom<T extends AnyActorLogic> = T extends ActorLogic<
   infer TOutput
 >
   ? TOutput
-  : any; // TODO: never?
+  : never;
 
 // TODO: do not accept machines without all implementations
 // we should also accept a raw machine as actor logic here
