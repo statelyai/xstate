@@ -3,18 +3,20 @@ import {
   ActorContext,
   ActorSystem,
   EventObject,
-  ActorRefFrom
+  ActorRefFrom,
+  AnyActorSystem
 } from '../types';
 
 export type TransitionActorLogic<
   TState,
-  TEvent extends EventObject
-> = ActorLogic<TEvent, TState, TState, TState>;
+  TEvent extends EventObject,
+  TInput
+> = ActorLogic<TEvent, TState, TState, TState, AnyActorSystem, TInput>;
 
 export type TransitionActorRef<
   TState,
   TEvent extends EventObject
-> = ActorRefFrom<TransitionActorLogic<TState, TEvent>>;
+> = ActorRefFrom<TransitionActorLogic<TState, TEvent, any>>;
 
 /**
  * Returns actor logic from a transition function and its initial state.
@@ -45,7 +47,7 @@ export function fromTransition<
         input: TInput;
         self: TransitionActorRef<TState, TEvent>;
       }) => TState) // TODO: type
-): TransitionActorLogic<TState, TEvent> {
+): TransitionActorLogic<TState, TEvent, TInput> {
   return {
     config: transition,
     transition: (state, event, actorContext) => {
