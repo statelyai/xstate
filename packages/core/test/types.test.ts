@@ -1125,6 +1125,94 @@ describe('actor types', () => {
       snapshot.children.child.getSnapshot()?.context.foo
     );
   });
+
+  it('should allow valid configured actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        id: 'ok1',
+        src: child
+      }
+    });
+  });
+
+  it('should disallow invalid actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        id: 'child',
+        src: child
+      }
+    });
+  });
+
+  it('should require id to be specified when it was configured', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: child
+      }
+    });
+  });
+
+  it(`shouldn't require id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: child
+      }
+    });
+  });
+
+  it(`should allow id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        id: 'someId',
+        src: child
+      }
+    });
+  });
 });
 
 describe('invoke onDone targets', () => {
