@@ -1550,7 +1550,6 @@ describe('interpreter', () => {
             actors: {
               src: 'num';
               logic: PromiseActorLogic<number>;
-              output: number;
             };
           },
           states: {

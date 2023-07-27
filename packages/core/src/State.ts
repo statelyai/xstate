@@ -10,21 +10,43 @@ import {
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
-  ActorRef,
   ActorRefFrom,
   AnyState,
   AnyStateMachine,
   EventObject,
   HistoryValue,
   MachineContext,
-  ParameterizedObject,
   PersistedMachineState,
   Prop,
   StateConfig,
   StateValue,
-  TODO
+  TODO,
+  AnyActorRef,
+  Compute
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
+
+type ComputeChildren<TActor extends ProvidedActor> =
+  string extends TActor['src']
+    ? // TODO: replace with UnknownActorRef~
+      Record<string, AnyActorRef>
+    : Compute<
+        // distribute over union
+        (TActor extends any
+          ? TActor['id'] extends string
+            ? { [K in TActor['id']]?: ActorRefFrom<TActor['logic']> }
+            : never
+          : never) & //
+          // check if all actors have IDs
+          (undefined extends TActor['id']
+            ? // if they don't we need to create an index signature containing all possible actor types
+              {
+                [id: string]: TActor extends any
+                  ? ActorRefFrom<TActor['logic']> | undefined
+                  : never;
+              }
+            : never)
+      >;
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -68,13 +90,7 @@ export class State<
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  public children: TActor['id'] extends string
-    ? {
-        [K in TActor['id']]: TActor extends { id: K }
-          ? ActorRefFrom<TActor['logic']>
-          : never;
-      }
-    : Record<string, ActorRef<any>>;
+  public children: ComputeChildren<TActor>;
 
   /**
    * Creates a new State instance for the given `stateValue` and `context`.

@@ -170,7 +170,7 @@ export class StateMachine<
     );
     const configuration = Array.from(configurationSet);
     return this.createState({
-      ...state,
+      ...(state as any),
       value: resolveStateValue(this.root, state.value),
       configuration,
       done: isInFinalState(configuration)
