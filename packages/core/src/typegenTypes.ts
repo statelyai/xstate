@@ -196,7 +196,8 @@ export interface ResolveTypegenMeta<
   resolved: {
     enabled: TTypesMeta & {
       indexedActions: IndexByType<TAction>;
-      // TODO: add `id` based on typegen information (in both branches)
+      // we could add `id` based on typegen information (in both branches)
+      // but it doesn't seem to be needed for anything right now
       indexedActors: string extends TActor['src']
         ? Record<
             keyof Prop<TTypesMeta, 'eventsCausingActors'>,
@@ -216,14 +217,8 @@ export interface ResolveTypegenMeta<
       AllowAllEvents & {
         indexedActions: IndexByType<TAction>;
         indexedActors: IndexByProp<TActor, 'src'>;
-        indexedEvents: Record<string, TEvent> & {
-          __XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__: { output: any };
-        };
-        invokeSrcNameMap: Record<
-          string,
-          // TODO: remove this hack
-          '__XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__'
-        >;
+        indexedEvents: Record<string, TEvent>;
+        invokeSrcNameMap: Record<string, string>;
       };
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'
