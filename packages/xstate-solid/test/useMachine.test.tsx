@@ -8,10 +8,10 @@ import {
   InterpreterStatus,
   PersistedMachineState,
   raise,
-  interpret
+  interpret,
+  ActorLogicFrom
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
-import { DoneEventObject } from 'xstate';
 import { fromPromise, fromCallback } from 'xstate/actors';
 import {
   createEffect,
@@ -32,13 +32,18 @@ afterEach(() => {
 
 describe('useMachine hook', () => {
   const context = {
-    data: undefined
+    data: undefined as string | undefined
   };
-  const fetchMachine = createMachine<
-    typeof context,
-    { type: 'FETCH' } | DoneEventObject
-  >({
+  const fetchMachine = createMachine({
     id: 'fetch',
+    types: {} as {
+      context: typeof context;
+      events: { type: 'FETCH' };
+      actors: {
+        src: 'fetchData';
+        logic: ActorLogicFrom<Promise<string>>;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -54,7 +59,7 @@ describe('useMachine hook', () => {
             actions: assign({
               data: ({ event }) => event.output
             }),
-            guard: ({ event }) => event.output.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },
@@ -69,7 +74,7 @@ describe('useMachine hook', () => {
       actors: {
         fetchData: fromCallback((sendBack) => {
           sendBack(doneInvoke('fetchData', 'persisted data'));
-        })
+        }) as any // TODO: callback actors don't support output (yet?)
       }
     })
   ).start();

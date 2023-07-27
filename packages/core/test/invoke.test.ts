@@ -2,6 +2,7 @@ import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { escalate, forwardTo, raise, sendTo } from '../src/actions.ts';
 import {
+  PromiseActorLogic,
   fromCallback,
   fromEventObservable,
   fromObservable,
@@ -17,7 +18,9 @@ import {
   assign,
   createMachine,
   interpret,
-  sendParent
+  sendParent,
+  EventFrom,
+  ActorLogicFrom
 } from '../src/index.ts';
 
 const user = { name: 'David' };
@@ -93,6 +96,9 @@ const fetcherMachine = createMachine({
 describe('invoke', () => {
   it('child can immediately respond to the parent with multiple events', () => {
     const childMachine = createMachine({
+      types: {} as {
+        events: { type: 'FORWARD_DEC' };
+      },
       id: 'child',
       initial: 'init',
       states: {
@@ -110,9 +116,18 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = createMachine<{ count: number }>(
+    const someParentMachine = createMachine(
       {
         id: 'parent',
+        types: {} as {
+          context: { count: number };
+          actors: {
+            src: 'child';
+            id: 'someService';
+            events: EventFrom<typeof childMachine>;
+            logic: typeof childMachine;
+          };
+        },
         context: { count: 0 },
         initial: 'start',
         states: {
@@ -358,6 +373,14 @@ describe('invoke', () => {
     const someParentMachine = createMachine(
       {
         id: 'parent',
+        types: {} as {
+          context: { count: number };
+          actors: {
+            src: 'child';
+            id: 'someService';
+            logic: typeof childMachine;
+          };
+        },
         context: { count: 0 },
         initial: 'start',
         states: {
@@ -1119,9 +1142,26 @@ describe('invoke', () => {
           type: 'BEGIN';
           payload: boolean;
         }
-        const promiseMachine = createMachine<{ foo: boolean }, BeginEvent>(
+
+        const promiseActor = fromPromise(
+          ({ input }: { input: { foo: boolean; event: { payload: any } } }) => {
+            return createPromise((resolve, reject) => {
+              input.foo && input.event.payload ? resolve() : reject();
+            });
+          }
+        );
+
+        const promiseMachine = createMachine(
           {
             id: 'promise',
+            types: {} as {
+              context: { foo: boolean };
+              events: BeginEvent;
+              actors: {
+                src: 'somePromise';
+                logic: typeof promiseActor;
+              };
+            },
             initial: 'pending',
             context: {
               foo: true
@@ -1135,7 +1175,7 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: 'somePromise',
-                  input: ({ context, event }: any) => ({
+                  input: ({ context, event }) => ({
                     foo: context.foo,
                     event: event
                   }),
@@ -1149,11 +1189,7 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: fromPromise(({ input }) => {
-                return createPromise((resolve, reject) => {
-                  input.foo && input.event.payload ? resolve() : reject();
-                });
-              })
+              somePromise: promiseActor
             }
           }
         );
@@ -1168,11 +1204,18 @@ describe('invoke', () => {
       });
 
       it('should be able to reuse the same promise logic multiple times and create unique promise for each created actor', (done) => {
-        const machine = createMachine<{
-          result1: number | null;
-          result2: number | null;
-        }>(
+        const machine = createMachine(
           {
+            types: {} as {
+              context: {
+                result1: number | null;
+                result2: number | null;
+              };
+              actors: {
+                src: 'getRandomNumber';
+                logic: PromiseActorLogic<{ result: number }>;
+              };
+            },
             context: {
               result1: null,
               result2: null
@@ -1190,6 +1233,7 @@ describe('invoke', () => {
                           src: 'getRandomNumber',
                           onDone: {
                             target: 'success',
+                            // TODO: we get DoneInvokeEvent<any> here, this gets fixed with https://github.com/microsoft/TypeScript/pull/48838
                             actions: assign(({ event }) => ({
                               result1: event.output.result
                             }))
@@ -1265,14 +1309,43 @@ describe('invoke', () => {
         type: 'CALLBACK';
         data: number;
       }
-      const callbackMachine = createMachine<
-        {
-          foo: boolean;
-        },
-        BeginEvent | CallbackEvent
-      >(
+
+      const someCallback = fromCallback(
+        (
+          cb,
+          _receive: (cb: (ev: BeginEvent | CallbackEvent) => void) => void,
+          {
+            input
+          }: { input: { foo: boolean; event: BeginEvent | CallbackEvent } }
+        ) => {
+          if (input.foo && input.event.type === 'BEGIN') {
+            cb({
+              type: 'CALLBACK',
+              data: 40
+            });
+            cb({
+              type: 'CALLBACK',
+              data: 41
+            });
+            cb({
+              type: 'CALLBACK',
+              data: 42
+            });
+          }
+        }
+      );
+
+      const callbackMachine = createMachine(
         {
           id: 'callback',
+          types: {} as {
+            context: { foo: boolean };
+            events: BeginEvent | CallbackEvent;
+            actors: {
+              src: 'someCallback';
+              logic: typeof someCallback;
+            };
+          },
           initial: 'pending',
           context: {
             foo: true
@@ -1286,7 +1359,7 @@ describe('invoke', () => {
             first: {
               invoke: {
                 src: 'someCallback',
-                input: ({ context, event }: any) => ({
+                input: ({ context, event }) => ({
                   foo: context.foo,
                   event: event
                 })
@@ -1305,22 +1378,7 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: fromCallback((cb, _receive, { input }) => {
-              if (input.foo && input.event.type === 'BEGIN') {
-                cb({
-                  type: 'CALLBACK',
-                  data: 40
-                });
-                cb({
-                  type: 'CALLBACK',
-                  data: 41
-                });
-                cb({
-                  type: 'CALLBACK',
-                  data: 42
-                });
-              }
-            })
+            someCallback
           }
         }
       );
@@ -2782,6 +2840,17 @@ describe('invoke', () => {
   it('invoke `src` can be used with invoke `input`', (done) => {
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'search';
+            logic: PromiseActorLogic<
+              number,
+              {
+                endpoint: string;
+              }
+            >;
+          };
+        },
         initial: 'searching',
         states: {
           searching: {
@@ -2803,7 +2872,7 @@ describe('invoke', () => {
           search: fromPromise(async ({ input }) => {
             expect(input.endpoint).toEqual('example.com');
 
-            return await 42;
+            return 42;
           })
         }
       }
@@ -2816,6 +2885,18 @@ describe('invoke', () => {
   it('invoke `src` can be used with dynamic invoke `input`', async () => {
     const machine = createMachine(
       {
+        types: {} as {
+          context: { url: string };
+          actors: {
+            src: 'search';
+            logic: PromiseActorLogic<
+              number,
+              {
+                endpoint: string;
+              }
+            >;
+          };
+        },
         initial: 'searching',
         context: {
           url: 'example.com'
@@ -2824,7 +2905,7 @@ describe('invoke', () => {
           searching: {
             invoke: {
               src: 'search',
-              input: ({ context }: any) => ({ endpoint: context.url }),
+              input: ({ context }) => ({ endpoint: context.url }),
               onDone: 'success'
             }
           },
@@ -2838,7 +2919,7 @@ describe('invoke', () => {
           search: fromPromise(async ({ input }) => {
             expect(input.endpoint).toEqual('example.com');
 
-            return await 42;
+            return 42;
           })
         }
       }
@@ -3207,9 +3288,22 @@ describe('invoke', () => {
 });
 
 describe('actors option', () => {
-  it('should provide data params to a service creator', (done) => {
+  it('should provide input to an actor creator', (done) => {
     const machine = createMachine(
       {
+        types: {} as {
+          context: { count: number };
+          actors: {
+            src: 'stringService';
+            logic: PromiseActorLogic<
+              boolean,
+              {
+                staticVal: string;
+                newCount: number;
+              }
+            >;
+          };
+        },
         initial: 'pending',
         context: {
           count: 42
@@ -3218,9 +3312,9 @@ describe('actors option', () => {
           pending: {
             invoke: {
               src: 'stringService',
-              input: ({ context }: any) => ({
+              input: ({ context }) => ({
                 staticVal: 'hello',
-                newCount: context.count * 2 // TODO: types
+                newCount: context.count * 2
               }),
               onDone: 'success'
             }
@@ -3235,9 +3329,7 @@ describe('actors option', () => {
           stringService: fromPromise(({ input }) => {
             expect(input).toEqual({ newCount: 84, staticVal: 'hello' });
 
-            return new Promise<void>((res) => {
-              res();
-            });
+            return Promise.resolve(true);
           })
         }
       }

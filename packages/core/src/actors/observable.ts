@@ -20,26 +20,27 @@ export type ObservablePersistedState<T> = Omit<
   'subscription'
 >;
 
-export type ObservableActorLogic<T> = ActorLogic<
+export type ObservableActorLogic<T, TInput> = ActorLogic<
   EventObject,
   T | undefined,
   ObservableInternalState<T>,
-  ObservablePersistedState<T>
+  ObservablePersistedState<T>,
+  AnyActorSystem,
+  TInput
 >;
 
-export type ObservableActorRef<T> = ActorRefFrom<ObservableActorLogic<T>>;
+export type ObservableActorRef<T> = ActorRefFrom<ObservableActorLogic<T, any>>;
 
-// TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
-export function fromObservable<T>(
+export function fromObservable<T, TInput>(
   observableCreator: ({
     input,
     system
   }: {
-    input: any;
+    input: TInput;
     system: AnyActorSystem;
     self: ObservableActorRef<T>;
   }) => Subscribable<T>
-): ObservableActorLogic<T> {
+): ObservableActorLogic<T, TInput> {
   const nextEventType = '$$xstate.next';
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
@@ -152,15 +153,16 @@ export function fromObservable<T>(
  * @returns Event observable logic
  */
 
-export function fromEventObservable<T extends EventObject>(
+export function fromEventObservable<T extends EventObject, TInput>(
   lazyObservable: ({
-    input
+    input,
+    system
   }: {
-    input: any;
+    input: TInput;
     system: AnyActorSystem;
     self: ObservableActorRef<T>;
   }) => Subscribable<T>
-): ObservableActorLogic<T> {
+): ObservableActorLogic<T, TInput> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 

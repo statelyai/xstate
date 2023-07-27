@@ -5,7 +5,8 @@ import {
   AnyActorRef,
   AnyEventObject,
   AnyState,
-  Spawner
+  Spawner,
+  TODO
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
@@ -57,7 +58,7 @@ export function createSpawner(
     }
   };
   return (src, options) => {
-    const actorRef = spawn(src, options);
+    const actorRef = spawn(src, options) as TODO; // TODO: fix types
     spawnedChildren[actorRef.id] = actorRef;
     actorContext.defer(() => {
       if (actorRef.status === ActorStatus.Stopped) {

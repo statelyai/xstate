@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { assign, interpret } from '../src';
+import { AnyActorLogic, assign, interpret } from '../src';
 import { createMachine } from '../src/Machine';
 import {
   fromCallback,
@@ -112,7 +112,9 @@ describe('input', () => {
   });
 
   it('should create a promise with input', async () => {
-    const promiseLogic = fromPromise(({ input }) => Promise.resolve(input));
+    const promiseLogic = fromPromise(
+      ({ input }: { input: { count: number } }) => Promise.resolve(input)
+    );
 
     const promiseActor = interpret(promiseLogic, {
       input: { count: 42 }
@@ -169,8 +171,18 @@ describe('input', () => {
   it('should provide a static inline input to the referenced actor', () => {
     const spy = jest.fn();
 
+    const child = createMachine({
+      context: ({ input }: { input: number }) => {
+        spy(input);
+        return {};
+      }
+    });
+
     const machine = createMachine(
       {
+        types: {} as {
+          actors: { src: 'child'; logic: typeof child };
+        },
         invoke: {
           src: 'child',
           input: 42
@@ -178,12 +190,7 @@ describe('input', () => {
       },
       {
         actors: {
-          child: createMachine({
-            context: ({ input }) => {
-              spy(input);
-              return {};
-            }
-          })
+          child
         }
       }
     );
@@ -196,8 +203,21 @@ describe('input', () => {
   it('should provide a dynamic inline input to the referenced actor', () => {
     const spy = jest.fn();
 
+    const child = createMachine({
+      context: ({ input }: { input: number }) => {
+        spy(input);
+        return {};
+      }
+    });
+
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        },
         invoke: {
           src: 'child',
           input: ({ event }: any) => {
@@ -207,12 +227,7 @@ describe('input', () => {
       },
       {
         actors: {
-          child: createMachine({
-            context: ({ input }) => {
-              spy(input);
-              return {};
-            }
-          })
+          child
         }
       }
     );
@@ -285,8 +300,14 @@ describe('input', () => {
 
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: AnyActorLogic;
+          };
+        },
         entry: assign(({ spawn }) => ({
-          childRef: spawn('child')
+          childRef: spawn('child') // TODO: type-check for spawn
         }))
       },
       {

@@ -6,9 +6,11 @@ import {
   Prop,
   Values,
   IsAny,
-  ActorMap,
-  Cast,
-  ParameterizedObject
+  ParameterizedObject,
+  ProvidedActor,
+  OutputFrom,
+  AnyActorLogic,
+  IndexByProp
 } from './types.ts';
 
 export interface TypegenDisabled {
@@ -48,8 +50,7 @@ export interface TypegenMeta extends TypegenEnabled {
    */
   internalEvents: {};
   /**
-   * Maps the name of the actor to the event type
-   * of the done.invoke action
+   * Maps the src of the invoked actor to the event type that includes its known id
    *
    * key: 'invokeSrc'
    * value: 'done.invoke.invokeName'
@@ -91,6 +92,7 @@ export interface TypegenMeta extends TypegenEnabled {
 
 export interface ResolvedTypegenMeta extends TypegenMeta {
   resolved: TypegenMeta & {
+    indexedActors: Record<string, ProvidedActor>;
     indexedActions: Record<string, ParameterizedObject>;
     indexedEvents: Record<string, EventObject>;
   };
@@ -146,31 +148,29 @@ export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
   resolved: Prop<TResolvedTypesMeta, 'resolved'> & AllImplementationsProvided;
 }
 
-type GenerateActorEvent<
-  TActorName,
-  TEventType,
-  TActorMap extends ActorMap
-> = TEventType extends any
-  ? {
-      type: TEventType;
-    } & Prop<TActorMap, TActorName>
-  : never;
-
 type GenerateActorEvents<
-  TActorMap extends ActorMap,
+  TActor extends ProvidedActor,
   TInvokeSrcNameMap
-> = string extends keyof TActorMap
-  ? never
-  : Cast<
-      {
-        [K in keyof TInvokeSrcNameMap]: GenerateActorEvent<
-          K,
-          TInvokeSrcNameMap[K],
-          TActorMap
-        >;
-      }[keyof TInvokeSrcNameMap],
-      EventObject
-    >;
+> = string extends TActor['src']
+  ? // TActor is pretty much required if one wants to have actor types
+    // using never here allows typegen to inject internal events with "hints" that the actor type is missing
+    never
+  : // distribute over union
+  TActor extends any
+  ? {
+      type: // 1. if the actor has an id, use that
+      TActor['id'] extends string
+        ? `done.invoke.${TActor['id']}`
+        : // 2. if the ids were inferred by typegen then use those
+        // this doesn't contain *all* possible event types since we can't track spawned actors today
+        // however, those done.invoke events shouldn't exactly be usable by/surface to the user anyway
+        TActor['src'] extends keyof TInvokeSrcNameMap
+        ? `done.invoke.${TInvokeSrcNameMap[TActor['src']] & string}`
+        : // 3. finally use the fallback type
+          `done.invoke.${string}`;
+      output: OutputFrom<TActor['logic']>;
+    }
+  : never;
 
 // we don't even have to do that much here, technically, because `T & unknown` is equivalent to `T`
 // however, this doesn't display nicely in IDE tooltips, so let's fix this
@@ -190,16 +190,24 @@ export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TActorMap extends ActorMap
+  TActor extends ProvidedActor
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {
     enabled: TTypesMeta & {
       indexedActions: IndexByType<TAction>;
+      // we could add `id` based on typegen information (in both branches)
+      // but it doesn't seem to be needed for anything right now
+      indexedActors: string extends TActor['src']
+        ? Record<
+            keyof Prop<TTypesMeta, 'eventsCausingActors'>,
+            { logic: AnyActorLogic }
+          >
+        : IndexByProp<TActor, 'src'>;
       indexedEvents: MergeWithInternalEvents<
         IndexByType<
           | (string extends TEvent['type'] ? never : TEvent)
-          | GenerateActorEvents<TActorMap, Prop<TTypesMeta, 'invokeSrcNameMap'>>
+          | GenerateActorEvents<TActor, Prop<TTypesMeta, 'invokeSrcNameMap'>>
         >,
         Prop<TTypesMeta, 'internalEvents'>
       >;
@@ -208,13 +216,9 @@ export interface ResolveTypegenMeta<
       AllImplementationsProvided &
       AllowAllEvents & {
         indexedActions: IndexByType<TAction>;
-        indexedEvents: Record<string, TEvent> & {
-          __XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__: { output: any };
-        };
-        invokeSrcNameMap: Record<
-          string,
-          '__XSTATE_ALLOW_ANY_INVOKE_OUTPUT_HACK__'
-        >;
+        indexedActors: IndexByProp<TActor, 'src'>;
+        indexedEvents: Record<string, TEvent>;
+        invokeSrcNameMap: Record<string, string>;
       };
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'

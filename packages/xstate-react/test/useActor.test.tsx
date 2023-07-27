@@ -2,6 +2,7 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
+  ActorLogicFrom,
   ActorRef,
   ActorRefFrom,
   assign,
@@ -24,13 +25,18 @@ afterEach(() => {
 
 describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const context = {
-    data: undefined
+    data: undefined as undefined | string
   };
-  const fetchMachine = createMachine<
-    typeof context,
-    { type: 'FETCH' } | DoneEventObject
-  >({
+  const fetchMachine = createMachine({
     id: 'fetch',
+    types: {} as {
+      context: typeof context;
+      events: { type: 'FETCH' } | DoneEventObject;
+      actors: {
+        src: 'fetchData';
+        logic: ActorLogicFrom<Promise<string>>;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -48,7 +54,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
                 return event.output;
               }
             }),
-            guard: ({ event }) => event.output.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },
@@ -63,7 +69,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       actors: {
         fetchData: fromCallback((sendBack) => {
           sendBack(doneInvoke('fetchData', 'persisted data'));
-        })
+        }) as any // TODO: callback actors don't support output (yet?)
       }
     })
   ).start();

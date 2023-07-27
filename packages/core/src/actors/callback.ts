@@ -4,6 +4,7 @@ import {
   ActorLogic,
   EventObject,
   AnyEventObject,
+  ActorSystem,
   ActorRefFrom,
   TODO
 } from '../types';
@@ -18,20 +19,27 @@ export interface CallbackInternalState<TEvent extends EventObject> {
   input?: any;
 }
 
-export type CallbackActorLogic<TEvent extends EventObject> = ActorLogic<
+export type CallbackActorLogic<
+  TEvent extends EventObject,
+  TInput = any
+> = ActorLogic<
   TEvent,
   undefined,
-  CallbackInternalState<TEvent>
+  CallbackInternalState<TEvent>,
+  CallbackInternalState<TEvent>,
+  ActorSystem<any>,
+  TInput,
+  any
 >;
 
 export type CallbackActorRef<TEvent extends EventObject> = ActorRefFrom<
   CallbackActorLogic<TEvent>
 >;
 
-export function fromCallback<TEvent extends EventObject>(
-  invokeCallback: InvokeCallback
-): CallbackActorLogic<TEvent> {
-  const logic: CallbackActorLogic<TEvent> = {
+export function fromCallback<TEvent extends EventObject, TInput>(
+  invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
+): CallbackActorLogic<TEvent, TInput> {
+  const logic: CallbackActorLogic<TEvent, TInput> = {
     config: invokeCallback,
     start: (_state, { self }) => {
       self.send({ type: startSignalType } as TEvent);

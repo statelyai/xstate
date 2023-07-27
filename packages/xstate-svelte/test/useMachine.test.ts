@@ -9,7 +9,7 @@ const actorRef = interpret(
     actors: {
       fetchData: fromCallback((sendBack) => {
         sendBack(doneInvoke('fetchData', 'persisted data'));
-      })
+      }) as any // TODO: callback actors don't support output (yet?)
     }
   })
 ).start();
