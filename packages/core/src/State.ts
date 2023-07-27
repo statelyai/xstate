@@ -29,13 +29,14 @@ import { flatten, matchesState } from './utils.ts';
 type ComputeChildren<TActor extends ProvidedActor> =
   string extends TActor['src']
     ? // TODO: replace with UnknownActorRef~
+      // TODO: consider adding `| undefined` here
       Record<string, AnyActorRef>
     : Compute<
         // distribute over union
         (TActor extends any
           ? TActor['id'] extends string
             ? { [K in TActor['id']]?: ActorRefFrom<TActor['logic']> }
-            : never
+            : {}
           : never) & //
           // check if all actors have IDs
           (undefined extends TActor['id']
@@ -45,7 +46,7 @@ type ComputeChildren<TActor extends ProvidedActor> =
                   ? ActorRefFrom<TActor['logic']> | undefined
                   : never;
               }
-            : never)
+            : {})
       >;
 
 export function isStateConfig<

@@ -316,7 +316,7 @@ export class StateMachine<
       State<TContext, TEvent, TActor, TResolvedTypesMeta>
     >
   ): void {
-    Object.values(state.children).forEach((child) => {
+    Object.values(state.children).forEach((child: any) => {
       if (child.status === 0) {
         try {
           child.start?.();

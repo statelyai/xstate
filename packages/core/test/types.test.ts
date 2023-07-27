@@ -1115,23 +1115,20 @@ describe('actor types', () => {
     );
 
     const snapshot = interpret(machine).getSnapshot();
+    const childSnapshot = snapshot.children.someChild!.getSnapshot();
 
-    ((_accept: string | undefined) => {})(
-      snapshot.children.someChild.getSnapshot().context.foo
-    );
+    ((_accept: string | undefined) => {})(childSnapshot.context.foo);
 
-    ((_accept: string) => {})(
-      snapshot.children.someChild.getSnapshot().context.foo
-    );
+    ((_accept: string) => {})(childSnapshot.context.foo);
 
     ((_accept: '') => {})(
       // @ts-expect-error
-      snapshot.children.someChild.getSnapshot().context.foo
+      childSnapshot.context.foo
     );
 
     ((_accept: number | undefined) => {})(
       // @ts-expect-error
-      snapshot.children.someChild.getSnapshot().context.foo
+      childSnapshot.context.foo
     );
   });
 
