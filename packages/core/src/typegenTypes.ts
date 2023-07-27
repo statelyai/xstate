@@ -50,8 +50,7 @@ export interface TypegenMeta extends TypegenEnabled {
    */
   internalEvents: {};
   /**
-   * Maps the name of the actor to the event type
-   * of the done.invoke action
+   * Maps the src of the invoked actor to the event type that includes its known id
    *
    * key: 'invokeSrc'
    * value: 'done.invoke.invokeName'
@@ -151,11 +150,15 @@ export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
 
 type GenerateActorEvents<
   TActor extends ProvidedActor,
-  _TInvokeSrcNameMap
-> = TActor extends any
+  TInvokeSrcNameMap
+> = string extends TActor['src']
+  ? never
+  : TActor extends any
   ? {
       type: TActor['id'] extends string
         ? `done.invoke.${TActor['id']}`
+        : TActor['src'] extends keyof TInvokeSrcNameMap
+        ? `done.invoke.${TInvokeSrcNameMap[TActor['src']] & string}`
         : `done.invoke.${string}`;
       output: OutputFrom<TActor['logic']>;
     }
