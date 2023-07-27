@@ -9,7 +9,6 @@ import {
   createMachine,
   interpret,
   MachineContext,
-  SnapshotFrom,
   Spawner,
   StateMachine
 } from '../src/index';
@@ -1096,38 +1095,43 @@ describe('actor types', () => {
       }
     });
 
-    const machine = createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'someChild';
-          logic: typeof child;
-        };
+    const machine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            id: 'someChild';
+            logic: typeof child;
+          };
+        },
+        invoke: {
+          id: 'someChild',
+          src: 'child'
+        }
       },
-      invoke: {
-        id: 'someChild',
-        src: 'child'
+      {
+        actors: { child }
       }
-    });
+    );
 
     const snapshot = interpret(machine).getSnapshot();
 
     ((_accept: string | undefined) => {})(
-      {} as SnapshotFrom<typeof snapshot.children.someChild>['context']['foo']
+      snapshot.children.someChild.getSnapshot().context.foo
     );
 
     ((_accept: string) => {})(
-      {} as SnapshotFrom<typeof snapshot.children.someChild>['context']['foo']
+      snapshot.children.someChild.getSnapshot().context.foo
     );
 
     ((_accept: '') => {})(
       // @ts-expect-error
-      {} as SnapshotFrom<typeof snapshot.children.someChild>['context']['foo']
+      snapshot.children.someChild.getSnapshot().context.foo
     );
 
     ((_accept: number | undefined) => {})(
       // @ts-expect-error
-      {} as SnapshotFrom<typeof snapshot.children.someChild>['context']['foo']
+      snapshot.children.someChild.getSnapshot().context.foo
     );
   });
 
