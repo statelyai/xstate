@@ -1246,6 +1246,130 @@ describe('actor types', () => {
       }
     });
   });
+
+  it('specific children with id should be optional on the snapshot', () => {
+    const child = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const machine = createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'myChild';
+          logic: typeof child;
+        };
+      }
+    });
+
+    const childActor = interpret(machine).getSnapshot().children.myChild;
+
+    ((_accept: ActorRefFrom<typeof child> | undefined) => {})(childActor);
+    // @ts-expect-error
+    ((_accept: ActorRefFrom<typeof child>) => {})(childActor);
+  });
+
+  it('specific children without id should be optional on the snapshot', () => {
+    const child = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const machine = createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      }
+    });
+
+    const childActor = interpret(machine).getSnapshot().children.someChild;
+
+    ((_accept: ActorRefFrom<typeof child> | undefined) => {})(childActor);
+    // @ts-expect-error
+    ((_accept: ActorRefFrom<typeof child>) => {})(childActor);
+  });
+
+  it('when all provided actors have specified ids index signature should not be allowed', () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    const machine = createMachine({
+      types: {} as {
+        actors:
+          | {
+              src: 'child';
+              id: 'counter';
+              logic: typeof child1;
+            }
+          | {
+              src: 'child';
+              id: 'quiz';
+              logic: typeof child2;
+            };
+      }
+    });
+
+    interpret(machine).getSnapshot().children.counter;
+    interpret(machine).getSnapshot().children.quiz;
+    // @ts-expect-error
+    interpret(machine).getSnapshot().children.someChild;
+  });
+
+  it('when some provided actors have specified ids index signature should be allowed', () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    const machine = createMachine({
+      types: {} as {
+        actors:
+          | {
+              src: 'child';
+              id: 'counter';
+              logic: typeof child1;
+            }
+          | {
+              src: 'child';
+              logic: typeof child2;
+            };
+      }
+    });
+
+    const counterActor = interpret(machine).getSnapshot().children.counter;
+    ((_accept: ActorRefFrom<typeof child1> | undefined) => {})(counterActor);
+
+    const someActor = interpret(machine).getSnapshot().children.someChild;
+    // @ts-expect-error
+    ((_accept: ActorRefFrom<typeof child2> | undefined) => {})(someActor);
+    ((
+      _accept:
+        | ActorRefFrom<typeof child1>
+        | ActorRefFrom<typeof child2>
+        | undefined
+    ) => {})(someActor);
+  });
 });
 
 describe('invoke onDone targets', () => {
