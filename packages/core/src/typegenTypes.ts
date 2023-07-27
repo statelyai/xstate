@@ -152,14 +152,22 @@ type GenerateActorEvents<
   TActor extends ProvidedActor,
   TInvokeSrcNameMap
 > = string extends TActor['src']
-  ? never
-  : TActor extends any
+  ? // TActor is pretty much required if one wants to have actor types
+    // using never here allows typegen to inject internal events with "hints" that the actor type is missing
+    never
+  : // distribute over union
+  TActor extends any
   ? {
-      type: TActor['id'] extends string
+      type: // 1. if the actor has an id, use that
+      TActor['id'] extends string
         ? `done.invoke.${TActor['id']}`
-        : TActor['src'] extends keyof TInvokeSrcNameMap
+        : // 2. if the ids were inferred by typegen then use those
+        // this doesn't contain *all* possible event types since we can't track spawned actors today
+        // however, those done.invoke events shouldn't exactly be usable by/surface to the user anyway
+        TActor['src'] extends keyof TInvokeSrcNameMap
         ? `done.invoke.${TInvokeSrcNameMap[TActor['src']] & string}`
-        : `done.invoke.${string}`;
+        : // 3. finally use the fallback type
+          `done.invoke.${string}`;
       output: OutputFrom<TActor['logic']>;
     }
   : never;
