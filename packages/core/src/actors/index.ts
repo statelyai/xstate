@@ -60,7 +60,7 @@ export function toActorRef<
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
     sessionId: '',
-    getSnapshot: () => undefined,
+    getSnapshot: () => undefined as TSnapshot, // TODO: this isn't safe
     [symbolObservable]: function () {
       return this;
     },

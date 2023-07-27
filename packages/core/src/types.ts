@@ -1433,7 +1433,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   send: (event: TEvent) => void;
   // TODO: should this be optional?
   start?: () => void;
-  getSnapshot: () => TSnapshot | undefined;
+  getSnapshot: () => TSnapshot;
   // TODO: this should return some sort of TPersistedState, not any
   getPersistedState?: () => any;
   stop: () => void;

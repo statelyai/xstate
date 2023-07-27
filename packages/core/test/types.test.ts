@@ -9,6 +9,7 @@ import {
   createMachine,
   interpret,
   MachineContext,
+  SnapshotFrom,
   Spawner,
   StateMachine
 } from '../src/index';
@@ -1112,17 +1113,21 @@ describe('actor types', () => {
     const snapshot = interpret(machine).getSnapshot();
 
     ((_accept: string | undefined) => {})(
-      snapshot.children.someChild.getSnapshot()?.context.foo
+      {} as SnapshotFrom<typeof snapshot.children.someChild>['context']['foo']
     );
 
     ((_accept: string) => {})(
+      {} as SnapshotFrom<typeof snapshot.children.someChild>['context']['foo']
+    );
+
+    ((_accept: '') => {})(
       // @ts-expect-error
-      snapshot.children.someChild.getSnapshot()?.context.foo
+      {} as SnapshotFrom<typeof snapshot.children.someChild>['context']['foo']
     );
 
     ((_accept: number | undefined) => {})(
       // @ts-expect-error
-      snapshot.children.someChild.getSnapshot()?.context.foo
+      {} as SnapshotFrom<typeof snapshot.children.someChild>['context']['foo']
     );
   });
 
