@@ -31,13 +31,6 @@ describe('input', () => {
       }
     });
 
-    interpret(machine, {
-      input: {
-        // @ts-expect-error
-        wrongCountProperty: 42
-      }
-    });
-
     interpret(machine, { input: { startCount: 42 } }).start();
 
     expect(spy).toHaveBeenCalledWith(42);
@@ -45,23 +38,9 @@ describe('input', () => {
 
   it('initial event should have input property', (done) => {
     const machine = createMachine({
-      types: {} as {
-        input: { greeting: string };
-        context: { greeting: string };
-      },
-      context({ input }) {
-        return input;
-      },
-      entry: ({ context }) => {
-        expect(context.greeting).toBe('hello');
+      entry: ({ event }) => {
+        expect(event.input.greeting).toBe('hello');
         done();
-      }
-    });
-
-    interpret(machine, {
-      input: {
-        // @ts-expect-error
-        wrongGreeting: 'hello'
       }
     });
 
@@ -75,9 +54,6 @@ describe('input', () => {
         context: { message: string };
       },
       context: ({ input }) => {
-        // @ts-expect-error
-        input.notAGreeting;
-
         return { message: `Hello, ${input.greeting}` };
       }
     });
@@ -117,8 +93,9 @@ describe('input', () => {
         context: { greeting: string };
       },
       context: ({ input }) => input,
-      entry: ({ context }) => {
+      entry: ({ context, event }) => {
         expect(context.greeting).toBe('hello');
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });
@@ -142,8 +119,9 @@ describe('input', () => {
       context({ input }) {
         return input;
       },
-      entry: ({ context }) => {
+      entry: ({ context, event }) => {
         expect(context.greeting).toBe('hello');
+        expect(event.input.greeting).toBe('hello');
         done();
       }
     });

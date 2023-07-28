@@ -1659,3 +1659,50 @@ describe('actions', () => {
     });
   });
 });
+
+describe('input', () => {
+  it('should provide the input type to the context factory', () => {
+    createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      },
+      context: ({ input }) => {
+        ((_accept: number) => {})(input.count);
+        // @ts-expect-error
+        ((_accept: string) => {})(input.count);
+        return {};
+      }
+    });
+  });
+
+  it('should accept valid input type when interpreting an actor', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    interpret(machine, { input: { count: 100 } });
+  });
+
+  it('should reject invalid input type when interpreting an actor', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    interpret(machine, {
+      input: {
+        // @ts-expect-error
+        count: ''
+      }
+    });
+  });
+});
