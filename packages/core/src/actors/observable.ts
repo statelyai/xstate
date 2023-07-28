@@ -8,23 +8,23 @@ import {
 } from '../types';
 import { stopSignalType } from '../actors';
 
-export interface ObservableInternalState<T> {
+export interface ObservableInternalState<T, TInput = unknown> {
   subscription: Subscription | undefined;
   status: 'active' | 'done' | 'error' | 'canceled';
   data: T | undefined;
-  input?: any;
+  input: TInput | undefined;
 }
 
-export type ObservablePersistedState<T> = Omit<
-  ObservableInternalState<T>,
+export type ObservablePersistedState<T, TInput = unknown> = Omit<
+  ObservableInternalState<T, TInput>,
   'subscription'
 >;
 
 export type ObservableActorLogic<T, TInput> = ActorLogic<
   { type: string; [k: string]: unknown },
   T | undefined,
-  ObservableInternalState<T>,
-  ObservablePersistedState<T>,
+  ObservableInternalState<T, TInput>,
+  ObservablePersistedState<T, TInput>,
   AnyActorSystem,
   TInput
 >;
@@ -45,13 +45,7 @@ export function fromObservable<T, TInput>(
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
-  // TODO: add event types
-  const logic: ActorLogic<
-    any,
-    T | undefined,
-    ObservableInternalState<T>,
-    ObservablePersistedState<T>
-  > = {
+  return {
     config: observableCreator,
     transition: (state, event, { self, id, defer }) => {
       if (state.status !== 'active') {
@@ -70,14 +64,14 @@ export function fromObservable<T, TInput>(
           });
           return {
             ...state,
-            data: event.data
+            data: (event as any).data
           };
         case errorEventType:
           return {
             ...state,
             status: 'error',
             input: undefined,
-            data: event.data,
+            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             subscription: undefined
           };
         case completeEventType:
@@ -113,7 +107,7 @@ export function fromObservable<T, TInput>(
         return;
       }
       state.subscription = observableCreator({
-        input: state.input,
+        input: state.input!,
         system,
         self
       }).subscribe({
@@ -140,8 +134,6 @@ export function fromObservable<T, TInput>(
       subscription: undefined
     })
   };
-
-  return logic;
 }
 
 /**
@@ -167,12 +159,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
   const completeEventType = '$$xstate.complete';
 
   // TODO: event types
-  const logic: ActorLogic<
-    any,
-    T | undefined,
-    ObservableInternalState<T>,
-    ObservablePersistedState<T>
-  > = {
+  return {
     config: lazyObservable,
     transition: (state, event) => {
       if (state.status !== 'active') {
@@ -185,7 +172,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
             ...state,
             status: 'error',
             input: undefined,
-            data: event.data,
+            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             subscription: undefined
           };
         case completeEventType:
@@ -222,7 +209,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
       }
 
       state.subscription = lazyObservable({
-        input: state.input,
+        input: state.input!,
         system,
         self
       }).subscribe({
@@ -249,6 +236,4 @@ export function fromEventObservable<T extends EventObject, TInput>(
       subscription: undefined
     })
   };
-
-  return logic;
 }

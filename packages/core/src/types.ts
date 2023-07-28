@@ -344,7 +344,7 @@ export interface InvokeDefinition<
    */
   src: string;
 
-  input?: Mapper<TContext, TEvent, any> | any;
+  input?: Mapper<TContext, TEvent, NonReducibleUnknown> | NonReducibleUnknown;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
