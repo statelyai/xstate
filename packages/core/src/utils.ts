@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { AnyActorLogic, AnyState } from './index.ts';
 import { errorExecution, errorPlatform } from './constantPrefixes.ts';
-import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
+import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
   ActorLogic,

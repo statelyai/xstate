@@ -1235,7 +1235,7 @@ export type PropertyMapper<
 > = {
   [K in keyof TParams]?:
     | ((args: { context: TContext; event: TEvent }) => TParams[K])
-    | AnythingButAFunction<TParams[K]>;
+    | TParams[K];
 };
 
 export interface TransitionDefinition<
@@ -1793,7 +1793,3 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
     };
   };
 };
-
-export type AnythingButAFunction<T> = IsAny<T> extends true
-  ? string | number | boolean | object | symbol
-  : T;
