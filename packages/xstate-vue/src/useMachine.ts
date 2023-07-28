@@ -5,7 +5,8 @@ import {
   InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
-  StateFrom
+  StateFrom,
+  TODO
 } from 'xstate';
 import { MaybeLazy, Prop } from './types.ts';
 import { useInterpret } from './useInterpret.ts';
@@ -19,6 +20,8 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta'],
             true
           >
@@ -28,6 +31,8 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta']
           >
       ];

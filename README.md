@@ -76,7 +76,7 @@ const toggleMachine = createMachine({
 
 // Machine instance with internal state
 const toggleActor = interpret(toggleMachine);
-toggleActor.subscribe((state) => console.log(state.value))
+toggleActor.subscribe((state) => console.log(state.value));
 toggleActor.start();
 // => logs 'inactive'
 

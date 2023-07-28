@@ -8,10 +8,10 @@ import {
   InterpreterStatus,
   PersistedMachineState,
   raise,
-  interpret
+  interpret,
+  ActorLogicFrom
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
-import { DoneEventObject } from 'xstate';
 import { fromPromise, fromCallback } from 'xstate/actors';
 import {
   createEffect,
@@ -32,13 +32,18 @@ afterEach(() => {
 
 describe('useMachine hook', () => {
   const context = {
-    data: undefined
+    data: undefined as string | undefined
   };
-  const fetchMachine = createMachine<
-    typeof context,
-    { type: 'FETCH' } | DoneEventObject
-  >({
+  const fetchMachine = createMachine({
     id: 'fetch',
+    types: {} as {
+      context: typeof context;
+      events: { type: 'FETCH' };
+      actors: {
+        src: 'fetchData';
+        logic: ActorLogicFrom<Promise<string>>;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -54,7 +59,7 @@ describe('useMachine hook', () => {
             actions: assign({
               data: ({ event }) => event.output
             }),
-            guard: ({ event }) => event.output.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },
@@ -67,9 +72,9 @@ describe('useMachine hook', () => {
   const actorRef = interpret(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback((sendBack) => {
+        fetchData: fromCallback(({ sendBack }) => {
           sendBack(doneInvoke('fetchData', 'persisted data'));
-        })
+        }) as any // TODO: callback actors don't support output (yet?)
       }
     })
   ).start();
@@ -291,7 +296,10 @@ describe('useMachine hook', () => {
   });
 
   it('actions should not have stale data', (done) => {
-    const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
+    const toggleMachine = createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE' };
+      },
       initial: 'inactive',
       states: {
         inactive: {
@@ -347,7 +355,10 @@ describe('useMachine hook', () => {
   it('should capture all actions', () => {
     let count = 0;
 
-    const machine = createMachine<any, { type: 'EVENT' }>({
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'EVENT' };
+      },
       initial: 'active',
       context: { count: 0 },
       states: {
@@ -1588,7 +1599,10 @@ describe('useMachine (strict mode)', () => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
-    const machine = createMachine<any, { type: 'FINISH' }>({
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FINISH' };
+      },
       initial: 'active',
       states: {
         active: {
@@ -1661,7 +1675,10 @@ describe('useMachine (strict mode)', () => {
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
     try {
-      const testMachine = createMachine<any, { type: 'START' }>({
+      const testMachine = createMachine({
+        types: {} as {
+          events: { type: 'START' };
+        },
         id: 'app',
         initial: 'idle',
         states: {

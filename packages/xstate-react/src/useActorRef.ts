@@ -13,7 +13,8 @@ import {
   Observer,
   StateFrom,
   toObserver,
-  SnapshotFrom
+  SnapshotFrom,
+  TODO
 } from 'xstate';
 import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
@@ -55,6 +56,8 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
+            TODO,
+            TODO,
             TLogic['__TResolvedTypesMeta'],
             true
           >,
@@ -67,6 +70,8 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
+            TODO,
+            TODO,
             TLogic['__TResolvedTypesMeta']
           >,
         observerOrListener?:

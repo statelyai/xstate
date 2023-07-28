@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { State, cloneState } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { constantPrefixes, after, done, raise } from './actions.ts';
+import { after, done, raise } from './actions.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
@@ -35,7 +35,8 @@ import {
   StateValue,
   StateValueMap,
   TransitionConfig,
-  TransitionDefinition
+  TransitionDefinition,
+  TODO
 } from './types.ts';
 import {
   isArray,
@@ -671,7 +672,7 @@ export function getStateNodes<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode,
-  state: StateValue | State<TContext, TEvent>
+  state: StateValue | State<TContext, TEvent, TODO>
 ): Array<AnyStateNode> {
   const stateValue = state instanceof State ? state.value : toStateValue(state);
 
@@ -707,7 +708,7 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -726,7 +727,7 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -752,7 +753,7 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -788,7 +789,7 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  state: State<TContext, TEvent, any>,
+  state: State<TContext, TEvent, TODO, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
@@ -1000,11 +1001,11 @@ export function microstep<
   TEvent extends EventObject
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  currentState: State<TContext, TEvent, any>,
+  currentState: State<TContext, TEvent, TODO, any>,
   actorCtx: AnyActorContext,
   event: TEvent,
   isInitial: boolean
-): State<TContext, TEvent, any> {
+): State<TContext, TEvent, TODO, any> {
   const mutConfiguration = new Set(currentState.configuration);
 
   if (!transitions.length) {
@@ -1389,7 +1390,7 @@ export function resolveActionsAndContext<
 >(
   actions: Action<any, any, any>[],
   event: TEvent,
-  currentState: State<TContext, TEvent, any>,
+  currentState: State<TContext, TEvent, TODO, any>,
   actorCtx: AnyActorContext
 ): AnyState {
   const { machine } = currentState;

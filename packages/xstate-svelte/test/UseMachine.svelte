@@ -7,7 +7,7 @@
   import { fromPromise } from 'xstate/actors';
 
   const onFetch = () =>
-    new Promise((res) => setTimeout(() => res('some data'), 50));
+    new Promise<string>((res) => setTimeout(() => res('some data'), 50));
 
   const { state, send } = useMachine(fetchMachine, {
     state: persistedState,

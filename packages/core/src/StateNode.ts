@@ -1,6 +1,5 @@
 import type { State } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
-import * as actionTypes from './constantPrefixes.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
 import { memo } from './memo.ts';
@@ -28,7 +27,8 @@ import type {
   StateNodesConfig,
   StatesDefinition,
   TransitionDefinition,
-  TransitionDefinitionMap
+  TransitionDefinitionMap,
+  TODO
 } from './types.ts';
 import {
   createInvokeId,
@@ -143,7 +143,7 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent>,
+    public config: StateNodeConfig<TContext, TEvent, TODO, TODO>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
@@ -168,7 +168,10 @@ export class StateNode<
       this.config.states
         ? mapValues(
             this.config.states,
-            (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
+            (
+              stateConfig: StateNodeConfig<TContext, TEvent, TODO, TODO>,
+              key
+            ) => {
               const stateNode = new StateNode(stateConfig, {
                 _parent: this,
                 _key: key as string,
@@ -295,7 +298,6 @@ export class StateNode<
         }
 
         return {
-          type: 'xstate.invoke',
           ...invokeConfig,
           src: resolvedSrc,
           id: resolvedId,
@@ -342,7 +344,7 @@ export class StateNode<
   }
 
   public next(
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, TODO>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;

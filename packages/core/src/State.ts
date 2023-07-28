@@ -9,7 +9,8 @@ import {
 } from './stateUtils.ts';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
-  ActorRef,
+  ProvidedActor,
+  ActorRefFrom,
   AnyState,
   AnyStateMachine,
   EventObject,
@@ -18,9 +19,35 @@ import type {
   PersistedMachineState,
   Prop,
   StateConfig,
-  StateValue
+  StateValue,
+  TODO,
+  AnyActorRef,
+  Compute
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
+
+type ComputeConcreteChildren<TActor extends Required<ProvidedActor>> = {
+  [K in TActor['id']]?: ActorRefFrom<(TActor & { id: K })['logic']>;
+};
+
+type ComputeChildren<TActor extends ProvidedActor> =
+  string extends TActor['src']
+    ? // TODO: replace with UnknownActorRef~
+      // TODO: consider adding `| undefined` here
+      Record<string, AnyActorRef>
+    : Compute<
+        // distribute over union
+        ComputeConcreteChildren<Extract<TActor, { id: string }>> &
+          // check if all actors have IDs
+          (undefined extends TActor['id']
+            ? // if they don't we need to create an index signature containing all possible actor types
+              {
+                [id: string]: TActor extends any
+                  ? ActorRefFrom<TActor['logic']> | undefined
+                  : never;
+              }
+            : {})
+      >;
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -39,7 +66,8 @@ export function isStateConfig<
 export const isState = isStateConfig;
 export class State<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -63,7 +91,8 @@ export class State<
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  public children: Record<string, ActorRef<any>>;
+  public children: ComputeChildren<TActor>;
+
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -73,13 +102,13 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent, any> | StateValue,
+    stateValue: State<TContext, TEvent, TODO, any> | StateValue,
     context: TContext = {} as TContext,
     machine: AnyStateMachine
-  ): State<TContext, TEvent, any> {
+  ): State<TContext, TEvent, TODO, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TContext, TEvent>(
+        return new State<TContext, TEvent, TODO, any>(
           {
             value: stateValue.value,
             context,
@@ -98,7 +127,7 @@ export class State<
       getStateNodes(machine.root, stateValue)
     );
 
-    return new State<TContext, TEvent>(
+    return new State<TContext, TEvent, TODO, any>(
       {
         value: stateValue,
         context,
@@ -127,7 +156,7 @@ export class State<
     this.configuration =
       config.configuration ??
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
-    this.children = config.children;
+    this.children = config.children as any;
 
     this.value = getStateValue(machine.root, this.configuration);
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));

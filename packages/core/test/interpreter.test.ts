@@ -17,7 +17,7 @@ import { State } from '../src/State';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
-import { fromPromise } from '../src/actors/promise';
+import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
 
 const lightMachine = createMachine({
@@ -68,7 +68,7 @@ describe('interpreter', () => {
       const machine = createMachine({
         initial: 'idle',
         context: {
-          actor: undefined! as ActorRefFrom<ReturnType<typeof fromPromise>>
+          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown>>
         },
         states: {
           idle: {
@@ -911,10 +911,13 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<
-        any,
-        { type: 'NEXT'; password: string }
-      >({
+      const parentMachine = createMachine({
+        types: {} as {
+          events: {
+            type: 'NEXT';
+            password: string;
+          };
+        },
         id: 'parent',
         initial: 'start',
         states: {
@@ -1467,8 +1470,17 @@ describe('interpreter', () => {
 
   describe('actors', () => {
     it("doesn't crash cryptically on undefined return from the actor creator", () => {
+      const child = fromCallback(() => {
+        // nothing
+      });
       const machine = createMachine(
         {
+          types: {} as {
+            actors: {
+              src: 'testService';
+              logic: typeof child;
+            };
+          },
           initial: 'initial',
           states: {
             initial: {
@@ -1480,9 +1492,7 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            testService: fromCallback(() => {
-              // nothing
-            })
+            testService: child
           }
         }
       );
@@ -1533,39 +1543,52 @@ describe('interpreter', () => {
     });
 
     it('state.children should reference invoked child actors (promise)', (done) => {
-      const parentMachine = createMachine({
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: fromPromise(
-                () =>
-                  new Promise((res) => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 100);
-                  })
-              ),
-              onDone: [
-                {
-                  target: 'success',
-                  guard: ({ event }) => {
-                    return event.output === 42;
-                  }
-                },
-                { target: 'failure' }
-              ]
+      const parentMachine = createMachine(
+        {
+          initial: 'active',
+          types: {} as {
+            actors: {
+              src: 'num';
+              logic: PromiseActorLogic<number>;
+            };
+          },
+          states: {
+            active: {
+              invoke: {
+                id: 'childActor',
+                src: 'num',
+                onDone: [
+                  {
+                    target: 'success',
+                    guard: ({ event }) => {
+                      return event.output === 42;
+                    }
+                  },
+                  { target: 'failure' }
+                ]
+              }
+            },
+            success: {
+              type: 'final'
+            },
+            failure: {
+              type: 'final'
             }
-          },
-          success: {
-            type: 'final'
-          },
-          failure: {
-            type: 'final'
+          }
+        },
+        {
+          actors: {
+            num: fromPromise(
+              () =>
+                new Promise<number>((res) => {
+                  setTimeout(() => {
+                    res(42);
+                  }, 100);
+                })
+            )
           }
         }
-      });
+      );
 
       const service = interpret(parentMachine);
 

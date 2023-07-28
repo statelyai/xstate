@@ -347,7 +347,10 @@ function mapActions(
 
 type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
 
-function toConfig(nodeJson: XMLElement, id: string): StateNodeConfig<any, any> {
+function toConfig(
+  nodeJson: XMLElement,
+  id: string
+): StateNodeConfig<any, any, any, any> {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   const { elements } = nodeJson;

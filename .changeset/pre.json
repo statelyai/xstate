@@ -19,6 +19,7 @@
     "@xstate-repo/jest-utils": "0.0.0"
   },
   "changesets": [
+    "bright-hotels-sleep",
     "bright-needles-visit",
     "chatty-monkeys-nail",
     "chatty-parrots-reflect",
@@ -82,6 +83,7 @@
     "olive-zebras-tap",
     "orange-gorillas-share",
     "orange-lemons-kick",
+    "orange-pillows-deny",
     "perfect-ants-count",
     "perfect-jokes-lie",
     "plenty-countries-divide",
