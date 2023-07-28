@@ -1,8 +1,7 @@
 import {
-  InvokeCallback,
-  Receiver,
   ActorLogic,
   EventObject,
+  AnyActorSystem,
   AnyEventObject,
   ActorSystem,
   ActorRefFrom,
@@ -36,6 +35,30 @@ export type CallbackActorRef<TEvent extends EventObject> = ActorRefFrom<
   CallbackActorLogic<TEvent>
 >;
 
+export type Receiver<TEvent extends EventObject> = (
+  listener: {
+    bivarianceHack(event: TEvent): void;
+  }['bivarianceHack']
+) => void;
+
+export type InvokeCallback<
+  TEvent extends EventObject = AnyEventObject,
+  TSentEvent extends EventObject = AnyEventObject,
+  TInput = unknown
+> = ({
+  input,
+  system,
+  self,
+  sendBack,
+  receive
+}: {
+  input: TInput;
+  system: AnyActorSystem;
+  self: CallbackActorRef<TEvent>;
+  sendBack: (event: TSentEvent) => void;
+  receive: Receiver<TEvent>;
+}) => (() => void) | Promise<any> | void;
+
 export function fromCallback<TEvent extends EventObject, TInput>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
@@ -46,7 +69,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
     },
     transition: (state, event, { self, id, system }) => {
       if (event.type === startSignalType) {
-        const sender = (eventForParent: AnyEventObject) => {
+        const sendBack = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
             return;
           }
@@ -54,14 +77,16 @@ export function fromCallback<TEvent extends EventObject, TInput>(
           self._parent?.send(eventForParent);
         };
 
-        const receiver: Receiver<TEvent> = (newListener) => {
+        const receive: Receiver<TEvent> = (newListener) => {
           state.receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback(sender, receiver, {
+        state.dispose = invokeCallback({
           input: state.input,
           system,
-          self: self as TODO
+          self: self as TODO,
+          sendBack,
+          receive
         });
 
         if (isPromiseLike(state.dispose)) {

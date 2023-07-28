@@ -67,7 +67,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const actorRef = interpret(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback((sendBack) => {
+        fetchData: fromCallback(({ sendBack }) => {
           sendBack(doneInvoke('fetchData', 'persisted data'));
         }) as any // TODO: callback actors don't support output (yet?)
       }

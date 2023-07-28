@@ -185,12 +185,10 @@ describe('input', () => {
   });
 
   it('should create a callback actor with input', (done) => {
-    const callbackLogic = fromCallback<AnyEventObject, { count: number }>(
-      (_sendBack, _receive, { input }) => {
-        expect(input).toEqual({ count: 42 });
-        done();
-      }
-    );
+    const callbackLogic = fromCallback(({ input }) => {
+      expect(input).toEqual({ count: 42 });
+      done();
+    });
 
     interpret(callbackLogic, {
       input: { count: 42 }

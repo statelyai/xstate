@@ -919,20 +919,20 @@ describe('typegen types', () => {
   //     },
   //     {
   //       actors: {
-  //         fooActor: () => fromCallback((send) => {
+  //         fooActor: () => fromCallback(({ sendBack }) => {
   //           ((_accept: 'FOO') => {})(event.type);
 
-  //           send({ type: 'BAR' });
-  //           send({ type: 'FOO' });
+  //           sendBack({ type: 'BAR' });
+  //           sendBack({ type: 'FOO' });
   //           // @ts-expect-error
-  //           send({ type: 'BAZ' });
+  //           sendBack({ type: 'BAZ' });
   //         })
   //       }
   //     }
   //   );
   // });
 
-  it("should not provide a loose type for `onReceive`'s argument as a default", () => {
+  it("should not provide a loose type for `receive`'s argument as a default", () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: {
         fooActor: 'FOO';
@@ -948,8 +948,8 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: fromCallback((_send, onReceive) => {
-            onReceive((event) => {
+          fooActor: fromCallback(({ receive }) => {
+            receive((event) => {
               ((_accept: string) => {})(event.type);
               // @ts-expect-error TODO: determine how to get parent event type here
               event.unknown;
@@ -960,7 +960,7 @@ describe('typegen types', () => {
     );
   });
 
-  it("should allow specifying `onReceive`'s argument type manually", () => {
+  it("should allow specifying `receive`'s argument type manually", () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: {
         fooActor: 'FOO';
@@ -976,10 +976,10 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: fromCallback((_send, onReceive) => {
-            onReceive((_event: { type: 'TEST' }) => {});
+          fooActor: fromCallback(({ receive }) => {
+            receive((_event: { type: 'TEST' }) => {});
             // @ts-expect-error
-            onReceive((_event: { type: number }) => {});
+            receive((_event: { type: number }) => {});
           })
         }
       }

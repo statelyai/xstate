@@ -29,7 +29,7 @@ describe('system', () => {
         a: {
           invoke: [
             {
-              src: fromCallback((_, receive) => {
+              src: fromCallback(({ receive }) => {
                 receive((event) => {
                   expect(event.type).toBe('HELLO');
                   done();
@@ -68,7 +68,7 @@ describe('system', () => {
       id: 'parent',
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback((_, receive) => {
+          fromCallback(({ receive }) => {
             receive((event) => {
               expect(event.type).toBe('HELLO');
               done();
@@ -379,7 +379,7 @@ describe('system', () => {
           systemId: 'test'
         },
         {
-          src: fromCallback((_sendBack, _receive, { system }) => {
+          src: fromCallback(({ system }) => {
             expect(system.get('test')).toBeDefined();
           })
         }

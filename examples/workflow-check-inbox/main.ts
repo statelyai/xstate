@@ -61,7 +61,7 @@ export const workflow = createMachine(
   },
   {
     actors: {
-      schedule: fromCallback((sendBack, _receive, { input }) => {
+      schedule: fromCallback(({ input, sendBack }) => {
         const i = setInterval(() => {
           sendBack({ type: 'reminder' });
         }, input.interval);

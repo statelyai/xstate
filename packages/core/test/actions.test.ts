@@ -3135,7 +3135,7 @@ describe('sendTo', () => {
       initial: 'a',
       context: ({ spawn }) => ({
         foo: spawn(
-          fromCallback((_, receive) => {
+          fromCallback(({ receive }) => {
             receive((event) => {
               expect(event).toEqual({ type: 'EVENT' });
             });
