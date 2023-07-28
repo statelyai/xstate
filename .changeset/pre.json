@@ -19,6 +19,7 @@
     "@xstate-repo/jest-utils": "0.0.0"
   },
   "changesets": [
+    "beige-schools-smash",
     "bright-hotels-sleep",
     "bright-needles-visit",
     "chatty-monkeys-nail",
@@ -106,6 +107,7 @@
     "rotten-wombats-pump",
     "selfish-points-know",
     "serious-crews-sort",
+    "seven-balloons-attack",
     "seven-ligers-end",
     "shiny-apes-press",
     "shy-cobras-ring",
