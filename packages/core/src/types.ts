@@ -10,8 +10,19 @@ import {
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
-import { CallbackActorRef } from './actors/callback.ts';
 
+/**
+ * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
+ * It especially is a problem when the union has a function member, like here:
+ *
+ * ```ts
+ * declare function test(cbOrVal: ((arg: number) => unknown) | unknown): void;
+ * test((arg) => {}) // oops, implicit any
+ * ```
+ *
+ * This type can be used to avoid this problem. This union represents the same value space as `unknown`.
+ */
+export type NonReducibleUnknown = {} | null | undefined;
 export type AnyFunction = (...args: any[]) => any;
 
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -519,7 +530,9 @@ export type InvokeConfig<
        */
       src: AnyActorLogic | string; // TODO: fix types
 
-      input?: Mapper<TContext, TEvent, {}> | {};
+      input?:
+        | Mapper<TContext, TEvent, NonReducibleUnknown>
+        | NonReducibleUnknown;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */
@@ -1197,7 +1210,7 @@ export type PropertyAssigner<
 export type Mapper<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TParams extends {}
+  TParams
 > = (args: {
   context: TContext;
   event: TEvent;
