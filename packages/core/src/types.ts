@@ -541,7 +541,7 @@ export type InvokeConfig<
        */
       src: AnyActorLogic | string; // TODO: fix types
 
-      input?: Mapper<TContext, TEvent, any> | any;
+      input?: Mapper<TContext, TEvent, {}> | {};
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */
