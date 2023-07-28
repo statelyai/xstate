@@ -26,18 +26,20 @@ import type {
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
-type ComputeConcreteChildren<TActor extends Required<ProvidedActor>> = {
-  [K in TActor['id']]?: ActorRefFrom<(TActor & { id: K })['logic']>;
+type ComputeConcreteChildren<TActor extends ProvidedActor> = {
+  [A in TActor as 'id' extends keyof A
+    ? A['id'] & string
+    : never]?: ActorRefFrom<A['logic']>;
 };
 
 type ComputeChildren<TActor extends ProvidedActor> =
+  // only proceed further if all configured `src`s are literal strings
   string extends TActor['src']
     ? // TODO: replace with UnknownActorRef~
       // TODO: consider adding `| undefined` here
       Record<string, AnyActorRef>
     : Compute<
-        // distribute over union
-        ComputeConcreteChildren<Extract<TActor, { id: string }>> &
+        ComputeConcreteChildren<TActor> &
           // check if all actors have IDs
           (undefined extends TActor['id']
             ? // if they don't we need to create an index signature containing all possible actor types
