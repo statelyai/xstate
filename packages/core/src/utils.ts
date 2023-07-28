@@ -389,12 +389,9 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable:
-    | InvokeConfig<TContext, TEvent, TODO, TODO>
-    | string
-    | AnyActorLogic,
+  invocable: InvokeConfig<TContext, TEvent, TODO> | string | AnyActorLogic,
   id: string
-): InvokeConfig<TContext, TEvent, TODO, TODO> {
+): InvokeConfig<TContext, TEvent, TODO> {
   if (typeof invocable === 'object') {
     if ('src' in invocable) {
       return invocable;

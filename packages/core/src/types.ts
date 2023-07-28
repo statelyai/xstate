@@ -402,10 +402,9 @@ export type StatesConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TActor extends ProvidedActor,
-  TInput
+  TActor extends ProvidedActor
 > = {
-  [K in string]: StateNodeConfig<TContext, TEvent, TAction, TActor, TInput>;
+  [K in string]: StateNodeConfig<TContext, TEvent, TAction, TActor>;
 };
 
 export type StatesDefinition<
@@ -504,8 +503,7 @@ type DistributeActors<
 export type InvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  _TInput
+  TActor extends ProvidedActor
 > = IsLiteralString<TActor['src']> extends true
   ? DistributeActors<TContext, TEvent, TActor>
   : {
@@ -554,8 +552,7 @@ export interface StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TActor extends ProvidedActor,
-  TInput
+  TActor extends ProvidedActor
 > {
   /**
    * The initial state transition.
@@ -583,12 +580,12 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TEvent, TAction, TActor, TInput> | undefined;
+  states?: StatesConfig<TContext, TEvent, TAction, TActor> | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    TActor['src'] | InvokeConfig<TContext, TEvent, TActor, TInput>
+    TActor['src'] | InvokeConfig<TContext, TEvent, TActor>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -705,7 +702,7 @@ export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 export interface AtomicStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateNodeConfig<TContext, TEvent, TODO, TODO, TODO> {
+> extends StateNodeConfig<TContext, TEvent, TODO, TODO> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
@@ -739,7 +736,7 @@ export type SimpleOrStateNodeConfig<
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>;
+  | StateNodeConfig<TContext, TEvent, TODO, TODO>;
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
@@ -1008,7 +1005,7 @@ export type ContextFactory<TContext extends MachineContext, TInput> = ({
   input
 }: {
   spawn: Spawner;
-  input: TInput; // TODO: fix
+  input: TInput;
 }) => TContext;
 
 export type MachineConfig<
@@ -1022,8 +1019,7 @@ export type MachineConfig<
   NoInfer<TContext>,
   NoInfer<TEvent>,
   NoInfer<TAction>,
-  NoInfer<TActor>,
-  NoInfer<TInput>
+  NoInfer<TActor>
 > & {
   /**
    * The initial context (extended state)
