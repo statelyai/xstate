@@ -669,7 +669,7 @@ describe('invoke', () => {
         states: {
           idle: {
             invoke: {
-              src: fromCallback((sendBack) => {
+              src: fromCallback(({ sendBack }) => {
                 invokeCount++;
 
                 if (invokeCount > 1) {
@@ -688,7 +688,7 @@ describe('invoke', () => {
           },
           active: {
             invoke: {
-              src: fromCallback((sendBack) => {
+              src: fromCallback(({ sendBack }) => {
                 sendBack({ type: 'STOPPED' });
               })
             },
@@ -1311,23 +1311,23 @@ describe('invoke', () => {
       }
 
       const someCallback = fromCallback(
-        (
-          cb,
-          _receive: (cb: (ev: BeginEvent | CallbackEvent) => void) => void,
-          {
-            input
-          }: { input: { foo: boolean; event: BeginEvent | CallbackEvent } }
-        ) => {
+        ({
+          sendBack,
+          input
+        }: {
+          sendBack: (event: BeginEvent | CallbackEvent) => void;
+          input: { foo: boolean; event: BeginEvent | CallbackEvent };
+        }) => {
           if (input.foo && input.event.type === 'BEGIN') {
-            cb({
+            sendBack({
               type: 'CALLBACK',
               data: 40
             });
-            cb({
+            sendBack({
               type: 'CALLBACK',
               data: 41
             });
-            cb({
+            sendBack({
               type: 'CALLBACK',
               data: 42
             });
@@ -1418,8 +1418,8 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: fromCallback((cb) => {
-              cb({ type: 'CALLBACK' });
+            someCallback: fromCallback(({ sendBack }) => {
+              sendBack({ type: 'CALLBACK' });
             })
           }
         }
@@ -1458,8 +1458,8 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: fromCallback((cb) => {
-              cb({ type: 'CALLBACK' });
+            someCallback: fromCallback(({ sendBack }) => {
+              sendBack({ type: 'CALLBACK' });
             })
           }
         }
@@ -1505,8 +1505,8 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: fromCallback((cb) => {
-              cb({ type: 'CALLBACK' });
+            someCallback: fromCallback(({ sendBack }) => {
+              sendBack({ type: 'CALLBACK' });
             })
           }
         }
@@ -1538,9 +1538,9 @@ describe('invoke', () => {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: fromCallback((cb) => {
+              src: fromCallback(({ sendBack }) => {
                 const ivl = setInterval(() => {
-                  cb({ type: 'INC' });
+                  sendBack({ type: 'INC' });
                 }, 10);
 
                 return () => clearInterval(ivl);
@@ -1599,10 +1599,10 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'child',
-              src: fromCallback((callback, onReceive) => {
-                onReceive((e) => {
+              src: fromCallback(({ sendBack, receive }) => {
+                receive((e) => {
                   if (e.type === 'PING') {
-                    callback({ type: 'PONG' });
+                    sendBack({ type: 'PONG' });
                   }
                 });
               })
@@ -1855,7 +1855,7 @@ describe('invoke', () => {
         states: {
           start: {
             invoke: {
-              src: fromCallback((_sendBack, _onReceive, { input }) => {
+              src: fromCallback(({ input }) => {
                 expect(input).toEqual({ foo: 'bar' });
                 done();
               }),
@@ -2483,11 +2483,11 @@ describe('invoke', () => {
               invoke: [
                 {
                   id: 'child',
-                  src: fromCallback((cb) => cb({ type: 'ONE' }))
+                  src: fromCallback(({ sendBack }) => sendBack({ type: 'ONE' }))
                 },
                 {
                   id: 'child2',
-                  src: fromCallback((cb) => cb({ type: 'TWO' }))
+                  src: fromCallback(({ sendBack }) => sendBack({ type: 'TWO' }))
                 }
               ]
             }
@@ -2550,13 +2550,17 @@ describe('invoke', () => {
                 a: {
                   invoke: {
                     id: 'child',
-                    src: fromCallback((cb) => cb({ type: 'ONE' }))
+                    src: fromCallback(({ sendBack }) =>
+                      sendBack({ type: 'ONE' })
+                    )
                   }
                 },
                 b: {
                   invoke: {
                     id: 'child2',
-                    src: fromCallback((cb) => cb({ type: 'TWO' }))
+                    src: fromCallback(({ sendBack }) =>
+                      sendBack({ type: 'TWO' })
+                    )
                   }
                 }
               }

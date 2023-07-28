@@ -158,7 +158,7 @@ describe('input', () => {
   });
 
   it('should create a callback actor with input', (done) => {
-    const callbackLogic = fromCallback((_sendBack, _receive, { input }) => {
+    const callbackLogic = fromCallback(({ input }) => {
       expect(input).toEqual({ count: 42 });
       done();
     });
