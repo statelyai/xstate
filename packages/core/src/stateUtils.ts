@@ -1067,7 +1067,7 @@ function microstepProcedure(
     currentState,
     historyValue,
     isInitial,
-    actorCtx.self
+    actorCtx
   );
 
   const nextConfiguration = [...mutConfiguration];
@@ -1120,7 +1120,7 @@ function enterStates(
   currentState: AnyState,
   historyValue: HistoryValue<any, any>,
   isInitial: boolean,
-  self: AnyActorRef
+  actorContext: AnyActorContext
 ): void {
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
@@ -1170,7 +1170,7 @@ function enterStates(
                 stateNodeToEnter.output,
                 currentState.context,
                 event,
-                self
+                actorContext.self
               )
             : undefined
         )
