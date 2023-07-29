@@ -3298,7 +3298,7 @@ describe('invoke', () => {
   });
 });
 
-describe('actors option', () => {
+describe('invoke input', () => {
   it('should provide input to an actor creator', (done) => {
     const machine = createMachine(
       {
@@ -3354,5 +3354,21 @@ describe('actors option', () => {
     });
 
     service.start();
+  });
+
+  it('should provide self to input mapper', (done) => {
+    const machine = createMachine({
+      invoke: {
+        src: fromCallback(({ input }) => {
+          expect(input.responder.send).toBeDefined();
+          done();
+        }),
+        input: ({ self }) => ({
+          responder: self
+        })
+      }
+    });
+
+    interpret(machine).start();
   });
 });
