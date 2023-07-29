@@ -167,4 +167,20 @@ describe('final states', () => {
     service.send({ type: 'FINISH', value: 1 });
     expect(spy).toBeCalledTimes(1);
   });
+
+  it('output mapper should receive self', () => {
+    const machine = createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: ({ self }) => ({ selfRef: self })
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.getSnapshot().output.selfRef.send).toBeDefined();
+  });
 });
