@@ -1222,9 +1222,7 @@ export type PropertyMapper<
   TEvent extends EventObject,
   TParams extends {}
 > = {
-  [K in keyof TParams]?:
-    | ((args: { context: TContext; event: TEvent }) => TParams[K])
-    | TParams[K];
+  [K in keyof TParams]?: Mapper<TContext, TEvent, TParams[K]> | TParams[K];
 };
 
 export interface TransitionDefinition<

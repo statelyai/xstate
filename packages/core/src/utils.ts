@@ -240,7 +240,7 @@ export function mapContext<
   }
 
   const result = {} as any;
-  const args = { context, event };
+  const args = { context, event, self };
 
   for (const key of Object.keys(mapper)) {
     const subMapper = mapper[key];
