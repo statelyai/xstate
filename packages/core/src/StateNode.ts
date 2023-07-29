@@ -125,9 +125,8 @@ export class StateNode<
   /**
    * The output data sent with the "done.state._id_" event if this is a final state node.
    */
-  public output?:
-    | Mapper<TContext, TEvent, any>
-    | PropertyMapper<TContext, TEvent, any>;
+  public output?: Mapper<TContext, TEvent, any>;
+
   /**
    * The order this state node appears. Corresponds to the implicit document order.
    */

@@ -645,9 +645,7 @@ export interface StateNodeConfig<
    * The output data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
    */
-  output?:
-    | Mapper<TContext, TEvent, any>
-    | PropertyMapper<TContext, TEvent, any>;
+  output?: Mapper<TContext, TEvent, any> | NonReducibleUnknown;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.
@@ -739,9 +737,7 @@ export interface FinalStateNodeConfig<
    * The data to be sent with the "done.state.<id>" event. The data can be
    * static or dynamic (based on assigners).
    */
-  output?:
-    | Mapper<TContext, TEvent, any>
-    | PropertyMapper<TContext, TEvent, any>;
+  output?: Mapper<TContext, TEvent, any>;
 }
 
 export type SimpleOrStateNodeConfig<

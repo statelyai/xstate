@@ -113,7 +113,7 @@ describe('final states', () => {
             reveal: {
               type: 'final',
               output: {
-                secret: () => 'the secret'
+                secret: 'the secret'
               }
             }
           },
@@ -175,24 +175,6 @@ describe('final states', () => {
         done: {
           type: 'final',
           output: ({ self }) => ({ selfRef: self })
-        }
-      }
-    });
-
-    const actor = interpret(machine).start();
-
-    expect(actor.getSnapshot().output.selfRef.send).toBeDefined();
-  });
-
-  it('output property mapper should receive self', () => {
-    const machine = createMachine({
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: {
-            selfRef: ({ self }) => self
-          }
         }
       }
     });

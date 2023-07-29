@@ -43,7 +43,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      output: { user: ({ event }: any) => event.user }
+      output: ({ event }) => ({ user: event.user })
     },
     failure: {
       entry: sendParent({ type: 'REJECT' })
