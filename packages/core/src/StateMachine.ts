@@ -1,6 +1,5 @@
-import { error, createInitEvent, initEvent } from './actions.ts';
+import { error, createInitEvent, assign } from './actions.ts';
 import { STATE_DELIMITER } from './constants.ts';
-import { createSpawner } from './spawn.ts';
 import { getPersistedState, State } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import { interpret } from './interpreter.ts';
@@ -27,10 +26,8 @@ import type {
 import type {
   ActorContext,
   ActorLogic,
-  ActorMap,
   EventObject,
   InternalMachineImplementations,
-  InvokeActionObject,
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
@@ -44,7 +41,9 @@ import type {
   ParameterizedObject,
   AnyActorContext,
   AnyEventObject,
-  AnyActorRef
+  ProvidedActor,
+  AnyActorRef,
+  Equals
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -55,60 +54,29 @@ export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
-  TActorMap extends ActorMap = ActorMap,
+  TActor extends ProvidedActor = ProvidedActor,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
     TAction,
-    TActorMap
+    TActor
   >
 > implements
     ActorLogic<
       TEvent,
-      State<TContext, TEvent, TResolvedTypesMeta>,
-      State<TContext, TEvent, TResolvedTypesMeta>,
-      PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
+      State<TContext, TEvent, TActor, TResolvedTypesMeta>,
+      State<TContext, TEvent, TActor, TResolvedTypesMeta>,
+      PersistedMachineState<State<TContext, TEvent, TActor, TResolvedTypesMeta>>
     >
 {
-  // TODO: this getter should be removed
-  public getContext(input?: any): TContext {
-    return this.getContextAndActions(undefined, input)[0];
-  }
-  private getContextAndActions(
-    actorCtx?: ActorContext<any, any>,
-    input?: any
-  ): [TContext, InvokeActionObject[]] {
-    const actions: InvokeActionObject[] = [];
-    const { context } = this.config;
-    const resolvedContext =
-      typeof context === 'function'
-        ? context({
-            spawn: createSpawner(
-              actorCtx?.self,
-              this,
-              undefined as any, // TODO: this requires `| undefined` for all referenced dynamic inputs that are spawnable in the context factory,
-              createInitEvent(input),
-              actions
-            ),
-            input
-          })
-        : context;
-
-    return [resolvedContext || ({} as TContext), actions];
-  }
   /**
    * The machine's own version.
    */
   public version?: string;
 
-  /**
-   * The string delimiter for serializing the path to a string. The default is "."
-   */
-  public delimiter: string;
-
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public types: MachineTypes<TContext, TEvent>;
+  public types: MachineTypes<TContext, TEvent, TActor>;
 
   public __xstatenode: true = true;
 
@@ -135,7 +103,6 @@ export class StateMachine<
       delays: implementations?.delays ?? {},
       guards: implementations?.guards ?? {}
     };
-    this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
     this.transition = this.transition.bind(this);
@@ -164,6 +131,8 @@ export class StateMachine<
     implementations: InternalMachineImplementations<
       TContext,
       TEvent,
+      TAction,
+      TActor,
       TResolvedTypesMeta,
       true
     >
@@ -171,7 +140,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TAction,
-    TActorMap,
+    TActor,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -194,14 +163,14 @@ export class StateMachine<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, TResolvedTypesMeta>
+    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>
   ): typeof state {
     const configurationSet = getConfiguration(
       getStateNodes(this.root, state.value)
     );
     const configuration = Array.from(configurationSet);
     return this.createState({
-      ...state,
+      ...(state as any),
       value: resolveStateValue(this.root, state.value),
       configuration,
       done: isInFinalState(configuration)
@@ -209,14 +178,14 @@ export class StateMachine<
   }
 
   public resolveStateValue(
-    stateValue: StateValue
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    stateValue: StateValue,
+    ...[context]: Equals<TContext, MachineContext> extends true
+      ? []
+      : [TContext]
+  ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
     const resolvedStateValue = resolveStateValue(this.root, stateValue);
-    const resolvedContext = this.getContext();
 
-    return this.resolveState(
-      State.from(resolvedStateValue, resolvedContext, this)
-    );
+    return this.resolveState(State.from(resolvedStateValue, context, this));
   }
 
   /**
@@ -227,10 +196,10 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>,
     event: TEvent,
-    actorCtx: ActorContext<TEvent, State<TContext, TEvent, any>>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TActor, any>>
+  ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
     // TODO: handle error events in a better way
     if (
       isErrorEvent(event) &&
@@ -252,15 +221,15 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>,
     event: TEvent,
     actorCtx: AnyActorContext
-  ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
+  ): Array<State<TContext, TEvent, TActor, TResolvedTypesMeta>> {
     return macrostep(state, event, actorCtx).microstates;
   }
 
   public getTransitionData(
-    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
     return transitionNode(this.root, state.value, state, event) || [];
@@ -272,28 +241,30 @@ export class StateMachine<
    */
   private getPreInitialState(
     actorCtx: AnyActorContext,
-    input: any
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const [context, actions] = this.getContextAndActions(actorCtx, input);
-    const config = getInitialConfiguration(this.root);
+    initEvent: any
+  ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
+    const { context } = this.config;
+
     const preInitial = this.resolveState(
       this.createState({
         value: {}, // TODO: this is computed in state constructor
-        context,
+        context:
+          typeof context !== 'function' && context ? context : ({} as TContext),
         meta: undefined,
-        configuration: config,
+        configuration: getInitialConfiguration(this.root),
         children: {}
       })
     );
 
-    if (actorCtx) {
-      const nextState = resolveActionsAndContext(
-        actions,
+    if (typeof context === 'function') {
+      const assignment = ({ spawn, event }: any) =>
+        context({ spawn, input: event.input });
+      return resolveActionsAndContext(
+        [assign(assignment)],
         initEvent as TEvent,
         preInitial,
         actorCtx
       );
-      preInitial.children = nextState.children;
     }
 
     return preInitial;
@@ -303,12 +274,15 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>,
+    actorCtx: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TActor, TResolvedTypesMeta>
+    >,
     input?: any
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
-    const preInitialState = this.getPreInitialState(actorCtx, input);
+    const preInitialState = this.getPreInitialState(actorCtx, initEvent);
     const nextState = microstep(
       [
         {
@@ -336,10 +310,13 @@ export class StateMachine<
   }
 
   public start(
-    state: State<TContext, TEvent, TResolvedTypesMeta>,
-    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>,
+    actorCtx: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TActor, TResolvedTypesMeta>
+    >
   ): void {
-    Object.values(state.children).forEach((child) => {
+    Object.values(state.children).forEach((child: any) => {
       if (child.status === 0) {
         try {
           child.start?.();
@@ -352,7 +329,7 @@ export class StateMachine<
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
-    const fullPath = stateId.split(this.delimiter);
+    const fullPath = stateId.split(STATE_DELIMITER);
     const relativePath = fullPath.slice(1);
     const resolvedStateId = isStateId(fullPath[0])
       ? fullPath[0].slice(STATE_IDENTIFIER.length)
@@ -368,10 +345,7 @@ export class StateMachine<
   }
 
   public get definition(): StateMachineDefinition<TContext, TEvent> {
-    return {
-      context: this.getContext(),
-      ...this.root.definition
-    };
+    return this.root.definition;
   }
 
   public toJSON() {
@@ -379,35 +353,42 @@ export class StateMachine<
   }
 
   public getPersistedState(
-    state: State<TContext, TEvent, TResolvedTypesMeta>
-  ): PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>> {
+    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>
+  ): PersistedMachineState<
+    State<TContext, TEvent, TActor, TResolvedTypesMeta>
+  > {
     return getPersistedState(state);
   }
 
   public createState(
     stateConfig:
-      | State<TContext, TEvent, TResolvedTypesMeta>
+      | State<TContext, TEvent, TActor, TResolvedTypesMeta>
       | StateConfig<TContext, TEvent>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
     return stateConfig instanceof State
       ? stateConfig
       : new State(stateConfig, this);
   }
 
-  public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {
+  public getStatus(state: State<TContext, TEvent, TActor, TResolvedTypesMeta>) {
     return state.done
       ? { status: 'done', data: state.output }
       : { status: 'active' };
   }
 
   public restoreState(
-    state: PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>,
-    _actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    state: PersistedMachineState<
+      State<TContext, TEvent, TActor, TResolvedTypesMeta>
+    >,
+    _actorCtx: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TActor, TResolvedTypesMeta>
+    >
+  ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
     const children: Record<string, AnyActorRef> = {};
 
     Object.keys(state.children).forEach((actorId) => {
-      const actorData = state.children[actorId];
+      const actorData = state.children[actorId as keyof typeof state.children];
       const childState = actorData.state;
       const src = actorData.src;
 
@@ -429,7 +410,7 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
-    const restoredState: State<TContext, TEvent, TResolvedTypesMeta> =
+    const restoredState: State<TContext, TEvent, TActor, TResolvedTypesMeta> =
       this.createState(new State({ ...state, children }, this));
 
     // TODO: DRY this up
@@ -470,7 +451,7 @@ export class StateMachine<
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TAction!: TAction;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TActorMap!: TActorMap;
+  __TActor!: TActor;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

@@ -18,8 +18,8 @@ import type {
   EventFromLogic,
   InterpreterFrom,
   PersistedStateFrom,
-  RaiseActionObject,
-  SnapshotFrom
+  SnapshotFrom,
+  AnyActorRef
 } from './types.ts';
 import {
   ActorRef,
@@ -28,7 +28,6 @@ import {
   InteropSubscribable,
   InterpreterOptions,
   Observer,
-  SendActionObject,
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
@@ -290,6 +289,15 @@ export class Interpreter<
     }
 
     this.system._sendInspectionEvent({
+      type: '@xstate.communication',
+      createdAt: Date.now().toString(),
+      event: { type: 'xstate.init' },
+      id: Math.random().toString(),
+      sourceId: this._parent?.sessionId,
+      targetId: this.sessionId
+    });
+
+    this.system._sendInspectionEvent({
       type: '@xstate.transition',
       actorRef: this,
       createdAt: Date.now().toString(),
@@ -297,7 +305,8 @@ export class Interpreter<
       id: Math.random().toString(),
       sessionId: this.sessionId,
       snapshot: this.getSnapshot(),
-      status: this.status
+      status: this.status,
+      sourceId: this._parent?.sessionId
     });
 
     // TODO: this notifies all subscribers but usually this is redundant
@@ -423,7 +432,7 @@ export class Interpreter<
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
     }
-    if (!('__' in event)) {
+    if (!('__id' in event)) {
       this.system._sendInspectionEvent({
         type: '@xstate.communication',
         createdAt: Date.now().toString(),
@@ -465,16 +474,29 @@ export class Interpreter<
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
-  public delaySend(
-    sendAction: SendActionObject | RaiseActionObject<any, any, any>
-  ): void {
-    this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
-      if ('to' in sendAction.params && sendAction.params.to) {
-        this.system.sendTo(sendAction.params.to, sendAction.params.event, this);
+  public delaySend({
+    event,
+    id,
+    delay,
+    to
+  }: {
+    event: EventObject;
+    id: string | undefined;
+    delay: number;
+    to?: AnyActorRef;
+  }): void {
+    const timerId = this.clock.setTimeout(() => {
+      if (to) {
+        this.system.sendTo(to, event, this);
       } else {
-        this.send(sendAction.params.event);
+        this.send(event as TEvent);
       }
-    }, sendAction.params.delay as number);
+    }, delay);
+
+    // TODO: consider the rehydration story here
+    if (id) {
+      this.delayedEventsMap[id] = timerId;
+    }
   }
 
   // TODO: make private (and figure out a way to do this within the machine)

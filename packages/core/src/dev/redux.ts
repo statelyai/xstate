@@ -1,5 +1,4 @@
-import { State } from '../State.ts';
-import { DevToolsAdapter } from '../types.ts';
+import { AnyState, DevToolsAdapter } from '../types.ts';
 
 interface ReduxDevToolsOptions {
   [key: string]: any;
@@ -14,7 +13,7 @@ export const createReduxDevTools = (
         {
           name: service.id,
           autoPause: true,
-          stateSanitizer: (state: State<any, any>): object => {
+          stateSanitizer: (state: AnyState): object => {
             return {
               value: state.value,
               context: state.context

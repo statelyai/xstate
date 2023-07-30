@@ -1,4 +1,4 @@
-import { interpret } from '../src/index.ts';
+import { fromCallback, interpret } from '../src/index.ts';
 import { createMachine } from '../src/Machine.ts';
 
 describe('deterministic machine', () => {
@@ -281,41 +281,27 @@ describe('deterministic machine', () => {
     });
   });
 
-  describe('machine.transition() with array `.on` configs', () => {
-    it('should properly transition based on an event', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: [{ event: 'NEXT', target: 'pass' }]
-          },
-          pass: {}
-        }
-      });
-      expect(
-        machine.transition(
-          machine.resolveStateValue('a'),
-          { type: 'NEXT' },
-          undefined as any // TODO: figure out the simulation API
-        ).value
-      ).toBe('pass');
-    });
-  });
-
   describe('state key names', () => {
-    const machine = createMachine({
-      initial: 'test',
-      states: {
-        test: {
-          invoke: ['activity'],
-          entry: ['onEntry'],
-          on: {
-            NEXT: 'test'
-          },
-          exit: ['onExit']
+    const machine = createMachine(
+      {
+        initial: 'test',
+        states: {
+          test: {
+            invoke: ['activity'],
+            entry: ['onEntry'],
+            on: {
+              NEXT: 'test'
+            },
+            exit: ['onExit']
+          }
+        }
+      },
+      {
+        actors: {
+          activity: fromCallback(() => () => {})
         }
       }
-    });
+    );
 
     it('should work with substate nodes that have the same key', () => {
       expect(

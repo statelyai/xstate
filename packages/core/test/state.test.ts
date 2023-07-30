@@ -19,7 +19,10 @@ type Events =
   | { type: 'TO_TWO_MAYBE' }
   | { type: 'TO_FINAL' };
 
-const exampleMachine = createMachine<any, Events>({
+const exampleMachine = createMachine({
+  types: {} as {
+    events: Events;
+  },
   initial: 'one',
   states: {
     one: {
@@ -228,20 +231,6 @@ describe('State', () => {
         'two',
         'two.deep',
         'two.deep.foo'
-      ]);
-    });
-
-    it('should respect `delimiter` option for deeply nested states', () => {
-      const actorRef = interpret(exampleMachine).start();
-      actorRef.send({
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(actorRef.getSnapshot().toStrings(undefined, ':')).toEqual([
-        'two',
-        'two:deep',
-        'two:deep:foo'
       ]);
     });
 

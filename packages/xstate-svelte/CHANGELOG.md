@@ -1,5 +1,11 @@
 # @xstate/svelte
 
+## 2.1.0
+
+### Minor Changes
+
+- [#4128](https://github.com/statelyai/xstate/pull/4128) [`bdcc3b0fb`](https://github.com/statelyai/xstate/commit/bdcc3b0fbda3caa76e8bdecc132dffe1d76d959a) Thanks [@jer-0](https://github.com/jer-0)! - Allow Svelte 4 in the specified peer dependency range.
+
 ## 2.0.1
 
 ### Patch Changes

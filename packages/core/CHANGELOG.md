@@ -1,5 +1,197 @@
 # xstate
 
+## 5.0.0-beta.20
+
+### Major Changes
+
+- [#4036](https://github.com/statelyai/xstate/pull/4036) [`e2440f0b1`](https://github.com/statelyai/xstate/commit/e2440f0b1b5bdc00aca7f412721e7dc909af1f4c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actor types can now be specified in the `.types` property of `createMachine`:
+
+  ```ts
+  const fetcher = fromPromise(() => fetchUser());
+
+  const machine = createMachine({
+    types: {} as {
+      actors: {
+        src: 'fetchData'; // src name (inline behaviors ideally inferred)
+        id: 'fetch1' | 'fetch2'; // possible ids (optional)
+        logic: typeof fetcher;
+      };
+    },
+    invoke: {
+      src: 'fetchData', // strongly typed
+      id: 'fetch2', // strongly typed
+      onDone: {
+        actions: ({ event }) => {
+          event.output; // strongly typed as { result: string }
+        }
+      },
+      input: { foo: 'hello' } // strongly typed
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#4157](https://github.com/statelyai/xstate/pull/4157) [`31eb5f8a1`](https://github.com/statelyai/xstate/commit/31eb5f8a1bc9efdc857bb4650be7d6c0f5b20ed3) Thanks [@Valkendorm](https://github.com/Valkendorm)! - Merge `sendBack` and `receive` with other properties of `fromCallback` logic creator.
+
+  ```ts
+  const callbackLogic = fromCallback(({ input, system, self, sendBack, receive }) => { ... });
+  ```
+
+## 5.0.0-beta.19
+
+### Major Changes
+
+- [#4049](https://github.com/statelyai/xstate/pull/4049) [`afc690046`](https://github.com/statelyai/xstate/commit/afc690046ce800965c132c0feda55edcf6489fc9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - If context types are specified in the machine config, the `context` property will now be required:
+
+  ```ts
+  // ❌ TS error
+  createMachine({
+    types: {} as {
+      context: { count: number };
+    }
+    // Missing context property
+  });
+
+  // ✅ OK
+  createMachine({
+    types: {} as {
+      context: { count: number };
+    },
+    context: {
+      count: 0
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#4117](https://github.com/statelyai/xstate/pull/4117) [`c7c3cb459`](https://github.com/statelyai/xstate/commit/c7c3cb4593c0e3e4943ec866d8d0729629271456) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actor logic creators now have access to `self`:
+
+  ```ts
+  const promiseLogic = fromPromise(({ self }) => { ... });
+
+  const observableLogic = fromObservable(({ self }) => { ... });
+
+  const callbackLogic = fromCallback((sendBack, receive, { self }) => { ... });
+
+  const transitionLogic = fromTransition((state, event, { self }) => { ... }, ...);
+  ```
+
+## 4.38.1
+
+### Patch Changes
+
+- [#4130](https://github.com/statelyai/xstate/pull/4130) [`e659fac5d`](https://github.com/statelyai/xstate/commit/e659fac5d82e283e1298122814763c59af9a2375) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `pure(...)` action creator is now properly typed so that it allows function actions:
+
+  ```ts
+  actions: pure(() => [
+    // now allowed!
+    (context, event) => { ... }
+  ])
+  ```
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- [#4138](https://github.com/statelyai/xstate/pull/4138) [`461e3983a`](https://github.com/statelyai/xstate/commit/461e3983a0e9d51c43a4b0e7370354b7dea24e5f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed missing `.mjs` proxy files for condition-based builds.
+
+## 5.0.0-beta.17
+
+### Major Changes
+
+- [#4127](https://github.com/statelyai/xstate/pull/4127) [`cdaddc266`](https://github.com/statelyai/xstate/commit/cdaddc2667f9021cd9452206aab1227d5a5c229c) Thanks [@Andarist](https://github.com/Andarist)! - IDs for delayed events are no longer derived from event types so this won't work automatically:
+
+  ```ts
+  entry: raise({ type: 'TIMER' }, { delay: 200 });
+  exit: cancel('TIMER');
+  ```
+
+  Please use explicit IDs:
+
+  ```ts
+  entry: raise({ type: 'TIMER' }, { delay: 200, id: 'myTimer' });
+  exit: cancel('myTimer');
+  ```
+
+- [#4127](https://github.com/statelyai/xstate/pull/4127) [`cdaddc266`](https://github.com/statelyai/xstate/commit/cdaddc2667f9021cd9452206aab1227d5a5c229c) Thanks [@Andarist](https://github.com/Andarist)! - All builtin action creators (`assign`, `sendTo`, etc) are now returning _functions_. They exact shape of those is considered an implementation detail of XState and users are meant to only pass around the returned values.
+
+### Patch Changes
+
+- [#4123](https://github.com/statelyai/xstate/pull/4123) [`b13bfcb08`](https://github.com/statelyai/xstate/commit/b13bfcb081ba3c7216159b90999ddd90448024f1) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to configure transitions using arrays:
+
+  ```ts
+  createMachine({
+    on: [{ event: 'FOO', target: '#id' }]
+    // ...
+  });
+  ```
+
+  Only regular object-based configs will be supported from now on:
+
+  ```ts
+  createMachine({
+    on: {
+      FOO: '#id'
+    }
+    // ...
+  });
+  ```
+
+## 5.0.0-beta.16
+
+### Major Changes
+
+- [#4119](https://github.com/statelyai/xstate/pull/4119) [`fd2280f4e`](https://github.com/statelyai/xstate/commit/fd2280f4ee2b8be4f8e079f492551aef488604fb) Thanks [@Andarist](https://github.com/Andarist)! - Removed the deprecated `send` action creator. Please use `sendTo` when sending events to other actors or `raise` when sending to itself.
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- [#4080](https://github.com/statelyai/xstate/pull/4080) [`94526df03`](https://github.com/statelyai/xstate/commit/94526df034bb83fa88d6751a317e9964f83f54cd) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `machine.options` property has been renamed to `machine.implementations`
+
+- [#4078](https://github.com/statelyai/xstate/pull/4078) [`43fcdecf2`](https://github.com/statelyai/xstate/commit/43fcdecf27106370745404be0d9878dd69faf9a3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed spawned actors cleanup when multiple actors were spawned without explicit IDs assigned to them.
+
+- [#4083](https://github.com/statelyai/xstate/pull/4083) [`163528529`](https://github.com/statelyai/xstate/commit/163528529d7887b093b308c1f92911f025f437c7) Thanks [@Andarist](https://github.com/Andarist)! - Remove `State['changed']`. A new instance of `State` is being created if there are matching transitions for the received event. If there are no matching transitions then the current state is being returned.
+
+- [#4064](https://github.com/statelyai/xstate/pull/4064) [`047897265`](https://github.com/statelyai/xstate/commit/04789726500e97d0a0a63681fc7abf66f97195b3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Guard objects can now reference other guard objects:
+
+  ```ts
+  const machine = createMachine(
+    {
+      initial: 'home',
+      states: {
+        home: {
+          on: {
+            NEXT: {
+              target: 'success',
+              guard: 'hasSelection'
+            }
+          }
+        },
+        success: {}
+      }
+    },
+    {
+      guards: {
+        // `hasSelection` is a guard object that references the `stateIn` guard
+        hasSelection: stateIn('selected')
+      }
+    }
+  );
+  ```
+
+## 4.38.0
+
+### Minor Changes
+
+- [#4098](https://github.com/statelyai/xstate/pull/4098) [`ae7691811`](https://github.com/statelyai/xstate/commit/ae7691811d0ac92294532ce1e5ede3898ecffbc7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `log`, `pure`, `choose`, and `stop` actions were added to the main export:
+
+  ```ts
+  import { log, pure, choose, stop } from 'xstate';
+  ```
+
 ## 5.0.0-beta.14
 
 ### Major Changes

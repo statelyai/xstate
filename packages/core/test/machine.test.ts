@@ -139,7 +139,9 @@ describe('machine', () => {
         guards: { someCondition: () => true }
       });
 
-      expect(differentMachine.getContext()).toEqual({ foo: 'bar' });
+      expect(interpret(differentMachine).getSnapshot().context).toEqual({
+        foo: 'bar'
+      });
 
       expect(() => {
         interpret(differentMachine).start();
@@ -458,7 +460,7 @@ describe('StateNode', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map((t) => t.eventType)).toEqual([
+    expect([...transitions.keys()]).toEqual([
       'TIMER',
       'POWER_OUTAGE',
       'FORBIDDEN_EVENT'

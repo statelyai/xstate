@@ -4,34 +4,42 @@ import { cancel } from './actions/cancel.ts';
 import { choose } from './actions/choose.ts';
 import { log } from './actions/log.ts';
 import { raise } from './actions/raise.ts';
-import { send } from './actions/send.ts';
+import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
 import { not, stateIn } from './guards.ts';
-import { createMachine } from './index.ts';
+import {
+  ActionFunction,
+  MachineContext,
+  SpecialTargets,
+  createMachine
+} from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
-  BaseActionObject,
-  StateNodeConfig,
-  ChooseCondition,
+  ChooseBranch,
   DelayExpr,
   EventObject,
   SendExpr,
-  StateMeta
+  StateNodeConfig
 } from './types.ts';
 import { mapValues } from './utils.ts';
 
+export function sanitizeStateId(id: string) {
+  return id.replace(/\./g, '$');
+}
+
 function appendWildcards(state: AnyStateNode) {
-  for (const t of state.transitions) {
-    if (
-      typeof t.eventType === 'string' &&
-      !!t.eventType &&
-      t.eventType !== '*' &&
-      !t.eventType.endsWith('.*')
-    ) {
-      t.eventType = `${t.eventType}.*`;
+  const newTransitions: typeof state.transitions = new Map();
+
+  for (const [descriptor, transitions] of state.transitions) {
+    if (descriptor !== '*' && !descriptor.endsWith('.*')) {
+      newTransitions.set(`${descriptor}.*`, transitions);
+    } else {
+      newTransitions.set(descriptor, transitions);
     }
   }
+
+  state.transitions = newTransitions;
 
   for (const key of Object.keys(state.states)) {
     appendWildcards(state.states[key]);
@@ -71,7 +79,9 @@ function executableContent(elements: XMLElement[]) {
 function getTargets(targetAttr?: string | number): string[] | undefined {
   // return targetAttr ? [`#${targetAttr}`] : undefined;
   return targetAttr
-    ? `${targetAttr}`.split(/\s+/).map((target) => `#${target}`)
+    ? `${targetAttr}`
+        .split(/\s+/)
+        .map((target) => `#${sanitizeStateId(target)}`)
     : undefined;
 }
 
@@ -121,7 +131,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   event: TEvent,
-  _meta: StateMeta<TEvent>,
+  _meta: any,
   body: string
 ) => {
   const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
@@ -163,18 +173,15 @@ function createGuard<
   };
 }
 
-function mapAction<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(element: XMLElement): BaseActionObject {
+function mapAction(element: XMLElement): ActionFunction<any, any, any> {
   switch (element.name) {
     case 'raise': {
-      return raise<TContext, TEvent, TEvent>({
+      return raise({
         type: element.attributes!.event!
-      } as TEvent);
+      });
     }
     case 'assign': {
-      return assign<TContext, TEvent>(({ context, event, ...meta }) => {
+      return assign(({ context, event, ...meta }) => {
         const fnBody = `
 
 ${element.attributes!.location};
@@ -199,8 +206,11 @@ return ${element.attributes!.sendidexpr};
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: TEvent | SendExpr<TContext, TEvent>;
-      let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
+      let convertedEvent: EventObject | SendExpr<MachineContext, EventObject>;
+      let convertedDelay:
+        | number
+        | DelayExpr<MachineContext, EventObject>
+        | undefined;
 
       const params =
         element.elements &&
@@ -214,7 +224,7 @@ return ${element.attributes!.sendidexpr};
         }, '');
 
       if (event && !params) {
-        convertedEvent = { type: event } as TEvent;
+        convertedEvent = { type: event as string };
       } else {
         convertedEvent = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
@@ -237,16 +247,23 @@ return (${delayToMs})(${element.attributes!.delayexpr});
         };
       }
 
-      return send<TContext, TEvent>(convertedEvent, {
-        delay: convertedDelay,
-        to: target as string | undefined,
-        id: id as string | undefined
-      });
+      if (target === SpecialTargets.Internal) {
+        return raise(convertedEvent);
+      }
+
+      return sendTo(
+        typeof target === 'string' ? target : ({ self }) => self,
+        convertedEvent,
+        {
+          delay: convertedDelay,
+          id: id as string | undefined
+        }
+      );
     }
     case 'log': {
       const label = element.attributes!.label;
 
-      return log<TContext, any>(
+      return log(
         ({ context, event, ...meta }) => {
           const fnBody = `
 return ${element.attributes!.expr};
@@ -258,9 +275,9 @@ return ${element.attributes!.expr};
       );
     }
     case 'if': {
-      const conds: Array<ChooseCondition<TContext, TEvent>> = [];
+      const branches: Array<ChooseBranch<MachineContext, EventObject>> = [];
 
-      let current: ChooseCondition<TContext, TEvent> = {
+      let current: ChooseBranch<MachineContext, EventObject> = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };
@@ -272,24 +289,24 @@ return ${element.attributes!.expr};
 
         switch (el.name) {
           case 'elseif':
-            conds.push(current);
+            branches.push(current);
             current = {
               guard: createGuard(el.attributes!.cond as string),
               actions: []
             };
             break;
           case 'else':
-            conds.push(current);
+            branches.push(current);
             current = { actions: [] };
             break;
           default:
-            (current.actions as any[]).push(mapAction<TContext, TEvent>(el));
+            (current.actions as any[]).push(mapAction(el));
             break;
         }
       }
 
-      conds.push(current);
-      return choose(conds);
+      branches.push(current);
+      return choose(branches);
     }
     default:
       throw new Error(
@@ -298,8 +315,8 @@ return ${element.attributes!.expr};
   }
 }
 
-function mapActions(elements: XMLElement[]): BaseActionObject[] {
-  const mapped: BaseActionObject[] = [];
+function mapActions(elements: XMLElement[]): ActionFunction<any, any, any>[] {
+  const mapped: ActionFunction<any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {
@@ -316,9 +333,8 @@ type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
 
 function toConfig(
   nodeJson: XMLElement,
-  id: string,
-  options: ScxmlToMachineOptions
-): StateNodeConfig<any, any> {
+  id: string
+): StateNodeConfig<any, any, any, any> {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   const { elements } = nodeJson;
@@ -343,7 +359,7 @@ function toConfig(
       return {
         id,
         history,
-        target: target ? `#${target}` : undefined
+        target: target ? `#${sanitizeStateId(target as string)}` : undefined
       };
     }
     default:
@@ -375,9 +391,8 @@ function toConfig(
       (element) => element.name === 'onexit'
     );
 
-    const states: Record<string, any> = indexedRecord(
-      stateElements,
-      (item) => `${item.attributes!.id}`
+    const states: Record<string, any> = indexedRecord(stateElements, (item) =>
+      sanitizeStateId(`${item.attributes!.id}`)
     );
 
     const initialElement = !initial
@@ -387,13 +402,13 @@ function toConfig(
     if (initialElement && initialElement.elements!.length) {
       initial = initialElement.elements!.find(
         (element) => element.name === 'transition'
-      )!.attributes!.target;
+      )!.attributes!.target as string;
     } else if (!initial && !initialElement && stateElements.length) {
       initial = stateElements[0].attributes!.id;
     }
 
     const always: any[] = [];
-    const on: any[] = [];
+    const on: Record<string, any> = [];
 
     transitionElements.map((value) => {
       const events = ((getAttribute(value, 'event') as string) || '').split(
@@ -432,7 +447,6 @@ function toConfig(
         }
 
         const transitionConfig = {
-          event: eventType,
           target: getTargets(targets),
           ...(value.elements ? executableContent(value.elements) : undefined),
           ...guardObject,
@@ -442,7 +456,12 @@ function toConfig(
         if (eventType === NULL_EVENT) {
           always.push(transitionConfig);
         } else {
-          on.push(transitionConfig);
+          let existing = on[eventType];
+          if (!existing) {
+            existing = [];
+            on[eventType] = existing;
+          }
+          existing.push(transitionConfig);
         }
       });
     });
@@ -475,29 +494,27 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: scxmlToMachine(content, options)
+        src: scxmlToMachine(content)
       };
     });
 
     return {
-      id,
+      id: sanitizeStateId(id),
       ...(initial
         ? {
             initial: String(initial)
               .split(' ')
-              .map((id) => `#${id}`)
+              .map((id) => `#${sanitizeStateId(id)}`)
           }
         : undefined),
       ...(parallel ? { type: 'parallel' } : undefined),
       ...(nodeJson.name === 'final' ? { type: 'final' } : undefined),
       ...(stateElements.length
         ? {
-            states: mapValues(states, (state, key) =>
-              toConfig(state, key, options)
-            )
+            states: mapValues(states, (state, key) => toConfig(state, key))
           }
         : undefined),
-      ...(transitionElements.length ? { on } : undefined),
+      on,
       ...(always.length ? { always } : undefined),
       ...(onEntry ? { entry: onEntry } : undefined),
       ...(onExit ? { exit: onExit } : undefined),
@@ -508,14 +525,7 @@ function toConfig(
   return { id, ...(nodeJson.name === 'final' ? { type: 'final' } : undefined) };
 }
 
-export interface ScxmlToMachineOptions {
-  delimiter?: string;
-}
-
-function scxmlToMachine(
-  scxmlJson: XMLElement,
-  options: ScxmlToMachineOptions
-): AnyStateMachine {
+function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -546,9 +556,8 @@ function scxmlToMachine(
     : undefined;
 
   const machine = createMachine({
-    ...toConfig(machineElement, '(machine)', options),
-    context,
-    delimiter: options.delimiter
+    ...toConfig(machineElement, '(machine)'),
+    context
   });
 
   appendWildcards(machine.root);
@@ -556,10 +565,7 @@ function scxmlToMachine(
   return machine;
 }
 
-export function toMachine(
-  xml: string,
-  options: ScxmlToMachineOptions
-): AnyStateMachine {
+export function toMachine(xml: string): AnyStateMachine {
   const json = xml2js(xml) as XMLElement;
-  return scxmlToMachine(json, options);
+  return scxmlToMachine(json);
 }

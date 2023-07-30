@@ -1,11 +1,13 @@
 import {
-  InvokeCallback,
-  Receiver,
   ActorLogic,
   EventObject,
-  AnyEventObject
+  AnyActorSystem,
+  AnyEventObject,
+  ActorSystem,
+  ActorRefFrom,
+  TODO
 } from '../types';
-import { isPromiseLike, isFunction } from '../utils';
+import { isPromiseLike } from '../utils';
 import { doneInvoke, error } from '../actions.ts';
 import { startSignalType, stopSignalType, isSignal } from '../actors/index.ts';
 
@@ -16,17 +18,58 @@ export interface CallbackInternalState<TEvent extends EventObject> {
   input?: any;
 }
 
-export function fromCallback<TEvent extends EventObject>(
-  invokeCallback: InvokeCallback
-): ActorLogic<TEvent, undefined, CallbackInternalState<TEvent>> {
-  const logic: ActorLogic<TEvent, undefined, CallbackInternalState<TEvent>> = {
+export type CallbackActorLogic<
+  TEvent extends EventObject,
+  TInput = any
+> = ActorLogic<
+  TEvent,
+  undefined,
+  CallbackInternalState<TEvent>,
+  CallbackInternalState<TEvent>,
+  ActorSystem<any>,
+  TInput,
+  any
+>;
+
+export type CallbackActorRef<TEvent extends EventObject> = ActorRefFrom<
+  CallbackActorLogic<TEvent>
+>;
+
+export type Receiver<TEvent extends EventObject> = (
+  listener: {
+    bivarianceHack(event: TEvent): void;
+  }['bivarianceHack']
+) => void;
+
+export type InvokeCallback<
+  TEvent extends EventObject = AnyEventObject,
+  TSentEvent extends EventObject = AnyEventObject,
+  TInput = unknown
+> = ({
+  input,
+  system,
+  self,
+  sendBack,
+  receive
+}: {
+  input: TInput;
+  system: AnyActorSystem;
+  self: CallbackActorRef<TEvent>;
+  sendBack: (event: TSentEvent) => void;
+  receive: Receiver<TEvent>;
+}) => (() => void) | Promise<any> | void;
+
+export function fromCallback<TEvent extends EventObject, TInput>(
+  invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
+): CallbackActorLogic<TEvent, TInput> {
+  const logic: CallbackActorLogic<TEvent, TInput> = {
     config: invokeCallback,
     start: (_state, { self }) => {
       self.send({ type: startSignalType } as TEvent);
     },
     transition: (state, event, { self, id, system }) => {
       if (event.type === startSignalType) {
-        const sender = (eventForParent: AnyEventObject) => {
+        const sendBack = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
             return;
           }
@@ -34,13 +77,16 @@ export function fromCallback<TEvent extends EventObject>(
           self._parent?.send(eventForParent);
         };
 
-        const receiver: Receiver<TEvent> = (newListener) => {
+        const receive: Receiver<TEvent> = (newListener) => {
           state.receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback(sender, receiver, {
+        state.dispose = invokeCallback({
           input: state.input,
-          system
+          system,
+          self: self as TODO,
+          sendBack,
+          receive
         });
 
         if (isPromiseLike(state.dispose)) {
@@ -61,7 +107,7 @@ export function fromCallback<TEvent extends EventObject>(
       if (event.type === stopSignalType) {
         state.canceled = true;
 
-        if (isFunction(state.dispose)) {
+        if (typeof state.dispose === 'function') {
           state.dispose();
         }
         return state;

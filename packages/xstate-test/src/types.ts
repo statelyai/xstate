@@ -1,10 +1,8 @@
 import { StatePath, Step, TraversalOptions } from '@xstate/graph';
 import {
-  BaseActionObject,
   EventObject,
   MachineConfig,
   MachineTypes,
-  ActorMap,
   State,
   StateNodeConfig,
   TransitionConfig,
@@ -13,8 +11,11 @@ import {
   ExtractEvent,
   MachineImplementations,
   MachineContext,
-  ActorLogic
+  ActorLogic,
+  ParameterizedObject
 } from 'xstate';
+
+type TODO = any;
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
   TraversalOptions<TState, TEvent> & {
@@ -28,14 +29,14 @@ export interface TestMachineConfig<
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
   context?: MachineConfig<TContext, TEvent>['context'];
-  types?: MachineTypes<TContext, TEvent, ActorMap, TTypesMeta>;
+  types?: MachineTypes<TContext, TEvent, TODO, TTypesMeta>;
 }
 
 export interface TestStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Pick<
-    StateNodeConfig<TContext, TEvent>,
+    StateNodeConfig<TContext, TEvent, TODO, TODO>,
     | 'type'
     | 'history'
     | 'on'
@@ -62,8 +63,8 @@ export type TestMachineOptions<
     MachineImplementations<
       TContext,
       TEvent,
-      BaseActionObject,
-      ActorMap,
+      ParameterizedObject,
+      any,
       TTypesMeta
     >,
     'actions' | 'guards'
@@ -71,8 +72,11 @@ export type TestMachineOptions<
 >;
 
 export interface TestMeta<T, TContext extends MachineContext> {
-  test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
-  description?: string | ((state: State<TContext, any>) => string);
+  test?: (
+    testContext: T,
+    state: State<TContext, any, any>
+  ) => Promise<void> | void;
+  description?: string | ((state: State<TContext, any, any>) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -141,10 +145,13 @@ export interface TestTransitionConfig<
   TEvent extends EventObject,
   TTestContext
 > extends TransitionConfig<TContext, TEvent> {
-  test?: (state: State<TContext, TEvent>, testContext: TTestContext) => void;
+  test?: (
+    state: State<TContext, TEvent, any>,
+    testContext: TTestContext
+  ) => void;
 }
 
-export type TestTransitionsConfigMap<
+export type TestTransitionsConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext

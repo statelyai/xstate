@@ -13,7 +13,8 @@ import {
   Observer,
   StateFrom,
   toObserver,
-  SnapshotFrom
+  SnapshotFrom,
+  TODO
 } from 'xstate';
 import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
@@ -55,6 +56,8 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
+            TODO,
+            TODO,
             TLogic['__TResolvedTypesMeta'],
             true
           >,
@@ -67,6 +70,8 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
+            TODO,
+            TODO,
             TLogic['__TResolvedTypesMeta']
           >,
         observerOrListener?:
@@ -84,27 +89,27 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options = {}, observerOrListener]: RestParams<TLogic>
 ): ActorRefFrom<TLogic> {
-  const service = useIdleInterpreter(machine, options);
+  const actorRef = useIdleInterpreter(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
       return;
     }
-    let sub = service.subscribe(toObserver(observerOrListener));
+    let sub = actorRef.subscribe(toObserver(observerOrListener));
     return () => {
       sub.unsubscribe();
     };
   }, [observerOrListener]);
 
   useEffect(() => {
-    service.start();
+    actorRef.start();
 
     return () => {
-      service.stop();
-      service.status = InterpreterStatus.NotStarted;
-      (service as any)._initState();
+      actorRef.stop();
+      actorRef.status = InterpreterStatus.NotStarted;
+      (actorRef as any)._initState();
     };
   }, []);
 
-  return service as any;
+  return actorRef as any;
 }
