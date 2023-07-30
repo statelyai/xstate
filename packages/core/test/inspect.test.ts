@@ -75,12 +75,18 @@ describe('inspect', () => {
     expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
       [
         {
-          "sessionId": "x:0",
+          "sessionId": "machine:0",
           "type": "@xstate.registration",
         },
         {
           "event": "xstate.init",
-          "sessionId": "x:0",
+          "sourceId": undefined,
+          "targetId": "machine:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "xstate.init",
+          "sessionId": "machine:0",
           "snapshot": {
             "value": "a",
           },
@@ -89,12 +95,12 @@ describe('inspect', () => {
         {
           "event": "NEXT",
           "sourceId": undefined,
-          "targetId": "x:0",
+          "targetId": "machine:0",
           "type": "@xstate.communication",
         },
         {
           "event": "NEXT",
-          "sessionId": "x:0",
+          "sessionId": "machine:0",
           "snapshot": {
             "value": "b",
           },
@@ -103,12 +109,12 @@ describe('inspect', () => {
         {
           "event": "NEXT",
           "sourceId": undefined,
-          "targetId": "x:0",
+          "targetId": "machine:0",
           "type": "@xstate.communication",
         },
         {
           "event": "NEXT",
-          "sessionId": "x:0",
+          "sessionId": "machine:0",
           "snapshot": {
             "value": "c",
           },
@@ -173,9 +179,9 @@ describe('inspect', () => {
           events.push(event);
 
           // push events to websocket server
-          server.clients.forEach((client) => {
-            client.send(JSON.stringify(event));
-          });
+          // server.clients.forEach((client) => {
+          //   client.send(JSON.stringify(event));
+          // });
         }
       }
     });
@@ -191,16 +197,28 @@ describe('inspect', () => {
     expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
       [
         {
-          "sessionId": "x:0",
+          "sessionId": "machine:0",
           "type": "@xstate.registration",
         },
         {
-          "sessionId": "x:1",
+          "sessionId": "machine:1",
           "type": "@xstate.registration",
         },
         {
           "event": "xstate.init",
-          "sessionId": "x:1",
+          "sourceId": undefined,
+          "targetId": "machine:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "xstate.init",
+          "sourceId": "machine:0",
+          "targetId": "machine:1",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "xstate.init",
+          "sessionId": "machine:1",
           "snapshot": {
             "value": "start",
           },
@@ -208,7 +226,7 @@ describe('inspect', () => {
         },
         {
           "event": "xstate.init",
-          "sessionId": "x:0",
+          "sessionId": "machine:0",
           "snapshot": {
             "value": "waiting",
           },
@@ -217,28 +235,34 @@ describe('inspect', () => {
         {
           "event": "load",
           "sourceId": undefined,
-          "targetId": "x:0",
+          "targetId": "machine:0",
           "type": "@xstate.communication",
         },
         {
           "event": "loadChild",
-          "sourceId": "x:0",
-          "targetId": "x:1",
+          "sourceId": "machine:0",
+          "targetId": "machine:1",
           "type": "@xstate.communication",
         },
         {
-          "sessionId": "x:2",
+          "sessionId": "promise:2",
           "type": "@xstate.registration",
         },
         {
           "event": "xstate.init",
-          "sessionId": "x:2",
+          "sourceId": "machine:1",
+          "targetId": "promise:2",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "xstate.init",
+          "sessionId": "promise:2",
           "snapshot": undefined,
           "type": "@xstate.transition",
         },
         {
           "event": "loadChild",
-          "sessionId": "x:1",
+          "sessionId": "machine:1",
           "snapshot": {
             "value": "loading",
           },
@@ -246,7 +270,7 @@ describe('inspect', () => {
         },
         {
           "event": "load",
-          "sessionId": "x:0",
+          "sessionId": "machine:0",
           "snapshot": {
             "value": "waiting",
           },
@@ -254,25 +278,25 @@ describe('inspect', () => {
         },
         {
           "event": "$$xstate.resolve",
-          "sourceId": "x:2",
-          "targetId": "x:2",
+          "sourceId": "promise:2",
+          "targetId": "promise:2",
           "type": "@xstate.communication",
         },
         {
           "event": "done.invoke.(machine).loading:invocation[0]",
-          "sourceId": "x:2",
-          "targetId": "x:1",
+          "sourceId": "promise:2",
+          "targetId": "machine:1",
           "type": "@xstate.communication",
         },
         {
           "event": "toParent",
-          "sourceId": "x:1",
-          "targetId": "x:0",
+          "sourceId": "machine:1",
+          "targetId": "machine:0",
           "type": "@xstate.communication",
         },
         {
           "event": "toParent",
-          "sessionId": "x:0",
+          "sessionId": "machine:0",
           "snapshot": {
             "value": "waiting",
           },
@@ -280,13 +304,13 @@ describe('inspect', () => {
         },
         {
           "event": "done.invoke.child",
-          "sourceId": "x:1",
-          "targetId": "x:0",
+          "sourceId": "machine:1",
+          "targetId": "machine:0",
           "type": "@xstate.communication",
         },
         {
           "event": "done.invoke.child",
-          "sessionId": "x:0",
+          "sessionId": "machine:0",
           "snapshot": {
             "value": "success",
           },
@@ -294,7 +318,7 @@ describe('inspect', () => {
         },
         {
           "event": "done.invoke.(machine).loading:invocation[0]",
-          "sessionId": "x:1",
+          "sessionId": "machine:1",
           "snapshot": {
             "value": "loaded",
           },
@@ -302,7 +326,7 @@ describe('inspect', () => {
         },
         {
           "event": "$$xstate.resolve",
-          "sessionId": "x:2",
+          "sessionId": "promise:2",
           "snapshot": 42,
           "type": "@xstate.transition",
         },

@@ -26,21 +26,21 @@ import {
 
 const user = { name: 'David' };
 
-const WebSocket = require('ws');
-const server = new WebSocket.Server({ port: 8080 });
-Interpreter.defaults.inspect = {
-  next: (event) => {
-    console.log('event', event);
-    server.clients.forEach((client) => {
-      client.send(JSON.stringify(event));
-    });
-  }
-};
+// const WebSocket = require('ws');
+// const server = new WebSocket.Server({ port: 8080 });
+// Interpreter.defaults.inspect = {
+//   next: (event) => {
+//     console.log('event', event);
+//     server.clients.forEach((client) => {
+//       client.send(JSON.stringify(event));
+//     });
+//   }
+// };
 
-// after all tests, close websocket server
-afterAll(() => {
-  server.close();
-});
+// // after all tests, close websocket server
+// afterAll(() => {
+//   server.close();
+// });
 
 const fetchMachine = createMachine<{ userId: string | undefined }>({
   id: 'fetch',
