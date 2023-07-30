@@ -54,7 +54,12 @@ export enum ActorStatus {
   Stopped
 }
 
-const defaultOptions = {
+type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
+  TLogic extends ActorLogic<infer _, infer __, infer TInternalState>
+    ? TInternalState
+    : never;
+
+const interpreterDefaults = {
   deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
@@ -68,16 +73,15 @@ const defaultOptions = {
   devTools: false
 };
 
-type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
-  TLogic extends ActorLogic<infer _, infer __, infer TInternalState>
-    ? TInternalState
-    : never;
-
 export class Interpreter<
   TLogic extends AnyActorLogic,
   TEvent extends EventObject = EventFromLogic<TLogic>
 > implements ActorRef<TEvent, SnapshotFrom<TLogic>>
 {
+  public static defaults = interpreterDefaults as Partial<
+    InterpreterOptions<any>
+  > &
+    typeof interpreterDefaults;
   /**
    * The current state of the interpreted logic.
    */
@@ -130,13 +134,13 @@ export class Interpreter<
    */
   constructor(public logic: TLogic, options?: InterpreterOptions<TLogic>) {
     const resolvedOptions = {
-      ...defaultOptions,
+      ...Interpreter.defaults,
       ...options
-    };
+    } as InterpreterOptions<TLogic> & typeof Interpreter.defaults;
 
     const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
 
-    this.system = parent?.system ?? createSystem();
+    this.system = parent?.system ?? createSystem(this);
 
     if (inspect) {
       // Always inspect at the system-level
@@ -148,7 +152,7 @@ export class Interpreter<
       this.system._set(systemId, this);
     }
 
-    this.sessionId = this.system._bookId();
+    this.sessionId = this.system._bookId(this.logic.name);
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
@@ -181,11 +185,9 @@ export class Interpreter<
     this.system._sendInspectionEvent({
       type: '@xstate.registration',
       actorRef: this,
-      createdAt: Date.now().toString(),
       sessionId: this.sessionId,
       // definition: JSON.stringify(this.logic.config),
-      parentId: this._parent?.sessionId,
-      systemId: this._systemId
+      parentId: this._parent?.sessionId
     });
     this._initState();
   }
@@ -284,25 +286,25 @@ export class Interpreter<
     }
     this.status = ActorStatus.Running;
 
+    this.system._sendInspectionEvent({
+      type: '@xstate.communication',
+
+      event: { type: 'xstate.init' },
+
+      sourceId: this._parent?.sessionId,
+      targetId: this.sessionId
+    });
+
     if (this.logic.start) {
       this.logic.start(this._state, this._actorContext);
     }
 
     this.system._sendInspectionEvent({
-      type: '@xstate.communication',
-      createdAt: Date.now().toString(),
-      event: { type: 'xstate.init' },
-      id: Math.random().toString(),
-      sourceId: this._parent?.sessionId,
-      targetId: this.sessionId
-    });
-
-    this.system._sendInspectionEvent({
       type: '@xstate.transition',
       actorRef: this,
-      createdAt: Date.now().toString(),
+
       event: { type: 'xstate.init' },
-      id: Math.random().toString(),
+
       sessionId: this.sessionId,
       snapshot: this.getSnapshot(),
       status: this.status,
@@ -336,9 +338,7 @@ export class Interpreter<
       this.system._sendInspectionEvent({
         type: '@xstate.transition',
         actorRef: this,
-        createdAt: Date.now().toString(),
         event,
-        id: Math.random().toString(),
         sessionId: this.sessionId,
         snapshot: this.getSnapshot(),
         status: this.status
@@ -435,9 +435,7 @@ export class Interpreter<
     if (!('__id' in event)) {
       this.system._sendInspectionEvent({
         type: '@xstate.communication',
-        createdAt: Date.now().toString(),
         event,
-        id: Math.random().toString(),
         sourceId: undefined,
         targetId: this.sessionId
       });
@@ -486,11 +484,7 @@ export class Interpreter<
     to?: AnyActorRef;
   }): void {
     const timerId = this.clock.setTimeout(() => {
-      if (to) {
-        this.system.sendTo(to, event, this);
-      } else {
-        this.send(event as TEvent);
-      }
+      this.system.sendTo(to ?? this, event as TEvent, this);
     }, delay);
 
     // TODO: consider the rehydration story here

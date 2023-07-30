@@ -7,9 +7,6 @@ import {
   sendTo,
   waitFor
 } from '../src';
-const WebSocket = require('ws');
-
-const server = new WebSocket.Server({ port: 8080 });
 
 function simplifyEvent(inspectionEvent: InspectionEvent) {
   if (inspectionEvent.type === '@xstate.communication') {
@@ -64,9 +61,9 @@ describe('inspect', () => {
         next(event) {
           events.push(event);
           // push events to websocket server
-          server.clients.forEach((client) => {
-            client.send(JSON.stringify(event));
-          });
+          // server.clients.forEach((client) => {
+          //   client.send(JSON.stringify(event));
+          // });
         }
       }
     });

@@ -7,7 +7,8 @@ import {
   ActorLogic,
   Subscribable,
   Observer,
-  AnyActorRef
+  AnyActorRef,
+  Interpreter
 } from '../src/index.ts';
 import { sendParent, doneInvoke, forwardTo, error } from '../src/actions.ts';
 import { raise } from '../src/actions/raise';
@@ -22,6 +23,22 @@ import {
 import { fromPromise } from '../src/actors/promise.ts';
 import { fromCallback } from '../src/actors/callback.ts';
 import { map } from 'rxjs/operators';
+
+const WebSocket = require('ws');
+const server = new WebSocket.Server({ port: 8080 });
+Interpreter.defaults.inspect = {
+  next: (event) => {
+    console.log('event', event);
+    server.clients.forEach((client) => {
+      client.send(JSON.stringify(event));
+    });
+  }
+};
+
+// after all tests, close websocket server
+afterAll(() => {
+  server.close();
+});
 
 describe('spawning machines', () => {
   const context = {

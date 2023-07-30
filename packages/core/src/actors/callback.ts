@@ -63,9 +63,10 @@ export function fromCallback<TEvent extends EventObject, TInput>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
   const logic: CallbackActorLogic<TEvent, TInput> = {
+    name: 'callback',
     config: invokeCallback,
-    start: (_state, { self }) => {
-      self.send({ type: startSignalType } as TEvent);
+    start: (_state, { self, system }) => {
+      system.sendTo(self, { type: startSignalType }, self);
     },
     transition: (state, event, { self, id, system }) => {
       if (event.type === startSignalType) {
@@ -74,7 +75,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
             return;
           }
 
-          self._parent?.send(eventForParent);
+          system.sendTo(self._parent, eventForParent, self);
         };
 
         const receive: Receiver<TEvent> = (newListener) => {
@@ -92,12 +93,12 @@ export function fromCallback<TEvent extends EventObject, TInput>(
         if (isPromiseLike(state.dispose)) {
           state.dispose.then(
             (resolved) => {
-              self._parent?.send(doneInvoke(id, resolved));
+              system.sendTo(self._parent, doneInvoke(id, resolved), self);
               state.canceled = true;
             },
             (errorData) => {
               state.canceled = true;
-              self._parent?.send(error(id, errorData));
+              system.sendTo(self._parent, error(id, errorData), self);
             }
           );
         }

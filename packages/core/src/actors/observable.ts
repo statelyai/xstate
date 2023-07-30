@@ -52,8 +52,9 @@ export function fromObservable<T, TInput>(
     ObservableInternalState<T>,
     ObservablePersistedState<T>
   > = {
+    name: 'observable',
     config: observableCreator,
-    transition: (state, event, { self, id, defer }) => {
+    transition: (state, event, { self, id, defer, system }) => {
       if (state.status !== 'active') {
         return state;
       }
@@ -63,10 +64,14 @@ export function fromObservable<T, TInput>(
           // match the exact timing of events sent by machines
           // send actions are not executed immediately
           defer(() => {
-            self._parent?.send({
-              type: `xstate.snapshot.${id}`,
-              data: event.data
-            });
+            system.sendTo(
+              self._parent,
+              {
+                type: `xstate.snapshot.${id}`,
+                data: event.data
+              },
+              self
+            );
           });
           return {
             ...state,
@@ -118,13 +123,13 @@ export function fromObservable<T, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          self.send({ type: nextEventType, data: value });
+          system.sendTo(self, { type: nextEventType, data: value }, self);
         },
         error: (err) => {
-          self.send({ type: errorEventType, data: err });
+          system.sendTo(self, { type: errorEventType, data: err }, self);
         },
         complete: () => {
-          self.send({ type: completeEventType });
+          system.sendTo(self, { type: completeEventType }, self);
         }
       });
     },
@@ -173,6 +178,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
     ObservableInternalState<T>,
     ObservablePersistedState<T>
   > = {
+    name: 'eventObservable',
     config: lazyObservable,
     transition: (state, event) => {
       if (state.status !== 'active') {
@@ -227,13 +233,13 @@ export function fromEventObservable<T extends EventObject, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          self._parent?.send(value);
+          system.sendTo(self._parent, value, self);
         },
         error: (err) => {
-          self.send({ type: errorEventType, data: err });
+          system.sendTo(self, { type: errorEventType, data: err }, self);
         },
         complete: () => {
-          self.send({ type: completeEventType });
+          system.sendTo(self, { type: completeEventType }, self);
         }
       });
     },

@@ -53,6 +53,7 @@ export function fromPromise<T, TInput>(
 ): PromiseActorLogic<T, TInput> {
   // TODO: add event types
   const logic: PromiseActorLogic<T, TInput> = {
+    name: 'promise',
     config: promiseCreator,
     transition: (state, event) => {
       if (state.status !== 'active') {

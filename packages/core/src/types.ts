@@ -10,7 +10,6 @@ import {
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
-import { CallbackActorRef } from './actors/callback.ts';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -1555,6 +1554,7 @@ export interface ActorLogic<
   TInput = any,
   TOutput = unknown
 > {
+  name?: string; // Used for logging/inspection
   config?: unknown;
   transition: (
     state: TInternalState,
@@ -1721,7 +1721,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   /**
    * @private
    */
-  _bookId: () => string;
+  _bookId: (name?: string) => string;
   /**
    * @private
    */
@@ -1742,6 +1742,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     event: AnyEventObject,
     source: AnyActorRef | undefined
   ) => void;
+  root: AnyActorRef;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -1770,25 +1771,27 @@ export interface InspectedActorObject {
   status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped, derived from latest update status
 }
 
+export interface BaseInspectionEvent {
+  systemId: string;
+  createdAt: string; // Timestamp
+  id: string; // unique string for this actor update
+}
+
 export interface ActorTransitionEvent {
   type: '@xstate.transition';
-  id: string; // unique string for this actor update
   snapshot: any;
   event: AnyEventObject; // { type: string, ... }
   status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped
   sessionId: string;
   actorRef: AnyActorRef; // Only available locally
   sourceId?: string; // Session ID
-  createdAt: string; // Timestamp
 }
 
 export interface ActorCommunicationEvent {
   type: '@xstate.communication';
-  id: string; // unique string for this event
   event: AnyEventObject; // { type: string, ... }
   sourceId: string | undefined; // Session ID
   targetId: string; // Session ID, required
-  createdAt: string; // Timestamp
 }
 
 export interface ActorRegistrationEvent {
@@ -1796,14 +1799,14 @@ export interface ActorRegistrationEvent {
   actorRef: AnyActorRef;
   sessionId: string;
   parentId?: string;
-  systemId?: string;
   definition?: string; // JSON-stringified definition or URL
-  createdAt: string; // Timestamp
 }
 
 export type InspectionEvent =
   | ActorTransitionEvent
   | ActorCommunicationEvent
   | ActorRegistrationEvent;
+
+export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
 
 export type InspectorActorRef = ActorRef<InspectionEvent>;
