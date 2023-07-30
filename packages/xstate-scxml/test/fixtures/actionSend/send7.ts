@@ -1,6 +1,6 @@
 import { createMachine, raise } from 'xstate';
 
-export default createMachine<any>({
+export default createMachine({
   initial: 'a',
   states: {
     a: {

@@ -3,7 +3,8 @@ import {
   ActorLogic,
   EventObject,
   Subscription,
-  AnyActorSystem
+  AnyActorSystem,
+  ActorRefFrom
 } from '../types';
 import { stopSignalType } from '../actors';
 
@@ -19,21 +20,27 @@ export type ObservablePersistedState<T> = Omit<
   'subscription'
 >;
 
-// TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
-export function fromObservable<T, TEvent extends EventObject>(
+export type ObservableActorLogic<T, TInput> = ActorLogic<
+  EventObject,
+  T | undefined,
+  ObservableInternalState<T>,
+  ObservablePersistedState<T>,
+  AnyActorSystem,
+  TInput
+>;
+
+export type ObservableActorRef<T> = ActorRefFrom<ObservableActorLogic<T, any>>;
+
+export function fromObservable<T, TInput>(
   observableCreator: ({
     input,
     system
   }: {
-    input: any;
+    input: TInput;
     system: AnyActorSystem;
+    self: ObservableActorRef<T>;
   }) => Subscribable<T>
-): ActorLogic<
-  TEvent,
-  T | undefined,
-  ObservableInternalState<T>,
-  ObservablePersistedState<T>
-> {
+): ObservableActorLogic<T, TInput> {
   const nextEventType = '$$xstate.next';
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
@@ -107,7 +114,8 @@ export function fromObservable<T, TEvent extends EventObject>(
       }
       state.subscription = observableCreator({
         input: state.input,
-        system
+        system,
+        self
       }).subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
@@ -145,19 +153,16 @@ export function fromObservable<T, TEvent extends EventObject>(
  * @returns Event observable logic
  */
 
-export function fromEventObservable<T extends EventObject>(
+export function fromEventObservable<T extends EventObject, TInput>(
   lazyObservable: ({
-    input
+    input,
+    system
   }: {
-    input: any;
+    input: TInput;
     system: AnyActorSystem;
+    self: ObservableActorRef<T>;
   }) => Subscribable<T>
-): ActorLogic<
-  EventObject,
-  T | undefined,
-  ObservableInternalState<T>,
-  ObservablePersistedState<T>
-> {
+): ObservableActorLogic<T, TInput> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
@@ -218,7 +223,8 @@ export function fromEventObservable<T extends EventObject>(
 
       state.subscription = lazyObservable({
         input: state.input,
-        system
+        system,
+        self
       }).subscribe({
         next: (value) => {
           self._parent?.send(value);

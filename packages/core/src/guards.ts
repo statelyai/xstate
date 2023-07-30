@@ -5,10 +5,10 @@ import type {
   GuardConfig,
   GuardDefinition,
   GuardPredicate,
-  MachineContext
+  MachineContext,
+  TODO
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
-import { isFunction, isString } from './utils.ts';
 import type { State } from './State.ts';
 
 export function stateIn<
@@ -19,7 +19,7 @@ export function stateIn<
     type: 'xstate.guard:in',
     params: { stateValue },
     predicate: ({ state }) => {
-      if (isString(stateValue) && isStateId(stateValue)) {
+      if (typeof stateValue === 'string' && isStateId(stateValue)) {
         return state.configuration.some((sn) => sn.id === stateValue.slice(1));
       }
 
@@ -84,7 +84,7 @@ export function evaluateGuard<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   event: TEvent,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent, TODO, TODO>
 ): boolean {
   const { machine } = state;
 
@@ -115,10 +115,10 @@ export function toGuardDefinition<
 ): GuardDefinition<TContext, TEvent> {
   // TODO: check for cycles and consider a refactor to more lazily evaluated guards
   // TODO: resolve this more recursively: https://github.com/statelyai/xstate/pull/4064#discussion_r1229915724
-  if (isString(guardConfig)) {
+  if (typeof guardConfig === 'string') {
     const predicateOrDef = getPredicate?.(guardConfig);
 
-    if (isFunction(predicateOrDef)) {
+    if (typeof predicateOrDef === 'function') {
       return {
         type: guardConfig,
         predicate: predicateOrDef,
@@ -134,7 +134,7 @@ export function toGuardDefinition<
     }
   }
 
-  if (isFunction(guardConfig)) {
+  if (typeof guardConfig === 'function') {
     return {
       type: guardConfig.name,
       predicate: guardConfig,
@@ -147,7 +147,7 @@ export function toGuardDefinition<
 
   const predicateOrDef = getPredicate?.(guardConfig.type);
 
-  if (isFunction(predicateOrDef)) {
+  if (typeof predicateOrDef === 'function') {
     return {
       type: guardConfig.type,
       params: guardConfig.params || guardConfig,

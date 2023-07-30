@@ -14,6 +14,7 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
   const observers = new Set<Observer<InspectionEvent>>();
 
   const system: ActorSystem<T> = {
+    log: [],
     _bookId: () => `x:${sessionIdCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
@@ -47,18 +48,25 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
     },
     _sendInspectionEvent: (event) => {
       observers.forEach((observer) => observer.next?.(event));
+      system.log.push(event);
     },
     sendTo: (target, event, source) => {
+      const sourceId = source?.sessionId;
+      const id = `${sourceId ?? 'anon'}--${Math.random().toString()}`;
       system._sendInspectionEvent({
         type: '@xstate.communication',
         createdAt: new Date().toString(),
         event,
-        id: Math.random().toString(),
+        id,
         targetId: target?.sessionId ?? 'deadletter',
         sourceId: source?.sessionId
       });
 
-      event.__ = 1;
+      Object.defineProperty(event, '__id', {
+        value: id,
+        enumerable: false,
+        writable: true
+      });
 
       target?.send(event);
     }

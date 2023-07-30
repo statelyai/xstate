@@ -47,7 +47,10 @@ describe('spawning machines', () => {
     | { type: 'PONG' }
     | { type: 'SUCCESS' };
 
-  const serverMachine = createMachine<any, PingPongEvent>({
+  const serverMachine = createMachine({
+    types: {} as {
+      events: PingPongEvent;
+    },
     id: 'server',
     initial: 'waitPing',
     states: {
@@ -231,7 +234,7 @@ describe('spawning promises', () => {
               const ref = spawn(
                 fromPromise(
                   () =>
-                    new Promise((res) => {
+                    new Promise<string>((res) => {
                       res('response');
                     })
                 ),
@@ -326,11 +329,11 @@ describe('spawning callbacks', () => {
           entry: assign({
             callbackRef: ({ spawn }) =>
               spawn(
-                fromCallback((cb, receive) => {
+                fromCallback(({ sendBack, receive }) => {
                   receive((event) => {
                     if (event.type === 'START') {
                       setTimeout(() => {
-                        cb({ type: 'SEND_BACK' });
+                        sendBack({ type: 'SEND_BACK' });
                       }, 10);
                     }
                   });
@@ -1076,7 +1079,7 @@ describe('actors', () => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback((sendBack) => {
+          fromCallback(({ sendBack }) => {
             sendBack({ type: 'TEST' });
           })
         )

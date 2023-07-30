@@ -8,6 +8,33 @@ import {
   waitFor
 } from '../src';
 
+function simplifyEvent(inspectionEvent: InspectionEvent) {
+  if (inspectionEvent.type === '@xstate.communication') {
+    return {
+      type: inspectionEvent.type,
+      sourceId: inspectionEvent.sourceId,
+      targetId: inspectionEvent.targetId,
+      event: inspectionEvent.event.type
+    };
+  }
+  if (inspectionEvent.type === '@xstate.registration') {
+    return {
+      type: inspectionEvent.type,
+      sessionId: inspectionEvent.sessionId
+    };
+  }
+  return {
+    type: inspectionEvent.type,
+    sessionId: inspectionEvent.sessionId,
+    snapshot:
+      typeof inspectionEvent.snapshot === 'object' &&
+      'value' in inspectionEvent.snapshot
+        ? { value: inspectionEvent.snapshot.value }
+        : inspectionEvent.snapshot,
+    event: inspectionEvent.event.type
+  };
+}
+
 describe('inspect', () => {
   it('the .inspect option can observe inspection events', () => {
     const machine = createMachine({
@@ -40,36 +67,53 @@ describe('inspect', () => {
     actor.send({ type: 'NEXT' });
     actor.send({ type: 'NEXT' });
 
-    expect(events).toEqual([
-      expect.objectContaining({
-        type: '@xstate.registration'
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        event: { type: 'xstate.init' },
-        snapshot: expect.objectContaining({
-          value: 'a'
-        })
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        event: { type: 'NEXT' },
-        snapshot: expect.objectContaining({
-          value: 'b'
-        })
-      }),
-      expect.objectContaining({
-        type: '@xstate.transition',
-        event: { type: 'NEXT' },
-        snapshot: expect.objectContaining({
-          value: 'c'
-        })
-      })
-    ]);
+    expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
+      [
+        {
+          "sessionId": "x:0",
+          "type": "@xstate.registration",
+        },
+        {
+          "event": "xstate.init",
+          "sessionId": "x:0",
+          "snapshot": {
+            "value": "a",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "NEXT",
+          "sourceId": undefined,
+          "targetId": "x:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "NEXT",
+          "sessionId": "x:0",
+          "snapshot": {
+            "value": "b",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "NEXT",
+          "sourceId": undefined,
+          "targetId": "x:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "NEXT",
+          "sessionId": "x:0",
+          "snapshot": {
+            "value": "c",
+          },
+          "type": "@xstate.transition",
+        },
+      ]
+    `);
   });
 
   it('can inspect communications between actors', async () => {
-    // expect.assertions(1);
     const parentMachine = createMachine({
       initial: 'waiting',
       states: {
@@ -131,33 +175,7 @@ describe('inspect', () => {
 
     await waitFor(actor, (state) => state.value === 'success');
 
-    expect(
-      events.map((event) => {
-        if (event.type === '@xstate.communication') {
-          return {
-            type: event.type,
-            sourceId: event.sourceId,
-            targetId: event.targetId,
-            event: event.event.type
-          };
-        }
-        if (event.type === '@xstate.registration') {
-          return {
-            type: event.type,
-            sessionId: event.sessionId
-          };
-        }
-        return {
-          type: event.type,
-          sessionId: event.sessionId,
-          snapshot:
-            typeof event.snapshot === 'object' && 'value' in event.snapshot
-              ? { value: event.snapshot.value }
-              : event.snapshot,
-          event: event.event.type
-        };
-      })
-    ).toMatchInlineSnapshot(`
+    expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
       [
         {
           "sessionId": "x:0",

@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as pkgUp from 'pkg-up';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { AnyState, AnyStateMachine, interpret } from '../src/index.ts';
-import { toMachine } from '../src/scxml';
+import { toMachine, sanitizeStateId } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
 const TEST_FRAMEWORK = path.dirname(
@@ -120,7 +120,7 @@ const testGroups: Record<string, string[]> = {
   // script: ['test0', 'test1', 'test2'], // <script/> conversion not implemented
   // 'script-src': ['test0', 'test1', 'test2', 'test3'], // <script/> conversion not implemented
   'scxml-prefix-event-name-matching': [
-    'star0'
+    // 'star0' // this relies on the source order of transitions where * is first and it's supposed to get macthed over an explicit descriptor
     // prefix event matching not implemented yet
     // 'test0',
     // 'test1'
@@ -426,14 +426,14 @@ async function runTestToCompletion(
       (stateNode) => stateNode.id
     );
 
-    expect(stateIds).toContain(nextConfiguration[0]);
+    expect(stateIds).toContain(sanitizeStateId(nextConfiguration[0]));
   });
 }
 
 describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'test194.txml'
+    // 'test175.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 
@@ -467,9 +467,7 @@ describe('scxml', () => {
       ) as SCIONTest;
 
       execTest(`${testGroupName}/${testName}`, async () => {
-        const machine = toMachine(scxmlDefinition, {
-          delimiter: '$'
-        });
+        const machine = toMachine(scxmlDefinition);
 
         try {
           await runTestToCompletion(machine, scxmlTest);

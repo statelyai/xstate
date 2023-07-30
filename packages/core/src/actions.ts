@@ -1,29 +1,12 @@
 import {
-  Action,
-  EventObject,
-  SingleOrArray,
-  ActionFunction,
-  ActionFunctionMap,
-  ActionTypes,
+  ConstantPrefix,
   DoneEvent,
   ErrorPlatformEvent,
-  DoneEventObject,
-  MachineContext,
-  BaseActionObject
+  DoneEventObject
 } from './types.ts';
-import * as actionTypes from './actionTypes.ts';
-import { isArray } from './utils.ts';
-import {
-  createDynamicAction,
-  isDynamicAction
-} from '../actions/dynamicAction.ts';
-export {
-  send,
-  sendTo,
-  sendParent,
-  forwardTo,
-  escalate
-} from './actions/send.ts';
+import * as constantPrefixes from './constantPrefixes.ts';
+import { INIT_TYPE } from './constants.ts';
+export { sendTo, sendParent, forwardTo, escalate } from './actions/send.ts';
 
 export { stop } from './actions/stop.ts';
 export { log } from './actions/log.ts';
@@ -32,100 +15,7 @@ export { assign } from './actions/assign.ts';
 export { raise } from './actions/raise.ts';
 export { choose } from './actions/choose.ts';
 export { pure } from './actions/pure.ts';
-export { actionTypes };
-
-export const initEvent = { type: actionTypes.init };
-
-export function resolveActionObject(
-  actionObject: BaseActionObject,
-  actionFunctionMap: ActionFunctionMap<any, any>
-): BaseActionObject {
-  if (isDynamicAction(actionObject)) {
-    return actionObject;
-  }
-  const dereferencedAction = actionFunctionMap[actionObject.type];
-
-  if (typeof dereferencedAction === 'function') {
-    return createDynamicAction(
-      { type: 'xstate.function', params: actionObject.params ?? {} },
-      (event, { state }) => {
-        const a: BaseActionObject = {
-          type: actionObject.type,
-          params: actionObject.params,
-          execute: (actorCtx) => {
-            return dereferencedAction({
-              context: state.context,
-              event,
-              action: a,
-              system: actorCtx.system,
-              self: actorCtx.self
-            });
-          }
-        };
-
-        return [state, a];
-      }
-    );
-  } else if (dereferencedAction) {
-    return dereferencedAction;
-  } else {
-    return actionObject;
-  }
-}
-
-export function toActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action: BaseActionObject | ActionFunction<TContext, TEvent> | string
-): BaseActionObject {
-  if (isDynamicAction(action)) {
-    return action;
-  }
-
-  if (typeof action === 'string') {
-    return { type: action, params: {} };
-  }
-
-  if (typeof action === 'function') {
-    const type = 'xstate.function';
-    return createDynamicAction({ type, params: {} }, (event, { state }) => {
-      const actionObject: BaseActionObject = {
-        type,
-        params: {
-          function: action
-        },
-        execute: (actorCtx) => {
-          return action({
-            context: state.context as TContext,
-            event: event as TEvent,
-            action: actionObject,
-            self: actorCtx.self,
-            system: actorCtx.system
-          });
-        }
-      };
-
-      return [state, actionObject];
-    });
-  }
-
-  // action is already a BaseActionObject
-  return action;
-}
-
-export const toActionObjects = <
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action?: SingleOrArray<Action<TContext, TEvent>>
-): BaseActionObject[] => {
-  if (!action) {
-    return [];
-  }
-  const actions = isArray(action) ? action : [action];
-  return actions.map(toActionObject);
-};
+export { constantPrefixes };
 
 /**
  * Returns an event type that represents an implicit event that
@@ -136,7 +26,7 @@ export const toActionObjects = <
  */
 export function after(delayRef: number | string, id?: string) {
   const idSuffix = id ? `#${id}` : '';
-  return `${ActionTypes.After}(${delayRef})${idSuffix}`;
+  return `${ConstantPrefix.After}(${delayRef})${idSuffix}`;
 }
 
 /**
@@ -147,7 +37,7 @@ export function after(delayRef: number | string, id?: string) {
  * @param output The data to pass into the event
  */
 export function done(id: string, output?: any): DoneEventObject {
-  const type = `${ActionTypes.DoneState}.${id}`;
+  const type = `${ConstantPrefix.DoneState}.${id}`;
   const eventObject = {
     type,
     output
@@ -168,7 +58,7 @@ export function done(id: string, output?: any): DoneEventObject {
  * @param output The data to pass into the event
  */
 export function doneInvoke(invokeId: string, output?: any): DoneEvent {
-  const type = `${ActionTypes.DoneInvoke}.${invokeId}`;
+  const type = `${ConstantPrefix.DoneInvoke}.${invokeId}`;
   const eventObject = {
     type,
     output
@@ -180,7 +70,7 @@ export function doneInvoke(invokeId: string, output?: any): DoneEvent {
 }
 
 export function error(id: string, data?: any): ErrorPlatformEvent & string {
-  const type = `${ActionTypes.ErrorPlatform}.${id}`;
+  const type = `${ConstantPrefix.ErrorPlatform}.${id}`;
   const eventObject = { type, data };
 
   eventObject.toString = () => type;
@@ -189,5 +79,5 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
 }
 
 export function createInitEvent(input: any) {
-  return { type: actionTypes.init, input } as const;
+  return { type: INIT_TYPE, input } as const;
 }

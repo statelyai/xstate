@@ -1,6 +1,6 @@
 {
   "name": "@xstate/svelte",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "XState tools for Svelte",
   "keywords": [
     "state",
@@ -54,9 +54,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^3.0.0-beta.2",
-    "svelte": "^3.55.1",
-    "xstate": "^5.0.0-beta.14"
+    "@xstate/fsm": "^3.0.0-beta.3",
+    "svelte": "^3.24.1 || ^4",
+    "xstate": "^5.0.0-beta.20"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -70,12 +70,12 @@
     "@testing-library/svelte": "^3.2.2",
     "@tsconfig/svelte": "^1.0.8",
     "@types/jest": "^29.5.1",
-    "@xstate/fsm": "3.0.0-beta.2",
+    "@xstate/fsm": "3.0.0-beta.3",
     "svelte": "^3.55.1",
     "svelte-check": "^3.2.0",
     "svelte-jester": "^2.3.2",
     "svelte-preprocess": "^5.0.0",
-    "xstate": "5.0.0-beta.14"
+    "xstate": "5.0.0-beta.20"
   },
   "preconstruct": {
     "entrypoints": [
