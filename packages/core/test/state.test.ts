@@ -924,4 +924,24 @@ describe('State', () => {
       expect(restoredState.hasTag('foo')).toBe(true);
     });
   });
+
+  it('should persist meta', () => {
+    const machine = createMachine({
+      id: 'm',
+      initial: 'a',
+      states: {
+        a: {
+          meta: { foo: 'bar' }
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+    const state = actor.getSnapshot();
+
+    const persistedState = JSON.stringify(state);
+    const restoredState = State.create(JSON.parse(persistedState));
+
+    expect(restoredState.meta).toEqual({ 'm.a': { foo: 'bar' } });
+  });
 });
