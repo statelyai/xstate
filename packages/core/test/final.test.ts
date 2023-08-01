@@ -91,7 +91,7 @@ describe('final states', () => {
     expect(actual).toEqual(['bazAction', 'barAction', 'fooAction']);
   });
 
-  it('should call data expressions on nested final nodes', (done) => {
+  it('should call output expressions on nested final nodes', (done) => {
     interface Ctx {
       revealedSecret?: string;
     }
@@ -112,9 +112,9 @@ describe('final states', () => {
             },
             reveal: {
               type: 'final',
-              output: {
+              output: () => ({
                 secret: 'the secret'
-              }
+              })
             }
           },
           onDone: {

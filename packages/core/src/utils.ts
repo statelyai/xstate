@@ -239,24 +239,24 @@ export function mapContext<
     return mapper({ context, event, self });
   }
 
-  if (isDevelopment) {
-    if (typeof mapper === 'object') {
-      if (Object.values(mapper).some((val) => typeof val === 'function')) {
-        console.warn(
-          `Dynamically mapping values to individual properties is deprecated. Use a single function that returns the mapped object instead.\nFound object containing properties whose values are possibly mapping functions: ${Object.entries(
-            mapper
-          )
-            .filter(([key, value]) => typeof value === 'function')
-            .map(
-              ([key, value]) =>
-                `\n - ${key}: ${(value as () => any)
-                  .toString()
-                  .replace(/\n\s*/g, '')}`
-            )
-            .join('')}`
-        );
-      }
-    }
+  if (
+    isDevelopment &&
+    typeof mapper === 'object' &&
+    Object.values(mapper).some((val) => typeof val === 'function')
+  ) {
+    console.warn(
+      `Dynamically mapping values to individual properties is deprecated. Use a single function that returns the mapped object instead.\nFound object containing properties whose values are possibly mapping functions: ${Object.entries(
+        mapper
+      )
+        .filter(([key, value]) => typeof value === 'function')
+        .map(
+          ([key, value]) =>
+            `\n - ${key}: ${(value as () => any)
+              .toString()
+              .replace(/\n\s*/g, '')}`
+        )
+        .join('')}`
+    );
   }
 
   return mapper;
