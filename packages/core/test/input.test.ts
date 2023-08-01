@@ -1,5 +1,11 @@
 import { of } from 'rxjs';
-import { AnyActorLogic, assign, interpret } from '../src';
+import {
+  AnyActorLogic,
+  AnyActorRef,
+  AnyEventObject,
+  assign,
+  interpret
+} from '../src';
 import { createMachine } from '../src/Machine';
 import {
   fromCallback,
@@ -12,7 +18,11 @@ describe('input', () => {
   it('should create a machine with input', () => {
     const spy = jest.fn();
 
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+        input: { startCount: number };
+      },
       context: ({ input }) => ({
         count: input.startCount
       }),
@@ -38,12 +48,14 @@ describe('input', () => {
   });
 
   it('should throw if input is expected but not provided', () => {
-    const machine = createMachine<{
-      message: string;
-    }>({
-      context: ({ input }) => ({
-        message: `Hello, ${input.greeting}`
-      })
+    const machine = createMachine({
+      types: {} as {
+        input: { greeting: string };
+        context: { message: string };
+      },
+      context: ({ input }) => {
+        return { message: `Hello, ${input.greeting}` };
+      }
     });
 
     expect(() => {
@@ -52,7 +64,7 @@ describe('input', () => {
   });
 
   it('should not throw if input is not expected and not provided', () => {
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
       context: () => {
         return { count: 42 };
       }
@@ -64,7 +76,7 @@ describe('input', () => {
   });
 
   it('should be a type error if input is not expected yet provided', () => {
-    const machine = createMachine<{ count: 42 }>({
+    const machine = createMachine({
       context: { count: 42 }
     });
 
@@ -76,7 +88,13 @@ describe('input', () => {
 
   it('should provide input data to invoked machines', (done) => {
     const invokedMachine = createMachine({
-      entry: ({ event }) => {
+      types: {} as {
+        input: { greeting: string };
+        context: { greeting: string };
+      },
+      context: ({ input }) => input,
+      entry: ({ context, event }) => {
+        expect(context.greeting).toBe('hello');
         expect(event.input.greeting).toBe('hello');
         done();
       }
@@ -94,7 +112,15 @@ describe('input', () => {
 
   it('should provide input data to spawned machines', (done) => {
     const spawnedMachine = createMachine({
-      entry: ({ event }) => {
+      types: {} as {
+        input: { greeting: string };
+        context: { greeting: string };
+      },
+      context({ input }) {
+        return input;
+      },
+      entry: ({ context, event }) => {
+        expect(context.greeting).toBe('hello');
         expect(event.input.greeting).toBe('hello');
         done();
       }
@@ -112,8 +138,8 @@ describe('input', () => {
   });
 
   it('should create a promise with input', async () => {
-    const promiseLogic = fromPromise(
-      ({ input }: { input: { count: number } }) => Promise.resolve(input)
+    const promiseLogic = fromPromise<{ count: number }, { count: number }>(
+      ({ input }) => Promise.resolve(input)
     );
 
     const promiseActor = interpret(promiseLogic, {
@@ -139,9 +165,10 @@ describe('input', () => {
   });
 
   it('should create an observable actor with input', (done) => {
-    const observableLogic = fromObservable(
-      ({ input }: { input: { count: number } }) => of(input)
-    );
+    const observableLogic = fromObservable<
+      { count: number },
+      { count: number }
+    >(({ input }) => of(input));
 
     const observableActor = interpret(observableLogic, {
       input: { count: 42 }
@@ -217,11 +244,18 @@ describe('input', () => {
             src: 'child';
             logic: typeof child;
           };
+          input: number;
+          context: {
+            count: number;
+          };
         },
+        context: ({ input }) => ({
+          count: input
+        }),
         invoke: {
           src: 'child',
-          input: ({ event }: any) => {
-            return event.input + 100;
+          input: ({ context }) => {
+            return context.count + 100;
           }
         }
       },
@@ -271,6 +305,15 @@ describe('input', () => {
 
     const machine = createMachine(
       {
+        types: {} as {
+          context: {
+            count: number;
+          };
+          input: number;
+        },
+        context: ({ input }) => ({
+          count: input
+        }),
         invoke: {
           src: 'child'
         }
@@ -284,7 +327,7 @@ describe('input', () => {
                 return {};
               }
             }),
-            input: ({ event }: any) => event.input + 100
+            input: ({ context }) => context.count + 100
           }
         }
       }
@@ -301,11 +344,19 @@ describe('input', () => {
     const machine = createMachine(
       {
         types: {} as {
+          context: {
+            count: number;
+            childRef?: AnyActorRef;
+          };
+          input: number;
           actors: {
             src: 'child';
             logic: AnyActorLogic;
           };
         },
+        context: ({ input }) => ({
+          count: input
+        }),
         entry: assign(({ spawn }) => ({
           childRef: spawn('child') // TODO: type-check for spawn
         }))
@@ -319,7 +370,7 @@ describe('input', () => {
                 return {};
               }
             }),
-            input: ({ event }: any) => event.input + 100
+            input: ({ context }) => context.count + 100
           }
         }
       }

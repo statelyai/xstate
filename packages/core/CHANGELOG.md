@@ -1,5 +1,43 @@
 # xstate
 
+## 5.0.0-beta.20
+
+### Major Changes
+
+- [#4036](https://github.com/statelyai/xstate/pull/4036) [`e2440f0b1`](https://github.com/statelyai/xstate/commit/e2440f0b1b5bdc00aca7f412721e7dc909af1f4c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actor types can now be specified in the `.types` property of `createMachine`:
+
+  ```ts
+  const fetcher = fromPromise(() => fetchUser());
+
+  const machine = createMachine({
+    types: {} as {
+      actors: {
+        src: 'fetchData'; // src name (inline behaviors ideally inferred)
+        id: 'fetch1' | 'fetch2'; // possible ids (optional)
+        logic: typeof fetcher;
+      };
+    },
+    invoke: {
+      src: 'fetchData', // strongly typed
+      id: 'fetch2', // strongly typed
+      onDone: {
+        actions: ({ event }) => {
+          event.output; // strongly typed as { result: string }
+        }
+      },
+      input: { foo: 'hello' } // strongly typed
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#4157](https://github.com/statelyai/xstate/pull/4157) [`31eb5f8a1`](https://github.com/statelyai/xstate/commit/31eb5f8a1bc9efdc857bb4650be7d6c0f5b20ed3) Thanks [@Valkendorm](https://github.com/Valkendorm)! - Merge `sendBack` and `receive` with other properties of `fromCallback` logic creator.
+
+  ```ts
+  const callbackLogic = fromCallback(({ input, system, self, sendBack, receive }) => { ... });
+  ```
+
 ## 5.0.0-beta.19
 
 ### Major Changes

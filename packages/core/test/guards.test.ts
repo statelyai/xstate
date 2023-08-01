@@ -17,14 +17,15 @@ describe('guard conditions', () => {
 
   const lightMachine = createMachine(
     {
-      context: ({ input = {} }) => ({
-        elapsed: input.elapsed || 0
-      }),
-      initial: 'green',
       types: {} as {
+        input: { elapsed?: number };
         context: LightMachineCtx;
         events: LightMachineEvents;
       },
+      context: ({ input = {} }) => ({
+        elapsed: input.elapsed ?? 0
+      }),
+      initial: 'green',
       states: {
         green: {
           on: {

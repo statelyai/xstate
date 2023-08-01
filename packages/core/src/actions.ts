@@ -78,6 +78,6 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
   return eventObject as ErrorPlatformEvent & string;
 }
 
-export function createInitEvent(input: any) {
+export function createInitEvent(input: unknown) {
   return { type: INIT_TYPE, input } as const;
 }

@@ -43,7 +43,8 @@ import type {
   AnyEventObject,
   ProvidedActor,
   AnyActorRef,
-  Equals
+  Equals,
+  TODO
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -52,9 +53,10 @@ export const WILDCARD = '*';
 
 export class StateMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TActor extends ProvidedActor = ProvidedActor,
+  TEvent extends EventObject,
+  TAction extends ParameterizedObject,
+  TActor extends ProvidedActor,
+  TInput,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
@@ -66,7 +68,12 @@ export class StateMachine<
       TEvent,
       State<TContext, TEvent, TActor, TResolvedTypesMeta>,
       State<TContext, TEvent, TActor, TResolvedTypesMeta>,
-      PersistedMachineState<State<TContext, TEvent, TActor, TResolvedTypesMeta>>
+      PersistedMachineState<
+        State<TContext, TEvent, TActor, TResolvedTypesMeta>
+      >,
+      TODO,
+      TInput,
+      TODO
     >
 {
   /**
@@ -76,7 +83,7 @@ export class StateMachine<
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public types: MachineTypes<TContext, TEvent, TActor>;
+  public types: MachineTypes<TContext, TEvent, TActor, TInput>;
 
   public __xstatenode: true = true;
 
@@ -109,7 +116,7 @@ export class StateMachine<
 
     this.root = new StateNode(config, {
       _key: this.id,
-      _machine: this
+      _machine: this as any
     });
 
     this.root._initialize();
@@ -141,6 +148,7 @@ export class StateMachine<
     TEvent,
     TAction,
     TActor,
+    TInput,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -278,7 +286,7 @@ export class StateMachine<
       TEvent,
       State<TContext, TEvent, TActor, TResolvedTypesMeta>
     >,
-    input?: any
+    input?: TInput
   ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
@@ -454,4 +462,6 @@ export class StateMachine<
   __TActor!: TActor;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
+
+  __TInput!: TInput;
 }
