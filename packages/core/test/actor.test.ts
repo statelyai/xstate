@@ -1218,18 +1218,19 @@ describe('actors', () => {
   });
 
   it('should receive done event from an immediately completed observable when self-initializing', () => {
-    const parentMachine = createMachine<{
-      child: ActorRef<EventObject, unknown> | null;
-    }>({
+    const emptyObservable = fromObservable(() => EMPTY);
+
+    const parentMachine = createMachine({
+      types: {
+        context: {} as {
+          child: ActorRefFrom<typeof emptyObservable> | null;
+        }
+      },
       context: {
         child: null
       },
       entry: assign({
-        child: ({ spawn }) =>
-          spawn(
-            fromObservable(() => EMPTY),
-            { id: 'myactor' }
-          )
+        child: ({ spawn }) => spawn(emptyObservable, { id: 'myactor' })
       }),
       initial: 'init',
       states: {

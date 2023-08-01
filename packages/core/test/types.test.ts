@@ -235,7 +235,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any> {
+  ): StateMachine<TContext, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -309,7 +309,7 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, any, TEvent>) {}
+    >(_machine: StateMachine<TContext, TEvent, any, any, any>) {}
 
     acceptMachine(toggleMachine);
   });
@@ -1656,6 +1656,53 @@ describe('actions', () => {
         count: ({ context }) => context.count + 1,
         skip: true
       })
+    });
+  });
+});
+
+describe('input', () => {
+  it('should provide the input type to the context factory', () => {
+    createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      },
+      context: ({ input }) => {
+        ((_accept: number) => {})(input.count);
+        // @ts-expect-error
+        ((_accept: string) => {})(input.count);
+        return {};
+      }
+    });
+  });
+
+  it('should accept valid input type when interpreting an actor', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    interpret(machine, { input: { count: 100 } });
+  });
+
+  it('should reject invalid input type when interpreting an actor', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    interpret(machine, {
+      input: {
+        // @ts-expect-error
+        count: ''
+      }
     });
   });
 });

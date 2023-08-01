@@ -1087,7 +1087,7 @@ describe('typegen types', () => {
     function acceptMachine<
       TContext extends MachineContext,
       TEvent extends { type: string }
-    >(machine: StateMachine<TContext, any, TEvent>) {
+    >(machine: StateMachine<TContext, TEvent, any, any, any, any>) {
       return machine;
     }
 

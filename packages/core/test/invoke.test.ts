@@ -43,7 +43,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      output: { user: ({ event }: any) => event.user }
+      output: ({ event }) => ({ user: event.user })
     },
     failure: {
       entry: sendParent({ type: 'REJECT' })
@@ -182,8 +182,15 @@ describe('invoke', () => {
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
-    const childMachine = createMachine<{ userId: string | undefined }>({
+    const childMachine = createMachine({
       id: 'fetch',
+      types: {} as {
+        context: { userId: string | undefined };
+        events: {
+          type: 'RESOLVE';
+          user: typeof user;
+        };
+      },
       context: ({ input }) => ({
         userId: input.userId
       }),
@@ -202,7 +209,7 @@ describe('invoke', () => {
         },
         success: {
           type: 'final',
-          output: { user: ({ event }: any) => event.user }
+          output: ({ event }) => ({ user: event.user })
         },
         failure: {
           entry: sendParent({ type: 'REJECT' })
@@ -3291,7 +3298,7 @@ describe('invoke', () => {
   });
 });
 
-describe('actors option', () => {
+describe('invoke input', () => {
   it('should provide input to an actor creator', (done) => {
     const machine = createMachine(
       {
@@ -3347,5 +3354,21 @@ describe('actors option', () => {
     });
 
     service.start();
+  });
+
+  it('should provide self to input mapper', (done) => {
+    const machine = createMachine({
+      invoke: {
+        src: fromCallback(({ input }) => {
+          expect(input.responder.send).toBeDefined();
+          done();
+        }),
+        input: ({ self }) => ({
+          responder: self
+        })
+      }
+    });
+
+    interpret(machine).start();
   });
 });

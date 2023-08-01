@@ -1,11 +1,11 @@
 import {
   MachineConfig,
   EventObject,
-  AnyEventObject,
   MachineContext,
   InternalMachineImplementations,
   ParameterizedObject,
-  ProvidedActor
+  ProvidedActor,
+  AnyEventObject
 } from './types.ts';
 import {
   TypegenConstraint,
@@ -18,6 +18,7 @@ export function createMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject,
   TActor extends ProvidedActor = ProvidedActor,
+  TInput = any,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<
@@ -25,6 +26,7 @@ export function createMachine<
     TEvent,
     ParameterizedObject,
     TActor,
+    TInput,
     TTypesMeta
   >,
   implementations?: InternalMachineImplementations<
@@ -39,9 +41,10 @@ export function createMachine<
   TEvent,
   ParameterizedObject,
   TActor,
+  TInput,
   ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActor>
 > {
-  return new StateMachine<any, any, any, any, any>(
+  return new StateMachine<any, any, any, any, any, any>(
     config as any,
     implementations as any
   );
