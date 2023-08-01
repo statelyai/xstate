@@ -201,6 +201,7 @@ export class Interpreter<
     }
 
     for (const observer of this.observers) {
+      // TODO: should observers be notified in case of the error?
       observer.next?.(snapshot);
     }
 

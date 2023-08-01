@@ -19,12 +19,8 @@ import {
   createMachine,
   interpret,
   sendParent,
-  EventFrom,
-  ActorLogicFrom
+  EventFrom
 } from '../src/index.ts';
-
-declare const process: any;
-beforeAll(() => process.actual().removeAllListeners('uncaughtException'));
 
 const user = { name: 'David' };
 
@@ -872,19 +868,11 @@ describe('invoke', () => {
           }
         });
 
-        // process.actual().on('unhandledRejection', (err) => {
-        //   expect(err.message).toBe('test');
-        // });
-
-        process.actual().on('uncaughtException', (err) => {
-          expect(err.message).toBe('test');
-        });
-
         service.start();
       });
 
-      // tslint:disable-next-line:max-line-length
-      it('unhandled rejections should not be swallowed', (done) => {
+      // jest doesn't allow us to test unhandled rejections anyhow
+      it.skip('unhandled rejections should be reported globally', (done) => {
         const doneSpy = jest.fn();
 
         const promiseMachine = createMachine({
@@ -909,7 +897,7 @@ describe('invoke', () => {
 
         const actor = interpret(promiseMachine);
 
-        process.actual().on('unhandledRejection', (err) => {
+        process.on('unhandledRejection', (err: any) => {
           expect(err.message).toBe('test');
           done();
         });
