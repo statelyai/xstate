@@ -1,0 +1,45 @@
+---
+'xstate': minor
+---
+
+The `onSnapshot: { ... }` transition object is now supported for invoked machines, observables, promises, and transition functions:
+
+```ts
+const machine = Machine({
+  // ...
+  invoke: [
+    {
+      src: createMachine({ ... }),
+      onSnapshot: {
+        actions: (context, event) => {
+          event.snapshot; // machine state
+        }
+      }
+    },
+    {
+      src: fromPromise(() => { ... }),
+      onSnapshot: {
+        actions: (context, event) => {
+          event.snapshot; // promise value
+        }
+      }
+    },
+    {
+      src: fromObservable(() => ...),
+      onSnapshot: {
+        actions: (context, event) => {
+          event.snapshot; // observable value
+        }
+      }
+    },
+    {
+      src: fromTransition((state, event) => { ... }, /* ... */),
+      onSnapshot: {
+        actions: (context, event) => {
+          event.snapshot; // transition function return value
+        }
+      }
+    }
+  ]
+});
+```
