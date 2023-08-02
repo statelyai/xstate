@@ -3,6 +3,7 @@ import { Mailbox } from './Mailbox.ts';
 import { doneInvoke, error } from './actions.ts';
 import { stopSignalType } from './actors/index.ts';
 import { devToolsAdapter } from './dev/index.ts';
+import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { createSystem } from './system.ts';
 import {
@@ -202,7 +203,11 @@ export class Interpreter<
 
     for (const observer of this.observers) {
       // TODO: should observers be notified in case of the error?
-      observer.next?.(snapshot);
+      try {
+        observer.next?.(snapshot);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
     }
 
     const status = this.logic.getStatus?.(state);
@@ -210,14 +215,14 @@ export class Interpreter<
     switch (status?.status) {
       case 'done':
         this._stopProcedure();
+        this._complete();
         this._doneEvent = doneInvoke(this.id, status.data);
         this._parent?.send(this._doneEvent as any);
-        this._complete();
         break;
       case 'error':
         this._stopProcedure();
-        this._parent?.send(error(this.id, status.data));
         this._error(status.data);
+        this._parent?.send(error(this.id, status.data));
         break;
     }
   }
@@ -241,11 +246,14 @@ export class Interpreter<
       completeListener
     );
 
-    this.observers.add(observer);
-
-    if (this.status === ActorStatus.Stopped) {
-      observer.complete?.();
-      this.observers.delete(observer);
+    if (this.status !== ActorStatus.Stopped) {
+      this.observers.add(observer);
+    } else {
+      try {
+        observer.complete?.();
+      } catch (err) {
+        reportUnhandledError(err);
+      }
     }
 
     return {
@@ -274,9 +282,15 @@ export class Interpreter<
       try {
         this.logic.start(this._state, this._actorContext);
       } catch (err) {
+        // TODO: test what happens if an error happens in the child's start
         this.observers.forEach((observer) => {
-          observer.error?.(err);
+          try {
+            observer.error?.(err);
+          } catch (err) {
+            reportUnhandledError(err);
+          }
         });
+        // TODO: examine this throw
         throw err;
       }
     }
@@ -296,6 +310,7 @@ export class Interpreter<
   }
 
   private _process(event: TEvent) {
+    // TODO: reexamine what happens when an action (or a guard or smth) throws
     try {
       const nextState = this.logic.transition(
         this._state,
@@ -310,9 +325,13 @@ export class Interpreter<
         this._complete();
       }
     } catch (err) {
-      this.observers.forEach((observer) => {
-        observer.error?.(err);
-      });
+      for (const observer of this.observers) {
+        try {
+          observer.error?.(err);
+        } catch (err2) {
+          reportUnhandledError(err2);
+        }
+      }
       throw err;
     }
   }
@@ -342,15 +361,33 @@ export class Interpreter<
   }
   private _complete(): void {
     for (const observer of this.observers) {
-      observer.complete?.();
+      try {
+        observer.complete?.();
+      } catch (err) {
+        reportUnhandledError(err);
+      }
     }
     this.observers.clear();
   }
-  private _error(data: any): void {
+  private _error(err: unknown): void {
+    if (!this.observers.size) {
+      return;
+    }
+    // TODO: should this somehow distinguish between the parent and the child?
+    let reportError = false;
     for (const observer of this.observers) {
-      observer.error?.(data);
+      const errorListener = observer.error;
+      reportError ||= !errorListener;
+      try {
+        errorListener?.(err);
+      } catch (err2) {
+        reportUnhandledError(err2);
+      }
     }
     this.observers.clear();
+    if (reportError) {
+      reportUnhandledError(err);
+    }
   }
   private _stopProcedure(): this {
     if (this.status !== ActorStatus.Running) {

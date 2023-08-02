@@ -160,24 +160,14 @@ describe('invoke', () => {
       }
     );
 
-    let state: any;
-    const service = interpret(someParentMachine);
-    service.subscribe((s) => {
-      state = s;
-    });
-    service.subscribe({
-      complete: () => {
-        // 1. The 'parent' machine will not do anything (inert transition)
-        // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
-        // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
-        // 4. The context of the 'parent' machine will be updated from 2 to -1
+    const actorRef = interpret(someParentMachine).start();
+    actorRef.send({ type: 'FORWARD_DEC' });
 
-        expect(state.context).toEqual({ count: -3 });
-      }
-    });
-    service.start();
-
-    service.send({ type: 'FORWARD_DEC' });
+    // 1. The 'parent' machine will not do anything (inert transition)
+    // 2. The 'FORWARD_DEC' event will be "forwarded" to the child machine
+    // 3. On the child machine, the 'FORWARD_DEC' event sends the 'DEC' action to the parent thrice
+    // 4. The context of the 'parent' machine will be updated from 0 to -3
+    expect(actorRef.getSnapshot().context).toEqual({ count: -3 });
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {

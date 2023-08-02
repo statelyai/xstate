@@ -20,7 +20,6 @@ describe('error handling', () => {
     const actor = interpret(machine);
     let count = 0;
     actor.subscribe((state) => {
-      console.log(state.value, state.context);
       if (count !== 0) {
         throw new Error('blah');
       }
