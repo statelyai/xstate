@@ -184,7 +184,11 @@ describe('useMachine hook', () => {
   });
 
   it('should accept input', () => {
-    const testMachine = createMachine<{ foo: string; test: boolean }>({
+    const testMachine = createMachine({
+      types: {} as {
+        context: { foo: string; test: boolean };
+        input: { test?: boolean };
+      },
       context: ({ input }) => ({
         foo: 'bar',
         test: false,

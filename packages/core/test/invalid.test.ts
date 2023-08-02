@@ -25,7 +25,7 @@ describe('invalid or resolved states', () => {
       machine.transition(
         machine.resolveStateValue('A'),
         { type: 'E' },
-        undefined as any // TODO: figure out the simulation API
+        {} as any // TODO: figure out the simulation API
       ).value
     ).toEqual({
       A: 'A1',
@@ -57,7 +57,7 @@ describe('invalid or resolved states', () => {
       machine.transition(
         machine.resolveStateValue({ A: {}, B: {} }),
         { type: 'E' },
-        undefined as any // TODO: figure out the simulation API
+        {} as any // TODO: figure out the simulation API
       ).value
     ).toEqual({
       A: 'A1',
@@ -88,7 +88,7 @@ describe('invalid or resolved states', () => {
     machine.transition(
       machine.resolveStateValue({ A: 'A1', B: 'B1' }),
       { type: 'E' },
-      undefined as any // TODO: figure out the simulation API
+      {} as any // TODO: figure out the simulation API
     );
   });
 
@@ -116,7 +116,7 @@ describe('invalid or resolved states', () => {
       machine.transition(
         machine.resolveStateValue({ A: 'A3', B: 'B3' }),
         { type: 'E' },
-        undefined as any // TODO: figure out the simulation API
+        {} as any // TODO: figure out the simulation API
       )
     ).toThrow();
   });
@@ -145,7 +145,7 @@ describe('invalid or resolved states', () => {
       machine.transition(
         machine.resolveStateValue({ A: 'A1', B: {} }),
         { type: 'E' },
-        undefined as any // TODO: figure out the simulation API
+        {} as any // TODO: figure out the simulation API
       ).value
     ).toEqual({
       A: 'A1',
