@@ -868,6 +868,43 @@ describe('invoke', () => {
         service.start();
       });
 
+      it('should be invoked with a promise factory and stop on unhandled onError target', (done) => {
+        const completeSpy = jest.fn();
+
+        const promiseMachine = createMachine({
+          id: 'invokePromise',
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: fromPromise(() =>
+                  createPromise(() => {
+                    throw new Error('test');
+                  })
+                ),
+                onDone: 'success'
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        });
+
+        const actor = interpret(promiseMachine);
+
+        actor.subscribe({
+          error: (err) => {
+            expect(err).toBeInstanceOf(Error);
+            expect(err.message).toBe('test');
+            expect(completeSpy).not.toHaveBeenCalled();
+            done();
+          },
+          complete: completeSpy
+        });
+        actor.start();
+      });
+
       // jest doesn't allow us to test unhandled rejections anyhow
       it.skip('unhandled rejections should be reported globally', (done) => {
         const doneSpy = jest.fn();

@@ -128,7 +128,12 @@ export function fromObservable<T, TInput>(
       data,
       input
     }),
-    getStatus: (state) => state,
+    getStatus: (state) =>
+      state.status === 'active' || state.status === 'canceled'
+        ? { status: 'active' }
+        : state.status === 'done'
+        ? { status: 'done', output: state.data }
+        : { status: 'error', error: state.data },
     restoreState: (state) => ({
       ...state,
       subscription: undefined
@@ -230,7 +235,12 @@ export function fromEventObservable<T extends EventObject, TInput>(
       data,
       input
     }),
-    getStatus: (state) => state,
+    getStatus: (state) =>
+      state.status === 'active' || state.status === 'canceled'
+        ? { status: 'active' }
+        : state.status === 'done'
+        ? { status: 'done', output: state.data }
+        : { status: 'error', error: state.data },
     restoreState: (state) => ({
       ...state,
       subscription: undefined

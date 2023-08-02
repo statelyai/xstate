@@ -1089,10 +1089,6 @@ function microstepProcedure(
       actorCtx
     );
 
-    const output = done
-      ? getOutput(nextConfiguration, nextState.context, event, actorCtx.self)
-      : undefined;
-
     internalQueue.push(...nextState._internalQueue);
 
     return cloneState(currentState, {
@@ -1100,8 +1096,17 @@ function microstepProcedure(
       historyValue,
       _internalQueue: internalQueue,
       context: nextState.context,
-      done,
-      output,
+      status: done
+        ? {
+            status: 'done',
+            output: getOutput(
+              nextConfiguration,
+              nextState.context,
+              event,
+              actorCtx.self
+            )
+          }
+        : currentState.status,
       children: nextState.children
     });
   } catch (e) {
@@ -1510,7 +1515,7 @@ export function macrostep(
     states.push(nextState);
   }
 
-  while (!nextState.done) {
+  while (nextState.status.status === 'active') {
     let enabledTransitions = selectEventlessTransitions(nextState, nextEvent);
 
     if (!enabledTransitions.length) {
@@ -1543,7 +1548,7 @@ export function macrostep(
     }
   }
 
-  if (nextState.done) {
+  if (nextState.status.status === 'done') {
     // Perform the stop step to ensure that child actors are stopped
     stopStep(nextEvent, nextState, actorCtx);
   }

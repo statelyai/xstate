@@ -120,7 +120,12 @@ export function fromPromise<T, TInput>(
       };
     },
     getSnapshot: (state) => state.data,
-    getStatus: (state) => state,
+    getStatus: (state) =>
+      state.status === 'active' || state.status === 'canceled'
+        ? { status: 'active' }
+        : state.status === 'done'
+        ? { status: 'done', output: state.data! }
+        : { status: 'error', error: state.data },
     getPersistedState: (state) => state,
     restoreState: (state) => state
   };

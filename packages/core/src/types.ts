@@ -1,6 +1,10 @@
 import type { StateNode } from './StateNode.ts';
 import type { State } from './State.ts';
-import type { ActorStatus, Clock, Interpreter } from './interpreter.ts';
+import type {
+  ActorStatus as InterpreterStatus,
+  Clock,
+  Interpreter
+} from './interpreter.ts';
 import type { StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
@@ -1311,6 +1315,11 @@ export interface StateLike<TContext extends MachineContext> {
   event: EventObject;
 }
 
+export type ActorStatus<TOutput> =
+  | { status: 'active' }
+  | { status: 'done'; output: TOutput }
+  | { status: 'error'; error: unknown };
+
 export interface StateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1321,8 +1330,7 @@ export interface StateConfig<
   meta?: any;
   configuration?: Array<StateNode<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
-  done?: boolean;
-  output?: any;
+  status?: ActorStatus<any>;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any>;
   _internalQueue?: Array<TEvent>;
@@ -1444,7 +1452,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   system?: ActorSystem<any>;
-  status: ActorStatus;
+  status: InterpreterStatus;
   src?: string;
 }
 
@@ -1598,7 +1606,7 @@ export interface ActorLogic<
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
-  getStatus?: (state: TInternalState) => { status: string; data?: any };
+  getStatus?: (state: TInternalState) => ActorStatus<TOutput>;
   start?: (
     state: TInternalState,
     actorCtx: ActorContext<TEvent, TSnapshot>
@@ -1767,7 +1775,7 @@ export type AnyActorSystem = ActorSystem<any>;
 
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
-  'value' | 'output' | 'context' | 'done' | 'historyValue'
+  'value' | 'context' | 'status' | 'historyValue'
 > & {
   children: {
     [K in keyof TState['children']]: {

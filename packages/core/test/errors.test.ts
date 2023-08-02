@@ -17,19 +17,15 @@ describe('error handling', () => {
       }
     });
 
-    const actor = interpret(machine);
-    let count = 0;
-    actor.subscribe((state) => {
-      if (count !== 0) {
-        throw new Error('blah');
-      }
-      count++;
+    const spy = jest.fn().mockImplementation(() => {
+      throw new Error('blah');
     });
 
-    actor.start();
+    const actor = interpret(machine).start();
 
-    expect(() => {
-      actor.send({ type: 'activate' });
-    }).toThrow();
+    actor.subscribe(spy);
+    actor.send({ type: 'activate' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

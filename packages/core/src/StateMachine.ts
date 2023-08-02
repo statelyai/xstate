@@ -1,6 +1,6 @@
 import { error, createInitEvent, assign } from './actions.ts';
 import { STATE_DELIMITER } from './constants.ts';
-import { getPersistedState, State } from './State.ts';
+import { cloneState, getPersistedState, State } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import { interpret } from './interpreter.ts';
 import {
@@ -181,7 +181,10 @@ export class StateMachine<
       ...(state as any),
       value: resolveStateValue(this.root, state.value),
       configuration,
-      done: isInFinalState(configuration)
+      status:
+        state.status.status === 'active' && isInFinalState(configuration)
+          ? { status: 'done', output: undefined }
+          : state.status
     });
   }
 
@@ -213,7 +216,12 @@ export class StateMachine<
       isErrorEvent(event) &&
       !state.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
-      throw event.data;
+      return cloneState(state, {
+        status: {
+          status: 'error',
+          error: event.data
+        }
+      });
     }
 
     const { state: nextState } = macrostep(state, event, actorCtx);
@@ -379,9 +387,7 @@ export class StateMachine<
   }
 
   public getStatus(state: State<TContext, TEvent, TActor, TResolvedTypesMeta>) {
-    return state.done
-      ? { status: 'done', data: state.output }
-      : { status: 'active' };
+    return state.status;
   }
 
   public restoreState(

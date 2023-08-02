@@ -1,5 +1,11 @@
 import { createMachine, interpret, assign } from '../src/index.ts';
 
+function assert(condition: boolean): asserts condition {
+  if (!condition) {
+    throw new Error('Assertion failed');
+  }
+}
+
 describe('final states', () => {
   it('should emit the "done.state.*" event when all nested states are in their final states', () => {
     const onDoneSpy = jest.fn();
@@ -180,7 +186,8 @@ describe('final states', () => {
     });
 
     const actor = interpret(machine).start();
-
-    expect(actor.getSnapshot().output.selfRef.send).toBeDefined();
+    const status = actor.getSnapshot().status;
+    assert(status.status === 'done');
+    expect(status.output.selfRef.send).toBeDefined();
   });
 });
