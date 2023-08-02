@@ -215,8 +215,8 @@ export class Interpreter<
         break;
       case 'error':
         this._stopProcedure();
-        this._parent?.send(error(this.id, status.data));
-        this._error(status.data);
+        this._parent?.send(error(this.id, status.error));
+        this._error(status.error);
         break;
     }
   }

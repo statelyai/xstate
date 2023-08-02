@@ -32,7 +32,7 @@ export function createSpawner(
       const input = 'input' in options ? options.input : referenced.input;
 
       // TODO: this should also receive `src`
-      const actor = interpret(referenced.src, {
+      const actorRef = interpret(referenced.src, {
         id: options.id,
         parent: actorContext.self,
         input:
@@ -45,16 +45,38 @@ export function createSpawner(
             : input,
         systemId
       }) as any;
-      spawnedChildren[actor.id] = actor;
-      return actor;
+      spawnedChildren[actorRef.id] = actorRef;
+
+      // if (options.subscribe) {
+      actorRef.subscribe((snapshot) => {
+        actorContext.self.send({
+          type: `xstate.snapshot.${actorRef.id}`,
+          snapshot,
+          id: actorRef.id
+        });
+      });
+      // }
+      return actorRef;
     } else {
       // TODO: this should also receive `src`
-      return interpret(src, {
+      const actorRef = interpret(src, {
         id: options.id,
         parent: actorContext.self,
         input: options.input,
         systemId
       });
+
+      // if (options.subscribe) {
+      actorRef.subscribe((snapshot) => {
+        actorContext.self.send({
+          type: `xstate.snapshot.${actorRef.id}`,
+          snapshot,
+          id: actorRef.id
+        });
+      });
+      // }
+
+      return actorRef;
     }
   };
   return (src, options) => {

@@ -71,7 +71,7 @@ export function fromPromise<T, TInput>(
           return {
             ...state,
             status: 'error',
-            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
+            error: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             input: undefined
           };
         case stopSignalType:

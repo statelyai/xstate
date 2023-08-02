@@ -21,12 +21,14 @@ function resolve(
     id,
     systemId,
     src,
-    input
+    input,
+    subscribe
   }: {
     id: string;
     systemId: string | undefined;
     src: string;
     input?: unknown;
+    subscribe: boolean;
   }
 ) {
   const referenced = resolveReferencedActor(
@@ -52,6 +54,16 @@ function resolve(
             })
           : configuredInput
     });
+
+    // TODO: we need to unsubscribe from the actorRef when the actor is stopped
+    subscribe &&
+      actorRef.subscribe((snapshot) => {
+        actorContext.self.send({
+          type: `xstate.snapshot.${id}`,
+          id,
+          snapshot
+        });
+      });
   }
 
   if (isDevelopment && !actorRef) {
@@ -102,12 +114,14 @@ export function invoke<
   id,
   systemId,
   src,
-  input
+  input,
+  onSnapshot
 }: {
   id: string;
   systemId: string | undefined;
   src: string;
   input?: unknown;
+  onSnapshot?: {}; // TODO: transition object
 }) {
   function invoke(_: ActionArgs<TContext, TExpressionEvent>) {
     if (isDevelopment) {
@@ -120,6 +134,7 @@ export function invoke<
   invoke.systemId = systemId;
   invoke.src = src;
   invoke.input = input;
+  invoke.subscribe = !!onSnapshot;
 
   invoke.resolve = resolve;
   invoke.execute = execute;

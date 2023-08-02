@@ -1625,7 +1625,7 @@ describe('interpreter', () => {
               onSnapshot: {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data === 3;
+                  return event.snapshot === 3;
                 }
               }
             }

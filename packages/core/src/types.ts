@@ -137,6 +137,7 @@ export type Spawner = <T extends AnyActorLogic | string>( // TODO: read string f
     id: string;
     systemId?: string;
     input: T extends AnyActorLogic ? InputFrom<T> : any;
+    subscribe?: boolean;
   }>
 ) => ActorRefFrom<T>;
 
@@ -1113,7 +1114,7 @@ export interface ErrorEvent<TErrorData> {
 
 export interface SnapshotEvent<TData> {
   type: `xstate.snapshot.${string}`;
-  data: TData;
+  snapshot: TData;
 }
 
 export interface ErrorExecutionEvent extends EventObject {
@@ -1598,7 +1599,11 @@ export interface ActorLogic<
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
-  getStatus?: (state: TInternalState) => { status: string; data?: any };
+  getStatus?: (state: TInternalState) => {
+    status: string;
+    data?: any;
+    error?: unknown;
+  };
   start?: (
     state: TInternalState,
     actorCtx: ActorContext<TEvent, TSnapshot>

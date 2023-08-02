@@ -181,7 +181,7 @@ describe('promise logic (fromPromise)', () => {
     const rejectedPersistedState = actor.getPersistedState();
     expect(rejectedPersistedState).toEqual(
       expect.objectContaining({
-        data: 1
+        error: 1
       })
     );
     expect(createdPromises).toBe(1);
@@ -190,7 +190,11 @@ describe('promise logic (fromPromise)', () => {
       state: rejectedPersistedState
     }).start();
 
-    expect(restoredActor.getSnapshot()).toBe(1);
+    expect(restoredActor.getPersistedState()).toEqual(
+      expect.objectContaining({
+        error: 1
+      })
+    );
     expect(createdPromises).toBe(1);
   });
 

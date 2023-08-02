@@ -1933,7 +1933,7 @@ describe('invoke', () => {
             invoke: {
               src: fromObservable(() => interval(10)),
               onSnapshot: {
-                actions: assign({ count: ({ event }) => event.data })
+                actions: assign({ count: ({ event }) => event.snapshot })
               }
             },
             always: {
@@ -1976,7 +1976,7 @@ describe('invoke', () => {
               src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
-                  count: ({ event }) => event.data
+                  count: ({ event }) => event.snapshot
                 })
               },
               onDone: {
@@ -2027,7 +2027,11 @@ describe('invoke', () => {
                 )
               ),
               onSnapshot: {
-                actions: assign({ count: ({ event }) => event.data })
+                actions: assign({
+                  count: ({ event }) => {
+                    return event.snapshot;
+                  }
+                })
               },
               onError: {
                 target: 'success',
@@ -2057,13 +2061,15 @@ describe('invoke', () => {
 
     it('should work with input', (done) => {
       const machine = createMachine({
+        context: { received: undefined },
         invoke: {
           src: fromObservable(({ input }) => of(input)),
           input: 42,
-          onSnapshot: {
+          onDone: {
             actions: ({ event }) => {
-              expect(event.data).toEqual(42);
-              done();
+              if (event.output === 42) {
+                done();
+              }
             }
           }
         }

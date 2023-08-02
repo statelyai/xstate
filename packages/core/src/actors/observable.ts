@@ -13,6 +13,7 @@ export interface ObservableInternalState<T, TInput = unknown> {
   status: 'active' | 'done' | 'error' | 'canceled';
   data: T | undefined;
   input: TInput | undefined;
+  error?: unknown;
 }
 
 export type ObservablePersistedState<T, TInput = unknown> = Omit<
@@ -54,14 +55,6 @@ export function fromObservable<T, TInput>(
 
       switch (event.type) {
         case nextEventType:
-          // match the exact timing of events sent by machines
-          // send actions are not executed immediately
-          defer(() => {
-            self._parent?.send({
-              type: `xstate.snapshot.${id}`,
-              data: event.data
-            });
-          });
           return {
             ...state,
             data: (event as any).data
@@ -71,7 +64,7 @@ export function fromObservable<T, TInput>(
             ...state,
             status: 'error',
             input: undefined,
-            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
+            error: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             subscription: undefined
           };
         case completeEventType:
