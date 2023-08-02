@@ -21,7 +21,7 @@ export const useSelector = <TActor extends ActorRef<any, any>, T>(
         prevSelected = nextSelected;
         set(nextSelected);
       }
-    }
+    };
 
     // Make sure the store gets updated when it's subscribed to.
     onNext(actor.getSnapshot());
