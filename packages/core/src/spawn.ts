@@ -48,7 +48,7 @@ export function createSpawner(
       spawnedChildren[actorRef.id] = actorRef;
 
       // if (options.subscribe) {
-      actorRef.subscribe((snapshot) => {
+      actorRef.subscribe((snapshot: unknown) => {
         actorContext.self.send({
           type: `xstate.snapshot.${actorRef.id}`,
           snapshot,
