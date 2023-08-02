@@ -11,29 +11,33 @@ import { isPromiseLike } from '../utils';
 import { doneInvoke, error } from '../actions.ts';
 import { startSignalType, stopSignalType, isSignal } from '../actors/index.ts';
 
-export interface CallbackInternalState<TEvent extends EventObject> {
+export interface CallbackInternalState<
+  TEvent extends EventObject,
+  TInput = unknown
+> {
   canceled: boolean;
   receivers: Set<(e: TEvent) => void>;
   dispose: void | (() => void) | Promise<any>;
-  input?: any;
+  input: TInput;
 }
 
 export type CallbackActorLogic<
   TEvent extends EventObject,
-  TInput = any
+  TInput = unknown
 > = ActorLogic<
   TEvent,
   undefined,
-  CallbackInternalState<TEvent>,
-  CallbackInternalState<TEvent>,
+  CallbackInternalState<TEvent, TInput>,
+  Pick<CallbackInternalState<TEvent, TInput>, 'input' | 'canceled'>,
   ActorSystem<any>,
   TInput,
   any
 >;
 
-export type CallbackActorRef<TEvent extends EventObject> = ActorRefFrom<
-  CallbackActorLogic<TEvent>
->;
+export type CallbackActorRef<
+  TEvent extends EventObject,
+  TInput = unknown
+> = ActorRefFrom<CallbackActorLogic<TEvent, TInput>>;
 
 export type Receiver<TEvent extends EventObject> = (
   listener: {
@@ -132,7 +136,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
       };
     },
     getSnapshot: () => undefined,
-    getPersistedState: ({ input }) => input
+    getPersistedState: ({ input, canceled }) => ({ input, canceled })
   };
 
   return logic;

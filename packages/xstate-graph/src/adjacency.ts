@@ -21,7 +21,7 @@ export function getAdjacencyMap<
     fromState: customFromState,
     stopCondition
   } = resolveTraversalOptions(options);
-  const actorContext = undefined as any; // TODO: figure out the simulation API
+  const actorContext = { self: {} } as any; // TODO: figure out the simulation API
   const fromState =
     customFromState ?? logic.getInitialState(actorContext, undefined);
   const adj: AdjacencyMap<TInternalState, TEvent> = {};

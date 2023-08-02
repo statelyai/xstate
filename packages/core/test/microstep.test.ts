@@ -30,7 +30,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorContext = undefined as any; // TODO: figure out the simulation API
+    const actorContext = null as any; // TODO: figure out the simulation API
     const states = machine.microstep(
       machine.getInitialState(actorContext),
       { type: 'GO' },
@@ -56,7 +56,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorContext = undefined as any; // TODO: figure out the simulation API
+    const actorContext = null as any; // TODO: figure out the simulation API
     const states = machine.microstep(
       machine.resolveStateValue('first'),
       { type: 'TRIGGER' },
@@ -87,7 +87,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorContext = undefined as any; // TODO: figure out the simulation API
+    const actorContext = null as any; // TODO: figure out the simulation API
     const states = machine.microstep(
       machine.resolveStateValue('first'),
       { type: 'TRIGGER' },
@@ -110,7 +110,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorContext = undefined as any; // TODO: figure out the simulation API
+    const actorContext = null as any; // TODO: figure out the simulation API
     const states = machine.microstep(
       machine.getInitialState(actorContext),
       { type: 'TRIGGER' },
@@ -153,7 +153,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const actorContext = undefined as any; // TODO: figure out the simulation API
+    const actorContext = null as any; // TODO: figure out the simulation API
     const states = machine.microstep(
       machine.getInitialState(actorContext),
       { type: 'TRIGGER' },

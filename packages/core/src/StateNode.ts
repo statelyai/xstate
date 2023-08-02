@@ -117,7 +117,7 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: StateMachine<TContext, TEvent, any, any>;
+  public machine: StateMachine<TContext, TEvent, any, any, TODO, TODO>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -125,9 +125,8 @@ export class StateNode<
   /**
    * The output data sent with the "done.state._id_" event if this is a final state node.
    */
-  public output?:
-    | Mapper<TContext, TEvent, any>
-    | PropertyMapper<TContext, TEvent, any>;
+  public output?: Mapper<TContext, TEvent, any>;
+
   /**
    * The order this state node appears. Corresponds to the implicit document order.
    */

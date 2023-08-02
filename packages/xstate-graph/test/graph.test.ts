@@ -208,7 +208,7 @@ describe('@xstate/graph', () => {
         shortestPaths.find((path) =>
           path.state.matches(
             lightMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
+              {} as any // TODO: figure out the simulation API
             ).value
           )
         )!.steps
@@ -368,7 +368,7 @@ describe('@xstate/graph', () => {
         getMachineSimplePaths(lightMachine).find((p) =>
           p.state.matches(
             lightMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
+              {} as any // TODO: figure out the simulation API
             ).value
           )
         )
@@ -377,7 +377,7 @@ describe('@xstate/graph', () => {
         getMachineSimplePaths(lightMachine).find((p) =>
           p.state.matches(
             lightMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
+              {} as any // TODO: figure out the simulation API
             ).value
           )
         )!.steps
@@ -386,7 +386,7 @@ describe('@xstate/graph', () => {
         getMachineSimplePaths(equivMachine).find((p) =>
           p.state.matches(
             equivMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
+              {} as any // TODO: figure out the simulation API
             ).value
           )
         )!
@@ -395,7 +395,7 @@ describe('@xstate/graph', () => {
         getMachineSimplePaths(equivMachine).find((p) =>
           p.state.matches(
             equivMachine.getInitialState(
-              undefined as any // TODO: figure out the simulation API
+              {} as any // TODO: figure out the simulation API
             ).value
           )
         )!.steps

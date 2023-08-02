@@ -26,7 +26,7 @@ export function testMultiTransition(
     const nextState = machine.transition(
       state,
       { type: eventType },
-      undefined as any // TODO: figure out the simulation API
+      {} as any // TODO: figure out the simulation API
     );
     return nextState;
   };
