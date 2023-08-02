@@ -1303,6 +1303,23 @@ describe('invoke', () => {
         });
         service.start();
       });
+
+      it('should emit onSnapshot', (done) => {
+        const machine = createMachine({
+          invoke: {
+            src: fromPromise(() => createPromise((res) => res(42))),
+            onSnapshot: {
+              actions: ({ event }) => {
+                if (event.snapshot === 42) {
+                  done();
+                }
+              }
+            }
+          }
+        });
+
+        interpret(machine).start();
+      });
     });
   });
 
@@ -2412,6 +2429,28 @@ describe('invoke', () => {
 
       countService.send({ type: 'INC' });
     });
+
+    it('should emit onSnapshot', (done) => {
+      const machine = createMachine({
+        invoke: {
+          id: 'doubler',
+          src: fromTransition(
+            (_, event: { type: 'update'; value: number }) => event.value * 2,
+            0
+          ),
+          onSnapshot: {
+            actions: ({ event }) => {
+              if (event.snapshot === 42) {
+                done();
+              }
+            }
+          }
+        },
+        entry: sendTo('doubler', { type: 'update', value: 21 }, { delay: 10 })
+      });
+
+      interpret(machine).start();
+    });
   });
 
   describe('with machines', () => {
@@ -2463,6 +2502,33 @@ describe('invoke', () => {
       const actor = interpret(pingMachine);
       actor.subscribe({ complete: () => done() });
       actor.start();
+    });
+
+    it('should emit onSnapshot', (done) => {
+      const machine = createMachine({
+        invoke: {
+          src: createMachine({
+            initial: 'a',
+            states: {
+              a: {
+                after: {
+                  10: 'b'
+                }
+              },
+              b: {}
+            }
+          }),
+          onSnapshot: {
+            actions: ({ event }) => {
+              if (event.snapshot.value === 'b') {
+                done();
+              }
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
     });
   });
 
