@@ -22,7 +22,10 @@ import type {
   StateValue,
   TODO,
   AnyActorRef,
-  Compute
+  Compute,
+  MachineConfig,
+  StateValueFrom2,
+  ParameterizedObject
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -70,11 +73,19 @@ export class State<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypesMeta = TypegenDisabled,
+  TConfig extends MachineConfig<
+    TContext,
+    TEvent,
+    ParameterizedObject,
+    TActor,
+    any,
+    any
+  > = any
 > {
   public tags: Set<string>;
 
-  public value: StateValue;
+  public value: StateValueFrom2<TConfig>;
   /**
    * Indicates whether the state is a final state.
    */
@@ -160,7 +171,10 @@ export class State<
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
     this.children = config.children as any;
 
-    this.value = getStateValue(machine.root, this.configuration);
+    this.value = getStateValue(
+      machine.root,
+      this.configuration
+    ) as StateValueFrom2<TConfig>;
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
     this.done = config.done ?? false;
     this.output = config.output;
@@ -194,11 +208,7 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<
-    TSV extends TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
-      : StateValue
-  >(parentStateValue: TSV): boolean {
+  public matches(parentStateValue: StateValueFrom2<TConfig>): boolean {
     return matchesState(parentStateValue as any, this.value);
   }
 

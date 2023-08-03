@@ -62,12 +62,20 @@ export class StateMachine<
     NoInfer<TEvent>,
     TAction,
     TActor
-  >
+  >,
+  TConfig extends MachineConfig<
+    TContext,
+    TEvent,
+    ParameterizedObject,
+    TActor,
+    TInput,
+    any
+  > = MachineConfig<TContext, TEvent, ParameterizedObject, TActor, TInput, any>
 > implements
     ActorLogic<
       TEvent,
-      State<TContext, TEvent, TActor, TResolvedTypesMeta>,
-      State<TContext, TEvent, TActor, TResolvedTypesMeta>,
+      State<TContext, TEvent, TActor, TResolvedTypesMeta, TConfig>,
+      State<TContext, TEvent, TActor, TResolvedTypesMeta, TConfig>,
       PersistedMachineState<
         State<TContext, TEvent, TActor, TResolvedTypesMeta>
       >,
@@ -207,7 +215,7 @@ export class StateMachine<
     state: State<TContext, TEvent, TActor, TResolvedTypesMeta>,
     event: TEvent,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TActor, any>>
-  ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TResolvedTypesMeta, TConfig> {
     // TODO: handle error events in a better way
     if (
       isErrorEvent(event) &&
@@ -287,7 +295,7 @@ export class StateMachine<
       State<TContext, TEvent, TActor, TResolvedTypesMeta>
     >,
     input?: TInput
-  ): State<TContext, TEvent, TActor, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TResolvedTypesMeta, TConfig> {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
     const preInitialState = this.getPreInitialState(actorCtx, initEvent);

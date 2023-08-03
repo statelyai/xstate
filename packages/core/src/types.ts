@@ -706,7 +706,7 @@ export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyState = State<any, any, any, any>;
 
-export type AnyStateMachine = StateMachine<any, any, any, any, any, any>;
+export type AnyStateMachine = StateMachine<any, any, any, any, any, any, any>;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
@@ -1503,15 +1503,16 @@ export type InterpreterFrom<
   infer _TAction,
   infer TActor,
   infer TInput,
-  infer TResolvedTypesMeta
+  infer TResolvedTypesMeta,
+  infer TConfig
 >
   ? Interpreter<
       ActorLogic<
         TEvent,
-        State<TContext, TEvent, TActor, TResolvedTypesMeta>,
-        State<TContext, TEvent, TActor, TResolvedTypesMeta>,
+        State<TContext, TEvent, TActor, TResolvedTypesMeta, TConfig>,
+        State<TContext, TEvent, TActor, TResolvedTypesMeta, TConfig>,
         PersistedMachineState<
-          State<TContext, TEvent, TActor, TResolvedTypesMeta>
+          State<TContext, TEvent, TActor, TResolvedTypesMeta, TConfig>
         >,
         ActorSystem<any>,
         TInput
@@ -1775,4 +1776,29 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
       src?: string;
     };
   };
+};
+
+export type StateValueFrom2<T extends StateNodeConfig<any, any, any, any>> =
+  IsAny<T> extends true
+    ? StateValue
+    : T extends {
+        states: Record<infer S, any>;
+      }
+    ?
+        | S
+        | (T extends { type: 'history' }
+            ? never
+            : T extends { type: 'parallel' }
+            ? {
+                [K in S]: StateValueFrom2<T['states'][K]>;
+              }
+            : Values<{
+                [K in S]: {
+                  [key in K]: StateValueFrom2<T['states'][K]>;
+                };
+              }>)
+    : Record<string, never>;
+
+export type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
 };

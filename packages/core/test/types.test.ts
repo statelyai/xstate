@@ -1706,3 +1706,73 @@ describe('input', () => {
     });
   });
 });
+
+describe('state value', () => {
+  it('works with no states', () => {
+    const machine = createMachine({});
+    const actor = interpret(machine).start();
+
+    actor.getSnapshot().matches({});
+    // @ts-expect-error
+    actor.getSnapshot().matches('hello');
+  });
+
+  it('works with states', () => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {}
+      }
+    });
+    const actor = interpret(machine).start();
+
+    actor.getSnapshot().matches('green');
+    actor.getSnapshot().matches({ green: {} });
+    actor.getSnapshot().matches('yellow');
+    actor.getSnapshot().matches({ yellow: {} });
+    actor.getSnapshot().matches('red');
+    actor.getSnapshot().matches({ red: {} });
+
+    // @ts-expect-error
+    actor.getSnapshot().matches({});
+    // @ts-expect-error
+    actor.getSnapshot().matches('nope');
+  });
+
+  it('works with nested states', () => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {}
+          }
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.getSnapshot().matches('green');
+    actor.getSnapshot().matches({ red: 'walk' });
+    actor.getSnapshot().matches({ red: { wait: {} } });
+
+    actor.getSnapshot().matches({
+      // @ts-expect-error
+      red: 'invalid'
+    });
+
+    actor.getSnapshot().matches({
+      red: {
+        // @ts-expect-error
+        walk: 'invalid'
+      }
+    });
+  });
+});
