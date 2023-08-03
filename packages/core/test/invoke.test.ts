@@ -1852,9 +1852,8 @@ describe('invoke', () => {
       }).not.toThrow();
     });
 
-    it('should throw error if unhandled (sync)', () => {
+    it('should result in an error notification if callback actor throws when it starts and the error stays unhandled by the machine', () => {
       const errorMachine = createMachine({
-        id: 'asyncError',
         initial: 'safe',
         states: {
           safe: {
@@ -1869,9 +1868,20 @@ describe('invoke', () => {
           }
         }
       });
+      const spy = jest.fn();
 
-      const service = interpret(errorMachine);
-      expect(() => service.start()).toThrow();
+      const actorRef = interpret(errorMachine);
+      actorRef.subscribe({
+        error: spy
+      });
+      actorRef.start();
+      expect(spy.mock.calls).toMatchInlineSnapshot(`
+        [
+          [
+            [Error: test],
+          ],
+        ]
+      `);
     });
 
     it('should work with input', (done) => {
