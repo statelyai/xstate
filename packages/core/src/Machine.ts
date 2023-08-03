@@ -5,7 +5,8 @@ import {
   InternalMachineImplementations,
   ParameterizedObject,
   ProvidedActor,
-  AnyEventObject
+  AnyEventObject,
+  MachineStates
 } from './types.ts';
 import {
   TypegenConstraint,
@@ -13,7 +14,6 @@ import {
   ResolveTypegenMeta
 } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
-import { StateFrom, interpret } from './index.ts';
 
 export interface StatesConfig {
   states?: {
@@ -27,21 +27,7 @@ export function createMachine<
   TActor extends ProvidedActor = ProvidedActor,
   TInput = any,
   TTypesMeta extends TypegenConstraint = TypegenDisabled,
-  TConfig extends MachineConfig<
-    TContext,
-    TEvent,
-    ParameterizedObject,
-    TActor,
-    TInput,
-    TTypesMeta
-  > = MachineConfig<
-    TContext,
-    TEvent,
-    ParameterizedObject,
-    TActor,
-    TInput,
-    TTypesMeta
-  >
+  TStates extends MachineStates = MachineStates
 >(
   config: MachineConfig<
     TContext,
@@ -51,7 +37,7 @@ export function createMachine<
     TInput,
     TTypesMeta
   > &
-    TConfig,
+    TStates,
   implementations?: InternalMachineImplementations<
     TContext,
     TEvent,
@@ -66,65 +52,7 @@ export function createMachine<
   TActor,
   TInput,
   ResolveTypegenMeta<TTypesMeta, TEvent, ParameterizedObject, TActor>,
-  TConfig
+  TStates
 > {
-  return new StateMachine<any, any, any, any, any, any>(
-    config as any,
-    implementations as any
-  );
+  return new StateMachine(config as any, implementations as any);
 }
-
-const trafficLight = createMachine({
-  id: 'trafficLight',
-
-  initial: 'green',
-  states: {
-    green: {
-      on: {
-        TIMER: 'yellow'
-      }
-    },
-    yellow: {
-      on: {
-        TIMER: 'red'
-      }
-    },
-    red: {
-      initial: 'walk',
-      states: {
-        walk: {
-          on: {
-            PED_TIMER: 'wait'
-          }
-        },
-        wait: {
-          on: {
-            PED_TIMER: 'stop'
-          }
-        },
-        stop: {
-          type: 'final'
-        }
-      }
-    }
-  }
-});
-
-trafficLight.getInitialState(null as any).matches('red');
-trafficLight.getInitialState(null as any).matches({
-  red: 'walk'
-});
-trafficLight.getInitialState(null as any).matches({
-  red: 'wait'
-});
-trafficLight.getInitialState(null as any).matches({
-  red: {
-    wait: {}
-  }
-});
-
-const actor = interpret(trafficLight).start();
-
-actor.getSnapshot().matches('yellow');
-
-type S = StateFrom<typeof trafficLight>['value'];

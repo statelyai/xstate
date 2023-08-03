@@ -44,7 +44,8 @@ import type {
   ProvidedActor,
   AnyActorRef,
   Equals,
-  TODO
+  TODO,
+  MachineStates
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -63,14 +64,14 @@ export class StateMachine<
     TAction,
     TActor
   >,
-  TConfig extends MachineConfig<
+  TConfig extends MachineStates = MachineConfig<
     TContext,
     TEvent,
     ParameterizedObject,
     TActor,
     TInput,
     any
-  > = MachineConfig<TContext, TEvent, ParameterizedObject, TActor, TInput, any>
+  >
 > implements
     ActorLogic<
       TEvent,

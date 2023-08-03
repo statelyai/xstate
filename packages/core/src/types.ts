@@ -1043,6 +1043,10 @@ export type MachineConfig<
     ? { context?: InitialContext<LowInfer<TContext>, TInput> }
     : { context: InitialContext<LowInfer<TContext>, TInput> });
 
+export type MachineStates = {
+  [key: string]: any;
+};
+
 export interface ProvidedActor {
   src: string;
   logic: AnyActorLogic;

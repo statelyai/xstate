@@ -23,9 +23,8 @@ import type {
   TODO,
   AnyActorRef,
   Compute,
-  MachineConfig,
   StateValueFrom2,
-  ParameterizedObject
+  MachineStates
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -74,14 +73,7 @@ export class State<
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled,
-  TConfig extends MachineConfig<
-    TContext,
-    TEvent,
-    ParameterizedObject,
-    TActor,
-    any,
-    any
-  > = any
+  TConfig extends MachineStates = any
 > {
   public tags: Set<string>;
 
