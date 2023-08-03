@@ -1043,9 +1043,12 @@ export type MachineConfig<
     ? { context?: InitialContext<LowInfer<TContext>, TInput> }
     : { context: InitialContext<LowInfer<TContext>, TInput> });
 
-export type MachineStates = {
-  states?: Record<string, MachineStates>;
+export type MachineStates<Literal = string> = {
+  states?: Record<string, MachineStates<Literal>>;
   on?: unknown;
+  invoke?: SingleOrArray<{
+    src: Literal | NonReducibleUnknown;
+  }>;
 };
 
 export interface ProvidedActor {

@@ -27,7 +27,8 @@ export function createMachine<
   TActor extends ProvidedActor = ProvidedActor,
   TInput = any,
   TTypesMeta extends TypegenConstraint = TypegenDisabled,
-  TStates extends MachineStates = MachineStates
+  Literal extends string = string,
+  TStates extends MachineStates<Literal> = MachineStates<Literal>
 >(
   config: MachineConfig<
     TContext,
