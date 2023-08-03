@@ -1783,26 +1783,25 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
   };
 };
 
-export type StateValueFrom2<T extends StateNodeConfig<any, any, any, any>> =
-  IsAny<T> extends true
-    ? StateValue
-    : T extends {
-        states: Record<infer S, any>;
-      }
-    ?
-        | S
-        | (T extends { type: 'history' }
-            ? never
-            : T extends { type: 'parallel' }
-            ? {
-                [K in S]: StateValueFrom2<T['states'][K]>;
-              }
-            : Values<{
-                [K in S]: {
-                  [key in K]: StateValueFrom2<T['states'][K]>;
-                };
-              }>)
-    : Record<string, never>;
+export type StateValueFrom2<T extends MachineStates> = IsAny<T> extends true
+  ? StateValue
+  : T extends {
+      states: Record<infer S, any>;
+    }
+  ?
+      | S
+      | (T extends { type: 'history' }
+          ? never
+          : T extends { type: 'parallel' }
+          ? {
+              [K in S]: StateValueFrom2<T['states'][K]>;
+            }
+          : Values<{
+              [K in S]: {
+                [key in K]: StateValueFrom2<T['states'][K]>;
+              };
+            }>)
+  : Record<string, never>;
 
 export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
