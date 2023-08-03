@@ -558,7 +558,7 @@ function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
   const machine = createMachine({
     ...toConfig(machineElement, '(machine)'),
     context
-  });
+  } as any);
 
   appendWildcards(machine.root);
 
