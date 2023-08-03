@@ -325,6 +325,7 @@ export class Interpreter<
         this._complete();
       }
     } catch (err) {
+      // TODO: this should likely never happen
       for (const observer of this.observers) {
         try {
           observer.error?.(err);
@@ -370,11 +371,14 @@ export class Interpreter<
     this.observers.clear();
   }
   private _error(err: unknown): void {
-    if (!this.observers.size) {
-      return;
-    }
-    // TODO: should this somehow distinguish between the parent and the child?
     let reportError = false;
+    if (!this.observers.size) {
+      if (!this._parent) {
+        return;
+      }
+      reportError = true;
+    }
+
     for (const observer of this.observers) {
       const errorListener = observer.error;
       reportError ||= !errorListener;

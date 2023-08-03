@@ -905,40 +905,6 @@ describe('invoke', () => {
         actor.start();
       });
 
-      // jest doesn't allow us to test unhandled rejections anyhow
-      it.skip('unhandled rejections should be reported globally', (done) => {
-        const doneSpy = jest.fn();
-
-        const promiseMachine = createMachine({
-          id: 'invokePromise',
-          initial: 'pending',
-          states: {
-            pending: {
-              invoke: {
-                src: fromPromise(() =>
-                  createPromise(() => {
-                    throw new Error('test');
-                  })
-                ),
-                onDone: 'success'
-              }
-            },
-            success: {
-              type: 'final'
-            }
-          }
-        });
-
-        const actor = interpret(promiseMachine);
-
-        process.on('unhandledRejection', (err: any) => {
-          expect(err.message).toBe('test');
-          done();
-        });
-
-        actor.start();
-      });
-
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', (done) => {
         const promiseMachine = createMachine({
           id: 'promise',
