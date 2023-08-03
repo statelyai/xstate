@@ -1044,7 +1044,7 @@ export type MachineConfig<
     : { context: InitialContext<LowInfer<TContext>, TInput> });
 
 export type MachineStates = {
-  [key: string]: any;
+  states?: Record<string, MachineStates>;
 };
 
 export interface ProvidedActor {
