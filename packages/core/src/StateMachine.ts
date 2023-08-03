@@ -181,10 +181,7 @@ export class StateMachine<
       ...(state as any),
       value: resolveStateValue(this.root, state.value),
       configuration,
-      status:
-        state.status.status === 'active' && isInFinalState(configuration)
-          ? { status: 'done', output: undefined }
-          : state.status
+      done: isInFinalState(configuration)
     });
   }
 
@@ -217,10 +214,7 @@ export class StateMachine<
       !state.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
       return cloneState(state, {
-        status: {
-          status: 'error',
-          error: event.data
-        }
+        error: event.data
       });
     }
 
@@ -387,7 +381,11 @@ export class StateMachine<
   }
 
   public getStatus(state: State<TContext, TEvent, TActor, TResolvedTypesMeta>) {
-    return state.status;
+    return state.error
+      ? { status: 'error', data: state.error }
+      : state.done
+      ? { status: 'done', data: state.output }
+      : { status: 'active' };
   }
 
   public restoreState(

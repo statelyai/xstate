@@ -216,13 +216,13 @@ export class Interpreter<
       case 'done':
         this._stopProcedure();
         this._complete();
-        this._doneEvent = doneInvoke(this.id, status.output);
+        this._doneEvent = doneInvoke(this.id, status.data);
         this._parent?.send(this._doneEvent as any);
         break;
       case 'error':
         this._stopProcedure();
-        this._error(status.error);
-        this._parent?.send(error(this.id, status.error));
+        this._error(status.data);
+        this._parent?.send(error(this.id, status.data));
         break;
     }
   }

@@ -22,8 +22,7 @@ import type {
   StateValue,
   TODO,
   AnyActorRef,
-  Compute,
-  ActorStatus
+  Compute
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -76,7 +75,15 @@ export class State<
   public tags: Set<string>;
 
   public value: StateValue;
-  public status: ActorStatus<any>;
+  /**
+   * Indicates whether the state is a final state.
+   */
+  public done: boolean;
+  /**
+   * The done data of the top-level finite state.
+   */
+  public output: any; // TODO: add an explicit type for `output`
+  public error: unknown;
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public _internalQueue: Array<TEvent>;
@@ -156,7 +163,9 @@ export class State<
 
     this.value = getStateValue(machine.root, this.configuration);
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
-    this.status = config.status || { status: 'active' };
+    this.done = config.done ?? false;
+    this.output = config.output;
+    this.error = config.error;
   }
 
   /**

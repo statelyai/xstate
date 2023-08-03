@@ -524,7 +524,7 @@ describe('transient states (eventless transitions)', () => {
     const actorRef = interpret(machine).start();
     actorRef.send({ type: 'ADD' });
 
-    expect(actorRef.getSnapshot().status.status).toBe('done');
+    expect(actorRef.getSnapshot().done).toBe(true);
   });
 
   it('should work with transient transition on root (with `always`)', () => {
@@ -558,7 +558,7 @@ describe('transient states (eventless transitions)', () => {
     const actorRef = interpret(machine).start();
     actorRef.send({ type: 'ADD' });
 
-    expect(actorRef.getSnapshot().status.status).toBe('done');
+    expect(actorRef.getSnapshot().done).toBe(true);
   });
 
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
@@ -693,7 +693,7 @@ describe('transient states (eventless transitions)', () => {
     const actorRef = interpret(machine).start();
     actorRef.send({ type: 'EVENT' });
 
-    expect(actorRef.getSnapshot().status.status).toBe('done');
+    expect(actorRef.getSnapshot().done).toBe(true);
   });
 
   it('events that trigger eventless transitions should be preserved in actions', () => {

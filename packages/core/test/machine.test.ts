@@ -299,7 +299,7 @@ describe('machine', () => {
       expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
     });
 
-    it(`should resolve .status: 'done'`, () => {
+    it('should resolve .done', () => {
       const machine = createMachine({
         initial: 'foo',
         states: {
@@ -315,7 +315,7 @@ describe('machine', () => {
 
       const resolvedState = machine.resolveState(tempState);
 
-      expect(resolvedState.status.status).toBe('done');
+      expect(resolvedState.done).toBe(true);
     });
 
     it('should resolve from a state config object', () => {
