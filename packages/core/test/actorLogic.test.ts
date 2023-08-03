@@ -174,6 +174,7 @@ describe('promise logic (fromPromise)', () => {
       return Promise.reject(createdPromises);
     });
     const actor = interpret(promiseLogic);
+    actor.subscribe({ error: function preventUnhandledErrorListener() {} });
     actor.start();
 
     await new Promise((res) => setTimeout(res, 5));

@@ -39,6 +39,7 @@ describe('error handling', () => {
     expect(spy).toHaveBeenCalledTimes(1);
 
     installGlobalOnErrorHandler((ev) => {
+      ev.preventDefault();
       expect(ev.error.message).toEqual('blah');
       done();
     });
@@ -63,6 +64,7 @@ describe('error handling', () => {
     interpret(promiseMachine).start();
 
     installGlobalOnErrorHandler((ev) => {
+      ev.preventDefault();
       expect(ev.error.message).toEqual('foo');
       done();
     });

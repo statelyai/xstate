@@ -199,13 +199,22 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine, { systemId: 'test' }).start();
+    const errorSpy = jest.fn();
 
-    expect(() => {
-      actor.send({ type: 'toggle' });
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Actor with system ID 'test' already exists."`
-    );
+    const actorRef = interpret(machine, { systemId: 'test' });
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+    actorRef.send({ type: 'toggle' });
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Actor with system ID 'test' already exists.],
+        ],
+      ]
+    `);
   });
 
   it('should be accessible in inline custom actions', () => {

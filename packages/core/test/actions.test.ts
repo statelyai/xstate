@@ -2581,13 +2581,22 @@ describe('forwardTo()', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const errorSpy = jest.fn();
 
-    expect(() =>
-      service.send({ type: 'TEST' })
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"Attempted to forward event to undefined actor. This risks an infinite loop in the sender."`
-    );
+    const actorRef = interpret(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+    actorRef.send({ type: 'TEST' });
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Attempted to forward event to undefined actor. This risks an infinite loop in the sender.],
+        ],
+      ]
+    `);
   });
 });
 

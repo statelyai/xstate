@@ -278,20 +278,27 @@ export class Interpreter<
     }
     this.status = ActorStatus.Running;
 
+    const status = this.logic.getStatus?.(this._state);
+
+    switch (status?.status) {
+      case 'done':
+        // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
+        // we still need to complete observers, flush deferreds etc
+        this.update(this._state);
+      // fallthrough
+      case 'error':
+        // TODO: rethink cleanup of observers, mailbox, etc
+        return this;
+    }
+
     if (this.logic.start) {
       try {
         this.logic.start(this._state, this._actorContext);
       } catch (err) {
-        // TODO: test what happens if an error happens in the child's start
-        this.observers.forEach((observer) => {
-          try {
-            observer.error?.(err);
-          } catch (err) {
-            reportUnhandledError(err);
-          }
-        });
-        // TODO: examine this throw
-        throw err;
+        this._stopProcedure();
+        this._error(err);
+        this._parent?.send(error(this.id, err));
+        return this;
       }
     }
 
@@ -311,29 +318,28 @@ export class Interpreter<
 
   private _process(event: TEvent) {
     // TODO: reexamine what happens when an action (or a guard or smth) throws
+    let nextState;
+    let caughtError;
     try {
-      const nextState = this.logic.transition(
-        this._state,
-        event,
-        this._actorContext
-      );
-
-      this.update(nextState);
-
-      if (event.type === stopSignalType) {
-        this._stopProcedure();
-        this._complete();
-      }
+      nextState = this.logic.transition(this._state, event, this._actorContext);
     } catch (err) {
-      // TODO: this should likely never happen
-      for (const observer of this.observers) {
-        try {
-          observer.error?.(err);
-        } catch (err2) {
-          reportUnhandledError(err2);
-        }
-      }
-      throw err;
+      // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
+      caughtError = { err };
+    }
+
+    if (caughtError) {
+      const { err } = caughtError;
+
+      this._stopProcedure();
+      this._error(err);
+      this._parent?.send(error(this.id, err));
+      return;
+    }
+
+    this.update(nextState);
+    if (event.type === stopSignalType) {
+      this._stopProcedure();
+      this._complete();
     }
   }
 

@@ -320,20 +320,11 @@ export class StateMachine<
   }
 
   public start(
-    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>,
-    actorCtx: ActorContext<
-      TEvent,
-      State<TContext, TEvent, TActor, TResolvedTypesMeta>
-    >
+    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>
   ): void {
     Object.values(state.children).forEach((child: any) => {
       if (child.status === 0) {
-        try {
-          child.start?.();
-        } catch (err) {
-          // TODO: unify error handling when child starts
-          actorCtx.self.send(error(child.id, err) as unknown as TEvent);
-        }
+        child.start?.();
       }
     });
   }
