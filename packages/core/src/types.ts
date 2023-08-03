@@ -1783,12 +1783,6 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
   };
 };
 
-interface UnknownStateValueObject {
-  [key: string]: string | UnknownStateValueObject;
-}
-
-type UnknownStateValue = string | UnknownStateValueObject;
-
 export type StateValueFrom2<T extends MachineStates> = IsAny<T> extends true
   ? StateValue
   : T extends {
@@ -1807,7 +1801,7 @@ export type StateValueFrom2<T extends MachineStates> = IsAny<T> extends true
                 [key in K]: StateValueFrom2<T['states'][K]>;
               };
             }>)
-  : UnknownStateValue;
+  : StateValue;
 
 export type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
