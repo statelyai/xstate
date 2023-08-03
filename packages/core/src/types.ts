@@ -1045,6 +1045,7 @@ export type MachineConfig<
 
 export type MachineStates = {
   states?: Record<string, MachineStates>;
+  on?: unknown;
 };
 
 export interface ProvidedActor {

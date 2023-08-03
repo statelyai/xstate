@@ -117,6 +117,7 @@ describe('matches() method', () => {
 
     expect(initialState.matches('foo')).toBeTruthy();
     expect(initialState.matches({ foo: 'bar' })).toBeTruthy();
+    // @ts-expect-error
     expect(initialState.matches('fake')).toBeFalsy();
   });
 });
