@@ -371,13 +371,13 @@ export class Interpreter<
     this.observers.clear();
   }
   private _error(err: unknown): void {
-    let reportError = false;
     if (!this.observers.size) {
       if (!this._parent) {
-        return;
+        reportUnhandledError(err);
       }
-      reportError = true;
+      return;
     }
+    let reportError = false;
 
     for (const observer of this.observers) {
       const errorListener = observer.error;
