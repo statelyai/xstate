@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@xstate/react':
-    specifier: 4.0.0-beta.5
-    version: 4.0.0-beta.5(@types/react@18.2.7)(react@18.2.0)(xstate@5.0.0-beta.13)
+    specifier: 4.0.0-beta.8
+    version: 4.0.0-beta.8(@types/react@18.2.7)(react@18.2.0)(xstate@5.0.0-beta.20)
   react:
     specifier: ^18.2.0
     version: 18.2.0
@@ -11,8 +11,8 @@ dependencies:
     specifier: ^18.2.0
     version: 18.2.0(react@18.2.0)
   xstate:
-    specifier: 5.0.0-beta.13
-    version: 5.0.0-beta.13
+    specifier: 5.0.0-beta.20
+    version: 5.0.0-beta.20
 
 devDependencies:
   '@types/react':
@@ -528,12 +528,12 @@ packages:
       - supports-color
     dev: true
 
-  /@xstate/react@4.0.0-beta.5(@types/react@18.2.7)(react@18.2.0)(xstate@5.0.0-beta.13):
-    resolution: {integrity: sha512-E/icGXFNnTJFk3aoA8VOKQ988+R2a9j/o4g6bFhBlitQuoFgtFYWUX/d1R+rc/xaYKIxtE/lPodzqCa5s39VHQ==}
+  /@xstate/react@4.0.0-beta.8(@types/react@18.2.7)(react@18.2.0)(xstate@5.0.0-beta.20):
+    resolution: {integrity: sha512-27L6LJP/7hWyEY5vtvfD/N3wgVgVTyTrbL9n25iT1OV3Shg3lpfA2hA/mJppttLNhkR/7V3WoFC4fmKu1BwVSA==}
     peerDependencies:
-      '@xstate/fsm': ^3.0.0-beta.2
+      '@xstate/fsm': ^3.0.0-beta.3
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      xstate: ^5.0.0-beta.13
+      xstate: ^5.0.0-beta.18
     peerDependenciesMeta:
       '@xstate/fsm':
         optional: true
@@ -543,7 +543,7 @@ packages:
       react: 18.2.0
       use-isomorphic-layout-effect: 1.1.2(@types/react@18.2.7)(react@18.2.0)
       use-sync-external-store: 1.2.0(react@18.2.0)
-      xstate: 5.0.0-beta.13
+      xstate: 5.0.0-beta.20
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -865,8 +865,8 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /xstate@5.0.0-beta.13:
-    resolution: {integrity: sha512-cv27Y9t6xJimBZ/FBFe6Vjegai/3Gv6INFQcdsiNGrFuXXjP7IMwjytOIxL6VhlDasXcoofWQoPy95v2d284ow==}
+  /xstate@5.0.0-beta.20:
+    resolution: {integrity: sha512-jPQq/T+I16L5q8SkaNyUKO48K8hn8SJZGfvt4ZoAUw6B4HyN4TwK/vSkntb1HvBMxR/5lQrO7yoT6IzL9I3ZoA==}
     dev: false
 
   /yallist@3.1.1:
