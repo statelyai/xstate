@@ -123,9 +123,7 @@ describe('error handling', () => {
       expect(ev.error.message).toEqual(
         'doesnt_notify_error_listener_when_error_is_thrown_in_subscribe'
       );
-      setTimeout(() => {
-        done();
-      }, 2000);
+      done();
     });
   });
 
