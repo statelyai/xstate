@@ -13,4 +13,4 @@ Significant improvements to error handling have been made:
     }
   });
   ```
-- If an observer does not have an error handler, the error will be thrown normally.
+- If an observer does not have an error handler, the error will be thrown in a clear stack so bug tracking services can collect it.
