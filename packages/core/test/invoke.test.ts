@@ -19,8 +19,7 @@ import {
   createMachine,
   interpret,
   sendParent,
-  EventFrom,
-  ActorLogicFrom
+  EventFrom
 } from '../src/index.ts';
 
 const user = { name: 'David' };
@@ -145,7 +144,7 @@ describe('invoke', () => {
                 actions: assign({ count: ({ context }) => context.count - 1 })
               },
               FORWARD_DEC: {
-                actions: sendTo('child', { type: 'FORWARD_DEC' })
+                actions: sendTo('someService', { type: 'FORWARD_DEC' })
               }
             }
           },
@@ -161,24 +160,14 @@ describe('invoke', () => {
       }
     );
 
-    let state: any;
-    const service = interpret(someParentMachine);
-    service.subscribe((s) => {
-      state = s;
-    });
-    service.subscribe({
-      complete: () => {
-        // 1. The 'parent' machine will not do anything (inert transition)
-        // 2. The 'FORWARD_DEC' event will be "forwarded" to the 'child' machine
-        // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
-        // 4. The context of the 'parent' machine will be updated from 2 to -1
+    const actorRef = interpret(someParentMachine).start();
+    actorRef.send({ type: 'FORWARD_DEC' });
 
-        expect(state.context).toEqual({ count: -3 });
-      }
-    });
-    service.start();
-
-    service.send({ type: 'FORWARD_DEC' });
+    // 1. The 'parent' machine will not do anything (inert transition)
+    // 2. The 'FORWARD_DEC' event will be "forwarded" to the child machine
+    // 3. On the child machine, the 'FORWARD_DEC' event sends the 'DEC' action to the parent thrice
+    // 4. The context of the 'parent' machine will be updated from 0 to -3
+    expect(actorRef.getSnapshot().context).toEqual({ count: -3 });
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
@@ -875,12 +864,12 @@ describe('invoke', () => {
             done();
           }
         });
+
         service.start();
       });
 
-      // tslint:disable-next-line:max-line-length
       it('should be invoked with a promise factory and stop on unhandled onError target', (done) => {
-        const doneSpy = jest.fn();
+        const completeSpy = jest.fn();
 
         const promiseMachine = createMachine({
           id: 'invokePromise',
@@ -906,13 +895,12 @@ describe('invoke', () => {
 
         actor.subscribe({
           error: (err) => {
-            // TODO: determine if err should be the full SCXML error event
             expect(err).toBeInstanceOf(Error);
             expect(err.message).toBe('test');
-            expect(doneSpy).not.toHaveBeenCalled();
+            expect(completeSpy).not.toHaveBeenCalled();
             done();
           },
-          complete: doneSpy
+          complete: completeSpy
         });
         actor.start();
       });
@@ -1830,9 +1818,8 @@ describe('invoke', () => {
       }).not.toThrow();
     });
 
-    it('should throw error if unhandled (sync)', () => {
+    it('should result in an error notification if callback actor throws when it starts and the error stays unhandled by the machine', () => {
       const errorMachine = createMachine({
-        id: 'asyncError',
         initial: 'safe',
         states: {
           safe: {
@@ -1847,9 +1834,20 @@ describe('invoke', () => {
           }
         }
       });
+      const spy = jest.fn();
 
-      const service = interpret(errorMachine);
-      expect(() => service.start()).toThrow();
+      const actorRef = interpret(errorMachine);
+      actorRef.subscribe({
+        error: spy
+      });
+      actorRef.start();
+      expect(spy.mock.calls).toMatchInlineSnapshot(`
+        [
+          [
+            [Error: test],
+          ],
+        ]
+      `);
     });
 
     it('should work with input', (done) => {

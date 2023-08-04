@@ -423,16 +423,15 @@ export function toObserver<T>(
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
 ): Observer<T> {
-  const noop = () => {};
   const isObserver = typeof nextHandler === 'object';
-  const self = isObserver ? nextHandler : null;
+  const self = isObserver ? nextHandler : undefined;
 
   return {
-    next: ((isObserver ? nextHandler.next : nextHandler) || noop).bind(self),
-    error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
-    complete: (
-      (isObserver ? nextHandler.complete : completionHandler) || noop
-    ).bind(self)
+    next: (isObserver ? nextHandler.next : nextHandler)?.bind(self),
+    error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
+    complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
+      self
+    )
   };
 }
 
