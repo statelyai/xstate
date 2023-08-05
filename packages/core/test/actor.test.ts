@@ -846,8 +846,6 @@ describe('actors', () => {
       }
     });
 
-    interpret;
-
     // expect(createActor(nullActorMachine).getSnapshot().context.ref!.id).toBe('null'); // TODO: identify null actors
     expect(
       createActor(nullActorMachine).getSnapshot().context.ref!.send
