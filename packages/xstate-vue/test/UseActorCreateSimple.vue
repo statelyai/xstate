@@ -13,7 +13,7 @@ import { ActorRef } from 'xstate';
 import { defineComponent, shallowRef } from 'vue';
 
 import { useActor } from '../src/index.ts';
-import { createActor } from 'xstate/src';
+import { createActor } from 'xstate';
 
 const createSimpleActor = (value: number): ActorRef<any, number> =>
   createActor({
