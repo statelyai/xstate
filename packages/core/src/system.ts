@@ -1,5 +1,7 @@
 import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.js';
 
+import { interpret } from './interpreter.ts';
+
 let count = 0;
 export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
   let sessionIdCounter = 0;
@@ -7,7 +9,7 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
 
-  const system: ActorSystem<T> = {
+  const systemState = {
     id: 'system:' + count++,
     _bookId: () => `x:${sessionIdCounter++}`,
     _register: (sessionId, actorRef) => {
@@ -42,6 +44,26 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
       reverseKeyedActors.set(actorRef, systemId);
     }
   };
+
+  const logic = {
+    transition: (state, event, actorCtx) => {
+      return state;
+    },
+    getInitialState: () => systemState,
+    getSnapshot: () => children,
+    getPersistedState: () => null,
+    restoreState: () => null,
+    _system: systemState
+  };
+
+  const system = interpret(logic);
+
+  system.get = systemState.get;
+  system._set = systemState._set;
+  system._bookId = systemState._bookId;
+  system._register = systemState._register;
+  system._unregister = systemState._unregister;
+  system._stop = systemState._stop;
 
   return system;
 }

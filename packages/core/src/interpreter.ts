@@ -138,14 +138,14 @@ export class Interpreter<
     const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem();
+    this.system = logic._system ?? parent?.system ?? createSystem();
 
     if (systemId) {
       this._systemId = systemId;
       this.system._set(systemId, this);
     }
 
-    this.sessionId = this.system._bookId();
+    this.sessionId = logic._system ? 'system' : this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;

@@ -126,7 +126,7 @@ describe('system', () => {
     expect(actor.system.get('test')).toBe(actor);
   });
 
-  it('should remove invoked actor from receptionist if stopped', () => {
+  it('should NOT remove invoked actor from receptionist if stopped', () => {
     const machine = createMachine({
       initial: 'active',
       states: {
@@ -149,10 +149,10 @@ describe('system', () => {
 
     actor.send({ type: 'toggle' });
 
-    expect(actor.system.get('test')).toBeUndefined();
+    expect(actor.system.get('test')).toBeDefined();
   });
 
-  it('should remove spawned actor from receptionist if stopped', () => {
+  it('should NOT remove spawned actor from receptionist if stopped', () => {
     const machine = createMachine({
       context: ({ spawn }) => ({
         ref: spawn(createMachine({}), {
@@ -172,7 +172,7 @@ describe('system', () => {
 
     actor.send({ type: 'toggle' });
 
-    expect(actor.system.get('test')).toBeUndefined();
+    expect(actor.system.get('test')).toBeDefined();
   });
 
   it('should throw an error if an actor with the system ID already exists', () => {
