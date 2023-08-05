@@ -399,4 +399,19 @@ describe('system', () => {
 
     expect(actor.system.get('test')).toBeDefined();
   });
+
+  it('system actor should be immediately available', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          return 42;
+        }),
+        systemId: 'test'
+      }
+    });
+
+    const actor = interpret(machine);
+    expect(actor.system.get('test')).toBeDefined();
+  });
 });

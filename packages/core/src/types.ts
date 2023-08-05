@@ -1757,10 +1757,12 @@ export interface ActorSystemInfo {
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
+  id: string;
   _bookId: () => string;
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  _stop: () => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
 }
 

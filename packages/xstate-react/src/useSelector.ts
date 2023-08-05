@@ -13,7 +13,9 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
 ): T {
   const subscribe = useCallback(
     (handleStoreChange) => {
-      const { unsubscribe } = actor.subscribe(handleStoreChange);
+      const { unsubscribe } = actor.subscribe((state) => {
+        return handleStoreChange(state);
+      });
       return unsubscribe;
     },
     [actor]

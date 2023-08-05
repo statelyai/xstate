@@ -419,7 +419,9 @@ export class Interpreter<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = ActorStatus.Stopped;
-    this.system._unregister(this);
+    if (!this._parent) {
+      this.system._stop();
+    }
 
     return this;
   }

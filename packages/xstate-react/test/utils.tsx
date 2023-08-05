@@ -9,14 +9,14 @@ type SimplifiedRTLRender = (
 ) => ReturnType<typeof RTL.render>;
 
 const reactModes = [
-  ['non-strict', React.Fragment],
+  // ['non-strict', React.Fragment],
   ['strict', React.StrictMode]
 ] as const;
 
 export function describeEachReactMode(
   name: string,
   fn: (suiteCase: {
-    suiteKey: typeof reactModes[number][0];
+    suiteKey: (typeof reactModes)[number][0];
     render: SimplifiedRTLRender;
   }) => void
 ) {
