@@ -9,7 +9,7 @@ import {
   createMachine,
   DoneEventObject,
   doneInvoke,
-  interpret,
+  createActor,
   Interpreter,
   PersistedMachineState,
   raise,
@@ -64,7 +64,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     }
   });
 
-  const actorRef = interpret(
+  const actorRef = createActor(
     fetchMachine.provide({
       actors: {
         fetchData: fromCallback(({ sendBack }) => {
@@ -896,7 +896,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const actorRef = interpret(testMachine).start();
+    const actorRef = createActor(testMachine).start();
     const persistedState = JSON.stringify(actorRef.getPersistedState());
     actorRef.stop();
 

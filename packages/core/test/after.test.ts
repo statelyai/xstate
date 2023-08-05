@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 import { after } from '../src/actions.ts';
 
 const lightMachine = createMachine({
@@ -32,7 +32,7 @@ describe('delayed transitions', () => {
   it('should transition after delay', () => {
     jest.useFakeTimers();
 
-    const actorRef = interpret(lightMachine).start();
+    const actorRef = createActor(lightMachine).start();
     expect(actorRef.getSnapshot().value).toBe('green');
 
     jest.advanceTimersByTime(500);
@@ -71,7 +71,7 @@ describe('delayed transitions', () => {
       }
     });
 
-    const actor = interpret(machine);
+    const actor = createActor(machine);
     actor.subscribe({
       complete: () => {
         done();
@@ -108,7 +108,7 @@ describe('delayed transitions', () => {
       }
     });
 
-    const actor = interpret(machine);
+    const actor = createActor(machine);
     actor.subscribe({
       complete: () => {
         expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
@@ -148,7 +148,7 @@ describe('delayed transitions', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     jest.advanceTimersByTime(10);
     expect(spy).not.toHaveBeenCalled();
@@ -176,11 +176,11 @@ describe('delayed transitions', () => {
       }
     });
 
-    const actorRef1 = interpret(machine).start();
+    const actorRef1 = createActor(machine).start();
     actorRef1.send({ type: 'next' });
     const withAfterState = actorRef1.getPersistedState();
 
-    const actorRef2 = interpret(machine, { state: withAfterState });
+    const actorRef2 = createActor(machine, { state: withAfterState });
     actorRef2.subscribe({ complete: () => done() });
     actorRef2.start();
   });
@@ -206,11 +206,11 @@ describe('delayed transitions', () => {
         }
       });
 
-    let service = interpret(createMyMachine()).start();
+    let service = createActor(createMyMachine()).start();
 
     const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
 
-    service = interpret(createMyMachine(), { state: persistedState }).start();
+    service = createActor(createMyMachine(), { state: persistedState }).start();
 
     service.send({ type: 'NEXT' });
 
@@ -243,7 +243,7 @@ describe('delayed transitions', () => {
         }
       });
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
 
       expect(spy).toBeCalledWith(context);
       expect(actor.getSnapshot().value).toBe('inactive');
@@ -287,7 +287,7 @@ describe('delayed transitions', () => {
         }
       );
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
 
       const event = {
         type: 'ACTIVATE',

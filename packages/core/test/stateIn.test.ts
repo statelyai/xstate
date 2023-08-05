@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 import { stateIn } from '../src/guards.ts';
 
 describe('transition "in" check', () => {
@@ -59,7 +59,7 @@ describe('transition "in" check', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT2' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -123,7 +123,7 @@ describe('transition "in" check', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT3' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -187,7 +187,7 @@ describe('transition "in" check', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT1' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -246,7 +246,7 @@ describe('transition "in" check', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT2' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -307,7 +307,7 @@ describe('transition "in" check', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT_DEEP' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -368,7 +368,7 @@ describe('transition "in" check', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT_DEEP' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -411,7 +411,7 @@ describe('transition "in" check', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'TIMER' });
     actorRef.send({ type: 'TIMER' });
@@ -455,7 +455,7 @@ describe('transition "in" check', () => {
       }
     );
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     actor.send({
       type: 'NEXT'
     });

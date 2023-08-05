@@ -7,7 +7,7 @@ import {
   ActorRefFrom,
   assign,
   createMachine,
-  interpret,
+  createActor,
   MachineContext,
   Spawner,
   StateMachine
@@ -267,7 +267,7 @@ describe('events', () => {
       entry: raise<any, any, any>({ type: 'FOO' })
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'FOO' });
     // @ts-expect-error
@@ -284,7 +284,7 @@ describe('events', () => {
       entry: () => {}
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'FOO' });
     // @ts-expect-error
@@ -420,7 +420,7 @@ describe('events', () => {
 
 describe('interpreter', () => {
   it('should be convertable to Rx observable', () => {
-    const s = interpret(
+    const s = createActor(
       createMachine({
         types: {
           context: {} as { count: number }
@@ -1114,7 +1114,7 @@ describe('actor types', () => {
       }
     );
 
-    const snapshot = interpret(machine).getSnapshot();
+    const snapshot = createActor(machine).getSnapshot();
     const childSnapshot = snapshot.children.someChild!.getSnapshot();
 
     ((_accept: string | undefined) => {})(childSnapshot.context.foo);
@@ -1264,7 +1264,7 @@ describe('actor types', () => {
       }
     });
 
-    const childActor = interpret(machine).getSnapshot().children.myChild;
+    const childActor = createActor(machine).getSnapshot().children.myChild;
 
     ((_accept: ActorRefFrom<typeof child> | undefined) => {})(childActor);
     // @ts-expect-error
@@ -1287,7 +1287,7 @@ describe('actor types', () => {
       }
     });
 
-    const childActor = interpret(machine).getSnapshot().children.someChild;
+    const childActor = createActor(machine).getSnapshot().children.someChild;
 
     ((_accept: ActorRefFrom<typeof child> | undefined) => {})(childActor);
     // @ts-expect-error
@@ -1323,10 +1323,10 @@ describe('actor types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().children.counter;
-    interpret(machine).getSnapshot().children.quiz;
+    createActor(machine).getSnapshot().children.counter;
+    createActor(machine).getSnapshot().children.quiz;
     // @ts-expect-error
-    interpret(machine).getSnapshot().children.someChild;
+    createActor(machine).getSnapshot().children.someChild;
   });
 
   it('when some provided actors have specified ids index signature should be allowed', () => {
@@ -1357,10 +1357,10 @@ describe('actor types', () => {
       }
     });
 
-    const counterActor = interpret(machine).getSnapshot().children.counter;
+    const counterActor = createActor(machine).getSnapshot().children.counter;
     ((_accept: ActorRefFrom<typeof child1> | undefined) => {})(counterActor);
 
-    const someActor = interpret(machine).getSnapshot().children.someChild;
+    const someActor = createActor(machine).getSnapshot().children.someChild;
     // @ts-expect-error
     ((_accept: ActorRefFrom<typeof child2> | undefined) => {})(someActor);
     ((
@@ -1686,7 +1686,7 @@ describe('input', () => {
       }
     });
 
-    interpret(machine, { input: { count: 100 } });
+    createActor(machine, { input: { count: 100 } });
   });
 
   it('should reject invalid input type when interpreting an actor', () => {
@@ -1698,7 +1698,7 @@ describe('input', () => {
       }
     });
 
-    interpret(machine, {
+    createActor(machine, {
       input: {
         // @ts-expect-error
         count: ''

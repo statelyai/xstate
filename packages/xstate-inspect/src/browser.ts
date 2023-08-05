@@ -2,7 +2,7 @@ import {
   ActorRef,
   AnyInterpreter,
   EventObject,
-  interpret,
+  createActor,
   Observer,
   toObserver
 } from 'xstate';
@@ -106,7 +106,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
   }
 
   const inspectMachine = createInspectMachine(devTools, options);
-  const inspectService = interpret(inspectMachine).start();
+  const inspectService = createActor(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
 
   const sub = inspectService.subscribe((state) => {

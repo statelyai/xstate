@@ -534,6 +534,34 @@ export class Interpreter<
  * @param machine The machine to interpret
  * @param options Interpreter options
  */
+export function createActor<TMachine extends AnyStateMachine>(
+  machine: AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends true
+    ? TMachine
+    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
+  options?: InterpreterOptions<TMachine>
+): InterpreterFrom<TMachine>;
+export function createActor<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options?: InterpreterOptions<TLogic>
+): Interpreter<TLogic>;
+export function createActor(
+  logic: any,
+  options?: InterpreterOptions<any>
+): any {
+  const interpreter = new Interpreter(logic, options);
+
+  return interpreter;
+}
+
+/**
+ * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ *
+ * @deprecated Use `createActor` instead
+ * @param machine The machine to interpret
+ * @param options Interpreter options
+ */
 export function interpret<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']

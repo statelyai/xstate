@@ -4,7 +4,7 @@ import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
-  interpret,
+  createActor,
   InterpreterFrom,
   InterpreterOptions,
   StateFrom,
@@ -63,7 +63,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const resolvedMachine = machine.provide(machineConfig as any);
 
-  const service = interpret(resolvedMachine, interpreterOptions).start();
+  const service = createActor(resolvedMachine, interpreterOptions).start();
 
   onDestroy(() => service.stop());
 

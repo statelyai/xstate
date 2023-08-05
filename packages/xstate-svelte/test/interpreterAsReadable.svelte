@@ -1,8 +1,8 @@
 <script lang="ts">
   // this file acts as a type test
-  import { createMachine, interpret } from 'xstate';
+  import { createMachine, createActor } from 'xstate';
 
-  const service = interpret(
+  const service = createActor(
     createMachine({
       types: {
         context: {} as { count: number }

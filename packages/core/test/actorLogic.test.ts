@@ -1,6 +1,6 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { AnyActorRef, createMachine, interpret } from '../src/index.ts';
+import { AnyActorRef, createMachine, createActor } from '../src/index.ts';
 import {
   fromCallback,
   fromEventObservable,
@@ -20,14 +20,14 @@ describe('promise logic (fromPromise)', () => {
         })
     );
 
-    const actor = interpret(promiseLogic).start();
+    const actor = createActor(promiseLogic).start();
 
     const snapshot = await waitFor(actor, (s) => s === 'hello');
 
     expect(snapshot).toBe('hello');
   });
   it('should resolve', (done) => {
-    const actor = interpret(fromPromise(() => Promise.resolve(42)));
+    const actor = createActor(fromPromise(() => Promise.resolve(42)));
 
     actor.subscribe((state) => {
       if (state === 42) {
@@ -39,7 +39,7 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should resolve (observer .next)', (done) => {
-    const actor = interpret(fromPromise(() => Promise.resolve(42)));
+    const actor = createActor(fromPromise(() => Promise.resolve(42)));
 
     actor.subscribe({
       next: (state) => {
@@ -53,7 +53,7 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should reject (observer .error)', (done) => {
-    const actor = interpret(fromPromise(() => Promise.reject('Error')));
+    const actor = createActor(fromPromise(() => Promise.reject('Error')));
 
     actor.subscribe({
       error: (data) => {
@@ -66,7 +66,7 @@ describe('promise logic (fromPromise)', () => {
   });
 
   it('should complete (observer .complete)', async () => {
-    const actor = interpret(fromPromise(() => Promise.resolve(42)));
+    const actor = createActor(fromPromise(() => Promise.resolve(42)));
     actor.start();
 
     const snapshot = await waitFor(actor, (s) => s === 42);
@@ -81,7 +81,7 @@ describe('promise logic (fromPromise)', () => {
       return Promise.resolve(42);
     });
 
-    const actor = interpret(logic);
+    const actor = createActor(logic);
 
     actor.getSnapshot();
 
@@ -96,13 +96,13 @@ describe('promise logic (fromPromise)', () => {
         })
     );
 
-    const actor = interpret(promiseLogic);
+    const actor = createActor(promiseLogic);
     actor.start();
 
     const resolvedPersistedState = actor.getPersistedState();
     actor.stop();
 
-    const restoredActor = interpret(promiseLogic, {
+    const restoredActor = createActor(promiseLogic, {
       state: resolvedPersistedState
     }).start();
 
@@ -120,7 +120,7 @@ describe('promise logic (fromPromise)', () => {
         })
     );
 
-    const actor = interpret(promiseLogic);
+    const actor = createActor(promiseLogic);
     actor.start();
 
     setTimeout(() => {
@@ -132,7 +132,7 @@ describe('promise logic (fromPromise)', () => {
         })
       );
 
-      const restoredActor = interpret(promiseLogic, {
+      const restoredActor = createActor(promiseLogic, {
         state: resolvedPersistedState
       }).start();
       expect(restoredActor.getSnapshot()).toBe(42);
@@ -146,7 +146,7 @@ describe('promise logic (fromPromise)', () => {
       createdPromises++;
       return Promise.resolve(createdPromises);
     });
-    const actor = interpret(promiseLogic);
+    const actor = createActor(promiseLogic);
     actor.start();
 
     await new Promise((res) => setTimeout(res, 5));
@@ -159,7 +159,7 @@ describe('promise logic (fromPromise)', () => {
     );
     expect(createdPromises).toBe(1);
 
-    const restoredActor = interpret(promiseLogic, {
+    const restoredActor = createActor(promiseLogic, {
       state: resolvedPersistedState
     }).start();
 
@@ -173,7 +173,7 @@ describe('promise logic (fromPromise)', () => {
       createdPromises++;
       return Promise.reject(createdPromises);
     });
-    const actor = interpret(promiseLogic);
+    const actor = createActor(promiseLogic);
     actor.subscribe({ error: function preventUnhandledErrorListener() {} });
     actor.start();
 
@@ -187,7 +187,7 @@ describe('promise logic (fromPromise)', () => {
     );
     expect(createdPromises).toBe(1);
 
-    const restoredActor = interpret(promiseLogic, {
+    const restoredActor = createActor(promiseLogic, {
       state: rejectedPersistedState
     }).start();
 
@@ -202,7 +202,7 @@ describe('promise logic (fromPromise)', () => {
       return Promise.resolve(42);
     });
 
-    interpret(promiseLogic).start();
+    createActor(promiseLogic).start();
   });
 
   it('should have reference to self', () => {
@@ -213,7 +213,7 @@ describe('promise logic (fromPromise)', () => {
       return Promise.resolve(42);
     });
 
-    interpret(promiseLogic).start();
+    createActor(promiseLogic).start();
   });
 });
 
@@ -236,7 +236,7 @@ describe('transition function logic (fromTransition)', () => {
       { status: 'active' as 'inactive' | 'active' }
     );
 
-    const actor = interpret(transitionLogic).start();
+    const actor = createActor(transitionLogic).start();
 
     expect(actor.getSnapshot().status).toBe('active');
 
@@ -257,7 +257,7 @@ describe('transition function logic (fromTransition)', () => {
         status: 'inactive' as 'inactive' | 'active'
       }
     );
-    const actor = interpret(logic).start();
+    const actor = createActor(logic).start();
     actor.send({ type: 'activate' });
     const persistedState = actor.getPersistedState();
 
@@ -265,7 +265,7 @@ describe('transition function logic (fromTransition)', () => {
       status: 'active'
     });
 
-    const restoredActor = interpret(logic, { state: persistedState });
+    const restoredActor = createActor(logic, { state: persistedState });
 
     restoredActor.start();
 
@@ -279,7 +279,7 @@ describe('transition function logic (fromTransition)', () => {
       return 42;
     }, 0);
 
-    const actor = interpret(transitionLogic).start();
+    const actor = createActor(transitionLogic).start();
 
     actor.send({ type: 'a' });
   });
@@ -291,7 +291,7 @@ describe('transition function logic (fromTransition)', () => {
       return 42;
     }, 0);
 
-    const actor = interpret(transitionLogic).start();
+    const actor = createActor(transitionLogic).start();
 
     actor.send({ type: 'a' });
   });
@@ -301,7 +301,7 @@ describe('observable logic (fromObservable)', () => {
   it('should interpret an observable', async () => {
     const observableLogic = fromObservable(() => interval(10).pipe(take(4)));
 
-    const actor = interpret(observableLogic).start();
+    const actor = createActor(observableLogic).start();
 
     const snapshot = await waitFor(actor, (s) => s === 3);
 
@@ -309,7 +309,7 @@ describe('observable logic (fromObservable)', () => {
   });
 
   it('should resolve', () => {
-    const actor = interpret(fromObservable(() => of(42)));
+    const actor = createActor(fromObservable(() => of(42)));
     const spy = jest.fn();
 
     actor.subscribe(spy);
@@ -320,7 +320,7 @@ describe('observable logic (fromObservable)', () => {
   });
 
   it('should resolve (observer .next)', () => {
-    const actor = interpret(fromObservable(() => of(42)));
+    const actor = createActor(fromObservable(() => of(42)));
     const spy = jest.fn();
 
     actor.subscribe({
@@ -332,7 +332,7 @@ describe('observable logic (fromObservable)', () => {
   });
 
   it('should reject (observer .error)', () => {
-    const actor = interpret(fromObservable(() => throwError(() => 'Error')));
+    const actor = createActor(fromObservable(() => throwError(() => 'Error')));
     const spy = jest.fn();
 
     actor.subscribe({
@@ -344,7 +344,7 @@ describe('observable logic (fromObservable)', () => {
   });
 
   it('should complete (observer .complete)', () => {
-    const actor = interpret(fromObservable(() => EMPTY));
+    const actor = createActor(fromObservable(() => EMPTY));
     const spy = jest.fn();
 
     actor.subscribe({
@@ -363,7 +363,7 @@ describe('observable logic (fromObservable)', () => {
       return EMPTY;
     });
 
-    const actor = interpret(logic);
+    const actor = createActor(logic);
 
     actor.getSnapshot();
 
@@ -377,7 +377,7 @@ describe('observable logic (fromObservable)', () => {
       return of(42);
     });
 
-    interpret(observableLogic).start();
+    createActor(observableLogic).start();
   });
 
   it('should have reference to self', () => {
@@ -387,7 +387,7 @@ describe('observable logic (fromObservable)', () => {
       return of(42);
     });
 
-    interpret(observableLogic).start();
+    createActor(observableLogic).start();
   });
 });
 
@@ -399,7 +399,7 @@ describe('eventObservable logic (fromEventObservable)', () => {
       return of({ type: 'a' });
     });
 
-    interpret(observableLogic).start();
+    createActor(observableLogic).start();
   });
 
   it('should have reference to self', () => {
@@ -409,7 +409,7 @@ describe('eventObservable logic (fromEventObservable)', () => {
       return of({ type: 'a' });
     });
 
-    interpret(observableLogic).start();
+    createActor(observableLogic).start();
   });
 });
 
@@ -423,7 +423,7 @@ describe('callback logic (fromCallback)', () => {
       });
     });
 
-    const actor = interpret(callbackLogic).start();
+    const actor = createActor(callbackLogic).start();
 
     actor.send({ type: 'a' });
   });
@@ -434,7 +434,7 @@ describe('callback logic (fromCallback)', () => {
       expect(system).toBeDefined();
     });
 
-    interpret(callbackLogic).start();
+    createActor(callbackLogic).start();
   });
 
   it('should have reference to self', () => {
@@ -443,7 +443,7 @@ describe('callback logic (fromCallback)', () => {
       expect(self.send).toBeDefined();
     });
 
-    interpret(callbackLogic).start();
+    createActor(callbackLogic).start();
   });
 
   it('can send self reference in an event to parent', (done) => {
@@ -477,7 +477,7 @@ describe('callback logic (fromCallback)', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 });
 
@@ -524,7 +524,7 @@ describe('machine logic', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     await waitFor(actor, (s) => s.matches('success'));
 
@@ -597,7 +597,7 @@ describe('machine logic', () => {
       }
     });
 
-    const actor = interpret(parentMachine).start();
+    const actor = createActor(parentMachine).start();
 
     // parent is at 'idle'
     // ...
@@ -609,7 +609,7 @@ describe('machine logic', () => {
     // child is at 'b'
 
     const persistedState = actor.getPersistedState()!;
-    const newActor = interpret(parentMachine, {
+    const newActor = createActor(parentMachine, {
       state: persistedState
     }).start();
     const newSnapshot = newActor.getSnapshot();
@@ -632,7 +632,7 @@ describe('machine logic', () => {
       }
     });
 
-    const actor = interpret(machine);
+    const actor = createActor(machine);
 
     expect(actor.getPersistedState()).toEqual(
       expect.objectContaining({
@@ -652,7 +652,7 @@ describe('machine logic', () => {
       }
     });
 
-    const actor = interpret(machine);
+    const actor = createActor(machine);
 
     expect(actor.getPersistedState()?.children['child'].state).toEqual(
       expect.objectContaining({
@@ -672,13 +672,13 @@ describe('machine logic', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     const persisted = actor.getPersistedState();
 
     delete persisted?.children['child'];
 
-    const actor2 = interpret(machine, { state: persisted }).start();
+    const actor2 = createActor(machine, { state: persisted }).start();
 
     expect(actor2.getSnapshot().children.child.getSnapshot().value).toBe(
       'inner'
@@ -693,6 +693,6 @@ describe('machine logic', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 });

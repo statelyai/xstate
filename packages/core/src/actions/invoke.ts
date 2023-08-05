@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
 import { error } from '../actions.ts';
-import { ActorStatus, interpret } from '../interpreter.ts';
+import { ActorStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
   AnyActorContext,
@@ -38,7 +38,7 @@ function resolve(
   if (referenced) {
     // TODO: inline `input: undefined` should win over the referenced one
     const configuredInput = input || referenced.input;
-    actorRef = interpret(referenced.src, {
+    actorRef = createActor(referenced.src, {
       id,
       src,
       parent: actorContext?.self,

@@ -3,7 +3,7 @@ import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
-  interpret,
+  createActor,
   InterpreterFrom,
   InterpreterOptions,
   Observer,
@@ -63,7 +63,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 
   const machineWithConfig = machine.provide(machineConfig as any);
 
-  const service = interpret(machineWithConfig, interpreterOptions).start();
+  const service = createActor(machineWithConfig, interpreterOptions).start();
 
   let sub: Subscription | undefined;
   onMounted(() => {

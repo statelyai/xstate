@@ -6,7 +6,7 @@ import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
-  interpret,
+  createActor,
   ActorRefFrom,
   InterpreterOptions,
   InterpreterStatus,
@@ -34,7 +34,7 @@ export function useIdleInterpreter(
   }
 
   const actorRef = useConstant(() => {
-    return interpret(machine as AnyStateMachine, options);
+    return createActor(machine as AnyStateMachine, options);
   });
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available

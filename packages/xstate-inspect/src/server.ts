@@ -1,5 +1,5 @@
 import { WebSocketServer } from 'ws';
-import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
+import { ActorRef, EventObject, createActor, Interpreter } from 'xstate';
 import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
 import { Inspector, Replacer } from './types.ts';
@@ -51,7 +51,7 @@ interface ServerInspectorOptions {
 export function inspect(options: ServerInspectorOptions): Inspector {
   const { server } = options;
   const devTools = createDevTools();
-  const inspectService = interpret(
+  const inspectService = createActor(
     createInspectMachine(devTools, options)
   ).start();
   let client: ActorRef<any, undefined> = toActorRef({

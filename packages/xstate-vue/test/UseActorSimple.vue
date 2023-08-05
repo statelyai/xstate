@@ -4,9 +4,9 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { interpret, ActorRef } from 'xstate';
+import { createActor, ActorRef } from 'xstate';
 import { useActor } from '../src/index.ts';
-const simpleActor: ActorRef<any, number> = interpret({
+const simpleActor: ActorRef<any, number> = createActor({
   transition: (s) => s,
   getSnapshot: () => 42,
   getInitialState: () => 42,

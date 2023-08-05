@@ -1,7 +1,7 @@
 import {
   ActorLogic,
   assign,
-  interpret,
+  createActor,
   MachineContext,
   StateMachine
 } from '../src/index.ts';
@@ -307,7 +307,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().matches('a');
+    createActor(machine).getSnapshot().matches('a');
   });
 
   it('should allow valid object `matches`', () => {
@@ -324,7 +324,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().matches({ a: 'c' });
+    createActor(machine).getSnapshot().matches({ a: 'c' });
   });
 
   it('should not allow invalid string `matches`', () => {
@@ -345,7 +345,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().matches('d');
+    createActor(machine).getSnapshot().matches('d');
   });
 
   it('should not allow invalid object `matches`', () => {
@@ -363,7 +363,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().matches({ a: 'd' });
+    createActor(machine).getSnapshot().matches({ a: 'd' });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
@@ -383,7 +383,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().hasTag('a');
+    createActor(machine).getSnapshot().hasTag('a');
   });
 
   it('should not allow an invalid tag with `hasTag`', () => {
@@ -404,7 +404,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().hasTag('d');
+    createActor(machine).getSnapshot().hasTag('d');
   });
 
   it('`withConfig` should require all missing implementations ', () => {
@@ -464,7 +464,7 @@ describe('typegen types', () => {
       types: { typegen: {} as TypesMeta }
     });
 
-    interpret(machine);
+    createActor(machine);
   });
 
   it('should not allow to create an actor out of a machine with missing implementations', () => {
@@ -489,7 +489,7 @@ describe('typegen types', () => {
 
     // TODO: rethink this; should probably be done as a linter rule instead
     // @x-ts-expect-error
-    interpret(machine);
+    createActor(machine);
   });
 
   it('should allow to create an actor out of a machine with implementations provided through `withConfig`', () => {
@@ -512,7 +512,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(
+    createActor(
       machine.provide({
         actions: {
           myAction: () => {}
@@ -1049,7 +1049,7 @@ describe('typegen types', () => {
       }
     });
 
-    const state = interpret(machine).getSnapshot();
+    const state = createActor(machine).getSnapshot();
 
     if (state.matches('a')) {
       // @ts-expect-error
@@ -1074,7 +1074,7 @@ describe('typegen types', () => {
       }
     });
 
-    const state = interpret(machine).getSnapshot();
+    const state = createActor(machine).getSnapshot();
 
     if (state.matches('a') && state.matches('a.b')) {
       ((_accept: string) => {})(state.context.foo);

@@ -1,4 +1,4 @@
-import { ActorStatus, interpret } from '../interpreter.ts';
+import { ActorStatus, createActor } from '../interpreter.ts';
 import { symbolObservable } from '../symbolObservable.ts';
 import type {
   ActorRef,
@@ -73,5 +73,5 @@ export function toActorRef<
 const emptyLogic = fromTransition((_) => undefined, undefined);
 
 export function createEmptyActor(): ActorRef<AnyEventObject, undefined> {
-  return interpret(emptyLogic);
+  return createActor(emptyLogic);
 }

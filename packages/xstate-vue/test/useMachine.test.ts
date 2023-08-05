@@ -5,7 +5,7 @@ import {
   createMachine,
   assign,
   doneInvoke,
-  interpret,
+  createActor,
   fromCallback
 } from 'xstate';
 import { CallbackActorLogic } from 'xstate/actors';
@@ -47,7 +47,7 @@ describe('useMachine composition function', () => {
     }
   });
 
-  const actorRef = interpret(
+  const actorRef = createActor(
     fetchMachine.provide({
       actors: {
         fetchData: fromCallback(({ sendBack }) => {

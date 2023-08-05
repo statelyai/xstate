@@ -8,7 +8,7 @@ import {
   InterpreterStatus,
   PersistedMachineState,
   raise,
-  interpret,
+  createActor,
   ActorLogicFrom
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
@@ -69,7 +69,7 @@ describe('useMachine hook', () => {
     }
   });
 
-  const actorRef = interpret(
+  const actorRef = createActor(
     fetchMachine.provide({
       actors: {
         fetchData: fromCallback(({ sendBack }) => {
@@ -1700,7 +1700,7 @@ describe('useMachine (strict mode)', () => {
         }
       });
 
-      const actorRef = interpret(testMachine).start();
+      const actorRef = createActor(testMachine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
 

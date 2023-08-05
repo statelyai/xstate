@@ -4,7 +4,7 @@ import UseActorSimple from './UseActorSimple.vue';
 import UseActorCreateSimple from './UseActorCreateSimple.vue';
 import UseActorComponentProp from './UseActorComponentProp.vue';
 
-import { createMachine, interpret, sendParent } from 'xstate';
+import { createMachine, createActor, sendParent } from 'xstate';
 
 describe('useActor composable function', () => {
   it('initial invoked actor should be immediately available', async () => {
@@ -43,7 +43,7 @@ describe('useActor composable function', () => {
       }
     });
 
-    const serviceMachine = interpret(machine).start();
+    const serviceMachine = createActor(machine).start();
 
     const { getByTestId } = render(UseActorComponentProp, {
       props: { actor: serviceMachine.getSnapshot().children.child }
