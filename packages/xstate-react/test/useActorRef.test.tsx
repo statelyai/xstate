@@ -315,8 +315,8 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       const actor = useActorRef(m, { systemId: 'test' });
 
       React.useEffect(() => {
-        actor.system?.get('test')!.send({ type: 'PING' });
-      });
+        actor.system?.get('test')?.send({ type: 'PING' });
+      }, [actor]);
 
       return null;
     };

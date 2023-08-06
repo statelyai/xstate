@@ -653,7 +653,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     function App() {
       const service = useActorRef(machine);
       useSelector(service, () => {});
-      expect(called).toBe(false);
+      if (service.status === 0) {
+        // strict-mode will start this actor and then stop it
+        // we should only test that a spawned actor isn't "interfered" with if the
+        // parent actor hasn't started yet
+        expect(called).toBe(false);
+      }
       return null;
     }
 
@@ -775,7 +780,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     expect(stateEl.textContent).toBe('42');
   });
 
-  it.only('should', async () => {
+  it('should', async () => {
     const machine = createMachine({
       invoke: {
         src: fromPromise(async () => {
@@ -790,13 +795,9 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     const App = () => {
       const actor = useActorRef(machine);
-      // const [, ,] = useMachine(machine);
-      const system = useSelector(actor, (s) => actor.system);
-      // const testActor = actor.system!.get('test');
-      const testActor = useSelector(actor, (s) => {
-        return actor.system!.get('test');
-      });
-      const num = useSelector(testActor, (s) => s);
+      const system = actor.system;
+      const test = useSelector(system, (s) => system?.get('test'));
+      const num = useSelector(test, (s) => s);
 
       return <div data-testid="count">{num}</div>;
     };

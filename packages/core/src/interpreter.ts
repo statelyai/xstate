@@ -74,6 +74,7 @@ type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
     ? TInternalState
     : never;
 
+let syscount = 0;
 export class Interpreter<
   TLogic extends AnyActorLogic,
   TEvent extends EventObject = EventFromLogic<TLogic>
@@ -145,7 +146,9 @@ export class Interpreter<
       this.system._set(systemId, this);
     }
 
-    this.sessionId = logic._system ? 'system' : this.system._bookId();
+    this.sessionId = logic._system
+      ? 'system:' + syscount
+      : this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
@@ -272,6 +275,11 @@ export class Interpreter<
       return this;
     }
 
+    if (!this._parent) {
+      // ensure system is started
+      this.system.start?.();
+    }
+
     this.system._register(this.sessionId, this);
     if (this._systemId) {
       this.system._set(this._systemId, this);
@@ -364,6 +372,7 @@ export class Interpreter<
     if (this._parent) {
       throw new Error('A non-root actor cannot be stopped directly.');
     }
+    this.system._stop();
     return this._stop();
   }
   private _complete(): void {

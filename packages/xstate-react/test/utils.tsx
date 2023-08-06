@@ -9,7 +9,7 @@ type SimplifiedRTLRender = (
 ) => ReturnType<typeof RTL.render>;
 
 const reactModes = [
-  // ['non-strict', React.Fragment],
+  ['non-strict', React.Fragment],
   ['strict', React.StrictMode]
 ] as const;
 

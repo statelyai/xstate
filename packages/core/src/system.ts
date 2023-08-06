@@ -11,6 +11,7 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
 
   const systemState = {
     id: 'system:' + count++,
+    keyedActors,
     _bookId: () => `x:${sessionIdCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
@@ -60,6 +61,12 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
 
   system.get = systemState.get;
   system._set = systemState._set;
+  system._set = (systemId, actorRef) => {
+    systemState._set(systemId, actorRef);
+    system.send({
+      type: 'whatever'
+    });
+  };
   system._bookId = systemState._bookId;
   system._register = systemState._register;
   system._unregister = systemState._unregister;

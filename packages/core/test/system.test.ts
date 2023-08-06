@@ -414,4 +414,58 @@ describe('system', () => {
     const actor = interpret(machine);
     expect(actor.system.get('test')).toBeDefined();
   });
+
+  it('system actor should observe newly registered actors', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            10: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: fromPromise(async () => {
+              return 42;
+            }),
+            systemId: 'test'
+          }
+        }
+      }
+    });
+
+    const actor = interpret(machine);
+
+    const sub = actor.system.subscribe(() => {
+      if (actor.system.get('test') !== undefined) {
+        sub.unsubscribe();
+        done();
+      }
+    });
+
+    actor.start();
+  });
+
+  it('system actor should observe initially started actors', (done) => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(async () => {
+          return 42;
+        }),
+        systemId: 'test'
+      }
+    });
+
+    const actor = interpret(machine);
+
+    const sub = actor.system.subscribe(() => {
+      if (actor.system.get('test') !== undefined) {
+        sub.unsubscribe();
+        done();
+      }
+    });
+
+    actor.start();
+  });
 });

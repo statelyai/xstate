@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AnyActorLogic,
   AnyInterpreter,
@@ -86,30 +86,32 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
     ];
 
 export function useActorRef<TLogic extends AnyActorLogic>(
-  machine: TLogic,
+  logic: TLogic,
   ...[options = {}, observerOrListener]: RestParams<TLogic>
 ): ActorRefFrom<TLogic> {
-  const actorRef = useIdleInterpreter(machine, options);
+  const actorRefRef = useRef(interpret(logic, options) as AnyInterpreter);
+  const [, setCount] = useState(0);
+
+  useIsomorphicLayoutEffect(() => {
+    (actorRefRef.current.logic as AnyStateMachine).implementations = (
+      logic as unknown as AnyStateMachine
+    ).implementations;
+  });
 
   useEffect(() => {
-    if (!observerOrListener) {
-      return;
-    }
-    let sub = actorRef.subscribe(toObserver(observerOrListener));
-    return () => {
-      sub.unsubscribe();
-    };
-  }, [observerOrListener]);
+    const sub = observerOrListener
+      ? actorRefRef.current.subscribe(toObserver(observerOrListener))
+      : undefined;
 
-  useEffect(() => {
-    actorRef.start();
+    actorRefRef.current.start();
 
     return () => {
-      actorRef.stop();
-      actorRef.status = InterpreterStatus.NotStarted;
-      (actorRef as any)._initState();
+      sub?.unsubscribe();
+      actorRefRef.current.stop();
+      actorRefRef.current = interpret(logic, options);
+      setCount((c) => c + 1);
     };
   }, []);
 
-  return actorRef as any;
+  return actorRefRef.current as ActorRefFrom<TLogic>;
 }
