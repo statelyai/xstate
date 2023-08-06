@@ -9,7 +9,6 @@ import {
   createActor,
   ActorRefFrom,
   ActorOptions,
-  InterpreterStatus,
   Observer,
   StateFrom,
   toObserver,
