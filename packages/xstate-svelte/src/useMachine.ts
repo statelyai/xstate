@@ -5,10 +5,10 @@ import {
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
   createActor,
-  InterpreterFrom,
   ActorOptions,
   StateFrom,
-  TODO
+  TODO,
+  Actor
 } from 'xstate';
 
 type Prop<T, K> = K extends keyof T ? T[K] : never;
@@ -41,7 +41,7 @@ type RestParams<TMachine extends AnyStateMachine> =
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
-  TInterpreter = InterpreterFrom<TMachine>
+  TInterpreter = Actor<TMachine>
 > = {
   state: Readable<StateFrom<TMachine>>;
   send: Prop<TInterpreter, 'send'>;

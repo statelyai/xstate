@@ -4,7 +4,7 @@ import {
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
   createActor,
-  InterpreterFrom,
+  Actor,
   ActorOptions,
   Observer,
   StateFrom,
@@ -49,7 +49,7 @@ type RestParams<TMachine extends AnyStateMachine> =
 export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
-): InterpreterFrom<TMachine> {
+): Actor<TMachine> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
   const { guards, actions, actors, delays, ...interpreterOptions } = options;

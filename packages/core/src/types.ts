@@ -1501,6 +1501,9 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
 
 export type DevToolsAdapter = (service: AnyActor) => void;
 
+/**
+ * @deprecated Use `Actor<T>` instead.
+ */
 export type InterpreterFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = ReturnTypeOrValue<T> extends StateMachine<

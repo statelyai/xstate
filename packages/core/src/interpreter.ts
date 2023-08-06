@@ -17,7 +17,6 @@ import type {
   AnyActorLogic,
   AnyStateMachine,
   EventFromLogic,
-  InterpreterFrom,
   PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef
@@ -546,7 +545,7 @@ export function createActor<TMachine extends AnyStateMachine>(
     ? TMachine
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: ActorOptions<TMachine>
-): InterpreterFrom<TMachine>;
+): Actor<TMachine>;
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: ActorOptions<TLogic>
