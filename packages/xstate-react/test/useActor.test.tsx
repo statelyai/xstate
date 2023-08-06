@@ -10,10 +10,10 @@ import {
   DoneEventObject,
   doneInvoke,
   createActor,
-  Interpreter,
   PersistedMachineState,
   raise,
-  StateFrom
+  StateFrom,
+  Actor
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
@@ -156,7 +156,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [, , service] = useActor(fetchMachine);
 
-      if (!(service instanceof Interpreter)) {
+      if (!(service instanceof Actor)) {
         throw new Error('service not instance of Interpreter');
       }
 

@@ -1,5 +1,5 @@
 import {
-  AnyInterpreter,
+  AnyActor,
   assign,
   createMachine,
   createActor,
@@ -572,7 +572,7 @@ describe('predictableExec', () => {
       }
     });
 
-    let service: AnyInterpreter;
+    let service: AnyActor;
 
     const machine = createMachine({
       invoke: {
@@ -744,7 +744,7 @@ describe('predictableExec', () => {
       }
     });
 
-    let service: AnyInterpreter;
+    let service: AnyActor;
 
     const machine = createMachine({
       invoke: {

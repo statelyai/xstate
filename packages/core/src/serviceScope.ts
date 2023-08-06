@@ -1,13 +1,13 @@
-import { AnyInterpreter } from './types.ts';
+import { AnyActor } from './types.ts';
 
 /**
  * Maintains a stack of the current service in scope.
  * This is used to provide the correct service to spawn().
  */
 
-const serviceStack = [] as Array<AnyInterpreter | undefined>;
+const serviceStack = [] as Array<AnyActor | undefined>;
 
-export const provide = <T, TService extends AnyInterpreter>(
+export const provide = <T, TService extends AnyActor>(
   service: TService | undefined,
   fn: (service: TService | undefined) => T
 ) => {
@@ -17,6 +17,6 @@ export const provide = <T, TService extends AnyInterpreter>(
   return result;
 };
 
-export const consume = <T, TService extends AnyInterpreter>(
+export const consume = <T, TService extends AnyActor>(
   fn: (service: TService) => T
 ) => fn(serviceStack[serviceStack.length - 1] as TService);

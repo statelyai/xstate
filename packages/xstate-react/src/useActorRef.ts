@@ -2,27 +2,28 @@ import isDevelopment from '#is-development';
 import { useEffect, useState } from 'react';
 import {
   AnyActorLogic,
-  AnyInterpreter,
+  AnyActor,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
   createActor,
   ActorRefFrom,
-  InterpreterOptions,
+  ActorOptions,
   InterpreterStatus,
   Observer,
   StateFrom,
   toObserver,
   SnapshotFrom,
-  TODO
+  TODO,
+  ActorStatus
 } from 'xstate';
 import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
 export function useIdleInterpreter(
   machine: AnyActorLogic,
-  options: Partial<InterpreterOptions<AnyActorLogic>>
-): AnyInterpreter {
+  options: Partial<ActorOptions<AnyActorLogic>>
+): AnyActor {
   if (isDevelopment) {
     const [initialMachine] = useState(machine);
 
@@ -52,7 +53,7 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
       TLogic['__TResolvedTypesMeta']
     > extends false
     ? [
-        options: InterpreterOptions<TLogic> &
+        options: ActorOptions<TLogic> &
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
@@ -66,7 +67,7 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           | ((value: StateFrom<TLogic>) => void)
       ]
     : [
-        options?: InterpreterOptions<TLogic> &
+        options?: ActorOptions<TLogic> &
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
@@ -79,7 +80,7 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           | ((value: StateFrom<TLogic>) => void)
       ]
   : [
-      options?: InterpreterOptions<TLogic>,
+      options?: ActorOptions<TLogic>,
       observerOrListener?:
         | Observer<SnapshotFrom<TLogic>>
         | ((value: SnapshotFrom<TLogic>) => void)
@@ -106,7 +107,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
 
     return () => {
       actorRef.stop();
-      actorRef.status = InterpreterStatus.NotStarted;
+      actorRef.status = ActorStatus.NotStarted;
       (actorRef as any)._initState();
     };
   }, []);

@@ -6,7 +6,7 @@ import {
   InternalMachineImplementations,
   createActor,
   InterpreterFrom,
-  InterpreterOptions,
+  ActorOptions,
   StateFrom,
   TODO
 } from 'xstate';
@@ -18,7 +18,7 @@ type RestParams<TMachine extends AnyStateMachine> =
     TMachine['__TResolvedTypesMeta']
   > extends false
     ? [
-        options: InterpreterOptions<TMachine> &
+        options: ActorOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -29,7 +29,7 @@ type RestParams<TMachine extends AnyStateMachine> =
           >
       ]
     : [
-        options?: InterpreterOptions<TMachine> &
+        options?: ActorOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],

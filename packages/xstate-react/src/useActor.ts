@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import {
   ActorRefFrom,
   AnyActorLogic,
-  InterpreterOptions,
+  ActorOptions,
   InterpreterStatus,
   SnapshotFrom
 } from 'xstate';
@@ -13,7 +13,7 @@ import { isActorRef } from 'xstate/actors';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options: InterpreterOptions<TLogic> = {}
+  options: ActorOptions<TLogic> = {}
 ): [SnapshotFrom<TLogic>, ActorRefFrom<TLogic>['send'], ActorRefFrom<TLogic>] {
   if (isDevelopment && isActorRef(logic)) {
     throw new Error(

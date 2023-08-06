@@ -6,7 +6,7 @@ import {
   ActionArgs,
   AnyActorContext,
   AnyActorRef,
-  AnyInterpreter,
+  AnyActor,
   AnyState,
   EventObject,
   MachineContext
@@ -88,7 +88,7 @@ function execute(
     try {
       actorRef.start?.();
     } catch (err) {
-      (actorContext.self as AnyInterpreter).send(error(id, err));
+      (actorContext.self as AnyActor).send(error(id, err));
       return;
     }
   });

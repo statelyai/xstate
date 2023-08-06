@@ -9,8 +9,10 @@ export { stop } from './actions/stop.ts';
 import {
   createActor,
   interpret,
-  Interpreter,
-  ActorStatus
+  Actor,
+  ActorStatus,
+  InterpreterStatus,
+  Interpreter
 } from './interpreter.ts';
 import { createMachine } from './Machine.ts';
 import { mapState } from './mapState.ts';
@@ -33,8 +35,10 @@ export {
   forwardTo,
   createActor,
   interpret, // deprecated
-  Interpreter,
-  ActorStatus as InterpreterStatus,
+  Actor,
+  type Interpreter,
+  ActorStatus,
+  InterpreterStatus,
   doneInvoke,
   createMachine
 };
