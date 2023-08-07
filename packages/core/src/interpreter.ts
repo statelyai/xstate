@@ -175,14 +175,13 @@ export class Interpreter<
     // Ensure that the send method is bound to this interpreter instance
     // if destructured
     this.send = this.send.bind(this);
-    this._initState();
+    this._initState(this.options.state);
   }
 
-  private _initState() {
-    this._state = this.options.state
-      ? this.logic.restoreState
-        ? this.logic.restoreState(this.options.state, this._actorContext)
-        : this.options.state
+  private _initState(persistedState: PersistedStateFrom<TLogic> | undefined) {
+    this._state = persistedState
+      ? this.logic.restoreState?.(persistedState, this._actorContext) ??
+        persistedState
       : this.logic.getInitialState(this._actorContext, this.options?.input);
   }
 
@@ -525,6 +524,14 @@ export class Interpreter<
     return this.logic.getSnapshot
       ? this.logic.getSnapshot(this._state)
       : this._state;
+  }
+
+  public reset(
+    persistedState: PersistedStateFrom<TLogic> | undefined = this.options.state
+  ): void {
+    this.stop();
+    this.status = ActorStatus.NotStarted;
+    this._initState(persistedState);
   }
 }
 

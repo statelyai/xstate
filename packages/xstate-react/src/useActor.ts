@@ -5,7 +5,6 @@ import {
   ActorRefFrom,
   AnyActorLogic,
   InterpreterOptions,
-  InterpreterStatus,
   SnapshotFrom
 } from 'xstate';
 import { useIdleInterpreter } from './useActorRef.ts';
@@ -45,9 +44,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      actorRef.stop();
-      actorRef.status = InterpreterStatus.NotStarted;
-      (actorRef as any)._initState();
+      actorRef.reset();
     };
   }, [actorRef]);
 
