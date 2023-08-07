@@ -165,7 +165,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
             ...state,
             status: 'error',
             input: undefined,
-            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
+            error: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             subscription: undefined
           };
         case completeEventType:

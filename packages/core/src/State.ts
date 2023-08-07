@@ -83,6 +83,7 @@ export class State<
    * The done data of the top-level finite state.
    */
   public output: any; // TODO: add an explicit type for `output`
+  public error: unknown;
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public _internalQueue: Array<TEvent>;
@@ -164,6 +165,7 @@ export class State<
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
     this.done = config.done ?? false;
     this.output = config.output;
+    this.error = config.error;
   }
 
   /**

@@ -180,7 +180,6 @@ describe('final states', () => {
     });
 
     const actor = interpret(machine).start();
-
     expect(actor.getSnapshot().output.selfRef.send).toBeDefined();
   });
 });

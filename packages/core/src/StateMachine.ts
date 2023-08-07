@@ -1,6 +1,6 @@
 import { error, createInitEvent, assign } from './actions.ts';
 import { STATE_DELIMITER } from './constants.ts';
-import { getPersistedState, State } from './State.ts';
+import { cloneState, getPersistedState, State } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import { interpret } from './interpreter.ts';
 import {
@@ -213,7 +213,9 @@ export class StateMachine<
       isErrorEvent(event) &&
       !state.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
-      throw event.data;
+      return cloneState(state, {
+        error: event.data
+      });
     }
 
     const { state: nextState } = macrostep(state, event, actorCtx);
@@ -318,20 +320,11 @@ export class StateMachine<
   }
 
   public start(
-    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>,
-    actorCtx: ActorContext<
-      TEvent,
-      State<TContext, TEvent, TActor, TResolvedTypesMeta>
-    >
+    state: State<TContext, TEvent, TActor, TResolvedTypesMeta>
   ): void {
     Object.values(state.children).forEach((child: any) => {
       if (child.status === 0) {
-        try {
-          child.start?.();
-        } catch (err) {
-          // TODO: unify error handling when child starts
-          actorCtx.self.send(error(child.id, err) as unknown as TEvent);
-        }
+        child.start?.();
       }
     });
   }
@@ -379,7 +372,9 @@ export class StateMachine<
   }
 
   public getStatus(state: State<TContext, TEvent, TActor, TResolvedTypesMeta>) {
-    return state.done
+    return state.error
+      ? { status: 'error', error: state.error }
+      : state.done
       ? { status: 'done', data: state.output }
       : { status: 'active' };
   }

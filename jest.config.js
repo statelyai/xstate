@@ -1,5 +1,4 @@
 const { constants } = require('jest-config');
-const os = require('os');
 
 /**
  * @type {import('@jest/types').Config.InitialOptions}

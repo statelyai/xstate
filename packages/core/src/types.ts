@@ -1324,6 +1324,7 @@ export interface StateConfig<
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   output?: any;
+  error?: unknown;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any>;
   _internalQueue?: Array<TEvent>;
@@ -1772,7 +1773,7 @@ export type AnyActorSystem = ActorSystem<any>;
 
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
-  'value' | 'output' | 'context' | 'done' | 'historyValue'
+  'value' | 'output' | 'error' | 'context' | 'done' | 'historyValue'
 > & {
   children: {
     [K in keyof TState['children']]: {

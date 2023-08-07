@@ -1,5 +1,48 @@
 # xstate
 
+## 5.0.0-beta.21
+
+### Minor Changes
+
+- [#4145](https://github.com/statelyai/xstate/pull/4145) [`5cc902531`](https://github.com/statelyai/xstate/commit/5cc902531477964cb614736ea628cbb3eb42309b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Significant improvements to error handling have been made:
+
+  - Actors will no longer crash when an error is thrown in an observer (`actor.subscribe(observer)`).
+  - Errors will be handled by observer's `.error()` handler:
+    ```ts
+    actor.subscribe({
+      error: (error) => {
+        // handle error
+      }
+    });
+    ```
+  - If an observer does not have an error handler, the error will be thrown in a clear stack so bug tracking services can collect it.
+
+- [#4054](https://github.com/statelyai/xstate/pull/4054) [`a24711181`](https://github.com/statelyai/xstate/commit/a247111814d16166c847032438382f89c5c286e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Input types can now be specified for machines:
+
+  ```ts
+  const emailMachine = createMachine({
+    types: {} as {
+      input: {
+        subject: string;
+        message: string;
+      };
+    },
+    context: ({ input }) => ({
+      // Strongly-typed input!
+      emailSubject: input.subject,
+      emailBody: input.message.trim()
+    })
+  });
+
+  const emailActor = interpret(emailMachine, {
+    input: {
+      // Strongly-typed input!
+      subject: 'Hello, world!',
+      message: 'This is a test.'
+    }
+  }).start();
+  ```
+
 ## 5.0.0-beta.20
 
 ### Major Changes
