@@ -1,4 +1,4 @@
-import { interpret, createMachine, assign } from '../src/index.ts';
+import { createActor, createMachine, assign } from '../src/index.ts';
 import { State } from '../src/State.ts';
 
 const pedestrianStates = {
@@ -139,16 +139,16 @@ describe('machine', () => {
         guards: { someCondition: () => true }
       });
 
-      expect(interpret(differentMachine).getSnapshot().context).toEqual({
+      expect(createActor(differentMachine).getSnapshot().context).toEqual({
         foo: 'bar'
       });
 
       expect(() => {
-        interpret(differentMachine).start();
+        createActor(differentMachine).start();
       }).toThrowErrorMatchingInlineSnapshot(`"new entry"`);
 
       shouldThrow = false;
-      const actorRef = interpret(differentMachine).start();
+      const actorRef = createActor(differentMachine).start();
       actorRef.send({ type: 'EVENT' });
 
       expect(actorRef.getSnapshot().value).toEqual('bar');
@@ -161,7 +161,7 @@ describe('machine', () => {
         }
       });
       const differentMachine = machine.provide({});
-      const actorRef = interpret(differentMachine).start();
+      const actorRef = createActor(differentMachine).start();
       expect(actorRef.getSnapshot().context).toEqual({ foo: 'bar' });
     });
 
@@ -193,7 +193,7 @@ describe('machine', () => {
     });
 
     it('machines defined without context should have a default empty object for context', () => {
-      expect(interpret(createMachine({})).getSnapshot().context).toEqual({});
+      expect(createActor(createMachine({})).getSnapshot().context).toEqual({});
     });
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
@@ -205,8 +205,8 @@ describe('machine', () => {
 
       const copiedMachine = machine.provide({});
 
-      const a = interpret(copiedMachine).start();
-      const b = interpret(copiedMachine).start();
+      const a = createActor(copiedMachine).start();
+      const b = createActor(copiedMachine).start();
 
       expect(a.getSnapshot().context.foo).not.toBe(b.getSnapshot().context.foo);
     });
@@ -226,8 +226,8 @@ describe('machine', () => {
       const testMachine1 = createMachine(config);
       const testMachine2 = createMachine(config);
 
-      const initialState1 = interpret(testMachine1).getSnapshot();
-      const initialState2 = interpret(testMachine2).getSnapshot();
+      const initialState1 = createActor(testMachine1).getSnapshot();
+      const initialState2 = createActor(testMachine2).getSnapshot();
 
       expect(initialState1.context).not.toBe(initialState2.context);
 
@@ -331,7 +331,7 @@ describe('machine', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({ type: 'NEXT' });
       const barState = actorRef.getSnapshot();
 
@@ -353,12 +353,12 @@ describe('machine', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({ type: 'NEXT' });
       const persistedState = actorRef.getPersistedState();
 
       const spy = jest.fn();
-      const actorRef2 = interpret(machine, { state: persistedState });
+      const actorRef2 = createActor(machine, { state: persistedState });
       actorRef2.subscribe({
         complete: spy
       });
@@ -380,7 +380,7 @@ describe('machine', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().value).toBe('b');
+      expect(createActor(machine).getSnapshot().value).toBe('b');
     });
   });
 
@@ -443,7 +443,7 @@ describe('machine', () => {
         }
       });
 
-      const actorRef = interpret(testMachine);
+      const actorRef = createActor(testMachine);
       expect(actorRef.getSnapshot().value).toEqual({});
 
       actorRef.start();

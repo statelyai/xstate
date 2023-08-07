@@ -6,7 +6,7 @@ import {
   AnyActorContext,
   AnyActorRef,
   AnyEventObject,
-  AnyInterpreter,
+  AnyActor,
   AnyState,
   Cast,
   DelayExpr,
@@ -100,7 +100,7 @@ function execute(
   }
 ) {
   if (typeof params.delay === 'number') {
-    (actorContext.self as AnyInterpreter).delaySend(
+    (actorContext.self as AnyActor).delaySend(
       params as typeof params & { delay: number }
     );
     return;

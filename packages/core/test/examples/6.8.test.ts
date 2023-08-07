@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../../src/index.ts';
+import { createMachine, createActor } from '../../src/index.ts';
 import { testAll } from '../utils.ts';
 
 describe('Example 6.8', () => {
@@ -68,7 +68,7 @@ describe('Example 6.8', () => {
   testAll(machine, expected);
 
   it('should respect the history mechanism', () => {
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: '1' });
     actorRef.send({ type: '6' });

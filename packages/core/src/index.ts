@@ -6,7 +6,14 @@ export { log } from './actions/log.ts';
 export { pure } from './actions/pure.ts';
 export { raise } from './actions/raise.ts';
 export { stop } from './actions/stop.ts';
-import { interpret, Interpreter, ActorStatus } from './interpreter.ts';
+import {
+  createActor,
+  interpret,
+  Actor,
+  ActorStatus,
+  InterpreterStatus,
+  Interpreter
+} from './interpreter.ts';
 import { createMachine } from './Machine.ts';
 import { mapState } from './mapState.ts';
 import { State } from './State.ts';
@@ -26,9 +33,12 @@ export {
   sendTo,
   sendParent,
   forwardTo,
-  interpret,
-  Interpreter,
-  ActorStatus as InterpreterStatus,
+  createActor,
+  interpret, // deprecated
+  Actor,
+  type Interpreter,
+  ActorStatus,
+  InterpreterStatus,
   doneInvoke,
   createMachine
 };

@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index';
+import { createMachine, createActor } from '../src/index';
 
 describe('multiple', () => {
   const machine = createMachine({
@@ -137,7 +137,7 @@ describe('multiple', () => {
 
   describe('transitions to parallel states', () => {
     it('should enter initial states of parallel states', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({ type: 'INITIAL' });
       expect(actorRef.getSnapshot().value).toEqual({
         para: { A: 'B', K: 'L', P: 'Q' }
@@ -145,7 +145,7 @@ describe('multiple', () => {
     });
 
     it('should enter specific states in one region', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({ type: 'DEEP_M' });
       expect(actorRef.getSnapshot().value).toEqual({
         para: { A: 'B', K: 'M', P: 'Q' }
@@ -153,7 +153,7 @@ describe('multiple', () => {
     });
 
     it('should enter specific states in all regions', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({ type: 'DEEP_CMR' });
       expect(actorRef.getSnapshot().value).toEqual({
         para: { A: 'C', K: 'M', P: 'R' }
@@ -161,7 +161,7 @@ describe('multiple', () => {
     });
 
     it('should enter specific states in some regions', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({ type: 'DEEP_MR' });
       expect(actorRef.getSnapshot().value).toEqual({
         para: { A: 'B', K: 'M', P: 'R' }
@@ -169,26 +169,26 @@ describe('multiple', () => {
     });
 
     it.skip('should reject two targets in the same region', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       expect(() => actorRef.send({ type: 'BROKEN_SAME_REGION' })).toThrow();
     });
 
     it.skip('should reject targets inside and outside a region', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       expect(() =>
         actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS' })
       ).toThrow();
     });
 
     it.skip('should reject two targets in different regions', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       expect(() =>
         actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS_2' })
       ).toThrow();
     });
 
     it.skip('should reject two targets in different regions at different levels', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       expect(() =>
         actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS_3' })
       ).toThrow();
@@ -196,14 +196,14 @@ describe('multiple', () => {
 
     it.skip('should reject two deep targets in different regions at top level', () => {
       // TODO: this test has the same body as the one before it, this doesn't look alright
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       expect(() =>
         actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS_3' })
       ).toThrow();
     });
 
     it.skip('should reject two deep targets in different regions at different levels', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       expect(() =>
         actorRef.send({ type: 'BROKEN_DIFFERENT_REGIONS_4' })
       ).toThrow();
