@@ -26,7 +26,7 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   const fromState =
     resolvedOptions.fromState ??
     logic.getInitialState(
-      undefined as any, // TODO: figure out the simulation API
+      {} as any, // TODO: figure out the simulation API
       undefined
     );
   const adjacency = getAdjacencyMap(logic, resolvedOptions);

@@ -234,7 +234,7 @@ describe('spawning promises', () => {
               const ref = spawn(
                 fromPromise(
                   () =>
-                    new Promise((res) => {
+                    new Promise<string>((res) => {
                       res('response');
                     })
                 ),
@@ -329,11 +329,11 @@ describe('spawning callbacks', () => {
           entry: assign({
             callbackRef: ({ spawn }) =>
               spawn(
-                fromCallback((cb, receive) => {
+                fromCallback(({ sendBack, receive }) => {
                   receive((event) => {
                     if (event.type === 'START') {
                       setTimeout(() => {
-                        cb({ type: 'SEND_BACK' });
+                        sendBack({ type: 'SEND_BACK' });
                       }, 10);
                     }
                   });
@@ -1079,7 +1079,7 @@ describe('actors', () => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback((sendBack) => {
+          fromCallback(({ sendBack }) => {
             sendBack({ type: 'TEST' });
           })
         )
@@ -1218,18 +1218,19 @@ describe('actors', () => {
   });
 
   it('should receive done event from an immediately completed observable when self-initializing', () => {
-    const parentMachine = createMachine<{
-      child: ActorRef<EventObject, unknown> | null;
-    }>({
+    const emptyObservable = fromObservable(() => EMPTY);
+
+    const parentMachine = createMachine({
+      types: {
+        context: {} as {
+          child: ActorRefFrom<typeof emptyObservable> | null;
+        }
+      },
       context: {
         child: null
       },
       entry: assign({
-        child: ({ spawn }) =>
-          spawn(
-            fromObservable(() => EMPTY),
-            { id: 'myactor' }
-          )
+        child: ({ spawn }) => spawn(emptyObservable, { id: 'myactor' })
       }),
       initial: 'init',
       states: {

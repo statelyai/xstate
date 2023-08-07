@@ -8,6 +8,7 @@ import {
   InterpreterOptions,
   Observer,
   StateFrom,
+  TODO,
   Subscription,
   toObserver
 } from 'xstate';
@@ -22,6 +23,8 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta'],
             true
           >,
@@ -34,6 +37,8 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta']
           >,
         observerOrListener?:

@@ -596,9 +596,9 @@ describe('transient states (eventless transitions)', () => {
         active: {
           invoke: {
             src: timerMachine,
-            input: {
-              duration: (context: any) => context.customDuration
-            }
+            input: ({ context }) => ({
+              duration: context.customDuration
+            })
           }
         }
       }
@@ -693,7 +693,7 @@ describe('transient states (eventless transitions)', () => {
     const actorRef = interpret(machine).start();
     actorRef.send({ type: 'EVENT' });
 
-    expect(actorRef.getSnapshot().done).toBeTruthy();
+    expect(actorRef.getSnapshot().done).toBe(true);
   });
 
   it('events that trigger eventless transitions should be preserved in actions', () => {

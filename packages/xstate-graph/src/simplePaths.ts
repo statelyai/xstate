@@ -32,7 +32,7 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const actorContext = undefined as any; // TODO: figure out the simulation API
+  const actorContext = { self: {} } as any; // TODO: figure out the simulation API
   const fromState =
     resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
   const serializeState = resolvedOptions.serializeState as (

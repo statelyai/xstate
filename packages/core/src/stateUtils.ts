@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { State, cloneState } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { constantPrefixes, after, done, raise } from './actions.ts';
+import { after, done, raise } from './actions.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
@@ -35,7 +35,9 @@ import {
   StateValue,
   StateValueMap,
   TransitionConfig,
-  TransitionDefinition
+  TransitionDefinition,
+  TODO,
+  AnyActorRef
 } from './types.ts';
 import {
   isArray,
@@ -58,7 +60,8 @@ type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   configuration: StateNode<TContext, TEvent>[],
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ) {
   const machine = configuration[0].machine;
   const finalChildStateNode = configuration.find(
@@ -67,7 +70,7 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   );
 
   return finalChildStateNode && finalChildStateNode.output
-    ? mapContext(finalChildStateNode.output, context, event)
+    ? mapContext(finalChildStateNode.output, context, event, self)
     : undefined;
 }
 
@@ -671,7 +674,7 @@ export function getStateNodes<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode,
-  state: StateValue | State<TContext, TEvent>
+  state: StateValue | State<TContext, TEvent, TODO>
 ): Array<AnyStateNode> {
   const stateValue = state instanceof State ? state.value : toStateValue(state);
 
@@ -707,7 +710,7 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -726,7 +729,7 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -752,7 +755,7 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -788,7 +791,7 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  state: State<TContext, TEvent, any>,
+  state: State<TContext, TEvent, TODO, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
@@ -1000,11 +1003,11 @@ export function microstep<
   TEvent extends EventObject
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  currentState: State<TContext, TEvent, any>,
+  currentState: State<TContext, TEvent, TODO, any>,
   actorCtx: AnyActorContext,
   event: TEvent,
   isInitial: boolean
-): State<TContext, TEvent, any> {
+): State<TContext, TEvent, TODO, any> {
   const mutConfiguration = new Set(currentState.configuration);
 
   if (!transitions.length) {
@@ -1063,7 +1066,8 @@ function microstepProcedure(
     internalQueue,
     currentState,
     historyValue,
-    isInitial
+    isInitial,
+    actorCtx
   );
 
   const nextConfiguration = [...mutConfiguration];
@@ -1086,7 +1090,7 @@ function microstepProcedure(
     );
 
     const output = done
-      ? getOutput(nextConfiguration, nextState.context, event)
+      ? getOutput(nextConfiguration, nextState.context, event, actorCtx.self)
       : undefined;
 
     internalQueue.push(...nextState._internalQueue);
@@ -1115,7 +1119,8 @@ function enterStates(
   internalQueue: AnyEventObject[],
   currentState: AnyState,
   historyValue: HistoryValue<any, any>,
-  isInitial: boolean
+  isInitial: boolean,
+  actorContext: AnyActorContext
 ): void {
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
@@ -1161,7 +1166,12 @@ function enterStates(
         done(
           parent!.id,
           stateNodeToEnter.output
-            ? mapContext(stateNodeToEnter.output, currentState.context, event)
+            ? mapContext(
+                stateNodeToEnter.output,
+                currentState.context,
+                event,
+                actorContext.self
+              )
             : undefined
         )
       );
@@ -1389,7 +1399,7 @@ export function resolveActionsAndContext<
 >(
   actions: Action<any, any, any>[],
   event: TEvent,
-  currentState: State<TContext, TEvent, any>,
+  currentState: State<TContext, TEvent, TODO, any>,
   actorCtx: AnyActorContext
 ): AnyState {
   const { machine } = currentState;

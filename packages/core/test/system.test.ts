@@ -29,7 +29,7 @@ describe('system', () => {
         a: {
           invoke: [
             {
-              src: fromCallback((_, receive) => {
+              src: fromCallback(({ receive }) => {
                 receive((event) => {
                   expect(event.type).toBe('HELLO');
                   done();
@@ -68,7 +68,7 @@ describe('system', () => {
       id: 'parent',
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback((_, receive) => {
+          fromCallback(({ receive }) => {
             receive((event) => {
               expect(event.type).toBe('HELLO');
               done();
@@ -199,13 +199,22 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine, { systemId: 'test' }).start();
+    const errorSpy = jest.fn();
 
-    expect(() => {
-      actor.send({ type: 'toggle' });
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Actor with system ID 'test' already exists."`
-    );
+    const actorRef = interpret(machine, { systemId: 'test' });
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+    actorRef.send({ type: 'toggle' });
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Actor with system ID 'test' already exists.],
+        ],
+      ]
+    `);
   });
 
   it('should be accessible in inline custom actions', () => {
@@ -379,7 +388,7 @@ describe('system', () => {
           systemId: 'test'
         },
         {
-          src: fromCallback((_sendBack, _receive, { system }) => {
+          src: fromCallback(({ system }) => {
             expect(system.get('test')).toBeDefined();
           })
         }

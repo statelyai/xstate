@@ -243,13 +243,13 @@ describe('State', () => {
 
   describe('.done', () => {
     it('should show that a machine has not reached its final state', () => {
-      expect(interpret(exampleMachine).getSnapshot().done).toBeFalsy();
+      expect(interpret(exampleMachine).getSnapshot().done).toBe(false);
     });
 
     it('should show that a machine has reached its final state', () => {
       const actorRef = interpret(exampleMachine).start();
       actorRef.send({ type: 'TO_FINAL' });
-      expect(actorRef.getSnapshot().done).toBeTruthy();
+      expect(actorRef.getSnapshot().done).toBe(true);
     });
   });
 

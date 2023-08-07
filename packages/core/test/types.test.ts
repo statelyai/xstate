@@ -17,159 +17,6 @@ function noop(_x: unknown) {
   return;
 }
 
-describe('StateSchema', () => {
-  type LightEvent =
-    | { type: 'TIMER' }
-    | { type: 'POWER_OUTAGE' }
-    | { type: 'PED_COUNTDOWN'; duration: number };
-
-  interface LightContext {
-    elapsed: number;
-  }
-
-  const lightMachine = createMachine<LightContext, LightEvent>({
-    initial: 'green',
-    meta: { interval: 1000 },
-    context: { elapsed: 0 },
-    states: {
-      green: {
-        id: 'green',
-        meta: { name: 'greenLight' },
-        on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red'
-        }
-      },
-      yellow: {
-        on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red'
-        }
-      },
-      red: {
-        on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red'
-        },
-        initial: 'walk',
-        states: {
-          walk: {
-            on: {
-              PED_COUNTDOWN: 'wait'
-            }
-          },
-          wait: {
-            on: {
-              PED_COUNTDOWN: {
-                target: 'stop',
-                guard: ({ context, event }) => {
-                  return event.duration === 0 && context.elapsed > 0;
-                }
-              }
-            }
-          },
-          stop: {
-            always: { target: '#green' }
-          }
-        }
-      }
-    }
-  });
-
-  noop(lightMachine);
-
-  it('should work with a StateSchema defined', () => {
-    expect(true).toBeTruthy();
-  });
-});
-
-describe('Parallel StateSchema', () => {
-  type ParallelEvent =
-    | { type: 'TIMER' }
-    | { type: 'POWER_OUTAGE' }
-    | { type: 'E' }
-    | { type: 'PED_COUNTDOWN'; duration: number };
-
-  interface ParallelContext {
-    elapsed: number;
-  }
-
-  const parallelMachine = createMachine({
-    type: 'parallel',
-    types: {} as {
-      context: ParallelContext;
-      events: ParallelEvent;
-    },
-    context: { elapsed: 0 },
-    states: {
-      foo: {},
-      bar: {},
-      baz: {
-        initial: 'one',
-        states: {
-          one: { on: { E: 'two' } },
-          two: {}
-        }
-      }
-    }
-  });
-
-  noop(parallelMachine);
-
-  it('should work with a parallel StateSchema defined', () => {
-    expect(true).toBeTruthy();
-  });
-});
-
-describe('Nested parallel stateSchema', () => {
-  interface ParallelEvent {
-    type: 'UPDATE.CONTEXT';
-  }
-
-  interface ParallelContext {
-    lastDate: Date;
-  }
-
-  const nestedParallelMachine = createMachine<ParallelContext, ParallelEvent>({
-    types: {} as {
-      context: ParallelContext;
-      events: ParallelEvent;
-    },
-    context: {
-      lastDate: new Date()
-    },
-    initial: 'foo',
-    states: {
-      foo: {},
-      bar: {},
-      baz: {
-        type: 'parallel',
-        initial: 'blockUpdates',
-        states: {
-          blockUpdates: { type: 'final' },
-          activeParallelNode: {
-            on: {
-              'UPDATE.CONTEXT': {
-                actions: [
-                  assign({
-                    lastDate: new Date()
-                  })
-                ]
-              }
-            }
-          }
-        }
-      }
-    }
-  });
-
-  noop(nestedParallelMachine);
-
-  it('should work with a parallel StateSchema defined', () => {
-    expect(true).toBeTruthy();
-  });
-});
-
 describe('Raise events', () => {
   it('should accept a valid event type', () => {
     createMachine({
@@ -303,7 +150,7 @@ describe('stop', () => {
   });
 });
 
-describe('types', () => {
+describe('context', () => {
   it('defined context in createMachine() should be an object', () => {
     createMachine({
       // @ts-expect-error
@@ -341,73 +188,71 @@ describe('types', () => {
   });
 });
 
-describe('context', () => {
-  it('should infer context type from `config.context` when there is no `schema.context`', () => {
-    createMachine(
-      {
-        context: {
-          foo: 'test'
-        }
-      },
-      {
-        actions: {
-          someAction: ({ context }) => {
-            ((_accept: string) => {})(context.foo);
-            // @ts-expect-error
-            ((_accept: number) => {})(context.foo);
-          }
+it('should infer context type from `config.context` when there is no `schema.context`', () => {
+  createMachine(
+    {
+      context: {
+        foo: 'test'
+      }
+    },
+    {
+      actions: {
+        someAction: ({ context }) => {
+          ((_accept: string) => {})(context.foo);
+          // @ts-expect-error
+          ((_accept: number) => {})(context.foo);
         }
       }
-    );
-  });
-
-  it('should not use actions as possible inference sites', () => {
-    createMachine(
-      {
-        types: {
-          context: {} as {
-            count: number;
-          }
-        },
-        context: {
-          count: 0
-        },
-        entry: () => {}
-      },
-      {
-        actions: {
-          someAction: ({ context }) => {
-            ((_accept: number) => {})(context.count);
-            // @ts-expect-error
-            ((_accept: string) => {})(context.count);
-          }
-        }
-      }
-    );
-  });
-
-  it('should work with generic context', () => {
-    function createMachineWithExtras<TContext extends MachineContext>(
-      context: TContext
-    ): StateMachine<TContext, any, any> {
-      return createMachine({ context });
     }
+  );
+});
 
-    createMachineWithExtras({ counter: 42 });
-  });
-
-  it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
-    createMachine({
+it('should not use actions as possible inference sites', () => {
+  createMachine(
+    {
       types: {
         context: {} as {
-          literalTest: 'foo' | 'bar';
+          count: number;
         }
       },
       context: {
-        // @ts-expect-error
-        literalTest: 'anything'
+        count: 0
+      },
+      entry: () => {}
+    },
+    {
+      actions: {
+        someAction: ({ context }) => {
+          ((_accept: number) => {})(context.count);
+          // @ts-expect-error
+          ((_accept: string) => {})(context.count);
+        }
       }
-    });
+    }
+  );
+});
+
+it('should work with generic context', () => {
+  function createMachineWithExtras<TContext extends MachineContext>(
+    context: TContext
+  ): StateMachine<TContext, any, any, any, any> {
+    return createMachine({ context });
+  }
+
+  createMachineWithExtras({ counter: 42 });
+});
+
+it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
+  createMachine({
+    types: {
+      context: {} as {
+        literalTest: 'foo' | 'bar';
+      }
+    },
+    context: {
+      // @ts-expect-error
+      literalTest: 'anything'
+    }
   });
 });
 
@@ -464,7 +309,7 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, any, TEvent>) {}
+    >(_machine: StateMachine<TContext, TEvent, any, any, any>) {}
 
     acceptMachine(toggleMachine);
   });
@@ -609,7 +454,925 @@ describe('spawn', () => {
   });
 });
 
-describe('service-targets', () => {
+describe('actor types', () => {
+  it('should reject actor outside of the defined ones at usage site', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'other'
+      }
+    });
+  });
+
+  it('should accept a defined actor at usage site', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it('should reject actor outside of the defined ones in provided implementations', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // @ts-expect-error
+          other: child
+        }
+      }
+    );
+  });
+
+  it('should accept a defined actor in provided implementations', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child
+        }
+      }
+    );
+  });
+
+  it(`should reject the provided actor when the output doesn't match`, () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // @ts-expect-error
+          child: fromPromise(() => Promise.resolve(42))
+        }
+      }
+    );
+  });
+
+  it(`should reject the provided actor when its output is a super type of the expected one`, () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // @ts-expect-error
+          child: fromPromise(() =>
+            Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
+          )
+        }
+      }
+    );
+  });
+
+  it(`should accept the provided actor when its output is a sub type of the expected one`, () => {
+    const child = fromPromise(() =>
+      Promise.resolve(Math.random() > 0.5 ? 'foo' : 42)
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // TODO: ideally this shouldn't error
+          // @ts-expect-error
+          child: fromPromise(() => Promise.resolve('foo'))
+        }
+      }
+    );
+  });
+
+  it(`should reject static wrong input in the provided implementations`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child: {
+            src: child,
+            // @ts-expect-error
+            input: 'hello'
+          }
+        }
+      }
+    );
+  });
+
+  it(`should allow static correct input in the provided implementations`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child: {
+            src: child,
+            input: 42
+          }
+        }
+      }
+    );
+  });
+
+  it(`should allow static input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child: {
+            src: child,
+            input: 42
+          }
+        }
+      }
+    );
+  });
+
+  it(`should reject static input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child: {
+            src: child,
+            // @ts-expect-error
+            input: Math.random() > 0.5 ? 'string' : 42
+          }
+        }
+      }
+    );
+  });
+
+  it(`should reject dynamic wrong input in the provided implementations`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child: {
+            src: child,
+            // @ts-expect-error
+            input: () => 'hello'
+          }
+        }
+      }
+    );
+  });
+
+  it(`should allow dynamic correct input in the provided implementations`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child: {
+            src: child,
+            input: () => 42
+          }
+        }
+      }
+    );
+  });
+
+  it(`should reject dynamic input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child: {
+            src: child,
+            // @ts-expect-error
+            input: () => (Math.random() > 0.5 ? 42 : 'hello')
+          }
+        }
+      }
+    );
+  });
+
+  it(`should allow dynamic input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child: {
+            src: child,
+            input: () => 'hello'
+          }
+        }
+      }
+    );
+  });
+
+  it('should allow an actor with the expected snapshot type', () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          foo: string;
+        };
+      },
+      context: {
+        foo: 'bar'
+      }
+    });
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child
+        }
+      }
+    );
+  });
+
+  it('should reject an actor with an incorrect snapshot type', () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          foo: string;
+        };
+      },
+      context: {
+        foo: 'bar'
+      }
+    });
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // @ts-expect-error
+          child: createMachine({
+            types: {} as {
+              context: {
+                foo: number;
+              };
+            },
+            context: {
+              foo: 100
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('should allow an actor with a snapshot type that is a subtype of the expected one', () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          foo: string | number;
+        };
+      },
+      context: {
+        foo: 'bar'
+      }
+    });
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // TODO: ideally this should be allowed
+          // @ts-expect-error
+          child: createMachine({
+            types: {} as {
+              context: {
+                foo: string;
+              };
+            },
+            context: {
+              foo: 'bar'
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('should reject an actor with a snapshot type that is a supertype of the expected one', () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          foo: string;
+        };
+      },
+      context: {
+        foo: 'bar'
+      }
+    });
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // @ts-expect-error
+          child: createMachine({
+            types: {} as {
+              context: {
+                foo: string | number;
+              };
+            },
+            context: {
+              foo: 'bar'
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('should allow an actor with the expected event types', () => {
+    const child = createMachine({
+      types: {} as {
+        events: {
+          type: 'EV_1';
+        };
+      }
+    });
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          child
+        }
+      }
+    );
+  });
+
+  it('should reject an actor with wrong event types', () => {
+    const child = createMachine({
+      types: {} as {
+        events: {
+          type: 'EV_1';
+        };
+      }
+    });
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // @ts-expect-error
+          child: createMachine({
+            types: {} as {
+              events: {
+                type: 'OTHER';
+              };
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('should reject an actor with an event type that is a subtype of the expected one', () => {
+    const child = createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'EV_1';
+            }
+          | {
+              type: 'EV_2';
+            };
+      }
+    });
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // the provided actor has to be able to handle all the event types that it might receive from the parent here
+          // @ts-expect-error
+          child: createMachine({
+            types: {} as {
+              events: {
+                type: 'EV_1';
+              };
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('should allow an actor with a snapshot type that is a supertype of the expected one', () => {
+    const child = createMachine({
+      types: {} as {
+        events: {
+          type: 'EV_1';
+        };
+      }
+    });
+
+    createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof child;
+          };
+        }
+      },
+      {
+        actors: {
+          // TODO: ideally this should be allowed since the provided actor is capable of handling all the event types that it might receive from the parent here
+          // @ts-expect-error
+          child: createMachine({
+            types: {} as {
+              events:
+                | {
+                    type: 'EV_1';
+                  }
+                | {
+                    type: 'EV_2';
+                  };
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('should return the correct child type on the available snapshot when the ID for the actor was configured', () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          foo: string;
+        };
+      },
+      context: {
+        foo: ''
+      }
+    });
+
+    const machine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            id: 'someChild';
+            logic: typeof child;
+          };
+        },
+        invoke: {
+          id: 'someChild',
+          src: 'child'
+        }
+      },
+      {
+        actors: { child }
+      }
+    );
+
+    const snapshot = interpret(machine).getSnapshot();
+    const childSnapshot = snapshot.children.someChild!.getSnapshot();
+
+    ((_accept: string | undefined) => {})(childSnapshot.context.foo);
+
+    ((_accept: string) => {})(childSnapshot.context.foo);
+
+    ((_accept: '') => {})(
+      // @ts-expect-error
+      childSnapshot.context.foo
+    );
+
+    ((_accept: number | undefined) => {})(
+      // @ts-expect-error
+      childSnapshot.context.foo
+    );
+  });
+
+  it('should allow valid configured actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        id: 'ok1',
+        src: 'child'
+      }
+    });
+  });
+
+  it('should disallow invalid actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        id: 'child',
+        src: 'child'
+      }
+    });
+  });
+
+  it('should require id to be specified when it was configured', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it(`shouldn't require id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it(`should allow id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        id: 'someId',
+        src: 'child'
+      }
+    });
+  });
+
+  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: child2
+      }
+    });
+  });
+
+  it('specific children with id should be optional on the snapshot', () => {
+    const child = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const machine = createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'myChild';
+          logic: typeof child;
+        };
+      }
+    });
+
+    const childActor = interpret(machine).getSnapshot().children.myChild;
+
+    ((_accept: ActorRefFrom<typeof child> | undefined) => {})(childActor);
+    // @ts-expect-error
+    ((_accept: ActorRefFrom<typeof child>) => {})(childActor);
+  });
+
+  it('specific children without id should be optional on the snapshot', () => {
+    const child = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const machine = createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      }
+    });
+
+    const childActor = interpret(machine).getSnapshot().children.someChild;
+
+    ((_accept: ActorRefFrom<typeof child> | undefined) => {})(childActor);
+    // @ts-expect-error
+    ((_accept: ActorRefFrom<typeof child>) => {})(childActor);
+  });
+
+  it('when all provided actors have specified ids index signature should not be allowed', () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    const machine = createMachine({
+      types: {} as {
+        actors:
+          | {
+              src: 'child';
+              id: 'counter';
+              logic: typeof child1;
+            }
+          | {
+              src: 'child';
+              id: 'quiz';
+              logic: typeof child2;
+            };
+      }
+    });
+
+    interpret(machine).getSnapshot().children.counter;
+    interpret(machine).getSnapshot().children.quiz;
+    // @ts-expect-error
+    interpret(machine).getSnapshot().children.someChild;
+  });
+
+  it('when some provided actors have specified ids index signature should be allowed', () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    const machine = createMachine({
+      types: {} as {
+        actors:
+          | {
+              src: 'child';
+              id: 'counter';
+              logic: typeof child1;
+            }
+          | {
+              src: 'child';
+              logic: typeof child2;
+            };
+      }
+    });
+
+    const counterActor = interpret(machine).getSnapshot().children.counter;
+    ((_accept: ActorRefFrom<typeof child1> | undefined) => {})(counterActor);
+
+    const someActor = interpret(machine).getSnapshot().children.someChild;
+    // @ts-expect-error
+    ((_accept: ActorRefFrom<typeof child2> | undefined) => {})(someActor);
+    ((
+      _accept:
+        | ActorRefFrom<typeof child1>
+        | ActorRefFrom<typeof child2>
+        | undefined
+    ) => {})(someActor);
+  });
+});
+
+describe('invoke onDone targets', () => {
   it('should work with a service that uses strings for both targets', () => {
     const machine = createMachine({
       invoke: {
@@ -893,6 +1656,53 @@ describe('actions', () => {
         count: ({ context }) => context.count + 1,
         skip: true
       })
+    });
+  });
+});
+
+describe('input', () => {
+  it('should provide the input type to the context factory', () => {
+    createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      },
+      context: ({ input }) => {
+        ((_accept: number) => {})(input.count);
+        // @ts-expect-error
+        ((_accept: string) => {})(input.count);
+        return {};
+      }
+    });
+  });
+
+  it('should accept valid input type when interpreting an actor', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    interpret(machine, { input: { count: 100 } });
+  });
+
+  it('should reject invalid input type when interpreting an actor', () => {
+    const machine = createMachine({
+      types: {
+        input: {} as {
+          count: number;
+        }
+      }
+    });
+
+    interpret(machine, {
+      input: {
+        // @ts-expect-error
+        count: ''
+      }
     });
   });
 });

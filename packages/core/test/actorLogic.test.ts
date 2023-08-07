@@ -174,6 +174,7 @@ describe('promise logic (fromPromise)', () => {
       return Promise.reject(createdPromises);
     });
     const actor = interpret(promiseLogic);
+    actor.subscribe({ error: function preventUnhandledErrorListener() {} });
     actor.start();
 
     await new Promise((res) => setTimeout(res, 5));
@@ -416,7 +417,7 @@ describe('callback logic (fromCallback)', () => {
   it('should interpret a callback', () => {
     expect.assertions(1);
 
-    const callbackLogic = fromCallback((_, receive) => {
+    const callbackLogic = fromCallback(({ receive }) => {
       receive((event) => {
         expect(event).toEqual({ type: 'a' });
       });
@@ -429,7 +430,7 @@ describe('callback logic (fromCallback)', () => {
 
   it('should have access to the system', () => {
     expect.assertions(1);
-    const callbackLogic = fromCallback((_sendBack, _receive, { system }) => {
+    const callbackLogic = fromCallback(({ system }) => {
       expect(system).toBeDefined();
     });
 
@@ -438,7 +439,7 @@ describe('callback logic (fromCallback)', () => {
 
   it('should have reference to self', () => {
     expect.assertions(1);
-    const callbackLogic = fromCallback((_sendBack, _receive, { self }) => {
+    const callbackLogic = fromCallback(({ self }) => {
       expect(self.send).toBeDefined();
     });
 
@@ -451,7 +452,7 @@ describe('callback logic (fromCallback)', () => {
         events: { type: 'PING'; ref: AnyActorRef };
       },
       invoke: {
-        src: fromCallback((sendBack, receive, { self }) => {
+        src: fromCallback(({ self, sendBack, receive }) => {
           receive((event) => {
             switch (event.type) {
               case 'PONG': {

@@ -1,5 +1,86 @@
 # xstate
 
+## 5.0.0-beta.21
+
+### Minor Changes
+
+- [#4145](https://github.com/statelyai/xstate/pull/4145) [`5cc902531`](https://github.com/statelyai/xstate/commit/5cc902531477964cb614736ea628cbb3eb42309b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Significant improvements to error handling have been made:
+
+  - Actors will no longer crash when an error is thrown in an observer (`actor.subscribe(observer)`).
+  - Errors will be handled by observer's `.error()` handler:
+    ```ts
+    actor.subscribe({
+      error: (error) => {
+        // handle error
+      }
+    });
+    ```
+  - If an observer does not have an error handler, the error will be thrown in a clear stack so bug tracking services can collect it.
+
+- [#4054](https://github.com/statelyai/xstate/pull/4054) [`a24711181`](https://github.com/statelyai/xstate/commit/a247111814d16166c847032438382f89c5c286e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Input types can now be specified for machines:
+
+  ```ts
+  const emailMachine = createMachine({
+    types: {} as {
+      input: {
+        subject: string;
+        message: string;
+      };
+    },
+    context: ({ input }) => ({
+      // Strongly-typed input!
+      emailSubject: input.subject,
+      emailBody: input.message.trim()
+    })
+  });
+
+  const emailActor = interpret(emailMachine, {
+    input: {
+      // Strongly-typed input!
+      subject: 'Hello, world!',
+      message: 'This is a test.'
+    }
+  }).start();
+  ```
+
+## 5.0.0-beta.20
+
+### Major Changes
+
+- [#4036](https://github.com/statelyai/xstate/pull/4036) [`e2440f0b1`](https://github.com/statelyai/xstate/commit/e2440f0b1b5bdc00aca7f412721e7dc909af1f4c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actor types can now be specified in the `.types` property of `createMachine`:
+
+  ```ts
+  const fetcher = fromPromise(() => fetchUser());
+
+  const machine = createMachine({
+    types: {} as {
+      actors: {
+        src: 'fetchData'; // src name (inline behaviors ideally inferred)
+        id: 'fetch1' | 'fetch2'; // possible ids (optional)
+        logic: typeof fetcher;
+      };
+    },
+    invoke: {
+      src: 'fetchData', // strongly typed
+      id: 'fetch2', // strongly typed
+      onDone: {
+        actions: ({ event }) => {
+          event.output; // strongly typed as { result: string }
+        }
+      },
+      input: { foo: 'hello' } // strongly typed
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#4157](https://github.com/statelyai/xstate/pull/4157) [`31eb5f8a1`](https://github.com/statelyai/xstate/commit/31eb5f8a1bc9efdc857bb4650be7d6c0f5b20ed3) Thanks [@Valkendorm](https://github.com/Valkendorm)! - Merge `sendBack` and `receive` with other properties of `fromCallback` logic creator.
+
+  ```ts
+  const callbackLogic = fromCallback(({ input, system, self, sendBack, receive }) => { ... });
+  ```
+
 ## 5.0.0-beta.19
 
 ### Major Changes

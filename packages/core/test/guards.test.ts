@@ -17,14 +17,15 @@ describe('guard conditions', () => {
 
   const lightMachine = createMachine(
     {
-      context: ({ input = {} }) => ({
-        elapsed: input.elapsed || 0
-      }),
-      initial: 'green',
       types: {} as {
+        input: { elapsed?: number };
         context: LightMachineCtx;
         events: LightMachineEvents;
       },
+      context: ({ input = {} }) => ({
+        elapsed: input.elapsed ?? 0
+      }),
+      initial: 'green',
       states: {
         green: {
           on: {
@@ -237,12 +238,23 @@ describe('guard conditions', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const errorSpy = jest.fn();
 
-    expect(() => actorRef.send({ type: 'BAD_COND' }))
-      .toThrowErrorMatchingInlineSnapshot(`
-      "Unable to evaluate guard 'doesNotExist' in transition for event 'BAD_COND' in state node '(machine).foo':
-      Guard 'doesNotExist' is not implemented.'."
+    const actorRef = interpret(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    actorRef.send({ type: 'BAD_COND' });
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Unable to evaluate guard 'doesNotExist' in transition for event 'BAD_COND' in state node '(machine).foo':
+      Guard 'doesNotExist' is not implemented.'.],
+        ],
+      ]
     `);
   });
 });
@@ -550,13 +562,22 @@ describe('referencing guards', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const errorSpy = jest.fn();
 
-    expect(() => {
-      actorRef.send({ type: 'EVENT' });
-    }).toThrowErrorMatchingInlineSnapshot(`
-      "Unable to evaluate guard 'missing-predicate' in transition for event 'EVENT' in state node 'invalid-predicate.active':
-      Guard 'missing-predicate' is not implemented.'."
+    const actorRef = interpret(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+    actorRef.send({ type: 'EVENT' });
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Unable to evaluate guard 'missing-predicate' in transition for event 'EVENT' in state node 'invalid-predicate.active':
+      Guard 'missing-predicate' is not implemented.'.],
+        ],
+      ]
     `);
   });
 

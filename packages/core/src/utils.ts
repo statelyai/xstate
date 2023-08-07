@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { AnyActorLogic, AnyState } from './index.ts';
 import { errorExecution, errorPlatform } from './constantPrefixes.ts';
-import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
+import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
   ActorLogic,
@@ -19,7 +19,9 @@ import type {
   StateValue,
   Subscribable,
   TransitionConfig,
-  TransitionConfigTarget
+  TransitionConfigTarget,
+  TODO,
+  AnyActorRef
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -228,28 +230,36 @@ export function mapContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  mapper: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>,
+  mapper: Mapper<TContext, TEvent, any>,
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ): any {
   if (typeof mapper === 'function') {
-    return mapper({ context, event });
+    return mapper({ context, event, self });
   }
 
-  const result = {} as any;
-  const args = { context, event };
-
-  for (const key of Object.keys(mapper)) {
-    const subMapper = mapper[key];
-
-    if (typeof subMapper === 'function') {
-      result[key] = subMapper(args);
-    } else {
-      result[key] = subMapper;
-    }
+  if (
+    isDevelopment &&
+    typeof mapper === 'object' &&
+    Object.values(mapper).some((val) => typeof val === 'function')
+  ) {
+    console.warn(
+      `Dynamically mapping values to individual properties is deprecated. Use a single function that returns the mapped object instead.\nFound object containing properties whose values are possibly mapping functions: ${Object.entries(
+        mapper
+      )
+        .filter(([key, value]) => typeof value === 'function')
+        .map(
+          ([key, value]) =>
+            `\n - ${key}: ${(value as () => any)
+              .toString()
+              .replace(/\n\s*/g, '')}`
+        )
+        .join('')}`
+    );
   }
 
-  return result;
+  return mapper;
 }
 
 export function isBuiltInEvent(eventType: EventType): boolean {
@@ -386,9 +396,9 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable: InvokeConfig<TContext, TEvent> | string | ActorLogic<any, any>,
+  invocable: InvokeConfig<TContext, TEvent, TODO> | string | AnyActorLogic,
   id: string
-): InvokeConfig<TContext, TEvent> {
+): InvokeConfig<TContext, TEvent, TODO> {
   if (typeof invocable === 'object') {
     if ('src' in invocable) {
       return invocable;
@@ -413,16 +423,15 @@ export function toObserver<T>(
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
 ): Observer<T> {
-  const noop = () => {};
   const isObserver = typeof nextHandler === 'object';
-  const self = isObserver ? nextHandler : null;
+  const self = isObserver ? nextHandler : undefined;
 
   return {
-    next: ((isObserver ? nextHandler.next : nextHandler) || noop).bind(self),
-    error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
-    complete: (
-      (isObserver ? nextHandler.complete : completionHandler) || noop
-    ).bind(self)
+    next: (isObserver ? nextHandler.next : nextHandler)?.bind(self),
+    error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
+    complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
+      self
+    )
   };
 }
 

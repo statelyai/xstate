@@ -151,7 +151,7 @@ describe('predictableExec', () => {
         },
         c: {
           invoke: {
-            src: fromCallback((_sendBack, _receive, { input }) => {
+            src: fromCallback(({ input }) => {
               eventArg = input.event;
             }),
             input: ({ event }: any) => ({ event })
@@ -711,8 +711,8 @@ describe('predictableExec', () => {
           entry: sendTo('myChild', { type: 'KNOCK_KNOCK' }),
           invoke: {
             id: 'myChild',
-            src: fromCallback((_sendBack, onReceive) => {
-              onReceive((event) => {
+            src: fromCallback(({ receive }) => {
+              receive((event) => {
                 received = event;
               });
               return () => {};
@@ -828,8 +828,8 @@ describe('predictableExec', () => {
         active: {
           invoke: {
             id: 'my-service',
-            src: fromCallback((_, onReceive) => {
-              onReceive((event) => {
+            src: fromCallback(({ receive }) => {
+              receive((event) => {
                 if (event.type === 'MY_EVENT') {
                   done();
                 }

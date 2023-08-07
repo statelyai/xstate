@@ -91,7 +91,7 @@ describe('final states', () => {
     expect(actual).toEqual(['bazAction', 'barAction', 'fooAction']);
   });
 
-  it('should call data expressions on nested final nodes', (done) => {
+  it('should call output expressions on nested final nodes', (done) => {
     interface Ctx {
       revealedSecret?: string;
     }
@@ -112,9 +112,9 @@ describe('final states', () => {
             },
             reveal: {
               type: 'final',
-              output: {
-                secret: () => 'the secret'
-              }
+              output: () => ({
+                secret: 'the secret'
+              })
             }
           },
           onDone: {
@@ -166,5 +166,20 @@ describe('final states', () => {
     const service = interpret(machine).start();
     service.send({ type: 'FINISH', value: 1 });
     expect(spy).toBeCalledTimes(1);
+  });
+
+  it('output mapper should receive self', () => {
+    const machine = createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: ({ self }) => ({ selfRef: self })
+        }
+      }
+    });
+
+    const actor = interpret(machine).start();
+    expect(actor.getSnapshot().output.selfRef.send).toBeDefined();
   });
 });
