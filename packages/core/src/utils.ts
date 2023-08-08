@@ -338,9 +338,9 @@ export function toTransitionConfigArray<
   TEvent extends EventObject
 >(
   configLike: SingleOrArray<
-    TransitionConfig<TContext, TEvent> | TransitionConfigTarget
+    TransitionConfig<TContext, TEvent, TEvent, TODO> | TransitionConfigTarget
   >
-): Array<TransitionConfig<TContext, TEvent>> {
+): Array<TransitionConfig<TContext, TEvent, TEvent, TODO>> {
   return toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
@@ -396,9 +396,12 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable: InvokeConfig<TContext, TEvent, TODO> | string | AnyActorLogic,
+  invocable:
+    | InvokeConfig<TContext, TEvent, TODO, TODO>
+    | string
+    | AnyActorLogic,
   id: string
-): InvokeConfig<TContext, TEvent, TODO> {
+): InvokeConfig<TContext, TEvent, TODO, TODO> {
   if (typeof invocable === 'object') {
     if ('src' in invocable) {
       return invocable;

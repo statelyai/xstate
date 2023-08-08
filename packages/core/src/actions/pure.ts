@@ -2,11 +2,13 @@ import isDevelopment from '#is-development';
 import {
   Action,
   ActionArgs,
+  AnyAction,
   AnyActorContext,
   AnyState,
   EventObject,
   MachineContext,
-  SingleOrArray
+  SingleOrArray,
+  TODO
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
@@ -23,7 +25,7 @@ function resolve(
     }: {
       context: MachineContext;
       event: EventObject;
-    }) => SingleOrArray<Action<any, any, any>> | undefined;
+    }) => SingleOrArray<AnyAction> | undefined;
   }
 ) {
   return [
@@ -44,7 +46,9 @@ export function pure<
   }: {
     context: TContext;
     event: TExpressionEvent;
-  }) => SingleOrArray<Action<TContext, TExpressionEvent> | string> | undefined
+  }) =>
+    | SingleOrArray<Action<TContext, TExpressionEvent, TEvent, TODO> | string>
+    | undefined
 ) {
   function pure(_: ActionArgs<TContext, TExpressionEvent>) {
     if (isDevelopment) {

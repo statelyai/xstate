@@ -84,7 +84,14 @@ export class StateMachine<
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public types: MachineTypes<TContext, TEvent, TActor, TInput, TOutput>;
+  public types: MachineTypes<
+    TContext,
+    TEvent,
+    TAction,
+    TActor,
+    TInput,
+    TOutput
+  >;
 
   public __xstatenode: true = true;
 

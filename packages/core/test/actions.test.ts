@@ -2833,7 +2833,11 @@ describe('choose', () => {
       counter: number;
     }
 
-    const machine = createMachine<Ctx, Events>({
+    const machine = createMachine({
+      types: {} as {
+        context: Ctx;
+        events: Events;
+      },
       context: {},
       initial: 'foo',
       states: {
@@ -3061,9 +3065,12 @@ describe('sendTo', () => {
       }
     });
 
-    createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-    }>({
+    createMachine({
+      types: {} as {
+        context: {
+          child: ActorRefFrom<typeof childMachine>;
+        };
+      },
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
@@ -3474,7 +3481,10 @@ describe('assign action order', () => {
   it('should preserve action order', () => {
     const captured: number[] = [];
 
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+      },
       context: { count: 0 },
       entry: [
         ({ context }) => captured.push(context.count), // 0
@@ -3497,8 +3507,11 @@ describe('assign action order', () => {
       count: number;
     }
 
-    const machine = createMachine<CountCtx>(
+    const machine = createMachine(
       {
+        types: {} as {
+          context: CountCtx;
+        },
         context: { count: 0 },
         entry: [
           ({ context }) => captured.push(context.count), // 0
@@ -3527,7 +3540,10 @@ describe('assign action order', () => {
   it('should capture correct context values on subsequent transitions', () => {
     let captured: number[] = [];
 
-    const machine = createMachine<{ counter: number }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { counter: number };
+      },
       context: {
         counter: 0
       },
@@ -3552,10 +3568,11 @@ describe('assign action order', () => {
 
 describe('types', () => {
   it('assign actions should be inferred correctly', () => {
-    createMachine<
-      { count: number; text: string },
-      { type: 'inc'; value: number } | { type: 'say'; value: string }
-    >({
+    createMachine({
+      types: {} as {
+        context: { count: number; text: string };
+        events: { type: 'inc'; value: number } | { type: 'say'; value: string };
+      },
       context: {
         count: 0,
         text: 'hello'
@@ -3598,10 +3615,11 @@ describe('types', () => {
   });
 
   it('choose actions should be inferred correctly', () => {
-    createMachine<
-      { count: number; text: string },
-      { type: 'inc'; value: number } | { type: 'say'; value: string }
-    >({
+    createMachine({
+      types: {} as {
+        context: { count: number; text: string };
+        events: { type: 'inc'; value: number } | { type: 'say'; value: string };
+      },
       context: {
         count: 0,
         text: 'hello'
