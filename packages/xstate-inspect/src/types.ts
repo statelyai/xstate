@@ -1,6 +1,6 @@
 import type {
   ActorRef,
-  AnyInterpreter,
+  AnyActor,
   AnyState,
   AnyStateMachine,
   StateConfig
@@ -10,7 +10,7 @@ import { InspectMachineEvent } from './inspectMachine.ts';
 
 export type MaybeLazy<T> = T | (() => T);
 
-export type ServiceListener = (service: AnyInterpreter) => void;
+export type ServiceListener = (service: AnyActor) => void;
 
 export type Replacer = (key: string, value: any) => any;
 

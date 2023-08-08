@@ -1,4 +1,4 @@
-import { createMachine, interpret } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 import { assign, createUpdater, ImmerUpdateEvent } from '../src/index.ts';
 
 describe('@xstate/immer', () => {
@@ -21,7 +21,7 @@ describe('@xstate/immer', () => {
       }
     });
 
-    const actorRef = interpret(countMachine).start();
+    const actorRef = createActor(countMachine).start();
     expect(actorRef.getSnapshot().context).toEqual({ count: 0 });
 
     actorRef.send({ type: 'INC' });
@@ -57,7 +57,7 @@ describe('@xstate/immer', () => {
       }
     );
 
-    const actorRef = interpret(countMachine).start();
+    const actorRef = createActor(countMachine).start();
     expect(actorRef.getSnapshot().context).toEqual({ count: 0 });
 
     actorRef.send({ type: 'INC_TWICE' });
@@ -96,7 +96,7 @@ describe('@xstate/immer', () => {
       }
     );
 
-    const actorRef = interpret(countMachine).start();
+    const actorRef = createActor(countMachine).start();
     expect(actorRef.getSnapshot().context.foo.bar.baz).toEqual([1, 2, 3]);
 
     actorRef.send({ type: 'INC_TWICE' });
@@ -147,7 +147,7 @@ describe('@xstate/immer', () => {
       }
     });
 
-    const actorRef = interpret(countMachine).start();
+    const actorRef = createActor(countMachine).start();
     expect(actorRef.getSnapshot().context.foo.bar.baz).toEqual([1, 2, 3]);
 
     actorRef.send(bazUpdater.update(4));
@@ -212,7 +212,7 @@ describe('@xstate/immer', () => {
       }
     });
 
-    const service = interpret(formMachine);
+    const service = createActor(formMachine);
     service.subscribe({
       complete: () => {
         done();

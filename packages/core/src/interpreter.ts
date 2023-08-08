@@ -3,6 +3,7 @@ import { Mailbox } from './Mailbox.ts';
 import { doneInvoke, error } from './actions.ts';
 import { stopSignalType } from './actors/index.ts';
 import { devToolsAdapter } from './dev/index.ts';
+import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { createSystem } from './system.ts';
 import {
@@ -16,7 +17,6 @@ import type {
   AnyActorLogic,
   AnyStateMachine,
   EventFromLogic,
-  InterpreterFrom,
   PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef
@@ -26,7 +26,7 @@ import {
   DoneEvent,
   EventObject,
   InteropSubscribable,
-  InterpreterOptions,
+  ActorOptions,
   Observer,
   Subscription
 } from './types.ts';
@@ -54,12 +54,12 @@ export enum ActorStatus {
   Stopped
 }
 
-type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
-  TLogic extends ActorLogic<infer _, infer __, infer TInternalState>
-    ? TInternalState
-    : never;
+/**
+ * @deprecated Use `ActorStatus` instead.
+ */
+export const InterpreterStatus = ActorStatus;
 
-const interpreterDefaults = {
+const defaultOptions = {
   deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
@@ -73,24 +73,27 @@ const interpreterDefaults = {
   devTools: false
 };
 
-export class Interpreter<
+type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
+  TLogic extends ActorLogic<infer _, infer __, infer TInternalState>
+    ? TInternalState
+    : never;
+
+export class Actor<
   TLogic extends AnyActorLogic,
   TEvent extends EventObject = EventFromLogic<TLogic>
 > implements ActorRef<TEvent, SnapshotFrom<TLogic>>
 {
-  public static defaults = interpreterDefaults as Partial<
-    InterpreterOptions<any>
-  > &
-    typeof interpreterDefaults;
+  public static defaults = defaultOptions as Partial<ActorOptions<any>> &
+    typeof defaultOptions;
   /**
-   * The current state of the interpreted logic.
+   * The current internal state of the actor.
    */
   private _state!: InternalStateFrom<TLogic>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: Readonly<InterpreterOptions<TLogic>>;
+  public options: Readonly<ActorOptions<TLogic>>;
 
   /**
    * The unique identifier for this actor relative to its parent.
@@ -127,16 +130,16 @@ export class Interpreter<
   public src?: string;
 
   /**
-   * Creates a new Interpreter instance (i.e., service) for the given logic with the provided options, if any.
+   * Creates a new actor instance for the given logic with the provided options, if any.
    *
-   * @param logic The logic to be interpreted
-   * @param options Interpreter options
+   * @param logic The logic to create an actor from
+   * @param options Actor options
    */
-  constructor(public logic: TLogic, options?: InterpreterOptions<TLogic>) {
+  constructor(public logic: TLogic, options?: ActorOptions<TLogic>) {
     const resolvedOptions = {
-      ...Interpreter.defaults,
+      ...Actor.defaults,
       ...options
-    } as InterpreterOptions<TLogic> & typeof Interpreter.defaults;
+    } as ActorOptions<TLogic> & typeof Actor.defaults;
 
     const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
 
@@ -179,7 +182,7 @@ export class Interpreter<
       }
     };
 
-    // Ensure that the send method is bound to this interpreter instance
+    // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
     this.system._sendInspectionEvent({
@@ -216,7 +219,12 @@ export class Interpreter<
     }
 
     for (const observer of this.observers) {
-      observer.next?.(snapshot);
+      // TODO: should observers be notified in case of the error?
+      try {
+        observer.next?.(snapshot);
+      } catch (err) {
+        reportUnhandledError(err);
+      }
     }
 
     const status = this.logic.getStatus?.(state);
@@ -224,16 +232,20 @@ export class Interpreter<
     switch (status?.status) {
       case 'done':
         this._stopProcedure();
-        if (this._parent) {
-          this._doneEvent = doneInvoke(this.id, status.data);
-          this.system.sendTo(this._parent, this._doneEvent, this);
-        }
+        // if (this._parent) {
+        //   this._doneEvent = doneInvoke(this.id, status.data);
+        //   this.system.sendTo(this._parent, this._doneEvent, this);
+        // }
+        // this._complete();
         this._complete();
+        this._doneEvent = doneInvoke(this.id, status.data);
+        // this._parent?.send(this._doneEvent as any);
+        this.system.sendTo(this._parent, this._doneEvent, this);
         break;
       case 'error':
         this._stopProcedure();
-        this._parent?.send(error(this.id, status.data));
         this._error(status.data);
+        this.system.sendTo(this._parent, error(this.id, status.data), this);
         break;
     }
   }
@@ -257,11 +269,14 @@ export class Interpreter<
       completeListener
     );
 
-    this.observers.add(observer);
-
-    if (this.status === ActorStatus.Stopped) {
-      observer.complete?.();
-      this.observers.delete(observer);
+    if (this.status !== ActorStatus.Stopped) {
+      this.observers.add(observer);
+    } else {
+      try {
+        observer.complete?.();
+      } catch (err) {
+        reportUnhandledError(err);
+      }
     }
 
     return {
@@ -272,7 +287,7 @@ export class Interpreter<
   }
 
   /**
-   * Starts the interpreter from the initial state
+   * Starts the Actor from the initial state
    */
   public start(): this {
     if (this.status === ActorStatus.Running) {
@@ -295,8 +310,39 @@ export class Interpreter<
       targetId: this.sessionId
     });
 
+    const status = this.logic.getStatus?.(this._state);
+
+    switch (status?.status) {
+      case 'done':
+        // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
+        // we still need to complete observers, flush deferreds etc
+        this.update(this._state);
+        this.system._sendInspectionEvent({
+          type: '@xstate.transition',
+          actorRef: this,
+
+          event: { type: 'xstate.init' },
+
+          sessionId: this.sessionId,
+          snapshot: this.getSnapshot(),
+          status: this.status,
+          sourceId: this._parent?.sessionId
+        });
+      // fallthrough
+      case 'error':
+        // TODO: rethink cleanup of observers, mailbox, etc
+        return this;
+    }
+
     if (this.logic.start) {
-      this.logic.start(this._state, this._actorContext);
+      try {
+        this.logic.start(this._state, this._actorContext);
+      } catch (err) {
+        this._stopProcedure();
+        this._error(err);
+        this._parent?.send(error(this.id, err));
+        return this;
+      }
     }
 
     this.system._sendInspectionEvent({
@@ -326,38 +372,50 @@ export class Interpreter<
   }
 
   private _process(event: TEvent) {
+    // TODO: reexamine what happens when an action (or a guard or smth) throws
+    let nextState;
+    let caughtError;
     try {
-      const nextState = this.logic.transition(
-        this._state,
-        event,
-        this._actorContext
-      );
+      // const nextState = this.logic.transition(
+      //   this._state,
+      //   event,
+      //   this._actorContext
+      // );
 
-      this.update(nextState);
+      // this.update(nextState);
 
-      this.system._sendInspectionEvent({
-        type: '@xstate.transition',
-        actorRef: this,
-        event,
-        sessionId: this.sessionId,
-        snapshot: this.getSnapshot(),
-        status: this.status
-      });
-
-      if (event.type === stopSignalType) {
-        this._stopProcedure();
-        this._complete();
-      }
+      // if (event.type === stopSignalType) {
+      //   this._stopProcedure();
+      //   this._complete();
+      // }
+      nextState = this.logic.transition(this._state, event, this._actorContext);
     } catch (err) {
-      // TODO: properly handle errors
-      if (this.observers.size > 0) {
-        this.observers.forEach((observer) => {
-          observer.error?.(err);
-        });
-        this.stop();
-      } else {
-        throw err;
-      }
+      // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
+      caughtError = { err };
+    }
+
+    if (caughtError) {
+      const { err } = caughtError;
+
+      this._stopProcedure();
+      this._error(err);
+      this._parent?.send(error(this.id, err));
+      return;
+    }
+
+    this.update(nextState);
+    this.system._sendInspectionEvent({
+      type: '@xstate.transition',
+      actorRef: this,
+      event,
+      sessionId: this.sessionId,
+      snapshot: this.getSnapshot(),
+      status: this.status
+    });
+
+    if (event.type === stopSignalType) {
+      this._stopProcedure();
+      this._complete();
     }
   }
 
@@ -376,7 +434,7 @@ export class Interpreter<
   }
 
   /**
-   * Stops the interpreter and unsubscribe all listeners.
+   * Stops the Actor and unsubscribe all listeners.
    */
   public stop(): this {
     if (this._parent) {
@@ -386,19 +444,40 @@ export class Interpreter<
   }
   private _complete(): void {
     for (const observer of this.observers) {
-      observer.complete?.();
+      try {
+        observer.complete?.();
+      } catch (err) {
+        reportUnhandledError(err);
+      }
     }
     this.observers.clear();
   }
-  private _error(data: any): void {
+  private _error(err: unknown): void {
+    if (!this.observers.size) {
+      if (!this._parent) {
+        reportUnhandledError(err);
+      }
+      return;
+    }
+    let reportError = false;
+
     for (const observer of this.observers) {
-      observer.error?.(data);
+      const errorListener = observer.error;
+      reportError ||= !errorListener;
+      try {
+        errorListener?.(err);
+      } catch (err2) {
+        reportUnhandledError(err2);
+      }
     }
     this.observers.clear();
+    if (reportError) {
+      reportUnhandledError(err);
+    }
   }
   private _stopProcedure(): this {
     if (this.status !== ActorStatus.Running) {
-      // Interpreter already stopped; do nothing
+      // Actor already stopped; do nothing
       return this;
     }
 
@@ -422,7 +501,7 @@ export class Interpreter<
   }
 
   /**
-   * Sends an event to the running interpreter to trigger a transition.
+   * Sends an event to the running Actor to trigger a transition.
    *
    * @param event The event to send
    */
@@ -530,25 +609,37 @@ export class Interpreter<
 }
 
 /**
- * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ * Creates a new `ActorRef` instance for the given machine with the provided options, if any.
  *
- * @param machine The machine to interpret
- * @param options Interpreter options
+ * @param machine The machine to create an actor from
+ * @param options `ActorRef` options
  */
-export function interpret<TMachine extends AnyStateMachine>(
+export function createActor<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends true
     ? TMachine
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options?: InterpreterOptions<TMachine>
-): InterpreterFrom<TMachine>;
-export function interpret<TLogic extends AnyActorLogic>(
+  options?: ActorOptions<TMachine>
+): Actor<TMachine>;
+export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: InterpreterOptions<TLogic>
-): Interpreter<TLogic>;
-export function interpret(logic: any, options?: InterpreterOptions<any>): any {
-  const interpreter = new Interpreter(logic, options);
+  options?: ActorOptions<TLogic>
+): Actor<TLogic>;
+export function createActor(logic: any, options?: ActorOptions<any>): any {
+  const interpreter = new Actor(logic, options);
 
   return interpreter;
 }
+
+/**
+ * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ *
+ * @deprecated Use `createActor` instead
+ */
+export const interpret = createActor;
+
+/**
+ * @deprecated Use `Actor` instead.
+ */
+export type Interpreter = typeof Actor;

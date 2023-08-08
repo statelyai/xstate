@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -12,12 +12,12 @@ describe('rehydration', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
       const restoredState = machine.createState(JSON.parse(persistedState));
 
-      const service = interpret(machine, { state: restoredState }).start();
+      const service = createActor(machine, { state: restoredState }).start();
 
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
@@ -34,13 +34,13 @@ describe('rehydration', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
       const restoredState = machine.createState(JSON.parse(persistedState));
 
       actual.length = 0;
-      interpret(machine, { state: restoredState }).start().stop();
+      createActor(machine, { state: restoredState }).start().stop();
 
       expect(actual).toEqual(['a', 'root']);
     });
@@ -55,10 +55,10 @@ describe('rehydration', () => {
       });
 
       const persistedState = JSON.stringify(
-        interpret(machine).start().getSnapshot()
+        createActor(machine).start().getSnapshot()
       );
       const restoredState = JSON.parse(persistedState);
-      const service = interpret(machine, { state: restoredState }).start();
+      const service = createActor(machine, { state: restoredState }).start();
 
       expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
@@ -79,7 +79,7 @@ describe('rehydration', () => {
       });
 
       const activeState = machine.resolveStateValue('active');
-      const service = interpret(machine, { state: activeState });
+      const service = createActor(machine, { state: activeState });
 
       service.start();
 
@@ -103,7 +103,7 @@ describe('rehydration', () => {
 
       const activeState = machine.resolveStateValue('active');
 
-      interpret(machine, { state: activeState }).start().stop();
+      createActor(machine, { state: activeState }).start().stop();
 
       expect(actual).toEqual(['active', 'root']);
     });
@@ -115,7 +115,7 @@ describe('rehydration', () => {
       entry: entrySpy
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(entrySpy).toHaveBeenCalledTimes(1);
 
@@ -123,7 +123,7 @@ describe('rehydration', () => {
 
     actor.stop();
 
-    interpret(machine, { state: persistedState }).start();
+    createActor(machine, { state: persistedState }).start();
 
     expect(entrySpy).toHaveBeenCalledTimes(1);
   });

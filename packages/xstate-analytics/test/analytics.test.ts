@@ -1,5 +1,5 @@
 import { createAnalyzer } from '../src/index.ts';
-import { createMachine, interpret } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -63,7 +63,7 @@ describe('@xstate/analytics', () => {
   it.skip('analyzes transition counts', () => {
     let analysis: any = {};
 
-    const service = interpret(lightMachine);
+    const service = createActor(lightMachine);
 
     service.subscribe(
       createAnalyzer((a) => {

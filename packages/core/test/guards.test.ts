@@ -1,4 +1,4 @@
-import { interpret, createMachine, raise } from '../src/index.ts';
+import { createActor, createMachine, raise } from '../src/index.ts';
 import { and, not, or } from '../src/guards';
 import { trackEntries } from './utils.ts';
 
@@ -79,13 +79,13 @@ describe('guard conditions', () => {
   );
 
   it('should transition only if condition is met', () => {
-    const actorRef1 = interpret(lightMachine, {
+    const actorRef1 = createActor(lightMachine, {
       input: { elapsed: 50 }
     }).start();
     actorRef1.send({ type: 'TIMER' });
     expect(actorRef1.getSnapshot().value).toEqual('green');
 
-    const actorRef2 = interpret(lightMachine, {
+    const actorRef2 = createActor(lightMachine, {
       input: { elapsed: 120 }
     }).start();
     actorRef2.send({ type: 'TIMER' });
@@ -93,7 +93,7 @@ describe('guard conditions', () => {
   });
 
   it('should transition if condition based on event is met', () => {
-    const actorRef = interpret(lightMachine).start();
+    const actorRef = createActor(lightMachine).start();
     actorRef.send({
       type: 'EMERGENCY',
       isEmergency: true
@@ -102,7 +102,7 @@ describe('guard conditions', () => {
   });
 
   it('should not transition if condition based on event is not met', () => {
-    const actorRef = interpret(lightMachine).start();
+    const actorRef = createActor(lightMachine).start();
     actorRef.send({
       type: 'EMERGENCY'
     });
@@ -133,7 +133,7 @@ describe('guard conditions', () => {
     });
 
     const flushTracked = trackEntries(machine);
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     flushTracked();
 
     actor.send({ type: 'TIMER', elapsed: 10 });
@@ -143,7 +143,7 @@ describe('guard conditions', () => {
   });
 
   it('should work with defined string transitions', () => {
-    const actorRef = interpret(lightMachine, {
+    const actorRef = createActor(lightMachine, {
       input: { elapsed: 120 }
     }).start();
     actorRef.send({
@@ -157,7 +157,7 @@ describe('guard conditions', () => {
   });
 
   it('should work with guard objects', () => {
-    const actorRef = interpret(lightMachine, {
+    const actorRef = createActor(lightMachine, {
       input: { elapsed: 150 }
     }).start();
     actorRef.send({
@@ -216,7 +216,7 @@ describe('guard conditions', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({
       type: 'TIMER'
     });
@@ -238,12 +238,23 @@ describe('guard conditions', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const errorSpy = jest.fn();
 
-    expect(() => actorRef.send({ type: 'BAD_COND' }))
-      .toThrowErrorMatchingInlineSnapshot(`
-      "Unable to evaluate guard 'doesNotExist' in transition for event 'BAD_COND' in state node '(machine).foo':
-      Guard 'doesNotExist' is not implemented.'."
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    actorRef.send({ type: 'BAD_COND' });
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Unable to evaluate guard 'doesNotExist' in transition for event 'BAD_COND' in state node '(machine).foo':
+      Guard 'doesNotExist' is not implemented.'.],
+        ],
+      ]
     `);
   });
 });
@@ -286,7 +297,7 @@ describe('guard conditions', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'T1' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -333,7 +344,7 @@ describe('guard conditions', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'T2' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -380,7 +391,7 @@ describe('guard conditions', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'A' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -412,7 +423,7 @@ describe('guard conditions', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'MACRO' });
 
     expect(service.getSnapshot().value).toBe('c');
@@ -466,13 +477,13 @@ describe('custom guards', () => {
       }
     );
 
-    const actorRef1 = interpret(machine).start();
+    const actorRef1 = createActor(machine).start();
     actorRef1.send({ type: 'EVENT', value: 4 });
     const passState = actorRef1.getSnapshot();
 
     expect(passState.value).toEqual('active');
 
-    const actorRef2 = interpret(machine).start();
+    const actorRef2 = createActor(machine).start();
     actorRef2.send({ type: 'EVENT', value: 3 });
     const failState = actorRef2.getSnapshot();
 
@@ -551,13 +562,22 @@ describe('referencing guards', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const errorSpy = jest.fn();
 
-    expect(() => {
-      actorRef.send({ type: 'EVENT' });
-    }).toThrowErrorMatchingInlineSnapshot(`
-      "Unable to evaluate guard 'missing-predicate' in transition for event 'EVENT' in state node 'invalid-predicate.active':
-      Guard 'missing-predicate' is not implemented.'."
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+    actorRef.send({ type: 'EVENT' });
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Unable to evaluate guard 'missing-predicate' in transition for event 'EVENT' in state node 'invalid-predicate.active':
+      Guard 'missing-predicate' is not implemented.'.],
+        ],
+      ]
     `);
   });
 
@@ -584,7 +604,7 @@ describe('referencing guards', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -619,7 +639,7 @@ describe('referencing guards', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -641,7 +661,7 @@ describe('guards - other', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'EVENT' });
 
     expect(service.getSnapshot().value).toBe('c');
@@ -693,7 +713,7 @@ describe('guards with child guards', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -717,7 +737,7 @@ describe('not() guard', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'EVENT' });
 
@@ -747,7 +767,7 @@ describe('not() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -778,7 +798,7 @@ describe('not() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -808,7 +828,7 @@ describe('not() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -832,7 +852,7 @@ describe('and() guard', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -861,7 +881,7 @@ describe('and() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -895,7 +915,7 @@ describe('and() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -929,7 +949,7 @@ describe('and() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -953,7 +973,7 @@ describe('or() guard', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -983,7 +1003,7 @@ describe('or() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -1017,7 +1037,7 @@ describe('or() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
@@ -1051,7 +1071,7 @@ describe('or() guard', () => {
       }
     );
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();

@@ -1,4 +1,4 @@
-import { assign, createMachine, interpret } from 'xstate';
+import { assign, createMachine, createActor } from 'xstate';
 import { createDevTools, inspect } from '../src/index.ts';
 
 // mute the warning about this not being implemented by jsdom
@@ -80,7 +80,7 @@ describe('@xstate/inspect', () => {
 
     iframeMock.initConnection();
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     // The devTools will notify the listeners:
     // 1. the built-in service listener
@@ -128,7 +128,7 @@ describe('@xstate/inspect', () => {
 
     iframeMock.initConnection();
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     expect(() => devTools.register(service)).not.toThrow();
 
@@ -186,7 +186,7 @@ describe('@xstate/inspect', () => {
 
     iframeMock.initConnection();
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     devTools.register(service);
 
@@ -256,7 +256,7 @@ describe('@xstate/inspect', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     devTools.onRegister(() => {
       done();
@@ -299,7 +299,7 @@ describe('@xstate/inspect', () => {
 
     iframeMock.initConnection();
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     devTools.register(service);
 
     iframeMock.flushMessages();
@@ -366,7 +366,7 @@ describe('@xstate/inspect', () => {
 
     iframeMock.initConnection();
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     devTools.register(service);
 
     service.stop();

@@ -1,6 +1,6 @@
 import type { StateNode } from './StateNode.ts';
 import type { State } from './State.ts';
-import type { ActorStatus, Clock, Interpreter } from './interpreter.ts';
+import type { ActorStatus, Clock, Actor } from './interpreter.ts';
 import type { StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
@@ -1323,12 +1323,13 @@ export interface StateConfig<
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   output?: any;
+  error?: unknown;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any>;
   _internalQueue?: Array<TEvent>;
 }
 
-export interface InterpreterOptions<TLogic extends AnyActorLogic> {
+export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
@@ -1379,7 +1380,12 @@ export interface InterpreterOptions<TLogic extends AnyActorLogic> {
   inspect?: Observer<InspectionEvent>;
 }
 
-export type AnyInterpreter = Interpreter<any, any>;
+export type AnyActor = Actor<any, any>;
+
+/**
+ * @deprecated Use `AnyActor` instead.
+ */
+export type AnyInterpreter = AnyActor;
 
 // Based on RxJS types
 export type Observer<T> = {
@@ -1495,8 +1501,11 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type DevToolsAdapter = (service: AnyInterpreter) => void;
+export type DevToolsAdapter = (service: AnyActor) => void;
 
+/**
+ * @deprecated Use `Actor<T>` instead.
+ */
 export type InterpreterFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = ReturnTypeOrValue<T> extends StateMachine<
@@ -1507,7 +1516,7 @@ export type InterpreterFrom<
   infer TInput,
   infer TResolvedTypesMeta
 >
-  ? Interpreter<
+  ? Actor<
       ActorLogic<
         TEvent,
         State<TContext, TEvent, TActor, TResolvedTypesMeta>,
@@ -1626,7 +1635,7 @@ export type AnyActorLogic = ActorLogic<
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
-    : R extends Interpreter<infer TLogic>
+    : R extends Actor<infer TLogic>
     ? SnapshotFrom<TLogic>
     : R extends StateMachine<
         infer _,
@@ -1726,7 +1735,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TActor
       >
     ? TContext
-    : R extends Interpreter<infer TActorLogic>
+    : R extends Actor<infer TActorLogic>
     ? TActorLogic extends StateMachine<
         infer TContext,
         infer _TEvent,
@@ -1790,7 +1799,7 @@ export type AnyActorSystem = ActorSystem<any>;
 
 export type PersistedMachineState<TState extends AnyState> = Pick<
   TState,
-  'value' | 'output' | 'context' | 'done' | 'historyValue'
+  'value' | 'output' | 'error' | 'context' | 'done' | 'historyValue'
 > & {
   children: {
     [K in keyof TState['children']]: {

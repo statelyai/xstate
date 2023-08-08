@@ -1,5 +1,5 @@
-import type { AnyStateMachine, InterpreterFrom } from 'xstate';
-import { interpret } from 'xstate';
+import type { Actor, AnyStateMachine } from 'xstate';
+import { createActor } from 'xstate';
 import type { RestParams } from './types.ts';
 import { onCleanup } from 'solid-js';
 import { isServer } from 'solid-js/web';
@@ -7,7 +7,7 @@ import { isServer } from 'solid-js/web';
 export function createService<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
-): InterpreterFrom<TMachine> {
+): Actor<TMachine> {
   const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
@@ -19,12 +19,12 @@ export function createService<TMachine extends AnyStateMachine>(
 
   const machineWithConfig = machine.provide(machineConfig as any);
 
-  const service = interpret(machineWithConfig, interpreterOptions);
+  const service = createActor(machineWithConfig, interpreterOptions);
 
   if (!isServer) {
     service.start();
     onCleanup(() => service.stop());
   }
 
-  return service as unknown as InterpreterFrom<TMachine>;
+  return service as unknown as Actor<TMachine>;
 }

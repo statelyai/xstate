@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
 describe('deep transitions', () => {
@@ -34,7 +34,7 @@ describe('deep transitions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({
@@ -80,7 +80,7 @@ describe('deep transitions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({
@@ -126,7 +126,7 @@ describe('deep transitions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({
@@ -173,7 +173,7 @@ describe('deep transitions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({
@@ -219,7 +219,7 @@ describe('deep transitions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({
@@ -279,7 +279,7 @@ describe('deep transitions', () => {
       });
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({
@@ -344,7 +344,7 @@ describe('deep transitions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({
@@ -408,7 +408,7 @@ describe('deep transitions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({
@@ -473,7 +473,7 @@ describe('deep transitions', () => {
 
       const flushTracked = trackEntries(machine);
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
       flushTracked();
 
       actor.send({

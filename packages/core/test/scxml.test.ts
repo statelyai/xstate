@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
 import { SimulatedClock } from '../src/SimulatedClock';
-import { AnyState, AnyStateMachine, interpret } from '../src/index.ts';
+import { AnyState, AnyStateMachine, createActor } from '../src/index.ts';
 import { toMachine, sanitizeStateId } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
@@ -354,7 +354,7 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
     let nextState: AnyState;
     let prevState: AnyState;
 
-    const actor = interpret(machine, {
+    const actor = createActor(machine, {
       logger: () => void 0
     });
     actor.subscribe({
@@ -391,7 +391,7 @@ async function runTestToCompletion(
   }
 
   let done = false;
-  const service = interpret(machine, {
+  const service = createActor(machine, {
     clock: new SimulatedClock()
   });
 

@@ -6,7 +6,7 @@ import {
   assign,
   ActorRef,
   ActorRefFrom,
-  interpret
+  createActor
 } from 'xstate';
 import { fireEvent, screen, render, waitFor } from 'solid-testing-library';
 import {
@@ -22,7 +22,7 @@ import {
 import { createStore, reconcile } from 'solid-js/store';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
-  interpret({
+  createActor({
     transition: (s) => s,
     getSnapshot: () => value,
     getInitialState: () => value
@@ -144,7 +144,7 @@ describe('useActor', () => {
     });
 
     const Spawner = () => {
-      const [service] = createSignal(interpret(machine).start());
+      const [service] = createSignal(createActor(machine).start());
       const [current, send] = useActor(service);
 
       onMount(() => {
@@ -352,7 +352,7 @@ describe('useActor', () => {
     });
 
     const App = () => {
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
       const [state, send] = useActor(service);
       const [toStrings, setToStrings] = createSignal(state().toStrings());
       createEffect(
@@ -417,7 +417,7 @@ describe('useActor', () => {
     });
 
     const App = () => {
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
       const [state, send] = useActor(service);
       const [toJson, setToJson] = createSignal(state().toJSON());
       createEffect(
@@ -485,7 +485,7 @@ describe('useActor', () => {
     });
 
     const App = () => {
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
       const [state, send] = useActor(service);
       const [canGo, setCanGo] = createSignal(state().hasTag('go'));
       createEffect(() => {
@@ -546,7 +546,7 @@ describe('useActor', () => {
     });
 
     const App = () => {
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
       const [state, send] = useActor(service);
       const [canToggle, setCanToggle] = createSignal(
         state().can({ type: 'TOGGLE' })
@@ -638,7 +638,7 @@ describe('useActor', () => {
   });
 
   it('should provide value from `actor.getSnapshot()` immediately', () => {
-    const simpleActor = interpret({
+    const simpleActor = createActor({
       transition: (s) => s,
       getSnapshot: () => 42,
       getInitialState: () => 42
@@ -903,7 +903,7 @@ describe('useActor', () => {
     });
 
     const Test = () => {
-      const [state, send] = useActor(interpret(actorMachine).start());
+      const [state, send] = useActor(createActor(actorMachine).start());
       const [changeIndex0, setChangeIndex0] = createSignal(0);
       const [changeIndex1, setChangeIndex1] = createSignal(0);
       const [changeRoot, setChangeRoot] = createSignal(0);
@@ -1188,7 +1188,7 @@ describe('useActor', () => {
         }
       }
     );
-    const counterService = interpret(counterMachine).start();
+    const counterService = createActor(counterMachine).start();
 
     const Counter = () => {
       const [state, send] = useActor(counterService);
@@ -1254,7 +1254,7 @@ describe('useActor', () => {
       }
     });
 
-    const counterService = interpret(machine).start();
+    const counterService = createActor(machine).start();
 
     const Comp = () => {
       let calls = 0;
@@ -1305,8 +1305,8 @@ describe('useActor', () => {
       }
     });
 
-    const counterService1 = interpret(counterMachine).start();
-    const counterService2 = interpret(counterMachine).start();
+    const counterService1 = createActor(counterMachine).start();
+    const counterService2 = createActor(counterMachine).start();
 
     const Counter = (props: {
       counterRef: Accessor<ActorRefFrom<typeof counterMachine>>;
@@ -1376,8 +1376,8 @@ describe('useActor', () => {
         }
       }
     });
-    const counterService1 = interpret(counterMachine2).start();
-    const counterService2 = interpret(counterMachine2).start();
+    const counterService1 = createActor(counterMachine2).start();
+    const counterService2 = createActor(counterMachine2).start();
 
     const Counter = (props: {
       counterRef: Accessor<ActorRefFrom<typeof counterMachine2>>;
@@ -1453,7 +1453,7 @@ describe('useActor', () => {
     });
 
     const Counter = () => {
-      const counterService = interpret(counterMachine2).start();
+      const counterService = createActor(counterMachine2).start();
       const [state, send] = useActor(counterService);
       const [effectCount, setEffectCount] = createSignal(0);
       createEffect(
@@ -1521,8 +1521,8 @@ describe('useActor', () => {
     });
 
     const Test = () => {
-      const service1 = interpret(machine).start();
-      const service2 = interpret(machine).start();
+      const service1 = createActor(machine).start();
+      const service2 = createActor(machine).start();
       const [state1, send1] = useActor(service1);
       const [state2, send2] = useActor(service2);
 
