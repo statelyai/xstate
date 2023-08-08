@@ -1852,10 +1852,16 @@ export interface ActorRegistrationEvent {
   definition?: string; // JSON-stringified definition or URL
 }
 
+export interface ActorActionEvent {
+  type: '@xstate.action';
+  data: any;
+}
+
 export type InspectionEvent =
   | ActorTransitionEvent
   | ActorCommunicationEvent
-  | ActorRegistrationEvent;
+  | ActorRegistrationEvent
+  | ActorActionEvent;
 
 export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
 

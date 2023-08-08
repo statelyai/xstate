@@ -1410,14 +1410,18 @@ export function resolveActionsAndContext<
   });
 
   for (const action of actions) {
-    const resolved =
+    const resolvedAction =
       typeof action === 'function'
         ? action
         : machine.implementations.actions[
             typeof action === 'string' ? action : action.type
           ];
 
-    if (!resolved) {
+    if (!resolvedAction) {
+      actorCtx?.system?._sendInspectionEvent({
+        type: '@xstate.action',
+        data: action
+      });
       continue;
     }
 
@@ -1434,26 +1438,36 @@ export function resolveActionsAndContext<
       action: typeof action === 'string' ? { type: action } : (action as any)
     };
 
-    if (!('resolve' in resolved)) {
+    if (!('resolve' in resolvedAction)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolved(args);
+        resolvedAction(args);
+        actorCtx?.system?._sendInspectionEvent({
+          type: '@xstate.action',
+          data: action
+        });
       } else {
-        actorCtx?.defer(() => resolved(args));
+        actorCtx?.defer(() => {
+          resolvedAction(args);
+          actorCtx?.system?._sendInspectionEvent({
+            type: '@xstate.action',
+            data: action
+          });
+        });
       }
       continue;
     }
 
-    const builtinAction = resolved as BuiltinAction;
+    const builtinAction = resolvedAction as BuiltinAction;
 
     const [nextState, params, actions] = builtinAction.resolve(
       actorCtx,
       intermediateState,
       args,
-      resolved // this holds all params
+      resolvedAction // this holds all params
     );
     intermediateState = nextState;
 
-    if ('execute' in resolved) {
+    if ('execute' in resolvedAction) {
       if (actorCtx?.self.status === ActorStatus.Running) {
         builtinAction.execute(actorCtx!, params);
       } else {

@@ -1,5 +1,6 @@
 import {
   InspectionEvent,
+  createActor,
   createMachine,
   fromPromise,
   interpret,
@@ -21,6 +22,12 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
     return {
       type: inspectionEvent.type,
       sessionId: inspectionEvent.sessionId
+    };
+  }
+  if (inspectionEvent.type === '@xstate.action') {
+    return {
+      type: inspectionEvent.type,
+      data: inspectionEvent.data
     };
   }
   return {
@@ -186,9 +193,6 @@ describe('inspect', () => {
       }
     });
 
-    // wait 10 seconds
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
     actor.start();
     actor.send({ type: 'load' });
 
@@ -309,6 +313,10 @@ describe('inspect', () => {
           "type": "@xstate.communication",
         },
         {
+          "data": [Function],
+          "type": "@xstate.action",
+        },
+        {
           "event": "done.invoke.child",
           "sessionId": "machine:0",
           "snapshot": {
@@ -332,5 +340,98 @@ describe('inspect', () => {
         },
       ]
     `);
-  }, 20000);
+  });
+
+  it('can inspect actions', async () => {
+    const machine = createMachine({
+      entry: 'entry1',
+      initial: 'a',
+      states: {
+        a: {
+          entry: ['enter-a'],
+          exit: ['exit-a'],
+          on: {
+            event: {
+              actions: 'action1',
+              target: 'b'
+            }
+          }
+        },
+        b: {
+          entry: 'enter-b'
+        }
+      }
+    });
+
+    const events: InspectionEvent[] = [];
+
+    const actor = createActor(machine, {
+      inspect: {
+        next: (event) => {
+          events.push(event);
+        }
+      }
+    });
+
+    actor.start();
+
+    actor.send({ type: 'event' });
+
+    expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
+      [
+        {
+          "sessionId": "machine:0",
+          "type": "@xstate.registration",
+        },
+        {
+          "data": "entry1",
+          "type": "@xstate.action",
+        },
+        {
+          "data": "enter-a",
+          "type": "@xstate.action",
+        },
+        {
+          "event": "xstate.init",
+          "sourceId": undefined,
+          "targetId": "machine:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "event": "xstate.init",
+          "sessionId": "machine:0",
+          "snapshot": {
+            "value": "a",
+          },
+          "type": "@xstate.transition",
+        },
+        {
+          "event": "event",
+          "sourceId": undefined,
+          "targetId": "machine:0",
+          "type": "@xstate.communication",
+        },
+        {
+          "data": "exit-a",
+          "type": "@xstate.action",
+        },
+        {
+          "data": "action1",
+          "type": "@xstate.action",
+        },
+        {
+          "data": "enter-b",
+          "type": "@xstate.action",
+        },
+        {
+          "event": "event",
+          "sessionId": "machine:0",
+          "snapshot": {
+            "value": "b",
+          },
+          "type": "@xstate.transition",
+        },
+      ]
+    `);
+  });
 });
