@@ -29,7 +29,7 @@ export interface TestMachineConfig<
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
   context?: MachineConfig<TContext, TEvent>['context'];
-  types?: MachineTypes<TContext, TEvent, TODO, TTypesMeta>;
+  types?: MachineTypes<TContext, TEvent, TODO, TODO, TTypesMeta>;
 }
 
 export interface TestStateNodeConfig<
