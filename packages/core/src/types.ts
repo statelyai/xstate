@@ -669,6 +669,7 @@ export interface StateNodeConfig<
    * A default target for a history state
    */
   target?: string;
+  route?: boolean;
 }
 
 export interface StateNodeDefinition<
