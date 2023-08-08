@@ -206,7 +206,7 @@ export class Actor<
   // array of functions to defer
   private _deferred: Array<() => void> = [];
 
-  private update(state: InternalStateFrom<TLogic>): void {
+  private update(state: InternalStateFrom<TLogic>, event: TEvent): void {
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
@@ -248,6 +248,15 @@ export class Actor<
         this.system.sendTo(this._parent, error(this.id, status.data), this);
         break;
     }
+    this.system._sendInspectionEvent({
+      type: '@xstate.transition',
+      actorRef: this,
+      event,
+      sessionId: this.sessionId,
+      snapshot: this.getSnapshot(),
+      status: this.status,
+      sourceId: this._parent?.sessionId
+    });
   }
 
   public subscribe(observer: Observer<SnapshotFrom<TLogic>>): Subscription;
@@ -303,9 +312,7 @@ export class Actor<
 
     this.system._sendInspectionEvent({
       type: '@xstate.communication',
-
       event: { type: 'xstate.init' },
-
       sourceId: this._parent?.sessionId,
       targetId: this.sessionId
     });
@@ -316,18 +323,7 @@ export class Actor<
       case 'done':
         // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
-        this.update(this._state);
-        this.system._sendInspectionEvent({
-          type: '@xstate.transition',
-          actorRef: this,
-
-          event: { type: 'xstate.init' },
-
-          sessionId: this.sessionId,
-          snapshot: this.getSnapshot(),
-          status: this.status,
-          sourceId: this._parent?.sessionId
-        });
+        this.update(this._state, { type: 'xstate.init' } as TEvent);
       // fallthrough
       case 'error':
         // TODO: rethink cleanup of observers, mailbox, etc
@@ -345,22 +341,10 @@ export class Actor<
       }
     }
 
-    this.system._sendInspectionEvent({
-      type: '@xstate.transition',
-      actorRef: this,
-
-      event: { type: 'xstate.init' },
-
-      sessionId: this.sessionId,
-      snapshot: this.getSnapshot(),
-      status: this.status,
-      sourceId: this._parent?.sessionId
-    });
-
     // TODO: this notifies all subscribers but usually this is redundant
     // there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(this._state);
+    this.update(this._state, { type: 'xstate.init' } as TEvent);
 
     if (this.options.devTools) {
       this.attachDevTools();
@@ -376,18 +360,6 @@ export class Actor<
     let nextState;
     let caughtError;
     try {
-      // const nextState = this.logic.transition(
-      //   this._state,
-      //   event,
-      //   this._actorContext
-      // );
-
-      // this.update(nextState);
-
-      // if (event.type === stopSignalType) {
-      //   this._stopProcedure();
-      //   this._complete();
-      // }
       nextState = this.logic.transition(this._state, event, this._actorContext);
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
@@ -403,15 +375,7 @@ export class Actor<
       return;
     }
 
-    this.update(nextState);
-    this.system._sendInspectionEvent({
-      type: '@xstate.transition',
-      actorRef: this,
-      event,
-      sessionId: this.sessionId,
-      snapshot: this.getSnapshot(),
-      status: this.status
-    });
+    this.update(nextState, event);
 
     if (event.type === stopSignalType) {
       this._stopProcedure();
