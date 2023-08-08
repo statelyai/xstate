@@ -23,21 +23,51 @@ import {
 import { fromPromise } from '../src/actors/promise.ts';
 import { fromCallback } from '../src/actors/callback.ts';
 import { map } from 'rxjs/operators';
+import { createInspector } from '../../xstate-inspect/src/index.ts';
 
 const WebSocket = require('ws');
 const server = new WebSocket.Server({ port: 8080 });
-Actor.defaults.inspect = {
-  next: (event) => {
+// listen for messages
+server.on('connection', (client) => {
+  client.on('message', (message) => {
     server.clients.forEach((client) => {
-      client.send(JSON.stringify(event));
+      const msg = message.toString();
+      client.send(msg);
     });
-  }
-};
+  });
+});
+
+Actor.defaults.inspect = createInspector();
 
 // after all tests, close websocket server
 afterAll(() => {
   server.close();
 });
+
+it.skip('infinite', (done) => {
+  const actor = createActor(
+    createMachine({
+      invoke: {
+        id: 'ponger',
+        src: fromCallback(({ sendBack, receive }) => {
+          sendBack({ type: 'pong' });
+          receive((ev) => {
+            setTimeout(() => {
+              sendBack({ type: 'pong' });
+            }, 1000);
+          });
+        })
+      },
+      on: {
+        pong: {
+          actions: sendTo('ponger', { type: 'ping' }, { delay: 1000 })
+        }
+      }
+    })
+  );
+
+  actor.start();
+}, 10000000);
 
 describe('spawning machines', () => {
   const context = {
