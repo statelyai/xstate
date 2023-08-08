@@ -16,7 +16,10 @@ type StateObject<
   TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled
-> = Pick<State<TContext, TEvent, TActor, TResolvedTypesMeta>, keyof AnyState>;
+> = Pick<
+  State<TContext, TEvent, TActor, any, TResolvedTypesMeta>,
+  keyof AnyState
+>;
 
 // Converts a State class type to a POJO State type. This reflects that the state
 // is being spread into a new object for reactive tracking in SolidJS

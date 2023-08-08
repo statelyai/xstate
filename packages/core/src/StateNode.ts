@@ -62,7 +62,7 @@ interface StateNodeOptions<
 > {
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
-  _machine: StateMachine<TContext, TEvent, any, any, any>;
+  _machine: StateMachine<TContext, TEvent, any, any, any, any>;
 }
 
 export class StateNode<
@@ -142,7 +142,7 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent, TODO, TODO>,
+    public config: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
@@ -168,7 +168,7 @@ export class StateNode<
         ? mapValues(
             this.config.states,
             (
-              stateConfig: StateNodeConfig<TContext, TEvent, TODO, TODO>,
+              stateConfig: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>,
               key
             ) => {
               const stateNode = new StateNode(stateConfig, {
@@ -343,7 +343,7 @@ export class StateNode<
   }
 
   public next(
-    state: State<TContext, TEvent, TODO>,
+    state: State<TContext, TEvent, TODO, TODO>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;

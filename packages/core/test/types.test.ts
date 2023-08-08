@@ -188,6 +188,20 @@ describe('context', () => {
   });
 });
 
+describe('output', () => {
+  it('output type should be represented in state', () => {
+    const machine = createMachine({
+      types: {} as {
+        output: number;
+      }
+    });
+
+    const state = machine.getInitialState(null as any);
+
+    ((_accept: number | undefined) => {})(state.output);
+  });
+});
+
 it('should infer context type from `config.context` when there is no `schema.context`', () => {
   createMachine(
     {
@@ -235,7 +249,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any> {
+  ): StateMachine<TContext, any, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -309,7 +323,7 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, TEvent, any, any, any>) {}
+    >(_machine: StateMachine<TContext, TEvent, any, any, any, any>) {}
 
     acceptMachine(toggleMachine);
   });
