@@ -1672,6 +1672,35 @@ describe('actions', () => {
       })
     });
   });
+
+  it('named actions', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } };
+      },
+      entry: [
+        {
+          type: 'greet',
+          params: {
+            name: 'David'
+          }
+        },
+        // @ts-expect-error
+        {
+          type: 'greet'
+        }
+      ],
+      on: {
+        event: {
+          actions: { type: 'greet', params: { name: 'David' } }
+        }
+      },
+      // @ts-expect-error
+      exit: {
+        type: 'un-greet'
+      }
+    });
+  });
 });
 
 describe('input', () => {

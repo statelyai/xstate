@@ -345,7 +345,7 @@ export function formatTransition<
 >(
   stateNode: AnyStateNode,
   descriptor: string,
-  transitionConfig: TransitionConfig<TContext, TEvent>
+  transitionConfig: TransitionConfig<TContext, TEvent, TEvent, TODO>
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
@@ -461,7 +461,9 @@ export function formatInitialTransition<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode,
-  _target: SingleOrArray<string> | InitialTransitionConfig<TContext, TEvent>
+  _target:
+    | SingleOrArray<string>
+    | InitialTransitionConfig<TContext, TEvent, TODO>
 ): InitialTransitionDefinition<TContext, TEvent> {
   if (typeof _target === 'string' || isArray(_target)) {
     const targets = toArray(_target).map((t) => {
@@ -1036,7 +1038,7 @@ function microstepProcedure(
   actorCtx: AnyActorContext,
   isInitial: boolean
 ): typeof currentState {
-  const actions: Action<any, any, any>[] = [];
+  const actions: Action<any, any, any, TODO>[] = [];
   const historyValue = {
     ...currentState.historyValue
   };
@@ -1115,7 +1117,7 @@ function enterStates(
   event: AnyEventObject,
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  actions: Action<any, any, any>[],
+  actions: Action<any, any, any, TODO>[],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
   historyValue: HistoryValue<any, any>,
@@ -1349,7 +1351,7 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  actions: Action<any, any, any>[]
+  actions: Action<any, any, any, TODO>[]
 ) {
   const statesToExit = computeExitSet(
     transitions,
@@ -1382,14 +1384,18 @@ function exitStates(
   }
 }
 
-interface BuiltinAction {
+export interface BuiltinAction {
   (): void;
   resolve: (
     actorContext: AnyActorContext,
     state: AnyState,
     actionArgs: ActionArgs<any, any>,
     action: unknown
-  ) => [newState: AnyState, params: unknown, actions?: Action<any, any, any>[]];
+  ) => [
+    newState: AnyState,
+    params: unknown,
+    actions?: Action<any, any, any, TODO>[]
+  ];
   execute: (actorContext: AnyActorContext, params: unknown) => void;
 }
 
@@ -1397,7 +1403,7 @@ export function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  actions: Action<any, any, any>[],
+  actions: Action<any, any, any, TODO>[],
   event: TEvent,
   currentState: AnyState,
   actorCtx: AnyActorContext
@@ -1559,7 +1565,7 @@ function stopStep(
   nextState: AnyState,
   actorCtx: AnyActorContext
 ) {
-  const actions: Action<any, any, any>[] = [];
+  const actions: Action<any, any, any, TODO>[] = [];
 
   for (const stateNode of nextState.configuration.sort(
     (a, b) => b.order - a.order

@@ -28,7 +28,8 @@ import type {
   StatesDefinition,
   TransitionDefinition,
   TransitionDefinitionMap,
-  TODO
+  TODO,
+  AnyAction
 } from './types.ts';
 import {
   createInvokeId,
@@ -41,7 +42,7 @@ import {
 
 const EMPTY_OBJECT = {};
 
-const toSerializableActon = (action: Action<any, any, any>) => {
+const toSerializableActon = (action: AnyAction) => {
   if (typeof action === 'string') {
     return { type: action };
   }
@@ -105,11 +106,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: Action<any, any, any>[];
+  public entry: AnyAction[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: Action<any, any, any>[];
+  public exit: AnyAction[];
   /**
    * The parent state node.
    */
@@ -271,7 +272,7 @@ export class StateNode<
   /**
    * The logic invoked as actors by this state node.
    */
-  public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
+  public get invoke(): Array<InvokeDefinition<TContext, TEvent, TODO>> {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
         const generatedId = createInvokeId(this.id, i);
@@ -310,7 +311,7 @@ export class StateNode<
               id: resolvedId
             };
           }
-        } as InvokeDefinition<TContext, TEvent>;
+        } as InvokeDefinition<TContext, TEvent, TODO>;
       })
     );
   }
@@ -347,7 +348,7 @@ export class StateNode<
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
-    const actions: Action<any, any, any>[] = [];
+    const actions: AnyAction[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 

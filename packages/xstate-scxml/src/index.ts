@@ -1,6 +1,7 @@
 import { Attributes, Element as XMLElement, js2xml } from 'xml-js';
 import {
   Action,
+  AnyAction,
   AnyStateMachine,
   StateNode,
   TransitionDefinition
@@ -35,7 +36,7 @@ function raiseActionToSCXML(raiseAction: any): XMLElement {
   };
 }
 
-function actionToSCXML(action: Action<any, any>): XMLElement {
+function actionToSCXML(action: AnyAction): XMLElement {
   if ((action as any).type === 'xstate.raise') {
     return raiseActionToSCXML(action);
   }
@@ -92,7 +93,7 @@ function doneDataToSCXML(data: any): XMLElement {
 
 function actionsToSCXML(
   name: 'onentry' | 'onexit',
-  actions: Array<Action<any, any>>
+  actions: Array<AnyAction>
 ): XMLElement {
   return {
     type: 'element',
