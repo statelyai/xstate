@@ -669,7 +669,19 @@ export interface StateNodeConfig<
    * A default target for a history state
    */
   target?: string;
-  route?: boolean;
+  route?: RouteTransitionConfig<TContext, TEvent>;
+}
+
+export interface RouteTransitionConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
+  guard?: GuardConfig<TContext, TEvent>;
+  actions?: Actions<TContext, TEvent>;
+  reenter?: boolean;
+  meta?: Record<string, any>;
+  description?: string;
+  // no target because target is self
 }
 
 export interface StateNodeDefinition<

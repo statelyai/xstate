@@ -457,6 +457,7 @@ export function formatTransitions<
     if (sn.config.route) {
       const eventType = `xstate.route.${sn.path.join('.')}`;
       const transition: TransitionConfig<TContext, TEvent> = {
+        ...sn.config.route,
         target: `.${sn.key}`
       };
 
