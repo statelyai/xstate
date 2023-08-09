@@ -20,7 +20,7 @@ export function createMachine<
   TActor extends ProvidedActor = ProvidedActor,
   TInput = any,
   TOutput = any,
-  TActions extends ParameterizedObject = any,
+  TActions extends ParameterizedObject = ParameterizedObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<

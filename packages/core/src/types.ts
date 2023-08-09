@@ -161,10 +161,11 @@ export type ActionFunction<
 export interface ChooseBranch<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TEvent extends EventObject = TExpressionEvent,
+  TActions extends ParameterizedObject = ParameterizedObject
 > {
   guard?: GuardConfig<TContext, TExpressionEvent>;
-  actions: Actions<TContext, TExpressionEvent, TEvent, TODO>;
+  actions: Actions<TContext, TExpressionEvent, TEvent, TActions>;
 }
 
 export type Action<
@@ -473,7 +474,8 @@ type IsLiteralString<T extends string> = string extends T ? false : true;
 type DistributeActors<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TActions extends ParameterizedObject
 > = TActor extends { src: infer TSrc }
   ? Compute<
       {
@@ -496,7 +498,7 @@ type DistributeActors<
                 TContext,
                 DoneInvokeEvent<OutputFrom<TActor['logic']>>,
                 TEvent,
-                TODO
+                TActions
               >
             >;
         /**
@@ -505,7 +507,12 @@ type DistributeActors<
         onError?:
           | string
           | SingleOrArray<
-              TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent, TODO>
+              TransitionConfigOrTarget<
+                TContext,
+                ErrorEvent<any>,
+                TEvent,
+                TActions
+              >
             >;
 
         onSnapshot?:
@@ -546,7 +553,7 @@ export type InvokeConfig<
   TActor extends ProvidedActor,
   TActions extends ParameterizedObject
 > = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<TContext, TEvent, TActor>
+  ? DistributeActors<TContext, TEvent, TActor, TActions>
   : {
       /**
        * The unique identifier for the invoked machine. If not specified, this
