@@ -7,7 +7,7 @@ import type {
   GuardPredicate,
   MachineContext,
   TODO,
-  ParameterizedObject
+  BooleanGuardObject
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 import type { State } from './State.ts';
@@ -31,11 +31,10 @@ export function stateIn<
 
 export function not<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TGuards extends ParameterizedObject
+  TEvent extends EventObject
 >(
-  guard: GuardConfig<TContext, TEvent, TGuards>
-): BooleanGuardDefinition<TContext, TEvent, TGuards> {
+  guard: GuardConfig<TContext, TEvent, any> | BooleanGuardObject<any, any, any>
+): BooleanGuardDefinition<TContext, TEvent, any> {
   return {
     type: 'xstate.boolean',
     params: { op: 'not' },
@@ -48,11 +47,12 @@ export function not<
 
 export function and<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TGuards extends ParameterizedObject
+  TEvent extends EventObject
 >(
-  guards: Array<GuardConfig<TContext, TEvent, TGuards>>
-): BooleanGuardDefinition<TContext, TEvent, TGuards> {
+  guards: Array<
+    GuardConfig<TContext, TEvent, any> | BooleanGuardObject<any, any, any>
+  >
+): BooleanGuardDefinition<TContext, TEvent, any> {
   return {
     type: 'xstate.boolean',
     params: { op: 'and' },
@@ -65,13 +65,11 @@ export function and<
   };
 }
 
-export function or<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TGuards extends ParameterizedObject
->(
-  guards: Array<GuardConfig<TContext, TEvent, TGuards>>
-): BooleanGuardDefinition<TContext, TEvent, TGuards> {
+export function or<TContext extends MachineContext, TEvent extends EventObject>(
+  guards: Array<
+    GuardConfig<TContext, TEvent, any> | BooleanGuardObject<any, any, any>
+  >
+): BooleanGuardDefinition<TContext, TEvent, any> {
   return {
     type: 'xstate.boolean',
     params: { op: 'or' },
@@ -113,10 +111,11 @@ export function evaluateGuard<
 
 export function toGuardDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TGuards extends ParameterizedObject
+  TEvent extends EventObject
 >(
-  guardConfig: GuardConfig<TContext, TEvent, TGuards>,
+  guardConfig:
+    | GuardConfig<TContext, TEvent, any>
+    | BooleanGuardObject<any, any, any>,
   getPredicate?: (
     guardType: string
   ) => GuardPredicate<TContext, TEvent> | GuardDefinition<TContext, TEvent>
@@ -158,23 +157,27 @@ export function toGuardDefinition<
   if (typeof predicateOrDef === 'function') {
     return {
       type: guardConfig.type,
-      params: guardConfig.params || guardConfig
-      // children: (
-      //   guardConfig.children as Array<GuardConfig<TContext, TEvent, TGuards>>
-      // )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
-      // predicate:
-      //   getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
+      params: guardConfig.params || guardConfig,
+      children: (
+        guardConfig as BooleanGuardObject<any, any, any>
+      ).children?.map((childGuard) =>
+        toGuardDefinition(childGuard, getPredicate)
+      ),
+      predicate:
+        getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
     };
   } else if (predicateOrDef) {
     return predicateOrDef;
   } else {
     return {
       type: guardConfig.type,
-      params: guardConfig.params || guardConfig
-      // children: (
-      //   guardConfig.children as Array<GuardConfig<TContext, TEvent, TGuards>>
-      // )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
-      // predicate: (guardConfig as any).predicate
+      params: guardConfig.params || guardConfig,
+      children: (
+        guardConfig as BooleanGuardObject<any, any, any>
+      ).children?.map((childGuard) =>
+        toGuardDefinition(childGuard, getPredicate)
+      ),
+      predicate: (guardConfig as any).predicate
     };
   }
 }
