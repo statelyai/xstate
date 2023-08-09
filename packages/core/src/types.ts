@@ -405,13 +405,13 @@ export type DelayedTransitions<
   TGuards extends ParameterizedObject,
   TDelays extends string
 > =
-  | Record<
-      TDelays | number,
-      | string
-      | SingleOrArray<
-          TransitionConfig<TContext, TEvent, TEvent, TActions, TGuards>
-        >
-    >
+  | {
+      [key in TDelays | number]?:
+        | string
+        | SingleOrArray<
+            TransitionConfig<TContext, TEvent, TEvent, TActions, TGuards>
+          >;
+    }
   | Array<
       TransitionConfig<TContext, TEvent, TEvent, TActions, TGuards> & {
         delay:
@@ -1214,7 +1214,7 @@ export interface MachineTypes<
   typegen?: TTypesMeta;
   input?: TInput;
   output?: TOutput;
-  delays?: string;
+  delays?: TDelays;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
