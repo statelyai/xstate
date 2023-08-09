@@ -355,10 +355,11 @@ export type DelayedTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject
+  TGuard extends ParameterizedObject,
+  TDelay extends string
 > =
   | Record<
-      string | number,
+      TDelay | number,
       | string
       | SingleOrArray<
           TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard>
@@ -368,7 +369,7 @@ export type DelayedTransitions<
       TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard> & {
         delay:
           | number
-          | string
+          | TDelay
           | ((args: UnifiedArg<TContext, TEvent>) => number);
       }
     >;
@@ -395,6 +396,7 @@ export type StatesConfig<
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
+  TDelay extends string,
   TActor extends ProvidedActor,
   TOutput
 > = {
@@ -403,6 +405,7 @@ export type StatesConfig<
     TEvent,
     TAction,
     TGuard,
+    TDelay,
     TActor,
     TOutput
   >;
@@ -605,6 +608,7 @@ export interface StateNodeConfig<
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
+  TDelay extends string,
   TActor extends ProvidedActor,
   TOutput
 > {
@@ -640,6 +644,7 @@ export interface StateNodeConfig<
         TEvent,
         TAction,
         TGuard,
+        TDelay,
         TActor,
         NonReducibleUnknown
       >
@@ -683,7 +688,7 @@ export interface StateNodeConfig<
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
    */
-  after?: DelayedTransitions<TContext, TEvent, TAction, TGuard>;
+  after?: DelayedTransitions<TContext, TEvent, TAction, TGuard, TDelay>;
 
   /**
    * An eventless transition that is always taken when this state node is active.
@@ -729,7 +734,15 @@ export interface StateNodeConfig<
   target?: string;
 }
 
-export type AnyStateNodeConfig = StateNodeConfig<any, any, any, any, any, any>;
+export type AnyStateNodeConfig = StateNodeConfig<
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any
+>;
 
 export interface StateNodeDefinition<
   TContext extends MachineContext,
@@ -782,7 +795,7 @@ export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 export interface AtomicStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO> {
+> extends StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
@@ -814,7 +827,7 @@ export type SimpleOrStateNodeConfig<
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO>;
+  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO>;
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
@@ -1135,6 +1148,7 @@ export type MachineConfig<
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
+  TDelay extends string = string,
   TActor extends ProvidedActor = ProvidedActor,
   TInput = any,
   TOutput = unknown,
@@ -1144,6 +1158,7 @@ export type MachineConfig<
   NoInfer<TEvent>,
   NoInfer<TAction>,
   NoInfer<TGuard>,
+  NoInfer<TDelay>,
   NoInfer<TActor>,
   NoInfer<TOutput>
 > & {
