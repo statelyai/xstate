@@ -59,6 +59,7 @@ export class StateMachine<
   TInput,
   TOutput,
   TGuards extends ParameterizedObject,
+  TDelays extends string,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
@@ -92,7 +93,8 @@ export class StateMachine<
     TActor,
     TInput,
     TOutput,
-    TGuards
+    TGuards,
+    TDelays
   >;
 
   public __xstatenode: true = true;
@@ -151,6 +153,7 @@ export class StateMachine<
       TAction,
       TActor,
       TGuards,
+      TDelays,
       TResolvedTypesMeta,
       true
     >
@@ -162,6 +165,7 @@ export class StateMachine<
     TInput,
     TOutput,
     TGuards,
+    TDelays,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -481,4 +485,6 @@ export class StateMachine<
   __TInput!: TInput;
 
   __TGuards!: TGuards;
+
+  __TDelays!: TDelays;
 }

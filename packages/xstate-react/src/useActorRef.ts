@@ -59,6 +59,7 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
             TODO,
             TODO,
             TODO,
+            TODO, // Delays
             TLogic['__TResolvedTypesMeta'],
             true
           >,
@@ -75,6 +76,7 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
             TODO,
             TODO,
             TODO,
+            TODO, // Delays
             TLogic['__TResolvedTypesMeta']
           >,
         observerOrListener?:

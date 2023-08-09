@@ -24,6 +24,7 @@ type RestParams<TMachine extends AnyStateMachine> =
             TODO,
             TODO,
             TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta'],
             true
           >
@@ -36,6 +37,7 @@ type RestParams<TMachine extends AnyStateMachine> =
             TODO,
             TODO,
             TODO,
+            TODO, // delays
             TMachine['__TResolvedTypesMeta']
           >
       ];

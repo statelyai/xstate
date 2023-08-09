@@ -826,6 +826,7 @@ export type AnyStateMachine = StateMachine<
   any,
   any,
   any,
+  any,
   any
 >;
 
@@ -1080,6 +1081,7 @@ export type InternalMachineImplementations<
   _TAction extends ParameterizedObject,
   TActor extends ProvidedActor,
   TGuards extends ParameterizedObject,
+  TDelays extends string,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<
@@ -1121,6 +1123,7 @@ export type MachineImplementations<
   TAction extends ParameterizedObject = ParameterizedObject,
   TActor extends ProvidedActor = ProvidedActor,
   TGuards extends ParameterizedObject = ParameterizedObject,
+  TDelays extends string = string,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
@@ -1128,6 +1131,7 @@ export type MachineImplementations<
   TAction,
   TActor,
   TGuards,
+  TDelays,
   ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActor>
 >;
 
@@ -1177,6 +1181,7 @@ export type MachineConfig<
     TInput,
     TOutput,
     TGuards,
+    TDelays,
     TTypesMeta
   >;
 }) &
@@ -1198,6 +1203,7 @@ export interface MachineTypes<
   TInput,
   TOutput,
   TGuards extends ParameterizedObject,
+  TDelays extends string,
   TTypesMeta = TypegenDisabled
 > {
   context?: TContext;
@@ -1208,6 +1214,7 @@ export interface MachineTypes<
   typegen?: TTypesMeta;
   input?: TInput;
   output?: TOutput;
+  delays?: string;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
@@ -1605,7 +1612,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
 export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<any, any, any, any, any, any, any>
+  ? R extends StateMachine<any, any, any, any, any, any, any, any>
     ? R
     : R extends Promise<infer U>
     ? PromiseActorLogic<U>
@@ -1616,6 +1623,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer TContext,
       infer TEvent,
+      any,
       any,
       any,
       any,
@@ -1663,6 +1671,7 @@ export type InterpreterFrom<
   infer TActor,
   infer TInput,
   infer _TGuards,
+  infer _TDelays,
   infer TResolvedTypesMeta
 >
   ? Actor<
@@ -1690,6 +1699,7 @@ export type MachineImplementationsFrom<
   infer _TInput,
   infer _TOutput,
   infer TGuards,
+  infer TDelays,
   infer TResolvedTypesMeta
 >
   ? InternalMachineImplementations<
@@ -1698,6 +1708,7 @@ export type MachineImplementationsFrom<
       TAction,
       TActor,
       TGuards,
+      TDelays,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >
@@ -1711,13 +1722,14 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   any,
   any,
   any,
+  any,
   infer TResolvedTypesMeta
 >
   ? TResolvedTypesMeta
   : never;
 
 export type EventOfMachine<TMachine extends AnyStateMachine> =
-  TMachine extends StateMachine<any, infer E, any, any, any, any, any>
+  TMachine extends StateMachine<any, infer E, any, any, any, any, any, any>
     ? E
     : never;
 
@@ -1792,13 +1804,14 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     : R extends Actor<infer TLogic>
     ? SnapshotFrom<TLogic>
     : R extends StateMachine<
-        infer _,
-        infer __,
-        infer ___,
-        infer ____,
-        infer _____,
-        infer ______,
-        infer _______
+        infer _TContext,
+        infer _TEvent,
+        infer _TAction,
+        infer _TActor,
+        infer _TInput,
+        infer _TOutput,
+        infer _TGuards,
+        infer _TDelays
       >
     ? StateFrom<R>
     : R extends ActorLogic<
@@ -1854,6 +1867,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TGuards,
+      infer _TDelays,
       infer _TResolvedTypesMeta
     >
     ? TEvent
@@ -1884,6 +1898,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TInput,
       infer _TOutput,
       infer _TGuards,
+      infer _TDelays,
       infer _TTypesMeta
     >
     ? TContext
@@ -1903,6 +1918,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TInput,
         infer _TOutput,
         infer _TGuards,
+        infer _TDelays,
         infer _TTypesMeta
       >
       ? TContext
