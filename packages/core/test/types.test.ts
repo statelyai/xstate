@@ -10,7 +10,9 @@ import {
   createActor,
   MachineContext,
   Spawner,
-  StateMachine
+  StateMachine,
+  and,
+  not
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -2009,16 +2011,25 @@ describe('guard', () => {
   it('should work with typed guards', () => {
     createMachine({
       types: {} as {
-        guards: {
-          type: 'isGreaterThan';
-          params: {
-            count: number;
-          };
-        };
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
       },
       on: {
+        foo: {
+          guard: 'plainGuard'
+        },
         event: {
           guard: { type: 'isGreaterThan', params: { count: 10 } }
+        },
+        // @ts-expect-error
+        bar: {
+          guard: 'isLessThan'
         },
         // @ts-expect-error
         event2: {
@@ -2095,6 +2106,26 @@ describe('guard', () => {
               guard: { type: 'isGreaterThan' }
             }
           }
+        }
+      }
+    });
+  });
+
+  it('should work with boolean guards', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        foo: {
+          guard: not('plainGuard')
         }
       }
     });

@@ -35,7 +35,7 @@ export function not<
   TGuards extends ParameterizedObject
 >(
   guard: GuardConfig<TContext, TEvent, TGuards>
-): BooleanGuardDefinition<TContext, TEvent> {
+): BooleanGuardDefinition<TContext, TEvent, TGuards> {
   return {
     type: 'xstate.boolean',
     params: { op: 'not' },
@@ -52,7 +52,7 @@ export function and<
   TGuards extends ParameterizedObject
 >(
   guards: Array<GuardConfig<TContext, TEvent, TGuards>>
-): BooleanGuardDefinition<TContext, TEvent> {
+): BooleanGuardDefinition<TContext, TEvent, TGuards> {
   return {
     type: 'xstate.boolean',
     params: { op: 'and' },
@@ -71,7 +71,7 @@ export function or<
   TGuards extends ParameterizedObject
 >(
   guards: Array<GuardConfig<TContext, TEvent, TGuards>>
-): BooleanGuardDefinition<TContext, TEvent> {
+): BooleanGuardDefinition<TContext, TEvent, TGuards> {
   return {
     type: 'xstate.boolean',
     params: { op: 'or' },
@@ -158,23 +158,23 @@ export function toGuardDefinition<
   if (typeof predicateOrDef === 'function') {
     return {
       type: guardConfig.type,
-      params: guardConfig.params || guardConfig,
-      children: (
-        guardConfig.children as Array<GuardConfig<TContext, TEvent, TGuards>>
-      )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
-      predicate:
-        getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
+      params: guardConfig.params || guardConfig
+      // children: (
+      //   guardConfig.children as Array<GuardConfig<TContext, TEvent, TGuards>>
+      // )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
+      // predicate:
+      //   getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
     };
   } else if (predicateOrDef) {
     return predicateOrDef;
   } else {
     return {
       type: guardConfig.type,
-      params: guardConfig.params || guardConfig,
-      children: (
-        guardConfig.children as Array<GuardConfig<TContext, TEvent, TGuards>>
-      )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
-      predicate: (guardConfig as any).predicate
+      params: guardConfig.params || guardConfig
+      // children: (
+      //   guardConfig.children as Array<GuardConfig<TContext, TEvent, TGuards>>
+      // )?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
+      // predicate: (guardConfig as any).predicate
     };
   }
 }

@@ -215,18 +215,6 @@ export type GuardPredicate<
   } & GuardArgs<TContext, TEvent>
 ) => boolean;
 
-export interface DefaultGuardObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TGuards extends ParameterizedObject
-> extends ParameterizedObject {
-  /**
-   * Nested guards
-   */
-  children?: Array<GuardObject<TContext, TEvent, TGuards>>;
-  predicate?: GuardPredicate<TContext, TEvent>;
-}
-
 export type GuardEvaluator<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -251,18 +239,10 @@ export type GuardConfig<
   TEvent extends EventObject,
   TGuards extends ParameterizedObject
 > =
-  | string
+  | TGuards['type'] // TODO: narrow only to guards without params
   | TGuards
   | GuardPredicate<TContext, TEvent>
   | BooleanGuardObject<TContext, TEvent, TGuards>;
-
-export type GuardObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TGuards extends ParameterizedObject
-> =
-  | BooleanGuardObject<TContext, TEvent, TGuards>
-  | DefaultGuardObject<TContext, TEvent, TGuards>;
 
 export interface GuardDefinition<
   TContext extends MachineContext,
@@ -289,7 +269,8 @@ export interface BooleanGuardObject<
 
 export interface BooleanGuardDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TGuards extends ParameterizedObject
 > extends GuardDefinition<TContext, TEvent> {
   type: 'xstate.boolean';
   params: {

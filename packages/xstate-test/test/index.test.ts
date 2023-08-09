@@ -11,7 +11,7 @@ describe('events', () => {
       | { type: 'CLOSE' }
       | { type: 'ESC' }
       | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createTestMachine({
+    const feedbackMachine = createMachine({
       id: 'feedback',
       types: {
         events: {} as Events

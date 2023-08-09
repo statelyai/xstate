@@ -668,58 +668,6 @@ describe('guards - other', () => {
   });
 });
 
-describe('guards with child guards', () => {
-  it('guards can contain child guards', () => {
-    expect.assertions(3);
-
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: {
-                  type: 'testGuard',
-                  children: [
-                    {
-                      type: 'customGuard',
-                      predicate: () => true
-                    },
-                    { type: 'customGuard' }
-                  ],
-                  predicate: ({ guard }) => {
-                    expect(guard.children).toHaveLength(2);
-                    expect(
-                      guard.children?.find(
-                        (childGuard: any) => childGuard.type === 'customGuard'
-                      )?.predicate
-                    ).toBeInstanceOf(Function);
-
-                    return true;
-                  }
-                }
-              }
-            }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          customGuard: () => true
-        }
-      }
-    );
-
-    const actorRef = createActor(machine).start();
-    actorRef.send({ type: 'EVENT' });
-
-    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
-  });
-});
-
 describe('not() guard', () => {
   it('should guard with inline function', () => {
     const machine = createMachine({
