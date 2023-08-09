@@ -74,6 +74,7 @@ export type TestMachineOptions<
       TEvent,
       ParameterizedObject,
       any,
+      ParameterizedObject,
       TTypesMeta
     >,
     'actions' | 'guards'
