@@ -1799,7 +1799,7 @@ describe('actions', () => {
     });
   });
 
-  it('named actions', () => {
+  it('named actions in entry', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } };
@@ -1812,18 +1812,273 @@ describe('actions', () => {
           }
         },
         // @ts-expect-error
-        {
-          type: 'greet'
-        }
+        { type: 'greet' }
       ],
+      initial: 'a',
+      states: {
+        a: {
+          entry: [
+            {
+              type: 'greet',
+              params: {
+                name: 'David'
+              }
+            },
+            {
+              type: 'greet',
+              params: {
+                // @ts-expect-error
+                name: 42
+              }
+            },
+            {
+              type: 'greet',
+              // @ts-expect-error
+              params: {}
+            },
+            // @ts-expect-error
+            { type: 'greet' }
+          ]
+        }
+      }
+    });
+  });
+
+  it('named actions in exit', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } };
+      },
+      exit: [
+        {
+          type: 'greet',
+          params: {
+            name: 'David'
+          }
+        },
+        // @ts-expect-error
+        { type: 'greet' }
+      ],
+      initial: 'a',
+      states: {
+        a: {
+          exit: [
+            {
+              type: 'greet',
+              params: {
+                name: 'David'
+              }
+            },
+            {
+              type: 'greet',
+              params: {
+                // @ts-expect-error
+                name: 42
+              }
+            },
+            {
+              type: 'greet',
+              // @ts-expect-error
+              params: {}
+            },
+            // @ts-expect-error
+            { type: 'greet' }
+          ]
+        }
+      }
+    });
+  });
+
+  it('named actions in transition actions', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } };
+      },
       on: {
+        otherEvent: {
+          actions: [
+            {
+              type: 'greet',
+              params: {
+                name: 'David'
+              }
+            }
+          ]
+        },
+        // @ts-expect-error
         event: {
-          actions: { type: 'greet', params: { name: 'David' } }
+          actions: [
+            {
+              type: 'greet',
+              params: {
+                name: 'David'
+              }
+            },
+            { type: 'greet' }
+          ]
         }
       },
-      // @ts-expect-error
-      exit: {
-        type: 'un-greet'
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            otherEvent: {
+              actions: [
+                {
+                  type: 'greet',
+                  params: {
+                    name: 'David'
+                  }
+                }
+              ]
+            },
+            // @ts-expect-error
+            event: {
+              actions: [
+                {
+                  type: 'greet',
+                  params: {
+                    name: 'David'
+                  }
+                },
+                { type: 'greet' }
+              ]
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('named actions in invoke onDone, onSnapshot, onError', () => {
+    createMachine({
+      types: {} as {
+        actions: {
+          type: 'greet';
+          params: { name: string };
+        };
+      },
+      type: 'parallel',
+      states: {
+        failing: {
+          // TODO: why does error occur for entire object??
+          // @ts-expect-error
+          invoke: {
+            src: 'someSrc',
+            onDone: {
+              actions: [
+                {
+                  type: 'greet',
+                  params: {
+                    name: 'David'
+                  }
+                },
+                {
+                  type: 'greet',
+                  params: {
+                    name: 42
+                  }
+                },
+                {
+                  type: 'greet',
+
+                  params: {}
+                },
+
+                { type: 'greet' }
+              ]
+            },
+            onError: {
+              actions: [
+                {
+                  type: 'greet',
+                  params: {
+                    name: 'David'
+                  }
+                },
+                {
+                  type: 'greet',
+                  params: {
+                    name: 42
+                  }
+                },
+                {
+                  type: 'greet',
+
+                  params: {}
+                },
+
+                { type: 'greet' }
+              ]
+            }
+          }
+        },
+        succeeding: {
+          invoke: {
+            src: 'someSrc',
+            onDone: {
+              actions: [
+                {
+                  type: 'greet',
+                  params: {
+                    name: 'David'
+                  }
+                }
+              ]
+            },
+            onError: {
+              actions: [
+                {
+                  type: 'greet',
+                  params: {
+                    name: 'David'
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('named actions in state always, onDone', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } };
+      },
+      always: [
+        {
+          actions: { type: 'greet', params: { name: 'David' } }
+        }
+      ],
+      initial: 'a',
+      states: {
+        failing: {
+          always: [
+            {
+              // @ts-expect-error
+              actions: { type: 'greet', params: { name: 42 } }
+            }
+          ],
+          // @ts-expect-error
+          onDone: {
+            actions: [
+              { type: 'greet', params: { name: 'David' } },
+              { type: 'unknown' }
+            ]
+          }
+        },
+        succeeding: {
+          always: [
+            {
+              actions: { type: 'greet', params: { name: 'David' } }
+            }
+          ],
+          onDone: {
+            actions: [{ type: 'greet', params: { name: 'David' } }]
+          }
+        }
       }
     });
   });
