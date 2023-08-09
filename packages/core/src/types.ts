@@ -102,6 +102,7 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
   infer _TAction,
   infer _TGuard,
   infer _TDelay,
+  infer _TTag,
   infer TInput,
   infer _TOutput,
   infer _TResolvedTypesMeta
@@ -422,6 +423,7 @@ export type StatesConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
+  TTag extends string,
   TOutput
 > = {
   [K in string]: StateNodeConfig<
@@ -431,6 +433,7 @@ export type StatesConfig<
     TAction,
     TGuard,
     TDelay,
+    TTag,
     TOutput
   >;
 };
@@ -659,6 +662,7 @@ export interface StateNodeConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
+  TTag extends string,
   TOutput
 > {
   /**
@@ -695,6 +699,7 @@ export interface StateNodeConfig<
         TAction,
         TGuard,
         TDelay,
+        TTag,
         NonReducibleUnknown
       >
     | undefined;
@@ -780,7 +785,7 @@ export interface StateNodeConfig<
   /**
    * The tags for this state node, which are accumulated into the `state.tags` property.
    */
-  tags?: SingleOrArray<string>;
+  tags?: SingleOrArray<TTag>;
   /**
    * A text description of the state node
    */
@@ -793,6 +798,7 @@ export interface StateNodeConfig<
 }
 
 export type AnyStateNodeConfig = StateNodeConfig<
+  any,
   any,
   any,
   any,
@@ -846,7 +852,8 @@ export type AnyStateMachine = StateMachine<
   any,
   any,
   any,
-  any
+  any, // delays
+  any // tags
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -854,7 +861,16 @@ export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 export interface AtomicStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO> {
+> extends StateNodeConfig<
+    TContext,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO
+  > {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
@@ -886,7 +902,7 @@ export type SimpleOrStateNodeConfig<
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO>;
+  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>;
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
@@ -1212,13 +1228,32 @@ type RootStateNodeConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
+  TTag extends string,
   TOutput
 > = Omit<
-  StateNodeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay, TOutput>,
+  StateNodeConfig<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TOutput
+  >,
   'states'
 > & {
   states?:
-    | StatesConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay, TOutput>
+    | StatesConfig<
+        TContext,
+        TEvent,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        TTag,
+        TOutput
+      >
     | undefined;
 };
 
@@ -1229,6 +1264,7 @@ export type MachineConfig<
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string,
+  TTag extends string = string,
   TInput = any,
   TOutput = unknown,
   TTypesMeta = TypegenDisabled
@@ -1239,6 +1275,7 @@ export type MachineConfig<
   NoInfer<TAction>,
   NoInfer<TGuard>,
   NoInfer<TDelay>,
+  NoInfer<TTag>,
   NoInfer<TOutput>
 > & {
   /**
@@ -1255,6 +1292,7 @@ export type MachineConfig<
     TAction,
     TGuard,
     TDelay,
+    TTag,
     TInput,
     TOutput,
     TTypesMeta
@@ -1277,6 +1315,7 @@ export interface MachineTypes<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
+  TTag extends string,
   TInput,
   TOutput,
   TTypesMeta = TypegenDisabled
@@ -1287,6 +1326,7 @@ export interface MachineTypes<
   actions?: TAction;
   guards?: TGuard;
   delays?: TDelay;
+  tags?: TTag;
   input?: TInput;
   output?: TOutput;
   typegen?: TTypesMeta;
@@ -1699,7 +1739,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
 export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<any, any, any, any, any, any, any, any>
+  ? R extends StateMachine<any, any, any, any, any, any, any, any, any>
     ? R
     : R extends Promise<infer U>
     ? PromiseActorLogic<U>
@@ -1714,6 +1754,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TAction,
       infer _TGuard,
       infer _TDelay,
+      infer _TTag,
       infer _TInput,
       infer TOutput,
       infer TResolvedTypesMeta
@@ -1759,6 +1800,7 @@ export type InterpreterFrom<
   infer _TAction,
   infer _TGuard,
   infer _TDelay,
+  infer _TTag,
   infer TInput,
   infer TOutput,
   infer TResolvedTypesMeta
@@ -1787,6 +1829,7 @@ export type MachineImplementationsFrom<
   infer TAction,
   infer _TGuard,
   infer TDelay,
+  infer _TTag,
   infer _TInput,
   infer _TOutput,
   infer TResolvedTypesMeta
@@ -1804,13 +1847,15 @@ export type MachineImplementationsFrom<
 
 // only meant to be used internally for debugging purposes
 export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
+  any, // context
+  any, // event
+  any, // actor
+  any, // action
+  any, // guard
+  any, // delay
+  any, // tag
+  any, // input
+  any, // output
   infer TResolvedTypesMeta
 >
   ? TResolvedTypesMeta
@@ -1893,6 +1938,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TAction,
         infer _TGuard,
         infer _TDelay,
+        infer _TTag,
         infer _TInput,
         infer _TOutput,
         infer _TResolvedTypesMeta
@@ -1950,6 +1996,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TAction,
       infer _TGuard,
       infer _TDelay,
+      infer _TTag,
       infer _TInput,
       infer _TOutput,
       infer _TResolvedTypesMeta
@@ -1982,6 +2029,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TAction,
       infer _TGuard,
       infer _TDelay,
+      infer _TTag,
       infer _TInput,
       infer _TOutput,
       infer _TTypesMeta
@@ -2003,6 +2051,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TAction,
         infer _TGuard,
         infer _TDelay,
+        infer _TTag,
         infer _TInput,
         infer _TOutput,
         infer _TTypesMeta

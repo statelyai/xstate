@@ -37,7 +37,8 @@ export interface TestMachineConfig<
     TODO,
     TODO,
     TODO,
-    TODO,
+    TODO, // delays
+    TODO, // tags
     TTypesMeta
   >;
 }
@@ -52,6 +53,7 @@ export interface TestStateNodeConfig<
       TODO,
       TODO,
       ParameterizedObject,
+      TODO,
       TODO,
       TODO
     >,

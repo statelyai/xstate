@@ -58,6 +58,7 @@ export class StateMachine<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
+  TTag extends string,
   TInput,
   TOutput,
   TResolvedTypesMeta = ResolveTypegenMeta<
@@ -95,6 +96,7 @@ export class StateMachine<
     TAction,
     TGuard,
     TDelay,
+    TTag,
     TInput,
     TOutput,
     TResolvedTypesMeta
@@ -123,6 +125,7 @@ export class StateMachine<
       any,
       any,
       any,
+      any,
       TOutput,
       any
     >,
@@ -137,6 +140,7 @@ export class StateMachine<
     };
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
+    // TContext, TEvent, TAction, TActor, TInput, TOutput, TGuards, TDelays, TTags, TypegenDisabled
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
@@ -176,6 +180,7 @@ export class StateMachine<
     TAction,
     TGuard,
     TDelay,
+    TTag,
     TInput,
     TOutput,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
@@ -495,6 +500,8 @@ export class StateMachine<
   __TGuard!: TGuard;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TDelay!: TDelay;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TTag!: TTag;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TInput!: TInput;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
