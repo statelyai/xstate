@@ -2908,3 +2908,32 @@ describe('guards', () => {
     );
   });
 });
+
+describe('delays', () => {
+  it('should work with typed delays', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      after: {
+        'one minute': {},
+        'one second': {},
+        100: {},
+        // @ts-expect-error
+        'unknown delay': {}
+      },
+      initial: 'a',
+      states: {
+        a: {
+          after: [
+            { delay: 'one minute' },
+            { delay: 'one second' },
+            { delay: 100 },
+            // @ts-expect-error
+            { delay: 'unknown delay' }
+          ]
+        }
+      }
+    });
+  });
+});

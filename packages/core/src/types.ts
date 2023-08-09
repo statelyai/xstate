@@ -359,13 +359,13 @@ export type DelayedTransitions<
   TGuard extends ParameterizedObject,
   TDelay extends string
 > =
-  | Record<
-      TDelay | number,
-      | string
-      | SingleOrArray<
-          TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard>
-        >
-    >
+  | {
+      [key in TDelay | number]?:
+        | string
+        | SingleOrArray<
+            TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard>
+          >;
+    }
   | Array<
       TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard> & {
         delay:
