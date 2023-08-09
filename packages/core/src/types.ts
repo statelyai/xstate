@@ -174,7 +174,7 @@ export type Action<
   TActions extends ParameterizedObject
 > =
   | ActionType
-  | ParameterizedObject // TODO: this should be TActions
+  | TActions
   | ActionFunction<TContext, TExpressionEvent, TEvent, ParameterizedObject>;
 
 export type AnyAction = Action<any, any, any, any>;
