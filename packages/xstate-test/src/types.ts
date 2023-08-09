@@ -37,6 +37,7 @@ export interface TestMachineConfig<
     TODO,
     TODO,
     TODO,
+    TODO,
     TTypesMeta
   >;
 }
@@ -83,6 +84,7 @@ export type TestMachineOptions<
       any,
       ParameterizedObject,
       ParameterizedObject,
+      string,
       TTypesMeta
     >,
     'actions' | 'guards'

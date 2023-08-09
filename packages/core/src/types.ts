@@ -787,6 +787,7 @@ export type AnyStateMachine = StateMachine<
   any,
   any,
   any,
+  any,
   any
 >;
 
@@ -1065,6 +1066,7 @@ export type InternalMachineImplementations<
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
+  TDelay extends string,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<
@@ -1106,12 +1108,14 @@ export type MachineImplementations<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
+  TDelay extends string = string,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
   TEvent,
   TActor,
   TAction,
+  TDelay,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
 >;
 
@@ -1195,6 +1199,7 @@ export interface MachineTypes<
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
+  TDelay extends string,
   TActor extends ProvidedActor,
   TInput,
   TOutput,
@@ -1205,6 +1210,7 @@ export interface MachineTypes<
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
+  delays?: TDelay;
   input?: TInput;
   output?: TOutput;
   typegen?: TTypesMeta;
@@ -1613,7 +1619,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TActor,
       infer _TAction,
       infer _TGuard,
-      infer _Tinput,
+      infer _TDelay,
+      infer _TInput,
       infer TOutput,
       infer TResolvedTypesMeta
     >
@@ -1657,6 +1664,7 @@ export type InterpreterFrom<
   infer TActor,
   infer _TAction,
   infer _TGuard,
+  infer _TDelay,
   infer TInput,
   infer TOutput,
   infer TResolvedTypesMeta
@@ -1684,6 +1692,7 @@ export type MachineImplementationsFrom<
   infer TActor,
   infer TAction,
   infer _TGuard,
+  infer TDelay,
   infer _TInput,
   infer _TOutput,
   infer TResolvedTypesMeta
@@ -1693,6 +1702,7 @@ export type MachineImplementationsFrom<
       TEvent,
       TActor,
       TAction,
+      TDelay,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >
@@ -1783,14 +1793,15 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     : R extends Actor<infer TLogic>
     ? SnapshotFrom<TLogic>
     : R extends StateMachine<
-        infer _,
-        infer __,
-        infer ___,
-        infer ____,
-        infer _____,
-        infer ______,
-        infer _______,
-        infer ________
+        infer _TContext,
+        infer _TEvent,
+        infer _TActor,
+        infer _TAction,
+        infer _TGuard,
+        infer _TDelay,
+        infer _TInput,
+        infer _TOutput,
+        infer _TResolvedTypesMeta
       >
     ? StateFrom<R>
     : R extends ActorLogic<
@@ -1844,6 +1855,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TActor,
       infer _TAction,
       infer _TGuard,
+      infer _TDelay,
       infer _TInput,
       infer _TOutput,
       infer _TResolvedTypesMeta
@@ -1871,13 +1883,14 @@ export type EventFrom<
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer TContext,
-      infer _,
-      infer __,
-      infer ___,
-      infer ____,
-      infer _____,
-      infer ______,
-      infer _______
+      infer _TEvent,
+      infer _TActor,
+      infer _TAction,
+      infer _TGuard,
+      infer _TDelay,
+      infer _TInput,
+      infer _TOutput,
+      infer _TTypesMeta
     >
     ? TContext
     : R extends State<
@@ -1895,6 +1908,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TActor,
         infer _TAction,
         infer _TGuard,
+        infer _TDelay,
         infer _TInput,
         infer _TOutput,
         infer _TTypesMeta

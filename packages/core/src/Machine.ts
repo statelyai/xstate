@@ -42,6 +42,7 @@ export function createMachine<
     TEvent,
     TActor,
     TAction,
+    TDelay,
     ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
   >
 ): StateMachine<
@@ -50,11 +51,12 @@ export function createMachine<
   TActor,
   TAction,
   TGuard,
+  TDelay,
   TInput,
   TOutput,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
 > {
-  return new StateMachine<any, any, any, any, any, any, any, any>(
+  return new StateMachine<any, any, any, any, any, any, any, any, any>(
     config as any,
     implementations as any
   );

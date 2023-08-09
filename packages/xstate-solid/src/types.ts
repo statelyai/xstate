@@ -40,8 +40,9 @@ type InternalMachineOpts<
 > = InternalMachineImplementations<
   TMachine['__TContext'],
   TMachine['__TEvent'],
-  TMachine['__TAction'],
   TMachine['__TActor'],
+  TMachine['__TAction'],
+  TMachine['__TDelay'],
   TMachine['__TResolvedTypesMeta'],
   RequireMissing
 >;
