@@ -28,7 +28,9 @@ import type {
   TransitionDefinitionMap,
   TODO,
   UnknownAction,
-  ParameterizedObject
+  ParameterizedObject,
+  AnyStateMachine,
+  AnyStateNodeConfig
 } from './types.ts';
 import {
   createInvokeId,
@@ -62,7 +64,7 @@ interface StateNodeOptions<
 > {
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
-  _machine: StateMachine<TContext, TEvent, any, any, any, any>;
+  _machine: AnyStateMachine;
 }
 
 export class StateNode<
@@ -117,7 +119,7 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: StateMachine<TContext, TEvent, any, any, TODO, TODO>;
+  public machine: StateMachine<TContext, TEvent, any, any, TODO, TODO, TODO>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -142,7 +144,7 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>,
+    public config: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
@@ -167,10 +169,7 @@ export class StateNode<
       this.config.states
         ? mapValues(
             this.config.states,
-            (
-              stateConfig: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>,
-              key
-            ) => {
+            (stateConfig: AnyStateNodeConfig, key) => {
               const stateNode = new StateNode(stateConfig, {
                 _parent: this,
                 _key: key as string,
@@ -272,7 +271,7 @@ export class StateNode<
    * The logic invoked as actors by this state node.
    */
   public get invoke(): Array<
-    InvokeDefinition<TContext, TEvent, ParameterizedObject>
+    InvokeDefinition<TContext, TEvent, ParameterizedObject, ParameterizedObject>
   > {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
@@ -312,7 +311,12 @@ export class StateNode<
               id: resolvedId
             };
           }
-        } as InvokeDefinition<TContext, TEvent, ParameterizedObject>;
+        } as InvokeDefinition<
+          TContext,
+          TEvent,
+          ParameterizedObject,
+          ParameterizedObject
+        >;
       })
     );
   }

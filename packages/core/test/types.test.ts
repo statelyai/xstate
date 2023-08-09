@@ -378,7 +378,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any> {
+  ): StateMachine<TContext, any, any, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -452,7 +452,7 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, TEvent, any, any, any, any>) {}
+    >(_machine: StateMachine<TContext, TEvent, any, any, any, any, any>) {}
 
     acceptMachine(toggleMachine);
   });
@@ -2222,5 +2222,108 @@ describe('guards', () => {
         }
       }
     );
+  });
+
+  it('should work with typed guards', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        foo: {
+          guard: 'plainGuard'
+        },
+        event: {
+          guard: { type: 'isGreaterThan', params: { count: 10 } }
+        },
+        // @ts-expect-error
+        bar: {
+          guard: 'isLessThan'
+        },
+        // @ts-expect-error
+        event2: {
+          guard: { type: 'isGreaterThan', params: { count: 'asdf' } }
+        },
+        // @ts-expect-error
+        event3: {
+          guard: { type: 'isLessThan', params: { count: 10 } }
+        },
+        // @ts-expect-error
+        event4: {
+          guard: { type: 'isGreaterThan' }
+        }
+      },
+      initial: 'a',
+      states: {
+        a: {
+          invoke: [
+            {
+              src: 'src',
+              onDone: [
+                {
+                  guard: { type: 'isGreaterThan', params: { count: 10 } }
+                },
+                // @ts-expect-error
+                {
+                  guard: { type: 'isGreaterThan', params: { count: 'asdf' } }
+                },
+                // @ts-expect-error
+                {
+                  guard: { type: 'isLessThan', params: { count: 10 } }
+                },
+                // @ts-expect-error
+                {
+                  guard: { type: 'isGreaterThan' }
+                }
+              ]
+            },
+            {
+              src: 'src',
+              onError: [
+                {
+                  guard: { type: 'isGreaterThan', params: { count: 10 } }
+                },
+                // @ts-expect-error
+                {
+                  guard: { type: 'isGreaterThan', params: { count: 'asdf' } }
+                },
+                // @ts-expect-error
+                {
+                  guard: { type: 'isLessThan', params: { count: 10 } }
+                },
+                // @ts-expect-error
+                {
+                  guard: { type: 'isGreaterThan' }
+                }
+              ]
+            }
+          ],
+          on: {
+            event: {
+              guard: { type: 'isGreaterThan', params: { count: 10 } }
+            },
+            // @ts-expect-error
+            event2: {
+              guard: { type: 'isGreaterThan', params: { count: 'asdf' } }
+            },
+            // @ts-expect-error
+            event3: {
+              guard: { type: 'isLessThan', params: { count: 10 } }
+            },
+            // @ts-expect-error
+            event4: {
+              guard: { type: 'isGreaterThan' }
+            }
+          }
+        }
+      }
+    });
   });
 });
