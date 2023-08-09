@@ -123,12 +123,13 @@ export class StateNode<
   public machine: StateMachine<
     TContext,
     TEvent,
-    any,
-    any,
-    TODO,
-    TODO,
-    TODO,
-    TODO
+    any, // actors
+    any, // input
+    TODO, // output
+    TODO, // guards
+    TODO, // delays
+    TODO, // tags
+    TODO // types meta
   >;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
@@ -157,11 +158,12 @@ export class StateNode<
     public config: StateNodeConfig<
       TContext,
       TEvent,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO
+      TODO, // actions
+      TODO, // actors
+      TODO, // output
+      TODO, // guards
+      TODO, // delays
+      TODO // tags
     >,
     options: StateNodeOptions<TContext, TEvent>
   ) {

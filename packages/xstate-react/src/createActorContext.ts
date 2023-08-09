@@ -22,6 +22,7 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
     infer TOutput,
     infer TGuards,
     infer TDelays,
+    infer TTags,
     infer TResolvedTypesMeta
   >
     ? StateMachine<
@@ -33,6 +34,7 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
         TOutput,
         TGuards,
         TDelays,
+        TTags,
         AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
           ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
           : TResolvedTypesMeta

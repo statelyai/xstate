@@ -251,7 +251,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any, any, any> {
+  ): StateMachine<TContext, any, any, any, any, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -325,7 +325,19 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, TEvent, any, any, any, any, any, any>) {}
+    >(
+      _machine: StateMachine<
+        TContext,
+        TEvent,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      >
+    ) {}
 
     acceptMachine(toggleMachine);
   });
@@ -2155,6 +2167,30 @@ describe('delays', () => {
             { delay: 100 },
             // @ts-expect-error
             { delay: 'unknown delay' }
+          ]
+        }
+      }
+    });
+  });
+});
+
+describe('tags', () => {
+  it('should work with typed tags', () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      initial: 'a',
+      states: {
+        a: {
+          tags: 'error'
+        },
+        b: {
+          tags: [
+            'success',
+            'pending',
+            // @ts-expect-error
+            'unknown'
           ]
         }
       }

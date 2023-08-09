@@ -60,6 +60,7 @@ export class StateMachine<
   TOutput,
   TGuards extends ParameterizedObject,
   TDelays extends string,
+  TTags extends string,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
@@ -94,7 +95,8 @@ export class StateMachine<
     TInput,
     TOutput,
     TGuards,
-    TDelays
+    TDelays,
+    TTags
   >;
 
   public __xstatenode: true = true;
@@ -112,7 +114,17 @@ export class StateMachine<
     /**
      * The raw config used to create the machine.
      */
-    public config: MachineConfig<TContext, TEvent, any, any, any, any, any>,
+    public config: MachineConfig<
+      TContext,
+      TEvent,
+      any, // actions
+      any, // actors
+      any, // input
+      any, // output
+      any, // guards
+      any, // delays
+      any // tags
+    >,
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
@@ -124,6 +136,7 @@ export class StateMachine<
     };
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
+    // TContext, TEvent, TAction, TActor, TInput, TOutput, TGuards, TDelays, TTags, TypegenDisabled
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
@@ -166,6 +179,7 @@ export class StateMachine<
     TOutput,
     TGuards,
     TDelays,
+    TTags,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -487,4 +501,6 @@ export class StateMachine<
   __TGuards!: TGuards;
 
   __TDelays!: TDelays;
+
+  __TTags!: TTags;
 }
