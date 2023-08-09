@@ -10,6 +10,7 @@ import {
 } from '../src/actors/index.ts';
 import { waitFor } from '../src/waitFor.ts';
 import { raise, sendTo } from '../src/actions.ts';
+import { fromStore } from '../src/actors/store.ts';
 
 describe('promise logic (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -695,4 +696,22 @@ describe('machine logic', () => {
 
     createActor(machine).start();
   });
+});
+
+it.only('store', () => {
+  const store = fromStore(
+    {
+      count: 0,
+      name: 'David'
+    },
+    {
+      inc: (state) => ({ count: state.count + 1 })
+    }
+  );
+
+  const actor = createActor(store).start();
+
+  actor.send({ type: 'inc' });
+
+  expect(actor.getSnapshot()).toEqual({ count: 1, name: 'David' });
 });
