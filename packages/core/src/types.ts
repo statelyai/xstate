@@ -831,7 +831,14 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-export type AnyState = State<any, any, any, any, any>;
+export type AnyState = State<
+  any,
+  any,
+  any,
+  any,
+  any, // delays
+  any // tags
+>;
 
 export type AnyStateMachine = StateMachine<
   any,
@@ -1668,6 +1675,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TEvent,
           TODO, // TActor
           TODO, // TOutput
+          TODO, // TTags
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
             : TResolvedTypesMeta

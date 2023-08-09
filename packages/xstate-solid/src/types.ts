@@ -17,7 +17,14 @@ type StateObject<
   TActor extends ProvidedActor = ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled
 > = Pick<
-  State<TContext, TEvent, TActor, any, TResolvedTypesMeta>,
+  State<
+    TContext,
+    TEvent,
+    TActor,
+    any, // output
+    any, // tags
+    TResolvedTypesMeta
+  >,
   keyof AnyState
 >;
 

@@ -70,10 +70,10 @@ export class StateMachine<
 > implements
     ActorLogic<
       TEvent,
-      State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>,
-      State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>,
+      State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>,
+      State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>,
       PersistedMachineState<
-        State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+        State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
       >,
       TODO,
       TInput,
@@ -202,7 +202,7 @@ export class StateMachine<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+    state: State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
   ): typeof state {
     const configurationSet = getConfiguration(
       getStateNodes(this.root, state.value)
@@ -221,7 +221,7 @@ export class StateMachine<
     ...[context]: Equals<TContext, MachineContext> extends true
       ? []
       : [TContext]
-  ): State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta> {
     const resolvedStateValue = resolveStateValue(this.root, stateValue);
 
     return this.resolveState(State.from(resolvedStateValue, context, this));
@@ -235,10 +235,10 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>,
+    state: State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>,
     event: TEvent,
     actorCtx: ActorContext<TEvent, typeof state>
-  ): State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta> {
     // TODO: handle error events in a better way
     if (
       isErrorEvent(event) &&
@@ -262,15 +262,17 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>,
+    state: State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>,
     event: TEvent,
     actorCtx: AnyActorContext
-  ): Array<State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>> {
+  ): Array<
+    State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
+  > {
     return macrostep(state, event, actorCtx).microstates;
   }
 
   public getTransitionData(
-    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>,
+    state: State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
     return transitionNode(this.root, state.value, state, event) || [];
@@ -283,7 +285,7 @@ export class StateMachine<
   private getPreInitialState(
     actorCtx: AnyActorContext,
     initEvent: any
-  ): State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta> {
     const { context } = this.config;
 
     const preInitial = this.resolveState(
@@ -317,10 +319,10 @@ export class StateMachine<
   public getInitialState(
     actorCtx: ActorContext<
       TEvent,
-      State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+      State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
     >,
     input?: TInput
-  ): State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta> {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
     const preInitialState = this.getPreInitialState(actorCtx, initEvent);
@@ -351,7 +353,7 @@ export class StateMachine<
   }
 
   public start(
-    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+    state: State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
   ): void {
     Object.values(state.children).forEach((child: any) => {
       if (child.status === 0) {
@@ -385,25 +387,25 @@ export class StateMachine<
   }
 
   public getPersistedState(
-    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+    state: State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
   ): PersistedMachineState<
-    State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+    State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
   > {
     return getPersistedState(state);
   }
 
   public createState(
     stateConfig:
-      | State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+      | State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
       | StateConfig<TContext, TEvent>
-  ): State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta> {
     return stateConfig instanceof State
       ? stateConfig
       : new State(stateConfig, this);
   }
 
   public getStatus(
-    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+    state: State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
   ) {
     return state.error
       ? { status: 'error', data: state.error }
@@ -414,13 +416,13 @@ export class StateMachine<
 
   public restoreState(
     state: PersistedMachineState<
-      State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+      State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
     >,
     _actorCtx: ActorContext<
       TEvent,
-      State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+      State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta>
     >
-  ): State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TActor, TOutput, TTags, TResolvedTypesMeta> {
     const children: Record<string, AnyActorRef> = {};
 
     Object.keys(state.children).forEach((actorId) => {
@@ -451,6 +453,7 @@ export class StateMachine<
       TEvent,
       TActor,
       TOutput,
+      TTags,
       TResolvedTypesMeta
     > = this.createState(new State({ ...state, children }, this));
 

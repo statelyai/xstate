@@ -794,7 +794,14 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  state: State<TContext, TEvent, TODO, TODO, TODO>,
+  state: State<
+    TContext,
+    TEvent,
+    TODO,
+    TODO,
+    TODO, // output
+    TODO // tags
+  >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node

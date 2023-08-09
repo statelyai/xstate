@@ -2196,4 +2196,19 @@ describe('tags', () => {
       }
     });
   });
+
+  it('typed tags should work in state', () => {
+    const machine = createMachine({
+      types: {} as {
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.getSnapshot().hasTag('a');
+    actor.getSnapshot().hasTag('b');
+    // @ts-expect-error
+    actor.getSnapshot().hasTag('unknown');
+  });
 });

@@ -71,6 +71,7 @@ export class State<
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TOutput,
+  TTag extends string = string,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -106,10 +107,26 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent, TODO, any, any> | StateValue,
+    stateValue:
+      | State<
+          TContext,
+          TEvent,
+          TODO,
+          any,
+          any, // output
+          any // tags
+        >
+      | StateValue,
     context: TContext = {} as TContext,
     machine: AnyStateMachine
-  ): State<TContext, TEvent, TODO, any, any> {
+  ): State<
+    TContext,
+    TEvent,
+    TODO,
+    any,
+    any, //output
+    any // tags
+  > {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TContext, TEvent, TODO, any>(
@@ -212,7 +229,7 @@ export class State<
   public hasTag(
     tag: TResolvedTypesMeta extends TypegenEnabled
       ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
-      : string
+      : TTag
   ): boolean {
     return this.tags.has(tag as string);
   }
