@@ -96,9 +96,11 @@ export type TestMachineOptions<
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
     testContext: T,
-    state: State<TContext, any, any, any>
+    state: State<TContext, any, any, any, any, any>
   ) => Promise<void> | void;
-  description?: string | ((state: State<TContext, any, any, any>) => string);
+  description?:
+    | string
+    | ((state: State<TContext, any, any, any, any, any>) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -168,7 +170,7 @@ export interface TestTransitionConfig<
   TTestContext
 > extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, string> {
   test?: (
-    state: State<TContext, TEvent, any, any>,
+    state: State<TContext, TEvent, any, any, any, any>,
     testContext: TTestContext
   ) => void;
 }

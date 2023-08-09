@@ -841,7 +841,14 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-export type AnyState = State<any, any, any, any, any>;
+export type AnyState = State<
+  any,
+  any,
+  any,
+  any,
+  any, // delays
+  any // tags
+>;
 
 export type AnyStateMachine = StateMachine<
   any,
@@ -1754,7 +1761,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TAction,
       infer _TGuard,
       infer _TDelay,
-      infer _TTag,
+      infer TTag,
       infer _TInput,
       infer TOutput,
       infer TResolvedTypesMeta
@@ -1765,6 +1772,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TContext,
           TEvent,
           TActor,
+          TTag,
           TOutput,
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
@@ -1800,7 +1808,7 @@ export type InterpreterFrom<
   infer _TAction,
   infer _TGuard,
   infer _TDelay,
-  infer _TTag,
+  infer TTag,
   infer TInput,
   infer TOutput,
   infer TResolvedTypesMeta
@@ -1808,10 +1816,10 @@ export type InterpreterFrom<
   ? Actor<
       ActorLogic<
         TEvent,
-        State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>,
-        State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>,
+        State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+        State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
         PersistedMachineState<
-          State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+          State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
         >,
         ActorSystem<any>,
         TInput
