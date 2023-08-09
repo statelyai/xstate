@@ -37,7 +37,8 @@ import {
   TransitionConfig,
   TransitionDefinition,
   TODO,
-  AnyActorRef
+  AnyActorRef,
+  AnyTransitionConfig
 } from './types.ts';
 import {
   isArray,
@@ -345,7 +346,7 @@ export function formatTransition<
 >(
   stateNode: AnyStateNode,
   descriptor: string,
-  transitionConfig: TransitionConfig<TContext, TEvent, TEvent, TODO>
+  transitionConfig: AnyTransitionConfig
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;

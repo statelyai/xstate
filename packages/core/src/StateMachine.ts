@@ -58,6 +58,7 @@ export class StateMachine<
   TActor extends ProvidedActor,
   TInput,
   TOutput,
+  TGuards extends ParameterizedObject,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
@@ -90,7 +91,8 @@ export class StateMachine<
     TAction,
     TActor,
     TInput,
-    TOutput
+    TOutput,
+    TGuards
   >;
 
   public __xstatenode: true = true;
@@ -108,7 +110,7 @@ export class StateMachine<
     /**
      * The raw config used to create the machine.
      */
-    public config: MachineConfig<TContext, TEvent, any, any, any>,
+    public config: MachineConfig<TContext, TEvent, any, any, any, any, any>,
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
@@ -158,6 +160,7 @@ export class StateMachine<
     TActor,
     TInput,
     TOutput,
+    TGuards,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -475,4 +478,6 @@ export class StateMachine<
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 
   __TInput!: TInput;
+
+  __TGuards!: TGuards;
 }

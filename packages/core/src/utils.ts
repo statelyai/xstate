@@ -21,7 +21,9 @@ import type {
   TransitionConfig,
   TransitionConfigTarget,
   TODO,
-  AnyActorRef
+  AnyActorRef,
+  AnyTransitionConfig,
+  AnyInvokeConfig
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -337,10 +339,8 @@ export function toTransitionConfigArray<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  configLike: SingleOrArray<
-    TransitionConfig<TContext, TEvent, TEvent, TODO> | TransitionConfigTarget
-  >
-): Array<TransitionConfig<TContext, TEvent, TEvent, TODO>> {
+  configLike: SingleOrArray<AnyTransitionConfig | TransitionConfigTarget>
+): Array<AnyTransitionConfig> {
   return toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
@@ -396,12 +396,9 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable:
-    | InvokeConfig<TContext, TEvent, TODO, TODO>
-    | string
-    | AnyActorLogic,
+  invocable: AnyInvokeConfig | string | AnyActorLogic,
   id: string
-): InvokeConfig<TContext, TEvent, TODO, TODO> {
+): AnyInvokeConfig {
   if (typeof invocable === 'object') {
     if ('src' in invocable) {
       return invocable;
