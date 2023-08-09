@@ -45,7 +45,7 @@ export interface TestStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Pick<
-    StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO>,
+    StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO>,
     | 'type'
     | 'history'
     | 'on'

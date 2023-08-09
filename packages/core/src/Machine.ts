@@ -22,6 +22,7 @@ export function createMachine<
   TOutput = any,
   TActions extends ParameterizedObject = ParameterizedObject,
   TGuards extends ParameterizedObject = ParameterizedObject,
+  TDelays extends string = string,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<
@@ -32,6 +33,7 @@ export function createMachine<
     TInput,
     TOutput,
     TGuards,
+    TDelays,
     TTypesMeta
   >,
   implementations?: InternalMachineImplementations<

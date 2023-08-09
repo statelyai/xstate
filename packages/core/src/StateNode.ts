@@ -145,7 +145,15 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO>,
+    public config: StateNodeConfig<
+      TContext,
+      TEvent,
+      TODO,
+      TODO,
+      TODO,
+      TODO,
+      TODO
+    >,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;

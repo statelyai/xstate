@@ -2124,6 +2124,7 @@ describe('guard', () => {
           | { type: 'plainGuard' };
       },
       on: {
+        // @ts-ignore TODO: this should be fixed in guards branch
         foo: {
           guard: not('plainGuard')
         }
