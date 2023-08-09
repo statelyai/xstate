@@ -150,6 +150,7 @@ export class StateMachine<
       TEvent,
       TAction,
       TActor,
+      TGuards,
       TResolvedTypesMeta,
       true
     >

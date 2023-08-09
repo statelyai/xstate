@@ -1067,6 +1067,7 @@ export type InternalMachineImplementations<
   TEvent extends EventObject,
   _TAction extends ParameterizedObject,
   TActor extends ProvidedActor,
+  TGuards extends ParameterizedObject,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<
@@ -1107,12 +1108,14 @@ export type MachineImplementations<
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TActor extends ProvidedActor = ProvidedActor,
+  TGuards extends ParameterizedObject = ParameterizedObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
   TEvent,
   TAction,
   TActor,
+  TGuards,
   ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActor>
 >;
 
@@ -1672,7 +1675,7 @@ export type MachineImplementationsFrom<
   infer TActor,
   infer _TInput,
   infer _TOutput,
-  infer _TGuards,
+  infer TGuards,
   infer TResolvedTypesMeta
 >
   ? InternalMachineImplementations<
@@ -1680,6 +1683,7 @@ export type MachineImplementationsFrom<
       TEvent,
       TAction,
       TActor,
+      TGuards,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >

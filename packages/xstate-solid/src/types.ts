@@ -40,6 +40,7 @@ type InternalMachineOpts<
   TMachine['__TEvent'],
   TMachine['__TAction'],
   TMachine['__TActor'],
+  TMachine['__TGuards'],
   TMachine['__TResolvedTypesMeta'],
   RequireMissing
 >;

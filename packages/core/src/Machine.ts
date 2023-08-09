@@ -39,6 +39,7 @@ export function createMachine<
     TEvent,
     TActions,
     TActor,
+    TGuards,
     ResolveTypegenMeta<TTypesMeta, TEvent, TActions, TActor>
   >
 ): StateMachine<
