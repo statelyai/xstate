@@ -1,5 +1,19 @@
 # xstate
 
+## 5.0.0-beta.22
+
+### Major Changes
+
+- [#4176](https://github.com/statelyai/xstate/pull/4176) [`2e176b0b9`](https://github.com/statelyai/xstate/commit/2e176b0b95eefddb7231f7dd40c18e3022ec9706) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `interpret(...)` function has been deprecated and renamed to `createActor(...)`:
+
+  ```diff
+  -import { interpret } from 'xstate';
+  +import { createActor } from 'xstate';
+
+  -const actor = interpret(machine);
+  +const actor = createActor(machine);
+  ```
+
 ## 5.0.0-beta.21
 
 ### Minor Changes
