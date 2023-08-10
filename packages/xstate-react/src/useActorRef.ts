@@ -2,26 +2,27 @@ import isDevelopment from '#is-development';
 import { useEffect, useState } from 'react';
 import {
   AnyActorLogic,
-  AnyInterpreter,
+  AnyActor,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
-  interpret,
+  createActor,
   ActorRefFrom,
-  InterpreterOptions,
-  InterpreterStatus,
+  ActorOptions,
   Observer,
   StateFrom,
   toObserver,
-  SnapshotFrom
+  SnapshotFrom,
+  TODO,
+  ActorStatus
 } from 'xstate';
 import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
 export function useIdleInterpreter(
   machine: AnyActorLogic,
-  options: Partial<InterpreterOptions<AnyActorLogic>>
-): AnyInterpreter {
+  options: Partial<ActorOptions<AnyActorLogic>>
+): AnyActor {
   if (isDevelopment) {
     const [initialMachine] = useState(machine);
 
@@ -33,7 +34,7 @@ export function useIdleInterpreter(
   }
 
   const actorRef = useConstant(() => {
-    return interpret(machine as AnyStateMachine, options);
+    return createActor(machine as AnyStateMachine, options);
   });
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
@@ -51,10 +52,12 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
       TLogic['__TResolvedTypesMeta']
     > extends false
     ? [
-        options: InterpreterOptions<TLogic> &
+        options: ActorOptions<TLogic> &
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
+            TODO,
+            TODO,
             TLogic['__TResolvedTypesMeta'],
             true
           >,
@@ -63,10 +66,12 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           | ((value: StateFrom<TLogic>) => void)
       ]
     : [
-        options?: InterpreterOptions<TLogic> &
+        options?: ActorOptions<TLogic> &
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
+            TODO,
+            TODO,
             TLogic['__TResolvedTypesMeta']
           >,
         observerOrListener?:
@@ -74,7 +79,7 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           | ((value: StateFrom<TLogic>) => void)
       ]
   : [
-      options?: InterpreterOptions<TLogic>,
+      options?: ActorOptions<TLogic>,
       observerOrListener?:
         | Observer<SnapshotFrom<TLogic>>
         | ((value: SnapshotFrom<TLogic>) => void)
@@ -84,27 +89,27 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options = {}, observerOrListener]: RestParams<TLogic>
 ): ActorRefFrom<TLogic> {
-  const service = useIdleInterpreter(machine, options);
+  const actorRef = useIdleInterpreter(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
       return;
     }
-    let sub = service.subscribe(toObserver(observerOrListener));
+    let sub = actorRef.subscribe(toObserver(observerOrListener));
     return () => {
       sub.unsubscribe();
     };
   }, [observerOrListener]);
 
   useEffect(() => {
-    service.start();
+    actorRef.start();
 
     return () => {
-      service.stop();
-      service.status = InterpreterStatus.NotStarted;
-      (service as any)._initState();
+      actorRef.stop();
+      actorRef.status = ActorStatus.NotStarted;
+      (actorRef as any)._initState();
     };
   }, []);
 
-  return service as any;
+  return actorRef as any;
 }

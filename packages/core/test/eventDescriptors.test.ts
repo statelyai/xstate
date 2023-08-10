@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index';
+import { createMachine, createActor } from '../src/index';
 
 describe('event descriptors', () => {
   it('should fallback to using wildcard transition definition (if specified)', () => {
@@ -16,12 +16,12 @@ describe('event descriptors', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'BAR' });
     expect(service.getSnapshot().value).toBe('C');
   });
 
-  it('should not use wildcard transition over explicit one when using object `.on` config - even if wildcard comes first', () => {
+  it('should prioritize explicit descriptor even if wildcard comes first', () => {
     const machine = createMachine({
       initial: 'A',
       states: {
@@ -36,28 +36,71 @@ describe('event descriptors', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
     expect(service.getSnapshot().value).toBe('pass');
   });
 
-  it('should select wildcard over explicit event type for array `.on` config (according to document order)', () => {
+  it('should prioritize explicit descriptor even if a partial one comes first', () => {
     const machine = createMachine({
       initial: 'A',
       states: {
         A: {
-          on: [
-            { event: '*', target: 'pass' },
-            { event: 'NEXT', target: 'fail' }
-          ]
+          on: {
+            'foo.*': 'fail',
+            'foo.bar': 'pass'
+          }
         },
         fail: {},
         pass: {}
       }
     });
 
-    const service = interpret(machine).start();
-    service.send({ type: 'NEXT' });
+    const service = createActor(machine).start();
+    service.send({ type: 'foo.bar' });
+    expect(service.getSnapshot().value).toBe('pass');
+  });
+
+  it('should prioritize a longer descriptor even if the shorter one comes first', () => {
+    const machine = createMachine({
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            'foo.*': 'fail',
+            'foo.bar.*': 'pass'
+          }
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const service = createActor(machine).start();
+    service.send({ type: 'foo.bar.baz' });
+    expect(service.getSnapshot().value).toBe('pass');
+  });
+
+  it(`should use a shorter descriptor if the longer one doesn't match`, () => {
+    const machine = createMachine({
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            'foo.bar.*': {
+              target: 'fail',
+              guard: () => false
+            },
+            'foo.*': 'pass'
+          }
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const service = createActor(machine).start();
+    service.send({ type: 'foo.bar.baz' });
     expect(service.getSnapshot().value).toBe('pass');
   });
 
@@ -76,13 +119,13 @@ describe('event descriptors', () => {
       }
     });
 
-    const actorRef1 = interpret(machine).start();
+    const actorRef1 = createActor(machine).start();
 
     actorRef1.send({ type: 'event' });
 
     expect(actorRef1.getSnapshot().matches('success')).toBeFalsy();
 
-    const actorRef2 = interpret(machine).start();
+    const actorRef2 = createActor(machine).start();
 
     actorRef2.send({ type: 'eventually' });
 
@@ -104,13 +147,13 @@ describe('event descriptors', () => {
       }
     });
 
-    const actorRef1 = interpret(machine).start();
+    const actorRef1 = createActor(machine).start();
 
     actorRef1.send({ type: 'event' });
 
     expect(actorRef1.getSnapshot().matches('success')).toBeTruthy();
 
-    const actorRef2 = interpret(machine).start();
+    const actorRef2 = createActor(machine).start();
 
     actorRef2.send({ type: 'eventually' });
 
@@ -132,19 +175,19 @@ describe('event descriptors', () => {
       }
     });
 
-    const actorRef1 = interpret(machine).start();
+    const actorRef1 = createActor(machine).start();
 
     actorRef1.send({ type: 'event.whatever' });
 
     expect(actorRef1.getSnapshot().matches('success')).toBeTruthy();
 
-    const actorRef2 = interpret(machine).start();
+    const actorRef2 = createActor(machine).start();
 
     actorRef2.send({ type: 'eventually' });
 
     expect(actorRef2.getSnapshot().matches('success')).toBeFalsy();
 
-    const actorRef3 = interpret(machine).start();
+    const actorRef3 = createActor(machine).start();
 
     actorRef3.send({ type: 'eventually.event' });
 
@@ -166,7 +209,7 @@ describe('event descriptors', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'event.first.second' });
 
@@ -188,7 +231,7 @@ describe('event descriptors', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'event.foo.bar.first.second' });
 
@@ -211,7 +254,7 @@ describe('event descriptors', () => {
       }
     });
 
-    const actorRef1 = interpret(machine).start();
+    const actorRef1 = createActor(machine).start();
 
     actorRef1.send({ type: 'event.foo.bar.first.second' });
 
@@ -223,18 +266,18 @@ describe('event descriptors', () => {
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "event.*.bar.*" event.",
         ],
         [
-          "Infix wildcards in transition events are not allowed. Check the "event.*.bar.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "event.*.bar.*" transition.",
         ],
         [
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
         ],
         [
-          "Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "*.event.*" transition.",
         ],
       ]
     `);
 
-    const actorRef2 = interpret(machine).start();
+    const actorRef2 = createActor(machine).start();
 
     actorRef2.send({ type: 'whatever.event' });
 
@@ -249,7 +292,7 @@ describe('event descriptors', () => {
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*.event.*" event.",
         ],
         [
-          "Infix wildcards in transition events are not allowed. Check the "*.event.*" event.",
+          "Infix wildcards in transition events are not allowed. Check the "*.event.*" transition.",
         ],
       ]
     `);
@@ -271,7 +314,7 @@ describe('event descriptors', () => {
       }
     });
 
-    const actorRef1 = interpret(machine).start();
+    const actorRef1 = createActor(machine).start();
 
     actorRef1.send({ type: 'eventually.bar.baz' });
 
@@ -288,7 +331,7 @@ describe('event descriptors', () => {
       ]
     `);
 
-    const actorRef2 = interpret(machine).start();
+    const actorRef2 = createActor(machine).start();
 
     actorRef2.send({ type: 'prevent.whatever' });
 

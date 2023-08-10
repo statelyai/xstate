@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 
 describe('state meta data', () => {
   const pedestrianStates = {
@@ -73,7 +73,7 @@ describe('state meta data', () => {
   });
 
   it('states should aggregate meta data', () => {
-    const actorRef = interpret(lightMachine).start();
+    const actorRef = createActor(lightMachine).start();
     actorRef.send({ type: 'TIMER' });
     const yellowState = actorRef.getSnapshot();
 
@@ -87,7 +87,7 @@ describe('state meta data', () => {
   });
 
   it('states should aggregate meta data (deep)', () => {
-    const actorRef = interpret(lightMachine).start();
+    const actorRef = createActor(lightMachine).start();
     actorRef.send({ type: 'TIMER' });
     actorRef.send({ type: 'TIMER' });
     expect(actorRef.getSnapshot().meta).toEqual({
@@ -124,7 +124,7 @@ describe('state meta data', () => {
       }
     });
 
-    const actor = interpret(machine, {
+    const actor = createActor(machine, {
       state: machine.resolveStateValue('second')
     });
     actor.start();

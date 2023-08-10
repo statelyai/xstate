@@ -1,20 +1,20 @@
 import isDevelopment from '#is-development';
-import { AnyInterpreter, DevToolsAdapter } from '../types.ts';
+import { AnyActor, DevToolsAdapter } from '../types.ts';
 
 interface DevInterface {
-  services: Set<AnyInterpreter>;
-  register(service: AnyInterpreter): void;
+  services: Set<AnyActor>;
+  register(service: AnyActor): void;
   onRegister(listener: ServiceListener): void;
 }
-type ServiceListener = (service: AnyInterpreter) => void;
+type ServiceListener = (service: AnyActor) => void;
 
 export interface XStateDevInterface {
-  register: (service: AnyInterpreter) => void;
-  unregister: (service: AnyInterpreter) => void;
+  register: (service: AnyActor) => void;
+  unregister: (service: AnyActor) => void;
   onRegister: (listener: ServiceListener) => {
     unsubscribe: () => void;
   };
-  services: Set<AnyInterpreter>;
+  services: Set<AnyActor>;
 }
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
@@ -47,7 +47,7 @@ function getDevTools(): DevInterface | undefined {
   return undefined;
 }
 
-export function registerService(service: AnyInterpreter) {
+export function registerService(service: AnyActor) {
   if (typeof window === 'undefined') {
     return;
   }

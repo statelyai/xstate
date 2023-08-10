@@ -2,17 +2,18 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
+  ActorLogicFrom,
   ActorRef,
   ActorRefFrom,
   assign,
   createMachine,
   DoneEventObject,
   doneInvoke,
-  interpret,
-  Interpreter,
+  createActor,
   PersistedMachineState,
   raise,
-  StateFrom
+  StateFrom,
+  Actor
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
@@ -24,13 +25,18 @@ afterEach(() => {
 
 describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const context = {
-    data: undefined
+    data: undefined as undefined | string
   };
-  const fetchMachine = createMachine<
-    typeof context,
-    { type: 'FETCH' } | DoneEventObject
-  >({
+  const fetchMachine = createMachine({
     id: 'fetch',
+    types: {} as {
+      context: typeof context;
+      events: { type: 'FETCH' } | DoneEventObject;
+      actors: {
+        src: 'fetchData';
+        logic: ActorLogicFrom<Promise<string>>;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -48,7 +54,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
                 return event.output;
               }
             }),
-            guard: ({ event }) => event.output.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },
@@ -58,12 +64,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     }
   });
 
-  const actorRef = interpret(
+  const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback((sendBack) => {
+        fetchData: fromCallback(({ sendBack }) => {
           sendBack(doneInvoke('fetchData', 'persisted data'));
-        })
+        }) as any // TODO: callback actors don't support output (yet?)
       }
     })
   ).start();
@@ -150,7 +156,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [, , service] = useActor(fetchMachine);
 
-      if (!(service instanceof Interpreter)) {
+      if (!(service instanceof Actor)) {
         throw new Error('service not instance of Interpreter');
       }
 
@@ -161,7 +167,11 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should accept input and provide it to the context factory', () => {
-    const testMachine = createMachine<{ foo: string; test: boolean }>({
+    const testMachine = createMachine({
+      types: {} as {
+        context: { foo: string; test: boolean };
+        input: { test: boolean };
+      },
       context: ({ input }) => ({
         foo: 'bar',
         test: input.test ?? false
@@ -351,7 +361,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('actions should not use stale data in a custom entry action', (done) => {
-    const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
+    const toggleMachine = createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE' };
+      },
       initial: 'inactive',
       states: {
         inactive: {
@@ -772,7 +785,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', () => {
-    const machine = createMachine<any, { type: 'FINISH' }>({
+    const machine = createMachine({
+      types: {} as {
+        events: {
+          type: 'FINISH';
+        };
+      },
       initial: 'active',
       states: {
         active: {
@@ -855,7 +873,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
-    const testMachine = createMachine<any, { type: 'START' }>({
+    const testMachine = createMachine({
+      types: {} as {
+        events: {
+          type: 'START';
+        };
+      },
       id: 'app',
       initial: 'idle',
       states: {
@@ -873,7 +896,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const actorRef = interpret(testMachine).start();
+    const actorRef = createActor(testMachine).start();
     const persistedState = JSON.stringify(actorRef.getPersistedState());
     actorRef.stop();
 

@@ -4,7 +4,7 @@ import {
   createMachine,
   SnapshotFrom,
   EventFrom,
-  interpret,
+  createActor,
   MachineImplementationsFrom,
   StateValueFrom,
   ActorLogic,
@@ -18,6 +18,9 @@ describe('ContextFrom', () => {
     const machine = createMachine({
       types: {
         context: {} as { counter: number }
+      },
+      context: {
+        counter: 0
       }
     });
 
@@ -41,6 +44,9 @@ describe('ContextFrom', () => {
       types: {
         typegen: {} as TypegenMeta,
         context: {} as { counter: number }
+      },
+      context: {
+        counter: 0
       }
     });
 
@@ -118,7 +124,7 @@ describe('EventFrom', () => {
       }
     });
 
-    const service = interpret(machine);
+    const service = createActor(machine);
 
     type InterpreterEvent = EventFrom<typeof service>;
 
@@ -308,7 +314,7 @@ describe('StateValueFrom', () => {
 
 describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
-    const service = interpret(
+    const service = createActor(
       createMachine({
         types: {
           events: {} as { type: 'FOO' }
@@ -328,7 +334,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(interpret(machine).getSnapshot());
+    acceptState(createActor(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -342,7 +348,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(interpret(machine).getSnapshot());
+    acceptState(createActor(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -359,7 +365,7 @@ describe('ActorRefFrom', () => {
       actorRef.send({ type: 'TEST' });
     }
 
-    acceptActorRef(interpret(logic).start());
+    acceptActorRef(createActor(logic).start());
   });
 });
 

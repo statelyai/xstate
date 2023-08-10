@@ -1,6 +1,7 @@
 import {
+  ActorLogic,
   assign,
-  interpret,
+  createActor,
   MachineContext,
   StateMachine
 } from '../src/index.ts';
@@ -8,6 +9,7 @@ import { fromPromise } from '../src/actors/index.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { createMachine } from '../src/Machine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
+import { PromiseActorLogic } from '../src/actors/promise.ts';
 
 describe('typegen types', () => {
   it('should not require implementations when creating machine using `createMachine`', () => {
@@ -130,7 +132,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should limit event type provided to an actor', () => {
+  it(`should limit event type provided to the actor's input factory`, () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
@@ -153,15 +155,16 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          // TODO: add test for input?
-          myActor: fromPromise(({ input }) => {
-            input.type === 'FOO';
-            input.type === 'BAR';
-            // @x-ts-expect-error TODO: strongly type inputs for promise
-            input.type === 'BAZ';
-
-            return Promise.resolve(42);
-          })
+          myActor: {
+            src: fromPromise(() => Promise.resolve(42)),
+            input: ({ event }) => {
+              event.type === 'FOO';
+              event.type === 'BAR';
+              // @ts-expect-error
+              event.type === 'BAZ';
+              return null;
+            }
+          }
         }
       }
     );
@@ -304,7 +307,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().matches('a');
+    createActor(machine).getSnapshot().matches('a');
   });
 
   it('should allow valid object `matches`', () => {
@@ -321,7 +324,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().matches({ a: 'c' });
+    createActor(machine).getSnapshot().matches({ a: 'c' });
   });
 
   it('should not allow invalid string `matches`', () => {
@@ -342,7 +345,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().matches('d');
+    createActor(machine).getSnapshot().matches('d');
   });
 
   it('should not allow invalid object `matches`', () => {
@@ -360,7 +363,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().matches({ a: 'd' });
+    createActor(machine).getSnapshot().matches({ a: 'd' });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
@@ -380,7 +383,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().hasTag('a');
+    createActor(machine).getSnapshot().hasTag('a');
   });
 
   it('should not allow an invalid tag with `hasTag`', () => {
@@ -401,7 +404,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().hasTag('d');
+    createActor(machine).getSnapshot().hasTag('d');
   });
 
   it('`withConfig` should require all missing implementations ', () => {
@@ -461,7 +464,7 @@ describe('typegen types', () => {
       types: { typegen: {} as TypesMeta }
     });
 
-    interpret(machine);
+    createActor(machine);
   });
 
   it('should not allow to create an actor out of a machine with missing implementations', () => {
@@ -486,7 +489,7 @@ describe('typegen types', () => {
 
     // TODO: rethink this; should probably be done as a linter rule instead
     // @x-ts-expect-error
-    interpret(machine);
+    createActor(machine);
   });
 
   it('should allow to create an actor out of a machine with implementations provided through `withConfig`', () => {
@@ -509,7 +512,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(
+    createActor(
       machine.provide({
         actions: {
           myAction: () => {}
@@ -673,10 +676,10 @@ describe('typegen types', () => {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' },
-          actors: {
-            myActor: {
-              output: {} as string
-            }
+          actors: {} as {
+            src: 'callThing';
+            logic: PromiseActorLogic<string>;
+            id: 'myActor';
           }
         }
       },
@@ -712,21 +715,22 @@ describe('typegen types', () => {
       };
     }
 
+    const child = fromPromise(() => Promise.resolve('foo'));
+
     createMachine(
       {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              output: {} as string
-            }
+          actors: {} as {
+            src: 'myActor';
+            logic: typeof child;
           }
         }
       },
       {
         actors: {
-          myActor: fromPromise(() => Promise.resolve('foo'))
+          myActor: child
         }
       }
     );
@@ -754,17 +758,16 @@ describe('typegen types', () => {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              output: {} as string
-            }
+          actors: {} as {
+            src: 'myActor';
+            logic: PromiseActorLogic<string>;
           }
         }
       },
       {
         actors: {
           // @ts-expect-error
-          myActor: () => Promise.resolve(42)
+          myActor: fromPromise(() => Promise.resolve(42))
         }
       }
     );
@@ -787,21 +790,29 @@ describe('typegen types', () => {
       };
     }
 
+    const child = createMachine({
+      types: {} as {
+        context: { foo: string };
+      },
+      context: {
+        foo: 'foo'
+      }
+    });
+
     createMachine(
       {
         types: {
           typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          actors: {
-            myActor: {
-              output: {} as { foo: string }
-            }
+          actors: {} as {
+            src: 'myActor';
+            logic: typeof child;
           }
         }
       },
       {
         actors: {
-          myActor: createMachine<{ foo: string }>({})
+          myActor: child
         }
       }
     );
@@ -908,20 +919,20 @@ describe('typegen types', () => {
   //     },
   //     {
   //       actors: {
-  //         fooActor: () => fromCallback((send) => {
+  //         fooActor: () => fromCallback(({ sendBack }) => {
   //           ((_accept: 'FOO') => {})(event.type);
 
-  //           send({ type: 'BAR' });
-  //           send({ type: 'FOO' });
+  //           sendBack({ type: 'BAR' });
+  //           sendBack({ type: 'FOO' });
   //           // @ts-expect-error
-  //           send({ type: 'BAZ' });
+  //           sendBack({ type: 'BAZ' });
   //         })
   //       }
   //     }
   //   );
   // });
 
-  it("should not provide a loose type for `onReceive`'s argument as a default", () => {
+  it("should not provide a loose type for `receive`'s argument as a default", () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: {
         fooActor: 'FOO';
@@ -937,10 +948,10 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: fromCallback((_send, onReceive) => {
-            onReceive((event) => {
+          fooActor: fromCallback(({ receive }) => {
+            receive((event) => {
               ((_accept: string) => {})(event.type);
-              // @x-ts-expect-error TODO: determine how to get parent event type here
+              // @ts-expect-error TODO: determine how to get parent event type here
               event.unknown;
             });
           })
@@ -949,7 +960,7 @@ describe('typegen types', () => {
     );
   });
 
-  it("should allow specifying `onReceive`'s argument type manually", () => {
+  it("should allow specifying `receive`'s argument type manually", () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: {
         fooActor: 'FOO';
@@ -965,10 +976,10 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: fromCallback((_send, onReceive) => {
-            onReceive((_event: { type: 'TEST' }) => {});
+          fooActor: fromCallback(({ receive }) => {
+            receive((_event: { type: 'TEST' }) => {});
             // @ts-expect-error
-            onReceive((_event: { type: number }) => {});
+            receive((_event: { type: number }) => {});
           })
         }
       }
@@ -1032,10 +1043,13 @@ describe('typegen types', () => {
         context: {} as {
           foo: string;
         }
+      },
+      context: {
+        foo: 'bar'
       }
     });
 
-    const state = interpret(machine).getSnapshot();
+    const state = createActor(machine).getSnapshot();
 
     if (state.matches('a')) {
       // @ts-expect-error
@@ -1054,10 +1068,13 @@ describe('typegen types', () => {
         context: {} as {
           foo: string;
         }
+      },
+      context: {
+        foo: 'bar'
       }
     });
 
-    const state = interpret(machine).getSnapshot();
+    const state = createActor(machine).getSnapshot();
 
     if (state.matches('a') && state.matches('a.b')) {
       ((_accept: string) => {})(state.context.foo);
@@ -1070,7 +1087,7 @@ describe('typegen types', () => {
     function acceptMachine<
       TContext extends MachineContext,
       TEvent extends { type: string }
-    >(machine: StateMachine<TContext, any, TEvent>) {
+    >(machine: StateMachine<TContext, TEvent, any, any, any, any>) {
       return machine;
     }
 
@@ -1089,6 +1106,9 @@ describe('typegen types', () => {
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1112,6 +1132,9 @@ describe('typegen types', () => {
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1135,6 +1158,9 @@ describe('typegen types', () => {
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1146,7 +1172,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should error on a provided actor where there are no declared actors', () => {
+  it('should error on a provided actor where there are no events leading to it its invocation', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActors: never;
       invokeSrcNameMap: never;
@@ -1159,12 +1185,16 @@ describe('typegen types', () => {
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
-        // @ts-expect-error
+        // TODO: determine the exact behavior here and how eventsCausingActors + TActor should interact with each other
+        // @x-ts-expect-error
         actors: {
-          testActor: () => Promise.resolve(42)
+          testActor: fromPromise(() => Promise.resolve(42))
         }
       }
     );
@@ -1186,6 +1216,9 @@ describe('typegen types', () => {
             count: number;
           },
           events: {} as { type: 'INC' | 'DEC'; value: number }
+        },
+        context: {
+          count: 0
         }
       },
       {

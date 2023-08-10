@@ -4,8 +4,9 @@ import type {
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
   InternalMachineImplementations,
-  InterpreterOptions,
+  ActorOptions,
   MachineContext,
+  ProvidedActor,
   State,
   TypegenDisabled
 } from 'xstate';
@@ -13,17 +14,19 @@ import type {
 type StateObject<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
+  TActor extends ProvidedActor = ProvidedActor,
   TResolvedTypesMeta = TypegenDisabled
-> = Pick<State<TContext, TEvent, TResolvedTypesMeta>, keyof AnyState>;
+> = Pick<State<TContext, TEvent, TActor, TResolvedTypesMeta>, keyof AnyState>;
 
 // Converts a State class type to a POJO State type. This reflects that the state
 // is being spread into a new object for reactive tracking in SolidJS
 export type CheckSnapshot<Snapshot> = Snapshot extends State<
-  infer C,
-  infer E,
-  infer R
+  infer TContext,
+  infer TEvents,
+  infer TActor,
+  infer TResolvedTypesMeta
 >
-  ? StateObject<C, E, R>
+  ? StateObject<TContext, TEvents, TActor, TResolvedTypesMeta>
   : Snapshot;
 
 type InternalMachineOpts<
@@ -32,6 +35,8 @@ type InternalMachineOpts<
 > = InternalMachineImplementations<
   TMachine['__TContext'],
   TMachine['__TEvent'],
+  TMachine['__TAction'],
+  TMachine['__TActor'],
   TMachine['__TResolvedTypesMeta'],
   RequireMissing
 >;
@@ -40,8 +45,5 @@ export type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineOpts<TMachine, true>
-      ]
-    : [options?: InterpreterOptions<TMachine> & InternalMachineOpts<TMachine>];
+    ? [options: ActorOptions<TMachine> & InternalMachineOpts<TMachine, true>]
+    : [options?: ActorOptions<TMachine> & InternalMachineOpts<TMachine>];

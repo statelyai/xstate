@@ -94,7 +94,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
       ) as any[];
     },
     fromState: machine.getInitialState(
-      undefined as any // TODO: figure out the simulation API
+      {} as any // TODO: figure out the simulation API
     ) as StateFrom<TMachine>,
     ...otherOptions
   };
@@ -116,7 +116,7 @@ export function toDirectedGraph(
     stateMachine instanceof StateMachine ? stateMachine.root : stateMachine; // TODO: accept only machines
 
   const edges: DirectedGraphEdge[] = flatten(
-    stateNode.transitions.map((t, transitionIndex) => {
+    [...stateNode.transitions.values()].flat().map((t, transitionIndex) => {
       const targets = t.target ? t.target : [stateNode];
 
       return targets.map((target, targetIndex) => {

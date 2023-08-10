@@ -1,5 +1,31 @@
 # Changelog
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- [#4138](https://github.com/statelyai/xstate/pull/4138) [`461e3983a`](https://github.com/statelyai/xstate/commit/461e3983a0e9d51c43a4b0e7370354b7dea24e5f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed missing `.mjs` proxy files for condition-based builds.
+
+## 4.0.0-beta.7
+
+### Major Changes
+
+- [#4050](https://github.com/statelyai/xstate/pull/4050) [`fc88dc8e6`](https://github.com/statelyai/xstate/commit/fc88dc8e6d3fbc4ee8a1e0bdb538bab560b7a695) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `options` prop has been added (back) to the `Context.Provider` component returned from `createActorContext`:
+
+  ```tsx
+  const SomeContext = createActorContext(someMachine);
+
+  // ...
+
+  <SomeContext.Provider options={{ input: 42 }}>
+    {/* ... */}
+  </SomeContext.Provider>;
+  ```
+
+### Minor Changes
+
+- [#4050](https://github.com/statelyai/xstate/pull/4050) [`fc88dc8e6`](https://github.com/statelyai/xstate/commit/fc88dc8e6d3fbc4ee8a1e0bdb538bab560b7a695) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `observerOrListener` argument has been removed from the 3rd argument of `createActorContext(logic, options)`.
+
 ## 4.0.0-beta.6
 
 ### Major Changes

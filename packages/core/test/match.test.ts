@@ -1,4 +1,4 @@
-import { matchesState, createMachine, interpret } from '../src/index.ts';
+import { matchesState, createMachine, createActor } from '../src/index.ts';
 
 describe('matchesState()', () => {
   it('should return true if two states are equivalent', () => {
@@ -113,7 +113,7 @@ describe('matches() method', () => {
       }
     });
 
-    const initialState = interpret(machine).getSnapshot();
+    const initialState = createActor(machine).getSnapshot();
 
     expect(initialState.matches('foo')).toBeTruthy();
     expect(initialState.matches({ foo: 'bar' })).toBeTruthy();

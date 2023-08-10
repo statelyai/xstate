@@ -9,7 +9,7 @@ import {
   fromObservable,
   fromPromise,
   fromTransition,
-  interpret,
+  createActor,
   sendTo,
   stop
 } from '../src/index.ts';
@@ -29,7 +29,7 @@ describe('system', () => {
         a: {
           invoke: [
             {
-              src: fromCallback((_, receive) => {
+              src: fromCallback(({ receive }) => {
                 receive((event) => {
                   expect(event.type).toBe('HELLO');
                   done();
@@ -54,7 +54,7 @@ describe('system', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should register a spawned actor', (done) => {
@@ -68,7 +68,7 @@ describe('system', () => {
       id: 'parent',
       context: ({ spawn }) => ({
         ref: spawn(
-          fromCallback((_, receive) => {
+          fromCallback(({ receive }) => {
             receive((event) => {
               expect(event.type).toBe('HELLO');
               done();
@@ -101,7 +101,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     actor.send({ type: 'toggle' });
   });
@@ -115,14 +115,14 @@ describe('system', () => {
     });
 
     // no .start() here is important for the test
-    const actor = interpret(machine);
+    const actor = createActor(machine);
 
     expect(actor.system.get('someChild')).toBeDefined();
   });
 
   it('root actor can be given the systemId', () => {
     const machine = createMachine({});
-    const actor = interpret(machine, { systemId: 'test' });
+    const actor = createActor(machine, { systemId: 'test' });
     expect(actor.system.get('test')).toBe(actor);
   });
 
@@ -143,7 +143,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -166,7 +166,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -199,13 +199,22 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine, { systemId: 'test' }).start();
+    const errorSpy = jest.fn();
 
-    expect(() => {
-      actor.send({ type: 'toggle' });
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Actor with system ID 'test' already exists."`
-    );
+    const actorRef = createActor(machine, { systemId: 'test' });
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+    actorRef.send({ type: 'toggle' });
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Actor with system ID 'test' already exists.],
+        ],
+      ]
+    `);
   });
 
   it('should be accessible in inline custom actions', () => {
@@ -219,7 +228,7 @@ describe('system', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in referenced custom actions', () => {
@@ -240,7 +249,7 @@ describe('system', () => {
       }
     );
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in assign actions', () => {
@@ -254,7 +263,7 @@ describe('system', () => {
       })
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in sendTo actions', () => {
@@ -272,7 +281,7 @@ describe('system', () => {
       )
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in promise logic', () => {
@@ -292,7 +301,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -316,7 +325,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -342,7 +351,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -365,7 +374,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -379,14 +388,14 @@ describe('system', () => {
           systemId: 'test'
         },
         {
-          src: fromCallback((_sendBack, _receive, { system }) => {
+          src: fromCallback(({ system }) => {
             expect(system.get('test')).toBeDefined();
           })
         }
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });

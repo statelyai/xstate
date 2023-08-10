@@ -1,6 +1,6 @@
 import { inspect } from '@xstate/inspect/server';
 import WebSocket = require('ws');
-import { createMachine, interpret, sendTo } from 'xstate';
+import { createMachine, createActor, sendTo } from 'xstate';
 import { fromCallback } from 'xstate/actors';
 
 inspect({
@@ -13,10 +13,10 @@ const machine = createMachine({
   initial: 'inactive',
   invoke: {
     id: 'ponger',
-    src: fromCallback((cb, receive) => {
+    src: fromCallback(({ sendBack, receive }) => {
       receive((event) => {
         if (event.type === 'PING') {
-          cb({
+          sendBack({
             type: 'PONG',
             arr: [1, 2, 3]
           });
@@ -39,6 +39,6 @@ const machine = createMachine({
   }
 });
 
-const actor = interpret(machine, { devTools: true });
+const actor = createActor(machine, { devTools: true });
 actor.subscribe((s) => console.log(s.value));
 actor.start();

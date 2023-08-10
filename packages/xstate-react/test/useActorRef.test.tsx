@@ -107,32 +107,16 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
   it('should warn when machine reference is updated during the hook lifecycle', () => {
     console.warn = jest.fn();
-    const createTestMachine = () =>
-      createMachine({
-        initial: 'foo',
-        context: { id: 1 },
-        states: {
-          foo: {
-            on: {
-              CHECK: {
-                target: 'bar',
-                guard: 'hasOverflown'
-              }
-            }
-          },
-          bar: {}
-        }
-      });
+    const createTestMachine = () => createMachine({});
     const App = () => {
       const [, setId] = React.useState(1);
-      const [, send] = useMachine(createTestMachine());
+      useMachine(createTestMachine());
 
       return (
         <>
           <button
             onClick={() => {
               setId(2);
-              send({ type: 'CHECK' });
             }}
           >
             update id
@@ -178,7 +162,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     const App = () => {
       const [id, setId] = React.useState(1);
-      const [, send] = useMachine(
+      useMachine(
         machine.provide({
           guards: {
             hasOverflown: () => id > 1
@@ -191,7 +175,6 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           <button
             onClick={() => {
               setId(2);
-              send({ type: 'CHECK' });
             }}
           >
             update id

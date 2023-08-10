@@ -5,16 +5,23 @@ import {
   createMachine,
   assign,
   doneInvoke,
-  interpret,
+  createActor,
   fromCallback
 } from 'xstate';
+import { CallbackActorLogic } from 'xstate/actors';
 
 describe('useMachine composition function', () => {
   const context = {
     data: undefined
   };
-  const fetchMachine = createMachine<typeof context>({
+  const fetchMachine = createMachine({
     id: 'fetch',
+    types: {} as {
+      actors: {
+        src: 'fetchData';
+        logic: CallbackActorLogic<any>;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -30,7 +37,7 @@ describe('useMachine composition function', () => {
             actions: assign({
               data: ({ event }) => event.output
             }),
-            guard: ({ event }) => event.output.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },
@@ -40,10 +47,10 @@ describe('useMachine composition function', () => {
     }
   });
 
-  const actorRef = interpret(
+  const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback((sendBack) => {
+        fetchData: fromCallback(({ sendBack }) => {
           sendBack(doneInvoke('fetchData', 'persisted data'));
         })
       }

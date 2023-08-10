@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { AnyActorLogic, AnyState } from './index.ts';
-import { errorExecution, errorPlatform } from './actionTypes.ts';
-import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
+import { errorExecution, errorPlatform } from './constantPrefixes.ts';
+import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
   ActorLogic,
@@ -19,7 +19,9 @@ import type {
   StateValue,
   Subscribable,
   TransitionConfig,
-  TransitionConfigTarget
+  TransitionConfigTarget,
+  TODO,
+  AnyActorRef
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -33,8 +35,8 @@ export function matchesState(
   const parentStateValue = toStateValue(parentStateId);
   const childStateValue = toStateValue(childStateId);
 
-  if (isString(childStateValue)) {
-    if (isString(parentStateValue)) {
+  if (typeof childStateValue === 'string') {
+    if (typeof parentStateValue === 'string') {
       return childStateValue === parentStateValue;
     }
 
@@ -42,7 +44,7 @@ export function matchesState(
     return false;
   }
 
-  if (isString(parentStateValue)) {
+  if (typeof parentStateValue === 'string') {
     return parentStateValue in childStateValue;
   }
 
@@ -182,7 +184,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
     return [[]];
   }
 
-  if (isString(stateValue)) {
+  if (typeof stateValue === 'string') {
     return [[stateValue]];
   }
 
@@ -228,28 +230,36 @@ export function mapContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  mapper: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>,
+  mapper: Mapper<TContext, TEvent, any>,
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ): any {
-  if (isFunction(mapper)) {
-    return mapper({ context, event });
+  if (typeof mapper === 'function') {
+    return mapper({ context, event, self });
   }
 
-  const result = {} as any;
-  const args = { context, event };
-
-  for (const key of Object.keys(mapper)) {
-    const subMapper = mapper[key];
-
-    if (isFunction(subMapper)) {
-      result[key] = subMapper(args);
-    } else {
-      result[key] = subMapper;
-    }
+  if (
+    isDevelopment &&
+    typeof mapper === 'object' &&
+    Object.values(mapper).some((val) => typeof val === 'function')
+  ) {
+    console.warn(
+      `Dynamically mapping values to individual properties is deprecated. Use a single function that returns the mapped object instead.\nFound object containing properties whose values are possibly mapping functions: ${Object.entries(
+        mapper
+      )
+        .filter(([key, value]) => typeof value === 'function')
+        .map(
+          ([key, value]) =>
+            `\n - ${key}: ${(value as () => any)
+              .toString()
+              .replace(/\n\s*/g, '')}`
+        )
+        .join('')}`
+    );
   }
 
-  return result;
+  return mapper;
 }
 
 export function isBuiltInEvent(eventType: EventType): boolean {
@@ -263,8 +273,8 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   // Check if shape matches the Promise/A+ specification for a "thenable".
   if (
     value !== null &&
-    (isFunction(value) || typeof value === 'object') &&
-    isFunction(value.then)
+    (typeof value === 'function' || typeof value === 'object') &&
+    typeof value.then === 'function'
   ) {
     return true;
   }
@@ -301,21 +311,10 @@ export function isArray(value: any): value is any[] {
   return Array.isArray(value);
 }
 
-// tslint:disable-next-line:ban-types
-export function isFunction(value: any): value is Function {
-  return typeof value === 'function';
-}
-
-export function isString(value: any): value is string {
-  return typeof value === 'string';
-}
-
 export function isObservable<T>(value: any): value is Subscribable<T> {
-  try {
-    return 'subscribe' in value && isFunction(value.subscribe);
-  } catch (e) {
-    return false;
-  }
+  return (
+    !!value && 'subscribe' in value && typeof value.subscribe === 'function'
+  );
 }
 
 export const uniqueId = (() => {
@@ -338,31 +337,20 @@ export function toTransitionConfigArray<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  event: TEvent['type'] | typeof NULL_EVENT | '*',
   configLike: SingleOrArray<
     TransitionConfig<TContext, TEvent> | TransitionConfigTarget
   >
-): Array<
-  TransitionConfig<TContext, TEvent> & {
-    event: TEvent['type'] | typeof NULL_EVENT | '*';
-  }
-> {
-  const transitions = toArrayStrict(configLike).map((transitionLike) => {
+): Array<TransitionConfig<TContext, TEvent>> {
+  return toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string'
     ) {
-      return { target: transitionLike, event };
+      return { target: transitionLike };
     }
 
-    return { ...transitionLike, event };
-  }) as Array<
-    TransitionConfig<TContext, TEvent> & {
-      event: TEvent['type'] | typeof NULL_EVENT | '*';
-    } // TODO: fix 'as' (remove)
-  >;
-
-  return transitions;
+    return transitionLike;
+  });
 }
 
 export function normalizeTarget<
@@ -408,9 +396,9 @@ export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invocable: InvokeConfig<TContext, TEvent> | string | ActorLogic<any, any>,
+  invocable: InvokeConfig<TContext, TEvent, TODO> | string | AnyActorLogic,
   id: string
-): InvokeConfig<TContext, TEvent> {
+): InvokeConfig<TContext, TEvent, TODO> {
   if (typeof invocable === 'object') {
     if ('src' in invocable) {
       return invocable;
@@ -435,16 +423,15 @@ export function toObserver<T>(
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
 ): Observer<T> {
-  const noop = () => {};
   const isObserver = typeof nextHandler === 'object';
-  const self = isObserver ? nextHandler : null;
+  const self = isObserver ? nextHandler : undefined;
 
   return {
-    next: ((isObserver ? nextHandler.next : nextHandler) || noop).bind(self),
-    error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
-    complete: (
-      (isObserver ? nextHandler.complete : completionHandler) || noop
-    ).bind(self)
+    next: (isObserver ? nextHandler.next : nextHandler)?.bind(self),
+    error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
+    complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
+      self
+    )
   };
 }
 

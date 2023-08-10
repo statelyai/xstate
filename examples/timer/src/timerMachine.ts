@@ -35,7 +35,7 @@ export const timerMachine = createMachine({
     },
     running: {
       invoke: {
-        src: fromCallback((sendBack) => {
+        src: fromCallback(({ sendBack }) => {
           const interval = setInterval(() => {
             sendBack({ type: 'TICK' });
           }, 1000);

@@ -1,16 +1,21 @@
-import { ActorLogic, AnyActorSystem } from '../types';
+import {
+  ActorLogic,
+  ActorRefFrom,
+  ActorSystem,
+  AnyActorSystem
+} from '../types';
 import { stopSignalType } from '../actors';
 
-export interface PromiseInternalState<T> {
+export interface PromiseInternalState<T, TInput = unknown> {
   status: 'active' | 'error' | 'done' | 'canceled';
   data: T | undefined;
-  input?: any;
+  input: TInput | undefined;
 }
 
 const resolveEventType = '$$xstate.resolve';
 const rejectEventType = '$$xstate.reject';
 
-export type PromiseEvent<T> =
+export type PromiseActorEvents<T> =
   | {
       type: typeof resolveEventType;
       data: T;
@@ -23,22 +28,31 @@ export type PromiseEvent<T> =
       type: 'xstate.stop';
     };
 
-export function fromPromise<T>(
+export type PromiseActorLogic<T, TInput = unknown> = ActorLogic<
+  { type: string; [k: string]: unknown },
+  T | undefined,
+  PromiseInternalState<T, TInput>, // internal state
+  PromiseInternalState<T, TInput>, // persisted state
+  ActorSystem<any>,
+  TInput, // input
+  T // output
+>;
+
+export type PromiseActorRef<T> = ActorRefFrom<PromiseActorLogic<T>>;
+
+export function fromPromise<T, TInput>(
   // TODO: add types
   promiseCreator: ({
     input,
     system
   }: {
-    input: any;
+    input: TInput;
     system: AnyActorSystem;
+    self: PromiseActorRef<T>;
   }) => PromiseLike<T>
-): ActorLogic<PromiseEvent<T>, T | undefined, PromiseInternalState<T>> {
-  // TODO: add event types, consider making the `PromiseEvent` a private type or smth alike
-  const logic: ActorLogic<
-    PromiseEvent<T>,
-    T | undefined,
-    PromiseInternalState<T>
-  > = {
+): PromiseActorLogic<T, TInput> {
+  // TODO: add event types
+  const logic: PromiseActorLogic<T, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {
       if (state.status !== 'active') {
@@ -50,14 +64,14 @@ export function fromPromise<T>(
           return {
             ...state,
             status: 'done',
-            data: event.data,
+            data: (event as any).data,
             input: undefined
           };
         case rejectEventType:
           return {
             ...state,
             status: 'error',
-            data: (event as any).data,
+            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             input: undefined
           };
         case stopSignalType:
@@ -78,7 +92,7 @@ export function fromPromise<T>(
       }
 
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input, system })
+        promiseCreator({ input: state.input!, system, self })
       );
 
       resolvedPromise.then(

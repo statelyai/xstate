@@ -1,118 +1,128 @@
 import isDevelopment from '#is-development';
-import { EventObject, InvokeDefinition, MachineContext } from '../types.ts';
-import { invoke as invokeActionType } from '../actionTypes.ts';
-import { isActorRef } from '../actors/index.ts';
-import { createDynamicAction } from '../../actions/dynamicAction.ts';
-import {
-  AnyInterpreter,
-  BaseDynamicActionObject,
-  DynamicInvokeActionObject,
-  InvokeActionObject
-} from '../index.ts';
-import { actionTypes, error } from '../actions.ts';
-import { resolveReferencedActor } from '../utils.ts';
-import { ActorStatus, interpret } from '../interpreter.ts';
 import { cloneState } from '../State.ts';
+import { error } from '../actions.ts';
+import { ActorStatus, createActor } from '../interpreter.ts';
+import {
+  ActionArgs,
+  AnyActorContext,
+  AnyActorRef,
+  AnyActor,
+  AnyState,
+  EventObject,
+  MachineContext
+} from '../types.ts';
+import { resolveReferencedActor } from '../utils.ts';
+
+function resolve(
+  actorContext: AnyActorContext,
+  state: AnyState,
+  actionArgs: ActionArgs<any, any>,
+  {
+    id,
+    systemId,
+    src,
+    input
+  }: {
+    id: string;
+    systemId: string | undefined;
+    src: string;
+    input?: unknown;
+  }
+) {
+  const referenced = resolveReferencedActor(
+    state.machine.implementations.actors[src]
+  );
+
+  let actorRef: AnyActorRef | undefined;
+
+  if (referenced) {
+    // TODO: inline `input: undefined` should win over the referenced one
+    const configuredInput = input || referenced.input;
+    actorRef = createActor(referenced.src, {
+      id,
+      src,
+      parent: actorContext?.self,
+      systemId,
+      input:
+        typeof configuredInput === 'function'
+          ? configuredInput({
+              context: state.context,
+              event: actionArgs.event,
+              self: actorContext?.self
+            })
+          : configuredInput
+    });
+  }
+
+  if (isDevelopment && !actorRef) {
+    console.warn(
+      `Actor type '${src}' not found in machine '${actorContext.id}'.`
+    );
+  }
+  return [
+    cloneState(state, {
+      children: {
+        ...state.children,
+        [id]: actorRef!
+      }
+    }),
+    {
+      id,
+      actorRef
+    }
+  ];
+}
+
+function execute(
+  actorContext: AnyActorContext,
+  { id, actorRef }: { id: string; actorRef: AnyActorRef }
+) {
+  if (!actorRef) {
+    return;
+  }
+
+  actorContext.defer(() => {
+    if (actorRef.status === ActorStatus.Stopped) {
+      return;
+    }
+    try {
+      actorRef.start?.();
+    } catch (err) {
+      (actorContext.self as AnyActor).send(error(id, err));
+      return;
+    }
+  });
+}
 
 export function invoke<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject
->(
-  invokeDef: InvokeDefinition<TContext, TEvent>
-): BaseDynamicActionObject<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  InvokeActionObject,
-  DynamicInvokeActionObject<TContext, TEvent>['params']
-> {
-  return createDynamicAction(
-    { type: invokeActionType, params: invokeDef },
-    (event, { state, actorContext }) => {
-      const type = actionTypes.invoke;
-      const { id, src } = invokeDef;
-
-      let resolvedInvokeAction: InvokeActionObject;
-      if (isActorRef(src)) {
-        resolvedInvokeAction = {
-          type,
-          params: {
-            ...invokeDef,
-            ref: src
-          }
-        } as InvokeActionObject;
-      } else {
-        const referenced = resolveReferencedActor(
-          state.machine.implementations.actors[src]
-        );
-
-        if (!referenced) {
-          resolvedInvokeAction = {
-            type,
-            params: invokeDef
-          } as InvokeActionObject;
-        } else {
-          const input =
-            'input' in invokeDef ? invokeDef.input : referenced.input;
-          const ref = interpret(referenced.src, {
-            id,
-            src,
-            parent: actorContext?.self,
-            systemId: invokeDef.systemId,
-            input:
-              typeof input === 'function'
-                ? input({
-                    context: state.context,
-                    event,
-                    self: actorContext?.self
-                  })
-                : input
-          });
-
-          resolvedInvokeAction = {
-            type,
-            params: {
-              ...invokeDef,
-              ref
-            }
-          } as InvokeActionObject;
-        }
-      }
-
-      const actorRef = resolvedInvokeAction.params.ref!;
-      const invokedState = cloneState(state, {
-        children: {
-          ...state.children,
-          [id]: actorRef
-        }
-      });
-
-      resolvedInvokeAction.execute = (actorCtx) => {
-        const parent = actorCtx.self as AnyInterpreter;
-        const { id, ref } = resolvedInvokeAction.params;
-        if (!ref) {
-          if (isDevelopment) {
-            console.warn(
-              `Actor type '${resolvedInvokeAction.params.src}' not found in machine '${actorCtx.id}'.`
-            );
-          }
-          return;
-        }
-        actorCtx.defer(() => {
-          if (actorRef.status === ActorStatus.Stopped) {
-            return;
-          }
-          try {
-            actorRef.start?.();
-          } catch (err) {
-            parent.send(error(id, err));
-            return;
-          }
-        });
-      };
-
-      return [invokedState, resolvedInvokeAction];
+>({
+  id,
+  systemId,
+  src,
+  input
+}: {
+  id: string;
+  systemId: string | undefined;
+  src: string;
+  input?: unknown;
+}) {
+  function invoke(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
     }
-  );
+  }
+
+  invoke.type = 'xstate.invoke';
+  invoke.id = id;
+  invoke.systemId = systemId;
+  invoke.src = src;
+  invoke.input = input;
+
+  invoke.resolve = resolve;
+  invoke.execute = execute;
+
+  return invoke;
 }

@@ -1,6 +1,7 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import UseSelector from './UseSelector.svelte';
 import UseSelectorCustomFn from './UseSelectorCustomFn.svelte';
+import UseSelectorDeferredSubscription from './UseSelectorDeferredSubscription.svelte';
 
 describe('useSelector', () => {
   it('only reassigns when selected values change', async () => {
@@ -43,5 +44,22 @@ describe('useSelector', () => {
     await fireEvent.click(sendUpperButton);
 
     expect(nameEl.textContent).toEqual('DAVID');
+  });
+
+  // This test makes sure, that the Svelte store returned by `useSelector` will
+  // provide an up to date value, when the state has changed between creating
+  // the store (with `useSelector`) and subscribing to it.
+  it('should have an updated value when the store is subscribed to after the state changed', async () => {
+    const { getByTestId } = render(UseSelectorDeferredSubscription);
+
+    const countBtn = getByTestId('count');
+    const selectorOutput = getByTestId('selectorOutput');
+
+    expect(selectorOutput.textContent).toEqual('0');
+
+    await fireEvent.click(countBtn);
+    await fireEvent.click(countBtn);
+
+    expect(selectorOutput.textContent).toEqual('2');
   });
 });

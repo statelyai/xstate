@@ -1,5 +1,5 @@
 import { fromCallback } from '../src/actors/index.ts';
-import { interpret, createMachine, assign } from '../src/index.ts';
+import { createActor, createMachine, assign } from '../src/index.ts';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 
@@ -13,7 +13,7 @@ describe('invocations (activities)', () => {
         })
       }
     });
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(active).toBe(true);
   });
@@ -32,7 +32,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(active).toBe(true);
   });
@@ -56,7 +56,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(active).toBe(true);
   });
@@ -81,7 +81,7 @@ describe('invocations (activities)', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'TIMER' });
 
@@ -117,7 +117,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = interpret(machine);
+    const service = createActor(machine);
 
     service.start();
     service.send({ type: 'TIMER' });
@@ -160,7 +160,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'TIMER' });
     service.send({ type: 'TIMER' });
@@ -205,7 +205,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = interpret(machine);
+    const service = createActor(machine);
 
     service.start();
     service.send({ type: 'TIMER' });
@@ -237,7 +237,7 @@ describe('invocations (activities)', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'E' });
 
@@ -268,7 +268,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'E' });
     service.send({ type: 'IGNORE' });
@@ -305,7 +305,7 @@ describe('invocations (activities)', () => {
         }
       }
     });
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'E' });
 
@@ -316,8 +316,26 @@ describe('invocations (activities)', () => {
   it('should start a new actor when leaving an invoking state and entering a new one that invokes the same actor type', () => {
     let counter = 0;
     const actual: string[] = [];
+
+    const fooActor = fromCallback(() => {
+      let localId = counter;
+      counter++;
+
+      actual.push(`start ${localId}`);
+
+      return () => {
+        actual.push(`stop ${localId}`);
+      };
+    });
+
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'fooActor';
+            logic: typeof fooActor;
+          };
+        },
         initial: 'a',
         states: {
           a: {
@@ -337,20 +355,11 @@ describe('invocations (activities)', () => {
       },
       {
         actors: {
-          fooActor: fromCallback(() => {
-            let localId = counter;
-            counter++;
-
-            actual.push(`start ${localId}`);
-
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          })
+          fooActor
         }
       }
     );
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'NEXT' });
 
@@ -360,8 +369,26 @@ describe('invocations (activities)', () => {
   it('should start a new actor when reentering the invoking state during a reentering self transition', () => {
     let counter = 0;
     const actual: string[] = [];
+
+    const fooActor = fromCallback(() => {
+      let localId = counter;
+      counter++;
+
+      actual.push(`start ${localId}`);
+
+      return () => {
+        actual.push(`stop ${localId}`);
+      };
+    });
+
     const machine = createMachine(
       {
+        types: {} as {
+          actors: {
+            src: 'fooActor';
+            logic: typeof fooActor;
+          };
+        },
         initial: 'a',
         states: {
           a: {
@@ -379,20 +406,11 @@ describe('invocations (activities)', () => {
       },
       {
         actors: {
-          fooActor: fromCallback(() => {
-            let localId = counter;
-            counter++;
-
-            actual.push(`start ${localId}`);
-
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          })
+          fooActor
         }
       }
     );
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'NEXT' });
 
@@ -429,7 +447,7 @@ describe('invocations (activities)', () => {
         b: {}
       }
     });
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     expect(active).toBe(true);
 

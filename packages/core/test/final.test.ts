@@ -1,4 +1,4 @@
-import { createMachine, interpret, assign } from '../src/index.ts';
+import { createMachine, createActor, assign } from '../src/index.ts';
 
 describe('final states', () => {
   it('should emit the "done.state.*" event when all nested states are in their final states', () => {
@@ -45,7 +45,7 @@ describe('final states', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     actor.send({
       type: 'NEXT_1'
@@ -86,12 +86,12 @@ describe('final states', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(actual).toEqual(['bazAction', 'barAction', 'fooAction']);
   });
 
-  it('should call data expressions on nested final nodes', (done) => {
+  it('should call output expressions on nested final nodes', (done) => {
     interface Ctx {
       revealedSecret?: string;
     }
@@ -112,9 +112,9 @@ describe('final states', () => {
             },
             reveal: {
               type: 'final',
-              output: {
-                secret: () => 'the secret'
-              }
+              output: () => ({
+                secret: 'the secret'
+              })
             }
           },
           onDone: {
@@ -132,7 +132,7 @@ describe('final states', () => {
       }
     });
 
-    const service = interpret(machine);
+    const service = createActor(machine);
     service.subscribe({
       complete: () => {
         expect(service.getSnapshot().context).toEqual({
@@ -163,8 +163,23 @@ describe('final states', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'FINISH', value: 1 });
     expect(spy).toBeCalledTimes(1);
+  });
+
+  it('output mapper should receive self', () => {
+    const machine = createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: ({ self }) => ({ selfRef: self })
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().output.selfRef.send).toBeDefined();
   });
 });

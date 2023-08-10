@@ -1,11 +1,11 @@
 import { SimulatedClock } from '../src/SimulatedClock';
 import {
-  interpret,
+  createActor,
   assign,
   sendParent,
   StateValue,
   createMachine,
-  InterpreterStatus,
+  ActorStatus,
   ActorRefFrom,
   ActorRef,
   cancel,
@@ -17,7 +17,7 @@ import { State } from '../src/State';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
-import { fromPromise } from '../src/actors/promise';
+import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
 
 const lightMachine = createMachine({
@@ -25,11 +25,11 @@ const lightMachine = createMachine({
   initial: 'green',
   states: {
     green: {
-      entry: [raise({ type: 'TIMER' }, { delay: 10 })],
+      entry: [raise({ type: 'TIMER' }, { id: 'TIMER1', delay: 10 })],
       on: {
         TIMER: 'yellow',
         KEEP_GOING: {
-          actions: [cancel('TIMER')]
+          actions: [cancel('TIMER1')]
         }
       }
     },
@@ -57,7 +57,7 @@ describe('interpreter', () => {
           foo: {}
         }
       });
-      const service = interpret(machine);
+      const service = createActor(machine);
 
       expect(service.getSnapshot().value).toEqual('foo');
     });
@@ -68,7 +68,7 @@ describe('interpreter', () => {
       const machine = createMachine({
         initial: 'idle',
         context: {
-          actor: undefined! as ActorRefFrom<ReturnType<typeof fromPromise>>
+          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown>>
         },
         states: {
           idle: {
@@ -88,7 +88,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(machine);
+      const service = createActor(machine);
 
       expect(promiseSpawned).toEqual(0);
 
@@ -134,12 +134,12 @@ describe('interpreter', () => {
         }
       });
 
-      let actorRef = interpret(machine).start();
+      let actorRef = createActor(machine).start();
 
       actorRef.send({ type: 'TIMER' });
       called = false;
       const persisted = actorRef.getPersistedState();
-      actorRef = interpret(machine, { state: persisted }).start();
+      actorRef = createActor(machine, { state: persisted }).start();
 
       expect(called).toBe(false);
     });
@@ -160,12 +160,12 @@ describe('interpreter', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       called = false;
       expect(actorRef.getSnapshot().value).toEqual('b');
       const persisted = actorRef.getPersistedState();
 
-      interpret(machine, { state: persisted }).start();
+      createActor(machine, { state: persisted }).start();
 
       expect(called).toBe(false);
     });
@@ -181,7 +181,7 @@ describe('interpreter', () => {
 
     it('should not notify subscribers of the current state upon subscription (subscribe)', () => {
       const spy = jest.fn();
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
 
       service.subscribe(spy);
 
@@ -203,7 +203,7 @@ describe('interpreter', () => {
           bar: {}
         }
       });
-      const actorRef = interpret(machine);
+      const actorRef = createActor(machine);
       expect(actorRef.getSnapshot().value).toBe('foo');
 
       await new Promise((res) => setTimeout(res, 10));
@@ -271,7 +271,7 @@ describe('interpreter', () => {
 
       const clock = new SimulatedClock();
 
-      const delayExprService = interpret(delayExprMachine, {
+      const delayExprService = createActor(delayExprMachine, {
         clock
       });
       delayExprService.subscribe({
@@ -352,7 +352,7 @@ describe('interpreter', () => {
 
       const clock = new SimulatedClock();
 
-      const delayExprService = interpret(delayExprMachine, {
+      const delayExprService = createActor(delayExprMachine, {
         clock
       });
       delayExprService.subscribe({
@@ -436,7 +436,7 @@ describe('interpreter', () => {
         }
       );
 
-      const actor = interpret(letterMachine, { clock });
+      const actor = createActor(letterMachine, { clock });
       actor.subscribe({
         complete: () => {
           done();
@@ -481,7 +481,7 @@ describe('interpreter', () => {
           }
         }
       );
-      const service = interpret(activityMachine);
+      const service = createActor(activityMachine);
 
       service.start();
 
@@ -511,7 +511,7 @@ describe('interpreter', () => {
           }
         }
       );
-      const service = interpret(activityMachine);
+      const service = createActor(activityMachine);
 
       service.start();
 
@@ -546,7 +546,7 @@ describe('interpreter', () => {
         }
       );
 
-      const stopActivityService = interpret(stopActivityMachine).start();
+      const stopActivityService = createActor(stopActivityMachine).start();
 
       expect(spy).not.toHaveBeenCalled();
 
@@ -588,21 +588,21 @@ describe('interpreter', () => {
         }
       );
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({ type: 'TOGGLE' });
       actorRef.send({ type: 'SWITCH' });
       const bState = actorRef.getPersistedState();
       actorRef.stop();
       activityActive = false;
 
-      interpret(machine, { state: bState }).start();
+      createActor(machine, { state: bState }).start();
 
       expect(activityActive).toBeTruthy();
     });
   });
 
   it('can cancel a delayed event', () => {
-    const service = interpret(lightMachine, {
+    const service = createActor(lightMachine, {
       clock: new SimulatedClock()
     });
     const clock = service.clock as SimulatedClock;
@@ -651,7 +651,7 @@ describe('interpreter', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.subscribe({
       complete: () => {
@@ -662,7 +662,7 @@ describe('interpreter', () => {
   });
 
   it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
-    const service = interpret(lightMachine, {
+    const service = createActor(lightMachine, {
       clock: new SimulatedClock(),
       deferEvents: false
     });
@@ -677,7 +677,7 @@ describe('interpreter', () => {
   });
 
   it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
-    const service = interpret(lightMachine, {
+    const service = createActor(lightMachine, {
       clock: new SimulatedClock(),
       deferEvents: true
     });
@@ -690,7 +690,7 @@ describe('interpreter', () => {
   });
 
   it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
-    const service = interpret(lightMachine, {
+    const service = createActor(lightMachine, {
       clock: new SimulatedClock()
     });
 
@@ -719,7 +719,7 @@ describe('interpreter', () => {
     });
 
     let state: any;
-    const deferService = interpret(deferMachine);
+    const deferService = createActor(deferMachine);
 
     deferService.subscribe({
       next: (nextState) => {
@@ -758,14 +758,14 @@ describe('interpreter', () => {
     };
 
     expect(() => {
-      interpret(createMachine(invalidMachine)).start();
+      createActor(createMachine(invalidMachine)).start();
     }).toThrowErrorMatchingInlineSnapshot(
       `"Initial state node "create" not found on parent state node #fetchMachine"`
     );
   });
 
   it('should not update when stopped', () => {
-    const service = interpret(lightMachine, {
+    const service = createActor(lightMachine, {
       clock: new SimulatedClock()
     });
 
@@ -811,7 +811,7 @@ describe('interpreter', () => {
       }
     });
 
-    const service = interpret(logMachine, {
+    const service = createActor(logMachine, {
       logger: (msg) => logs.push(msg)
     }).start();
 
@@ -844,7 +844,7 @@ describe('interpreter', () => {
       }
     });
 
-    const service = interpret(parentMachine, {
+    const service = createActor(parentMachine, {
       logger: (msg) => logs.push(msg)
     }).start();
 
@@ -888,7 +888,7 @@ describe('interpreter', () => {
     });
 
     it('should resolve send event expressions', (done) => {
-      const actor = interpret(machine);
+      const actor = createActor(machine);
       actor.subscribe({ complete: () => done() });
       actor.start();
     });
@@ -911,10 +911,13 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<
-        any,
-        { type: 'NEXT'; password: string }
-      >({
+      const parentMachine = createMachine({
+        types: {} as {
+          events: {
+            type: 'NEXT';
+            password: string;
+          };
+        },
         id: 'parent',
         initial: 'start',
         states: {
@@ -937,7 +940,7 @@ describe('interpreter', () => {
         }
       });
 
-      const actor = interpret(parentMachine);
+      const actor = createActor(parentMachine);
       actor.subscribe({
         next: (state) => {
           if (state.matches('start')) {
@@ -973,7 +976,7 @@ describe('interpreter', () => {
     });
 
     it('can send events with a string', (done) => {
-      const service = interpret(sendMachine);
+      const service = createActor(sendMachine);
       service.subscribe({ complete: () => done() });
       service.start();
 
@@ -981,7 +984,7 @@ describe('interpreter', () => {
     });
 
     it('can send events with an object', (done) => {
-      const service = interpret(sendMachine);
+      const service = createActor(sendMachine);
       service.subscribe({ complete: () => done() });
       service.start();
 
@@ -989,7 +992,7 @@ describe('interpreter', () => {
     });
 
     it('can send events with an object with payload', (done) => {
-      const service = interpret(sendMachine);
+      const service = createActor(sendMachine);
       service.subscribe({ complete: () => done() });
       service.start();
 
@@ -1019,7 +1022,7 @@ describe('interpreter', () => {
         }
       });
 
-      const toggleService = interpret(toggleMachine);
+      const toggleService = createActor(toggleMachine);
       toggleService.subscribe({
         complete: () => {
           done();
@@ -1045,7 +1048,7 @@ describe('interpreter', () => {
           foo: {}
         }
       });
-      const actor = interpret(machine);
+      const actor = createActor(machine);
       actor.start();
 
       expect(contextSpy).toHaveBeenCalled();
@@ -1062,7 +1065,7 @@ describe('interpreter', () => {
         context: contextSpy,
         entry: entrySpy
       });
-      const actor = interpret(machine);
+      const actor = createActor(machine);
       actor.start();
       actor.start();
 
@@ -1078,7 +1081,7 @@ describe('interpreter', () => {
           bar: {}
         }
       });
-      const actor = interpret(machine, {
+      const actor = createActor(machine, {
         state: State.from('bar', undefined, machine)
       });
 
@@ -1095,7 +1098,7 @@ describe('interpreter', () => {
           bar: {}
         }
       });
-      const actor = interpret(machine, {
+      const actor = createActor(machine, {
         state: machine.resolveStateValue('bar')
       });
 
@@ -1118,7 +1121,7 @@ describe('interpreter', () => {
           bar: {}
         }
       });
-      const actor = interpret(machine, {
+      const actor = createActor(machine, {
         state: machine.resolveStateValue('foo')
       });
 
@@ -1149,7 +1152,7 @@ describe('interpreter', () => {
         }
       });
 
-      const delayedService = interpret(delayedMachine).start();
+      const delayedService = createActor(delayedMachine).start();
 
       delayedService.stop();
 
@@ -1178,7 +1181,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(testMachine).start();
+      const service = createActor(testMachine).start();
 
       service.stop();
 
@@ -1199,7 +1202,7 @@ describe('interpreter', () => {
     });
 
     it('stopping a not-started interpreter should not crash', () => {
-      const service = interpret(
+      const service = createActor(
         createMachine({
           initial: 'a',
           states: { a: {} }
@@ -1227,7 +1230,7 @@ describe('interpreter', () => {
         }
       });
 
-      const toggleService = interpret(toggleMachine).start();
+      const toggleService = createActor(toggleMachine).start();
 
       let stateCount = 0;
 
@@ -1266,7 +1269,7 @@ describe('interpreter', () => {
       });
 
       const stateValues: StateValue[] = [];
-      const service = interpret(stateMachine);
+      const service = createActor(stateMachine);
       service.subscribe((current) => stateValues.push(current.value));
       service.start();
       service.send({ type: 'START' });
@@ -1303,7 +1306,7 @@ describe('interpreter', () => {
       );
 
       const stateValues: StateValue[] = [];
-      const service = interpret(stateMachine);
+      const service = createActor(stateMachine);
       service.subscribe((current) => stateValues.push(current.value));
       service.start();
       service.send({ type: 'START' });
@@ -1343,7 +1346,7 @@ describe('interpreter', () => {
 
     it('should be subscribable', (done) => {
       let count: number;
-      const intervalService = interpret(intervalMachine).start();
+      const intervalService = createActor(intervalMachine).start();
 
       expect(isObservable(intervalService)).toBeTruthy();
 
@@ -1359,7 +1362,7 @@ describe('interpreter', () => {
 
     it('should be interoperable with RxJS, etc. via Symbol.observable', (done) => {
       let count = 0;
-      const intervalService = interpret(intervalMachine).start();
+      const intervalService = createActor(intervalMachine).start();
 
       expect(() => {
         const state$ = from(intervalService);
@@ -1401,7 +1404,7 @@ describe('interpreter', () => {
       });
 
       let count: number;
-      const service = interpret(machine);
+      const service = createActor(machine);
       service.subscribe({
         complete: () => {
           expect(count).toEqual(2);
@@ -1425,7 +1428,7 @@ describe('interpreter', () => {
     it('should call complete() once a final state is reached', () => {
       const completeCb = jest.fn();
 
-      const service = interpret(
+      const service = createActor(
         createMachine({
           initial: 'idle',
           states: {
@@ -1451,7 +1454,7 @@ describe('interpreter', () => {
     it('should call complete() once the interpreter is stopped', () => {
       const completeCb = jest.fn();
 
-      const service = interpret(createMachine({})).start();
+      const service = createActor(createMachine({})).start();
 
       service.subscribe({
         complete: () => {
@@ -1467,8 +1470,17 @@ describe('interpreter', () => {
 
   describe('actors', () => {
     it("doesn't crash cryptically on undefined return from the actor creator", () => {
+      const child = fromCallback(() => {
+        // nothing
+      });
       const machine = createMachine(
         {
+          types: {} as {
+            actors: {
+              src: 'testService';
+              logic: typeof child;
+            };
+          },
           initial: 'initial',
           states: {
             initial: {
@@ -1480,14 +1492,12 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            testService: fromCallback(() => {
-              // nothing
-            })
+            testService: child
           }
         }
       );
 
-      const service = interpret(machine);
+      const service = createActor(machine);
       expect(() => service.start()).not.toThrow();
     });
   });
@@ -1524,7 +1534,7 @@ describe('interpreter', () => {
         }
       });
 
-      const actor = interpret(parentMachine);
+      const actor = createActor(parentMachine);
       actor.start();
       actor.getSnapshot().children.childActor.send({ type: 'FIRE' });
 
@@ -1533,41 +1543,54 @@ describe('interpreter', () => {
     });
 
     it('state.children should reference invoked child actors (promise)', (done) => {
-      const parentMachine = createMachine({
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: fromPromise(
-                () =>
-                  new Promise((res) => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 100);
-                  })
-              ),
-              onDone: [
-                {
-                  target: 'success',
-                  guard: ({ event }) => {
-                    return event.output === 42;
-                  }
-                },
-                { target: 'failure' }
-              ]
+      const parentMachine = createMachine(
+        {
+          initial: 'active',
+          types: {} as {
+            actors: {
+              src: 'num';
+              logic: PromiseActorLogic<number>;
+            };
+          },
+          states: {
+            active: {
+              invoke: {
+                id: 'childActor',
+                src: 'num',
+                onDone: [
+                  {
+                    target: 'success',
+                    guard: ({ event }) => {
+                      return event.output === 42;
+                    }
+                  },
+                  { target: 'failure' }
+                ]
+              }
+            },
+            success: {
+              type: 'final'
+            },
+            failure: {
+              type: 'final'
             }
-          },
-          success: {
-            type: 'final'
-          },
-          failure: {
-            type: 'final'
+          }
+        },
+        {
+          actors: {
+            num: fromPromise(
+              () =>
+                new Promise<number>((res) => {
+                  setTimeout(() => {
+                    res(42);
+                  }, 100);
+                })
+            )
           }
         }
-      });
+      );
 
-      const service = interpret(parentMachine);
+      const service = createActor(parentMachine);
 
       service.subscribe({
         next: (state) => {
@@ -1613,7 +1636,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine);
+      const service = createActor(parentMachine);
       service.subscribe({
         complete: () => {
           expect(service.getSnapshot().children).not.toHaveProperty(
@@ -1651,7 +1674,7 @@ describe('interpreter', () => {
         }
       });
 
-      const actor = interpret(formMachine);
+      const actor = createActor(formMachine);
       actor.start();
       expect(actor.getSnapshot().children).toHaveProperty('child');
     });
@@ -1710,7 +1733,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(parentMachine).start();
+      const service = createActor(parentMachine).start();
 
       expect(service.getSnapshot().children).toHaveProperty('machineChild');
       expect(service.getSnapshot().children).toHaveProperty('promiseChild');
@@ -1726,7 +1749,7 @@ describe('interpreter', () => {
 
   it("shouldn't execute actions when reading a snapshot of not started actor", () => {
     const spy = jest.fn();
-    const actorRef = interpret(
+    const actorRef = createActor(
       createMachine({
         entry: () => {
           spy();
@@ -1742,7 +1765,7 @@ describe('interpreter', () => {
   it(`should execute entry actions when starting the actor after reading its snapshot first`, () => {
     const spy = jest.fn();
 
-    const actorRef = interpret(
+    const actorRef = createActor(
       createMachine({
         entry: spy
       })
@@ -1758,7 +1781,7 @@ describe('interpreter', () => {
 
   it('the first state of an actor should be its initial state', () => {
     const machine = createMachine({});
-    const actor = interpret(machine);
+    const actor = createActor(machine);
     const initialState = actor.getSnapshot();
 
     actor.start();
@@ -1776,9 +1799,9 @@ describe('interpreter', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
-    expect(service.status).toBe(InterpreterStatus.Stopped);
+    expect(service.status).toBe(ActorStatus.Stopped);
     service.subscribe({
       complete: () => {
         done();
@@ -1790,7 +1813,7 @@ describe('interpreter', () => {
 it('should throw if an event is received', () => {
   const machine = createMachine({});
 
-  const actor = interpret(machine).start();
+  const actor = createActor(machine).start();
 
   expect(() =>
     actor.send(
@@ -1827,7 +1850,7 @@ it('should not process events sent directly to own actor ref before initial entr
     }
   });
 
-  const actorRef = interpret(machine);
+  const actorRef = createActor(machine);
   actorRef.start();
 
   expect(actual).toEqual([

@@ -1,14 +1,37 @@
-import { EventObject, SingleOrArray, MachineContext } from '../types.ts';
-import { pure as pureActionType } from '../actionTypes.ts';
-import { createDynamicAction } from '../../actions/dynamicAction.ts';
+import isDevelopment from '#is-development';
 import {
-  BaseActionObject,
-  BaseDynamicActionObject,
-  DynamicPureActionObject,
-  PureActionObject
-} from '..';
+  Action,
+  ActionArgs,
+  AnyActorContext,
+  AnyState,
+  EventObject,
+  MachineContext,
+  SingleOrArray
+} from '../types.ts';
 import { toArray } from '../utils.ts';
-import { toActionObjects } from '../actions.ts';
+
+function resolve(
+  _: AnyActorContext,
+  state: AnyState,
+  args: ActionArgs<any, any>,
+  {
+    get
+  }: {
+    get: ({
+      context,
+      event
+    }: {
+      context: MachineContext;
+      event: EventObject;
+    }) => SingleOrArray<Action<any, any, any>> | undefined;
+  }
+) {
+  return [
+    state,
+    undefined,
+    toArray(get({ context: state.context, event: args.event }))
+  ];
+}
 
 export function pure<
   TContext extends MachineContext,
@@ -21,34 +44,17 @@ export function pure<
   }: {
     context: TContext;
     event: TExpressionEvent;
-  }) => SingleOrArray<BaseActionObject | string> | undefined
-): BaseDynamicActionObject<
-  TContext,
-  TExpressionEvent,
-  TEvent,
-  PureActionObject,
-  DynamicPureActionObject<TContext, TExpressionEvent>['params']
-> {
-  return createDynamicAction(
-    {
-      type: pureActionType,
-      params: {
-        get: getActions
-      }
-    },
-    (event, { state }) => {
-      return [
-        state,
-        {
-          type: pureActionType,
-          params: {
-            actions:
-              toArray(
-                toActionObjects(getActions({ context: state.context, event }))
-              ) ?? []
-          }
-        }
-      ];
+  }) => SingleOrArray<Action<TContext, TExpressionEvent> | string> | undefined
+) {
+  function pure(_: ActionArgs<TContext, TExpressionEvent>) {
+    if (isDevelopment) {
+      throw new Error(`This isn't supposed to be called`);
     }
-  );
+  }
+
+  pure.type = 'xstate.pure';
+  pure.get = getActions;
+  pure.resolve = resolve;
+
+  return pure;
 }
