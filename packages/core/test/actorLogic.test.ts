@@ -733,13 +733,13 @@ describe('machine logic', () => {
       })
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     const persistedState = actor.getPersistedState()!;
 
     expect(persistedState.children.child.state).toEqual({ count: 42 });
 
-    const newActor = interpret(machine, {
+    const newActor = createActor(machine, {
       state: persistedState
     }).start();
 
