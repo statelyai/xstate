@@ -2,7 +2,7 @@ import { error, createInitEvent, assign } from './actions.ts';
 import { STATE_DELIMITER } from './constants.ts';
 import { cloneState, getPersistedState, State } from './State.ts';
 import { StateNode } from './StateNode.ts';
-import { interpret } from './interpreter.ts';
+import { createActor } from './interpreter.ts';
 import {
   getConfiguration,
   getStateNodeByPath,
@@ -405,7 +405,7 @@ export class StateMachine<
 
       const actorState = logic.restoreState?.(childState, _actorCtx);
 
-      const actorRef = interpret(logic, {
+      const actorRef = createActor(logic, {
         id: actorId,
         state: actorState
       });
@@ -431,7 +431,7 @@ export class StateMachine<
           );
 
           if (referenced) {
-            const actorRef = interpret(referenced.src, {
+            const actorRef = createActor(referenced.src, {
               id,
               parent: _actorCtx?.self,
               input:

@@ -3,10 +3,11 @@ import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
-  InterpreterFrom,
-  InterpreterOptions,
+  Actor,
+  ActorOptions,
   StateFrom,
-  TODO
+  TODO,
+  SnapshotFrom
 } from 'xstate';
 import { MaybeLazy, Prop } from './types.ts';
 import { useInterpret } from './useInterpret.ts';
@@ -16,7 +17,7 @@ type RestParams<TMachine extends AnyStateMachine> =
     TMachine['__TResolvedTypesMeta']
   > extends false
     ? [
-        options: InterpreterOptions<TMachine> &
+        options: ActorOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -27,7 +28,7 @@ type RestParams<TMachine extends AnyStateMachine> =
           >
       ]
     : [
-        options?: InterpreterOptions<TMachine> &
+        options?: ActorOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -39,7 +40,7 @@ type RestParams<TMachine extends AnyStateMachine> =
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
-  TInterpreter = InterpreterFrom<TMachine>
+  TInterpreter = Actor<TMachine>
 > = {
   state: Ref<StateFrom<TMachine>>;
   send: Prop<TInterpreter, 'send'>;
@@ -50,13 +51,14 @@ export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  function listener(nextSnapshot: StateFrom<TMachine>) {
+  function listener(nextSnapshot: SnapshotFrom<TMachine>) {
     if (nextSnapshot !== snapshot) {
       snapshot = nextSnapshot;
       state.value = snapshot;
     }
   }
 
+  // @ts-ignore
   const service = useInterpret(getMachine, options, listener);
 
   let snapshot = service.getSnapshot();

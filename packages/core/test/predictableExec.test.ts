@@ -1,8 +1,8 @@
 import {
-  AnyInterpreter,
+  AnyActor,
   assign,
   createMachine,
-  interpret,
+  createActor,
   sendTo
 } from '../src/index.ts';
 import { raise, sendParent, stop } from '../src/actions.ts';
@@ -34,7 +34,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(actual).toEqual(['custom', 'assign']);
@@ -50,7 +50,7 @@ describe('predictableExec', () => {
 
     expect(called).toBe(false);
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(called).toBe(true);
   });
@@ -67,7 +67,7 @@ describe('predictableExec', () => {
       ]
     });
 
-    expect(interpret(machine).getSnapshot().context.called).toBe(true);
+    expect(createActor(machine).getSnapshot().context.called).toBe(true);
   });
 
   it('should call raised transition custom actions with raised event', () => {
@@ -93,7 +93,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(eventArg.type).toBe('RAISED');
@@ -126,7 +126,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(eventArg.type).toBe('RAISED');
@@ -160,7 +160,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(eventArg.type).toBe('RAISED');
@@ -185,7 +185,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(service.getSnapshot().children.myChild).toBeDefined();
@@ -214,7 +214,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
     service.send({ type: 'NEXT' });
 
@@ -244,7 +244,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(calledWith).toBe(1);
@@ -301,7 +301,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
@@ -361,7 +361,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
@@ -421,7 +421,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
@@ -481,7 +481,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
@@ -522,7 +522,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({
       type: 'ACTIVATE'
@@ -551,7 +551,7 @@ describe('predictableExec', () => {
       ]
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(actual).toEqual([0, 1, 2]);
   });
@@ -572,7 +572,7 @@ describe('predictableExec', () => {
       }
     });
 
-    let service: AnyInterpreter;
+    let service: AnyActor;
 
     const machine = createMachine({
       invoke: {
@@ -608,7 +608,7 @@ describe('predictableExec', () => {
       }
     });
 
-    service = interpret(machine);
+    service = createActor(machine);
     service.subscribe({
       complete: () => {
         expect(service.getSnapshot().value).toBe('success');
@@ -646,7 +646,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     expect(service.getSnapshot().value).toBe('done');
   });
@@ -689,7 +689,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
   });
 
@@ -722,7 +722,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(received).toEqual({ type: 'KNOCK_KNOCK' });
@@ -744,7 +744,7 @@ describe('predictableExec', () => {
       }
     });
 
-    let service: AnyInterpreter;
+    let service: AnyActor;
 
     const machine = createMachine({
       invoke: {
@@ -777,7 +777,7 @@ describe('predictableExec', () => {
       }
     });
 
-    service = interpret(machine);
+    service = createActor(machine);
     service.subscribe({
       complete: () => {
         expect(service.getSnapshot().value).toBe('success');
@@ -815,7 +815,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     expect(service.getSnapshot().value).toBe('done');
   });
@@ -845,7 +845,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     actor.send({ type: 'TOGGLE' });
   });

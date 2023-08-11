@@ -1,11 +1,11 @@
 import { onCleanup } from 'solid-js';
 import { isServer } from 'solid-js/web';
-import { ActorRef, ActorLogic, EventObject, interpret } from 'xstate';
+import { ActorRef, ActorLogic, EventObject, createActor } from 'xstate';
 
 export function createSpawn<TState, TEvent extends EventObject>(
   logic: ActorLogic<TEvent, TState>
 ): ActorRef<TEvent, TState> {
-  const actorRef = interpret(logic);
+  const actorRef = createActor(logic);
 
   if (!isServer) {
     actorRef.start?.();

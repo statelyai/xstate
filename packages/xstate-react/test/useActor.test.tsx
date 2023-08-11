@@ -9,11 +9,11 @@ import {
   createMachine,
   DoneEventObject,
   doneInvoke,
-  interpret,
-  Interpreter,
+  createActor,
   PersistedMachineState,
   raise,
-  StateFrom
+  StateFrom,
+  Actor
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
@@ -64,7 +64,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     }
   });
 
-  const actorRef = interpret(
+  const actorRef = createActor(
     fetchMachine.provide({
       actors: {
         fetchData: fromCallback(({ sendBack }) => {
@@ -156,7 +156,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [, , service] = useActor(fetchMachine);
 
-      if (!(service instanceof Interpreter)) {
+      if (!(service instanceof Actor)) {
         throw new Error('service not instance of Interpreter');
       }
 
@@ -896,7 +896,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const actorRef = interpret(testMachine).start();
+    const actorRef = createActor(testMachine).start();
     const persistedState = JSON.stringify(actorRef.getPersistedState());
     actorRef.stop();
 

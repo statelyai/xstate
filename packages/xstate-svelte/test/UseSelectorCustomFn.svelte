@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { interpret, createMachine, assign } from 'xstate';
+  import { createActor, createMachine, assign } from 'xstate';
   import { useSelector } from '../src/index.ts';
 
   const machine = createMachine<{ name: string }>({
@@ -17,7 +17,7 @@
     }
   });
 
-  const service = interpret(machine).start();
+  const service = createActor(machine).start();
 
   const name = useSelector(
     service,

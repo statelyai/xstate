@@ -1,4 +1,4 @@
-import { fromCallback, interpret } from '../src/index.ts';
+import { fromCallback, createActor } from '../src/index.ts';
 import { createMachine } from '../src/Machine.ts';
 
 describe('deterministic machine', () => {
@@ -86,7 +86,7 @@ describe('deterministic machine', () => {
         }
       });
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
 
       const previousSnapshot = actor.getSnapshot();
 
@@ -239,7 +239,7 @@ describe('deterministic machine', () => {
         }
       });
 
-      const actor = interpret(machine).start();
+      const actor = createActor(machine).start();
 
       const previousSnapshot = actor.getSnapshot();
 

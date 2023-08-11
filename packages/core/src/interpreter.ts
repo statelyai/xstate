@@ -17,7 +17,6 @@ import type {
   AnyActorLogic,
   AnyStateMachine,
   EventFromLogic,
-  InterpreterFrom,
   PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef
@@ -27,7 +26,7 @@ import {
   DoneEvent,
   EventObject,
   InteropSubscribable,
-  InterpreterOptions,
+  ActorOptions,
   Observer,
   Subscription
 } from './types.ts';
@@ -55,6 +54,11 @@ export enum ActorStatus {
   Stopped
 }
 
+/**
+ * @deprecated Use `ActorStatus` instead.
+ */
+export const InterpreterStatus = ActorStatus;
+
 const defaultOptions = {
   deferEvents: true,
   clock: {
@@ -74,20 +78,20 @@ type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
     ? TInternalState
     : never;
 
-export class Interpreter<
+export class Actor<
   TLogic extends AnyActorLogic,
   TEvent extends EventObject = EventFromLogic<TLogic>
 > implements ActorRef<TEvent, SnapshotFrom<TLogic>>
 {
   /**
-   * The current state of the interpreted logic.
+   * The current internal state of the actor.
    */
   private _state!: InternalStateFrom<TLogic>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: Readonly<InterpreterOptions<TLogic>>;
+  public options: Readonly<ActorOptions<TLogic>>;
 
   /**
    * The unique identifier for this actor relative to its parent.
@@ -124,12 +128,12 @@ export class Interpreter<
   public src?: string;
 
   /**
-   * Creates a new Interpreter instance (i.e., service) for the given logic with the provided options, if any.
+   * Creates a new actor instance for the given logic with the provided options, if any.
    *
-   * @param logic The logic to be interpreted
-   * @param options Interpreter options
+   * @param logic The logic to create an actor from
+   * @param options Actor options
    */
-  constructor(public logic: TLogic, options?: InterpreterOptions<TLogic>) {
+  constructor(public logic: TLogic, options?: ActorOptions<TLogic>) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
@@ -172,7 +176,7 @@ export class Interpreter<
       }
     };
 
-    // Ensure that the send method is bound to this interpreter instance
+    // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
     this._initState();
@@ -264,7 +268,7 @@ export class Interpreter<
   }
 
   /**
-   * Starts the interpreter from the initial state
+   * Starts the Actor from the initial state
    */
   public start(): this {
     if (this.status === ActorStatus.Running) {
@@ -358,7 +362,7 @@ export class Interpreter<
   }
 
   /**
-   * Stops the interpreter and unsubscribe all listeners.
+   * Stops the Actor and unsubscribe all listeners.
    */
   public stop(): this {
     if (this._parent) {
@@ -401,7 +405,7 @@ export class Interpreter<
   }
   private _stopProcedure(): this {
     if (this.status !== ActorStatus.Running) {
-      // Interpreter already stopped; do nothing
+      // Actor already stopped; do nothing
       return this;
     }
 
@@ -425,7 +429,7 @@ export class Interpreter<
   }
 
   /**
-   * Sends an event to the running interpreter to trigger a transition.
+   * Sends an event to the running Actor to trigger a transition.
    *
    * @param event The event to send
    */
@@ -529,25 +533,37 @@ export class Interpreter<
 }
 
 /**
- * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ * Creates a new `ActorRef` instance for the given machine with the provided options, if any.
  *
- * @param machine The machine to interpret
- * @param options Interpreter options
+ * @param machine The machine to create an actor from
+ * @param options `ActorRef` options
  */
-export function interpret<TMachine extends AnyStateMachine>(
+export function createActor<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends true
     ? TMachine
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options?: InterpreterOptions<TMachine>
-): InterpreterFrom<TMachine>;
-export function interpret<TLogic extends AnyActorLogic>(
+  options?: ActorOptions<TMachine>
+): Actor<TMachine>;
+export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: InterpreterOptions<TLogic>
-): Interpreter<TLogic>;
-export function interpret(logic: any, options?: InterpreterOptions<any>): any {
-  const interpreter = new Interpreter(logic, options);
+  options?: ActorOptions<TLogic>
+): Actor<TLogic>;
+export function createActor(logic: any, options?: ActorOptions<any>): any {
+  const interpreter = new Actor(logic, options);
 
   return interpreter;
 }
+
+/**
+ * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ *
+ * @deprecated Use `createActor` instead
+ */
+export const interpret = createActor;
+
+/**
+ * @deprecated Use `Actor` instead.
+ */
+export type Interpreter = typeof Actor;

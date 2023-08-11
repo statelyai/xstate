@@ -1,8 +1,8 @@
 import {
   ActorRef,
-  AnyInterpreter,
+  AnyActor,
   EventObject,
-  interpret,
+  createActor,
   Observer,
   toObserver
 } from 'xstate';
@@ -26,10 +26,10 @@ import {
   stringify
 } from './utils.ts';
 
-export const serviceMap = new Map<string, AnyInterpreter>();
+export const serviceMap = new Map<string, AnyActor>();
 
 export function createDevTools(): XStateDevInterface {
-  const services = new Set<AnyInterpreter>();
+  const services = new Set<AnyActor>();
   const serviceListeners = new Set<ServiceListener>();
 
   const unregister: XStateDevInterface['unregister'] = (service) => {
@@ -86,7 +86,7 @@ const getFinalOptions = (options?: Partial<InspectorOptions>) => {
   };
 };
 
-const patchedInterpreters = new Set<AnyInterpreter>();
+const patchedInterpreters = new Set<AnyActor>();
 
 export function inspect(options?: InspectorOptions): Inspector | undefined {
   const finalOptions = getFinalOptions(options);
@@ -106,7 +106,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
   }
 
   const inspectMachine = createInspectMachine(devTools, options);
-  const inspectService = interpret(inspectMachine).start();
+  const inspectService = createActor(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
 
   const sub = inspectService.subscribe((state) => {
@@ -159,7 +159,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
-      parent: (service._parent as AnyInterpreter)?.sessionId
+      parent: (service._parent as AnyActor)?.sessionId
     });
 
     if (!patchedInterpreters.has(service)) {

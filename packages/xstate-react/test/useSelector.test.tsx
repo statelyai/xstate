@@ -7,7 +7,7 @@ import {
   assign,
   createMachine,
   fromTransition,
-  interpret,
+  createActor,
   StateFrom
 } from 'xstate';
 import {
@@ -329,8 +329,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should immediately render snapshot of initially spawned custom actor', () => {
-    const createActor = (latestValue: string) =>
-      interpret({
+    const createCustomActor = (latestValue: string) =>
+      createActor({
         transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
@@ -342,11 +342,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const parentMachine = createMachine({
       types: {
         context: {} as {
-          childActor: ReturnType<typeof createActor>;
+          childActor: ReturnType<typeof createCustomActor>;
         }
       },
       context: () => ({
-        childActor: createActor('foo')
+        childActor: createCustomActor('foo')
       })
     });
 
@@ -469,8 +469,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should render snapshot value when actor doesn't emit anything", () => {
-    const createActor = (latestValue: string) =>
-      interpret({
+    const createCustomActor = (latestValue: string) =>
+      createActor({
         transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
@@ -486,7 +486,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: () => ({
-        childActor: createActor('foo')
+        childActor: createCustomActor('foo')
       })
     });
 
@@ -506,8 +506,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should render snapshot state when actor changes', () => {
-    const createActor = (latestValue: string) =>
-      interpret({
+    const createCustomActor = (latestValue: string) =>
+      createActor({
         transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
@@ -516,8 +516,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         getInitialState: () => latestValue
       });
 
-    const actor1 = createActor('foo');
-    const actor2 = createActor('bar');
+    const actor1 = createCustomActor('foo');
+    const actor2 = createCustomActor('bar');
 
     const identitySelector = (value: any) => value;
 
@@ -538,7 +538,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
-    const actor = interpret({
+    const actor = createActor({
       transition: (s) => s,
       subscribe: () => {
         return { unsubscribe: () => {} };
@@ -588,7 +588,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     let renders = 0;
 
@@ -752,7 +752,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           <button
             data-testid="button"
             onClick={() =>
-              setActor(interpret(fromTransition((s) => s, { count: 42 })))
+              setActor(createActor(fromTransition((s) => s, { count: 42 })))
             }
           >
             Set actor

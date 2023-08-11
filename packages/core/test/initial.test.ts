@@ -1,4 +1,4 @@
-import { interpret, createMachine } from '../src/index.ts';
+import { createActor, createMachine } from '../src/index.ts';
 
 describe('Initial states', () => {
   it('should return the correct initial state', () => {
@@ -19,7 +19,7 @@ describe('Initial states', () => {
         leaf: {}
       }
     });
-    expect(interpret(machine).getSnapshot().value).toEqual({
+    expect(createActor(machine).getSnapshot().value).toEqual({
       a: { b: 'c' }
     });
   });
@@ -64,7 +64,7 @@ describe('Initial states', () => {
         }
       }
     });
-    expect(interpret(machine).getSnapshot().value).toEqual({
+    expect(createActor(machine).getSnapshot().value).toEqual({
       foo: { a: { b: 'c' } },
       bar: { a: { b: 'c' } }
     });
@@ -154,7 +154,7 @@ describe('Initial states', () => {
         }
       }
     });
-    expect(interpret(machine).getSnapshot().value).toEqual({
+    expect(createActor(machine).getSnapshot().value).toEqual({
       one: {
         foo: { a: { b: 'c' } },
         bar: { a: { b: 'c' } }
@@ -177,7 +177,7 @@ describe('Initial states', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     expect(actorRef.getSnapshot().value).toEqual({ foo: 'deep' });
   });
 
@@ -210,7 +210,7 @@ describe('Initial states', () => {
         }
       }
     });
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     expect(service.getSnapshot().value).toEqual({
       root: {
         foo: 'foo_deep',
@@ -240,7 +240,7 @@ describe('Initial states', () => {
         }
       }
     });
-    interpret(machine).start();
+    createActor(machine).start();
     expect(called).toEqual(false);
   });
 });

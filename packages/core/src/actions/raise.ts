@@ -3,7 +3,7 @@ import { cloneState } from '../State.ts';
 import {
   ActionArgs,
   AnyActorContext,
-  AnyInterpreter,
+  AnyActor,
   AnyState,
   DelayExpr,
   EventObject,
@@ -64,7 +64,7 @@ function execute(
   }
 ) {
   if (typeof params.delay === 'number') {
-    (actorContext.self as AnyInterpreter).delaySend(
+    (actorContext.self as AnyActor).delaySend(
       params as typeof params & { delay: number }
     );
     return;

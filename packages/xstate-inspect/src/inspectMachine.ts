@@ -16,7 +16,7 @@ export function createInspectMachine(
   devTools: XStateDevInterface = (globalThis as any).__xstate__,
   options?: { serialize?: Replacer | undefined }
 ) {
-  const serviceMap = new Map<string, Interpreter<any, any>>();
+  const serviceMap = new Map<string, ActorRef<any, any>>();
 
   // Listen for services being registered and index them
   // by their sessionId for quicker lookup

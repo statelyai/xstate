@@ -5,7 +5,7 @@ import {
   AnyStateMachine,
   createMachine,
   getStateNodes,
-  interpret,
+  createActor,
   SimulatedClock
 } from 'xstate';
 import { toMachine } from '../src/scxml';
@@ -26,7 +26,7 @@ async function runTestToCompletion(
 ): Promise<void> {
   let done = false;
 
-  const service = interpret(machine, {
+  const service = createActor(machine, {
     clock: new SimulatedClock()
   });
   let nextState: AnyState = service.getSnapshot();

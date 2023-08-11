@@ -2,14 +2,14 @@
 import { useMachine, useActor } from '../src';
 import {
   assign,
-  Interpreter,
   doneInvoke,
   createMachine,
-  InterpreterStatus,
   PersistedMachineState,
   raise,
-  interpret,
-  ActorLogicFrom
+  createActor,
+  ActorLogicFrom,
+  Actor,
+  ActorStatus
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { fromPromise, fromCallback } from 'xstate/actors';
@@ -69,7 +69,7 @@ describe('useMachine hook', () => {
     }
   });
 
-  const actorRef = interpret(
+  const actorRef = createActor(
     fetchMachine.provide({
       actors: {
         fetchData: fromCallback(({ sendBack }) => {
@@ -159,7 +159,7 @@ describe('useMachine hook', () => {
     const Test = () => {
       const [, , service] = useMachine(fetchMachine);
 
-      if (!(service instanceof Interpreter)) {
+      if (!(service instanceof Actor)) {
         throw new Error('service not instance of Interpreter');
       }
 
@@ -1465,7 +1465,7 @@ describe('useMachine hook', () => {
     });
     const Display = () => {
       onCleanup(() => {
-        expect(service.status).toBe(InterpreterStatus.Stopped);
+        expect(service.status).toBe(ActorStatus.Stopped);
         done();
       });
       const [state, , service] = useMachine(machine);
@@ -1700,7 +1700,7 @@ describe('useMachine (strict mode)', () => {
         }
       });
 
-      const actorRef = interpret(testMachine).start();
+      const actorRef = createActor(testMachine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
 

@@ -1,13 +1,13 @@
 import { WebSocketServer } from 'ws';
-import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
+import { ActorRef, EventObject, createActor, Actor } from 'xstate';
 import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
 import { Inspector, Replacer } from './types.ts';
 import { stringify } from './utils.ts';
 import { XStateDevInterface } from 'xstate/dev';
 
-const services = new Set<Interpreter<any>>();
-const serviceMap = new Map<string, Interpreter<any>>();
+const services = new Set<Actor<any>>();
+const serviceMap = new Map<string, Actor<any>>();
 const serviceListeners = new Set<any>();
 
 function createDevTools() {
@@ -51,7 +51,7 @@ interface ServerInspectorOptions {
 export function inspect(options: ServerInspectorOptions): Inspector {
   const { server } = options;
   const devTools = createDevTools();
-  const inspectService = interpret(
+  const inspectService = createActor(
     createInspectMachine(devTools, options)
   ).start();
   let client: ActorRef<any, undefined> = toActorRef({
@@ -83,7 +83,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     });
   });
 
-  devTools.onRegister((service: Interpreter<any>) => {
+  devTools.onRegister((service: Actor<any>) => {
     inspectService.send({
       type: 'service.register',
       machine: JSON.stringify(service.logic), // TODO: rename `machine` property

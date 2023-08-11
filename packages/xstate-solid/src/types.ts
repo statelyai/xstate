@@ -4,7 +4,7 @@ import type {
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
   InternalMachineImplementations,
-  InterpreterOptions,
+  ActorOptions,
   MachineContext,
   ProvidedActor,
   State,
@@ -45,8 +45,5 @@ export type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineOpts<TMachine, true>
-      ]
-    : [options?: InterpreterOptions<TMachine> & InternalMachineOpts<TMachine>];
+    ? [options: ActorOptions<TMachine> & InternalMachineOpts<TMachine, true>]
+    : [options?: ActorOptions<TMachine> & InternalMachineOpts<TMachine>];
