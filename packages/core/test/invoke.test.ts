@@ -1306,7 +1306,7 @@ describe('invoke', () => {
           }
         });
 
-        interpret(machine).start();
+        createActor(machine).start();
       });
     });
   });
@@ -2069,7 +2069,8 @@ describe('invoke', () => {
       actor.subscribe({
         complete: () => {
           done();
-        }
+        },
+        error: () => {}
       });
       actor.start();
     });
@@ -2447,7 +2448,7 @@ describe('invoke', () => {
         entry: sendTo('doubler', { type: 'update', value: 21 }, { delay: 10 })
       });
 
-      interpret(machine).start();
+      createActor(machine).start();
     });
   });
 
@@ -2526,7 +2527,7 @@ describe('invoke', () => {
         }
       });
 
-      interpret(machine).start();
+      createActor(machine).start();
     });
   });
 

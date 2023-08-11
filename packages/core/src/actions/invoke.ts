@@ -57,12 +57,17 @@ function resolve(
 
     // TODO: we need to unsubscribe from the actorRef when the actor is stopped
     subscribe &&
-      actorRef.subscribe((snapshot) => {
-        actorContext.self.send({
-          type: `xstate.snapshot.${id}`,
-          id,
-          snapshot
-        });
+      actorRef.subscribe({
+        next: (snapshot) => {
+          actorContext.self.send({
+            type: `xstate.snapshot.${id}`,
+            id,
+            snapshot
+          });
+        },
+        error: () => {
+          /* TODO */
+        }
       });
   }
 

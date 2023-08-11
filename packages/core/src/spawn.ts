@@ -48,12 +48,17 @@ export function createSpawner(
       spawnedChildren[actorRef.id] = actorRef;
 
       // if (options.subscribe) {
-      actorRef.subscribe((snapshot: unknown) => {
-        actorContext.self.send({
-          type: `xstate.snapshot.${actorRef.id}`,
-          snapshot,
-          id: actorRef.id
-        });
+      actorRef.subscribe({
+        next: (snapshot: unknown) => {
+          actorContext.self.send({
+            type: `xstate.snapshot.${actorRef.id}`,
+            snapshot,
+            id: actorRef.id
+          });
+        },
+        error: () => {
+          /* TODO */
+        }
       });
       // }
       return actorRef;
@@ -67,12 +72,17 @@ export function createSpawner(
       });
 
       // if (options.subscribe) {
-      actorRef.subscribe((snapshot) => {
-        actorContext.self.send({
-          type: `xstate.snapshot.${actorRef.id}`,
-          snapshot,
-          id: actorRef.id
-        });
+      actorRef.subscribe({
+        next: (snapshot) => {
+          actorContext.self.send({
+            type: `xstate.snapshot.${actorRef.id}`,
+            snapshot,
+            id: actorRef.id
+          });
+        },
+        error: () => {
+          /* TODO */
+        }
       });
       // }
 
