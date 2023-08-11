@@ -1581,6 +1581,12 @@ export interface ActorContext<
 
 export type AnyActorContext = ActorContext<any, any, any>;
 
+export type LogicStatus = {
+  status: 'active' | 'done' | 'error' | 'stopped';
+  data?: any;
+  error?: unknown;
+};
+
 export interface ActorLogic<
   TEvent extends EventObject,
   TSnapshot = any,
@@ -1608,11 +1614,7 @@ export interface ActorLogic<
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
-  getStatus?: (state: TInternalState) => {
-    status: string;
-    data?: any;
-    error?: unknown;
-  };
+  getStatus?: (state: TInternalState) => LogicStatus;
   start?: (
     state: TInternalState,
     actorCtx: ActorContext<TEvent, TSnapshot>

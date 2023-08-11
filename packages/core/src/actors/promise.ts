@@ -7,7 +7,7 @@ import {
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T, TInput = unknown> {
-  status: 'active' | 'error' | 'done' | 'canceled';
+  status: 'active' | 'error' | 'done' | 'stopped';
   data: T | undefined;
   input: TInput | undefined;
 }
@@ -77,7 +77,7 @@ export function fromPromise<T, TInput>(
         case stopSignalType:
           return {
             ...state,
-            status: 'canceled',
+            status: 'stopped',
             input: undefined
           };
         default:
@@ -119,7 +119,7 @@ export function fromPromise<T, TInput>(
         input
       };
     },
-    getSnapshot: (state) => state.data,
+    getSnapshot: (state) => (state.status === 'done' ? state.data : undefined),
     getStatus: (state) => state,
     getPersistedState: (state) => state,
     restoreState: (state) => state

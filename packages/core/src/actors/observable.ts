@@ -7,10 +7,11 @@ import {
   ActorRefFrom
 } from '../types';
 import { stopSignalType } from '../actors';
+import { ActorStatus } from '..';
 
 export interface ObservableInternalState<T, TInput = unknown> {
   subscription: Subscription | undefined;
-  status: 'active' | 'done' | 'error' | 'canceled';
+  status: 'active' | 'done' | 'error' | 'stopped';
   data: T | undefined;
   input: TInput | undefined;
   error?: unknown;
@@ -78,7 +79,7 @@ export function fromObservable<T, TInput>(
           state.subscription!.unsubscribe();
           return {
             ...state,
-            status: 'canceled',
+            status: 'stopped',
             input: undefined,
             subscription: undefined
           };
@@ -179,7 +180,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
           state.subscription!.unsubscribe();
           return {
             ...state,
-            status: 'canceled',
+            status: 'stopped',
             input: undefined,
             subscription: undefined
           };

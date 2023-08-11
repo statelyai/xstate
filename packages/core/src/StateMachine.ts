@@ -373,10 +373,10 @@ export class StateMachine<
 
   public getStatus(state: State<TContext, TEvent, TActor, TResolvedTypesMeta>) {
     return state.error
-      ? { status: 'error', error: state.error }
+      ? ({ status: 'error', error: state.error } as const)
       : state.done
-      ? { status: 'done', data: state.output }
-      : { status: 'active' };
+      ? ({ status: 'done', data: state.output } as const)
+      : ({ status: 'active' } as const);
   }
 
   public restoreState(
