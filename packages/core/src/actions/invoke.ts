@@ -55,20 +55,22 @@ function resolve(
           : configuredInput
     });
 
-    // TODO: we need to unsubscribe from the actorRef when the actor is stopped
-    subscribe &&
+    if (subscribe) {
       actorRef.subscribe({
         next: (snapshot) => {
-          actorContext.self.send({
-            type: `xstate.snapshot.${id}`,
-            id,
-            snapshot
-          });
+          if (actorContext.self.status === ActorStatus.Running) {
+            actorContext.self.send({
+              type: `xstate.snapshot.${id}`,
+              id,
+              snapshot
+            });
+          }
         },
         error: () => {
           /* TODO */
         }
       });
+    }
   }
 
   if (isDevelopment && !actorRef) {

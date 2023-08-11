@@ -74,11 +74,13 @@ export function createSpawner(
       // if (options.subscribe) {
       actorRef.subscribe({
         next: (snapshot) => {
-          actorContext.self.send({
-            type: `xstate.snapshot.${actorRef.id}`,
-            snapshot,
-            id: actorRef.id
-          });
+          if (actorContext.self.status === ActorStatus.Running) {
+            actorContext.self.send({
+              type: `xstate.snapshot.${actorRef.id}`,
+              snapshot,
+              id: actorRef.id
+            });
+          }
         },
         error: () => {
           /* TODO */
