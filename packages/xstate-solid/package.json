@@ -59,7 +59,7 @@
   },
   "peerDependencies": {
     "@xstate/fsm": "^3.0.0-beta.3",
-    "solid-js": "^1.6.0",
+    "solid-js": "^1.7.11",
     "xstate": "^5.0.0-beta.21"
   },
   "peerDependenciesMeta": {
