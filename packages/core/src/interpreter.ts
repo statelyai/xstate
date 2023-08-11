@@ -445,7 +445,7 @@ export class Actor<
       if (isDevelopment) {
         const eventString = JSON.stringify(event);
 
-        console.warn(
+        throw new Error(
           `Event "${event.type.toString()}" was sent to stopped actor "${
             this.id
           } (${
