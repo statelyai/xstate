@@ -1,3 +1,4 @@
+import { createActor, fromCallback } from './index.ts';
 import { Clock } from './interpreter.ts';
 
 export interface SimulatedClock extends Clock {
@@ -59,4 +60,40 @@ export class SimulatedClock implements SimulatedClock {
     this._now += ms;
     this.flushTimeouts();
   }
+}
+
+export function createSimulatedClock() {
+  const simclock = new SimulatedClock();
+  const clockActorLogic = fromCallback(({ sendBack, receive }) => {
+    let timeouts = new Map<string, any>();
+
+    receive((msg: EventFrom<ClockActor>) => {
+      switch (msg.type) {
+        case 'xstate.clock.setTimeout': {
+          const { id, timeout } = msg;
+          timeouts.set(
+            id,
+            simclock.setTimeout(() => {
+              msg.target.send(msg.event);
+            }, timeout)
+          );
+          break;
+        }
+        case 'xstate.clock.clearTimeout': {
+          const { id } = msg;
+          if (timeouts.has(id)) {
+            simclock.clearTimeout(timeouts.get(id));
+          }
+          break;
+        }
+      }
+    });
+  });
+
+  const clockActor = createActor(clockActorLogic, { clock: {} as any }).start();
+
+  clockActor.increment = simclock.increment.bind(simclock);
+  clockActor.set = simclock.set.bind(simclock);
+
+  return clockActor;
 }

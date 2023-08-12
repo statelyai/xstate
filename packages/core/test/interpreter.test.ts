@@ -1,4 +1,4 @@
-import { SimulatedClock } from '../src/SimulatedClock';
+import { SimulatedClock, createSimulatedClock } from '../src/SimulatedClock';
 import {
   createActor,
   assign,
@@ -269,7 +269,7 @@ describe('interpreter', () => {
 
       let stopped = false;
 
-      const clock = new SimulatedClock();
+      const clock = createSimulatedClock();
 
       const delayExprService = createActor(delayExprMachine, {
         clock
@@ -350,7 +350,7 @@ describe('interpreter', () => {
 
       let stopped = false;
 
-      const clock = new SimulatedClock();
+      const clock = createSimulatedClock();
 
       const delayExprService = createActor(delayExprMachine, {
         clock
@@ -377,7 +377,7 @@ describe('interpreter', () => {
     });
 
     it('can send an event after a delay (delayed transitions)', (done) => {
-      const clock = new SimulatedClock();
+      const clock = createSimulatedClock();
       const letterMachine = createMachine(
         {
           id: 'letter',
@@ -603,7 +603,7 @@ describe('interpreter', () => {
 
   it('can cancel a delayed event', () => {
     const service = createActor(lightMachine, {
-      clock: new SimulatedClock()
+      clock: createSimulatedClock()
     });
     const clock = service.clock as SimulatedClock;
     service.start();
@@ -663,7 +663,7 @@ describe('interpreter', () => {
 
   it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
     const service = createActor(lightMachine, {
-      clock: new SimulatedClock(),
+      clock: createSimulatedClock(),
       deferEvents: false
     });
 
@@ -678,7 +678,7 @@ describe('interpreter', () => {
 
   it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
     const service = createActor(lightMachine, {
-      clock: new SimulatedClock(),
+      clock: createSimulatedClock(),
       deferEvents: true
     });
 
@@ -691,7 +691,7 @@ describe('interpreter', () => {
 
   it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
     const service = createActor(lightMachine, {
-      clock: new SimulatedClock()
+      clock: createSimulatedClock()
     });
 
     expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
@@ -766,7 +766,7 @@ describe('interpreter', () => {
 
   it('should not update when stopped', () => {
     const service = createActor(lightMachine, {
-      clock: new SimulatedClock()
+      clock: createSimulatedClock()
     });
 
     service.start();

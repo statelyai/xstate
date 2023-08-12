@@ -19,7 +19,8 @@ import type {
   EventFromLogic,
   PersistedStateFrom,
   SnapshotFrom,
-  AnyActorRef
+  AnyActorRef,
+  AnyEventObject
 } from './types.ts';
 import {
   ActorRef,
@@ -31,6 +32,7 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+import { ClockActor, clockActorLogic } from './scheduler.ts';
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -61,14 +63,14 @@ export const InterpreterStatus = ActorStatus;
 
 const defaultOptions = {
   deferEvents: true,
-  clock: {
-    setTimeout: (fn, ms) => {
-      return setTimeout(fn, ms);
-    },
-    clearTimeout: (id) => {
-      return clearTimeout(id);
-    }
-  } as Clock,
+  // clock: {
+  //   setTimeout: (fn, ms) => {
+  //     return setTimeout(fn, ms);
+  //   },
+  //   clearTimeout: (id) => {
+  //     return clearTimeout(id);
+  //   }
+  // } as Clock,
   logger: console.log.bind(console),
   devTools: false
 };
@@ -90,7 +92,7 @@ export class Actor<
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
-  public clock: Clock;
+  public clock: ClockActor;
   public options: Readonly<ActorOptions<TLogic>>;
 
   /**
@@ -152,7 +154,13 @@ export class Actor<
     this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
-    this.clock = clock;
+    // this.clock = clock;
+    this.clock =
+      clock ??
+      createActor(clockActorLogic, {
+        parent: this,
+        clock: {} as any
+      }).start();
     this._parent = parent;
     this.options = resolvedOptions;
     this.src = resolvedOptions.src;
@@ -411,7 +419,12 @@ export class Actor<
 
     // Cancel all delayed events
     for (const key of Object.keys(this.delayedEventsMap)) {
-      this.clock.clearTimeout(this.delayedEventsMap[key]);
+      // this.clock.clearTimeout(this.delayedEventsMap[key]);
+      this.clock.send({
+        type: 'xstate.clock.clearTimeout',
+        id: this.delayedEventsMap[key] as any,
+        source: this
+      });
     }
 
     // TODO: mailbox.reset
@@ -482,13 +495,22 @@ export class Actor<
     delay: number;
     to?: AnyActorRef;
   }): void {
-    const timerId = this.clock.setTimeout(() => {
-      if (to) {
-        to.send(event);
-      } else {
-        this.send(event as TEvent);
-      }
-    }, delay);
+    const timerId = Math.random().toString();
+    this.clock.send({
+      type: 'xstate.clock.setTimeout',
+      id: id ?? timerId,
+      timeout: delay,
+      source: this,
+      event,
+      target: to ?? this
+    });
+    // const timerId = this.clock.setTimeout(() => {
+    //   if (to) {
+    //     to.send(event);
+    //   } else {
+    //     this.send(event as TEvent);
+    //   }
+    // }, delay);
 
     // TODO: consider the rehydration story here
     if (id) {
@@ -498,7 +520,12 @@ export class Actor<
 
   // TODO: make private (and figure out a way to do this within the machine)
   public cancel(sendId: string | number): void {
-    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
+    // this.clock.clearTimeout(this.delayedEventsMap[sendId]);
+    this.clock.send({
+      type: 'xstate.clock.clearTimeout',
+      id: sendId as any,
+      source: this
+    });
     delete this.delayedEventsMap[sendId];
   }
 

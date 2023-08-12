@@ -2,7 +2,7 @@ import { clearConsoleMocks } from '@xstate-repo/jest-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
-import { SimulatedClock } from '../src/SimulatedClock';
+import { SimulatedClock, createSimulatedClock } from '../src/SimulatedClock';
 import { AnyState, AnyStateMachine, createActor } from '../src/index.ts';
 import { toMachine, sanitizeStateId } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
@@ -392,7 +392,7 @@ async function runTestToCompletion(
 
   let done = false;
   const service = createActor(machine, {
-    clock: new SimulatedClock()
+    clock: createSimulatedClock()
   });
 
   let nextState: AnyState = service.getSnapshot();
