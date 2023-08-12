@@ -102,8 +102,6 @@ export class Actor<
 
   private mailbox: Mailbox<TEvent> = new Mailbox(this._process.bind(this));
 
-  private delayedEventsMap: Record<string, unknown> = {};
-
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
   private logger: (...args: any[]) => void;
   /**
@@ -360,10 +358,6 @@ export class Actor<
   }
 
   private _stop(): this {
-    this.clock.send({
-      type: 'xstate.clock.clearAllTimeouts',
-      source: this
-    });
     if (this.status === ActorStatus.Stopped) {
       return this;
     }
@@ -426,14 +420,10 @@ export class Actor<
     }
 
     // Cancel all delayed events
-    for (const key of Object.keys(this.delayedEventsMap)) {
-      // this.clock.clearTimeout(this.delayedEventsMap[key]);
-      this.clock.send({
-        type: 'xstate.clock.clearTimeout',
-        id: this.delayedEventsMap[key] as any,
-        source: this
-      });
-    }
+    this.clock.send({
+      type: 'xstate.clock.clearAllTimeouts',
+      source: this
+    });
 
     // TODO: mailbox.reset
     this.mailbox.clear();
@@ -512,29 +502,15 @@ export class Actor<
       event,
       target: to ?? this
     });
-    // const timerId = this.clock.setTimeout(() => {
-    //   if (to) {
-    //     to.send(event);
-    //   } else {
-    //     this.send(event as TEvent);
-    //   }
-    // }, delay);
-
-    // TODO: consider the rehydration story here
-    if (id) {
-      this.delayedEventsMap[id] = timerId;
-    }
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
   public cancel(sendId: string | number): void {
-    // this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     this.clock.send({
       type: 'xstate.clock.clearTimeout',
       id: sendId as any,
       source: this
     });
-    delete this.delayedEventsMap[sendId];
   }
 
   private attachDevTools(): void {
