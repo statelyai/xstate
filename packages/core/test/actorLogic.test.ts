@@ -216,16 +216,16 @@ describe('promise logic (fromPromise)', () => {
     createActor(promiseLogic).start();
   });
 
-  it('should step', async () => {
+  it('should work with steps', async () => {
     function sleepWithResult<T>(ms: number, result: T) {
       return new Promise<T>((res) => setTimeout(() => res(result), ms));
     }
-    const promiseLogic = fromPromise(async ({ self, step }) => {
-      const num = await step('1', sleepWithResult(10, 1));
+    const promiseLogic = fromPromise(async ({ step }) => {
+      const num = await step('first', () => sleepWithResult(10, 1));
 
-      const num2 = await step('2', sleepWithResult(10, 2));
+      const num2 = await step('second', () => sleepWithResult(10, 2));
 
-      const num3 = await step('3', sleepWithResult(10, 3));
+      const num3 = await step('third', () => sleepWithResult(10, 3));
 
       return num + num2 + num3;
     });
@@ -236,15 +236,15 @@ describe('promise logic (fromPromise)', () => {
 
     expect(actor.getPersistedState()!.steps).toMatchInlineSnapshot(`
       {
-        "1": [
+        "first": [
           1,
           1,
         ],
-        "2": [
+        "second": [
           1,
           2,
         ],
-        "3": [
+        "third": [
           1,
           3,
         ],
@@ -252,6 +252,80 @@ describe('promise logic (fromPromise)', () => {
     `);
 
     expect(actor.getSnapshot()).toBe(6);
+  });
+
+  it('should persist the result of a step', async () => {
+    let timesCalled = 0;
+    let resolveSecondPromise = false;
+    function sleepWithResult<T>(ms: number, result: T) {
+      timesCalled++;
+      return new Promise<T>((res) =>
+        setTimeout(() => {
+          res(result);
+        }, ms)
+      );
+    }
+    const promiseLogic = fromPromise(async ({ step }) => {
+      const result1 = await step('someStep', () =>
+        sleepWithResult(10, 'foobar')
+      );
+
+      const result2 = await step('wait', () => {
+        if (resolveSecondPromise) {
+          return Promise.resolve('resolved');
+        }
+        // return infinite promise
+        return new Promise(() => {});
+      });
+
+      return result1 + result2;
+    });
+
+    // Calling the actor the first time
+
+    const actor = createActor(promiseLogic).start();
+
+    await new Promise((res) => setTimeout(res, 15));
+
+    expect(timesCalled).toBe(1);
+    expect(actor.getPersistedState()!.steps).toMatchInlineSnapshot(`
+      {
+        "someStep": [
+          1,
+          "foobar",
+        ],
+      }
+    `);
+
+    const persistedState = actor.getPersistedState();
+    actor.stop();
+
+    // Restoring the actor
+
+    resolveSecondPromise = true;
+    const restoredActor = createActor(promiseLogic, {
+      state: persistedState
+    }).start();
+
+    await new Promise((res) => setTimeout(res, 15));
+
+    // The first promise shouldn't be called again
+    expect(timesCalled).toBe(1);
+
+    expect(restoredActor.getPersistedState()!.steps).toMatchInlineSnapshot(`
+      {
+        "someStep": [
+          1,
+          "foobar",
+        ],
+        "wait": [
+          1,
+          "resolved",
+        ],
+      }
+    `);
+
+    expect(restoredActor.getSnapshot()).toBe('foobarresolved');
   });
 });
 

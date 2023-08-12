@@ -50,7 +50,7 @@ export function fromPromise<T, TInput>(
     input: TInput;
     system: AnyActorSystem;
     self: PromiseActorRef<T>;
-    step: <T>(name: string, promise: Promise<T>) => Promise<T>;
+    step: <T>(name: string, promiseCreator: () => Promise<T>) => Promise<T>;
   }) => PromiseLike<T>
 ): PromiseActorLogic<T, TInput> {
   // TODO: add event types
@@ -101,7 +101,12 @@ export function fromPromise<T, TInput>(
         return;
       }
 
-      function step(name: string, promise: Promise<any>) {
+      function step(name: string, promiseCreator: () => Promise<any>) {
+        if (state.steps?.[name]) {
+          return state.steps[name][1];
+        }
+
+        const promise = promiseCreator();
         return promise.then(
           (result) => {
             self.send({
