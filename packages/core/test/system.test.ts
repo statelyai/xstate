@@ -411,7 +411,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine);
+    const actor = createActor(machine);
     expect(actor.system.get('test')).toBeDefined();
   });
 
@@ -435,7 +435,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine);
+    const actor = createActor(machine);
 
     const sub = actor.system.subscribe(() => {
       if (actor.system.get('test') !== undefined) {
@@ -457,7 +457,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine);
+    const actor = createActor(machine);
 
     const sub = actor.system.subscribe(() => {
       if (actor.system.get('test') !== undefined) {
