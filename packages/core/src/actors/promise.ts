@@ -10,6 +10,7 @@ export interface PromiseInternalState<T, TInput = unknown> {
   status: 'active' | 'error' | 'done' | 'canceled';
   data: T | undefined;
   input: TInput | undefined;
+  steps?: Record<string, [status: 0 | 1 | 2, result: any]>;
 }
 
 const resolveEventType = '$$xstate.resolve';
@@ -49,6 +50,7 @@ export function fromPromise<T, TInput>(
     input: TInput;
     system: AnyActorSystem;
     self: PromiseActorRef<T>;
+    step: <T>(name: string, promise: Promise<T>) => Promise<T>;
   }) => PromiseLike<T>
 ): PromiseActorLogic<T, TInput> {
   // TODO: add event types
@@ -80,6 +82,14 @@ export function fromPromise<T, TInput>(
             status: 'canceled',
             input: undefined
           };
+        case '$$xstate.step':
+          return {
+            ...state,
+            steps: {
+              ...(state.steps || {}),
+              [(event as any).name]: [event.status, (event as any).output]
+            }
+          };
         default:
           return state;
       }
@@ -91,8 +101,27 @@ export function fromPromise<T, TInput>(
         return;
       }
 
+      function step(name: string, promise: Promise<any>) {
+        return promise.then(
+          (result) => {
+            self.send({
+              type: '$$xstate.step',
+              status: 1,
+              name,
+              output: result
+            });
+            return result;
+          },
+          (error) => {
+            // self.send({ type: '$$xstate.step', status: 2, name, error });
+
+            return error;
+          }
+        );
+      }
+
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input!, system, self })
+        promiseCreator({ input: state.input!, system, self, step })
       );
 
       resolvedPromise.then(

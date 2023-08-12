@@ -215,6 +215,44 @@ describe('promise logic (fromPromise)', () => {
 
     createActor(promiseLogic).start();
   });
+
+  it('should step', async () => {
+    function sleepWithResult<T>(ms: number, result: T) {
+      return new Promise<T>((res) => setTimeout(() => res(result), ms));
+    }
+    const promiseLogic = fromPromise(async ({ self, step }) => {
+      const num = await step('1', sleepWithResult(10, 1));
+
+      const num2 = await step('2', sleepWithResult(10, 2));
+
+      const num3 = await step('3', sleepWithResult(10, 3));
+
+      return num + num2 + num3;
+    });
+
+    const actor = createActor(promiseLogic).start();
+
+    await waitFor(actor, (s) => s !== undefined);
+
+    expect(actor.getPersistedState()!.steps).toMatchInlineSnapshot(`
+      {
+        "1": [
+          1,
+          1,
+        ],
+        "2": [
+          1,
+          2,
+        ],
+        "3": [
+          1,
+          3,
+        ],
+      }
+    `);
+
+    expect(actor.getSnapshot()).toBe(6);
+  });
 });
 
 describe('transition function logic (fromTransition)', () => {
