@@ -1,5 +1,6 @@
-import { createActor, fromCallback } from './index.ts';
+import { EventFrom, createActor, fromCallback } from './index.ts';
 import { Clock } from './interpreter.ts';
+import { ClockActor } from './scheduler.ts';
 
 export interface SimulatedClock extends Clock {
   start(speed: number): void;
@@ -65,29 +66,55 @@ export class SimulatedClock implements SimulatedClock {
 export function createSimulatedClock() {
   const simclock = new SimulatedClock();
   const clockActorLogic = fromCallback(({ sendBack, receive }) => {
-    let timeouts = new Map<string, any>();
+    let timeouts = new Map<string, Map<string, any>>();
 
     receive((msg: EventFrom<ClockActor>) => {
       switch (msg.type) {
         case 'xstate.clock.setTimeout': {
           const { id, timeout } = msg;
-          timeouts.set(
+          const sessionTimeoutMap =
+            timeouts.get(msg.source.sessionId) || new Map();
+          timeouts.set(msg.source.sessionId, sessionTimeoutMap);
+
+          sessionTimeoutMap.set(
             id,
             simclock.setTimeout(() => {
               msg.target.send(msg.event);
+              sessionTimeoutMap.delete(id);
             }, timeout)
           );
           break;
         }
         case 'xstate.clock.clearTimeout': {
           const { id } = msg;
-          if (timeouts.has(id)) {
-            simclock.clearTimeout(timeouts.get(id));
+          const sessionTimeoutMap = timeouts.get(msg.source.sessionId);
+
+          if (sessionTimeoutMap?.has(id)) {
+            simclock.clearTimeout(sessionTimeoutMap.get(id));
           }
+          break;
+        }
+        case 'xstate.clock.clearAllTimeouts': {
+          const sessionTimeoutMap = timeouts.get(msg.source.sessionId);
+
+          if (sessionTimeoutMap) {
+            sessionTimeoutMap.forEach((timeout) =>
+              simclock.clearTimeout(timeout)
+            );
+            sessionTimeoutMap.clear();
+          }
+
           break;
         }
       }
     });
+
+    return () => {
+      timeouts.forEach((timeoutMap) => {
+        timeoutMap.forEach((timeout) => simclock.clearTimeout(timeout));
+      });
+      timeouts.clear();
+    };
   });
 
   const clockActor = createActor(clockActorLogic, { clock: {} as any }).start();

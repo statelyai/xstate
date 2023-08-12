@@ -15,10 +15,14 @@ export type ClockActor = ActorRef<
       source: ActorRef<any>;
       id: string;
     }
+  | {
+      type: 'xstate.clock.clearAllTimeouts';
+      source: ActorRef<any>;
+    }
 >;
 
 export const clockActorLogic = fromCallback(({ receive }) => {
-  let timeouts = new Map<string, any>();
+  let timeouts = new Map<string, Map<string, any>>();
 
   receive((msg: EventFrom<ClockActor>) => {
     switch (msg.type) {
@@ -41,4 +45,9 @@ export const clockActorLogic = fromCallback(({ receive }) => {
       }
     }
   });
+
+  return () => {
+    timeouts.forEach((timeout) => clearTimeout(timeout));
+    timeouts.clear();
+  };
 });

@@ -144,7 +144,16 @@ export class Actor<
     const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem();
+    this.system =
+      parent?.system ??
+      createSystem({
+        scheduler:
+          (clock as any) ??
+          createActor(clockActorLogic, {
+            parent: this,
+            clock: {} as any
+          }).start()
+      });
 
     if (systemId) {
       this._systemId = systemId;
@@ -155,12 +164,7 @@ export class Actor<
     this.id = id ?? this.sessionId;
     this.logger = logger;
     // this.clock = clock;
-    this.clock =
-      clock ??
-      createActor(clockActorLogic, {
-        parent: this,
-        clock: {} as any
-      }).start();
+    this.clock = this.system.scheduler;
     this._parent = parent;
     this.options = resolvedOptions;
     this.src = resolvedOptions.src;
@@ -356,6 +360,10 @@ export class Actor<
   }
 
   private _stop(): this {
+    this.clock.send({
+      type: 'xstate.clock.clearAllTimeouts',
+      source: this
+    });
     if (this.status === ActorStatus.Stopped) {
       return this;
     }

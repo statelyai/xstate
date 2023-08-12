@@ -10,6 +10,7 @@ import {
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
+import { ClockActor } from './scheduler.ts';
 
 /**
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
@@ -1770,6 +1771,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  scheduler: ClockActor;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
