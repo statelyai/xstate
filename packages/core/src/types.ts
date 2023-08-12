@@ -10,7 +10,7 @@ import {
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
-import { ClockActor } from './scheduler.ts';
+import { SchedulerActorRef } from './scheduler.ts';
 
 /**
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
@@ -1335,7 +1335,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
   execute?: boolean;
-  clock?: Clock;
+  scheduler?: SchedulerActorRef;
   logger?: (...args: any[]) => void;
   parent?: ActorRef<any>;
   /**
@@ -1771,7 +1771,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  scheduler: ClockActor;
+  scheduler: SchedulerActorRef;
 }
 
 export type AnyActorSystem = ActorSystem<any>;

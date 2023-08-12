@@ -27,7 +27,7 @@ async function runTestToCompletion(
   let done = false;
 
   const service = createActor(machine, {
-    clock: new SimulatedClock()
+    scheduler: new SimulatedClock()
   });
   let nextState: AnyState = service.getSnapshot();
   service.subscribe((state) => {

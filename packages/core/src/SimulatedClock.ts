@@ -63,9 +63,9 @@ export class SimulatedClock implements SimulatedClock {
   }
 }
 
-export function createSimulatedClock(clock: Clock = new SimulatedClock()) {
+export function createMockScheduler(clock: Clock = new SimulatedClock()) {
   const clockActor = createActor(createSchedulerLogic(clock), {
-    clock: {} as any
+    scheduler: {} as any
   }).start();
 
   if (clock instanceof SimulatedClock) {

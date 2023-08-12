@@ -2,7 +2,7 @@ import { fromCallback } from './actors/callback.ts';
 import { Clock } from './interpreter.ts';
 import type { ActorRef, AnyEventObject, EventFrom } from './types.ts';
 
-export type ClockActor = ActorRef<
+export type SchedulerActorRef = ActorRef<
   | {
       type: 'xstate.clock.setTimeout';
       source: ActorRef<any>;
@@ -35,7 +35,7 @@ export function createSchedulerLogic(clock: Clock) {
       >
     >();
 
-    receive((msg: EventFrom<ClockActor>) => {
+    receive((msg: EventFrom<SchedulerActorRef>) => {
       switch (msg.type) {
         case 'xstate.clock.setTimeout': {
           const { id, timeout } = msg;

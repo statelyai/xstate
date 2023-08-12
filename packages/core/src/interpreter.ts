@@ -32,7 +32,7 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
-import { ClockActor, clockActorLogic } from './scheduler.ts';
+import { SchedulerActorRef, clockActorLogic } from './scheduler.ts';
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -92,7 +92,7 @@ export class Actor<
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
-  public clock: ClockActor;
+  public clock: SchedulerActorRef;
   public options: Readonly<ActorOptions<TLogic>>;
 
   /**
@@ -139,7 +139,7 @@ export class Actor<
       ...options
     };
 
-    const { clock, logger, parent, id, systemId } = resolvedOptions;
+    const { scheduler: clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
     this.system =
@@ -149,7 +149,7 @@ export class Actor<
           (clock as any) ??
           createActor(clockActorLogic, {
             parent: this,
-            clock: {} as any
+            scheduler: {} as any
           }).start()
       });
 

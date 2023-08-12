@@ -1,11 +1,10 @@
-import { createActor } from './index.js';
-import { ClockActor, clockActorLogic } from './scheduler.js';
+import { SchedulerActorRef } from './scheduler.js';
 import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.js';
 
 export function createSystem<T extends ActorSystemInfo>({
   scheduler
 }: {
-  scheduler: ClockActor;
+  scheduler: SchedulerActorRef;
 }): ActorSystem<T> {
   let sessionIdCounter = 0;
   const children = new Map<string, AnyActorRef>();
