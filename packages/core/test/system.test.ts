@@ -9,7 +9,7 @@ import {
   fromObservable,
   fromPromise,
   fromTransition,
-  interpret,
+  createActor,
   sendTo,
   stop
 } from '../src/index.ts';
@@ -54,7 +54,7 @@ describe('system', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should register a spawned actor', (done) => {
@@ -101,7 +101,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     actor.send({ type: 'toggle' });
   });
@@ -115,14 +115,14 @@ describe('system', () => {
     });
 
     // no .start() here is important for the test
-    const actor = interpret(machine);
+    const actor = createActor(machine);
 
     expect(actor.system.get('someChild')).toBeDefined();
   });
 
   it('root actor can be given the systemId', () => {
     const machine = createMachine({});
-    const actor = interpret(machine, { systemId: 'test' });
+    const actor = createActor(machine, { systemId: 'test' });
     expect(actor.system.get('test')).toBe(actor);
   });
 
@@ -143,7 +143,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -166,7 +166,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -201,7 +201,7 @@ describe('system', () => {
 
     const errorSpy = jest.fn();
 
-    const actorRef = interpret(machine, { systemId: 'test' });
+    const actorRef = createActor(machine, { systemId: 'test' });
     actorRef.subscribe({
       error: errorSpy
     });
@@ -228,7 +228,7 @@ describe('system', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in referenced custom actions', () => {
@@ -249,7 +249,7 @@ describe('system', () => {
       }
     );
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in assign actions', () => {
@@ -263,7 +263,7 @@ describe('system', () => {
       })
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in sendTo actions', () => {
@@ -281,7 +281,7 @@ describe('system', () => {
       )
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in promise logic', () => {
@@ -301,7 +301,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -325,7 +325,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -351,7 +351,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -374,7 +374,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -395,7 +395,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });

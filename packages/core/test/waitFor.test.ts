@@ -1,4 +1,4 @@
-import { interpret, waitFor } from '../src/index.ts';
+import { createActor, waitFor } from '../src/index.ts';
 import { createMachine } from '../src/index.ts';
 
 describe('waitFor', () => {
@@ -13,7 +13,7 @@ describe('waitFor', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     setTimeout(() => service.send({ type: 'NEXT' }), 10);
 
@@ -36,7 +36,7 @@ describe('waitFor', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     try {
       await waitFor(service, (state) => state.matches('c'), { timeout: 10 });
@@ -58,7 +58,7 @@ describe('waitFor', () => {
         c: {}
       }
     });
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     const result = await Promise.race([
       waitFor(service, (state) => state.matches('c'), {
         timeout: Infinity
@@ -83,7 +83,7 @@ describe('waitFor', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     setTimeout(() => {
       service.send({ type: 'NEXT' });
@@ -104,7 +104,7 @@ describe('waitFor', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     await expect(
       waitFor(service, (state) => state.matches('a'))
@@ -114,7 +114,7 @@ describe('waitFor', () => {
   it('should not subscribe when the predicate immediately matches', () => {
     const machine = createMachine({});
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     const spy = jest.fn();
     actorRef.subscribe = spy;
 
@@ -137,7 +137,7 @@ describe('waitFor', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     await waitFor(service, (state) => {
       count++;
@@ -164,7 +164,7 @@ describe('waitFor', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     await expect(
@@ -187,7 +187,7 @@ describe('waitFor', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     await expect(

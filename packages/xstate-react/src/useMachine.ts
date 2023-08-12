@@ -2,7 +2,7 @@ import {
   ActorRefFrom,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  InterpreterOptions,
+  ActorOptions,
   MissingImplementationsError,
   StateFrom
 } from 'xstate';
@@ -18,7 +18,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   > extends true
     ? TMachine
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options: InterpreterOptions<TMachine> = {}
+  options: ActorOptions<TMachine> = {}
 ): [
   StateFrom<TMachine>,
   ActorRefFrom<TMachine>['send'],

@@ -1,5 +1,5 @@
 import { error } from './actions.ts';
-import { ActorStatus, interpret } from './interpreter.ts';
+import { ActorStatus, createActor } from './interpreter.ts';
 import {
   AnyActorContext,
   AnyActorRef,
@@ -32,7 +32,7 @@ export function createSpawner(
       const input = 'input' in options ? options.input : referenced.input;
 
       // TODO: this should also receive `src`
-      const actor = interpret(referenced.src, {
+      const actor = createActor(referenced.src, {
         id: options.id,
         parent: actorContext.self,
         input:
@@ -49,7 +49,7 @@ export function createSpawner(
       return actor;
     } else {
       // TODO: this should also receive `src`
-      return interpret(src, {
+      return createActor(src, {
         id: options.id,
         parent: actorContext.self,
         input: options.input,

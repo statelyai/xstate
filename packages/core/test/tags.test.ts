@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 
 describe('tags', () => {
   it('supports tagging states', () => {
@@ -23,7 +23,7 @@ describe('tags', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     expect(actorRef.getSnapshot().hasTag('go')).toBeTruthy();
     actorRef.send({ type: 'TIMER' });
     expect(actorRef.getSnapshot().hasTag('go')).toBeTruthy();
@@ -54,7 +54,7 @@ describe('tags', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     const initialState = actorRef.getSnapshot();
 
     expect(initialState.hasTag('go')).toBeFalsy();
@@ -94,7 +94,7 @@ describe('tags', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     expect(actorRef.getSnapshot().tags).toEqual(new Set(['yes']));
     actorRef.send({ type: 'DEACTIVATE' });
@@ -111,7 +111,7 @@ describe('tags', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({
       type: 'UNMATCHED'
     });
@@ -128,7 +128,7 @@ describe('tags', () => {
       }
     });
 
-    expect(interpret(machine).getSnapshot().hasTag('go')).toBeTruthy();
+    expect(createActor(machine).getSnapshot().hasTag('go')).toBeTruthy();
   });
 
   it('stringifies to an array', () => {
@@ -141,7 +141,7 @@ describe('tags', () => {
       }
     });
 
-    const jsonState = interpret(machine).getSnapshot().toJSON();
+    const jsonState = createActor(machine).getSnapshot().toJSON();
 
     expect(jsonState.tags).toEqual(['go', 'light']);
   });

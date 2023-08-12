@@ -1,5 +1,5 @@
 import { testAll } from './utils';
-import { createMachine, interpret } from '../src/index.ts';
+import { createMachine, createActor } from '../src/index.ts';
 
 const idMachine = createMachine({
   initial: 'A',
@@ -96,7 +96,7 @@ describe('State node IDs', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({
       type: 'ACTION'

@@ -4,7 +4,7 @@ import {
   AnyActorRef,
   AnyEventObject,
   assign,
-  interpret
+  createActor
 } from '../src';
 import { createMachine } from '../src/Machine';
 import {
@@ -31,7 +31,7 @@ describe('input', () => {
       }
     });
 
-    interpret(machine, { input: { startCount: 42 } }).start();
+    createActor(machine, { input: { startCount: 42 } }).start();
 
     expect(spy).toHaveBeenCalledWith(42);
   });
@@ -44,7 +44,7 @@ describe('input', () => {
       }
     });
 
-    interpret(machine, { input: { greeting: 'hello' } }).start();
+    createActor(machine, { input: { greeting: 'hello' } }).start();
   });
 
   it('should throw if input is expected but not provided', () => {
@@ -59,7 +59,7 @@ describe('input', () => {
     });
 
     expect(() => {
-      interpret(machine).start();
+      createActor(machine).start();
     }).toThrowError(/Cannot read properties of undefined/);
   });
 
@@ -71,7 +71,7 @@ describe('input', () => {
     });
 
     expect(() => {
-      interpret(machine).start();
+      createActor(machine).start();
     }).not.toThrowError();
   });
 
@@ -82,7 +82,7 @@ describe('input', () => {
 
     expect(() => {
       // TODO: add ts-expect-errpr
-      interpret(machine).start();
+      createActor(machine).start();
     }).not.toThrowError();
   });
 
@@ -107,7 +107,7 @@ describe('input', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should provide input data to spawned machines', (done) => {
@@ -134,7 +134,7 @@ describe('input', () => {
       })
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should create a promise with input', async () => {
@@ -142,7 +142,7 @@ describe('input', () => {
       ({ input }) => Promise.resolve(input)
     );
 
-    const promiseActor = interpret(promiseLogic, {
+    const promiseActor = createActor(promiseLogic, {
       input: { count: 42 }
     }).start();
 
@@ -157,7 +157,7 @@ describe('input', () => {
       ({ input }) => input
     );
 
-    const transitionActor = interpret(transitionLogic, {
+    const transitionActor = createActor(transitionLogic, {
       input: { count: 42 }
     }).start();
 
@@ -170,7 +170,7 @@ describe('input', () => {
       { count: number }
     >(({ input }) => of(input));
 
-    const observableActor = interpret(observableLogic, {
+    const observableActor = createActor(observableLogic, {
       input: { count: 42 }
     });
 
@@ -190,7 +190,7 @@ describe('input', () => {
       done();
     });
 
-    interpret(callbackLogic, {
+    createActor(callbackLogic, {
       input: { count: 42 }
     }).start();
   });
@@ -222,7 +222,7 @@ describe('input', () => {
       }
     );
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith(42);
   });
@@ -266,7 +266,7 @@ describe('input', () => {
       }
     );
 
-    interpret(machine, { input: 42 }).start();
+    createActor(machine, { input: 42 }).start();
 
     expect(spy).toHaveBeenCalledWith(142);
   });
@@ -295,7 +295,7 @@ describe('input', () => {
       }
     );
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith(42);
   });
@@ -333,7 +333,7 @@ describe('input', () => {
       }
     );
 
-    interpret(machine, { input: 42 }).start();
+    createActor(machine, { input: 42 }).start();
 
     expect(spy).toHaveBeenCalledWith(142);
   });
@@ -376,7 +376,7 @@ describe('input', () => {
       }
     );
 
-    interpret(machine, { input: 42 }).start();
+    createActor(machine, { input: 42 }).start();
 
     expect(spy).toHaveBeenCalledWith(142);
   });
@@ -406,7 +406,7 @@ describe('input', () => {
       }
     );
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith(100);
   });
@@ -435,7 +435,7 @@ describe('input', () => {
       }
     );
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith(100);
   });
@@ -450,7 +450,7 @@ describe('input', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith(actor);
   });
@@ -474,7 +474,7 @@ describe('input', () => {
       }
     );
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith(actor);
   });

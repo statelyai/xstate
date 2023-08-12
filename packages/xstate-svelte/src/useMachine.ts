@@ -4,11 +4,11 @@ import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
-  interpret,
-  InterpreterFrom,
-  InterpreterOptions,
+  createActor,
+  ActorOptions,
   StateFrom,
-  TODO
+  TODO,
+  Actor
 } from 'xstate';
 
 type Prop<T, K> = K extends keyof T ? T[K] : never;
@@ -18,7 +18,7 @@ type RestParams<TMachine extends AnyStateMachine> =
     TMachine['__TResolvedTypesMeta']
   > extends false
     ? [
-        options: InterpreterOptions<TMachine> &
+        options: ActorOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -29,7 +29,7 @@ type RestParams<TMachine extends AnyStateMachine> =
           >
       ]
     : [
-        options?: InterpreterOptions<TMachine> &
+        options?: ActorOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
@@ -41,7 +41,7 @@ type RestParams<TMachine extends AnyStateMachine> =
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
-  TInterpreter = InterpreterFrom<TMachine>
+  TInterpreter = Actor<TMachine>
 > = {
   state: Readable<StateFrom<TMachine>>;
   send: Prop<TInterpreter, 'send'>;
@@ -63,7 +63,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const resolvedMachine = machine.provide(machineConfig as any);
 
-  const service = interpret(resolvedMachine, interpreterOptions).start();
+  const service = createActor(resolvedMachine, interpreterOptions).start();
 
   onDestroy(() => service.stop());
 

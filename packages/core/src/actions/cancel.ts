@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import {
   AnyActorContext,
-  AnyInterpreter,
+  AnyActor,
   AnyState,
   EventObject,
   MachineContext,
@@ -25,7 +25,7 @@ function resolve(
 }
 
 function execute(actorContext: AnyActorContext, resolvedSendId: string) {
-  (actorContext.self as AnyInterpreter).cancel(resolvedSendId);
+  (actorContext.self as AnyActor).cancel(resolvedSendId);
 }
 
 /**

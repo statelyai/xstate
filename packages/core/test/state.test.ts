@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index';
+import { createMachine, createActor } from '../src/index';
 import { assign } from '../src/actions/assign';
 import { fromCallback } from '../src/actors/callback';
 
@@ -108,7 +108,7 @@ const exampleMachine = createMachine({
 describe('State', () => {
   describe('.nextEvents', () => {
     it('returns the next possible events for the current state', () => {
-      const actorRef = interpret(exampleMachine);
+      const actorRef = createActor(exampleMachine);
 
       expect(actorRef.getSnapshot().nextEvents.sort()).toEqual(
         [
@@ -134,7 +134,7 @@ describe('State', () => {
         'MACHINE_EVENT'
       ]);
 
-      const actorRef2 = interpret(exampleMachine).start();
+      const actorRef2 = createActor(exampleMachine).start();
       actorRef2.send({ type: 'TO_THREE' });
 
       expect(actorRef2.getSnapshot().nextEvents.sort()).toEqual([
@@ -146,7 +146,7 @@ describe('State', () => {
     });
 
     it('returns events when transitioned from StateValue', () => {
-      const actorRef = interpret(exampleMachine).start();
+      const actorRef = createActor(exampleMachine).start();
 
       actorRef.send({
         type: 'TO_THREE'
@@ -172,18 +172,18 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(noEventsMachine).getSnapshot().nextEvents).toEqual([]);
+      expect(createActor(noEventsMachine).getSnapshot().nextEvents).toEqual([]);
     });
   });
 
   describe('machine.createState()', () => {
     it('should be able to create a state from a JSON config', () => {
-      const initialState = interpret(exampleMachine).getSnapshot();
+      const initialState = createActor(exampleMachine).getSnapshot();
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
       const stateFromConfig = exampleMachine.createState(jsonInitialState);
 
-      const actorRef = interpret(exampleMachine, {
+      const actorRef = createActor(exampleMachine, {
         state: stateFromConfig
       }).start();
 
@@ -198,7 +198,7 @@ describe('State', () => {
     });
 
     it('should preserve state.nextEvents using machine.resolveState', () => {
-      const actorRef = interpret(exampleMachine);
+      const actorRef = createActor(exampleMachine);
       const initialState = actorRef.getSnapshot();
       const { nextEvents } = initialState;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
@@ -213,7 +213,7 @@ describe('State', () => {
 
   describe('State.prototype.matches', () => {
     it('should keep reference to state instance after destructuring', () => {
-      const { matches } = interpret(exampleMachine).getSnapshot();
+      const { matches } = createActor(exampleMachine).getSnapshot();
 
       expect(matches('one')).toBe(true);
     });
@@ -221,7 +221,7 @@ describe('State', () => {
 
   describe('State.prototype.toStrings', () => {
     it('should return all state paths as strings', () => {
-      const actorRef = interpret(exampleMachine).start();
+      const actorRef = createActor(exampleMachine).start();
       actorRef.send({
         type: 'TO_TWO',
         foo: 'test'
@@ -235,7 +235,7 @@ describe('State', () => {
     });
 
     it('should keep reference to state instance after destructuring', () => {
-      expect(interpret(exampleMachine).getSnapshot().toStrings()).toEqual([
+      expect(createActor(exampleMachine).getSnapshot().toStrings()).toEqual([
         'one'
       ]);
     });
@@ -243,11 +243,11 @@ describe('State', () => {
 
   describe('.done', () => {
     it('should show that a machine has not reached its final state', () => {
-      expect(interpret(exampleMachine).getSnapshot().done).toBe(false);
+      expect(createActor(exampleMachine).getSnapshot().done).toBe(false);
     });
 
     it('should show that a machine has reached its final state', () => {
-      const actorRef = interpret(exampleMachine).start();
+      const actorRef = createActor(exampleMachine).start();
       actorRef.send({ type: 'TO_FINAL' });
       expect(actorRef.getSnapshot().done).toBe(true);
     });
@@ -267,7 +267,9 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'NEXT' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'NEXT' })).toBe(
+        true
+      );
     });
 
     it('should return true for an event object that results in a transition to a different state', () => {
@@ -283,7 +285,9 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'NEXT' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'NEXT' })).toBe(
+        true
+      );
     });
 
     it('should return true for an event object that results in a new action', () => {
@@ -300,7 +304,9 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'NEXT' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'NEXT' })).toBe(
+        true
+      );
     });
 
     it('should return true for an event object that results in a context change', () => {
@@ -318,7 +324,9 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'NEXT' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'NEXT' })).toBe(
+        true
+      );
     });
 
     it('should return true for a reentering self-transition without actions', () => {
@@ -333,7 +341,7 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
     });
 
     it('should return true for a reentering self-transition with reentry action', () => {
@@ -349,7 +357,7 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
     });
 
     it('should return true for a reentering self-transition with transition action', () => {
@@ -367,7 +375,7 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
     });
 
     it('should return true for a targetless transition with actions', () => {
@@ -384,7 +392,7 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
     });
 
     it('should return false for a forbidden transition', () => {
@@ -399,7 +407,9 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'EV' })).toBe(false);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(
+        false
+      );
     });
 
     it('should return false for an unknown event', () => {
@@ -415,7 +425,7 @@ describe('State', () => {
         }
       });
 
-      expect(interpret(machine).getSnapshot().can({ type: 'UNKNOWN' })).toBe(
+      expect(createActor(machine).getSnapshot().can({ type: 'UNKNOWN' })).toBe(
         false
       );
     });
@@ -437,7 +447,7 @@ describe('State', () => {
       });
 
       expect(
-        interpret(machine).getSnapshot().can({
+        createActor(machine).getSnapshot().can({
           type: 'CHECK'
         })
       ).toBe(true);
@@ -460,7 +470,7 @@ describe('State', () => {
       });
 
       expect(
-        interpret(machine).getSnapshot().can({
+        createActor(machine).getSnapshot().can({
           type: 'CHECK'
         })
       ).toBe(false);
@@ -489,7 +499,7 @@ describe('State', () => {
         }
       });
 
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
       service.getSnapshot().can({ type: 'SPAWN' });
       expect(spawned).toBe(false);
     });
@@ -509,7 +519,7 @@ describe('State', () => {
         }
       });
 
-      const actorRef = interpret(machine);
+      const actorRef = createActor(machine);
 
       expect(actorRef.getSnapshot().can({ type: 'EVENT' })).toBeTruthy();
 
@@ -531,7 +541,7 @@ describe('State', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
 
       expect(actorRef.getSnapshot().can({ type: 'EVENT' })).toBeTruthy();
 
@@ -567,7 +577,7 @@ describe('State', () => {
       });
 
       expect(
-        interpret(machine).getSnapshot().can({ type: 'EVENT' })
+        createActor(machine).getSnapshot().can({ type: 'EVENT' })
       ).toBeTruthy();
     });
 
@@ -594,7 +604,7 @@ describe('State', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({ type: 'NEXT' });
 
       expect(actorRef.getSnapshot().can({ type: 'NEXT' })).toBeTruthy();
@@ -612,7 +622,7 @@ describe('State', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
       const restoredState = machine.createState(JSON.parse(persistedState));
