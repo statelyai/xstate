@@ -28,11 +28,17 @@ import { createInspector } from '../../xstate-inspect/src/index.ts';
 const WebSocket = require('ws');
 const server = new WebSocket.Server({ port: 8080 });
 // listen for messages
+const pastMessages = [];
 server.on('connection', (client) => {
+  pastMessages.forEach((message) => {
+    client.send(message.toString());
+  });
   client.on('message', (message) => {
-    server.clients.forEach((client) => {
+    pastMessages.push(message);
+    server.clients.forEach((otherClient) => {
+      if (otherClient === client) return;
       const msg = message.toString();
-      client.send(msg);
+      otherClient.send(msg);
     });
   });
 });

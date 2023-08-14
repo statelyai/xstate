@@ -1822,7 +1822,8 @@ export interface InspectedActorObject {
 }
 
 export interface BaseInspectionEvent {
-  systemId: string;
+  // the session ID of the root
+  actorSystemId: string;
   createdAt: string; // Timestamp
   id: string; // unique string for this actor update
 }

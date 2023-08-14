@@ -8,6 +8,7 @@ import {
 } from './types.ts';
 import { uniqueId } from './utils.ts';
 
+let systemCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef
 ): ActorSystem<T> {
@@ -15,7 +16,6 @@ export function createSystem<T extends ActorSystemInfo>(
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const observers = new Set<Observer<ResolvedInspectionEvent>>();
-  let systemCounter = 0;
 
   const system: ActorSystem<T> = {
     root: rootActor,
@@ -55,7 +55,7 @@ export function createSystem<T extends ActorSystemInfo>(
         id: Math.random().toString(),
         createdAt: new Date().toString(),
         ...event,
-        systemId: system.root.sessionId
+        actorSystemId: system.root.sessionId
       };
       observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
     },
