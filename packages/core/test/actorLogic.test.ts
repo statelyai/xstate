@@ -215,6 +215,33 @@ describe('promise logic (fromPromise)', () => {
 
     createActor(promiseLogic).start();
   });
+
+  it('should have reference to not aborted abort signal', () => {
+    let signal: AbortSignal | undefined = undefined;
+    const promiseLogic = fromPromise(({ signal: s }) => {
+      signal = s;
+      return Promise.resolve(42);
+    });
+
+    createActor(promiseLogic).start();
+
+    expect(signal).toBeDefined();
+    expect(signal!.aborted).toEqual(false);
+  });
+
+  it('should abort the abort signal upon stop()', () => {
+    let signal: AbortSignal | undefined = undefined;
+    const promiseLogic = fromPromise(({ signal: s }) => {
+      signal = s;
+      return new Promise((res) => setTimeout(() => res(42), 100));
+    });
+
+    createActor(promiseLogic).start().stop();
+
+    expect(signal).toBeDefined();
+    expect(signal!.aborted).toEqual(true);
+    expect(signal!.reason).toEqual('Actor recieved stop signal');
+  });
 });
 
 describe('transition function logic (fromTransition)', () => {

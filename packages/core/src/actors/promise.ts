@@ -10,6 +10,7 @@ export interface PromiseInternalState<T, TInput = unknown> {
   status: 'active' | 'error' | 'done' | 'canceled';
   data: T | undefined;
   input: TInput | undefined;
+  controller: AbortController;
 }
 
 const resolveEventType = '$$xstate.resolve';
@@ -49,6 +50,7 @@ export function fromPromise<T, TInput>(
     input: TInput;
     system: AnyActorSystem;
     self: PromiseActorRef<T>;
+    signal: AbortSignal;
   }) => PromiseLike<T>
 ): PromiseActorLogic<T, TInput> {
   // TODO: add event types
@@ -75,6 +77,7 @@ export function fromPromise<T, TInput>(
             input: undefined
           };
         case stopSignalType:
+          state.controller.abort('Actor recieved stop signal');
           return {
             ...state,
             status: 'canceled',
@@ -91,8 +94,9 @@ export function fromPromise<T, TInput>(
         return;
       }
 
+      const { signal } = state.controller;
       const resolvedPromise = Promise.resolve(
-        promiseCreator({ input: state.input!, system, self })
+        promiseCreator({ input: state.input!, system, self, signal })
       );
 
       resolvedPromise.then(
@@ -116,7 +120,8 @@ export function fromPromise<T, TInput>(
       return {
         status: 'active',
         data: undefined,
-        input
+        input,
+        controller: new AbortController()
       };
     },
     getSnapshot: (state) => state.data,
