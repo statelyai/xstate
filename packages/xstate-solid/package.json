@@ -60,7 +60,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^3.0.0-beta.3",
     "solid-js": "^1.6.0",
-    "xstate": "^5.0.0-beta.21"
+    "xstate": "^5.0.0-beta.22"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -74,7 +74,7 @@
     "@xstate/fsm": "3.0.0-beta.3",
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
-    "xstate": "5.0.0-beta.21"
+    "xstate": "5.0.0-beta.22"
   },
   "preconstruct": {
     "entrypoints": [
