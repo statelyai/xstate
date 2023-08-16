@@ -646,7 +646,7 @@ export interface StateNodeConfig<
    * The output data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
    */
-  output?: Mapper<TContext, TEvent, TOutput> | NonReducibleUnknown;
+  output?: Mapper<TContext, TEvent, TOutput> | TOutput;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.
