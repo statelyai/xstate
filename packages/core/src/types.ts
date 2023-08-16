@@ -1024,7 +1024,7 @@ export type MachineConfig<
   TAction extends ParameterizedObject = ParameterizedObject,
   TActor extends ProvidedActor = ProvidedActor,
   TInput = any,
-  TOutput = any,
+  TOutput = unknown,
   TTypesMeta = TypegenDisabled
 > = (StateNodeConfig<
   NoInfer<TContext>,

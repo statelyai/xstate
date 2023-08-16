@@ -19,7 +19,7 @@ export function createMachine<
   TEvent extends EventObject = AnyEventObject,
   TActor extends ProvidedActor = ProvidedActor,
   TInput = any,
-  TOutput = any,
+  TOutput = unknown,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<
