@@ -200,6 +200,29 @@ describe('output', () => {
 
     ((_accept: number | undefined) => {})(state.output);
   });
+
+  it('output on top level state should be typechecked', () => {
+    const machine = createMachine({
+      types: {} as {
+        output: number;
+      },
+      states: {
+        done: {
+          type: 'final',
+          // @ts-expect-error
+          output: 'a string'
+        },
+        doneCorrect: {
+          type: 'final',
+          output: 42
+        }
+      }
+    });
+
+    const state = machine.getInitialState(null as any);
+
+    ((_accept: number | undefined) => {})(state.output);
+  });
 });
 
 it('should infer context type from `config.context` when there is no `schema.context`', () => {

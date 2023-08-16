@@ -413,9 +413,10 @@ export type StatesConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TOutput
 > = {
-  [K in string]: StateNodeConfig<TContext, TEvent, TAction, TActor, TODO>;
+  [K in string]: StateNodeConfig<TContext, TEvent, TAction, TActor, TOutput>;
 };
 
 export type StatesDefinition<
@@ -594,7 +595,7 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TEvent, TAction, TActor> | undefined;
+  states?: StatesConfig<TContext, TEvent, TAction, TActor, unknown> | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
@@ -1041,6 +1042,7 @@ export type MachineConfig<
    */
   version?: string;
   types?: MachineTypes<TContext, TEvent, TActor, TInput, TOutput, TTypesMeta>;
+  states?: StatesConfig<TContext, TEvent, TAction, TActor, TOutput> | undefined;
 }) &
   (Equals<TContext, MachineContext> extends true
     ? { context?: InitialContext<LowInfer<TContext>, TInput> }
