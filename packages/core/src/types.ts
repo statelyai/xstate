@@ -1021,6 +1021,19 @@ export type ContextFactory<TContext extends MachineContext, TInput> = ({
   input: TInput;
 }) => TContext;
 
+type RootStateNodeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TAction extends ParameterizedObject,
+  TActor extends ProvidedActor,
+  TOutput
+> = Omit<
+  StateNodeConfig<TContext, TEvent, TAction, TActor, TOutput>,
+  'states'
+> & {
+  states?: StatesConfig<TContext, TEvent, TAction, TActor, TOutput> | undefined;
+};
+
 export type MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1029,15 +1042,12 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown,
   TTypesMeta = TypegenDisabled
-> = (Omit<
-  StateNodeConfig<
-    NoInfer<TContext>,
-    NoInfer<TEvent>,
-    NoInfer<TAction>,
-    NoInfer<TActor>,
-    NoInfer<TOutput>
-  >,
-  'states'
+> = (RootStateNodeConfig<
+  NoInfer<TContext>,
+  NoInfer<TEvent>,
+  NoInfer<TAction>,
+  NoInfer<TActor>,
+  NoInfer<TOutput>
 > & {
   /**
    * The initial context (extended state)
@@ -1047,7 +1057,6 @@ export type MachineConfig<
    */
   version?: string;
   types?: MachineTypes<TContext, TEvent, TActor, TInput, TOutput, TTypesMeta>;
-  states?: StatesConfig<TContext, TEvent, TAction, TActor, TOutput> | undefined;
 }) &
   (Equals<TContext, MachineContext> extends true
     ? { context?: InitialContext<LowInfer<TContext>, TInput> }
