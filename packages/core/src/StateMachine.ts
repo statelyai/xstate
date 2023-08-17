@@ -101,7 +101,7 @@ export class StateMachine<
     /**
      * The raw config used to create the machine.
      */
-    public config: MachineConfig<TContext, TEvent, any, any, any>,
+    public config: MachineConfig<TContext, TEvent, any, any, any, TOutput, any>,
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
