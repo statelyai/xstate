@@ -210,6 +210,7 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
+      initial: 'done',
       states: {
         done: {
           type: 'final',
@@ -224,6 +225,7 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
+      initial: 'done',
       states: {
         done: {
           type: 'final',
@@ -239,6 +241,7 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
+      initial: 'done',
       states: {
         done: {
           type: 'final',
@@ -253,6 +256,7 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
+      initial: 'done',
       states: {
         done: {
           type: 'final',
@@ -272,6 +276,7 @@ describe('output', () => {
         };
       },
       context: { password: 'okoń' },
+      initial: 'done',
       states: {
         done: {
           type: 'final',
@@ -297,6 +302,7 @@ describe('output', () => {
         };
       },
       context: { password: 'okoń' },
+      initial: 'secret',
       states: {
         secret: {
           initial: 'reveal',
