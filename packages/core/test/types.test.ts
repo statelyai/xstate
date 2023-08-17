@@ -188,6 +188,146 @@ describe('context', () => {
   });
 });
 
+describe('output', () => {
+  it('output type should be represented in state', () => {
+    const machine = createMachine({
+      types: {} as {
+        output: number;
+      }
+    });
+
+    const state = machine.getInitialState(null as any);
+
+    ((_accept: number | undefined) => {})(state.output);
+    // @ts-expect-error
+    ((_accept: number) => {})(state.output);
+    // @ts-expect-error
+    ((_accept: string) => {})(state.output);
+  });
+
+  it('should accept valid static output', () => {
+    createMachine({
+      types: {} as {
+        output: number;
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: 42
+        }
+      }
+    });
+  });
+
+  it('should reject invalid static output', () => {
+    const machine = createMachine({
+      types: {} as {
+        output: number;
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          // @ts-expect-error
+          output: 'a string'
+        }
+      }
+    });
+  });
+
+  it('should accept valid dynamic output', () => {
+    createMachine({
+      types: {} as {
+        output: number;
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: () => 42
+        }
+      }
+    });
+  });
+
+  it('should reject invalid dynamic output', () => {
+    const machine = createMachine({
+      types: {} as {
+        output: number;
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          // @ts-expect-error
+          output: () => 'a string'
+        }
+      }
+    });
+  });
+
+  it('should provide the context type to the dynamic top-level output', () => {
+    createMachine({
+      types: {} as {
+        context: { password: string };
+        output: {
+          secret: string;
+        };
+      },
+      context: { password: 'okoń' },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: ({ context }) => {
+            ((_accept: string) => {})(context.password);
+            // @ts-expect-error
+            ((_accept: number) => {})(context.password);
+            return {
+              secret: 'the secret'
+            };
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide the context type to the dynamic nested output', () => {
+    createMachine({
+      types: {} as {
+        context: { password: string };
+        output: {
+          secret: string;
+        };
+      },
+      context: { password: 'okoń' },
+      initial: 'secret',
+      states: {
+        secret: {
+          initial: 'reveal',
+          states: {
+            reveal: {
+              type: 'final',
+              output: ({ context }) => {
+                ((_accept: string) => {})(context.password);
+                // @ts-expect-error
+                ((_accept: number) => {})(context.password);
+                return {
+                  secret: 'the secret'
+                };
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+  });
+});
+
 it('should infer context type from `config.context` when there is no `schema.context`', () => {
   createMachine(
     {
@@ -235,7 +375,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any> {
+  ): StateMachine<TContext, any, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -309,7 +449,7 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, TEvent, any, any, any>) {}
+    >(_machine: StateMachine<TContext, TEvent, any, any, any, any>) {}
 
     acceptMachine(toggleMachine);
   });

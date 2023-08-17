@@ -29,14 +29,14 @@ export interface TestMachineConfig<
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
   context?: MachineConfig<TContext, TEvent>['context'];
-  types?: MachineTypes<TContext, TEvent, TODO, TTypesMeta>;
+  types?: MachineTypes<TContext, TEvent, TODO, TODO, TTypesMeta>;
 }
 
 export interface TestStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Pick<
-    StateNodeConfig<TContext, TEvent, TODO, TODO>,
+    StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>,
     | 'type'
     | 'history'
     | 'on'
@@ -74,9 +74,9 @@ export type TestMachineOptions<
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
     testContext: T,
-    state: State<TContext, any, any>
+    state: State<TContext, any, any, any>
   ) => Promise<void> | void;
-  description?: string | ((state: State<TContext, any, any>) => string);
+  description?: string | ((state: State<TContext, any, any, any>) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -146,7 +146,7 @@ export interface TestTransitionConfig<
   TTestContext
 > extends TransitionConfig<TContext, TEvent> {
   test?: (
-    state: State<TContext, TEvent, any>,
+    state: State<TContext, TEvent, any, any>,
     testContext: TTestContext
   ) => void;
 }

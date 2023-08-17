@@ -674,7 +674,7 @@ export function getStateNodes<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode,
-  state: StateValue | State<TContext, TEvent, TODO>
+  state: StateValue | State<TContext, TEvent, TODO, TODO>
 ): Array<AnyStateNode> {
   const stateValue = state instanceof State ? state.value : toStateValue(state);
 
@@ -710,7 +710,7 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  state: State<TContext, TEvent, TODO>,
+  state: State<TContext, TEvent, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -729,7 +729,7 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent, TODO>,
+  state: State<TContext, TEvent, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -755,7 +755,7 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent, TODO>,
+  state: State<TContext, TEvent, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -791,7 +791,7 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  state: State<TContext, TEvent, TODO, any>,
+  state: State<TContext, TEvent, TODO, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
@@ -1003,11 +1003,11 @@ export function microstep<
   TEvent extends EventObject
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  currentState: State<TContext, TEvent, TODO, any>,
+  currentState: AnyState,
   actorCtx: AnyActorContext,
   event: TEvent,
   isInitial: boolean
-): State<TContext, TEvent, TODO, any> {
+): AnyState {
   const mutConfiguration = new Set(currentState.configuration);
 
   if (!transitions.length) {
@@ -1399,7 +1399,7 @@ export function resolveActionsAndContext<
 >(
   actions: Action<any, any, any>[],
   event: TEvent,
-  currentState: State<TContext, TEvent, TODO, any>,
+  currentState: AnyState,
   actorCtx: AnyActorContext
 ): AnyState {
   const { machine } = currentState;

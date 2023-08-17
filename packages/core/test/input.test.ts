@@ -1,11 +1,5 @@
 import { of } from 'rxjs';
-import {
-  AnyActorLogic,
-  AnyActorRef,
-  AnyEventObject,
-  assign,
-  createActor
-} from '../src';
+import { AnyActorLogic, AnyActorRef, assign, createActor } from '../src';
 import { createMachine } from '../src/Machine';
 import {
   fromCallback,
