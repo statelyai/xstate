@@ -100,8 +100,8 @@ export interface ActionArgs<
 export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
   infer _TContext,
   infer _TEvent,
-  infer _TActions,
-  infer _TActors,
+  infer _TAction,
+  infer _TActor,
   infer TInput,
   infer _TResolvedTypesMeta
 >
@@ -162,20 +162,20 @@ export interface ChooseBranch<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent,
-  TActions extends ParameterizedObject = ParameterizedObject
+  TAction extends ParameterizedObject = ParameterizedObject
 > {
   guard?: GuardConfig<TContext, TExpressionEvent>;
-  actions: Actions<TContext, TExpressionEvent, TEvent, TActions>;
+  actions: Actions<TContext, TExpressionEvent, TEvent, TAction>;
 }
 
 export type Action<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
+  TAction extends ParameterizedObject
 > =
   | ActionType
-  | TActions
+  | TAction
   | ActionFunction<TContext, TExpressionEvent, TEvent, ParameterizedObject>;
 
 export type AnyAction = Action<any, any, any, any>;
@@ -184,8 +184,8 @@ export type Actions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
-> = SingleOrArray<Action<TContext, TExpressionEvent, TEvent, TActions>>;
+  TAction extends ParameterizedObject
+> = SingleOrArray<Action<TContext, TExpressionEvent, TEvent, TAction>>;
 
 export type StateKey = string | AnyState;
 
@@ -302,22 +302,22 @@ export interface TransitionConfig<
 export interface TargetTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
-> extends TransitionConfig<TContext, TEvent, TEvent, TActions> {
+  TAction extends ParameterizedObject
+> extends TransitionConfig<TContext, TEvent, TEvent, TAction> {
   target: TransitionTarget; // TODO: just make this non-optional
 }
 
 export type ConditionalTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
-> = Array<TransitionConfig<TContext, TEvent, TEvent, TActions>>;
+  TAction extends ParameterizedObject
+> = Array<TransitionConfig<TContext, TEvent, TEvent, TAction>>;
 
 export interface InitialTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
-> extends TransitionConfig<TContext, TEvent, TEvent, TActions> {
+  TAction extends ParameterizedObject
+> extends TransitionConfig<TContext, TEvent, TEvent, TAction> {
   guard?: never;
   target: TransitionTarget;
 }
@@ -330,7 +330,7 @@ export interface InvokeMeta {
 export interface InvokeDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
+  TAction extends ParameterizedObject
 > {
   id: string;
 
@@ -351,7 +351,7 @@ export interface InvokeDefinition<
           TContext,
           DoneInvokeEvent<any>,
           DoneInvokeEvent<any>,
-          TActions
+          TAction
         >
       >;
   /**
@@ -360,7 +360,7 @@ export interface InvokeDefinition<
   onError?:
     | string
     | SingleOrArray<
-        TransitionConfig<TContext, ErrorEvent<any>, ErrorEvent<any>, TActions>
+        TransitionConfig<TContext, ErrorEvent<any>, ErrorEvent<any>, TAction>
       >;
 
   onSnapshot?:
@@ -370,12 +370,12 @@ export interface InvokeDefinition<
           TContext,
           SnapshotEvent<any>,
           SnapshotEvent<any>,
-          TActions
+          TAction
         >
       >;
 
   toJSON: () => Omit<
-    InvokeDefinition<TContext, TEvent, TActions>,
+    InvokeDefinition<TContext, TEvent, TAction>,
     'onDone' | 'onError' | 'toJSON'
   >;
   meta: MetaObject | undefined;
@@ -392,15 +392,15 @@ export interface Delay {
 export type DelayedTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
+  TAction extends ParameterizedObject
 > =
   | Record<
       string | number,
       | string
-      | SingleOrArray<TransitionConfig<TContext, TEvent, TEvent, TActions>>
+      | SingleOrArray<TransitionConfig<TContext, TEvent, TEvent, TAction>>
     >
   | Array<
-      TransitionConfig<TContext, TEvent, TEvent, TActions> & {
+      TransitionConfig<TContext, TEvent, TEvent, TAction> & {
         delay:
           | number
           | string
@@ -448,25 +448,25 @@ export type TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
+  TAction extends ParameterizedObject
 > = SingleOrArray<
   | TransitionConfigTarget
-  | TransitionConfig<TContext, TExpressionEvent, TEvent, TActions>
+  | TransitionConfig<TContext, TExpressionEvent, TEvent, TAction>
 >;
 
 export type TransitionsConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject
+  TAction extends ParameterizedObject
 > = {
   // TODO: this doesn't support partial descriptors
   [K in TEvent['type'] | '*']?: K extends '*'
-    ? TransitionConfigOrTarget<TContext, TEvent, TEvent, TActions>
+    ? TransitionConfigOrTarget<TContext, TEvent, TEvent, TAction>
     : TransitionConfigOrTarget<
         TContext,
         ExtractEvent<TEvent, K>,
         TEvent,
-        TActions
+        TAction
       >;
 };
 
@@ -476,7 +476,7 @@ type DistributeActors<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
-  TActions extends ParameterizedObject
+  TAction extends ParameterizedObject
 > = TActor extends { src: infer TSrc }
   ? Compute<
       {
@@ -499,7 +499,7 @@ type DistributeActors<
                 TContext,
                 DoneInvokeEvent<OutputFrom<TActor['logic']>>,
                 TEvent,
-                TActions
+                TAction
               >
             >;
         /**
@@ -512,7 +512,7 @@ type DistributeActors<
                 TContext,
                 ErrorEvent<any>,
                 TEvent,
-                TActions
+                TAction
               >
             >;
 
@@ -552,9 +552,9 @@ export type InvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
-  TActions extends ParameterizedObject
+  TAction extends ParameterizedObject
 > = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<TContext, TEvent, TActor, TActions>
+  ? DistributeActors<TContext, TEvent, TActor, TAction>
   : {
       /**
        * The unique identifier for the invoked machine. If not specified, this
@@ -581,7 +581,7 @@ export type InvokeConfig<
               TContext,
               DoneInvokeEvent<any>,
               TEvent,
-              TActions
+              TAction
             >
           >;
       /**
@@ -590,12 +590,7 @@ export type InvokeConfig<
       onError?:
         | string
         | SingleOrArray<
-            TransitionConfigOrTarget<
-              TContext,
-              ErrorEvent<any>,
-              TEvent,
-              TActions
-            >
+            TransitionConfigOrTarget<TContext, ErrorEvent<any>, TEvent, TAction>
           >;
 
       onSnapshot?:
@@ -605,7 +600,7 @@ export type InvokeConfig<
               TContext,
               SnapshotEvent<any>,
               TEvent,
-              TActions
+              TAction
             >
           >;
       /**
@@ -1133,14 +1128,14 @@ export interface ProvidedActor {
 export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActions extends ParameterizedObject,
+  TAction extends ParameterizedObject,
   TActor extends ProvidedActor,
   TInput,
   TOutput,
   TTypesMeta = TypegenDisabled
 > {
   context?: TContext;
-  actions?: TActions;
+  actions?: TAction;
   actors?: TActor;
   events?: TEvent;
   guards?: { type: string; [key: string]: any };
