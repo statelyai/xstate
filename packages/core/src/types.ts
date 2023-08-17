@@ -51,8 +51,6 @@ export type Cast<A, B> = A extends B ? A : B;
 export type NoInfer<T> = [T][T extends any ? 0 : any];
 export type LowInfer<T> = T & {};
 
-export type EventType = string;
-export type ActionType = string;
 export type MetaObject = Record<string, any>;
 
 export type Lazy<T> = () => T;
@@ -74,7 +72,7 @@ export interface AnyEventObject extends EventObject {
 
 export interface ParameterizedObject {
   type: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 export interface UnifiedArg<
@@ -168,13 +166,19 @@ export interface ChooseBranch<
   actions: Actions<TContext, TExpressionEvent, TEvent, TAction>;
 }
 
+type NoRequiredParams<T extends ParameterizedObject> = T extends any
+  ? { type: T['type'] } extends T
+    ? T['type']
+    : never
+  : never;
+
 export type Action<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TAction extends ParameterizedObject
 > =
-  | ActionType
+  | NoRequiredParams<TAction>
   | TAction
   | ActionFunction<TContext, TExpressionEvent, TEvent, ParameterizedObject>;
 

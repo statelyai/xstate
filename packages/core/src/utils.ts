@@ -7,12 +7,10 @@ import type {
   ActorLogic,
   AnyEventObject,
   EventObject,
-  EventType,
   InvokeConfig,
   MachineContext,
   Mapper,
   Observer,
-  PropertyMapper,
   ErrorEvent,
   SingleOrArray,
   StateLike,
@@ -262,7 +260,7 @@ export function mapContext<
   return mapper;
 }
 
-export function isBuiltInEvent(eventType: EventType): boolean {
+export function isBuiltInEvent(eventType: string): boolean {
   return /^(done|error)\./.test(eventType);
 }
 
