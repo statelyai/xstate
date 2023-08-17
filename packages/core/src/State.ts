@@ -81,7 +81,7 @@ export class State<
    */
   public done: boolean;
   /**
-   * The done data of the top-level finite state.
+   * The output data of the top-level finite state.
    */
   public output: TOutput | undefined;
   public error: unknown;

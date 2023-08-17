@@ -199,9 +199,27 @@ describe('output', () => {
     const state = machine.getInitialState(null as any);
 
     ((_accept: number | undefined) => {})(state.output);
+    // @ts-expect-error
+    ((_accept: number) => {})(state.output);
+    // @ts-expect-error
+    ((_accept: string) => {})(state.output);
   });
 
-  it('output on top level state should be typechecked', () => {
+  it('should accept valid static output', () => {
+    createMachine({
+      types: {} as {
+        output: number;
+      },
+      states: {
+        done: {
+          type: 'final',
+          output: 42
+        }
+      }
+    });
+  });
+
+  it('should reject invalid static output', () => {
     const machine = createMachine({
       types: {} as {
         output: number;
@@ -211,17 +229,96 @@ describe('output', () => {
           type: 'final',
           // @ts-expect-error
           output: 'a string'
-        },
-        doneCorrect: {
-          type: 'final',
-          output: 42
         }
       }
     });
+  });
 
-    const state = machine.getInitialState(null as any);
+  it('should accept valid dynamic output', () => {
+    createMachine({
+      types: {} as {
+        output: number;
+      },
+      states: {
+        done: {
+          type: 'final',
+          output: () => 42
+        }
+      }
+    });
+  });
 
-    ((_accept: number | undefined) => {})(state.output);
+  it('should reject invalid dynamic output', () => {
+    const machine = createMachine({
+      types: {} as {
+        output: number;
+      },
+      states: {
+        done: {
+          type: 'final',
+          // @ts-expect-error
+          output: () => 'a string'
+        }
+      }
+    });
+  });
+
+  it('should provide the context type to the dynamic top-level output', () => {
+    createMachine({
+      types: {} as {
+        context: { password: string };
+        output: {
+          secret: string;
+        };
+      },
+      context: { password: 'okoń' },
+      states: {
+        done: {
+          type: 'final',
+          output: ({ context }) => {
+            ((_accept: string) => {})(context.password);
+            // @ts-expect-error
+            ((_accept: number) => {})(context.password);
+            return {
+              secret: 'the secret'
+            };
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide the context type to the dynamic nested output', () => {
+    createMachine({
+      types: {} as {
+        context: { password: string };
+        output: {
+          secret: string;
+        };
+      },
+      context: { password: 'okoń' },
+      states: {
+        secret: {
+          initial: 'reveal',
+          states: {
+            reveal: {
+              type: 'final',
+              output: ({ context }) => {
+                ((_accept: string) => {})(context.password);
+                // @ts-expect-error
+                ((_accept: number) => {})(context.password);
+                return {
+                  secret: 'the secret'
+                };
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
   });
 });
 

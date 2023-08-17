@@ -595,7 +595,9 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TEvent, TAction, TActor, unknown> | undefined;
+  states?:
+    | StatesConfig<TContext, TEvent, TAction, TActor, NonReducibleUnknown>
+    | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
@@ -1027,12 +1029,15 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown,
   TTypesMeta = TypegenDisabled
-> = (StateNodeConfig<
-  NoInfer<TContext>,
-  NoInfer<TEvent>,
-  NoInfer<TAction>,
-  NoInfer<TActor>,
-  NoInfer<TOutput>
+> = (Omit<
+  StateNodeConfig<
+    NoInfer<TContext>,
+    NoInfer<TEvent>,
+    NoInfer<TAction>,
+    NoInfer<TActor>,
+    NoInfer<TOutput>
+  >,
+  'states'
 > & {
   /**
    * The initial context (extended state)
