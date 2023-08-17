@@ -74,7 +74,7 @@ export class StateMachine<
       >,
       TODO,
       TInput,
-      TODO
+      TOutput
     >
 {
   /**

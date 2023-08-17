@@ -1480,9 +1480,10 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer TContext,
       infer TEvent,
-      any,
-      any,
-      any,
+      infer _TAction,
+      infer TActor,
+      infer _Tinput,
+      infer TOutput,
       infer TResolvedTypesMeta
     >
     ? ActorRef<
@@ -1490,8 +1491,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         State<
           TContext,
           TEvent,
-          TODO, // TActor
-          TODO, // TOutput
+          TActor,
+          TOutput,
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
             : TResolvedTypesMeta
@@ -1654,7 +1655,8 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer ___,
         infer ____,
         infer _____,
-        infer ______
+        infer ______,
+        infer _______
       >
     ? StateFrom<R>
     : R extends ActorLogic<
@@ -1715,8 +1717,9 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     : R extends State<
         infer _TContext,
         infer TEvent,
-        infer _TAction,
-        infer _TActor
+        infer _TActor,
+        infer _TOutput,
+        infer _TResolvedTypesMeta
       >
     ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
@@ -1744,17 +1747,19 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     : R extends State<
         infer TContext,
         infer _TEvent,
-        infer _TAction,
-        infer _TActor
+        infer _TActor,
+        infer _TOutput,
+        infer _TResolvedTypesMeta
       >
     ? TContext
     : R extends Actor<infer TActorLogic>
     ? TActorLogic extends StateMachine<
         infer TContext,
         infer _TEvent,
-        infer _TActions,
-        infer _TActors,
+        infer _TAction,
+        infer _TActor,
         infer _TInput,
+        infer _TOutput,
         infer _TTypesMeta
       >
       ? TContext
