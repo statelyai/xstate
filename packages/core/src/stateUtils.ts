@@ -38,7 +38,8 @@ import {
   TODO,
   AnyActorRef,
   UnknownAction,
-  ParameterizedObject
+  ParameterizedObject,
+  ActionFunction
 } from './types.ts';
 import {
   isArray,
@@ -1411,12 +1412,24 @@ export function resolveActionsAndContext<
   });
 
   for (const action of actions) {
-    const resolved =
-      typeof action === 'function'
-        ? action
-        : machine.implementations.actions[
-            typeof action === 'string' ? action : action.type
-          ];
+    const isInline = typeof action === 'function';
+    const resolved = isInline
+      ? action
+      : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
+        // it's fine to cast this here to get a common type and lack of errors in the rest of the code
+        // our logic below makes sure that we call those 2 "variants" correctly
+        (
+          machine.implementations.actions as Record<
+            string,
+            ActionFunction<
+              MachineContext,
+              EventObject,
+              EventObject,
+              ParameterizedObject | undefined,
+              ParameterizedObject
+            >
+          >
+        )[typeof action === 'string' ? action : action.type];
 
     if (!resolved) {
       continue;
@@ -1427,12 +1440,12 @@ export function resolveActionsAndContext<
       event,
       self: actorCtx?.self,
       system: actorCtx?.system,
-      // TODO: figure out story for `action` and inline actions
-      // what those ones should receive?
-      //
-      // entry: ({ action }) => {}
-      // exit: assign(({ action }) => {})
-      action: typeof action === 'string' ? { type: action } : (action as any)
+      // andarist
+      action: isInline
+        ? undefined
+        : typeof action === 'string'
+        ? { type: action }
+        : action
     };
 
     if (!('resolve' in resolved)) {
