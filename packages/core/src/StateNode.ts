@@ -11,7 +11,6 @@ import {
   getDelayedTransitions
 } from './stateUtils.ts';
 import type {
-  Action,
   AnyActorLogic,
   DelayedTransitionDefinition,
   EventObject,
@@ -21,7 +20,6 @@ import type {
   InvokeDefinition,
   MachineContext,
   Mapper,
-  PropertyMapper,
   StateNodeConfig,
   StateNodeDefinition,
   StateNodesConfig,
@@ -29,7 +27,8 @@ import type {
   TransitionDefinition,
   TransitionDefinitionMap,
   TODO,
-  AnyAction
+  UnknownAction,
+  ParameterizedObject
 } from './types.ts';
 import {
   createInvokeId,
@@ -42,7 +41,7 @@ import {
 
 const EMPTY_OBJECT = {};
 
-const toSerializableActon = (action: AnyAction) => {
+const toSerializableActon = (action: UnknownAction) => {
   if (typeof action === 'string') {
     return { type: action };
   }
@@ -106,11 +105,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: AnyAction[];
+  public entry: UnknownAction[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: AnyAction[];
+  public exit: UnknownAction[];
   /**
    * The parent state node.
    */
@@ -272,7 +271,9 @@ export class StateNode<
   /**
    * The logic invoked as actors by this state node.
    */
-  public get invoke(): Array<InvokeDefinition<TContext, TEvent, TODO>> {
+  public get invoke(): Array<
+    InvokeDefinition<TContext, TEvent, ParameterizedObject>
+  > {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
         const generatedId = createInvokeId(this.id, i);
@@ -311,7 +312,7 @@ export class StateNode<
               id: resolvedId
             };
           }
-        } as InvokeDefinition<TContext, TEvent, TODO>;
+        } as InvokeDefinition<TContext, TEvent, ParameterizedObject>;
       })
     );
   }
@@ -334,7 +335,11 @@ export class StateNode<
   }
 
   public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
-    return memo(this, 'delayedTransitions', () => getDelayedTransitions(this));
+    return memo(
+      this,
+      'delayedTransitions',
+      () => getDelayedTransitions(this) as any
+    );
   }
 
   public get initial(): InitialTransitionDefinition<TContext, TEvent> {
@@ -348,7 +353,7 @@ export class StateNode<
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
-    const actions: AnyAction[] = [];
+    const actions: UnknownAction[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 

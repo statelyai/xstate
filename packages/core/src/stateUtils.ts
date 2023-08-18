@@ -16,7 +16,6 @@ import {
 import { evaluateGuard, toGuardDefinition } from './guards.ts';
 import { ActorStatus } from './interpreter.ts';
 import {
-  Action,
   ActionArgs,
   AnyActorContext,
   AnyEventObject,
@@ -37,7 +36,9 @@ import {
   TransitionConfig,
   TransitionDefinition,
   TODO,
-  AnyActorRef
+  AnyActorRef,
+  UnknownAction,
+  ParameterizedObject
 } from './types.ts';
 import {
   isArray,
@@ -282,27 +283,25 @@ export function getCandidates<TEvent extends EventObject>(
 /**
  * All delayed transitions from the config.
  */
-export function getDelayedTransitions<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function getDelayedTransitions(
   stateNode: AnyStateNode
-): Array<DelayedTransitionDefinition<TContext, TEvent>> {
+): Array<DelayedTransitionDefinition<MachineContext, EventObject>> {
   const afterConfig = stateNode.config.after;
   if (!afterConfig) {
     return [];
   }
 
   const mutateEntryExit = (
-    delay: string | number | DelayExpr<TContext, TEvent>,
+    delay:
+      | string
+      | number
+      | DelayExpr<MachineContext, EventObject, ParameterizedObject | undefined>,
     i: number
   ) => {
     const delayRef =
       typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
     const eventType = after(delayRef, stateNode.id);
-    stateNode.entry.push(
-      raise({ type: eventType } as TEvent, { id: eventType, delay })
-    );
+    stateNode.entry.push(raise({ type: eventType }, { id: eventType, delay }));
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
@@ -345,7 +344,7 @@ export function formatTransition<
 >(
   stateNode: AnyStateNode,
   descriptor: string,
-  transitionConfig: TransitionConfig<TContext, TEvent, TEvent, TODO>
+  transitionConfig: TransitionConfig<TContext, TEvent, TEvent, any>
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
@@ -1038,7 +1037,7 @@ function microstepProcedure(
   actorCtx: AnyActorContext,
   isInitial: boolean
 ): typeof currentState {
-  const actions: Action<any, any, any, TODO>[] = [];
+  const actions: UnknownAction[] = [];
   const historyValue = {
     ...currentState.historyValue
   };
@@ -1117,7 +1116,7 @@ function enterStates(
   event: AnyEventObject,
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  actions: Action<any, any, any, TODO>[],
+  actions: UnknownAction[],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
   historyValue: HistoryValue<any, any>,
@@ -1351,7 +1350,7 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  actions: Action<any, any, any, TODO>[]
+  actions: UnknownAction[]
 ) {
   const statesToExit = computeExitSet(
     transitions,
@@ -1389,13 +1388,9 @@ export interface BuiltinAction {
   resolve: (
     actorContext: AnyActorContext,
     state: AnyState,
-    actionArgs: ActionArgs<any, any>,
+    actionArgs: ActionArgs<any, any, any>,
     action: unknown
-  ) => [
-    newState: AnyState,
-    params: unknown,
-    actions?: Action<any, any, any, TODO>[]
-  ];
+  ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
   execute: (actorContext: AnyActorContext, params: unknown) => void;
 }
 
@@ -1403,7 +1398,7 @@ export function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  actions: Action<any, any, any, TODO>[],
+  actions: UnknownAction[],
   event: TEvent,
   currentState: AnyState,
   actorCtx: AnyActorContext
@@ -1565,7 +1560,7 @@ function stopStep(
   nextState: AnyState,
   actorCtx: AnyActorContext
 ) {
-  const actions: Action<any, any, any, TODO>[] = [];
+  const actions: UnknownAction[] = [];
 
   for (const stateNode of nextState.configuration.sort(
     (a, b) => b.order - a.order

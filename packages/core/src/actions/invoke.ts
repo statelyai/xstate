@@ -9,14 +9,15 @@ import {
   AnyActor,
   AnyState,
   EventObject,
-  MachineContext
+  MachineContext,
+  ParameterizedObject
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
 function resolve(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any>,
+  actionArgs: ActionArgs<any, any, any>,
   {
     id,
     systemId,
@@ -97,7 +98,7 @@ function execute(
 export function invoke<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
+  TExpressionAction extends ParameterizedObject | undefined
 >({
   id,
   systemId,
@@ -109,7 +110,9 @@ export function invoke<
   src: string;
   input?: unknown;
 }) {
-  function invoke(_: ActionArgs<TContext, TExpressionEvent>) {
+  function invoke(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

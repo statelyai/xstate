@@ -10,21 +10,33 @@ import {
   MachineContext,
   NoInfer,
   RaiseActionOptions,
-  SendExpr
+  SendExpr,
+  ParameterizedObject
 } from '../types.ts';
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any>,
+  args: ActionArgs<any, any, any>,
   {
     event: eventOrExpr,
     id,
     delay
   }: {
-    event: EventObject | SendExpr<MachineContext, EventObject, EventObject>;
+    event:
+      | EventObject
+      | SendExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject | undefined,
+          EventObject
+        >;
     id: string | undefined;
-    delay: string | number | DelayExpr<MachineContext, EventObject> | undefined;
+    delay:
+      | string
+      | number
+      | DelayExpr<MachineContext, EventObject, ParameterizedObject | undefined>
+      | undefined;
   }
 ) {
   const delaysMap = state.machine.implementations.delays;
@@ -81,14 +93,17 @@ function execute(
 export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TEvent extends EventObject = TExpressionEvent,
+  TExpressionAction extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined
 >(
   eventOrExpr:
     | NoInfer<TEvent>
-    | SendExpr<TContext, TExpressionEvent, NoInfer<TEvent>>,
-  options?: RaiseActionOptions<TContext, TExpressionEvent>
+    | SendExpr<TContext, TExpressionEvent, TExpressionAction, NoInfer<TEvent>>,
+  options?: RaiseActionOptions<TContext, TExpressionEvent, TExpressionAction>
 ) {
-  function raise(_: ActionArgs<TContext, TExpressionEvent>) {
+  function raise(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -103,7 +118,7 @@ export function raise<
   raise.execute = execute;
 
   return raise as {
-    (args: ActionArgs<TContext, TExpressionEvent>): void;
+    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
     _out_TEvent?: TEvent;
   };
 }

@@ -5,22 +5,24 @@ import {
   AnyState,
   EventObject,
   LogExpr,
-  MachineContext
+  MachineContext,
+  ParameterizedObject
 } from '../types.ts';
 
 type ResolvableLogValue<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject
-> = string | LogExpr<TContext, TExpressionEvent>;
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> = string | LogExpr<TContext, TExpressionEvent, TExpressionAction>;
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any>,
+  actionArgs: ActionArgs<any, any, any>,
   {
     value,
     label
-  }: { value: ResolvableLogValue<any, any>; label: string | undefined }
+  }: { value: ResolvableLogValue<any, any, any>; label: string | undefined }
 ) {
   return [
     state,
@@ -53,15 +55,15 @@ function execute(
 export function log<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TExpressionAction extends ParameterizedObject | undefined
 >(
-  value: ResolvableLogValue<TContext, TExpressionEvent> = ({
+  value: ResolvableLogValue<TContext, TExpressionEvent, TExpressionAction> = ({
     context,
     event
   }) => ({ context, event }),
   label?: string
 ) {
-  function log(_: ActionArgs<TContext, TExpressionEvent>) {
+  function log(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

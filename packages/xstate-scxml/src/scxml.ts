@@ -188,7 +188,9 @@ function createGuard<
   };
 }
 
-function mapAction(element: XMLElement): ActionFunction<any, any, any, any> {
+function mapAction(
+  element: XMLElement
+): ActionFunction<any, any, any, any, any> {
   switch (element.name) {
     case 'raise': {
       return raise({
@@ -220,8 +222,8 @@ function mapAction(element: XMLElement): ActionFunction<any, any, any, any> {
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: EventObject | SendExpr<any, any>;
-      let convertedDelay: number | DelayExpr<any, any> | undefined;
+      let convertedEvent: EventObject | SendExpr<any, any, any, any>;
+      let convertedDelay: number | DelayExpr<any, any, any> | undefined;
 
       const params =
         element.elements &&
@@ -331,8 +333,8 @@ function mapAction(element: XMLElement): ActionFunction<any, any, any, any> {
 
 function mapActions(
   elements: XMLElement[]
-): ActionFunction<any, any, any, any>[] {
-  const mapped: ActionFunction<any, any, any, any>[] = [];
+): ActionFunction<any, any, any, any, any>[] {
+  const mapped: ActionFunction<any, any, any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {
