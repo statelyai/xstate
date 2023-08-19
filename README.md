@@ -67,30 +67,35 @@ npm install xstate
 ```
 
 ```js
-import { createMachine, interpret } from 'xstate';
+import { createMachine, createActor, assign } from 'xstate';
 
-// State machine definition
-// machine.transition(...) is a pure function used by the interpreter.
+// State machine
 const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
+  context: {
+    count: 0
+  },
   states: {
     inactive: { on: { TOGGLE: 'active' } },
-    active: { on: { TOGGLE: 'inactive' } }
+    active: {
+      entry: assign({ count: ({ context }) => context.count + 1 }),
+      on: { TOGGLE: 'inactive' } }
+    }
   }
 });
 
-// Machine instance with internal state
-const toggleActor = interpret(toggleMachine);
-toggleActor.subscribe((state) => console.log(state.value));
+// Actor (instance of the machine logic, like a store)
+const toggleActor = createActor(toggleMachine);
+toggleActor.subscribe((state) => console.log(state.value, state.context));
 toggleActor.start();
-// => logs 'inactive'
+// => logs 'inactive', { count: 0 }
 
 toggleService.send({ type: 'TOGGLE' });
-// => logs 'active'
+// => logs 'active', { count: 1 }
 
 toggleService.send({ type: 'TOGGLE' });
-// => logs 'inactive'
+// => logs 'inactive', { count: 1 }
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
