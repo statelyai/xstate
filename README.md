@@ -16,9 +16,15 @@
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
-JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
+XState is a state management and orchestration solution for JavaScript and TypeScript apps.
+
+It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
 ### ✨ Create state machines visually → [state.new](https://state.new)
+
+> ℹ️ This is the branch for **XState v5 beta** and related packages. View the XState v4 branch [here](https://github.com/statelyai/xstate/tree/main).
+
+---
 
 📖 [Read the documentation](https://stately.ai/docs/xstate)
 
