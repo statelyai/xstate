@@ -19,7 +19,8 @@ import type {
   EventFromLogic,
   PersistedStateFrom,
   SnapshotFrom,
-  AnyActorRef
+  AnyActorRef,
+  OutputFrom
 } from './types.ts';
 import {
   ActorRef,
@@ -81,7 +82,7 @@ type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
 export class Actor<
   TLogic extends AnyActorLogic,
   TEvent extends EventObject = EventFromLogic<TLogic>
-> implements ActorRef<TEvent, SnapshotFrom<TLogic>>
+> implements ActorRef<TEvent, SnapshotFrom<TLogic>, OutputFrom<TLogic>>
 {
   /**
    * The current internal state of the actor.
@@ -318,6 +319,10 @@ export class Actor<
     this.mailbox.start();
 
     return this;
+  }
+
+  public getOutput() {
+    return this.logic.getOutput?.(this._state);
   }
 
   private _process(event: TEvent) {

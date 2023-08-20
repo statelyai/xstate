@@ -1452,8 +1452,11 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
   send: (event: TEvent) => void;
 }
 
-export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
-  extends Subscribable<TSnapshot>,
+export interface ActorRef<
+  TEvent extends EventObject,
+  TSnapshot = any,
+  TOutput = unknown
+> extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
   /**
    * The unique identifier for this actor relative to its parent.
@@ -1466,6 +1469,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   getSnapshot: () => TSnapshot;
   // TODO: this should return some sort of TPersistedState, not any
   getPersistedState?: () => any;
+  getOutput: () => TOutput | undefined;
   stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
@@ -1632,6 +1636,7 @@ export interface ActorLogic<
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
   getStatus?: (state: TInternalState) => { status: string; data?: any };
+  getOutput: (state: TInternalState) => TOutput | undefined; // undefined if no output yet
   start?: (
     state: TInternalState,
     actorCtx: ActorContext<TEvent, TSnapshot>

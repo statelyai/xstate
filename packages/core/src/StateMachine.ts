@@ -362,7 +362,11 @@ export class StateMachine<
   > {
     return getPersistedState(state);
   }
-
+  public getOutput(
+    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+  ) {
+    return state.output;
+  }
   public createState(
     stateConfig:
       | State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
