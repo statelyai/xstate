@@ -22,7 +22,9 @@ import type {
   StateValue,
   TODO,
   AnyActorRef,
-  Compute
+  Compute,
+  Typestate,
+  IsNever
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -72,6 +74,7 @@ export class State<
   TActor extends ProvidedActor,
   TOutput,
   TTag extends string = string,
+  TTypestates extends Typestate = Typestate,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -114,7 +117,8 @@ export class State<
           TODO,
           any,
           any, // output
-          any // tags
+          any, // tags
+          any // typestates
         >
       | StateValue,
     context: TContext = {} as TContext,
@@ -125,7 +129,8 @@ export class State<
     TODO,
     any,
     any, //output
-    any // tags
+    any, // tags
+    any // typestates
   > {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
@@ -220,6 +225,16 @@ export class State<
       : StateValue
   >(parentStateValue: TSV): boolean {
     return matchesState(parentStateValue as any, this.value);
+  }
+
+  public matches2<TStateValue extends StateValue>(
+    value: TStateValue
+  ): this is {
+    context: IsNever<TTypestates & { value: TStateValue }> extends true
+      ? TContext
+      : (TTypestates & { value: TStateValue })['context'];
+  } {
+    return matchesState(value as any, this.value);
   }
 
   /**

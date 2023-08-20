@@ -2212,3 +2212,41 @@ describe('tags', () => {
     actor.getSnapshot().hasTag('unknown');
   });
 });
+
+describe('typestates', () => {
+  const m = createMachine({
+    types: {} as {
+      context: {
+        active: boolean;
+        count: number;
+      };
+      states:
+        | {
+            value: 'green';
+            context: {
+              active: true;
+              count: number;
+            };
+          }
+        | {
+            value: 'red';
+            context: {
+              active: false;
+              count: number;
+            };
+          };
+    },
+    context: {
+      active: false,
+      count: 0
+    }
+  });
+
+  const a = createActor(m);
+
+  const s = a.getSnapshot();
+
+  if (s.matches2('red')) {
+    s.context.active;
+  }
+});

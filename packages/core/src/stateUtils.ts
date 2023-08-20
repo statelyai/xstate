@@ -800,7 +800,8 @@ export function transitionNode<
     TODO,
     TODO,
     TODO, // output
-    TODO // tags
+    TODO, // tags
+    TODO // typestate
   >,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {

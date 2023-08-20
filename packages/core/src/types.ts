@@ -458,7 +458,8 @@ export type StatesConfig<
     TODO,
     TGuards,
     TDelays,
-    TTags
+    TTags,
+    TODO // typestate
   >;
 };
 
@@ -662,7 +663,8 @@ export interface StateNodeConfig<
   TOutput,
   TGuards extends ParameterizedObject,
   TDelays extends string,
-  TTags extends string
+  TTags extends string,
+  TTypestates extends Typestate
 > {
   /**
    * The initial state transition.
@@ -795,7 +797,8 @@ export type AnyStateNodeConfig = StateNodeConfig<
   any,
   any,
   any,
-  any
+  any, // Tags
+  any // Typestates
 >;
 
 export interface StateNodeDefinition<
@@ -837,7 +840,8 @@ export type AnyState = State<
   any,
   any,
   any, // delays
-  any // tags
+  any, // tags
+  any // typestate
 >;
 
 export type AnyStateMachine = StateMachine<
@@ -850,7 +854,8 @@ export type AnyStateMachine = StateMachine<
   any,
   any,
   any, // delays
-  any // tags
+  any, // tags
+  any // typestate
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -861,6 +866,7 @@ export interface AtomicStateNodeConfig<
 > extends StateNodeConfig<
     TContext,
     TEvent,
+    TODO,
     TODO,
     TODO,
     TODO,
@@ -899,7 +905,7 @@ export type SimpleOrStateNodeConfig<
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>;
+  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO, TODO>;
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
@@ -1179,6 +1185,11 @@ export type ContextFactory<TContext extends MachineContext, TInput> = ({
   input: TInput;
 }) => TContext;
 
+export interface Typestate {
+  value: StateValue;
+  context: any;
+}
+
 export type MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1189,6 +1200,7 @@ export type MachineConfig<
   TGuards extends ParameterizedObject = ParameterizedObject,
   TDelays extends string = string,
   TTags extends string = string,
+  TTypestate extends Typestate = Typestate,
   TTypesMeta = TypegenDisabled
 > = (StateNodeConfig<
   NoInfer<TContext>,
@@ -1198,7 +1210,8 @@ export type MachineConfig<
   NoInfer<TOutput>,
   NoInfer<TGuards>,
   NoInfer<TDelays>,
-  NoInfer<TTags>
+  NoInfer<TTags>,
+  NoInfer<TTypestate>
 > & {
   /**
    * The initial context (extended state)
@@ -1217,6 +1230,7 @@ export type MachineConfig<
     TGuards,
     TDelays,
     TTags,
+    TTypestate,
     TTypesMeta
   >;
 }) &
@@ -1240,6 +1254,7 @@ export interface MachineTypes<
   TGuards extends ParameterizedObject,
   TDelays extends string,
   TTags extends string,
+  TTypestate extends Typestate,
   TTypesMeta = TypegenDisabled
 > {
   context?: TContext;
@@ -1252,6 +1267,7 @@ export interface MachineTypes<
   output?: TOutput;
   delays?: TDelays;
   tags?: TTags;
+  states?: TTypestate;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
@@ -1649,7 +1665,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
 export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<any, any, any, any, any, any, any, any, any>
+  ? R extends StateMachine<any, any, any, any, any, any, any, any, any, any>
     ? R
     : R extends Promise<infer U>
     ? PromiseActorLogic<U>
@@ -1666,6 +1682,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       any,
       any, // delays
       any, // tags
+      any, // typestates
       infer TResolvedTypesMeta
     >
     ? ActorRef<
@@ -1676,6 +1693,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TODO, // TActor
           TODO, // TOutput
           TODO, // TTags
+          TODO, // Typestates
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
             : TResolvedTypesMeta
@@ -1712,6 +1730,7 @@ export type InterpreterFrom<
   infer _TGuards,
   infer _TDelays,
   infer _TTags,
+  infer _TTypestates,
   infer TResolvedTypesMeta
 >
   ? Actor<
@@ -1765,13 +1784,25 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   any,
   any, // delays
   any, // tags
+  any, // typestate
   infer TResolvedTypesMeta
 >
   ? TResolvedTypesMeta
   : never;
 
 export type EventOfMachine<TMachine extends AnyStateMachine> =
-  TMachine extends StateMachine<any, infer E, any, any, any, any, any, any, any>
+  TMachine extends StateMachine<
+    any,
+    infer E,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >
     ? E
     : never;
 
@@ -1854,7 +1885,8 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TOutput,
         infer _TGuards,
         infer _TDelays,
-        infer _TTags
+        infer _TTags,
+        infer _TTypestates
       >
     ? StateFrom<R>
     : R extends ActorLogic<
