@@ -12,7 +12,8 @@ describe('custom test models', () => {
           } else {
             return value * 3 + 1;
           }
-        }
+        },
+        getOutput: () => undefined
       },
       {
         events: (state) => {
@@ -41,7 +42,8 @@ describe('custom test models', () => {
           } else {
             return value * 3 + 1;
           }
-        }
+        },
+        getOutput: () => undefined
       },
       {
         events: (state) => {

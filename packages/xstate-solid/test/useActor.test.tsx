@@ -25,7 +25,8 @@ const createSimpleActor = <T extends unknown>(value: T) =>
   createActor({
     transition: (s) => s,
     getSnapshot: () => value,
-    getInitialState: () => value
+    getInitialState: () => value,
+    getOutput: () => undefined
   });
 
 describe('useActor', () => {
@@ -641,7 +642,8 @@ describe('useActor', () => {
     const simpleActor = createActor({
       transition: (s) => s,
       getSnapshot: () => 42,
-      getInitialState: () => 42
+      getInitialState: () => 42,
+      getOutput: () => undefined
     });
 
     const Test = () => {

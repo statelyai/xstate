@@ -336,7 +336,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           return { unsubscribe: () => {} };
         },
         getSnapshot: () => latestValue,
-        getInitialState: () => latestValue
+        getInitialState: () => latestValue,
+        getOutput: () => undefined
       });
 
     const parentMachine = createMachine({
@@ -476,7 +477,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           return { unsubscribe: () => {} };
         },
         getSnapshot: () => latestValue,
-        getInitialState: () => latestValue
+        getInitialState: () => latestValue,
+        getOutput: () => undefined
       });
 
     const parentMachine = createMachine({
@@ -513,7 +515,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           return { unsubscribe: () => {} };
         },
         getSnapshot: () => latestValue,
-        getInitialState: () => latestValue
+        getInitialState: () => latestValue,
+        getOutput: () => undefined
       });
 
     const actor1 = createCustomActor('foo');
@@ -544,7 +547,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         return { unsubscribe: () => {} };
       },
       getSnapshot: () => undefined,
-      getInitialState: () => undefined
+      getInitialState: () => undefined,
+      getOutput: () => undefined
     });
 
     const App = ({ selector }: { selector: any }) => {

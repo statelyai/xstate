@@ -129,6 +129,7 @@ export function fromObservable<T, TInput>(
       input
     }),
     getStatus: (state) => state,
+    getOutput: (state) => (state.status === 'done' ? state.data : undefined),
     restoreState: (state) => ({
       ...state,
       subscription: undefined
@@ -234,6 +235,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
     restoreState: (state) => ({
       ...state,
       subscription: undefined
-    })
+    }),
+    getOutput: () => undefined
   };
 }
