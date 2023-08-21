@@ -25,7 +25,7 @@
   "scripts": {
     "preinstall": "node ./scripts/ensure-yarn.js",
     "postinstall": "patch-package && manypkg check && preconstruct dev",
-    "build": "preconstruct build && node ./scripts/fixup-symbol-observable.js",
+    "build": "preconstruct build",
     "fix": "manypkg fix",
     "typecheck": "tsc",
     "test": "jest",
