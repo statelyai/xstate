@@ -221,7 +221,7 @@ export class Actor<
       case 'done':
         this._stopProcedure();
         this._complete();
-        this._doneEvent = doneInvoke(this.id, status.output);
+        this._doneEvent = doneInvoke(this.id, status.data);
         this._parent?.send(this._doneEvent as any);
         break;
       case 'error':
@@ -321,8 +321,8 @@ export class Actor<
     return this;
   }
 
-  public getStatus() {
-    return this.logic.getStatus!(this._state);
+  public getOutput() {
+    return this.logic.getOutput?.(this._state);
   }
 
   private _process(event: TEvent) {

@@ -2,14 +2,13 @@ import {
   ActorLogic,
   ActorRefFrom,
   ActorSystem,
-  AnyActorSystem,
-  TODO
+  AnyActorSystem
 } from '../types';
 import { stopSignalType } from '../actors';
 
 export interface PromiseInternalState<T, TInput = unknown> {
-  status: 'active' | 'error' | 'done' | 'stopped';
-  output: T | undefined;
+  status: 'active' | 'error' | 'done' | 'canceled';
+  data: T | undefined;
   input: TInput | undefined;
 }
 
@@ -65,7 +64,7 @@ export function fromPromise<T, TInput>(
           return {
             ...state,
             status: 'done',
-            output: (event as any).data,
+            data: (event as any).data,
             input: undefined
           };
         case rejectEventType:
@@ -78,7 +77,7 @@ export function fromPromise<T, TInput>(
         case stopSignalType:
           return {
             ...state,
-            status: 'stopped',
+            status: 'canceled',
             input: undefined
           };
         default:
@@ -116,13 +115,14 @@ export function fromPromise<T, TInput>(
     getInitialState: (_, input) => {
       return {
         status: 'active',
-        output: undefined,
+        data: undefined,
         input
       };
     },
-    getSnapshot: (state) => state.output,
-    getStatus: (state) => state as TODO,
+    getSnapshot: (state) => state.data,
+    getStatus: (state) => state,
     getPersistedState: (state) => state,
+    getOutput: (state) => state.data,
     restoreState: (state) => state
   };
 

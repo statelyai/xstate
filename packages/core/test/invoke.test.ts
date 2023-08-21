@@ -2257,7 +2257,8 @@ describe('invoke', () => {
           }
           return count;
         },
-        getInitialState: () => 0
+        getInitialState: () => 0,
+        getOutput: () => undefined
       };
 
       const countMachine = createMachine({
@@ -2293,7 +2294,8 @@ describe('invoke', () => {
 
           return undefined;
         },
-        getInitialState: () => undefined
+        getInitialState: () => undefined,
+        getOutput: () => undefined
       };
 
       const pingMachine = createMachine({

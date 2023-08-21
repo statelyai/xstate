@@ -358,7 +358,8 @@ describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on actor logic', () => {
     const logic: ActorLogic<{ type: 'TEST' }> = {
       transition: () => {},
-      getInitialState: () => undefined
+      getInitialState: () => undefined,
+      getOutput: () => undefined
     };
 
     function acceptActorRef(actorRef: ActorRefFrom<typeof logic>) {

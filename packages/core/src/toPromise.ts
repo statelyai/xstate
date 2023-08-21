@@ -1,4 +1,4 @@
-import { Actor, ActorRef, AnyActor, AnyActorRef, OutputFrom, TODO } from '.';
+import { Actor, ActorRef, AnyActor, AnyActorRef, OutputFrom } from '.';
 
 export function toPromise<T extends AnyActorRef>(
   actor: T
@@ -6,8 +6,11 @@ export function toPromise<T extends AnyActorRef>(
   return new Promise((resolve, reject) => {
     actor.subscribe({
       complete: () => {
-        const statusObj = actor.getStatus();
-        resolve((statusObj as TODO).output);
+        resolve(
+          actor.getOutput()! as T extends Actor<infer TLogic>
+            ? OutputFrom<TLogic>
+            : unknown
+        );
       },
       error: (err) => {
         reject(err);

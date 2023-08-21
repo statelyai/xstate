@@ -135,6 +135,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
       };
     },
     getSnapshot: () => undefined,
-    getPersistedState: ({ input, canceled }) => ({ input, canceled })
+    getPersistedState: ({ input, canceled }) => ({ input, canceled }),
+    getOutput: () => undefined
   };
 }

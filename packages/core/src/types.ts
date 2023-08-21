@@ -1469,7 +1469,7 @@ export interface ActorRef<
   getSnapshot: () => TSnapshot;
   // TODO: this should return some sort of TPersistedState, not any
   getPersistedState?: () => any;
-  getStatus: () => ActorStatusObject<TOutput>;
+  getOutput: () => TOutput | undefined;
   stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
@@ -1608,22 +1608,6 @@ export interface ActorContext<
 
 export type AnyActorContext = ActorContext<any, any, any>;
 
-export type ActorStatusObject<TOutput> =
-  | {
-      status: 'done';
-      output: TOutput;
-    }
-  | {
-      status: 'error';
-      data: unknown;
-    }
-  | {
-      status: 'stopped';
-    }
-  | {
-      status: 'active';
-    };
-
 export interface ActorLogic<
   TEvent extends EventObject,
   TSnapshot = any,
@@ -1651,7 +1635,8 @@ export interface ActorLogic<
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
-  getStatus?: (state: TInternalState) => ActorStatusObject<TOutput>;
+  getStatus?: (state: TInternalState) => { status: string; data?: any };
+  getOutput: (state: TInternalState) => TOutput | undefined; // undefined if no output yet
   start?: (
     state: TInternalState,
     actorCtx: ActorContext<TEvent, TSnapshot>

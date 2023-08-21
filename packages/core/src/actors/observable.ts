@@ -4,18 +4,16 @@ import {
   EventObject,
   Subscription,
   AnyActorSystem,
-  ActorRefFrom,
-  ActorStatusObject
+  ActorRefFrom
 } from '../types';
 import { stopSignalType } from '../actors';
 
-export type ObservableInternalState<
-  T,
-  TInput = unknown
-> = ActorStatusObject<T> & {
+export interface ObservableInternalState<T, TInput = unknown> {
   subscription: Subscription | undefined;
+  status: 'active' | 'done' | 'error' | 'canceled';
+  data: T | undefined;
   input: TInput | undefined;
-};
+}
 
 export type ObservablePersistedState<T, TInput = unknown> = Omit<
   ObservableInternalState<T, TInput>,
@@ -66,15 +64,14 @@ export function fromObservable<T, TInput>(
           });
           return {
             ...state,
-            output: (event as any).data
+            data: (event as any).data
           };
         case errorEventType:
           return {
             ...state,
             status: 'error',
-            data: (event as any).data,
             input: undefined,
-            output: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
+            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             subscription: undefined
           };
         case completeEventType:
@@ -100,7 +97,7 @@ export function fromObservable<T, TInput>(
       return {
         subscription: undefined,
         status: 'active',
-        output: undefined,
+        data: undefined,
         input
       };
     },
@@ -125,13 +122,14 @@ export function fromObservable<T, TInput>(
         }
       });
     },
-    getSnapshot: (state) => state.output,
-    getPersistedState: ({ status, output: data, input }) => ({
+    getSnapshot: (state) => state.data,
+    getPersistedState: ({ status, data, input }) => ({
       status,
-      output: data,
+      data,
       input
     }),
     getStatus: (state) => state,
+    getOutput: (state) => (state.status === 'done' ? state.data : undefined),
     restoreState: (state) => ({
       ...state,
       subscription: undefined
@@ -201,7 +199,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
       return {
         subscription: undefined,
         status: 'active',
-        output: undefined,
+        data: undefined,
         input
       };
     },
@@ -228,15 +226,16 @@ export function fromEventObservable<T extends EventObject, TInput>(
       });
     },
     getSnapshot: (_) => undefined,
-    getPersistedState: ({ status, output: data, input }) => ({
+    getPersistedState: ({ status, data, input }) => ({
       status,
-      output: data,
+      data,
       input
     }),
     getStatus: (state) => state,
     restoreState: (state) => ({
       ...state,
       subscription: undefined
-    })
+    }),
+    getOutput: () => undefined
   };
 }

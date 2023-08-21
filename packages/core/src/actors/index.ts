@@ -66,7 +66,7 @@ export function toActorRef<
     },
     status: ActorStatus.Running,
     stop: () => void 0,
-    getStatus: () => ({ status: 'active' }),
+    getOutput: () => undefined,
     ...actorRefLike
   };
 }

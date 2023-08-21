@@ -362,7 +362,11 @@ export class StateMachine<
   > {
     return getPersistedState(state);
   }
-
+  public getOutput(
+    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+  ) {
+    return state.output;
+  }
   public createState(
     stateConfig:
       | State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
@@ -377,10 +381,10 @@ export class StateMachine<
     state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
   ) {
     return state.error
-      ? { status: 'error' as const, data: state.error }
+      ? { status: 'error', data: state.error }
       : state.done
-      ? { status: 'done' as const, output: state.output! }
-      : { status: 'active' as const };
+      ? { status: 'done', data: state.output }
+      : { status: 'active' };
   }
 
   public restoreState(
