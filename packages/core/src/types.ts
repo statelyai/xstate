@@ -1800,6 +1800,13 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  [Symbol.iterator]: () => IterableIterator<
+    [
+      sesionId: string,
+      actorRef: AnyActorRef,
+      systemId: keyof T['actors'] | undefined
+    ]
+  >;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
