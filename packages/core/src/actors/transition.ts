@@ -60,7 +60,6 @@ export function fromTransition<
     },
     getSnapshot: (state) => state,
     getPersistedState: (state) => state,
-    restoreState: (state) => state,
-    getOutput: () => undefined
+    restoreState: (state) => state
   };
 }

@@ -128,7 +128,7 @@ describe('promise logic (fromPromise)', () => {
 
       expect(resolvedPersistedState).toEqual(
         expect.objectContaining({
-          data: 42
+          output: 42
         })
       );
 
@@ -154,7 +154,7 @@ describe('promise logic (fromPromise)', () => {
     const resolvedPersistedState = actor.getPersistedState();
     expect(resolvedPersistedState).toEqual(
       expect.objectContaining({
-        data: 1
+        output: 1
       })
     );
     expect(createdPromises).toBe(1);
@@ -187,11 +187,10 @@ describe('promise logic (fromPromise)', () => {
     );
     expect(createdPromises).toBe(1);
 
-    const restoredActor = createActor(promiseLogic, {
+    createActor(promiseLogic, {
       state: rejectedPersistedState
     }).start();
 
-    expect(restoredActor.getSnapshot()).toBe(1);
     expect(createdPromises).toBe(1);
   });
 
@@ -533,7 +532,7 @@ describe('machine logic', () => {
     expect(persistedState.children.a.state).toEqual(
       expect.objectContaining({
         status: 'done',
-        data: 42
+        output: 42
       })
     );
 

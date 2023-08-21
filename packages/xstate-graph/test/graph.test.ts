@@ -531,8 +531,7 @@ it('simple paths for transition functions', () => {
         }
         return s;
       },
-      getInitialState: () => 0,
-      getOutput: () => undefined
+      getInitialState: () => 0
     },
     {
       events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
@@ -558,8 +557,7 @@ it('shortest paths for transition functions', () => {
         }
         return s;
       },
-      getInitialState: () => 0,
-      getOutput: () => undefined
+      getInitialState: () => 0
     },
     {
       events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],

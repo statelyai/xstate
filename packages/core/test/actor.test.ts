@@ -1035,8 +1035,7 @@ describe('actors', () => {
 
           return undefined;
         },
-        getInitialState: () => undefined,
-        getOutput: () => undefined
+        getInitialState: () => undefined
       };
 
       const pingMachine = createMachine<{
