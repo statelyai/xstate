@@ -8,22 +8,25 @@ import {
   AnyState,
   EventObject,
   MachineContext,
-  UnifiedArg
+  ParameterizedObject
 } from '../types.ts';
 
 type ResolvableActorRef<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
 > =
   | string
   | ActorRef<any>
-  | ((args: UnifiedArg<TContext, TExpressionEvent>) => ActorRef<any> | string);
+  | ((
+      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+    ) => ActorRef<any> | string);
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any>,
-  { actorRef }: { actorRef: ResolvableActorRef<any, any> }
+  args: ActionArgs<any, any, any>,
+  { actorRef }: { actorRef: ResolvableActorRef<any, any, any> }
 ) {
   const actorRefOrString =
     typeof actorRef === 'function' ? actorRef(args) : actorRef;
@@ -70,9 +73,9 @@ function execute(
 export function stop<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
->(actorRef: ResolvableActorRef<TContext, TExpressionEvent>) {
-  function stop(_: ActionArgs<TContext, TExpressionEvent>) {
+  TExpressionAction extends ParameterizedObject | undefined
+>(actorRef: ResolvableActorRef<TContext, TExpressionEvent, TExpressionAction>) {
+  function stop(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

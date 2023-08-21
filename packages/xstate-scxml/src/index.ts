@@ -1,10 +1,9 @@
 import { Attributes, Element as XMLElement, js2xml } from 'xml-js';
 import {
-  Action,
-  AnyAction,
   AnyStateMachine,
   StateNode,
-  TransitionDefinition
+  TransitionDefinition,
+  UnknownAction
 } from 'xstate';
 
 function flatten<T>(array: Array<T | T[]>): T[] {
@@ -36,7 +35,7 @@ function raiseActionToSCXML(raiseAction: any): XMLElement {
   };
 }
 
-function actionToSCXML(action: AnyAction): XMLElement {
+function actionToSCXML(action: UnknownAction): XMLElement {
   if ((action as any).type === 'xstate.raise') {
     return raiseActionToSCXML(action);
   }
@@ -93,7 +92,7 @@ function doneDataToSCXML(data: any): XMLElement {
 
 function actionsToSCXML(
   name: 'onentry' | 'onexit',
-  actions: Array<AnyAction>
+  actions: Array<UnknownAction>
 ): XMLElement {
   return {
     type: 'element',

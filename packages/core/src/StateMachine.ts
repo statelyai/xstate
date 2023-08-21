@@ -472,7 +472,9 @@ export class StateMachine<
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TActor!: TActor;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TResolvedTypesMeta!: TResolvedTypesMeta;
-
   __TInput!: TInput;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TOutput!: TOutput;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

@@ -1,21 +1,21 @@
 import isDevelopment from '#is-development';
 import {
-  Action,
+  Actions,
   ActionArgs,
-  AnyAction,
+  UnknownAction,
   AnyActorContext,
   AnyState,
   EventObject,
   MachineContext,
-  SingleOrArray,
-  TODO
+  ParameterizedObject,
+  SingleOrArray
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any>,
+  args: ActionArgs<any, any, any>,
   {
     get
   }: {
@@ -25,20 +25,24 @@ function resolve(
     }: {
       context: MachineContext;
       event: EventObject;
-    }) => SingleOrArray<AnyAction> | undefined;
+    }) => SingleOrArray<UnknownAction> | undefined;
   }
 ) {
   return [
     state,
     undefined,
-    toArray(get({ context: state.context, event: args.event }))
+    toArray(get({ context: args.context, event: args.event }))
   ];
 }
 
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TEvent extends EventObject = TExpressionEvent,
+  TExpressionAction extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined,
+  TAction extends ParameterizedObject = ParameterizedObject
 >(
   getActions: ({
     context,
@@ -47,10 +51,10 @@ export function pure<
     context: TContext;
     event: TExpressionEvent;
   }) =>
-    | SingleOrArray<Action<TContext, TExpressionEvent, TEvent, TODO> | string>
+    | Actions<TContext, TExpressionEvent, TEvent, undefined, TAction>
     | undefined
 ) {
-  function pure(_: ActionArgs<TContext, TExpressionEvent>) {
+  function pure(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -60,5 +64,8 @@ export function pure<
   pure.get = getActions;
   pure.resolve = resolve;
 
-  return pure;
+  return pure as {
+    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+    _out_TAction?: TAction;
+  };
 }
