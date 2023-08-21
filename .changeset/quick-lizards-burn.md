@@ -3,7 +3,6 @@
 '@xstate/graph': minor
 '@xstate/immer': minor
 '@xstate/inspect': minor
-'@xstate/scxml': minor
 '@xstate/svelte': minor
 '@xstate/test': minor
 ---
