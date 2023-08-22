@@ -3416,67 +3416,6 @@ describe('raise', () => {
   });
 });
 
-it('should call transition actions in document order for same-level parallel regions', () => {
-  const actual: string[] = [];
-
-  const machine = createMachine({
-    type: 'parallel',
-    states: {
-      a: {
-        on: {
-          FOO: {
-            actions: () => actual.push('a')
-          }
-        }
-      },
-      b: {
-        on: {
-          FOO: {
-            actions: () => actual.push('b')
-          }
-        }
-      }
-    }
-  });
-  const service = createActor(machine).start();
-  service.send({ type: 'FOO' });
-
-  expect(actual).toEqual(['a', 'b']);
-});
-
-it('should call transition actions in document order for states at different levels of parallel regions', () => {
-  const actual: string[] = [];
-
-  const machine = createMachine({
-    type: 'parallel',
-    states: {
-      a: {
-        initial: 'a1',
-        states: {
-          a1: {
-            on: {
-              FOO: {
-                actions: () => actual.push('a1')
-              }
-            }
-          }
-        }
-      },
-      b: {
-        on: {
-          FOO: {
-            actions: () => actual.push('b')
-          }
-        }
-      }
-    }
-  });
-  const service = createActor(machine).start();
-  service.send({ type: 'FOO' });
-
-  expect(actual).toEqual(['a1', 'b']);
-});
-
 describe('assign action order', () => {
   it('should preserve action order', () => {
     const captured: number[] = [];
@@ -3692,6 +3631,67 @@ describe('action meta', () => {
 
     createActor(machine).start();
   });
+});
+
+it('should call transition actions in document order for same-level parallel regions', () => {
+  const actual: string[] = [];
+
+  const machine = createMachine({
+    type: 'parallel',
+    states: {
+      a: {
+        on: {
+          FOO: {
+            actions: () => actual.push('a')
+          }
+        }
+      },
+      b: {
+        on: {
+          FOO: {
+            actions: () => actual.push('b')
+          }
+        }
+      }
+    }
+  });
+  const service = createActor(machine).start();
+  service.send({ type: 'FOO' });
+
+  expect(actual).toEqual(['a', 'b']);
+});
+
+it('should call transition actions in document order for states at different levels of parallel regions', () => {
+  const actual: string[] = [];
+
+  const machine = createMachine({
+    type: 'parallel',
+    states: {
+      a: {
+        initial: 'a1',
+        states: {
+          a1: {
+            on: {
+              FOO: {
+                actions: () => actual.push('a1')
+              }
+            }
+          }
+        }
+      },
+      b: {
+        on: {
+          FOO: {
+            actions: () => actual.push('b')
+          }
+        }
+      }
+    }
+  });
+  const service = createActor(machine).start();
+  service.send({ type: 'FOO' });
+
+  expect(actual).toEqual(['a1', 'b']);
 });
 
 it('should call an inline action responding to an initial raise with the raised event', () => {
