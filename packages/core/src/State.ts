@@ -244,7 +244,7 @@ export class State<
   /**
    * The next events that will cause a transition from the current state.
    */
-  public get nextEvents(): Array<TEvent['type']> {
+  public get nextEvents(): Array<string> {
     return memo(this, 'nextEvents', () => {
       return [
         ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
