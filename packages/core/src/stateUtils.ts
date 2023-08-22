@@ -1384,7 +1384,7 @@ function exitStates(
   }
 }
 
-export interface BuiltinAction {
+interface BuiltinAction {
   (): void;
   resolve: (
     actorContext: AnyActorContext,
@@ -1440,7 +1440,6 @@ export function resolveActionsAndContext<
       event,
       self: actorCtx?.self,
       system: actorCtx?.system,
-      // andarist
       action: isInline
         ? undefined
         : typeof action === 'string'

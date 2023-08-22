@@ -1799,288 +1799,205 @@ describe('actions', () => {
     });
   });
 
-  it('named actions in entry', () => {
+  it('should allow a defined parametrized action with params', () => {
     createMachine({
       types: {} as {
-        actions: { type: 'greet'; params: { name: string } };
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: [
-        {
-          type: 'greet',
-          params: {
-            name: 'David'
-          }
-        },
-        // @ts-expect-error
-        { type: 'greet' }
-      ],
-      initial: 'a',
-      states: {
-        a: {
-          entry: [
-            {
-              type: 'greet',
-              params: {
-                name: 'David'
-              }
-            },
-            {
-              type: 'greet',
-              params: {
-                // @ts-expect-error
-                name: 42
-              }
-            },
-            {
-              type: 'greet',
-              // @ts-expect-error
-              params: {}
-            },
-            // @ts-expect-error
-            { type: 'greet' }
-          ]
+      entry: {
+        type: 'greet',
+        params: {
+          name: 'David'
         }
       }
     });
   });
 
-  it('named actions in exit', () => {
+  it('should disallow a non-defined parametrized action', () => {
     createMachine({
       types: {} as {
-        actions: { type: 'greet'; params: { name: string } };
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      exit: [
-        {
-          type: 'greet',
-          params: {
-            name: 'David'
-          }
-        },
-        // @ts-expect-error
-        { type: 'greet' }
-      ],
-      initial: 'a',
-      states: {
-        a: {
-          exit: [
-            {
-              type: 'greet',
-              params: {
-                name: 'David'
-              }
-            },
-            {
-              type: 'greet',
-              params: {
-                // @ts-expect-error
-                name: 42
-              }
-            },
-            {
-              type: 'greet',
-              // @ts-expect-error
-              params: {}
-            },
-            // @ts-expect-error
-            { type: 'greet' }
-          ]
+      // @ts-expect-error
+      entry: {
+        type: 'other',
+        params: {
+          foo: 'bar'
         }
       }
     });
   });
 
-  it('named actions in transition actions', () => {
+  it('should disallow a defined parametrized action with invalid params', () => {
     createMachine({
       types: {} as {
-        actions: { type: 'greet'; params: { name: string } };
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      on: {
-        otherEvent: {
-          actions: [
-            {
-              type: 'greet',
-              params: {
-                name: 'David'
-              }
-            }
-          ]
-        },
-        // @ts-expect-error
-        event: {
-          actions: [
-            {
-              type: 'greet',
-              params: {
-                name: 'David'
-              }
-            },
-            { type: 'greet' }
-          ]
-        }
-      },
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            otherEvent: {
-              actions: [
-                {
-                  type: 'greet',
-                  params: {
-                    name: 'David'
-                  }
-                }
-              ]
-            },
-            // @ts-expect-error
-            event: {
-              actions: [
-                {
-                  type: 'greet',
-                  params: {
-                    name: 'David'
-                  }
-                },
-                { type: 'greet' }
-              ]
-            }
-          }
+      entry: {
+        type: 'greet',
+        params: {
+          // @ts-expect-error
+          kick: 'start'
         }
       }
     });
   });
 
-  it('named actions in invoke onDone, onSnapshot, onError', () => {
+  it('should disallow a defined parametrized action when it lacks required params', () => {
     createMachine({
       types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: {
+        type: 'greet',
+        params: {}
+      }
+    });
+  });
+
+  it("should disallow a defined parametrized action with required params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: 'greet'
+    });
+  });
+
+  it("should allow a defined action when it has no params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: 'poke'
+    });
+  });
+
+  it("should allow a defined action when it has no params when it's referenced using an object", () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: {
+        type: 'poke'
+      }
+    });
+  });
+
+  it("should allow a defined action without params when it only has optional params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        actions:
+          | { type: 'greet'; params: { name: string } }
+          | { type: 'poke'; params?: { target: string } };
+      },
+      entry: {
+        type: 'poke'
+      }
+    });
+  });
+
+  it("should allow a defined action without params when it only has optional params when it's referenced using an object", () => {
+    createMachine({
+      types: {} as {
+        actions:
+          | { type: 'greet'; params: { name: string } }
+          | { type: 'poke'; params?: { target: string } };
+      },
+      entry: {
+        type: 'poke'
+      }
+    });
+  });
+
+  it('should type action param as undefined in inline custom action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: ({ action }) => {
+        ((_accept: undefined) => {})(action);
+        // @ts-expect-error
+        ((_accept: 'not any') => {})(action);
+      }
+    });
+  });
+
+  it('should type action param as undefined in inline builtin action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: assign(({ action }) => {
+        ((_accept: undefined) => {})(action);
+        // @ts-expect-error
+        ((_accept: 'not any') => {})(action);
+        return {};
+      })
+    });
+  });
+
+  it('should type action param as the specific defined action type in the provided custom action', () => {
+    createMachine(
+      {
+        types: {} as {
+          actions:
+            | { type: 'greet'; params: { name: string } }
+            | { type: 'poke' };
+        }
+      },
+      {
         actions: {
-          type: 'greet';
-          params: { name: string };
-        };
-      },
-      type: 'parallel',
-      states: {
-        failing: {
-          // TODO: why does error occur for entire object??
-          // @ts-expect-error
-          invoke: {
-            src: 'someSrc',
-            onDone: {
-              actions: [
-                {
-                  type: 'greet',
-                  params: {
-                    name: 'David'
-                  }
-                },
-                {
-                  type: 'greet',
-                  params: {
-                    name: 42
-                  }
-                },
-                {
-                  type: 'greet',
-
-                  params: {}
-                },
-
-                { type: 'greet' }
-              ]
-            },
-            onError: {
-              actions: [
-                {
-                  type: 'greet',
-                  params: {
-                    name: 'David'
-                  }
-                },
-                {
-                  type: 'greet',
-                  params: {
-                    name: 42
-                  }
-                },
-                {
-                  type: 'greet',
-
-                  params: {}
-                },
-
-                { type: 'greet' }
-              ]
-            }
-          }
-        },
-        succeeding: {
-          invoke: {
-            src: 'someSrc',
-            onDone: {
-              actions: [
-                {
-                  type: 'greet',
-                  params: {
-                    name: 'David'
-                  }
-                }
-              ]
-            },
-            onError: {
-              actions: [
-                {
-                  type: 'greet',
-                  params: {
-                    name: 'David'
-                  }
-                }
-              ]
-            }
+          greet: ({ action }) => {
+            ((_accept: string) => {})(action.params.name);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(action.params.name);
           }
         }
       }
-    });
+    );
   });
 
-  it('named actions in state always, onDone', () => {
-    createMachine({
-      types: {} as {
-        actions: { type: 'greet'; params: { name: string } };
-      },
-      always: [
-        {
-          actions: { type: 'greet', params: { name: 'David' } }
+  it('should type action param as the specific defined action type in the provided builtin action', () => {
+    createMachine(
+      {
+        types: {} as {
+          actions:
+            | { type: 'greet'; params: { name: string } }
+            | { type: 'poke' };
         }
-      ],
-      initial: 'a',
-      states: {
-        failing: {
-          always: [
-            {
-              // @ts-expect-error
-              actions: { type: 'greet', params: { name: 42 } }
-            }
-          ],
-          // @ts-expect-error
-          onDone: {
-            actions: [
-              { type: 'greet', params: { name: 'David' } },
-              { type: 'unknown' }
-            ]
-          }
-        },
-        succeeding: {
-          always: [
-            {
-              actions: { type: 'greet', params: { name: 'David' } }
-            }
-          ],
-          onDone: {
-            actions: [{ type: 'greet', params: { name: 'David' } }]
-          }
+      },
+      {
+        actions: {
+          greet: assign(({ action }) => {
+            ((_accept: string) => {})(action.params.name);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(action.params.name);
+            return {};
+          })
         }
       }
-    });
+    );
+  });
+
+  it('should not allow a provided action outside of the defined ones', () => {
+    createMachine(
+      {
+        types: {} as {
+          actions:
+            | { type: 'greet'; params: { name: string } }
+            | { type: 'poke' };
+        }
+      },
+      {
+        actions: {
+          // @ts-expect-error
+          other: () => {}
+        }
+      }
+    );
   });
 });
 

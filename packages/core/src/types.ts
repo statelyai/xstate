@@ -10,7 +10,6 @@ import {
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
-import { BuiltinAction } from './stateUtils.ts';
 
 /**
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
