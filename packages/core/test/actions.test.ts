@@ -3786,4 +3786,274 @@ describe('actions', () => {
 
     expect(spy).toHaveBeenCalledWith({ count: 42 });
   });
+
+  it('should call inline entry custom action with undefined parametrized action object', () => {
+    const spy = jest.fn();
+    createActor(
+      createMachine({
+        entry: ({ action }) => {
+          spy(action);
+        }
+      })
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call inline entry builtin action with undefined parametrized action object', () => {
+    const spy = jest.fn();
+    createActor(
+      createMachine({
+        entry: assign(({ action }) => {
+          spy(action);
+          return {};
+        })
+      })
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call inline transition custom action with undefined parametrized action object', () => {
+    const spy = jest.fn();
+
+    const actorRef = createActor(
+      createMachine({
+        on: {
+          FOO: {
+            actions: ({ action }) => {
+              spy(action);
+            }
+          }
+        }
+      })
+    ).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call inline transition builtin action with undefined parametrized action object', () => {
+    const spy = jest.fn();
+
+    const actorRef = createActor(
+      createMachine({
+        on: {
+          FOO: {
+            actions: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      })
+    ).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it("should call a referenced custom action with a parametrized action object when it's referenced using a string", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: 'myAction'
+        },
+        {
+          actions: {
+            myAction: ({ action }) => {
+              spy(action);
+            }
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+  });
+
+  it("should call a referenced builtin action with a parametrized action object when it's referenced using a string", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: 'myAction'
+        },
+        {
+          actions: {
+            myAction: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+  });
+
+  it('should call a referenced custom action with the provided parametrized action object', () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: {
+            type: 'myAction',
+            params: {
+              foo: 'bar'
+            }
+          }
+        },
+        {
+          actions: {
+            myAction: ({ action }) => {
+              spy(action);
+            }
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction',
+      params: {
+        foo: 'bar'
+      }
+    });
+  });
+
+  it('should call a referenced builtin action with the provided parametrized action object', () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: {
+            type: 'myAction',
+            params: {
+              foo: 'bar'
+            }
+          }
+        },
+        {
+          actions: {
+            myAction: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction',
+      params: {
+        foo: 'bar'
+      }
+    });
+  });
+
+  it("should call a referenced custom action with its parametrized action object when it's referenced by an inline pure", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: pure(() => ['myAction'])
+        },
+        {
+          actions: {
+            myAction: ({ action }) => {
+              spy(action);
+              return {};
+            }
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction'
+    });
+  });
+
+  it("should call a referenced builtin action with its parametrized action object when it's referenced by an inline pure", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: pure(() => ['myAction'])
+        },
+        {
+          actions: {
+            myAction: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction'
+    });
+  });
+
+  it("should call a referenced custom action with its parametrized action object when it's referenced by a referenced pure", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: 'myPure'
+        },
+        {
+          actions: {
+            myPure: pure(() => ['myAction']),
+            myAction: ({ action }) => {
+              spy(action);
+              return {};
+            }
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction'
+    });
+  });
+
+  it("should call a referenced builtin action with its parametrized action object when it's referenced by a referenced pure", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: 'myPure'
+        },
+        {
+          actions: {
+            myPure: pure(() => ['myAction']),
+            myAction: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction'
+    });
+  });
 });
