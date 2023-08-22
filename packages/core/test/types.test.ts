@@ -11,7 +11,8 @@ import {
   MachineContext,
   Spawner,
   StateMachine,
-  pure
+  pure,
+  choose
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -1999,6 +2000,86 @@ describe('actions', () => {
         }
       }
     );
+  });
+});
+
+describe('choose', () => {
+  it('should be able to use a defined parametrized action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
+              params: {
+                name: 'Anders'
+              }
+            }
+          ]
+        }
+      ])
+    });
+  });
+
+  it('should not be possible to use a parametrized action outside of the defined ones', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: choose([
+        {
+          guard: () => true,
+          actions: {
+            type: 'other' as const
+          }
+        }
+      ])
+    });
+  });
+
+  it('should be possible to use multiple different defined parametrized actions', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet' as const,
+              params: {
+                name: 'Anders'
+              }
+            },
+            {
+              type: 'poke' as const
+            }
+          ]
+        }
+      ])
+    });
+  });
+
+  it('should be possible to use a readonly array of branches', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: {
+            type: 'poke'
+          }
+        }
+      ] as const)
+    });
   });
 });
 

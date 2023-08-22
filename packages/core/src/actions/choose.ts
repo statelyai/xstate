@@ -39,9 +39,14 @@ function resolve(
 export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
   TAction extends ParameterizedObject
->(branches: Array<ChooseBranch<TContext, TExpressionEvent, TAction>>) {
+>(
+  branches: ReadonlyArray<
+    ChooseBranch<TContext, TExpressionEvent, TEvent, TAction>
+  >
+) {
   function choose(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {
