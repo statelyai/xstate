@@ -10,7 +10,9 @@ import {
   createActor,
   MachineContext,
   Spawner,
-  StateMachine
+  StateMachine,
+  pure,
+  choose
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -1795,6 +1797,357 @@ describe('actions', () => {
       entry: assign({
         count: ({ context }) => context.count + 1,
         skip: true
+      })
+    });
+  });
+
+  it('should allow a defined parametrized action with params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: {
+        type: 'greet',
+        params: {
+          name: 'David'
+        }
+      }
+    });
+  });
+
+  it('should disallow a non-defined parametrized action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: {
+        type: 'other',
+        params: {
+          foo: 'bar'
+        }
+      }
+    });
+  });
+
+  it('should disallow a defined parametrized action with invalid params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: {
+        type: 'greet',
+        params: {
+          // @ts-expect-error
+          kick: 'start'
+        }
+      }
+    });
+  });
+
+  it('should disallow a defined parametrized action when it lacks required params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: {
+        type: 'greet',
+        params: {}
+      }
+    });
+  });
+
+  it("should disallow a defined parametrized action with required params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: 'greet'
+    });
+  });
+
+  it("should allow a defined action when it has no params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: 'poke'
+    });
+  });
+
+  it("should allow a defined action when it has no params when it's referenced using an object", () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: {
+        type: 'poke'
+      }
+    });
+  });
+
+  it("should allow a defined action without params when it only has optional params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        actions:
+          | { type: 'greet'; params: { name: string } }
+          | { type: 'poke'; params?: { target: string } };
+      },
+      entry: {
+        type: 'poke'
+      }
+    });
+  });
+
+  it("should allow a defined action without params when it only has optional params when it's referenced using an object", () => {
+    createMachine({
+      types: {} as {
+        actions:
+          | { type: 'greet'; params: { name: string } }
+          | { type: 'poke'; params?: { target: string } };
+      },
+      entry: {
+        type: 'poke'
+      }
+    });
+  });
+
+  it('should type action param as undefined in inline custom action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: ({ action }) => {
+        ((_accept: undefined) => {})(action);
+        // @ts-expect-error
+        ((_accept: 'not any') => {})(action);
+      }
+    });
+  });
+
+  it('should type action param as undefined in inline builtin action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: assign(({ action }) => {
+        ((_accept: undefined) => {})(action);
+        // @ts-expect-error
+        ((_accept: 'not any') => {})(action);
+        return {};
+      })
+    });
+  });
+
+  it('should type action param as the specific defined action type in the provided custom action', () => {
+    createMachine(
+      {
+        types: {} as {
+          actions:
+            | { type: 'greet'; params: { name: string } }
+            | { type: 'poke' };
+        }
+      },
+      {
+        actions: {
+          greet: ({ action }) => {
+            ((_accept: string) => {})(action.params.name);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(action.params.name);
+          }
+        }
+      }
+    );
+  });
+
+  it('should type action param as the specific defined action type in the provided builtin action', () => {
+    createMachine(
+      {
+        types: {} as {
+          actions:
+            | { type: 'greet'; params: { name: string } }
+            | { type: 'poke' };
+        }
+      },
+      {
+        actions: {
+          greet: assign(({ action }) => {
+            ((_accept: string) => {})(action.params.name);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(action.params.name);
+            return {};
+          })
+        }
+      }
+    );
+  });
+
+  it('should not allow a provided action outside of the defined ones', () => {
+    createMachine(
+      {
+        types: {} as {
+          actions:
+            | { type: 'greet'; params: { name: string } }
+            | { type: 'poke' };
+        }
+      },
+      {
+        actions: {
+          // @ts-expect-error
+          other: () => {}
+        }
+      }
+    );
+  });
+});
+
+describe('choose', () => {
+  it('should be able to use a defined parametrized action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
+              params: {
+                name: 'Anders'
+              }
+            }
+          ]
+        }
+      ])
+    });
+  });
+
+  it('should not be possible to use a parametrized action outside of the defined ones', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: choose([
+        {
+          guard: () => true,
+          actions: {
+            type: 'other' as const
+          }
+        }
+      ])
+    });
+  });
+
+  it('should be possible to use multiple different defined parametrized actions', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet' as const,
+              params: {
+                name: 'Anders'
+              }
+            },
+            {
+              type: 'poke' as const
+            }
+          ]
+        }
+      ])
+    });
+  });
+
+  it('should be possible to use a readonly array of branches', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: {
+            type: 'poke'
+          }
+        }
+      ] as const)
+    });
+  });
+});
+
+describe('pure', () => {
+  it('should be able to return a defined parametrized action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return [
+          {
+            type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
+            params: {
+              name: 'Anders'
+            }
+          }
+        ];
+      })
+    });
+  });
+
+  it('should not be possible to return a parametrized action outside of the defined ones', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: pure(() => {
+        return {
+          type: 'other'
+        };
+      })
+    });
+  });
+
+  it('should be possible to return multiple different defined parametrized actions', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return [
+          {
+            type: 'greet' as const,
+            params: {
+              name: 'Anders'
+            }
+          },
+          {
+            type: 'poke' as const
+          }
+        ];
+      })
+    });
+  });
+
+  it('should be possible to return a readonly array of actions', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return [
+          {
+            type: 'poke'
+          }
+        ] as const;
       })
     });
   });

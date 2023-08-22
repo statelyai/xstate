@@ -5,7 +5,8 @@ import {
   MachineContext,
   AnyActorContext,
   AnyState,
-  ActionArgs
+  ActionArgs,
+  ParameterizedObject
 } from '../types.ts';
 import { evaluateGuard, toGuardDefinition } from '../guards.ts';
 import { toArray } from '../utils.ts';
@@ -13,7 +14,7 @@ import { toArray } from '../utils.ts';
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any>,
+  actionArgs: ActionArgs<any, any, any>,
   {
     branches
   }: {
@@ -38,9 +39,17 @@ function resolve(
 export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
->(branches: Array<ChooseBranch<TContext, TExpressionEvent>>) {
-  function choose(_: ActionArgs<TContext, TExpressionEvent>) {
+  TEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TAction extends ParameterizedObject
+>(
+  branches: ReadonlyArray<
+    ChooseBranch<TContext, TExpressionEvent, TEvent, TAction>
+  >
+) {
+  function choose(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -51,5 +60,8 @@ export function choose<
 
   choose.resolve = resolve;
 
-  return choose;
+  return choose as {
+    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+    _out_TAction?: TAction;
+  };
 }

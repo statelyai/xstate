@@ -2833,7 +2833,11 @@ describe('choose', () => {
       counter: number;
     }
 
-    const machine = createMachine<Ctx, Events>({
+    const machine = createMachine({
+      types: {} as {
+        context: Ctx;
+        events: Events;
+      },
       context: {},
       initial: 'foo',
       states: {
@@ -3061,9 +3065,12 @@ describe('sendTo', () => {
       }
     });
 
-    createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-    }>({
+    createMachine({
+      types: {} as {
+        context: {
+          child: ActorRefFrom<typeof childMachine>;
+        };
+      },
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
@@ -3409,72 +3416,14 @@ describe('raise', () => {
   });
 });
 
-it('should call transition actions in document order for same-level parallel regions', () => {
-  const actual: string[] = [];
-
-  const machine = createMachine({
-    type: 'parallel',
-    states: {
-      a: {
-        on: {
-          FOO: {
-            actions: () => actual.push('a')
-          }
-        }
-      },
-      b: {
-        on: {
-          FOO: {
-            actions: () => actual.push('b')
-          }
-        }
-      }
-    }
-  });
-  const service = createActor(machine).start();
-  service.send({ type: 'FOO' });
-
-  expect(actual).toEqual(['a', 'b']);
-});
-
-it('should call transition actions in document order for states at different levels of parallel regions', () => {
-  const actual: string[] = [];
-
-  const machine = createMachine({
-    type: 'parallel',
-    states: {
-      a: {
-        initial: 'a1',
-        states: {
-          a1: {
-            on: {
-              FOO: {
-                actions: () => actual.push('a1')
-              }
-            }
-          }
-        }
-      },
-      b: {
-        on: {
-          FOO: {
-            actions: () => actual.push('b')
-          }
-        }
-      }
-    }
-  });
-  const service = createActor(machine).start();
-  service.send({ type: 'FOO' });
-
-  expect(actual).toEqual(['a1', 'b']);
-});
-
 describe('assign action order', () => {
   it('should preserve action order', () => {
     const captured: number[] = [];
 
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+      },
       context: { count: 0 },
       entry: [
         ({ context }) => captured.push(context.count), // 0
@@ -3497,8 +3446,11 @@ describe('assign action order', () => {
       count: number;
     }
 
-    const machine = createMachine<CountCtx>(
+    const machine = createMachine(
       {
+        types: {} as {
+          context: CountCtx;
+        },
         context: { count: 0 },
         entry: [
           ({ context }) => captured.push(context.count), // 0
@@ -3527,7 +3479,10 @@ describe('assign action order', () => {
   it('should capture correct context values on subsequent transitions', () => {
     let captured: number[] = [];
 
-    const machine = createMachine<{ counter: number }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { counter: number };
+      },
       context: {
         counter: 0
       },
@@ -3552,10 +3507,11 @@ describe('assign action order', () => {
 
 describe('types', () => {
   it('assign actions should be inferred correctly', () => {
-    createMachine<
-      { count: number; text: string },
-      { type: 'inc'; value: number } | { type: 'say'; value: string }
-    >({
+    createMachine({
+      types: {} as {
+        context: { count: number; text: string };
+        events: { type: 'inc'; value: number } | { type: 'say'; value: string };
+      },
       context: {
         count: 0,
         text: 'hello'
@@ -3598,10 +3554,11 @@ describe('types', () => {
   });
 
   it('choose actions should be inferred correctly', () => {
-    createMachine<
-      { count: number; text: string },
-      { type: 'inc'; value: number } | { type: 'say'; value: string }
-    >({
+    createMachine({
+      types: {} as {
+        context: { count: number; text: string };
+        events: { type: 'inc'; value: number } | { type: 'say'; value: string };
+      },
       context: {
         count: 0,
         text: 'hello'
@@ -3676,94 +3633,427 @@ describe('action meta', () => {
   });
 });
 
-it('should call an inline action responding to an initial raise with the raised event', () => {
-  const spy = jest.fn();
+describe('actions', () => {
+  it('should call transition actions in document order for same-level parallel regions', () => {
+    const actual: string[] = [];
 
-  const machine = createMachine({
-    entry: raise({ type: 'HELLO' }),
-    on: {
-      HELLO: {
-        actions: ({ event }) => {
-          spy(event);
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          on: {
+            FOO: {
+              actions: () => actual.push('a')
+            }
+          }
+        },
+        b: {
+          on: {
+            FOO: {
+              actions: () => actual.push('b')
+            }
+          }
         }
       }
-    }
+    });
+    const service = createActor(machine).start();
+    service.send({ type: 'FOO' });
+
+    expect(actual).toEqual(['a', 'b']);
   });
 
-  createActor(machine).start();
+  it('should call transition actions in document order for states at different levels of parallel regions', () => {
+    const actual: string[] = [];
 
-  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
-});
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'a1',
+          states: {
+            a1: {
+              on: {
+                FOO: {
+                  actions: () => actual.push('a1')
+                }
+              }
+            }
+          }
+        },
+        b: {
+          on: {
+            FOO: {
+              actions: () => actual.push('b')
+            }
+          }
+        }
+      }
+    });
+    const service = createActor(machine).start();
+    service.send({ type: 'FOO' });
 
-it('should call a referenced action responding to an initial raise with the raised event', () => {
-  const spy = jest.fn();
+    expect(actual).toEqual(['a1', 'b']);
+  });
 
-  const machine = createMachine(
-    {
+  it('should call an inline action responding to an initial raise with the raised event', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
       entry: raise({ type: 'HELLO' }),
       on: {
         HELLO: {
-          actions: 'foo'
+          actions: ({ event }) => {
+            spy(event);
+          }
         }
       }
-    },
-    {
-      actions: {
-        foo: ({ event }) => {
-          spy(event);
-        }
-      }
-    }
-  );
+    });
 
-  createActor(machine).start();
+    createActor(machine).start();
 
-  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
-});
-
-it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
-  const spy = jest.fn();
-
-  const machine = createMachine({
-    context: { count: 0 },
-    entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
-    on: {
-      HELLO: {
-        actions: ({ context }) => {
-          spy(context);
-        }
-      }
-    }
+    expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
   });
 
-  createActor(machine).start();
+  it('should call a referenced action responding to an initial raise with the raised event', () => {
+    const spy = jest.fn();
 
-  expect(spy).toHaveBeenCalledWith({ count: 42 });
-});
+    const machine = createMachine(
+      {
+        entry: raise({ type: 'HELLO' }),
+        on: {
+          HELLO: {
+            actions: 'foo'
+          }
+        }
+      },
+      {
+        actions: {
+          foo: ({ event }) => {
+            spy(event);
+          }
+        }
+      }
+    );
 
-it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
-  const spy = jest.fn();
+    createActor(machine).start();
 
-  const machine = createMachine(
-    {
+    expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
+  });
+
+  it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
       context: { count: 0 },
       entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
       on: {
         HELLO: {
-          actions: 'foo'
+          actions: ({ context }) => {
+            spy(context);
+          }
         }
       }
-    },
-    {
-      actions: {
-        foo: ({ context }) => {
-          spy(context);
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledWith({ count: 42 });
+  });
+
+  it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: { count: 0 },
+        entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+        on: {
+          HELLO: {
+            actions: 'foo'
+          }
+        }
+      },
+      {
+        actions: {
+          foo: ({ context }) => {
+            spy(context);
+          }
         }
       }
-    }
-  );
+    );
 
-  createActor(machine).start();
+    createActor(machine).start();
 
-  expect(spy).toHaveBeenCalledWith({ count: 42 });
+    expect(spy).toHaveBeenCalledWith({ count: 42 });
+  });
+
+  it('should call inline entry custom action with undefined parametrized action object', () => {
+    const spy = jest.fn();
+    createActor(
+      createMachine({
+        entry: ({ action }) => {
+          spy(action);
+        }
+      })
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call inline entry builtin action with undefined parametrized action object', () => {
+    const spy = jest.fn();
+    createActor(
+      createMachine({
+        entry: assign(({ action }) => {
+          spy(action);
+          return {};
+        })
+      })
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call inline transition custom action with undefined parametrized action object', () => {
+    const spy = jest.fn();
+
+    const actorRef = createActor(
+      createMachine({
+        on: {
+          FOO: {
+            actions: ({ action }) => {
+              spy(action);
+            }
+          }
+        }
+      })
+    ).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call inline transition builtin action with undefined parametrized action object', () => {
+    const spy = jest.fn();
+
+    const actorRef = createActor(
+      createMachine({
+        on: {
+          FOO: {
+            actions: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      })
+    ).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it("should call a referenced custom action with a parametrized action object when it's referenced using a string", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: 'myAction'
+        },
+        {
+          actions: {
+            myAction: ({ action }) => {
+              spy(action);
+            }
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+  });
+
+  it("should call a referenced builtin action with a parametrized action object when it's referenced using a string", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: 'myAction'
+        },
+        {
+          actions: {
+            myAction: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+  });
+
+  it('should call a referenced custom action with the provided parametrized action object', () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: {
+            type: 'myAction',
+            params: {
+              foo: 'bar'
+            }
+          }
+        },
+        {
+          actions: {
+            myAction: ({ action }) => {
+              spy(action);
+            }
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction',
+      params: {
+        foo: 'bar'
+      }
+    });
+  });
+
+  it('should call a referenced builtin action with the provided parametrized action object', () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: {
+            type: 'myAction',
+            params: {
+              foo: 'bar'
+            }
+          }
+        },
+        {
+          actions: {
+            myAction: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction',
+      params: {
+        foo: 'bar'
+      }
+    });
+  });
+
+  it("should call a referenced custom action with its parametrized action object when it's referenced by an inline pure", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: pure(() => ['myAction'])
+        },
+        {
+          actions: {
+            myAction: ({ action }) => {
+              spy(action);
+              return {};
+            }
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction'
+    });
+  });
+
+  it("should call a referenced builtin action with its parametrized action object when it's referenced by an inline pure", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: pure(() => ['myAction'])
+        },
+        {
+          actions: {
+            myAction: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction'
+    });
+  });
+
+  it("should call a referenced custom action with its parametrized action object when it's referenced by a referenced pure", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: 'myPure'
+        },
+        {
+          actions: {
+            myPure: pure(() => ['myAction']),
+            myAction: ({ action }) => {
+              spy(action);
+              return {};
+            }
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction'
+    });
+  });
+
+  it("should call a referenced builtin action with its parametrized action object when it's referenced by a referenced pure", () => {
+    const spy = jest.fn();
+
+    createActor(
+      createMachine(
+        {
+          entry: 'myPure'
+        },
+        {
+          actions: {
+            myPure: pure(() => ['myAction']),
+            myAction: assign(({ action }) => {
+              spy(action);
+              return {};
+            })
+          }
+        }
+      )
+    ).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction'
+    });
+  });
 });
