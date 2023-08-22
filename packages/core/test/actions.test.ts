@@ -3633,155 +3633,157 @@ describe('action meta', () => {
   });
 });
 
-it('should call transition actions in document order for same-level parallel regions', () => {
-  const actual: string[] = [];
+describe('actions', () => {
+  it('should call transition actions in document order for same-level parallel regions', () => {
+    const actual: string[] = [];
 
-  const machine = createMachine({
-    type: 'parallel',
-    states: {
-      a: {
-        on: {
-          FOO: {
-            actions: () => actual.push('a')
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          on: {
+            FOO: {
+              actions: () => actual.push('a')
+            }
           }
-        }
-      },
-      b: {
-        on: {
-          FOO: {
-            actions: () => actual.push('b')
-          }
-        }
-      }
-    }
-  });
-  const service = createActor(machine).start();
-  service.send({ type: 'FOO' });
-
-  expect(actual).toEqual(['a', 'b']);
-});
-
-it('should call transition actions in document order for states at different levels of parallel regions', () => {
-  const actual: string[] = [];
-
-  const machine = createMachine({
-    type: 'parallel',
-    states: {
-      a: {
-        initial: 'a1',
-        states: {
-          a1: {
-            on: {
-              FOO: {
-                actions: () => actual.push('a1')
-              }
+        },
+        b: {
+          on: {
+            FOO: {
+              actions: () => actual.push('b')
             }
           }
         }
-      },
-      b: {
-        on: {
-          FOO: {
-            actions: () => actual.push('b')
+      }
+    });
+    const service = createActor(machine).start();
+    service.send({ type: 'FOO' });
+
+    expect(actual).toEqual(['a', 'b']);
+  });
+
+  it('should call transition actions in document order for states at different levels of parallel regions', () => {
+    const actual: string[] = [];
+
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'a1',
+          states: {
+            a1: {
+              on: {
+                FOO: {
+                  actions: () => actual.push('a1')
+                }
+              }
+            }
+          }
+        },
+        b: {
+          on: {
+            FOO: {
+              actions: () => actual.push('b')
+            }
           }
         }
       }
-    }
-  });
-  const service = createActor(machine).start();
-  service.send({ type: 'FOO' });
+    });
+    const service = createActor(machine).start();
+    service.send({ type: 'FOO' });
 
-  expect(actual).toEqual(['a1', 'b']);
-});
-
-it('should call an inline action responding to an initial raise with the raised event', () => {
-  const spy = jest.fn();
-
-  const machine = createMachine({
-    entry: raise({ type: 'HELLO' }),
-    on: {
-      HELLO: {
-        actions: ({ event }) => {
-          spy(event);
-        }
-      }
-    }
+    expect(actual).toEqual(['a1', 'b']);
   });
 
-  createActor(machine).start();
+  it('should call an inline action responding to an initial raise with the raised event', () => {
+    const spy = jest.fn();
 
-  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
-});
-
-it('should call a referenced action responding to an initial raise with the raised event', () => {
-  const spy = jest.fn();
-
-  const machine = createMachine(
-    {
+    const machine = createMachine({
       entry: raise({ type: 'HELLO' }),
       on: {
         HELLO: {
-          actions: 'foo'
+          actions: ({ event }) => {
+            spy(event);
+          }
         }
       }
-    },
-    {
-      actions: {
-        foo: ({ event }) => {
-          spy(event);
-        }
-      }
-    }
-  );
+    });
 
-  createActor(machine).start();
+    createActor(machine).start();
 
-  expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
-});
-
-it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
-  const spy = jest.fn();
-
-  const machine = createMachine({
-    context: { count: 0 },
-    entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
-    on: {
-      HELLO: {
-        actions: ({ context }) => {
-          spy(context);
-        }
-      }
-    }
+    expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
   });
 
-  createActor(machine).start();
+  it('should call a referenced action responding to an initial raise with the raised event', () => {
+    const spy = jest.fn();
 
-  expect(spy).toHaveBeenCalledWith({ count: 42 });
-});
+    const machine = createMachine(
+      {
+        entry: raise({ type: 'HELLO' }),
+        on: {
+          HELLO: {
+            actions: 'foo'
+          }
+        }
+      },
+      {
+        actions: {
+          foo: ({ event }) => {
+            spy(event);
+          }
+        }
+      }
+    );
 
-it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
-  const spy = jest.fn();
+    createActor(machine).start();
 
-  const machine = createMachine(
-    {
+    expect(spy).toHaveBeenCalledWith({ type: 'HELLO' });
+  });
+
+  it('should call an inline action responding to an initial raise with updated (non-initial) context', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
       context: { count: 0 },
       entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
       on: {
         HELLO: {
-          actions: 'foo'
+          actions: ({ context }) => {
+            spy(context);
+          }
         }
       }
-    },
-    {
-      actions: {
-        foo: ({ context }) => {
-          spy(context);
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledWith({ count: 42 });
+  });
+
+  it('should call a referenced action responding to an initial raise with updated (non-initial) context', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: { count: 0 },
+        entry: [assign({ count: 42 }), raise({ type: 'HELLO' })],
+        on: {
+          HELLO: {
+            actions: 'foo'
+          }
+        }
+      },
+      {
+        actions: {
+          foo: ({ context }) => {
+            spy(context);
+          }
         }
       }
-    }
-  );
+    );
 
-  createActor(machine).start();
+    createActor(machine).start();
 
-  expect(spy).toHaveBeenCalledWith({ count: 42 });
+    expect(spy).toHaveBeenCalledWith({ count: 42 });
+  });
 });
