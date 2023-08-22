@@ -424,7 +424,7 @@ export type StateTypes =
   | 'history'
   | string; // TODO: remove once TS fixes this type-widening issue
 
-export type SingleOrArray<T> = T[] | T;
+export type SingleOrArray<T> = readonly T[] | T;
 
 export type StateNodesConfig<
   TContext extends MachineContext,
@@ -1345,16 +1345,16 @@ export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Omit<TransitionConfig<TContext, TEvent, TEvent, TODO>, 'target'> {
-  target: Array<StateNode<TContext, TEvent>> | undefined;
+  target: ReadonlyArray<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
-  actions: UnknownAction[];
+  actions: readonly UnknownAction[];
   reenter: boolean;
   guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
-    actions: UnknownAction[];
+    actions: readonly UnknownAction[];
     guard?: GuardDefinition<TContext, TEvent>;
     eventType: TEvent['type'] | '*';
     meta?: Record<string, any>;
@@ -1367,7 +1367,7 @@ export interface InitialTransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends TransitionDefinition<TContext, TEvent> {
-  target: Array<StateNode<TContext, TEvent>>;
+  target: ReadonlyArray<StateNode<TContext, TEvent>>;
   guard?: never;
 }
 

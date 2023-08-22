@@ -196,15 +196,15 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry);
-    this.exit = toArray(this.config.exit);
+    this.entry = toArray(this.config.entry).slice();
+    this.exit = toArray(this.config.exit).slice();
 
     this.meta = this.config.meta;
     this.output =
       this.type === 'final'
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).output
         : undefined;
-    this.tags = toArray(config.tags);
+    this.tags = toArray(config.tags).slice();
   }
 
   public _initialize() {

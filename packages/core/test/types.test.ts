@@ -10,7 +10,8 @@ import {
   createActor,
   MachineContext,
   Spawner,
-  StateMachine
+  StateMachine,
+  pure
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -1998,6 +1999,76 @@ describe('actions', () => {
         }
       }
     );
+  });
+});
+
+describe('pure', () => {
+  it('should be able to return a defined parametrized action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return [
+          {
+            type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
+            params: {
+              name: 'Anders'
+            }
+          }
+        ];
+      })
+    });
+  });
+
+  it('should not be possible to return a parametrized action outside of the defined ones', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      // @ts-expect-error
+      entry: pure(() => {
+        return {
+          type: 'other'
+        };
+      })
+    });
+  });
+
+  it('should be possible to return multiple different defined parametrized actions', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return [
+          {
+            type: 'greet' as const,
+            params: {
+              name: 'Anders'
+            }
+          },
+          {
+            type: 'poke' as const
+          }
+        ];
+      })
+    });
+  });
+
+  it('should be possible to return a readonly array of actions', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return [
+          {
+            type: 'poke'
+          }
+        ] as const;
+      })
+    });
   });
 });
 

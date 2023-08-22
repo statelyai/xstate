@@ -524,8 +524,8 @@ export function formatInitialTransition<
 
 export function resolveTarget(
   stateNode: AnyStateNode,
-  targets: Array<string | AnyStateNode> | undefined
-): Array<AnyStateNode> | undefined {
+  targets: ReadonlyArray<string | AnyStateNode> | undefined
+): ReadonlyArray<AnyStateNode> | undefined {
   if (targets === undefined) {
     // an undefined target signals that the state node should not transition from that state when receiving that event
     return undefined;
@@ -568,7 +568,7 @@ export function resolveTarget(
 function resolveHistoryTarget<
   TContext extends MachineContext,
   TEvent extends EventObject
->(stateNode: AnyStateNode & { type: 'history' }): Array<AnyStateNode> {
+>(stateNode: AnyStateNode & { type: 'history' }): ReadonlyArray<AnyStateNode> {
   const normalizedTarget = normalizeTarget<TContext, TEvent>(stateNode.target);
   if (!normalizedTarget) {
     return stateNode.parent!.initial.target;

@@ -210,14 +210,14 @@ export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
 }
 
-export function toArrayStrict<T>(value: T[] | T): T[] {
+export function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
   if (isArray(value)) {
     return value;
   }
   return [value];
 }
 
-export function toArray<T>(value: T[] | T | undefined): T[] {
+export function toArray<T>(value: readonly T[] | T | undefined): readonly T[] {
   if (value === undefined) {
     return [];
   }
@@ -305,7 +305,7 @@ export function partition<T, A extends T, B extends T>(
   return [truthy, falsy];
 }
 
-export function isArray(value: any): value is any[] {
+export function isArray(value: any): value is readonly any[] {
   return Array.isArray(value);
 }
 
@@ -356,7 +356,7 @@ export function normalizeTarget<
   TEvent extends EventObject
 >(
   target: SingleOrArray<string | StateNode<TContext, TEvent>> | undefined
-): Array<string | StateNode<TContext, TEvent>> | undefined {
+): ReadonlyArray<string | StateNode<TContext, TEvent>> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
     return undefined;
   }
