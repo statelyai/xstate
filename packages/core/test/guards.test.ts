@@ -1,5 +1,5 @@
 import { createActor, createMachine, raise } from '../src/index.ts';
-import { and, not, or } from '../src/guards';
+import { and, not, or, stateIn } from '../src/guards';
 import { trackEntries } from './utils.ts';
 
 describe('guard conditions', () => {
@@ -306,7 +306,7 @@ describe('guard conditions', () => {
     });
   });
 
-  it.skip('should allow a matching transition', () => {
+  it('should allow a matching transition', () => {
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -331,7 +331,7 @@ describe('guard conditions', () => {
                 T2: [
                   {
                     target: 'B2',
-                    guard: ({ state }: any) => state.matches('A.A2')
+                    guard: stateIn('A.A2')
                   }
                 ]
               }
@@ -353,7 +353,7 @@ describe('guard conditions', () => {
     });
   });
 
-  it.skip('should check guards with interim states', () => {
+  it('should check guards with interim states', () => {
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -381,7 +381,7 @@ describe('guard conditions', () => {
               always: [
                 {
                   target: 'B4',
-                  guard: ({ state }: any) => state.matches('A.A4')
+                  guard: stateIn('A.A4')
                 }
               ]
             },
@@ -398,35 +398,6 @@ describe('guard conditions', () => {
       A: 'A5',
       B: 'B4'
     });
-  });
-
-  it.skip('should be able to check source state tags when checking', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            MACRO: 'b'
-          }
-        },
-        b: {
-          entry: raise({ type: 'MICRO' }),
-          tags: 'theTag',
-          on: {
-            MICRO: {
-              guard: ({ state }: any) => state.hasTag('theTag'),
-              target: 'c'
-            }
-          }
-        },
-        c: {}
-      }
-    });
-
-    const service = createActor(machine).start();
-    service.send({ type: 'MACRO' });
-
-    expect(service.getSnapshot().value).toBe('c');
   });
 });
 
