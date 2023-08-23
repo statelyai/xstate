@@ -72,9 +72,9 @@ export function stateIn<
 function checkNot(
   state: AnyState,
   { context, event }: GuardArgs<any, any>,
-  { guard }: { guard: UnknownGuard }
+  { guards }: { guards: readonly UnknownGuard[] }
 ) {
-  return !evaluateGuard(guard, context, event, state);
+  return !evaluateGuard(guards[0], context, event, state);
 }
 
 export function not<
@@ -89,7 +89,7 @@ export function not<
   }
 
   not.check = checkNot;
-  not.guard = guard;
+  not.guards = [guard];
 
   return not;
 }
