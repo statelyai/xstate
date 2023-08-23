@@ -13,7 +13,7 @@ import {
   STATE_IDENTIFIER,
   WILDCARD
 } from './constants.ts';
-import { evaluateGuard, toGuardDefinition } from './guards.ts';
+import { evaluateGuard } from './guards.ts';
 import { ActorStatus } from './interpreter.ts';
 import {
   ActionArgs,
@@ -349,7 +349,6 @@ export function formatTransition<
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
-  const { guards } = stateNode.machine.implementations;
   const target = resolveTarget(stateNode, normalizedTarget);
 
   // TODO: should this be part of a lint rule instead?
@@ -361,12 +360,7 @@ export function formatTransition<
   const transition = {
     ...transitionConfig,
     actions: toArray(transitionConfig.actions),
-    guard: transitionConfig.guard
-      ? toGuardDefinition(
-          transitionConfig.guard,
-          (guardType) => guards[guardType]
-        )
-      : undefined,
+    guard: transitionConfig.guard as never,
     target,
     source: stateNode,
     reenter,
@@ -1435,7 +1429,7 @@ export function resolveActionsAndContext<
       continue;
     }
 
-    const args = {
+    const actionArgs = {
       context: intermediateState.context,
       event,
       self: actorCtx?.self,
@@ -1449,9 +1443,9 @@ export function resolveActionsAndContext<
 
     if (!('resolve' in resolved)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolved(args);
+        resolved(actionArgs);
       } else {
-        actorCtx?.defer(() => resolved(args));
+        actorCtx?.defer(() => resolved(actionArgs));
       }
       continue;
     }
@@ -1461,7 +1455,7 @@ export function resolveActionsAndContext<
     const [nextState, params, actions] = builtinAction.resolve(
       actorCtx,
       intermediateState,
-      args,
+      actionArgs,
       resolved // this holds all params
     );
     intermediateState = nextState;

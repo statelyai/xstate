@@ -10,6 +10,7 @@ import {
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
+import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 
 /**
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
@@ -76,11 +77,11 @@ export interface ParameterizedObject {
 
 export interface UnifiedArg<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 > {
   context: TContext;
-  event: TEvent;
-  self: ActorRef<TEvent>;
+  event: TExpressionEvent;
+  self: ActorRef<TExpressionEvent>; // TODO: this should refer to `TEvent`
   system: ActorSystem<any>;
 }
 
@@ -164,7 +165,7 @@ export interface ChooseBranch<
   TEvent extends EventObject = TExpressionEvent,
   TAction extends ParameterizedObject = ParameterizedObject
 > {
-  guard?: GuardConfig<TContext, TExpressionEvent>;
+  guard?: Guard<TContext, TExpressionEvent>;
   actions: Actions<TContext, TExpressionEvent, TEvent, undefined, TAction>;
 }
 
@@ -223,88 +224,6 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
-export type GuardPredicate<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = (
-  args: {
-    context: TContext;
-    event: TEvent;
-  } & GuardArgs<TContext, TEvent>
-) => boolean;
-
-export interface DefaultGuardObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends ParameterizedObject {
-  /**
-   * Nested guards
-   */
-  children?: Array<GuardObject<TContext, TEvent>>;
-  predicate?: GuardPredicate<TContext, TEvent>;
-}
-
-export type GuardEvaluator<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = (
-  guard: GuardDefinition<TContext, TEvent>,
-  context: TContext,
-  event: TEvent,
-  state: State<TContext, TEvent, TODO, TODO>
-) => boolean;
-
-export interface GuardArgs<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  state: State<TContext, TEvent, TODO, TODO>;
-  guard: GuardDefinition<TContext, TEvent>;
-  evaluate: GuardEvaluator<TContext, TEvent>;
-}
-
-export type GuardConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = string | GuardPredicate<TContext, TEvent> | GuardObject<TContext, TEvent>;
-
-export type GuardObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = BooleanGuardObject<TContext, TEvent> | DefaultGuardObject<TContext, TEvent>;
-
-export interface GuardDefinition<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
-  type: string;
-  children?: Array<GuardDefinition<TContext, TEvent>>;
-  predicate?: GuardPredicate<TContext, TEvent>;
-  params: { [key: string]: any };
-}
-
-export interface BooleanGuardObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends ParameterizedObject {
-  type: 'xstate.boolean';
-  children: Array<GuardConfig<TContext, TEvent>>;
-  params: {
-    op: 'and' | 'or' | 'not';
-  };
-  predicate: undefined;
-}
-
-export interface BooleanGuardDefinition<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends GuardDefinition<TContext, TEvent> {
-  type: 'xstate.boolean';
-  params: {
-    op: 'and' | 'or' | 'not';
-  };
-}
-
 export type TransitionTarget = SingleOrArray<string>;
 
 export interface TransitionConfig<
@@ -313,7 +232,7 @@ export interface TransitionConfig<
   TEvent extends EventObject,
   TAction extends ParameterizedObject
 > {
-  guard?: GuardConfig<TContext, TExpressionEvent>;
+  guard?: Guard<TContext, TExpressionEvent>;
   actions?: Actions<TContext, TExpressionEvent, TEvent, undefined, TAction>;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
@@ -938,7 +857,7 @@ type MachineImplementationsGuards<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
       >
-    | GuardConfig<
+    | Guard<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
       >;
@@ -1344,18 +1263,25 @@ export type PropertyMapper<
 export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends Omit<TransitionConfig<TContext, TEvent, TEvent, TODO>, 'target'> {
+> extends Omit<
+    TransitionConfig<TContext, TEvent, TEvent, TODO>,
+    | 'target'
+    // `guard` is correctly rejected by `extends` here and `actions` should be too
+    // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
+    // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
+    | 'guard'
+  > {
   target: ReadonlyArray<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: readonly UnknownAction[];
   reenter: boolean;
-  guard?: GuardDefinition<TContext, TEvent>;
+  guard?: UnknownGuard;
   eventType: TEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
     actions: readonly UnknownAction[];
-    guard?: GuardDefinition<TContext, TEvent>;
+    guard?: UnknownGuard;
     eventType: TEvent['type'] | '*';
     meta?: Record<string, any>;
   };

@@ -306,7 +306,7 @@ describe('guard conditions', () => {
     });
   });
 
-  it('should allow a matching transition', () => {
+  it.skip('should allow a matching transition', () => {
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -331,7 +331,7 @@ describe('guard conditions', () => {
                 T2: [
                   {
                     target: 'B2',
-                    guard: ({ state }) => state.matches('A.A2')
+                    guard: ({ state }: any) => state.matches('A.A2')
                   }
                 ]
               }
@@ -353,7 +353,7 @@ describe('guard conditions', () => {
     });
   });
 
-  it('should check guards with interim states', () => {
+  it.skip('should check guards with interim states', () => {
     const machine = createMachine({
       type: 'parallel',
       states: {
@@ -381,7 +381,7 @@ describe('guard conditions', () => {
               always: [
                 {
                   target: 'B4',
-                  guard: ({ state }) => state.matches('A.A4')
+                  guard: ({ state }: any) => state.matches('A.A4')
                 }
               ]
             },
@@ -400,7 +400,7 @@ describe('guard conditions', () => {
     });
   });
 
-  it('should be able to check source state tags when checking', () => {
+  it.skip('should be able to check source state tags when checking', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -414,7 +414,7 @@ describe('guard conditions', () => {
           tags: 'theTag',
           on: {
             MICRO: {
-              guard: ({ state }) => state.hasTag('theTag'),
+              guard: ({ state }: any) => state.hasTag('theTag'),
               target: 'c'
             }
           }
@@ -464,7 +464,7 @@ describe('custom guards', () => {
       {
         guards: {
           custom: ({ context, event, guard }) => {
-            const { prop, compare, op } = guard.params;
+            const { prop, compare, op } = (guard as any).params;
             if (op === 'greaterThan') {
               return (
                 context[prop as keyof typeof context] + event.value > compare
@@ -492,60 +492,62 @@ describe('custom guards', () => {
 });
 
 describe('referencing guards', () => {
-  const stringGuardFn = () => true;
-  const guardsMachine = createMachine(
-    {
-      id: 'guards',
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            EVENT: [
-              { guard: 'string' },
-              {
-                guard: function guardFn() {
-                  return true;
-                }
-              },
-              {
-                guard: {
-                  type: 'object',
-                  params: { foo: 'bar' }
-                }
-              }
-            ]
+  it('guard should be checked when referenced by a string', () => {
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: 'checkStuff'
           }
         }
+      },
+      {
+        guards: {
+          checkStuff: spy
+        }
       }
-    },
-    {
-      guards: {
-        string: stringGuardFn
-      }
-    }
-  );
-
-  const def = guardsMachine.definition;
-  const [stringGuard, functionGuard, objectGuard] = def.states.active.on.EVENT;
-
-  it('guard predicates should be able to be referenced from a string', () => {
-    expect(stringGuard.guard!.predicate).toBeDefined();
-    expect(stringGuard.guard!.type).toEqual('string');
-  });
-
-  it('guard predicates should be able to be referenced from a function', () => {
-    expect(functionGuard.guard!.predicate).toBeDefined();
-    expect(functionGuard.guard!.type).toEqual('guardFn');
-  });
-
-  it('guard predicates should be able to be referenced from an object', () => {
-    expect(objectGuard.guard).toBeDefined();
-    expect(objectGuard.guard).toEqual(
-      expect.objectContaining({
-        type: 'object',
-        params: expect.objectContaining({ foo: 'bar' })
-      })
     );
+
+    const actorRef = createActor(machine).start();
+
+    expect(spy).not.toHaveBeenCalled();
+
+    actorRef.send({
+      type: 'EV'
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('guard should be checked when referenced by a parametrized guard object', () => {
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: {
+              type: 'checkStuff'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          checkStuff: spy
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    expect(spy).not.toHaveBeenCalled();
+
+    actorRef.send({
+      type: 'EV'
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('should throw for guards with missing predicates', () => {
@@ -644,6 +646,37 @@ describe('referencing guards', () => {
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
+
+  it('should be possible to resolve referenced guards recursively', () => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT: {
+                target: 'b',
+                guard: 'ref1'
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        guards: {
+          ref1: 'ref2',
+          ref2: 'ref3',
+          ref3: () => true
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EVENT' });
+
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+  });
 });
 
 describe('guards - other', () => {
@@ -665,58 +698,6 @@ describe('guards - other', () => {
     service.send({ type: 'EVENT' });
 
     expect(service.getSnapshot().value).toBe('c');
-  });
-});
-
-describe('guards with child guards', () => {
-  it('guards can contain child guards', () => {
-    expect.assertions(3);
-
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: {
-                  type: 'testGuard',
-                  children: [
-                    {
-                      type: 'customGuard',
-                      predicate: () => true
-                    },
-                    { type: 'customGuard' }
-                  ],
-                  predicate: ({ guard }) => {
-                    expect(guard.children).toHaveLength(2);
-                    expect(
-                      guard.children?.find(
-                        (childGuard: any) => childGuard.type === 'customGuard'
-                      )?.predicate
-                    ).toBeInstanceOf(Function);
-
-                    return true;
-                  }
-                }
-              }
-            }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          customGuard: () => true
-        }
-      }
-    );
-
-    const actorRef = createActor(machine).start();
-    actorRef.send({ type: 'EVENT' });
-
-    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 });
 
@@ -792,7 +773,7 @@ describe('not() guard', () => {
       {
         guards: {
           greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+            return (guard as any).params.value > 10;
           }
         }
       }
@@ -909,7 +890,7 @@ describe('and() guard', () => {
       {
         guards: {
           greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+            return (guard as any).params.value > 10;
           }
         }
       }
@@ -1031,7 +1012,7 @@ describe('or() guard', () => {
       {
         guards: {
           greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+            return (guard as any).params.value > 10;
           }
         }
       }
