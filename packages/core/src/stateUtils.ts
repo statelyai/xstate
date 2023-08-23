@@ -302,7 +302,9 @@ export function getDelayedTransitions(
     const delayRef =
       typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
     const eventType = after(delayRef, stateNode.id);
-    stateNode.entry.push(raise({ type: eventType }, { id: eventType, delay }));
+    stateNode.entry.push(
+      raise({ type: eventType }, { id: eventType, delay }) as never
+    );
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
@@ -1395,12 +1397,9 @@ interface BuiltinAction {
   execute: (actorContext: AnyActorContext, params: unknown) => void;
 }
 
-export function resolveActionsAndContext<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function resolveActionsAndContext(
   actions: UnknownAction[],
-  event: TEvent,
+  event: EventObject,
   currentState: AnyState,
   actorCtx: AnyActorContext
 ): AnyState {
@@ -1419,13 +1418,13 @@ export function resolveActionsAndContext<
         // it's fine to cast this here to get a common type and lack of errors in the rest of the code
         // our logic below makes sure that we call those 2 "variants" correctly
         (
-          machine.implementations.actions as Record<
+          machine.implementations.actions as any as Record<
             string,
             ActionFunction<
               MachineContext,
+              never,
               EventObject,
-              EventObject,
-              ParameterizedObject | undefined,
+              never,
               ParameterizedObject
             >
           >
@@ -1436,15 +1435,15 @@ export function resolveActionsAndContext<
     }
 
     const args = {
-      context: intermediateState.context,
-      event,
+      context: intermediateState.context as never,
+      event: event as never,
       self: actorCtx?.self,
       system: actorCtx?.system,
-      action: isInline
+      action: (isInline
         ? undefined
         : typeof action === 'string'
         ? { type: action }
-        : action
+        : action) as never
     };
 
     if (!('resolve' in resolved)) {
