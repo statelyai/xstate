@@ -192,10 +192,10 @@ export type Action<
     >;
 
 export type UnknownAction = Action<
-  MachineContext,
+  never,
+  never,
   EventObject,
-  EventObject,
-  ParameterizedObject | undefined,
+  never,
   ParameterizedObject
 >;
 
