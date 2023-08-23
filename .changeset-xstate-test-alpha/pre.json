@@ -9,7 +9,6 @@
     "@xstate/immer": "0.3.1",
     "@xstate/inspect": "0.7.0",
     "@xstate/react": "3.0.0",
-    "@xstate/scxml": "0.2.1",
     "@xstate/svelte": "2.0.0",
     "@xstate/test": "1.0.0-alpha.0",
     "@xstate/vue": "2.0.0",

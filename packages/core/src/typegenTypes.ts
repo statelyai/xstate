@@ -195,7 +195,22 @@ export interface ResolveTypegenMeta<
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {
     enabled: TTypesMeta & {
-      indexedActions: IndexByType<TAction>;
+      indexedActions: string extends TAction['type']
+        ? // this ensures that we can error on provided actions when no actions could be inferred by typegen
+          // technically, it's not even a type issue to accept them since we just won't try to execute them
+          // that is - if our typegen would be 100% correct and if it could actually handle all scenarios that we consider valid
+          // (or at least if it would error on the ones that we can't handle)
+          // it should still be at least a lint warning or something if the user provides an action that can't be executed
+          // so there is still value in this - but we can reevaluate this later
+          // note that we don't exactly do the same right now when `TAction` *is* provided together with typegen information
+          // so the behavior around this could be considered inconsistent (one way or another: either we should always error or we shouldn't error at all)
+          IsNever<Prop<TTypesMeta, 'eventsCausingActions'>> extends true
+          ? never
+          : Record<
+              keyof Prop<TTypesMeta, 'eventsCausingActions'>,
+              ParameterizedObject
+            >
+        : IndexByType<TAction>;
       // we could add `id` based on typegen information (in both branches)
       // but it doesn't seem to be needed for anything right now
       indexedActors: string extends TActor['src']

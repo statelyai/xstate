@@ -1,5 +1,73 @@
 # xstate
 
+## 5.0.0-beta.23
+
+### Minor Changes
+
+- [#4180](https://github.com/statelyai/xstate/pull/4180) [`6b1646ba8`](https://github.com/statelyai/xstate/commit/6b1646ba898605021bdbbb8429417db7d967cf2a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now specify action types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      actions: { type: 'greet'; params: { name: string } };
+    },
+    entry: [
+      {
+        type: 'greet',
+        params: {
+          name: 'David'
+        }
+      },
+      // @ts-expect-error
+      { type: 'greet' },
+      // @ts-expect-error
+      { type: 'unknownAction' }
+    ]
+    // ...
+  });
+  ```
+
+- [#4179](https://github.com/statelyai/xstate/pull/4179) [`2b7548579`](https://github.com/statelyai/xstate/commit/2b75485793a61703792764f8058ab6621a3ed442) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Output types can now be specified in the machine:
+
+  ```ts
+  const machine = createMachine({
+    types: {} as {
+      output: {
+        result: 'pass' | 'fail';
+        score: number;
+      };
+    }
+    // ...
+  });
+
+  const actor = createActor(machine);
+
+  // ...
+
+  const snapshot = actor.getSnapshot();
+
+  if (snapshot.output) {
+    snapshot.output.result;
+    // strongly typed as 'pass' | 'fail'
+    snapshot.output.score;
+    // strongly typed as number
+  }
+  ```
+
+## 5.0.0-beta.22
+
+### Major Changes
+
+- [#4176](https://github.com/statelyai/xstate/pull/4176) [`2e176b0b9`](https://github.com/statelyai/xstate/commit/2e176b0b95eefddb7231f7dd40c18e3022ec9706) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `interpret(...)` function has been deprecated and renamed to `createActor(...)`:
+
+  ```diff
+  -import { interpret } from 'xstate';
+  +import { createActor } from 'xstate';
+
+  -const actor = interpret(machine);
+  +const actor = createActor(machine);
+  ```
+
 ## 5.0.0-beta.21
 
 ### Minor Changes

@@ -70,6 +70,7 @@ export class State<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
+  TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -80,9 +81,9 @@ export class State<
    */
   public done: boolean;
   /**
-   * The done data of the top-level finite state.
+   * The output data of the top-level finite state.
    */
-  public output: any; // TODO: add an explicit type for `output`
+  public output: TOutput | undefined;
   public error: unknown;
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
@@ -105,10 +106,10 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent, TODO, any> | StateValue,
+    stateValue: State<TContext, TEvent, TODO, any, any> | StateValue,
     context: TContext = {} as TContext,
     machine: AnyStateMachine
-  ): State<TContext, TEvent, TODO, any> {
+  ): State<TContext, TEvent, TODO, any, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TContext, TEvent, TODO, any>(
@@ -243,7 +244,7 @@ export class State<
   /**
    * The next events that will cause a transition from the current state.
    */
-  public get nextEvents(): Array<TEvent['type']> {
+  public get nextEvents(): Array<string> {
     return memo(this, 'nextEvents', () => {
       return [
         ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
