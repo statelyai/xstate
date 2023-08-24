@@ -22,6 +22,7 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 ### ✨ Create state machines visually → [state.new](https://state.new)
 
+> [!NOTE]
 > ℹ️ This is the branch for **XState v5 beta** and related packages. View the XState v4 branch [here](https://github.com/statelyai/xstate/tree/main).
 
 ---
