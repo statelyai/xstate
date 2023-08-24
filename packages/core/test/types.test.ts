@@ -12,7 +12,8 @@ import {
   Spawner,
   StateMachine,
   pure,
-  choose
+  choose,
+  not
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -2197,5 +2198,29 @@ describe('input', () => {
         count: ''
       }
     });
+  });
+});
+
+describe('guards', () => {
+  it('`not` guard should be accepted when it references another guard using a string', () => {
+    createMachine(
+      {
+        id: 'b',
+        types: {} as {
+          events: { type: 'EVENT' };
+        },
+        on: {
+          EVENT: {
+            target: '#b',
+            guard: not('falsy')
+          }
+        }
+      },
+      {
+        guards: {
+          falsy: () => false
+        }
+      }
+    );
   });
 });

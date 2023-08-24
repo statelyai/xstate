@@ -374,10 +374,16 @@ export class StateNode<
           !guard ||
           evaluateGuard<TContext, TEvent>(guard, resolvedContext, event, state);
       } catch (err: any) {
+        const guardType =
+          typeof guard === 'string'
+            ? guard
+            : typeof guard === 'object'
+            ? guard.type
+            : undefined;
         throw new Error(
-          `Unable to evaluate guard '${
-            guard!.type
-          }' in transition for event '${eventType}' in state node '${
+          `Unable to evaluate guard ${
+            guardType ? `'${guardType}' ` : ''
+          }in transition for event '${eventType}' in state node '${
             this.id
           }':\n${err.message}`
         );
