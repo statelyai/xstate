@@ -5,7 +5,8 @@ import type {
   MachineContext,
   ParameterizedObject,
   AnyState,
-  NoRequiredParams
+  NoRequiredParams,
+  NoInfer
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 
@@ -103,7 +104,7 @@ export function not<
   TExpressionEvent extends EventObject,
   TExpressionGuard extends ParameterizedObject | undefined,
   TGuard extends ParameterizedObject
->(guard: Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>) {
+>(guard: Guard<TContext, TExpressionEvent, TExpressionGuard, NoInfer<TGuard>>) {
   function not(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -137,7 +138,7 @@ export function and<
   TGuard extends ParameterizedObject
 >(
   guards: ReadonlyArray<
-    Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>
+    Guard<TContext, TExpressionEvent, TExpressionGuard, NoInfer<TGuard>>
   >
 ) {
   function and(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {
@@ -173,7 +174,7 @@ export function or<
   TGuard extends ParameterizedObject
 >(
   guards: ReadonlyArray<
-    Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>
+    Guard<TContext, TExpressionEvent, TExpressionGuard, NoInfer<TGuard>>
   >
 ) {
   function or(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {

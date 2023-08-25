@@ -13,7 +13,8 @@ import {
   StateMachine,
   pure,
   choose,
-  not
+  not,
+  stateIn
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -2031,10 +2032,10 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // @ts-expect-error
       entry: choose([
         {
           guard: () => true,
+          // @ts-expect-error
           actions: {
             type: 'other' as const
           }
@@ -2082,6 +2083,25 @@ describe('choose', () => {
       ] as const)
     });
   });
+
+  it('should be able to use an inline custom action in a branch', () => {
+    createMachine(
+      {
+        types: {
+          actions: {} as { type: 'foo' } | { type: 'bar' }
+        }
+      },
+      {
+        actions: {
+          foo: choose([
+            {
+              actions: () => {}
+            }
+          ])
+        }
+      }
+    );
+  });
 });
 
 describe('pure', () => {
@@ -2103,7 +2123,7 @@ describe('pure', () => {
     });
   });
 
-  it('should not be possible to return a parametrized action outside of the defined ones', () => {
+  it('should not be able to return a parametrized action outside of the defined ones', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2117,7 +2137,7 @@ describe('pure', () => {
     });
   });
 
-  it('should be possible to return multiple different defined parametrized actions', () => {
+  it('should be able to return multiple different defined parametrized actions', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2138,7 +2158,7 @@ describe('pure', () => {
     });
   });
 
-  it('should be possible to return a readonly array of actions', () => {
+  it('should be able to return a readonly array of actions', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2149,6 +2169,17 @@ describe('pure', () => {
             type: 'poke'
           }
         ] as const;
+      })
+    });
+  });
+
+  it('should be able to return an inline custom action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return [() => {}];
       })
     });
   });
@@ -2552,6 +2583,94 @@ describe('guards', () => {
         guards: {
           // @ts-expect-error
           other: () => true
+        }
+      }
+    );
+  });
+
+  it('`not` should be allowed in the config argument when inline function gets passed to it', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: not(() => {
+            return true;
+          })
+        }
+      }
+    });
+  });
+
+  it('`not` should be allowed in the implementations argument when inline function gets passed to it', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          isGreaterThan: not(() => {
+            return true;
+          })
+        }
+      }
+    );
+  });
+
+  it('`stateIn` should be allowed in the config argument', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: stateIn('foo')
+        }
+      }
+    });
+  });
+
+  it('`stateIn` should be allowed in the implementations argument', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          plainGuard: stateIn('foo')
         }
       }
     );
