@@ -3,42 +3,46 @@ import type {
   EventObject,
   StateValue,
   MachineContext,
-  TODO,
   ParameterizedObject,
   AnyState,
   NoRequiredParams
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
-import { State } from './State.ts';
 
 export type GuardPredicate<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TExpressionGuard extends ParameterizedObject | undefined,
   TGuard extends ParameterizedObject
-> = (args: GuardArgs<TContext, TExpressionEvent, TGuard>) => boolean;
+> = {
+  (args: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>): boolean;
+  _out_TGuard?: TGuard;
+};
 
 export interface GuardArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TGuard extends ParameterizedObject | undefined
+  TExpressionGuard extends ParameterizedObject | undefined
 > {
   context: TContext;
   event: TExpressionEvent;
-  guard: TGuard;
+  guard: TExpressionGuard;
 }
 
 export type Guard<
   TContext extends MachineContext,
-  TEvent extends EventObject,
+  TExpressionEvent extends EventObject,
+  TExpressionGuard extends ParameterizedObject | undefined,
   TGuard extends ParameterizedObject
 > =
   | NoRequiredParams<TGuard>
   | TGuard
-  | GuardPredicate<TContext, TEvent, TGuard>;
+  | GuardPredicate<TContext, TExpressionEvent, TExpressionGuard, TGuard>;
 
 export type UnknownGuard = Guard<
   MachineContext,
   EventObject,
+  ParameterizedObject | undefined,
   ParameterizedObject
 >;
 
@@ -65,10 +69,10 @@ function checkStateIn(
 
 export function stateIn<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TGuard extends ParameterizedObject
+  TExpressionEvent extends EventObject,
+  TExpressionGuard extends ParameterizedObject | undefined
 >(stateValue: StateValue) {
-  function stateIn(_: GuardArgs<TContext, TEvent, TGuard>) {
+  function stateIn(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -91,10 +95,11 @@ function checkNot(
 
 export function not<
   TContext extends MachineContext,
-  TEvent extends EventObject,
+  TExpressionEvent extends EventObject,
+  TExpressionGuard extends ParameterizedObject | undefined,
   TGuard extends ParameterizedObject
->(guard: Guard<TContext, TEvent, TGuard>) {
-  function not() {
+>(guard: Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>) {
+  function not(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -117,10 +122,15 @@ function checkAnd(
 
 export function and<
   TContext extends MachineContext,
-  TEvent extends EventObject,
+  TExpressionEvent extends EventObject,
+  TExpressionGuard extends ParameterizedObject | undefined,
   TGuard extends ParameterizedObject
->(guards: ReadonlyArray<Guard<TContext, TEvent, TGuard>>) {
-  function and() {
+>(
+  guards: ReadonlyArray<
+    Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>
+  >
+) {
+  function and(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -143,10 +153,15 @@ function checkOr(
 
 export function or<
   TContext extends MachineContext,
-  TEvent extends EventObject,
+  TExpressionEvent extends EventObject,
+  TExpressionGuard extends ParameterizedObject | undefined,
   TGuard extends ParameterizedObject
->(guards: ReadonlyArray<Guard<TContext, TEvent, TGuard>>) {
-  function or() {
+>(
+  guards: ReadonlyArray<
+    Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>
+  >
+) {
+  function or(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -162,21 +177,32 @@ export function or<
 // TODO: throw on cycles (depth check should be enough)
 export function evaluateGuard<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 >(
   guard: UnknownGuard,
   context: TContext,
-  event: TEvent,
-  state: State<TContext, TEvent, TODO, TODO>
+  event: TExpressionEvent,
+  state: AnyState
 ): boolean {
   const { machine } = state;
   const isInline = typeof guard === 'function';
 
   const resolved = isInline
     ? guard
-    : machine.implementations.guards?.[
-        typeof guard === 'string' ? guard : guard.type
-      ];
+    : // the existing type of `.guards` assumes non-nullable `TExpressionGuard`
+      // it's fine to cast this here to get a common type and lack of errors in the rest of the code
+      // our logic below makes sure that we call those 2 "variants" correctly
+      (
+        machine.implementations.guards as Record<
+          string,
+          GuardPredicate<
+            MachineContext,
+            EventObject,
+            ParameterizedObject | undefined,
+            ParameterizedObject
+          >
+        >
+      )[typeof guard === 'string' ? guard : guard.type];
 
   if (!isInline && !resolved) {
     throw new Error(
@@ -201,7 +227,7 @@ export function evaluateGuard<
   };
 
   if (!('check' in resolved)) {
-    return resolved(guardArgs as any); // TODO: fix this by introducing `TExpressionGuard`, `| undefined`, etc
+    return resolved(guardArgs);
   }
 
   const builtinGuard = resolved as unknown as BuiltinGuard;

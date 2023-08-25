@@ -2429,4 +2429,131 @@ describe('guards', () => {
       }
     });
   });
+
+  it('should type guard param as undefined in inline custom guard', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: ({ guard }) => {
+            ((_accept: undefined) => {})(guard);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          }
+        }
+      }
+    });
+  });
+
+  it('should type guard param as undefined in inline composite guard', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: not(({ guard }) => {
+            ((_accept: undefined) => {})(guard);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          })
+        }
+      }
+    });
+  });
+
+  it('should type guard param as the specific defined guard type in the provided custom guard', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          isGreaterThan: ({ guard }) => {
+            ((_accept: number) => {})(guard.params.count);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          }
+        }
+      }
+    );
+  });
+
+  it('should type guard param as the specific defined guard type in the provided composite guard', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          isGreaterThan: not(({ guard }) => {
+            ((_accept: number) => {})(guard.params.count);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          })
+        }
+      }
+    );
+  });
+
+  it('should not allow a provided guard outside of the defined ones', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          // @ts-expect-error
+          other: () => true
+        }
+      }
+    );
+  });
 });

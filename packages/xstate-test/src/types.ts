@@ -72,8 +72,9 @@ export type TestMachineOptions<
     MachineImplementations<
       TContext,
       TEvent,
-      ParameterizedObject,
       any,
+      ParameterizedObject,
+      ParameterizedObject,
       TTypesMeta
     >,
     'actions' | 'guards'

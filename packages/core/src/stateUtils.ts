@@ -1391,10 +1391,10 @@ interface BuiltinAction {
 
 export function resolveActionsAndContext<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 >(
   actions: UnknownAction[],
-  event: TEvent,
+  event: TExpressionEvent,
   currentState: AnyState,
   actorCtx: AnyActorContext
 ): AnyState {

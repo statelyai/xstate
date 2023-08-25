@@ -40,7 +40,7 @@ export function createMachine<
     TEvent,
     TActor,
     TAction,
-    ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction>
+    ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
   >
 ): StateMachine<
   TContext,
@@ -50,7 +50,7 @@ export function createMachine<
   TGuard,
   TInput,
   TOutput,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
 > {
   return new StateMachine<any, any, any, any, any, any, any, any>(
     config as any,

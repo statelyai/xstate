@@ -166,9 +166,12 @@ export interface ChooseBranch<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent,
   TAction extends ParameterizedObject = ParameterizedObject,
+  TExpressionGuard extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined,
   TGuard extends ParameterizedObject = ParameterizedObject
 > {
-  guard?: Guard<TContext, TExpressionEvent, TGuard>;
+  guard?: Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>;
   actions: Actions<TContext, TExpressionEvent, TEvent, undefined, TAction>;
 }
 
@@ -236,7 +239,7 @@ export interface TransitionConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject
 > {
-  guard?: Guard<TContext, TExpressionEvent, TGuard>;
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
   actions?: Actions<TContext, TExpressionEvent, TEvent, undefined, TAction>;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
@@ -810,6 +813,19 @@ export type ActionFunctionMap<
   >;
 };
 
+type GuardMap<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TGuard extends ParameterizedObject
+> = {
+  [K in TGuard['type']]?: GuardPredicate<
+    TContext,
+    TEvent,
+    TGuard extends { type: K } ? TGuard : never,
+    TGuard
+  >;
+};
+
 export type DelayFunctionMap<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -829,7 +845,7 @@ export interface MachineImplementationsSimplified<
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject
 > {
-  guards: Record<string, GuardPredicate<TContext, TEvent, TGuard>>;
+  guards: GuardMap<TContext, TEvent, TGuard>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
   actors: Record<
     string,
@@ -920,12 +936,14 @@ type MachineImplementationsGuards<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'eventsCausingGuards'
   >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  TIndexedGuards = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedGuards'>
 > = {
-  [K in keyof TEventsCausingGuards]?: Guard<
+  [K in keyof TIndexedGuards]?: Guard<
     TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>,
-    ParameterizedObject
+    MaybeNarrowedEvent<TIndexedEvents, TEventsCausingGuards, K>,
+    Cast<TIndexedGuards[K], ParameterizedObject>,
+    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>
   >;
 };
 
@@ -1048,15 +1066,16 @@ export type InternalMachineImplementations<
 export type MachineImplementations<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ParameterizedObject = ParameterizedObject,
   TActor extends ProvidedActor = ProvidedActor,
+  TAction extends ParameterizedObject = ParameterizedObject,
+  TGuard extends ParameterizedObject = ParameterizedObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
   TEvent,
   TActor,
   TAction,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
 >;
 
 type InitialContext<TContext extends MachineContext, TInput> =

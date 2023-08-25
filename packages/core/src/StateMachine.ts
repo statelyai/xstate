@@ -63,7 +63,8 @@ export class StateMachine<
     TypegenDisabled,
     NoInfer<TEvent>,
     TActor,
-    TAction
+    TAction,
+    TGuard
   >
 > implements
     ActorLogic<
