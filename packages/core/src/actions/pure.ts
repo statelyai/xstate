@@ -43,7 +43,8 @@ export function pure<
   TExpressionAction extends ParameterizedObject | undefined =
     | ParameterizedObject
     | undefined,
-  TAction extends ParameterizedObject = ParameterizedObject
+  TAction extends ParameterizedObject = ParameterizedObject,
+  TGuard extends ParameterizedObject = ParameterizedObject
 >(
   getActions: ({
     context,
@@ -52,7 +53,14 @@ export function pure<
     context: TContext;
     event: TExpressionEvent;
   }) =>
-    | Actions<TContext, TExpressionEvent, TEvent, undefined, NoInfer<TAction>>
+    | Actions<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        undefined,
+        NoInfer<TAction>,
+        TGuard
+      >
     | undefined
 ) {
   function pure(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
@@ -68,5 +76,6 @@ export function pure<
   return pure as {
     (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
     _out_TAction?: TAction;
+    _out_TGuard?: TGuard;
   };
 }

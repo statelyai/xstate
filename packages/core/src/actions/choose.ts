@@ -37,10 +37,11 @@ export function choose<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TAction extends ParameterizedObject
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject
 >(
   branches: ReadonlyArray<
-    ChooseBranch<TContext, TExpressionEvent, TEvent, NoInfer<TAction>>
+    ChooseBranch<TContext, TExpressionEvent, TEvent, NoInfer<TAction>, TGuard>
   >
 ) {
   function choose(
@@ -59,5 +60,6 @@ export function choose<
   return choose as {
     (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
     _out_TAction?: TAction;
+    _out_TGuard?: TGuard;
   };
 }

@@ -1420,6 +1420,7 @@ export function resolveActionsAndContext<
               EventObject,
               EventObject,
               ParameterizedObject | undefined,
+              ParameterizedObject,
               ParameterizedObject
             >
           >
