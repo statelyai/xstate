@@ -82,7 +82,12 @@ export function stateIn<
   stateIn.check = checkStateIn;
   stateIn.stateValue = stateValue;
 
-  return stateIn;
+  return stateIn as GuardPredicate<
+    TContext,
+    TExpressionEvent,
+    TExpressionGuard,
+    any // TODO: recheck if we could replace this with something better here
+  >;
 }
 
 function checkNot(
@@ -109,7 +114,12 @@ export function not<
   not.check = checkNot;
   not.guards = [guard];
 
-  return not;
+  return not as GuardPredicate<
+    TContext,
+    TExpressionEvent,
+    TExpressionGuard,
+    TGuard
+  >;
 }
 
 function checkAnd(
@@ -140,7 +150,12 @@ export function and<
   and.check = checkAnd;
   and.guards = guards;
 
-  return and;
+  return and as GuardPredicate<
+    TContext,
+    TExpressionEvent,
+    TExpressionGuard,
+    TGuard
+  >;
 }
 
 function checkOr(
@@ -171,7 +186,12 @@ export function or<
   or.check = checkOr;
   or.guards = guards;
 
-  return or;
+  return or as GuardPredicate<
+    TContext,
+    TExpressionEvent,
+    TExpressionGuard,
+    TGuard
+  >;
 }
 
 // TODO: throw on cycles (depth check should be enough)
