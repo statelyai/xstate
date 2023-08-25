@@ -168,12 +168,9 @@ export interface ChooseBranch<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent,
   TAction extends ParameterizedObject = ParameterizedObject,
-  TExpressionGuard extends ParameterizedObject | undefined =
-    | ParameterizedObject
-    | undefined,
   TGuard extends ParameterizedObject = ParameterizedObject
 > {
-  guard?: Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>;
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
   actions: Actions<
     TContext,
     TExpressionEvent,

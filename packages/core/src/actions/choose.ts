@@ -41,7 +41,13 @@ export function choose<
   TGuard extends ParameterizedObject
 >(
   branches: ReadonlyArray<
-    ChooseBranch<TContext, TExpressionEvent, TEvent, NoInfer<TAction>, TGuard>
+    ChooseBranch<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      NoInfer<TAction>,
+      NoInfer<TGuard>
+    >
   >
 ) {
   function choose(
