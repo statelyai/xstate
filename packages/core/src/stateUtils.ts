@@ -33,13 +33,13 @@ import {
   SingleOrArray,
   StateValue,
   StateValueMap,
-  TransitionConfig,
   TransitionDefinition,
   TODO,
   AnyActorRef,
   UnknownAction,
   ParameterizedObject,
-  ActionFunction
+  ActionFunction,
+  AnyTransitionConfig
 } from './types.ts';
 import {
   isArray,
@@ -345,7 +345,7 @@ export function formatTransition<
 >(
   stateNode: AnyStateNode,
   descriptor: string,
-  transitionConfig: TransitionConfig<TContext, TEvent, TEvent, any>
+  transitionConfig: AnyTransitionConfig
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
@@ -457,7 +457,7 @@ export function formatInitialTransition<
   stateNode: AnyStateNode,
   _target:
     | SingleOrArray<string>
-    | InitialTransitionConfig<TContext, TEvent, TODO>
+    | InitialTransitionConfig<TContext, TEvent, TODO, TODO>
 ): InitialTransitionDefinition<TContext, TEvent> {
   if (typeof _target === 'string' || isArray(_target)) {
     const targets = toArray(_target).map((t) => {
@@ -1391,10 +1391,10 @@ interface BuiltinAction {
 
 export function resolveActionsAndContext<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 >(
   actions: UnknownAction[],
-  event: TEvent,
+  event: TExpressionEvent,
   currentState: AnyState,
   actorCtx: AnyActorContext
 ): AnyState {

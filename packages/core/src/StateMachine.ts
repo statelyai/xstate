@@ -54,15 +54,17 @@ export const WILDCARD = '*';
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ParameterizedObject,
   TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
   TInput,
   TOutput,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
+    TActor,
     TAction,
-    TActor
+    TGuard
   >
 > implements
     ActorLogic<
@@ -88,9 +90,11 @@ export class StateMachine<
     TContext,
     TEvent,
     TAction,
+    TGuard,
     TActor,
     TInput,
-    TOutput
+    TOutput,
+    TResolvedTypesMeta
   >;
 
   public __xstatenode: true = true;
@@ -108,7 +112,16 @@ export class StateMachine<
     /**
      * The raw config used to create the machine.
      */
-    public config: MachineConfig<TContext, TEvent, any, any, any, TOutput, any>,
+    public config: MachineConfig<
+      TContext,
+      TEvent,
+      any,
+      any,
+      any,
+      any,
+      TOutput,
+      any
+    >,
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.id = config.id || '(machine)';
@@ -146,16 +159,17 @@ export class StateMachine<
     implementations: InternalMachineImplementations<
       TContext,
       TEvent,
-      TAction,
       TActor,
+      TAction,
       TResolvedTypesMeta,
       true
     >
   ): StateMachine<
     TContext,
     TEvent,
-    TAction,
     TActor,
+    TAction,
+    TGuard,
     TInput,
     TOutput,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
@@ -468,9 +482,11 @@ export class StateMachine<
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TEvent!: TEvent;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TActor!: TActor;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TAction!: TAction;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TActor!: TActor;
+  __TGuard!: TGuard;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TInput!: TInput;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

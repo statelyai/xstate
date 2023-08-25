@@ -13,7 +13,8 @@ import {
   StateMachine,
   pure,
   choose,
-  not
+  not,
+  stateIn
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -378,7 +379,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any> {
+  ): StateMachine<TContext, any, any, any, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -452,7 +453,7 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, TEvent, any, any, any, any>) {}
+    >(_machine: StateMachine<TContext, TEvent, any, any, any, any, any, any>) {}
 
     acceptMachine(toggleMachine);
   });
@@ -2031,10 +2032,10 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // @ts-expect-error
       entry: choose([
         {
           guard: () => true,
+          // @ts-expect-error
           actions: {
             type: 'other' as const
           }
@@ -2082,6 +2083,25 @@ describe('choose', () => {
       ] as const)
     });
   });
+
+  it('should be able to use an inline custom action in a branch', () => {
+    createMachine(
+      {
+        types: {
+          actions: {} as { type: 'foo' } | { type: 'bar' }
+        }
+      },
+      {
+        actions: {
+          foo: choose([
+            {
+              actions: () => {}
+            }
+          ])
+        }
+      }
+    );
+  });
 });
 
 describe('pure', () => {
@@ -2103,7 +2123,7 @@ describe('pure', () => {
     });
   });
 
-  it('should not be possible to return a parametrized action outside of the defined ones', () => {
+  it('should not be able to return a parametrized action outside of the defined ones', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2117,7 +2137,7 @@ describe('pure', () => {
     });
   });
 
-  it('should be possible to return multiple different defined parametrized actions', () => {
+  it('should be able to return multiple different defined parametrized actions', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2138,7 +2158,7 @@ describe('pure', () => {
     });
   });
 
-  it('should be possible to return a readonly array of actions', () => {
+  it('should be able to return a readonly array of actions', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2149,6 +2169,17 @@ describe('pure', () => {
             type: 'poke'
           }
         ] as const;
+      })
+    });
+  });
+
+  it('should be able to return an inline custom action', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return [() => {}];
       })
     });
   });
@@ -2219,6 +2250,427 @@ describe('guards', () => {
       {
         guards: {
           falsy: () => false
+        }
+      }
+    );
+  });
+
+  it('should allow a defined parametrized guard with params', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: {
+            type: 'isGreaterThan',
+            params: {
+              count: 10
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should disallow a non-defined parametrized guard', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        EV: {
+          guard: {
+            type: 'other',
+            params: {
+              foo: 'bar'
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should disallow a defined parametrized guard with invalid params', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        EV: {
+          guard: {
+            type: 'isGreaterThan',
+            params: {
+              count: 'bar'
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should disallow a defined parametrized guard when it lacks required params', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        EV: {
+          guard: {
+            type: 'isGreaterThan',
+            params: {}
+          }
+        }
+      }
+    });
+  });
+
+  it("should disallow a defined parametrized guard with required params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        EV: {
+          guard: 'isGreaterThan'
+        }
+      }
+    });
+  });
+
+  it("should allow a defined guard when it has no params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: 'plainGuard'
+        }
+      }
+    });
+  });
+
+  it("should allow a defined guard when it has no params when it's referenced using an object", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: {
+            type: 'plainGuard'
+          }
+        }
+      }
+    });
+  });
+
+  it("should allow a defined guard without params when it only has optional params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard'; params?: { foo: string } };
+      },
+      on: {
+        EV: {
+          guard: 'plainGuard'
+        }
+      }
+    });
+  });
+
+  it("should allow a defined guard without params when it only has optional params when it's referenced using an object", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard'; params?: { foo: string } };
+      },
+      on: {
+        EV: {
+          guard: {
+            type: 'plainGuard'
+          }
+        }
+      }
+    });
+  });
+
+  it('should type guard param as undefined in inline custom guard', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: ({ guard }) => {
+            ((_accept: undefined) => {})(guard);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          }
+        }
+      }
+    });
+  });
+
+  it('should type guard param as undefined in inline composite guard', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: not(({ guard }) => {
+            ((_accept: undefined) => {})(guard);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          })
+        }
+      }
+    });
+  });
+
+  it('should type guard param as the specific defined guard type in the provided custom guard', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          isGreaterThan: ({ guard }) => {
+            ((_accept: number) => {})(guard.params.count);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          }
+        }
+      }
+    );
+  });
+
+  it('should type guard param as the specific defined guard type in the provided composite guard', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          isGreaterThan: not(({ guard }) => {
+            ((_accept: number) => {})(guard.params.count);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          })
+        }
+      }
+    );
+  });
+
+  it('should not allow a provided guard outside of the defined ones', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          // @ts-expect-error
+          other: () => true
+        }
+      }
+    );
+  });
+
+  it('`not` should be allowed in the config argument when inline function gets passed to it', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: not(() => {
+            return true;
+          })
+        }
+      }
+    });
+  });
+
+  it('`not` should be allowed in the implementations argument when inline function gets passed to it', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          isGreaterThan: not(() => {
+            return true;
+          })
+        }
+      }
+    );
+  });
+
+  it('`stateIn` should be allowed in the config argument', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: stateIn('foo')
+        }
+      }
+    });
+  });
+
+  it('`stateIn` should be allowed in the implementations argument', () => {
+    createMachine(
+      {
+        types: {} as {
+          guards:
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' };
+        }
+      },
+      {
+        guards: {
+          plainGuard: stateIn('foo')
         }
       }
     );

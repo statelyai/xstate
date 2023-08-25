@@ -6,7 +6,8 @@ import {
   AnyActorContext,
   AnyState,
   ActionArgs,
-  ParameterizedObject
+  ParameterizedObject,
+  NoInfer
 } from '../types.ts';
 import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
@@ -39,7 +40,7 @@ export function choose<
   TAction extends ParameterizedObject
 >(
   branches: ReadonlyArray<
-    ChooseBranch<TContext, TExpressionEvent, TEvent, TAction>
+    ChooseBranch<TContext, TExpressionEvent, TEvent, NoInfer<TAction>>
   >
 ) {
   function choose(
