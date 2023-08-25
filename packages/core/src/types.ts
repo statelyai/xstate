@@ -98,9 +98,9 @@ export interface ActionArgs<
 export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
   infer _TContext,
   infer _TEvent,
+  infer _TActor,
   infer _TAction,
   infer _TGuard,
-  infer _TActor,
   infer TInput,
   infer _TOutput,
   infer _TResolvedTypesMeta
@@ -1008,8 +1008,8 @@ type GenerateGuardsImplementationsPart<
 export type InternalMachineImplementations<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  _TAction extends ParameterizedObject,
   TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<
@@ -1054,9 +1054,9 @@ export type MachineImplementations<
 > = InternalMachineImplementations<
   TContext,
   TEvent,
-  TAction,
   TActor,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActor>
+  TAction,
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction>
 >;
 
 type InitialContext<TContext extends MachineContext, TInput> =
@@ -1409,7 +1409,7 @@ export interface StateConfig<
   output?: any;
   error?: unknown;
   tags?: Set<string>;
-  machine?: StateMachine<TContext, TEvent, any, any, any, any, any>;
+  machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any>;
   _internalQueue?: Array<TEvent>;
 }
 
@@ -1552,9 +1552,9 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer TContext,
       infer TEvent,
+      infer TActor,
       infer _TAction,
       infer _TGuard,
-      infer TActor,
       infer _Tinput,
       infer TOutput,
       infer TResolvedTypesMeta
@@ -1596,9 +1596,9 @@ export type InterpreterFrom<
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TEvent,
+  infer TActor,
   infer _TAction,
   infer _TGuard,
-  infer TActor,
   infer TInput,
   infer TOutput,
   infer TResolvedTypesMeta
@@ -1623,9 +1623,9 @@ export type MachineImplementationsFrom<
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TEvent,
+  infer TActor,
   infer TAction,
   infer _TGuard,
-  infer TActor,
   infer _TInput,
   infer _TOutput,
   infer TResolvedTypesMeta
@@ -1633,8 +1633,8 @@ export type MachineImplementationsFrom<
   ? InternalMachineImplementations<
       TContext,
       TEvent,
-      TAction,
       TActor,
+      TAction,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >
@@ -1783,9 +1783,9 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer _TContext,
       infer TEvent,
+      infer _TActor,
       infer _TAction,
       infer _TGuard,
-      infer _TActor,
       infer _TInput,
       infer _TOutput,
       infer _TResolvedTypesMeta
@@ -1834,9 +1834,9 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TActorLogic extends StateMachine<
         infer TContext,
         infer _TEvent,
+        infer _TActor,
         infer _TAction,
         infer _TGuard,
-        infer _TActor,
         infer _TInput,
         infer _TOutput,
         infer _TTypesMeta

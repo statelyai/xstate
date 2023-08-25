@@ -189,8 +189,8 @@ type AllowAllEvents = {
 export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
-  TAction extends ParameterizedObject,
-  TActor extends ProvidedActor
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {

@@ -54,16 +54,16 @@ export const WILDCARD = '*';
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TActor extends ProvidedActor,
   TInput,
   TOutput,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
-    TAction,
-    TActor
+    TActor,
+    TAction
   >
 > implements
     ActorLogic<
@@ -158,17 +158,17 @@ export class StateMachine<
     implementations: InternalMachineImplementations<
       TContext,
       TEvent,
-      TAction,
       TActor,
+      TAction,
       TResolvedTypesMeta,
       true
     >
   ): StateMachine<
     TContext,
     TEvent,
+    TActor,
     TAction,
     TGuard,
-    TActor,
     TInput,
     TOutput,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
@@ -481,11 +481,11 @@ export class StateMachine<
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TEvent!: TEvent;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TActor!: TActor;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TAction!: TAction;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TGuard!: TGuard;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TActor!: TActor;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TInput!: TInput;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
