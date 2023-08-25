@@ -2224,7 +2224,7 @@ describe('guards', () => {
     );
   });
 
-  it('should work with typed guards', () => {
+  it('should allow a defined parametrized guard with params', () => {
     createMachine({
       types: {} as {
         guards:
@@ -2237,90 +2237,193 @@ describe('guards', () => {
           | { type: 'plainGuard' };
       },
       on: {
-        foo: {
-          guard: 'plainGuard'
-        },
-        event: {
-          guard: { type: 'isGreaterThan', params: { count: 10 } }
-        },
-        // @ts-expect-error
-        bar: {
-          guard: 'isLessThan'
-        },
-        // @ts-expect-error
-        event2: {
-          guard: { type: 'isGreaterThan', params: { count: 'asdf' } }
-        },
-        // @ts-expect-error
-        event3: {
-          guard: { type: 'isLessThan', params: { count: 10 } }
-        },
-        // @ts-expect-error
-        event4: {
-          guard: { type: 'isGreaterThan' }
+        EV: {
+          guard: {
+            type: 'isGreaterThan',
+            params: {
+              count: 10
+            }
+          }
         }
+      }
+    });
+  });
+
+  it('should disallow a non-defined parametrized guard', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
       },
-      initial: 'a',
-      states: {
-        a: {
-          invoke: [
-            {
-              src: 'src',
-              onDone: [
-                {
-                  guard: { type: 'isGreaterThan', params: { count: 10 } }
-                },
-                // @ts-expect-error
-                {
-                  guard: { type: 'isGreaterThan', params: { count: 'asdf' } }
-                },
-                // @ts-expect-error
-                {
-                  guard: { type: 'isLessThan', params: { count: 10 } }
-                },
-                // @ts-expect-error
-                {
-                  guard: { type: 'isGreaterThan' }
-                }
-              ]
-            },
-            {
-              src: 'src',
-              onError: [
-                {
-                  guard: { type: 'isGreaterThan', params: { count: 10 } }
-                },
-                // @ts-expect-error
-                {
-                  guard: { type: 'isGreaterThan', params: { count: 'asdf' } }
-                },
-                // @ts-expect-error
-                {
-                  guard: { type: 'isLessThan', params: { count: 10 } }
-                },
-                // @ts-expect-error
-                {
-                  guard: { type: 'isGreaterThan' }
-                }
-              ]
+      on: {
+        // @ts-expect-error
+        EV: {
+          guard: {
+            type: 'other',
+            params: {
+              foo: 'bar'
             }
-          ],
-          on: {
-            event: {
-              guard: { type: 'isGreaterThan', params: { count: 10 } }
-            },
-            // @ts-expect-error
-            event2: {
-              guard: { type: 'isGreaterThan', params: { count: 'asdf' } }
-            },
-            // @ts-expect-error
-            event3: {
-              guard: { type: 'isLessThan', params: { count: 10 } }
-            },
-            // @ts-expect-error
-            event4: {
-              guard: { type: 'isGreaterThan' }
+          }
+        }
+      }
+    });
+  });
+
+  it('should disallow a defined parametrized guard with invalid params', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
             }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        EV: {
+          guard: {
+            type: 'isGreaterThan',
+            params: {
+              count: 'bar'
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should disallow a defined parametrized guard when it lacks required params', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        EV: {
+          guard: {
+            type: 'isGreaterThan',
+            params: {}
+          }
+        }
+      }
+    });
+  });
+
+  it("should disallow a defined parametrized guard with required params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        EV: {
+          guard: 'isGreaterThan'
+        }
+      }
+    });
+  });
+
+  it("should allow a defined guard when it has no params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: 'plainGuard'
+        }
+      }
+    });
+  });
+
+  it("should allow a defined guard when it has no params when it's referenced using an object", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        EV: {
+          guard: {
+            type: 'plainGuard'
+          }
+        }
+      }
+    });
+  });
+
+  it("should allow a defined guard without params when it only has optional params when it's referenced using a string", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard'; params?: { foo: string } };
+      },
+      on: {
+        EV: {
+          guard: 'plainGuard'
+        }
+      }
+    });
+  });
+
+  it("should allow a defined guard without params when it only has optional params when it's referenced using an object", () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard'; params?: { foo: string } };
+      },
+      on: {
+        EV: {
+          guard: {
+            type: 'plainGuard'
           }
         }
       }
