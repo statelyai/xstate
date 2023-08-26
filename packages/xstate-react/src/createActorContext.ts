@@ -16,8 +16,9 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
   TMachine extends StateMachine<
     infer TContext,
     infer TEvent,
+    infer TActor,
     infer TAction,
-    infer TActorMap,
+    infer TGuard,
     infer TInput,
     infer TOutput,
     infer TResolvedTypesMeta
@@ -25,8 +26,9 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
     ? StateMachine<
         TContext,
         TEvent,
+        TActor,
         TAction,
-        TActorMap,
+        TGuard,
         TInput,
         TOutput,
         AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false

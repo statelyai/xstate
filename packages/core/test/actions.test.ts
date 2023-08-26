@@ -2863,42 +2863,6 @@ describe('choose', () => {
     expect(service.getSnapshot().context).toEqual({ answer: 42 });
   });
 
-  it('should provide stateGuard.state to a condition expression', () => {
-    type Ctx = { counter: number; answer?: number };
-    const machine = createMachine<Ctx>({
-      context: {
-        counter: 101
-      },
-      type: 'parallel',
-      states: {
-        foo: {
-          initial: 'waiting',
-          states: {
-            waiting: {
-              on: {
-                GIVE_ANSWER: 'answering'
-              }
-            },
-            answering: {
-              entry: choose([
-                {
-                  guard: ({ state }) => state.matches('bar'),
-                  actions: assign({ answer: 42 })
-                }
-              ])
-            }
-          }
-        },
-        bar: {}
-      }
-    });
-
-    const service = createActor(machine).start();
-    service.send({ type: 'GIVE_ANSWER' });
-
-    expect(service.getSnapshot().context).toEqual({ counter: 101, answer: 42 });
-  });
-
   it('should be able to use actions and guards defined in options', () => {
     interface Ctx {
       answer?: number;

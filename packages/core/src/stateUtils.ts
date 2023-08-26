@@ -13,7 +13,7 @@ import {
   STATE_IDENTIFIER,
   WILDCARD
 } from './constants.ts';
-import { evaluateGuard, toGuardDefinition } from './guards.ts';
+import { evaluateGuard } from './guards.ts';
 import { ActorStatus } from './interpreter.ts';
 import {
   ActionArgs,
@@ -33,13 +33,13 @@ import {
   SingleOrArray,
   StateValue,
   StateValueMap,
-  TransitionConfig,
   TransitionDefinition,
   TODO,
   AnyActorRef,
   UnknownAction,
   ParameterizedObject,
-  ActionFunction
+  ActionFunction,
+  AnyTransitionConfig
 } from './types.ts';
 import {
   isArray,
@@ -345,11 +345,10 @@ export function formatTransition<
 >(
   stateNode: AnyStateNode,
   descriptor: string,
-  transitionConfig: TransitionConfig<TContext, TEvent, TEvent, any>
+  transitionConfig: AnyTransitionConfig
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
-  const { guards } = stateNode.machine.implementations;
   const target = resolveTarget(stateNode, normalizedTarget);
 
   // TODO: should this be part of a lint rule instead?
@@ -361,12 +360,7 @@ export function formatTransition<
   const transition = {
     ...transitionConfig,
     actions: toArray(transitionConfig.actions),
-    guard: transitionConfig.guard
-      ? toGuardDefinition(
-          transitionConfig.guard,
-          (guardType) => guards[guardType]
-        )
-      : undefined,
+    guard: transitionConfig.guard as never,
     target,
     source: stateNode,
     reenter,
@@ -463,7 +457,7 @@ export function formatInitialTransition<
   stateNode: AnyStateNode,
   _target:
     | SingleOrArray<string>
-    | InitialTransitionConfig<TContext, TEvent, TODO>
+    | InitialTransitionConfig<TContext, TEvent, TODO, TODO>
 ): InitialTransitionDefinition<TContext, TEvent> {
   if (typeof _target === 'string' || isArray(_target)) {
     const targets = toArray(_target).map((t) => {
@@ -1397,10 +1391,10 @@ interface BuiltinAction {
 
 export function resolveActionsAndContext<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 >(
   actions: UnknownAction[],
-  event: TEvent,
+  event: TExpressionEvent,
   currentState: AnyState,
   actorCtx: AnyActorContext
 ): AnyState {
@@ -1435,7 +1429,7 @@ export function resolveActionsAndContext<
       continue;
     }
 
-    const args = {
+    const actionArgs = {
       context: intermediateState.context,
       event,
       self: actorCtx?.self,
@@ -1449,9 +1443,9 @@ export function resolveActionsAndContext<
 
     if (!('resolve' in resolved)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolved(args);
+        resolved(actionArgs);
       } else {
-        actorCtx?.defer(() => resolved(args));
+        actorCtx?.defer(() => resolved(actionArgs));
       }
       continue;
     }
@@ -1461,7 +1455,7 @@ export function resolveActionsAndContext<
     const [nextState, params, actions] = builtinAction.resolve(
       actorCtx,
       intermediateState,
-      args,
+      actionArgs,
       resolved // this holds all params
     );
     intermediateState = nextState;

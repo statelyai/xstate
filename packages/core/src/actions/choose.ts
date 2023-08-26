@@ -6,9 +6,10 @@ import {
   AnyActorContext,
   AnyState,
   ActionArgs,
-  ParameterizedObject
+  ParameterizedObject,
+  NoInfer
 } from '../types.ts';
-import { evaluateGuard, toGuardDefinition } from '../guards.ts';
+import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
 
 function resolve(
@@ -22,14 +23,9 @@ function resolve(
   }
 ) {
   const matchedActions = branches.find((condition) => {
-    const guard =
-      condition.guard &&
-      toGuardDefinition(
-        condition.guard,
-        (guardType) => state.machine.implementations.guards[guardType]
-      );
     return (
-      !guard || evaluateGuard(guard, state.context, actionArgs.event, state)
+      !condition.guard ||
+      evaluateGuard(condition.guard, state.context, actionArgs.event, state)
     );
   })?.actions;
 
@@ -44,7 +40,7 @@ export function choose<
   TAction extends ParameterizedObject
 >(
   branches: ReadonlyArray<
-    ChooseBranch<TContext, TExpressionEvent, TEvent, TAction>
+    ChooseBranch<TContext, TExpressionEvent, TEvent, NoInfer<TAction>>
   >
 ) {
   function choose(
