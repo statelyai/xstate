@@ -52,7 +52,13 @@ export function pure<
     context: TContext;
     event: TExpressionEvent;
   }) =>
-    | Actions<TContext, TExpressionEvent, TEvent, undefined, NoInfer<TAction>>
+    | Actions<
+        TContext,
+        TExpressionEvent,
+        NoInfer<TEvent>,
+        undefined,
+        NoInfer<TAction>
+      >
     | undefined
 ) {
   function pure(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
@@ -68,5 +74,6 @@ export function pure<
   return pure as {
     (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
     _out_TAction?: TAction;
+    _out_TEvent?: TEvent;
   };
 }

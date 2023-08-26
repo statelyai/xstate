@@ -2183,6 +2183,53 @@ describe('pure', () => {
       })
     });
   });
+
+  it('should be able to return `raise` in a transition with one of the other accepted event types', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      on: {
+        SOMETHING: {
+          actions: pure(({ context }) => {
+            return raise({ type: 'SOMETHING_ELSE' });
+          })
+        }
+      }
+    });
+  });
+
+  it('should not be able to return `raise` in a transition with an event type that is not defined', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      on: {
+        SOMETHING: {
+          actions: [
+            pure(({ context }) => {
+              return raise({
+                // @ts-expect-error
+                type: 'OTHER'
+              });
+            })
+          ]
+        }
+      }
+    });
+  });
 });
 
 describe('input', () => {
