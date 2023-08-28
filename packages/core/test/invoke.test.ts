@@ -1308,6 +1308,47 @@ describe('invoke', () => {
 
         createActor(machine).start();
       });
+
+      it('should not emit onSnapshot if stopped', (done) => {
+        const machine = createMachine({
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                src: fromPromise(() =>
+                  createPromise((res) => {
+                    setTimeout(() => res(42), 5);
+                  })
+                ),
+                onSnapshot: {}
+              },
+              on: {
+                deactivate: 'inactive'
+              }
+            },
+            inactive: {
+              on: {
+                '*': {
+                  actions: ({ event }) => {
+                    if (event.snapshot) {
+                      throw new Error(
+                        `Received unexpected event: ${event.type}`
+                      );
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        const actor = createActor(machine).start();
+        actor.send({ type: 'deactivate' });
+
+        setTimeout(() => {
+          done();
+        }, 10);
+      });
     });
   });
 

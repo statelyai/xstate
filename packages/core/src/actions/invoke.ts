@@ -23,13 +23,13 @@ function resolve(
     systemId,
     src,
     input,
-    subscribe
+    syncSnapshot
   }: {
     id: string;
     systemId: string | undefined;
     src: string;
     input?: unknown;
-    subscribe: boolean;
+    syncSnapshot: boolean;
   }
 ) {
   const referenced = resolveReferencedActor(
@@ -56,15 +56,13 @@ function resolve(
           : configuredInput
     });
 
-    if (subscribe) {
+    if (syncSnapshot) {
       actorRef.subscribe({
         next: (snapshot) => {
-          if (actorContext.self.status === ActorStatus.Running) {
-            actorContext.self.send({
-              type: `xstate.snapshot.${id}`,
-              snapshot
-            });
-          }
+          actorContext.self.send({
+            type: `xstate.snapshot.${id}`,
+            snapshot
+          });
         },
         error: () => {
           /* TODO */
@@ -143,7 +141,7 @@ export function invoke<
   invoke.systemId = systemId;
   invoke.src = src;
   invoke.input = input;
-  invoke.subscribe = !!onSnapshot;
+  invoke.syncSnapshot = !!onSnapshot;
 
   invoke.resolve = resolve;
   invoke.execute = execute;
