@@ -419,7 +419,8 @@ describe('spawning observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
+              observableRef: ({ spawn }) =>
+                spawn('interval', { id: 'int', syncSnapshot: true })
             }),
             on: {
               'xstate.snapshot.int': {

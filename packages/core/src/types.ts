@@ -138,7 +138,12 @@ export type Spawner = <T extends AnyActorLogic | string>( // TODO: read string f
     id: string;
     systemId?: string;
     input: T extends AnyActorLogic ? InputFrom<T> : any;
-    subscribe?: boolean;
+    /**
+     * If `true`, the parent actor will subscribe to the spawned actor's snapshots
+     * and receive an `xstate.snapshot.{id}` event whenever the spawned actor emits
+     * a snapshot.
+     */
+    syncSnapshot?: boolean;
   }>
 ) => ActorRefFrom<T>;
 

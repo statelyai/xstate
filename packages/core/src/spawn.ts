@@ -47,22 +47,21 @@ export function createSpawner(
       }) as any;
       spawnedChildren[actorRef.id] = actorRef;
 
-      // if (options.subscribe) {
-      actorRef.subscribe({
-        next: (snapshot: unknown) => {
-          if (actorContext.self.status === ActorStatus.Running) {
-            actorContext.self.send({
-              type: `xstate.snapshot.${actorRef.id}`,
-              snapshot,
-              id: actorRef.id
-            });
+      if (options.syncSnapshot) {
+        actorRef.subscribe({
+          next: (snapshot: unknown) => {
+            if (actorContext.self.status === ActorStatus.Running) {
+              actorContext.self.send({
+                type: `xstate.snapshot.${actorRef.id}`,
+                snapshot
+              });
+            }
+          },
+          error: () => {
+            /* TODO */
           }
-        },
-        error: () => {
-          /* TODO */
-        }
-      });
-      // }
+        });
+      }
       return actorRef;
     } else {
       // TODO: this should also receive `src`

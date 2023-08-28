@@ -62,7 +62,6 @@ function resolve(
           if (actorContext.self.status === ActorStatus.Running) {
             actorContext.self.send({
               type: `xstate.snapshot.${id}`,
-              id,
               snapshot
             });
           }
