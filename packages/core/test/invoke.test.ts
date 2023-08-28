@@ -2110,8 +2110,7 @@ describe('invoke', () => {
       actor.subscribe({
         complete: () => {
           done();
-        },
-        error: () => {}
+        }
       });
       actor.start();
     });
