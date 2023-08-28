@@ -380,7 +380,10 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(observableLogic, { id: 'int' });
+              const ref = spawn(observableLogic, {
+                id: 'int',
+                syncSnapshot: true
+              });
 
               return ref;
             }
@@ -463,7 +466,10 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(observableLogic, { id: 'int' });
+              const ref = spawn(observableLogic, {
+                id: 'int',
+                syncSnapshot: true
+              });
 
               return ref;
             }

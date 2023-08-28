@@ -72,22 +72,22 @@ export function createSpawner(
         systemId
       });
 
-      // if (options.subscribe) {
-      actorRef.subscribe({
-        next: (snapshot) => {
-          if (actorContext.self.status === ActorStatus.Running) {
-            actorContext.self.send({
-              type: `xstate.snapshot.${actorRef.id}`,
-              snapshot,
-              id: actorRef.id
-            });
+      if (options.syncSnapshot) {
+        actorRef.subscribe({
+          next: (snapshot) => {
+            if (actorContext.self.status === ActorStatus.Running) {
+              actorContext.self.send({
+                type: `xstate.snapshot.${actorRef.id}`,
+                snapshot,
+                id: actorRef.id
+              });
+            }
+          },
+          error: () => {
+            /* TODO */
           }
-        },
-        error: () => {
-          /* TODO */
-        }
-      });
-      // }
+        });
+      }
 
       return actorRef;
     }
