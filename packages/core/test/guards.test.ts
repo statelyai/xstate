@@ -1028,4 +1028,27 @@ describe('or() guard', () => {
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
+
+  it('should have stateNode available in object', () => {
+    const machine = createMachine({
+      id: 'root',
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            event: {
+              guard: ({ stateNode }) => stateNode.id === 'root.a',
+              target: 'success'
+            }
+          }
+        },
+        success: {}
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'event' });
+
+    expect(actorRef.getSnapshot().matches('success')).toBeTruthy();
+  });
 });

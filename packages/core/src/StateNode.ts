@@ -43,7 +43,7 @@ import {
 
 const EMPTY_OBJECT = {};
 
-const toSerializableActon = (action: UnknownAction) => {
+function toSerializableAction(action: UnknownAction): ParameterizedObject {
   if (typeof action === 'string') {
     return { type: action };
   }
@@ -55,8 +55,8 @@ const toSerializableActon = (action: UnknownAction) => {
       type: action.name
     };
   }
-  return action;
-};
+  return { ...action };
+}
 
 interface StateNodeOptions<
   TContext extends MachineContext,
@@ -241,13 +241,13 @@ export class StateNode<
         ? {
             target: this.initial.target,
             source: this,
-            actions: this.initial.actions.map(toSerializableActon),
+            actions: this.initial.actions.map(toSerializableAction),
             eventType: null as any,
             reenter: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
-              actions: this.initial!.actions.map(toSerializableActon),
+              actions: this.initial!.actions.map(toSerializableAction),
               eventType: null as any
             })
           }
@@ -259,10 +259,10 @@ export class StateNode<
       on: this.on,
       transitions: [...this.transitions.values()].flat().map((t) => ({
         ...t,
-        actions: t.actions.map(toSerializableActon)
+        actions: t.actions.map(toSerializableAction)
       })),
-      entry: this.entry.map(toSerializableActon),
-      exit: this.exit.map(toSerializableActon),
+      entry: this.entry.map(toSerializableAction),
+      exit: this.exit.map(toSerializableAction),
       meta: this.meta,
       order: this.order || -1,
       output: this.output,
@@ -385,7 +385,13 @@ export class StateNode<
       try {
         guardPassed =
           !guard ||
-          evaluateGuard<TContext, TEvent>(guard, resolvedContext, event, state);
+          evaluateGuard<TContext, TEvent>(
+            guard,
+            resolvedContext,
+            event,
+            state,
+            this
+          );
       } catch (err: any) {
         const guardType =
           typeof guard === 'string'

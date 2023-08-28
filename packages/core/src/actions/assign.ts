@@ -43,7 +43,8 @@ function resolve(
       spawnedChildren
     ),
     self: actorContext?.self,
-    system: actorContext?.system
+    system: actorContext?.system,
+    stateNode: actionArgs.stateNode
   };
   let partialUpdate: Record<string, unknown> = {};
   if (typeof assignment === 'function') {

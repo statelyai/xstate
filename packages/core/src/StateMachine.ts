@@ -293,7 +293,7 @@ export class StateMachine<
       const assignment = ({ spawn, event }: any) =>
         context({ spawn, input: event.input });
       return resolveActionsAndContext(
-        [assign(assignment)],
+        [[assign(assignment), this.root]],
         initEvent as TEvent,
         preInitial,
         actorCtx

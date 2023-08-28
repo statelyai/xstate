@@ -6,7 +6,8 @@ import type {
   ParameterizedObject,
   AnyState,
   NoRequiredParams,
-  NoInfer
+  NoInfer,
+  AnyStateNode
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 
@@ -28,6 +29,7 @@ export interface GuardArgs<
   context: TContext;
   event: TExpressionEvent;
   guard: TExpressionGuard;
+  stateNode: AnyStateNode;
 }
 
 export type Guard<
@@ -52,7 +54,8 @@ interface BuiltinGuard {
   check: (
     state: AnyState,
     guardArgs: GuardArgs<any, any, any>,
-    params: unknown
+    params: unknown,
+    stateNode: AnyStateNode
   ) => boolean;
 }
 
@@ -94,9 +97,10 @@ export function stateIn<
 function checkNot(
   state: AnyState,
   { context, event }: GuardArgs<any, any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
+  { guards }: { guards: readonly UnknownGuard[] },
+  stateNode: AnyStateNode
 ) {
-  return !evaluateGuard(guards[0], context, event, state);
+  return !evaluateGuard(guards[0], context, event, state, stateNode);
 }
 
 export function not<
@@ -126,9 +130,12 @@ export function not<
 function checkAnd(
   state: AnyState,
   { context, event }: GuardArgs<any, any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
+  { guards }: { guards: readonly UnknownGuard[] },
+  stateNode: AnyStateNode
 ) {
-  return guards.every((guard) => evaluateGuard(guard, context, event, state));
+  return guards.every((guard) =>
+    evaluateGuard(guard, context, event, state, stateNode)
+  );
 }
 
 export function and<
@@ -162,9 +169,12 @@ export function and<
 function checkOr(
   state: AnyState,
   { context, event }: GuardArgs<any, any, any>,
-  { guards }: { guards: readonly UnknownGuard[] }
+  { guards }: { guards: readonly UnknownGuard[] },
+  stateNode: AnyStateNode
 ) {
-  return guards.some((guard) => evaluateGuard(guard, context, event, state));
+  return guards.some((guard) =>
+    evaluateGuard(guard, context, event, state, stateNode)
+  );
 }
 
 export function or<
@@ -203,7 +213,8 @@ export function evaluateGuard<
   guard: UnknownGuard,
   context: TContext,
   event: TExpressionEvent,
-  state: AnyState
+  state: AnyState,
+  stateNode: AnyStateNode
 ): boolean {
   const { machine } = state;
   const isInline = typeof guard === 'function';
@@ -234,7 +245,7 @@ export function evaluateGuard<
   }
 
   if (typeof resolved !== 'function') {
-    return evaluateGuard(resolved, context, event, state);
+    return evaluateGuard(resolved, context, event, state, stateNode);
   }
 
   const guardArgs = {
@@ -244,7 +255,8 @@ export function evaluateGuard<
       ? undefined
       : typeof guard === 'string'
       ? { type: guard }
-      : guard
+      : guard,
+    stateNode
   };
 
   if (!('check' in resolved)) {
@@ -256,6 +268,7 @@ export function evaluateGuard<
   return builtinGuard.check(
     state,
     guardArgs,
-    resolved // this holds all params
+    resolved, // this holds all params
+    stateNode
   );
 }
