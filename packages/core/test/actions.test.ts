@@ -2475,7 +2475,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent({ type: 'SUCCESS' }),
-              guard: ({ event }) => event.value === 42
+              guard: ({ event, stateNode }) => event.value === 42
             }
           }
         }
@@ -4019,5 +4019,38 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith({
       type: 'myAction'
     });
+  });
+
+  it('should have stateNode available in object', () => {
+    const machine = createMachine({
+      id: 'root',
+      entry: ({ stateNode }) => {
+        expect(stateNode.id).toBe('root');
+      },
+      initial: 'foo',
+      states: {
+        foo: {
+          meta: { foo: 'bar' },
+          entry: ({ stateNode }) => {
+            expect(stateNode.id).toBe('root.foo');
+
+            // Real-life use-case test
+            expect(stateNode.meta).toEqual({ foo: 'bar' });
+          },
+          on: {
+            event: {
+              actions: ({ stateNode }) => {
+                expect(stateNode.id).toBe('root.foo');
+              }
+            }
+          }
+        }
+      }
+    });
+
+    expect.assertions(4);
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'event' });
   });
 });

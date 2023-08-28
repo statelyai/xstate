@@ -1032,7 +1032,7 @@ function microstepProcedure(
   actorCtx: AnyActorContext,
   isInitial: boolean
 ): typeof currentState {
-  const actions: UnknownAction[] = [];
+  const actionStateNodeTuples: [UnknownAction, AnyStateNode][] = [];
   const historyValue = {
     ...currentState.historyValue
   };
@@ -1047,18 +1047,27 @@ function microstepProcedure(
 
   // Exit states
   if (!isInitial) {
-    exitStates(filteredTransitions, mutConfiguration, historyValue, actions);
+    exitStates(
+      filteredTransitions,
+      mutConfiguration,
+      historyValue,
+      actionStateNodeTuples
+    );
   }
 
   // Execute transition content
-  actions.push(...filteredTransitions.flatMap((t) => t.actions));
+  actionStateNodeTuples.push(
+    ...filteredTransitions.flatMap((t) =>
+      t.actions.map<[UnknownAction, StateNode]>((a) => [a, t.source])
+    )
+  );
 
   // Enter states
   enterStates(
     event,
     filteredTransitions,
     mutConfiguration,
-    actions,
+    actionStateNodeTuples,
     internalQueue,
     currentState,
     historyValue,
@@ -1073,13 +1082,18 @@ function microstepProcedure(
   if (done) {
     const finalActions = nextConfiguration
       .sort((a, b) => b.order - a.order)
-      .flatMap((state) => state.exit);
-    actions.push(...finalActions);
+      .flatMap((state) =>
+        state.exit.map<[UnknownAction, AnyStateNode]>((exitAction) => [
+          exitAction,
+          state
+        ])
+      );
+    actionStateNodeTuples.push(...finalActions);
   }
 
   try {
     const nextState = resolveActionsAndContext(
-      actions,
+      actionStateNodeTuples,
       event,
       currentState,
       actorCtx
@@ -1111,7 +1125,7 @@ function enterStates(
   event: AnyEventObject,
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  actions: UnknownAction[],
+  actionStateNodeTuples: [UnknownAction, AnyStateNode][],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
   historyValue: HistoryValue<any, any>,
@@ -1139,16 +1153,24 @@ function enterStates(
     mutConfiguration.add(stateNodeToEnter);
 
     for (const invokeDef of stateNodeToEnter.invoke) {
-      actions.push(invoke(invokeDef));
+      actionStateNodeTuples.push([invoke(invokeDef), stateNodeToEnter]);
     }
 
     // Add entry actions
-    actions.push(...stateNodeToEnter.entry);
+    actionStateNodeTuples.push(
+      ...stateNodeToEnter.entry.map<[UnknownAction, AnyStateNode]>(
+        (entryAction) => [entryAction, stateNodeToEnter]
+      )
+    );
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
       for (const stateNode of statesForDefaultEntry) {
         const initialActions = stateNode.initial!.actions;
-        actions.push(...initialActions);
+        actionStateNodeTuples.push(
+          ...initialActions.map<[UnknownAction, AnyStateNode]>(
+            (initialAction) => [initialAction, stateNode]
+          )
+        );
       }
     }
     if (stateNodeToEnter.type === 'final') {
@@ -1345,7 +1367,7 @@ function exitStates(
   transitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  actions: UnknownAction[]
+  mutActions: [UnknownAction, AnyStateNode][]
 ) {
   const statesToExit = computeExitSet(
     transitions,
@@ -1373,7 +1395,13 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    actions.push(...s.exit, ...s.invoke.map((def) => stop(def.id)));
+    mutActions.push(
+      ...s.exit.map<[UnknownAction, AnyStateNode]>((exitAction) => [
+        exitAction,
+        s
+      ]),
+      ...s.invoke.map<[UnknownAction, AnyStateNode]>((def) => [stop(def.id), s])
+    );
     mutConfiguration.delete(s);
   }
 }
@@ -1393,7 +1421,7 @@ export function resolveActionsAndContext<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject
 >(
-  actions: UnknownAction[],
+  actionStateNodeTuples: [UnknownAction, AnyStateNode][],
   event: TExpressionEvent,
   currentState: AnyState,
   actorCtx: AnyActorContext
@@ -1405,9 +1433,9 @@ export function resolveActionsAndContext<
     _internalQueue: []
   });
 
-  for (const action of actions) {
+  for (const [action, stateNode] of actionStateNodeTuples) {
     const isInline = typeof action === 'function';
-    const resolved = isInline
+    const actionFunction = isInline
       ? action
       : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
         // it's fine to cast this here to get a common type and lack of errors in the rest of the code
@@ -1425,7 +1453,7 @@ export function resolveActionsAndContext<
           >
         )[typeof action === 'string' ? action : action.type];
 
-    if (!resolved) {
+    if (!actionFunction) {
       continue;
     }
 
@@ -1438,29 +1466,30 @@ export function resolveActionsAndContext<
         ? undefined
         : typeof action === 'string'
         ? { type: action }
-        : action
+        : action,
+      stateNode
     };
 
-    if (!('resolve' in resolved)) {
+    if (!('resolve' in actionFunction)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolved(actionArgs);
+        actionFunction(actionArgs);
       } else {
-        actorCtx?.defer(() => resolved(actionArgs));
+        actorCtx?.defer(() => actionFunction(actionArgs));
       }
       continue;
     }
 
-    const builtinAction = resolved as BuiltinAction;
+    const builtinAction = actionFunction as BuiltinAction;
 
     const [nextState, params, actions] = builtinAction.resolve(
       actorCtx,
       intermediateState,
       actionArgs,
-      resolved // this holds all params
+      actionFunction // this holds all params
     );
     intermediateState = nextState;
 
-    if ('execute' in resolved) {
+    if ('execute' in actionFunction) {
       if (actorCtx?.self.status === ActorStatus.Running) {
         builtinAction.execute(actorCtx!, params);
       } else {
@@ -1470,7 +1499,7 @@ export function resolveActionsAndContext<
 
     if (actions) {
       intermediateState = resolveActionsAndContext(
-        actions,
+        actions.map((action) => [action, stateNode]),
         event,
         intermediateState,
         actorCtx
@@ -1566,16 +1595,21 @@ function stopStep(
   nextState: AnyState,
   actorCtx: AnyActorContext
 ) {
-  const actions: UnknownAction[] = [];
+  const actions: [UnknownAction, StateNode][] = [];
 
   for (const stateNode of nextState.configuration.sort(
     (a, b) => b.order - a.order
   )) {
-    actions.push(...stateNode.exit);
+    actions.push(
+      ...stateNode.exit.map<[UnknownAction, AnyStateNode]>((exitAction) => [
+        exitAction,
+        stateNode
+      ])
+    );
   }
 
   for (const child of Object.values(nextState.children)) {
-    actions.push(stop(child));
+    actions.push([stop(child), null as any]); // TODO: fix
   }
 
   return resolveActionsAndContext(actions, event, nextState, actorCtx);
@@ -1605,7 +1639,13 @@ function selectEventlessTransitions(
       for (const transition of s.always) {
         if (
           transition.guard === undefined ||
-          evaluateGuard(transition.guard, nextState.context, event, nextState)
+          evaluateGuard(
+            transition.guard,
+            nextState.context,
+            event,
+            nextState,
+            s
+          )
         ) {
           enabledTransitionSet.add(transition);
           break loop;

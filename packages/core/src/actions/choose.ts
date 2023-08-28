@@ -25,7 +25,13 @@ function resolve(
   const matchedActions = branches.find((condition) => {
     return (
       !condition.guard ||
-      evaluateGuard(condition.guard, state.context, actionArgs.event, state)
+      evaluateGuard(
+        condition.guard,
+        state.context,
+        actionArgs.event,
+        state,
+        actionArgs.stateNode
+      )
     );
   })?.actions;
 

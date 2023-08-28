@@ -83,6 +83,7 @@ export interface UnifiedArg<
   event: TExpressionEvent;
   self: ActorRef<TExpressionEvent>; // TODO: this should refer to `TEvent`
   system: ActorSystem<any>;
+  stateNode: AnyStateNode;
 }
 
 export type MachineContext = Record<string, any>;
