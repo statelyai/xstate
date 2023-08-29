@@ -56,10 +56,10 @@ export function pure<
     | Actions<
         TContext,
         TExpressionEvent,
-        TEvent,
+        NoInfer<TEvent>,
         undefined,
         NoInfer<TAction>,
-        TGuard
+        NoInfer<TGuard>
       >
     | undefined
 ) {
@@ -77,5 +77,6 @@ export function pure<
     (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
     _out_TAction?: TAction;
     _out_TGuard?: TGuard;
+    _out_TEvent?: TEvent;
   };
 }

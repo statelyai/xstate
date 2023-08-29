@@ -1,5 +1,33 @@
 # xstate
 
+## 5.0.0-beta.24
+
+### Minor Changes
+
+- [#4181](https://github.com/statelyai/xstate/pull/4181) [`70bd8d06f`](https://github.com/statelyai/xstate/commit/70bd8d06fd1422bc215a06bc4e19ae7dfe0184cc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now specify guard types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      guards:
+        | {
+            type: 'isGreaterThan';
+            params: {
+              count: number;
+            };
+          }
+        | { type: 'plainGuard' };
+    }
+    // ...
+  });
+  ```
+
+### Patch Changes
+
+- [#4206](https://github.com/statelyai/xstate/pull/4206) [`e7b59493a`](https://github.com/statelyai/xstate/commit/e7b59493adad65570d5cb331296b4fa37ebec407) Thanks [@Andarist](https://github.com/Andarist)! - Fixed type-related issue that prevented guards `not('checkFoo')` from being used in machines.
+
+- [#4210](https://github.com/statelyai/xstate/pull/4210) [`5d19c5a75`](https://github.com/statelyai/xstate/commit/5d19c5a755a4002dab0a82391314c090ddc3d654) Thanks [@Andarist](https://github.com/Andarist)! - Allow the types to flow from `pure` to `raise` that it returns. It now should properly raise errors on attempts to raise non-defined events and it should allow all defined events to be raised.
+
 ## 5.0.0-beta.23
 
 ### Minor Changes
