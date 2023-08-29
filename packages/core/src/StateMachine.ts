@@ -90,10 +90,10 @@ export class StateMachine<
   public types: MachineTypes<
     TContext,
     TEvent,
+    TActor,
     TAction,
     TGuard,
     TDelay,
-    TActor,
     TInput,
     TOutput,
     TResolvedTypesMeta
@@ -117,6 +117,7 @@ export class StateMachine<
     public config: MachineConfig<
       TContext,
       TEvent,
+      any,
       any,
       any,
       any,

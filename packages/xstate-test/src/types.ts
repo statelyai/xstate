@@ -50,8 +50,8 @@ export interface TestStateNodeConfig<
       TContext,
       TEvent,
       TODO,
-      ParameterizedObject,
       TODO,
+      ParameterizedObject,
       TODO,
       TODO
     >,

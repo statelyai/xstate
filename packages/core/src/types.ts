@@ -101,6 +101,7 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
   infer _TActor,
   infer _TAction,
   infer _TGuard,
+  infer _Delay,
   infer TInput,
   infer _TOutput,
   infer _TResolvedTypesMeta
@@ -394,19 +395,19 @@ export type StateNodesConfig<
 export type StatesConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
-  TActor extends ProvidedActor,
   TOutput
 > = {
   [K in string]: StateNodeConfig<
     TContext,
     TEvent,
+    TActor,
     TAction,
     TGuard,
     TDelay,
-    TActor,
     TOutput
   >;
 };
@@ -606,10 +607,10 @@ export type AnyInvokeConfig = InvokeConfig<any, any, any, any, any>;
 export interface StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
-  TActor extends ProvidedActor,
   TOutput
 > {
   /**
@@ -642,10 +643,10 @@ export interface StateNodeConfig<
     | StatesConfig<
         TContext,
         TEvent,
+        TActor,
         TAction,
         TGuard,
         TDelay,
-        TActor,
         NonReducibleUnknown
       >
     | undefined;
@@ -1134,36 +1135,37 @@ export type ContextFactory<TContext extends MachineContext, TInput> = ({
 type RootStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TActor extends ProvidedActor,
+  TDelay extends string,
   TOutput
 > = Omit<
-  StateNodeConfig<TContext, TEvent, TAction, TGuard, TActor, TOutput>,
+  StateNodeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay, TOutput>,
   'states'
 > & {
   states?:
-    | StatesConfig<TContext, TEvent, TAction, TGuard, TActor, TOutput>
+    | StatesConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay, TOutput>
     | undefined;
 };
 
 export type MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string,
-  TActor extends ProvidedActor = ProvidedActor,
   TInput = any,
   TOutput = unknown,
   TTypesMeta = TypegenDisabled
 > = (RootStateNodeConfig<
   NoInfer<TContext>,
   NoInfer<TEvent>,
+  NoInfer<TActor>,
   NoInfer<TAction>,
   NoInfer<TGuard>,
   NoInfer<TDelay>,
-  NoInfer<TActor>,
   NoInfer<TOutput>
 > & {
   /**
@@ -1176,9 +1178,10 @@ export type MachineConfig<
   types?: MachineTypes<
     TContext,
     TEvent,
+    TActor,
     TAction,
     TGuard,
-    TActor,
+    TDelay,
     TInput,
     TOutput,
     TTypesMeta
@@ -1197,10 +1200,10 @@ export interface ProvidedActor {
 export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
-  TActor extends ProvidedActor,
   TInput,
   TOutput,
   TTypesMeta = TypegenDisabled
@@ -1473,7 +1476,7 @@ export interface StateConfig<
   output?: any;
   error?: unknown;
   tags?: Set<string>;
-  machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any>;
+  machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
   _internalQueue?: Array<TEvent>;
 }
 

@@ -29,10 +29,10 @@ export function createMachine<
   config: MachineConfig<
     TContext,
     TEvent,
+    TActor,
     TAction,
     TGuard,
     TDelay,
-    TActor,
     TInput,
     TOutput,
     TTypesMeta
