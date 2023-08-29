@@ -21,7 +21,7 @@ export function createMachine<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
+  TDelay extends ParameterizedObject = ParameterizedObject,
   TInput = any,
   TOutput = NonReducibleUnknown,
   TTypesMeta extends TypegenConstraint = TypegenDisabled

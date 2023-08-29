@@ -357,10 +357,10 @@ export type DelayedTransitions<
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends ParameterizedObject
 > =
   | {
-      [key in TDelay | number]?:
+      [key in TDelay['type'] | number]?:
         | string
         | SingleOrArray<
             TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard>
@@ -371,6 +371,7 @@ export type DelayedTransitions<
         delay:
           | number
           | TDelay
+          | NoRequiredParams<TDelay>
           | ((args: UnifiedArg<TContext, TEvent>) => number);
       }
     >;
@@ -398,7 +399,7 @@ export type StatesConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
+  TDelay extends ParameterizedObject,
   TOutput
 > = {
   [K in string]: StateNodeConfig<
@@ -610,7 +611,7 @@ export interface StateNodeConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
+  TDelay extends ParameterizedObject,
   TOutput
 > {
   /**
@@ -1067,7 +1068,7 @@ export type InternalMachineImplementations<
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
-  TDelay extends string,
+  TDelay extends ParameterizedObject,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<
@@ -1109,7 +1110,7 @@ export type MachineImplementations<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
+  TDelay extends ParameterizedObject = ParameterizedObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
@@ -1138,7 +1139,7 @@ type RootStateNodeConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
+  TDelay extends ParameterizedObject,
   TOutput
 > = Omit<
   StateNodeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay, TOutput>,
@@ -1155,7 +1156,7 @@ export type MachineConfig<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
+  TDelay extends ParameterizedObject = ParameterizedObject,
   TInput = any,
   TOutput = unknown,
   TTypesMeta = TypegenDisabled
@@ -1203,7 +1204,7 @@ export interface MachineTypes<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
+  TDelay extends ParameterizedObject,
   TInput,
   TOutput,
   TTypesMeta = TypegenDisabled
