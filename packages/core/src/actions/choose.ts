@@ -19,7 +19,15 @@ function resolve(
   {
     branches
   }: {
-    branches: Array<ChooseBranch<MachineContext, EventObject>>;
+    branches: Array<
+      ChooseBranch<
+        MachineContext,
+        EventObject,
+        EventObject,
+        ParameterizedObject,
+        ParameterizedObject
+      >
+    >;
   }
 ) {
   const matchedActions = branches.find((condition) => {
