@@ -176,7 +176,7 @@ function createGuard<
 
 function mapAction(
   element: XMLElement
-): ActionFunction<any, any, any, any, any> {
+): ActionFunction<any, any, any, any, any, any> {
   switch (element.name) {
     case 'raise': {
       return raise({
@@ -322,8 +322,8 @@ return ${element.attributes!.expr};
 
 function mapActions(
   elements: XMLElement[]
-): ActionFunction<any, any, any, any, any>[] {
-  const mapped: ActionFunction<any, any, any, any, any>[] = [];
+): ActionFunction<any, any, any, any, any, any>[] {
+  const mapped: ActionFunction<any, any, any, any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

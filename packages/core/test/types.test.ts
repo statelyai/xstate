@@ -2006,7 +2006,7 @@ describe('actions', () => {
 });
 
 describe('choose', () => {
-  it('should be able to use a defined parametrized action', () => {
+  it('should be able to use a defined parametrized action with required params', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2016,10 +2016,30 @@ describe('choose', () => {
           guard: () => true,
           actions: [
             {
-              type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
+              type: 'greet',
               params: {
                 name: 'Anders'
               }
+            }
+          ]
+        }
+      ])
+    });
+  });
+
+  it('should not allow to use a defined parametrized action without all of its required params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet',
+              // @ts-expect-error
+              params: {}
             }
           ]
         }
@@ -2044,6 +2064,36 @@ describe('choose', () => {
     });
   });
 
+  it('should be possible to use a parametrized action with no required params using a string', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: 'poke'
+        }
+      ])
+    });
+  });
+
+  it('should be possible to use a parametrized action with no required params using an object', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: {
+            type: 'poke'
+          }
+        }
+      ])
+    });
+  });
+
   it('should be possible to use multiple different defined parametrized actions', () => {
     createMachine({
       types: {} as {
@@ -2054,13 +2104,13 @@ describe('choose', () => {
           guard: () => true,
           actions: [
             {
-              type: 'greet' as const,
+              type: 'greet',
               params: {
                 name: 'Anders'
               }
             },
             {
-              type: 'poke' as const
+              type: 'poke'
             }
           ]
         }
@@ -2096,6 +2146,119 @@ describe('choose', () => {
           foo: choose([
             {
               actions: () => {}
+            }
+          ])
+        }
+      }
+    );
+  });
+
+  it('should allow a defined parametrized guard to be used as its guard', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: choose([
+            {
+              actions: () => {},
+              guard: 'plainGuard'
+            }
+          ])
+        }
+      }
+    );
+  });
+
+  it('should not allow a guard outside of the defined ones', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: choose([
+            {
+              actions: () => {},
+              // @ts-expect-error
+              guard: 'other' as const
+            }
+          ])
+        }
+      }
+    );
+  });
+
+  it('should type guard param as undefined in inline custom guard when choose is used in the config', () => {
+    createMachine({
+      types: {
+        guards: {} as
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' }
+      },
+      entry: choose([
+        {
+          actions: 'someAction',
+          guard: ({ guard }) => {
+            ((_accept: undefined) => {})(guard);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          }
+        }
+      ])
+    });
+  });
+
+  it('should type guard param as undefined in inline custom guard when choose is used in the implementations', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          someGuard: choose([
+            {
+              actions: 'someAction',
+              guard: ({ guard }) => {
+                ((_accept: undefined) => {})(guard);
+                // @ts-expect-error
+                ((_accept: 'not any') => {})(guard);
+                return true;
+              }
             }
           ])
         }
@@ -2180,6 +2343,28 @@ describe('pure', () => {
       },
       entry: pure(() => {
         return [() => {}];
+      })
+    });
+  });
+
+  it('should be able to directly return a defined action without required params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return 'poke' as const;
+      })
+    });
+  });
+
+  it('should be able to return a defined action without required params in an array using a string', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return ['poke' as const];
       })
     });
   });

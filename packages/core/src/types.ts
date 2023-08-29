@@ -154,11 +154,13 @@ export type ActionFunction<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TAction extends ParameterizedObject
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject
 > = {
   (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
   _out_TEvent?: TEvent;
   _out_TAction?: TAction;
+  _out_TGuard?: TGuard;
 };
 
 export interface ChooseBranch<
@@ -166,13 +168,17 @@ export interface ChooseBranch<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent,
   TAction extends ParameterizedObject = ParameterizedObject,
-  TExpressionGuard extends ParameterizedObject | undefined =
-    | ParameterizedObject
-    | undefined,
   TGuard extends ParameterizedObject = ParameterizedObject
 > {
-  guard?: Guard<TContext, TExpressionEvent, TExpressionGuard, TGuard>;
-  actions: Actions<TContext, TExpressionEvent, TEvent, undefined, TAction>;
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
+  actions: Actions<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    undefined,
+    TAction,
+    TGuard
+  >;
 }
 
 export type NoRequiredParams<T extends ParameterizedObject> = T extends any
@@ -186,7 +192,8 @@ export type Action<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TAction extends ParameterizedObject
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject
 > =
   | NoRequiredParams<TAction>
   | TAction
@@ -195,7 +202,8 @@ export type Action<
       TExpressionEvent,
       TEvent,
       TExpressionAction,
-      TAction
+      TAction,
+      TGuard
     >;
 
 export type UnknownAction = Action<
@@ -203,6 +211,7 @@ export type UnknownAction = Action<
   EventObject,
   EventObject,
   ParameterizedObject | undefined,
+  ParameterizedObject,
   ParameterizedObject
 >;
 
@@ -211,9 +220,10 @@ export type Actions<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TAction extends ParameterizedObject
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject
 > = SingleOrArray<
-  Action<TContext, TExpressionEvent, TEvent, TExpressionAction, TAction>
+  Action<TContext, TExpressionEvent, TEvent, TExpressionAction, TAction, TGuard>
 >;
 
 export type StateKey = string | AnyState;
@@ -240,7 +250,14 @@ export interface TransitionConfig<
   TGuard extends ParameterizedObject
 > {
   guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
-  actions?: Actions<TContext, TExpressionEvent, TEvent, undefined, TAction>;
+  actions?: Actions<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    undefined,
+    TAction,
+    TGuard
+  >;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
   meta?: Record<string, any>;
@@ -640,11 +657,11 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: Actions<TContext, TEvent, TEvent, undefined, TAction>;
+  entry?: Actions<TContext, TEvent, TEvent, undefined, TAction, TGuard>;
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: Actions<TContext, TEvent, TEvent, undefined, TAction>;
+  exit?: Actions<TContext, TEvent, TEvent, undefined, TAction, TGuard>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
@@ -802,14 +819,16 @@ export type SimpleOrStateNodeConfig<
 export type ActionFunctionMap<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ParameterizedObject = ParameterizedObject
+  TAction extends ParameterizedObject = ParameterizedObject,
+  TGuard extends ParameterizedObject = ParameterizedObject
 > = {
   [K in TAction['type']]?: ActionFunction<
     TContext,
     TEvent,
     TEvent,
     TAction extends { type: K } ? TAction : never,
-    TAction
+    TAction,
+    TGuard
   >;
 };
 
@@ -873,14 +892,19 @@ type MachineImplementationsActions<
     'eventsCausingActions'
   >,
   TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
-  TIndexedActions = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActions'>
+  TIndexedActions = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'indexedActions'
+  >,
+  TIndexedGuards = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedGuards'>
 > = {
   [K in keyof TIndexedActions]?: ActionFunction<
     TContext,
     MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActions, K>,
     Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>,
     Cast<TIndexedActions[K], ParameterizedObject>,
-    Cast<Prop<TIndexedActions, keyof TIndexedActions>, ParameterizedObject>
+    Cast<Prop<TIndexedActions, keyof TIndexedActions>, ParameterizedObject>,
+    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>
   >;
 };
 
