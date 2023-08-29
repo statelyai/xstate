@@ -307,25 +307,20 @@ export function getDelayedTransitions(
     return eventType;
   };
 
-  const delayedTransitions = isArray(afterConfig)
-    ? afterConfig.map((transition, i) => {
-        const eventType = mutateEntryExit(transition.delay, i);
-        return { ...transition, event: eventType };
-      })
-    : Object.keys(afterConfig).flatMap((delay, i) => {
-        const configTransition = afterConfig[delay];
-        const resolvedTransition =
-          typeof configTransition === 'string'
-            ? { target: configTransition }
-            : configTransition;
-        const resolvedDelay = !isNaN(+delay) ? +delay : delay;
-        const eventType = mutateEntryExit(resolvedDelay, i);
-        return toArray(resolvedTransition).map((transition) => ({
-          ...transition,
-          event: eventType,
-          delay: resolvedDelay
-        }));
-      });
+  const delayedTransitions = Object.keys(afterConfig).flatMap((delay, i) => {
+    const configTransition = afterConfig[delay];
+    const resolvedTransition =
+      typeof configTransition === 'string'
+        ? { target: configTransition }
+        : configTransition;
+    const resolvedDelay = !isNaN(+delay) ? +delay : delay;
+    const eventType = mutateEntryExit(resolvedDelay, i);
+    return toArray(resolvedTransition).map((transition) => ({
+      ...transition,
+      event: eventType,
+      delay: resolvedDelay
+    }));
+  });
   return delayedTransitions.map((delayedTransition) => {
     const { delay } = delayedTransition;
     return {

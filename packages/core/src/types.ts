@@ -356,22 +356,11 @@ export type DelayedTransitions<
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject
-> =
-  | Record<
-      string | number,
-      | string
-      | SingleOrArray<
-          TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard>
-        >
-    >
-  | Array<
-      TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard> & {
-        delay:
-          | number
-          | string
-          | ((args: UnifiedArg<TContext, TEvent>) => number);
-      }
-    >;
+> = Record<
+  string | number,
+  | string
+  | SingleOrArray<TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard>>
+>;
 
 export type StateTypes =
   | 'atomic'
