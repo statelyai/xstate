@@ -101,7 +101,7 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
   infer _TActor,
   infer _TAction,
   infer _TGuard,
-  infer _Delay,
+  infer _TDelay,
   infer TInput,
   infer _TOutput,
   infer _TResolvedTypesMeta
@@ -360,7 +360,7 @@ export type DelayedTransitions<
   TDelay extends string
 > =
   | {
-      [key in TDelay | number]?:
+      [K in TDelay | number]?:
         | string
         | SingleOrArray<
             TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard>
