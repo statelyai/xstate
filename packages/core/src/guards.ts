@@ -40,10 +40,19 @@ export type Guard<
   | TGuard
   | GuardPredicate<TContext, TExpressionEvent, TExpressionGuard, TGuard>;
 
-export type UnknownGuard = Guard<
+export type UnknownGuard = UnknownReferencedGuard | UnknownInlineGuard;
+
+type UnknownReferencedGuard = Guard<
   MachineContext,
   EventObject,
-  ParameterizedObject | undefined,
+  ParameterizedObject,
+  ParameterizedObject
+>;
+
+type UnknownInlineGuard = Guard<
+  MachineContext,
+  EventObject,
+  undefined,
   ParameterizedObject
 >;
 
@@ -200,7 +209,7 @@ export function evaluateGuard<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject
 >(
-  guard: UnknownGuard,
+  guard: UnknownGuard | UnknownInlineGuard,
   context: TContext,
   event: TExpressionEvent,
   state: AnyState
@@ -210,20 +219,9 @@ export function evaluateGuard<
 
   const resolved = isInline
     ? guard
-    : // the existing type of `.guards` assumes non-nullable `TExpressionGuard`
-      // it's fine to cast this here to get a common type and lack of errors in the rest of the code
-      // our logic below makes sure that we call those 2 "variants" correctly
-      (
-        machine.implementations.guards as Record<
-          string,
-          GuardPredicate<
-            MachineContext,
-            EventObject,
-            ParameterizedObject | undefined,
-            ParameterizedObject
-          >
-        >
-      )[typeof guard === 'string' ? guard : guard.type];
+    : machine.implementations.guards[
+        typeof guard === 'string' ? guard : guard.type
+      ];
 
   if (!isInline && !resolved) {
     throw new Error(
@@ -234,7 +232,7 @@ export function evaluateGuard<
   }
 
   if (typeof resolved !== 'function') {
-    return evaluateGuard(resolved, context, event, state);
+    return evaluateGuard(resolved!, context, event, state);
   }
 
   const guardArgs = {
@@ -248,7 +246,10 @@ export function evaluateGuard<
   };
 
   if (!('check' in resolved)) {
-    return resolved(guardArgs);
+    // the existing type of `.guards` assumes non-nullable `TExpressionGuard`
+    // inline guards expect `TExpressionGuard` to be set to `undefined`
+    // it's fine to cast this here, our logic makes sure that we call those 2 "variants" correctly
+    return resolved(guardArgs as never);
   }
 
   const builtinGuard = resolved as unknown as BuiltinGuard;
