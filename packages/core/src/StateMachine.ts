@@ -57,7 +57,7 @@ export class StateMachine<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends ParameterizedObject,
+  TDelay extends string,
   TInput,
   TOutput,
   TResolvedTypesMeta = ResolveTypegenMeta<

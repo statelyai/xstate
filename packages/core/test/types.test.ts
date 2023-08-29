@@ -2913,7 +2913,7 @@ describe('delays', () => {
   it('should work with typed delays', () => {
     createMachine({
       types: {} as {
-        delays: { type: 'one second' } | { type: 'one minute' };
+        delays: 'one second' | 'one minute';
       },
       after: {
         'one minute': {},

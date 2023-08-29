@@ -84,7 +84,7 @@ export type TestMachineOptions<
       any,
       ParameterizedObject,
       ParameterizedObject,
-      ParameterizedObject,
+      string,
       TTypesMeta
     >,
     'actions' | 'guards'
