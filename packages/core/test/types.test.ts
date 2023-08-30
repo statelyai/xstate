@@ -3223,6 +3223,7 @@ describe('tags', () => {
         // @ts-expect-error
         'mouse.doubleClick': {}
       },
+      initial: 'tooDeep',
       states: {
         tooDeep: {
           on: {
