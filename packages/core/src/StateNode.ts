@@ -29,8 +29,7 @@ import type {
   TODO,
   UnknownAction,
   ParameterizedObject,
-  AnyStateMachine,
-  AnyStateNodeConfig
+  AnyStateMachine
 } from './types.ts';
 import {
   createInvokeId,
