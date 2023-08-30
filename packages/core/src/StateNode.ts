@@ -67,6 +67,7 @@ interface StateNodeOptions<
 }
 
 interface LightStateNode {
+  key: string | undefined;
   states: Record<string, LightStateNode> | undefined;
   parent: LightStateNode | undefined;
   meta: Record<string, unknown> | undefined;
@@ -182,6 +183,7 @@ export class StateNode<
     this.machine.idMap.set(this.id, this);
 
     this.lightNode = {
+      key: this.parent ? options._key : undefined,
       states: undefined,
       parent: this.parent?.lightNode,
       meta: config.meta
