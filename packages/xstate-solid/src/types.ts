@@ -15,10 +15,11 @@ type StateObject<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor,
+  TTag extends string = string,
   TOutput = unknown,
   TResolvedTypesMeta = TypegenDisabled
 > = Pick<
-  State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>,
+  State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
   keyof AnyState
 >;
 
@@ -28,10 +29,11 @@ export type CheckSnapshot<Snapshot> = Snapshot extends State<
   infer TContext,
   infer TEvents,
   infer TActor,
+  infer TTag,
   infer TOutput,
   infer TResolvedTypesMeta
 >
-  ? StateObject<TContext, TEvents, TActor, TOutput, TResolvedTypesMeta>
+  ? StateObject<TContext, TEvents, TActor, TTag, TOutput, TResolvedTypesMeta>
   : Snapshot;
 
 type InternalMachineOpts<

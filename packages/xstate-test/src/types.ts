@@ -37,7 +37,8 @@ export interface TestMachineConfig<
     TODO,
     TODO,
     TODO,
-    TODO,
+    TODO, // delays
+    TODO, // tags
     TTypesMeta
   >;
 }
@@ -52,6 +53,7 @@ export interface TestStateNodeConfig<
       TODO,
       TODO,
       ParameterizedObject,
+      TODO,
       TODO,
       TODO
     >,
@@ -85,6 +87,7 @@ export type TestMachineOptions<
       ParameterizedObject,
       ParameterizedObject,
       string,
+      string,
       TTypesMeta
     >,
     'actions' | 'guards'
@@ -94,9 +97,11 @@ export type TestMachineOptions<
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
     testContext: T,
-    state: State<TContext, any, any, any>
+    state: State<TContext, any, any, any, any, any>
   ) => Promise<void> | void;
-  description?: string | ((state: State<TContext, any, any, any>) => string);
+  description?:
+    | string
+    | ((state: State<TContext, any, any, any, any, any>) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -166,7 +171,7 @@ export interface TestTransitionConfig<
   TTestContext
 > extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, string> {
   test?: (
-    state: State<TContext, TEvent, any, any>,
+    state: State<TContext, TEvent, any, any, any, any>,
     testContext: TTestContext
   ) => void;
 }

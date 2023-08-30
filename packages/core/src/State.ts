@@ -70,6 +70,7 @@ export class State<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
+  TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > {
@@ -106,13 +107,29 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent, TODO, any, any> | StateValue,
+    stateValue:
+      | State<
+          TContext,
+          TEvent,
+          TODO,
+          any, // tags
+          any, // output
+          any // typegen
+        >
+      | StateValue,
     context: TContext = {} as TContext,
     machine: AnyStateMachine
-  ): State<TContext, TEvent, TODO, any, any> {
+  ): State<
+    TContext,
+    TEvent,
+    TODO,
+    any, // tags
+    any, // output
+    any // typegen
+  > {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TContext, TEvent, TODO, any>(
+        return new State<TContext, TEvent, TODO, any, any, any>(
           {
             value: stateValue.value,
             context,
@@ -131,7 +148,7 @@ export class State<
       getStateNodes(machine.root, stateValue)
     );
 
-    return new State<TContext, TEvent, TODO, any>(
+    return new State<TContext, TEvent, TODO, any, any, any>(
       {
         value: stateValue,
         context,
@@ -209,11 +226,7 @@ export class State<
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
-  public hasTag(
-    tag: TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
-      : string
-  ): boolean {
+  public hasTag(tag: TTag): boolean {
     return this.tags.has(tag as string);
   }
 

@@ -6,7 +6,8 @@ import {
   ParameterizedObject,
   ProvidedActor,
   AnyEventObject,
-  NonReducibleUnknown
+  NonReducibleUnknown,
+  Prop
 } from './types.ts';
 import {
   TypegenConstraint,
@@ -22,6 +23,7 @@ export function createMachine<
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string,
+  TTag extends string = string,
   TInput = any,
   TOutput = NonReducibleUnknown,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
@@ -33,6 +35,7 @@ export function createMachine<
     TAction,
     TGuard,
     TDelay,
+    TTag,
     TInput,
     TOutput,
     TTypesMeta
@@ -43,7 +46,15 @@ export function createMachine<
     TActor,
     TAction,
     TDelay,
-    ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay>
+    ResolveTypegenMeta<
+      TTypesMeta,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag
+    >
   >
 ): StateMachine<
   TContext,
@@ -52,11 +63,24 @@ export function createMachine<
   TAction,
   TGuard,
   TDelay,
+  Prop<
+    ResolveTypegenMeta<
+      TTypesMeta,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag
+    >['resolved'],
+    'tags'
+  > &
+    string,
   TInput,
   TOutput,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
-  return new StateMachine<any, any, any, any, any, any, any, any, any>(
+  return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
     config as any,
     implementations as any
   );

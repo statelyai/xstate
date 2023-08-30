@@ -380,7 +380,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any, any, any> {
+  ): StateMachine<TContext, any, any, any, any, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -454,7 +454,19 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, TEvent, any, any, any, any, any, any>) {}
+    >(
+      _machine: StateMachine<
+        TContext,
+        TEvent,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      >
+    ) {}
 
     acceptMachine(toggleMachine);
   });
@@ -3113,5 +3125,72 @@ describe('delays', () => {
         just_any_delay: {}
       }
     });
+  });
+});
+
+describe('tags', () => {
+  it(`should allow a defined tag when it's set using a string`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      tags: 'pending'
+    });
+  });
+
+  it(`should allow a defined tag when it's set using an array`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      tags: ['pending']
+    });
+  });
+
+  it(`should not allow a tag outside of the defined ones when it's set using a string`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      // @ts-expect-error
+      tags: 'other'
+    });
+  });
+
+  it(`should not allow a tag outside of the defined ones when it's set using an array`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      tags: [
+        // @ts-expect-error
+        'other'
+      ]
+    });
+  });
+
+  it('`hasTag` should allow checking a defined tag', () => {
+    const machine = createMachine({
+      types: {} as {
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.getSnapshot().hasTag('a');
+  });
+
+  it('`hasTag` should not allow checking a tag ouside of the defined ones', () => {
+    const machine = createMachine({
+      types: {} as {
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // @ts-expect-error
+    actor.getSnapshot().hasTag('other');
   });
 });
