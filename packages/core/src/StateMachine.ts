@@ -57,6 +57,7 @@ export class StateMachine<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
+  TDelay extends string,
   TInput,
   TOutput,
   TResolvedTypesMeta = ResolveTypegenMeta<
@@ -64,7 +65,8 @@ export class StateMachine<
     NoInfer<TEvent>,
     TActor,
     TAction,
-    TGuard
+    TGuard,
+    TDelay
   >
 > implements
     ActorLogic<
@@ -89,9 +91,10 @@ export class StateMachine<
   public types: MachineTypes<
     TContext,
     TEvent,
+    TActor,
     TAction,
     TGuard,
-    TActor,
+    TDelay,
     TInput,
     TOutput,
     TResolvedTypesMeta
@@ -115,6 +118,7 @@ export class StateMachine<
     public config: MachineConfig<
       TContext,
       TEvent,
+      any,
       any,
       any,
       any,
@@ -161,6 +165,7 @@ export class StateMachine<
       TEvent,
       TActor,
       TAction,
+      TDelay,
       TResolvedTypesMeta,
       true
     >
@@ -170,6 +175,7 @@ export class StateMachine<
     TActor,
     TAction,
     TGuard,
+    TDelay,
     TInput,
     TOutput,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
@@ -487,6 +493,8 @@ export class StateMachine<
   __TAction!: TAction;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TGuard!: TGuard;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TDelay!: TDelay;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TInput!: TInput;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

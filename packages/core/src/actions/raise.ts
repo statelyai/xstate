@@ -96,12 +96,18 @@ export function raise<
   TEvent extends EventObject = TExpressionEvent,
   TExpressionAction extends ParameterizedObject | undefined =
     | ParameterizedObject
-    | undefined
+    | undefined,
+  TDelay extends string = string
 >(
   eventOrExpr:
     | NoInfer<TEvent>
     | SendExpr<TContext, TExpressionEvent, TExpressionAction, NoInfer<TEvent>>,
-  options?: RaiseActionOptions<TContext, TExpressionEvent, TExpressionAction>
+  options?: RaiseActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    NoInfer<TDelay>
+  >
 ) {
   function raise(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
@@ -120,5 +126,6 @@ export function raise<
   return raise as {
     (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
     _out_TEvent?: TEvent;
+    _out_TDelay?: TDelay;
   };
 }

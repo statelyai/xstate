@@ -21,6 +21,7 @@ export function createMachine<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
+  TDelay extends string = string,
   TInput = any,
   TOutput = NonReducibleUnknown,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
@@ -28,9 +29,10 @@ export function createMachine<
   config: MachineConfig<
     TContext,
     TEvent,
+    TActor,
     TAction,
     TGuard,
-    TActor,
+    TDelay,
     TInput,
     TOutput,
     TTypesMeta
@@ -40,7 +42,8 @@ export function createMachine<
     TEvent,
     TActor,
     TAction,
-    ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
+    TDelay,
+    ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay>
   >
 ): StateMachine<
   TContext,
@@ -48,11 +51,12 @@ export function createMachine<
   TActor,
   TAction,
   TGuard,
+  TDelay,
   TInput,
   TOutput,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay>
 > {
-  return new StateMachine<any, any, any, any, any, any, any, any>(
+  return new StateMachine<any, any, any, any, any, any, any, any, any>(
     config as any,
     implementations as any
   );

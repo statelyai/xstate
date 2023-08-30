@@ -25,7 +25,8 @@ function resolve(
         EventObject,
         EventObject,
         ParameterizedObject,
-        ParameterizedObject
+        ParameterizedObject,
+        string
       >
     >;
   }
@@ -46,7 +47,8 @@ export function choose<
   TEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
   TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject
+  TGuard extends ParameterizedObject,
+  TDelay extends string
 >(
   branches: ReadonlyArray<
     ChooseBranch<
@@ -54,7 +56,8 @@ export function choose<
       TExpressionEvent,
       TEvent,
       NoInfer<TAction>,
-      NoInfer<TGuard>
+      NoInfer<TGuard>,
+      TDelay
     >
   >
 ) {
@@ -75,5 +78,6 @@ export function choose<
     (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
     _out_TAction?: TAction;
     _out_TGuard?: TGuard;
+    _out_TDelay?: TDelay;
   };
 }
