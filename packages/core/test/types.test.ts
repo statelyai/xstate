@@ -3129,29 +3129,47 @@ describe('delays', () => {
 });
 
 describe('tags', () => {
-  it('should work with typed tags', () => {
+  it(`should allow a defined tag when it's set using a string`, () => {
     createMachine({
       types: {} as {
         tags: 'pending' | 'success' | 'error';
       },
-      initial: 'a',
-      states: {
-        a: {
-          tags: 'error'
-        },
-        b: {
-          tags: [
-            'success',
-            'pending',
-            // @ts-expect-error
-            'unknown'
-          ]
-        }
-      }
+      tags: 'pending'
     });
   });
 
-  it('typed tags should work in state', () => {
+  it(`should allow a defined tag when it's set using an array`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      tags: ['pending']
+    });
+  });
+
+  it(`should not allow a tag outside of the defined ones when it's set using a string`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      // @ts-expect-error
+      tags: 'other'
+    });
+  });
+
+  it(`should not allow a tag outside of the defined ones when it's set using an array`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      tags: [
+        // @ts-expect-error
+        'other'
+      ]
+    });
+  });
+
+  it('`hasTag` should allow checking a defined tag', () => {
     const machine = createMachine({
       types: {} as {
         tags: 'a' | 'b' | 'c';
@@ -3161,8 +3179,18 @@ describe('tags', () => {
     const actor = createActor(machine).start();
 
     actor.getSnapshot().hasTag('a');
-    actor.getSnapshot().hasTag('b');
+  });
+
+  it('`hasTag` should not allow checking a tag ouside of the defined ones', () => {
+    const machine = createMachine({
+      types: {} as {
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    const actor = createActor(machine).start();
+
     // @ts-expect-error
-    actor.getSnapshot().hasTag('unknown');
+    actor.getSnapshot().hasTag('other');
   });
 });
