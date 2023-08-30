@@ -1,6 +1,5 @@
 import {
   MachineConfig,
-  EventObject,
   MachineContext,
   InternalMachineImplementations,
   ParameterizedObject,
@@ -9,11 +8,7 @@ import {
   Prop,
   AnyEventObject
 } from './types.ts';
-import {
-  TypegenConstraint,
-  ResolveTypegenMeta,
-  TypegenDisabled
-} from './typegenTypes.ts';
+import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
@@ -26,7 +21,7 @@ export function createMachine<
   TTag extends string,
   TInput,
   TOutput extends NonReducibleUnknown,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  TTypesMeta extends TypegenConstraint
 >(
   config: MachineConfig<
     TContext,
