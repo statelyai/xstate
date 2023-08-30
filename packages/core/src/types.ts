@@ -1206,6 +1206,7 @@ export type MachineImplementations<
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string,
+  TTag extends string = string,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
@@ -1213,7 +1214,7 @@ export type MachineImplementations<
   TActor,
   TAction,
   TDelay,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 >;
 
 type InitialContext<TContext extends MachineContext, TInput> =

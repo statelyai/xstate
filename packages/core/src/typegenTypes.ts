@@ -215,7 +215,8 @@ export interface ResolveTypegenMeta<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TTag extends string
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {
@@ -249,6 +250,7 @@ export interface ResolveTypegenMeta<
         WrapIntoParameterizedObject<TDelay>,
         Prop<TTypesMeta, 'eventsCausingDelays'>
       >;
+      tags: string extends TTag ? Prop<TTypesMeta, 'tags'> : TTag;
     };
     disabled: TypegenDisabled &
       AllImplementationsProvided &
@@ -260,6 +262,7 @@ export interface ResolveTypegenMeta<
         indexedGuards: IndexByType<TGuard>;
         indexedDelays: IndexByType<WrapIntoParameterizedObject<TDelay>>;
         invokeSrcNameMap: Record<string, string>;
+        tags: TTag;
       };
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'

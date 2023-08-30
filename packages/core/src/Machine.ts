@@ -6,7 +6,8 @@ import {
   ParameterizedObject,
   ProvidedActor,
   AnyEventObject,
-  NonReducibleUnknown
+  NonReducibleUnknown,
+  Prop
 } from './types.ts';
 import {
   TypegenConstraint,
@@ -45,7 +46,15 @@ export function createMachine<
     TActor,
     TAction,
     TDelay,
-    ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay>
+    ResolveTypegenMeta<
+      TTypesMeta,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag
+    >
   >
 ): StateMachine<
   TContext,
@@ -54,10 +63,22 @@ export function createMachine<
   TAction,
   TGuard,
   TDelay,
-  TTag,
+  Prop<
+    ResolveTypegenMeta<
+      TTypesMeta,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag
+    >['resolved'],
+    'tags'
+  > &
+    string,
   TInput,
   TOutput,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
   return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
     config as any,

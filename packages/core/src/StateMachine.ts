@@ -67,7 +67,8 @@ export class StateMachine<
     TActor,
     TAction,
     TGuard,
-    TDelay
+    TDelay,
+    TTag
   >
 > implements
     ActorLogic<
@@ -140,7 +141,6 @@ export class StateMachine<
     };
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
-    // TContext, TEvent, TAction, TActor, TInput, TOutput, TGuards, TDelays, TTags, TypegenDisabled
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
