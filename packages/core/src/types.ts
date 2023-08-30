@@ -472,26 +472,39 @@ export type TransitionsConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
-> = {
-  // TODO: this doesn't support partial descriptors
-  [K in TEvent['type'] | '*']?: K extends '*'
-    ? TransitionConfigOrTarget<
-        TContext,
-        TEvent,
-        TEvent,
-        TAction,
-        TGuard,
-        TDelay
-      >
-    : TransitionConfigOrTarget<
-        TContext,
-        ExtractEvent<TEvent, K>,
-        TEvent,
-        TAction,
-        TGuard,
-        TDelay
-      >;
-};
+> =
+  | {
+      [K in
+        | TEvent['type']
+        | PartialEventType<TEvent['type']>
+        | '*']?: K extends '*'
+        ? TransitionConfigOrTarget<
+            TContext,
+            TEvent,
+            TEvent,
+            TAction,
+            TGuard,
+            TDelay
+          >
+        : TransitionConfigOrTarget<
+            TContext,
+            ExtractEvent<TEvent, K>,
+            TEvent,
+            TAction,
+            TGuard,
+            TDelay
+          >;
+    };
+
+type PartialEventType<TEventType extends string> =
+  TEventType extends `${infer TEventPrefix}.${infer TEventSuffix}`
+    ? `${TEventPrefix}.*` | `${TEventPrefix}.${PartialEventType<TEventSuffix>}`
+    : never;
+
+type PartialEventTypeMatcher<TPartialEventType extends string> =
+  TPartialEventType extends `${infer TEventPrefix}.*`
+    ? `${TEventPrefix}.${string}`
+    : never;
 
 type IsLiteralString<T extends string> = string extends T ? false : true;
 
@@ -714,6 +727,20 @@ export interface StateNodeConfig<
    * The mapping of event types to their potential transition(s).
    */
   on?: TransitionsConfig<TContext, TEvent, TAction, TGuard, TDelay>;
+  onPartial?: {
+    [K in PartialEventType<TEvent['type']>]?: TransitionConfigOrTarget<
+      TContext,
+      Values<{
+        [Z in TEvent['type']]: Z extends PartialEventTypeMatcher<K>
+          ? TEvent & { type: Z }
+          : never;
+      }>,
+      TEvent,
+      TAction,
+      TGuard,
+      TDelay
+    >;
+  };
   /**
    * The action(s) to be executed upon entering the state node.
    */
@@ -1705,10 +1732,12 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
 
 export type ExtractEvent<
   TEvent extends EventObject,
-  TEventType extends TEvent['type']
+  TEventType extends TEvent['type'] | PartialEventType<TEvent['type']>
 > = TEvent extends any
   ? TEventType extends TEvent['type']
     ? TEvent
+    : TEventType extends PartialEventType<TEvent['type']>
+    ? TEvent & { type: PartialEventTypeMatcher<TEventType> }
     : never
   : never;
 

@@ -3193,4 +3193,44 @@ describe('tags', () => {
     // @ts-expect-error
     actor.getSnapshot().hasTag('other');
   });
+
+  it('supports partial event descriptor types', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'anotherEvent' };
+      },
+      on: {
+        'mouse.click.*': {
+          actions: ({ event }) => {
+            ((_accept: 'mouse.click.up' | 'mouse.click.down') => {})(
+              event.type
+            );
+            ((_accept: 'up' | 'down') => {})(event.direction);
+          }
+        },
+        'mouse.*': {
+          actions: ({ event }) => {
+            ((
+              _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+            ) => {})(event.type);
+          }
+        },
+        anotherEvent: {},
+        // @ts-expect-error
+        'mouse.doubleClick': {}
+      },
+      states: {
+        tooDeep: {
+          on: {
+            // @ts-expect-error
+            'mouse.move.up': {}
+          }
+        }
+      }
+    });
+  });
 });
