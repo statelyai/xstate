@@ -1320,18 +1320,24 @@ export enum SpecialTargets {
 export interface SendToActionOptions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
-> extends RaiseActionOptions<TContext, TExpressionEvent, TExpressionAction> {}
+  TExpressionAction extends ParameterizedObject | undefined,
+  TDelay extends string
+> extends RaiseActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TDelay
+  > {}
 
 export interface RaiseActionOptions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TDelay extends string
 > {
   id?: string;
   delay?:
-    | number
-    | string
+    | Delay<TDelay>
     | DelayExpr<TContext, TExpressionEvent, TExpressionAction>;
 }
 
@@ -1339,8 +1345,14 @@ export interface RaiseActionParams<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TEvent extends EventObject
-> extends RaiseActionOptions<TContext, TExpressionEvent, TExpressionAction> {
+  TEvent extends EventObject,
+  TDelay extends string
+> extends RaiseActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TDelay
+  > {
   event:
     | TEvent
     | SendExpr<TContext, TExpressionEvent, TExpressionAction, TEvent>;
@@ -1350,8 +1362,14 @@ export interface SendToActionParams<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TSentEvent extends EventObject
-> extends SendToActionOptions<TContext, TExpressionEvent, TExpressionAction> {
+  TSentEvent extends EventObject,
+  TDelay extends string
+> extends SendToActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TDelay
+  > {
   event:
     | TSentEvent
     | SendExpr<TContext, TExpressionEvent, TExpressionAction, TSentEvent>;

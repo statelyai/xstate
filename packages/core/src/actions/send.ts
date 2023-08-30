@@ -145,7 +145,8 @@ export function sendTo<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TActor extends AnyActorRef
+  TActor extends AnyActorRef,
+  TDelay extends string
 >(
   to:
     | TActor
@@ -161,7 +162,12 @@ export function sendTo<
         TExpressionAction,
         InferEvent<Cast<EventFrom<TActor>, EventObject>>
       >,
-  options?: SendToActionOptions<TContext, TExpressionEvent, TExpressionAction>
+  options?: SendToActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TDelay
+  >
 ) {
   function sendTo(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
@@ -193,14 +199,20 @@ export function sendParent<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TSentEvent extends EventObject = AnyEventObject
+  TSentEvent extends EventObject = AnyEventObject,
+  TDelay extends string = string
 >(
   event:
     | TSentEvent
     | SendExpr<TContext, TExpressionEvent, TExpressionAction, TSentEvent>,
-  options?: SendToActionOptions<TContext, TExpressionEvent, TExpressionAction>
+  options?: SendToActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TDelay
+  >
 ) {
-  return sendTo<TContext, TExpressionEvent, TSentEvent, AnyActorRef>(
+  return sendTo<TContext, TExpressionEvent, TSentEvent, AnyActorRef, TDelay>(
     SpecialTargets.Parent,
     event,
     options as any
@@ -227,10 +239,16 @@ type Target<
 export function forwardTo<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TDelay extends string
 >(
   target: Target<TContext, TExpressionEvent, TExpressionAction>,
-  options?: SendToActionOptions<TContext, TExpressionEvent, TExpressionAction>
+  options?: SendToActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TDelay
+  >
 ) {
   if (isDevelopment && (!target || typeof target === 'function')) {
     const originalTarget = target;
@@ -247,11 +265,13 @@ export function forwardTo<
       return resolvedTarget;
     };
   }
-  return sendTo<TContext, TExpressionEvent, TExpressionAction, AnyActorRef>(
-    target,
-    ({ event }: any) => event,
-    options
-  );
+  return sendTo<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    AnyActorRef,
+    TDelay
+  >(target, ({ event }: any) => event, options);
 }
 
 /**
@@ -274,7 +294,8 @@ export function escalate<
     TContext,
     TExpressionEvent,
     TExpressionAction,
-    EventObject
+    EventObject,
+    string
   >
 ) {
   return sendParent<TContext, TExpressionEvent, TExpressionAction, EventObject>(
