@@ -82,7 +82,10 @@ describe('usage of selectors with reactive service state', () => {
   // TODO: rewrite this test to not use `from()`
   it.skip('should work with a custom comparison function', () => {
     const machine = createMachine({
-      types: {} as { context: { name: string } },
+      types: {} as {
+        context: { name: string };
+        events: { type: 'CHANGE'; value: string };
+      },
       initial: 'active',
       context: {
         name: 'david'

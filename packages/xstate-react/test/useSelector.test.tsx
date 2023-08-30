@@ -95,6 +95,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const machine = createMachine({
       types: {} as {
         context: { name: string };
+        events: { type: 'CHANGE'; value: string };
       },
       initial: 'active',
       context: {
