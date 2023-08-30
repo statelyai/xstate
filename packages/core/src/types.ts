@@ -344,13 +344,7 @@ export interface InvokeDefinition<
   meta: MetaObject | undefined;
 }
 
-export interface Delay {
-  id: string;
-  /**
-   * The time to delay the event, in milliseconds.
-   */
-  delay: number;
-}
+type Delay<TDelay extends string> = TDelay | number;
 
 export type DelayedTransitions<
   TContext extends MachineContext,
@@ -360,7 +354,7 @@ export type DelayedTransitions<
   TDelay extends string
 > =
   | {
-      [K in TDelay | number]?:
+      [K in Delay<TDelay>]?:
         | string
         | SingleOrArray<
             TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard>
@@ -369,9 +363,8 @@ export type DelayedTransitions<
   | Array<
       TransitionConfig<TContext, TEvent, TEvent, TAction, TGuard> & {
         delay:
-          | number
-          | TDelay
-          | ((args: UnifiedArg<TContext, TEvent>) => number);
+          | Delay<TDelay>
+          | ((args: UnifiedArg<TContext, TEvent>) => Delay<TDelay>);
       }
     >;
 
@@ -959,11 +952,12 @@ type MachineImplementationsDelays<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'eventsCausingDelays'
   >,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>
 > = {
-  [K in keyof TEventsCausingDelays]?: DelayConfig<
+  [K in keyof TIndexedDelays]?: DelayConfig<
     TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingDelays[K]>, EventObject>,
+    MaybeNarrowedEvent<TIndexedEvents, TEventsCausingDelays, K>,
     ParameterizedObject | undefined
   >;
 };
@@ -1117,7 +1111,7 @@ export type MachineImplementations<
   TActor,
   TAction,
   TDelay,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay>
 >;
 
 type InitialContext<TContext extends MachineContext, TInput> =
