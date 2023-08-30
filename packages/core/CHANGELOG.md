@@ -1,5 +1,33 @@
 # xstate
 
+## 5.0.0-beta.25
+
+### Minor Changes
+
+- [#4213](https://github.com/statelyai/xstate/pull/4213) [`243d36fa8`](https://github.com/statelyai/xstate/commit/243d36fa81444dedda41885b284b87433bdd3b80) Thanks [@Andarist](https://github.com/Andarist)! - You can now define strict tags for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      tags: 'pending' | 'success' | 'error';
+    }
+    // ...
+  });
+  ```
+
+- [#4209](https://github.com/statelyai/xstate/pull/4209) [`e658a37f4`](https://github.com/statelyai/xstate/commit/e658a37f49f2e30309ca34761e3bd82bf9c89cfd) Thanks [@Andarist](https://github.com/Andarist)! - Allow the `TGuard` type to flow into actions. Thanks to that `choose` can benefit from strongly-typed guards.
+
+- [#4182](https://github.com/statelyai/xstate/pull/4182) [`d34f8b102`](https://github.com/statelyai/xstate/commit/d34f8b1024dbdfa98c86c57f461cc2fceba08d39) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now specify delay types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      delays: 'one second' | 'one minute';
+    }
+    // ...
+  });
+  ```
+
 ## 5.0.0-beta.24
 
 ### Minor Changes
