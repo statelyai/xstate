@@ -19,7 +19,8 @@ import {
   SendToActionParams,
   SpecialTargets,
   UnifiedArg,
-  ParameterizedObject
+  ParameterizedObject,
+  NoInfer
 } from '../types.ts';
 
 function resolve(
@@ -166,7 +167,7 @@ export function sendTo<
     TContext,
     TExpressionEvent,
     TExpressionAction,
-    TDelay
+    NoInfer<TDelay>
   >
 ) {
   function sendTo(
@@ -186,8 +187,10 @@ export function sendTo<
   sendTo.resolve = resolve;
   sendTo.execute = execute;
 
-  // TODO: support `TDelay` here
-  return sendTo;
+  return sendTo as {
+    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+    _out_TDelay?: TDelay;
+  };
 }
 
 /**
@@ -213,11 +216,13 @@ export function sendParent<
     TDelay
   >
 ) {
-  return sendTo<TContext, TExpressionEvent, TSentEvent, AnyActorRef, TDelay>(
-    SpecialTargets.Parent,
-    event,
-    options as any
-  );
+  return sendTo<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    AnyActorRef,
+    TDelay
+  >(SpecialTargets.Parent, event, options as any);
 }
 
 type Target<
@@ -272,7 +277,9 @@ export function forwardTo<
     TExpressionAction,
     AnyActorRef,
     TDelay
-  >(target, ({ event }: any) => event, options);
+  >(target, ({ event }: any) => event, options) as {
+    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  };
 }
 
 /**

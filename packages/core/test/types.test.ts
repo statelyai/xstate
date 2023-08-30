@@ -14,7 +14,8 @@ import {
   pure,
   choose,
   not,
-  stateIn
+  stateIn,
+  sendTo
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -2967,8 +2968,55 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      // @ts-expect-error
-      entry: raise({ type: 'FOO' }, { delay: 'unknown delay' })
+
+      entry: raise(
+        { type: 'FOO' },
+        {
+          // @ts-expect-error
+          delay: 'unknown delay'
+        }
+      )
+    });
+  });
+
+  it('should accept a plain number as delay in `sendTo` when delays are declared', () => {
+    const otherActor = createActor(createMachine({}));
+
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: sendTo(otherActor, { type: 'FOO' }, { delay: 100 })
+    });
+  });
+
+  it('should accept a defined delay in `sendTo`', () => {
+    const otherActor = createActor(createMachine({}));
+
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: sendTo(otherActor, { type: 'FOO' }, { delay: 'one minute' })
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `sendTo`', () => {
+    const otherActor = createActor(createMachine({}));
+
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+
+      entry: sendTo(
+        otherActor,
+        { type: 'FOO' },
+        {
+          // @ts-expect-error
+          delay: 'unknown delay'
+        }
+      )
     });
   });
 
