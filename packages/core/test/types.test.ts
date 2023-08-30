@@ -3106,4 +3106,12 @@ describe('delays', () => {
       })
     });
   });
+
+  it('should accept any delay string when no explicit delays are defined', () => {
+    createMachine({
+      after: {
+        just_any_delay: {}
+      }
+    });
+  });
 });
