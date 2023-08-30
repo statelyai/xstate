@@ -6,7 +6,8 @@ describe('@xstate/immer', () => {
     const context = {
       count: 0
     };
-    const countMachine = createMachine<typeof context>({
+    const countMachine = createMachine({
+      types: {} as { context: typeof context },
       id: 'count',
       context,
       initial: 'active',
@@ -14,7 +15,7 @@ describe('@xstate/immer', () => {
         active: {
           on: {
             INC: {
-              actions: assign<typeof context>(({ context }) => context.count++)
+              actions: assign(({ context }) => context.count++)
             }
           }
         }
@@ -35,8 +36,9 @@ describe('@xstate/immer', () => {
     const context = {
       count: 0
     };
-    const countMachine = createMachine<typeof context>(
+    const countMachine = createMachine(
       {
+        types: {} as { context: typeof context },
         id: 'count',
         context,
         initial: 'active',
@@ -52,7 +54,7 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          increment: assign<typeof context>(({ context }) => context.count++)
+          increment: assign(({ context }) => context.count++)
         }
       }
     );
@@ -72,8 +74,9 @@ describe('@xstate/immer', () => {
         }
       }
     };
-    const countMachine = createMachine<typeof context>(
+    const countMachine = createMachine(
       {
+        types: {} as { context: typeof context },
         id: 'count',
         context,
         initial: 'active',
@@ -89,9 +92,7 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          pushBaz: assign<typeof context>(({ context }) =>
-            context.foo.bar.baz.push(0)
-          )
+          pushBaz: assign(({ context }) => context.foo.bar.baz.push(0))
         }
       }
     );
@@ -184,7 +185,8 @@ describe('@xstate/immer', () => {
           type: 'SUBMIT';
         };
 
-    const formMachine = createMachine<FormContext, FormEvent>({
+    const formMachine = createMachine({
+      types: {} as { context: FormContext; events: FormEvent },
       initial: 'editing',
       context: {
         name: '',

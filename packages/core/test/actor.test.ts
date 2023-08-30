@@ -72,7 +72,8 @@ describe('spawning machines', () => {
     server?: ActorRef<PingPongEvent>;
   }
 
-  const clientMachine = createMachine<ClientContext, PingPongEvent>({
+  const clientMachine = createMachine({
+    types: {} as { context: ClientContext; events: PingPongEvent },
     id: 'client',
     initial: 'init',
     context: {
@@ -124,7 +125,11 @@ describe('spawning machines', () => {
       }
     });
 
-    const todosMachine = createMachine<typeof context, TodoEvent>({
+    const todosMachine = createMachine({
+      types: {} as {
+        context: typeof context;
+        events: TodoEvent;
+      },
       id: 'todos',
       context,
       initial: 'active',
@@ -221,7 +226,10 @@ describe('spawning machines', () => {
 
 describe('spawning promises', () => {
   it('should be able to spawn a promise', (done) => {
-    const promiseMachine = createMachine<{ promiseRef?: ActorRef<any> }>({
+    const promiseMachine = createMachine({
+      types: {} as {
+        context: { promiseRef?: ActorRef<any> };
+      },
       id: 'promise',
       initial: 'idle',
       context: {
@@ -268,8 +276,11 @@ describe('spawning promises', () => {
   });
 
   it('should be able to spawn a referenced promise', (done) => {
-    const promiseMachine = createMachine<{ promiseRef?: ActorRef<any> }>(
+    const promiseMachine = createMachine(
       {
+        types: {} as {
+          context: { promiseRef?: ActorRef<any> };
+        },
         id: 'promise',
         initial: 'idle',
         context: {
@@ -318,7 +329,10 @@ describe('spawning promises', () => {
 
 describe('spawning callbacks', () => {
   it('should be able to spawn an actor from a callback', (done) => {
-    const callbackMachine = createMachine<{ callbackRef?: ActorRef<any> }>({
+    const callbackMachine = createMachine({
+      types: {} as {
+        context: { callbackRef?: ActorRef<any> };
+      },
       id: 'callback',
       initial: 'idle',
       context: {
@@ -605,9 +619,10 @@ describe('communicating with spawned actors', () => {
 
     const existingService = createActor(existingMachine).start();
 
-    const parentMachine = createMachine<{
-      existingRef?: ActorRef<any>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as {
+        context: { existingRef?: ActorRef<any> };
+      },
       initial: 'pending',
       context: {
         existingRef: undefined
@@ -670,9 +685,8 @@ describe('communicating with spawned actors', () => {
 
     const existingService = createActor(existingMachine).start();
 
-    const parentMachine = createMachine<{
-      existingRef: ActorRef<any> | undefined;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as { context: { existingRef: ActorRef<any> | undefined } },
       initial: 'pending',
       context: {
         existingRef: undefined
@@ -720,10 +734,8 @@ describe('actors', () => {
   it('should only spawn actors defined on initial state once', () => {
     let count = 0;
 
-    const startMachine = createMachine<{
-      items: number[];
-      refs: any[];
-    }>({
+    const startMachine = createMachine({
+      types: {} as { context: { items: number[]; refs: any[] } },
       id: 'start',
       initial: 'start',
       context: {
@@ -760,12 +772,13 @@ describe('actors', () => {
       promise?: ActorRefFrom<Promise<string>>;
     }
 
-    const child = createMachine<TestContext>({
+    const child = createMachine({
+      types: {} as { context: TestContext },
       initial: 'bar',
       context: {},
       states: {
         bar: {
-          entry: assign<TestContext>({
+          entry: assign({
             promise: ({ spawn }) => {
               return spawn(
                 fromPromise(() => {
@@ -807,7 +820,8 @@ describe('actors', () => {
       }
     });
 
-    const testMachine = createMachine<{ ref: ActorRef<any> }>({
+    const testMachine = createMachine({
+      types: {} as { context: { ref?: ActorRef<any> } },
       initial: 'testing',
       context: ({ spawn }) => {
         spawnCalled++;
@@ -834,7 +848,8 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = createMachine<{ ref?: ActorRef<any> }>({
+    const nullActorMachine = createMachine({
+      types: {} as { context: { ref?: ActorRef<any> } },
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -911,9 +926,10 @@ describe('actors', () => {
         return count;
       }, 0);
 
-      const countMachine = createMachine<{
-        count: ActorRefFrom<typeof countLogic> | undefined;
-      }>({
+      const countMachine = createMachine({
+        types: {} as {
+          context: { count: ActorRefFrom<typeof countLogic> | undefined };
+        },
         context: {
           count: undefined
         },
@@ -940,9 +956,10 @@ describe('actors', () => {
     });
 
     it('should work with a promise logic (fulfill)', (done) => {
-      const countMachine = createMachine<{
-        count: ActorRefFrom<Promise<number>> | undefined;
-      }>({
+      const countMachine = createMachine({
+        types: {} as {
+          context: { count: ActorRefFrom<Promise<number>> | undefined };
+        },
         context: {
           count: undefined
         },
@@ -985,9 +1002,8 @@ describe('actors', () => {
 
     it('should work with a promise logic (reject)', (done) => {
       const errorMessage = 'An error occurred';
-      const countMachine = createMachine<{
-        count: ActorRefFrom<Promise<number>>;
-      }>({
+      const countMachine = createMachine({
+        types: {} as { context: { count: ActorRefFrom<Promise<number>> } },
         context: ({ spawn }) => ({
           count: spawn(
             fromPromise(
@@ -1038,9 +1054,10 @@ describe('actors', () => {
         getInitialState: () => undefined
       };
 
-      const pingMachine = createMachine<{
-        ponger: ActorRefFrom<typeof pongLogic> | undefined;
-      }>({
+      const pingMachine = createMachine({
+        types: {} as {
+          context: { ponger: ActorRefFrom<typeof pongLogic> | undefined };
+        },
         initial: 'waiting',
         context: {
           ponger: undefined
@@ -1076,7 +1093,8 @@ describe('actors', () => {
   });
 
   it('should be able to spawn callback actors in (lazy) initial context', (done) => {
-    const machine = createMachine<{ ref: ActorRef<any> }>({
+    const machine = createMachine({
+      types: {} as { context: { ref: ActorRef<any> } },
       context: ({ spawn }) => ({
         ref: spawn(
           fromCallback(({ sendBack }) => {
@@ -1109,7 +1127,8 @@ describe('actors', () => {
       entry: sendParent({ type: 'TEST' })
     });
 
-    const machine = createMachine<{ ref: ActorRef<any> }>({
+    const machine = createMachine({
+      types: {} as { context: { ref: ActorRef<any> } },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -1151,10 +1170,11 @@ describe('actors', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine> | null;
-    }>(
+    const parentMachine = createMachine(
       {
+        types: {} as {
+          context: { child: ActorRefFrom<typeof childMachine> | null };
+        },
         context: {
           child: null
         },
@@ -1175,9 +1195,8 @@ describe('actors', () => {
   });
 
   it('should not crash on child promise-like sync completion during self-initialization', () => {
-    const parentMachine = createMachine<{
-      child: ActorRef<never, any> | null;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as { context: { child: ActorRef<never, any> | null } },
       context: {
         child: null
       },
@@ -1201,9 +1220,8 @@ describe('actors', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRef<never, any> | null;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as { context: { child: ActorRef<never, any> | null } },
       context: {
         child: null
       },

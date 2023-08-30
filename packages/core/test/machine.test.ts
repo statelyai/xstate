@@ -197,7 +197,8 @@ describe('machine', () => {
     });
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
-      const machine = createMachine<{ foo: { prop: string } }>({
+      const machine = createMachine({
+        types: {} as { context: { foo: { prop: string } } },
         context: () => ({
           foo: { prop: 'baz' }
         })
@@ -434,7 +435,8 @@ describe('machine', () => {
 
   describe('combinatorial machines', () => {
     it('should support combinatorial machines (single-state)', () => {
-      const testMachine = createMachine<{ value: number }>({
+      const testMachine = createMachine({
+        types: {} as { context: { value: number } },
         context: { value: 42 },
         on: {
           INC: {

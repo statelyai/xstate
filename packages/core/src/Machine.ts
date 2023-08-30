@@ -18,15 +18,15 @@ import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TTag extends string = string,
-  TInput = any,
-  TOutput = NonReducibleUnknown,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  TEvent extends AnyEventObject, // TODO: consider making it a stricter EventObject
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput,
+  TTypesMeta extends TypegenConstraint
 >(
   config: MachineConfig<
     TContext,

@@ -203,9 +203,8 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine<{
-      childRef: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as { context: { childRef: ActorRefFrom<typeof childMachine> } },
       context: ({ spawn }) => ({
         childRef: spawn(childMachine)
       }),
@@ -259,9 +258,12 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine<{
-      childRef: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as {
+        context: {
+          childRef: ActorRefFrom<typeof childMachine>;
+        };
+      },
       context: ({ spawn }) => ({
         childRef: spawn(childMachine)
       }),
