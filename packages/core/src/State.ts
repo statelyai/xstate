@@ -114,7 +114,7 @@ export class State<
           TODO,
           any, // tags
           any, // output
-          any // typege
+          any // typegen
         >
       | StateValue,
     context: TContext = {} as TContext,
