@@ -1265,26 +1265,53 @@ type RootStateNodeConfig<
     | undefined;
 };
 
-export type MachineConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TTag extends string = string,
-  TInput = any,
-  TOutput = unknown,
-  TTypesMeta = TypegenDisabled
-> = (RootStateNodeConfig<
-  NoInfer<TContext>,
-  NoInfer<TEvent>,
-  NoInfer<TActor>,
-  NoInfer<TAction>,
-  NoInfer<TGuard>,
-  NoInfer<TDelay>,
-  NoInfer<TTag>,
-  NoInfer<TOutput>
+export interface MachineTypesConstraint {
+  context?: MachineContext;
+  events?: AnyEventObject;
+  actors?: ProvidedActor;
+  actions?: ParameterizedObject;
+  guards?: ParameterizedObject;
+  delays?: string;
+  tags?: string;
+  input?: unknown;
+  output?: NonReducibleUnknown;
+  typegen?: TypegenConstraint;
+}
+
+export type ResolveTypes<TTypes extends MachineTypesConstraint> = {
+  context: 'context' extends keyof TTypes
+    ? TTypes['context'] & {}
+    : MachineContext;
+  events: 'events' extends keyof TTypes
+    ? TTypes['events'] & {}
+    : AnyEventObject;
+  actors: 'actors' extends keyof TTypes ? TTypes['actors'] & {} : ProvidedActor;
+  actions: 'actions' extends keyof TTypes
+    ? TTypes['actions'] & {}
+    : ParameterizedObject;
+  guards: 'guards' extends keyof TTypes
+    ? TTypes['guards'] & {}
+    : ParameterizedObject;
+  delays: 'delays' extends keyof TTypes ? TTypes['delays'] & {} : string;
+  tags: 'tags' extends keyof TTypes ? TTypes['tags'] & {} : string;
+  input: 'input' extends keyof TTypes ? TTypes['input'] : unknown;
+  output: 'output' extends keyof TTypes
+    ? TTypes['output']
+    : NonReducibleUnknown;
+  typegen: 'typegen' extends keyof TTypes
+    ? TTypes['typegen']
+    : TypegenConstraint;
+};
+
+export type MachineConfig<TTypes> = (RootStateNodeConfig<
+  ResolveTypes<TTypes & MachineTypesConstraint>['context'],
+  ResolveTypes<TTypes & MachineTypesConstraint>['events'],
+  ResolveTypes<TTypes & MachineTypesConstraint>['actors'],
+  ResolveTypes<TTypes & MachineTypesConstraint>['actions'],
+  ResolveTypes<TTypes & MachineTypesConstraint>['guards'],
+  ResolveTypes<TTypes & MachineTypesConstraint>['delays'],
+  ResolveTypes<TTypes & MachineTypesConstraint>['tags'],
+  ResolveTypes<TTypes & MachineTypesConstraint>['output']
 > & {
   /**
    * The initial context (extended state)
@@ -1293,22 +1320,24 @@ export type MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  types?: MachineTypes<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TTypesMeta
-  >;
+  types: TTypes;
 }) &
-  (Equals<TContext, MachineContext> extends true
-    ? { context?: InitialContext<LowInfer<TContext>, TInput> }
-    : { context: InitialContext<LowInfer<TContext>, TInput> });
+  (Equals<
+    ResolveTypes<TTypes & MachineTypesConstraint>['context'],
+    MachineContext
+  > extends true
+    ? {
+        context?: InitialContext<
+          ResolveTypes<TTypes & MachineTypesConstraint>['context'],
+          ResolveTypes<TTypes & MachineTypesConstraint>['input']
+        >;
+      }
+    : {
+        context: InitialContext<
+          ResolveTypes<TTypes & MachineTypesConstraint>['context'],
+          ResolveTypes<TTypes & MachineTypesConstraint>['input']
+        >;
+      });
 
 export interface ProvidedActor {
   src: string;

@@ -9,9 +9,12 @@ import {
   StateValueFrom,
   ActorLogic,
   ActorRefFrom,
-  TagsFrom
+  TagsFrom,
+  AnyEventObject,
+  ProvidedActor,
+  ParameterizedObject
 } from '../src/index.ts';
-import { TypegenMeta } from '../src/typegenTypes';
+import { ResolveTypegenMeta, TypegenMeta } from '../src/typegenTypes';
 
 describe('ContextFrom', () => {
   it('should return context of a machine', () => {
@@ -289,11 +292,30 @@ describe('StateValueFrom', () => {
       matchesStates: 'a' | 'b' | 'c';
     }
 
+    type AAA = ResolveTypegenMeta<
+      TypesMeta,
+      AnyEventObject,
+      ProvidedActor,
+      ParameterizedObject,
+      ParameterizedObject,
+      string,
+      string
+    >['@@xstate/typegen'];
+
     const machine = createMachine({
       types: {
-        typegen: {} as TypesMeta
+        typegen: {} as TypesMeta,
+        context: { DO_YOU_SEE_IT: 1 }
+      },
+      context: {
+        DO_YOU_SEE_IT: 10
       }
     });
+
+    const c = machine.__TResolvedTypesMeta;
+    const c222 = machine.TTypes.typegen;
+
+    const a = machine.getInitialState({} as any)['matches'];
 
     function matches(_value: StateValueFrom<typeof machine>) {}
 

@@ -9,7 +9,8 @@
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
-    "strict": true
+    "strict": true,
+    "noErrorTruncation": true
   },
   "exclude": ["examples", "templates"]
 }
