@@ -73,6 +73,14 @@ function resolve(
   ];
 }
 
+interface AssignAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+}
+
 /**
  * Updates the current context of the machine.
  *
@@ -88,7 +96,7 @@ export function assign<
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
     | PropertyAssigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
-) {
+): AssignAction<TContext, TExpressionEvent, TExpressionAction> {
   function assign(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {

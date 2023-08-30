@@ -875,7 +875,7 @@ describe('interpreter', () => {
       states: {
         start: {
           entry: raise(({ context }) => ({
-            type: 'NEXT',
+            type: 'NEXT' as const,
             password: context.password
           })),
           on: {
