@@ -452,7 +452,7 @@ export function formatInitialTransition<
   stateNode: AnyStateNode,
   _target:
     | SingleOrArray<string>
-    | InitialTransitionConfig<TContext, TEvent, TODO, TODO>
+    | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO>
 ): InitialTransitionDefinition<TContext, TEvent> {
   if (typeof _target === 'string' || isArray(_target)) {
     const targets = toArray(_target).map((t) => {
@@ -1416,7 +1416,8 @@ export function resolveActionsAndContext<
               EventObject,
               ParameterizedObject | undefined,
               ParameterizedObject,
-              ParameterizedObject
+              ParameterizedObject,
+              string
             >
           >
         )[typeof action === 'string' ? action : action.type];
