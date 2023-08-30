@@ -288,7 +288,13 @@ export class StateNode<
    * The logic invoked as actors by this state node.
    */
   public get invoke(): Array<
-    InvokeDefinition<TContext, TEvent, ParameterizedObject, ParameterizedObject>
+    InvokeDefinition<
+      TContext,
+      TEvent,
+      ParameterizedObject,
+      ParameterizedObject,
+      string
+    >
   > {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
@@ -332,7 +338,8 @@ export class StateNode<
           TContext,
           TEvent,
           ParameterizedObject,
-          ParameterizedObject
+          ParameterizedObject,
+          string
         >;
       })
     );

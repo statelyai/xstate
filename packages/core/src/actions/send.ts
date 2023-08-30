@@ -186,6 +186,7 @@ export function sendTo<
   sendTo.resolve = resolve;
   sendTo.execute = execute;
 
+  // TODO: support `TDelay` here
   return sendTo;
 }
 

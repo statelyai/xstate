@@ -106,7 +106,7 @@ export function raise<
     TContext,
     TExpressionEvent,
     TExpressionAction,
-    TDelay
+    NoInfer<TDelay>
   >
 ) {
   function raise(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
@@ -126,5 +126,6 @@ export function raise<
   return raise as {
     (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
     _out_TEvent?: TEvent;
+    _out_TDelay?: TDelay;
   };
 }

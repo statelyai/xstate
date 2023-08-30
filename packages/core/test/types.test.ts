@@ -2910,30 +2910,152 @@ describe('guards', () => {
 });
 
 describe('delays', () => {
-  it('should work with typed delays', () => {
+  it('should accept a plain number as key of an after transitions object when delays are declared', () => {
     createMachine({
       types: {} as {
         delays: 'one second' | 'one minute';
       },
       after: {
-        'one minute': {},
-        'one second': {},
-        100: {},
+        100: {}
+      }
+    });
+  });
+
+  it('should accept a defined delay type as key of an after transitions object when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      after: {
+        'one second': {}
+      }
+    });
+  });
+
+  it(`should reject delay as key of an after transitions object if it's outside of the defined ones`, () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      after: {
         // @ts-expect-error
         'unknown delay': {}
-      },
-      initial: 'a',
-      states: {
-        a: {
-          after: [
-            { delay: 'one minute' },
-            { delay: 'one second' },
-            { delay: 100 },
-            // @ts-expect-error
-            { delay: 'unknown delay' }
-          ]
-        }
       }
+    });
+  });
+
+  it('should accept a plain number as delay in `raise` when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: raise({ type: 'FOO' }, { delay: 100 })
+    });
+  });
+
+  it('should accept a defined delay in `raise`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: raise({ type: 'FOO' }, { delay: 'one minute' })
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `raise`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      // @ts-expect-error
+      entry: raise({ type: 'FOO' }, { delay: 'unknown delay' })
+    });
+  });
+
+  it('should accept a plain number as delay in `raise` in `choose` when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise({ type: 'FOO' }, { delay: 100 })
+        }
+      ])
+    });
+  });
+
+  it('should accept a defined delay in `raise` in `choose`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise({ type: 'FOO' }, { delay: 'one minute' })
+        }
+      ])
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `raise` in `choose`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise(
+            { type: 'FOO' },
+            {
+              // @ts-expect-error
+              delay: 'unknown delay'
+            }
+          )
+        }
+      ])
+    });
+  });
+
+  it('should accept a plain number as delay in `raise` in `pure` when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: pure(() => {
+        return raise({ type: 'FOO' }, { delay: 100 });
+      })
+    });
+  });
+
+  it('should accept a defined delay in `raise` in `pure`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: pure(() => {
+        return raise({ type: 'FOO' }, { delay: 'one minute' });
+      })
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `raise` in `pure`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: pure(() => {
+        return raise(
+          { type: 'FOO' },
+          {
+            // @ts-expect-error
+            delay: 'unknown delay'
+          }
+        );
+      })
     });
   });
 });
