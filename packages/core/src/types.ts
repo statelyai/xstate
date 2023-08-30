@@ -953,12 +953,20 @@ type MachineImplementationsDelays<
     'eventsCausingDelays'
   >,
   TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  TIndexedActions = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'indexedActions'
+  >,
   TIndexedDelays = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedDelays'>
 > = {
   [K in keyof TIndexedDelays]?: DelayConfig<
     TContext,
     MaybeNarrowedEvent<TIndexedEvents, TEventsCausingDelays, K>,
-    ParameterizedObject | undefined
+    // delays in referenced send actions might use specific `TAction`
+    // delays executed by auto-generated send actions related to after transitions won't have that
+    // since they are effectively implicit inline actions
+    | Cast<Prop<TIndexedActions, keyof TIndexedActions>, ParameterizedObject>
+    | undefined
   >;
 };
 
