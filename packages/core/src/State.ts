@@ -7,7 +7,11 @@ import {
   getStateNodes,
   getStateValue
 } from './stateUtils.ts';
-import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
+import {
+  TypegenConstraint,
+  TypegenDisabled,
+  TypegenEnabled
+} from './typegenTypes.ts';
 import type {
   ProvidedActor,
   ActorRefFrom,
@@ -72,7 +76,7 @@ export class State<
   TActor extends ProvidedActor,
   TTag extends string,
   TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypesMeta extends TypegenConstraint = TypegenDisabled
 > {
   public tags: Set<string>;
 
@@ -215,7 +219,7 @@ export class State<
    * @param parentStateValue
    */
   public matches<
-    TSV extends TResolvedTypesMeta extends TypegenEnabled
+    TSV extends TResolvedTypesMeta['@@xstate/typegen'] extends true
       ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
       : StateValue
   >(parentStateValue: TSV): boolean {

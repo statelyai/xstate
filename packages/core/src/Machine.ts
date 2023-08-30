@@ -75,7 +75,9 @@ export function createMachine<
   TInput,
   TOutput,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
-> {
+> & {
+  TConfig: TConfig;
+} {
   return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
     config as any,
     implementations as any

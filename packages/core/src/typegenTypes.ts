@@ -104,14 +104,14 @@ export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
 // if combined union of all missing implementation types is never then everything has been provided
 export type AreAllImplementationsAssumedToBeProvided<
-  TResolvedTypesMeta,
+  TResolvedTypesMeta extends TypegenConstraint,
   TMissingImplementations = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'missingImplementations'
   >
 > = IsAny<TResolvedTypesMeta> extends true
   ? true
-  : TResolvedTypesMeta extends TypegenEnabled
+  : TResolvedTypesMeta['@@xstate/typegen'] extends true
   ? IsNever<
       Values<{
         [K in keyof TMissingImplementations]: TMissingImplementations[K];
