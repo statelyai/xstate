@@ -21,9 +21,8 @@ export function createMachine<
   TTag extends string,
   TInput,
   TOutput extends NonReducibleUnknown,
-  TTypesMeta extends TypegenConstraint
->(
-  config: MachineConfig<
+  TTypesMeta extends TypegenConstraint,
+  TConfig extends MachineConfig<
     TContext,
     TEvent,
     TActor,
@@ -34,7 +33,9 @@ export function createMachine<
     TInput,
     TOutput,
     TTypesMeta
-  >,
+  >
+>(
+  config: TConfig,
   implementations?: InternalMachineImplementations<
     TContext,
     TEvent,
