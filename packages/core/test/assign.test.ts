@@ -7,7 +7,8 @@ interface CounterContext {
 }
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
-  createMachine<CounterContext>({
+  createMachine({
+    types: {} as { context: CounterContext },
     initial: 'counting',
     context: { count: 0, foo: 'bar', ...context },
     states: {
@@ -250,10 +251,11 @@ describe('assign', () => {
   });
 
   it('can assign from event', () => {
-    const machine = createMachine<
-      { count: number },
-      { type: 'INC'; value: number }
-    >({
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+        events: { type: 'INC'; value: number };
+      },
       initial: 'active',
       context: {
         count: 0

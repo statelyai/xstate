@@ -228,10 +228,11 @@ describe('interpreter', () => {
         | { type: 'ACTIVATE'; wait: number }
         | { type: 'FINISH' };
 
-      const delayExprMachine = createMachine<
-        DelayExprMachineCtx,
-        DelayExpMachineEvents
-      >({
+      const delayExprMachine = createMachine({
+        types: {} as {
+          context: DelayExprMachineCtx;
+          events: DelayExpMachineEvents;
+        },
         id: 'delayExpr',
         context: {
           initialDelay: 100
@@ -309,10 +310,11 @@ describe('interpreter', () => {
             type: 'FINISH';
           };
 
-      const delayExprMachine = createMachine<
-        DelayExprMachineCtx,
-        DelayExpMachineEvents
-      >({
+      const delayExprMachine = createMachine({
+        types: {} as {
+          context: DelayExprMachineCtx;
+          events: DelayExpMachineEvents;
+        },
         id: 'delayExpr',
         context: {
           initialDelay: 100
@@ -793,7 +795,8 @@ describe('interpreter', () => {
   it('should be able to log (log action)', () => {
     const logs: any[] = [];
 
-    const logMachine = createMachine<{ count: number }>({
+    const logMachine = createMachine({
+      types: {} as { context: { count: number } },
       id: 'log',
       initial: 'x',
       context: { count: 0 },
@@ -862,7 +865,8 @@ describe('interpreter', () => {
       type: 'NEXT';
       password: string;
     }
-    const machine = createMachine<Ctx, Events>({
+    const machine = createMachine({
+      types: {} as { context: Ctx; events: Events },
       id: 'sendexpr',
       initial: 'start',
       context: {
@@ -897,6 +901,10 @@ describe('interpreter', () => {
   describe('sendParent() event expressions', () => {
     it('should resolve sendParent event expressions', (done) => {
       const childMachine = createMachine({
+        types: {} as {
+          context: { password: string };
+          input: { password: string };
+        },
         id: 'child',
         initial: 'start',
         context: ({ input }) => ({
@@ -1321,8 +1329,9 @@ describe('interpreter', () => {
 
   describe('observable', () => {
     const context = { count: 0 };
-    const intervalMachine = createMachine<typeof context>({
+    const intervalMachine = createMachine({
       id: 'interval',
+      types: {} as { context: typeof context },
       context,
       initial: 'active',
       states: {
@@ -1382,7 +1391,8 @@ describe('interpreter', () => {
 
     it('should be unsubscribable', (done) => {
       const countContext = { count: 0 };
-      const machine = createMachine<typeof countContext>({
+      const machine = createMachine({
+        types: {} as { context: typeof countContext },
         context: countContext,
         initial: 'active',
         states: {

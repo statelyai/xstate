@@ -677,7 +677,8 @@ describe('parallel states', () => {
 
   it('should handle simultaneous orthogonal transitions', () => {
     type Events = { type: 'CHANGE'; value: string } | { type: 'SAVE' };
-    const simultaneousMachine = createMachine<{ value: string }, Events>({
+    const simultaneousMachine = createMachine({
+      types: {} as { context: { value: string }; events: Events },
       id: 'yamlEditor',
       type: 'parallel',
       context: {
@@ -937,7 +938,8 @@ describe('parallel states', () => {
 
     // https://github.com/statelyai/xstate/issues/531
     it('should calculate the entry set for reentering transitions in parallel states', () => {
-      const testMachine = createMachine<{ log: string[] }>({
+      const testMachine = createMachine({
+        types: {} as { context: { log: string[] } },
         id: 'test',
         context: { log: [] },
         type: 'parallel',

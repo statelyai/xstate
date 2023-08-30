@@ -101,7 +101,8 @@ describe('final states', () => {
       revealedSecret?: string;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       initial: 'secret',
       context: {
         revealedSecret: undefined

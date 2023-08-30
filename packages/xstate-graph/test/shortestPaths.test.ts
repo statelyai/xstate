@@ -4,7 +4,8 @@ import { getMachineShortestPaths } from '../src/shortestPaths';
 
 describe('getMachineShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
-    const m = createMachine<{ count: number }>({
+    const m = createMachine({
+      types: {} as { context: { count: number } },
       initial: 'a',
       context: { count: 0 },
       states: {
