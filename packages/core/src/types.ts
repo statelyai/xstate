@@ -472,18 +472,9 @@ export type TransitionsConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
-> = {
-  // TODO: this doesn't support partial descriptors
-  [K in TEvent['type'] | '*']?: K extends '*'
-    ? TransitionConfigOrTarget<
-        TContext,
-        TEvent,
-        TEvent,
-        TAction,
-        TGuard,
-        TDelay
-      >
-    : TransitionConfigOrTarget<
+> =
+  | {
+      [K in EventDescriptor<TEvent>]?: TransitionConfigOrTarget<
         TContext,
         ExtractEvent<TEvent, K>,
         TEvent,
@@ -491,7 +482,23 @@ export type TransitionsConfig<
         TGuard,
         TDelay
       >;
-};
+    };
+
+type PartialEventDescriptor<TEventType extends string> =
+  TEventType extends `${infer TLeading}.${infer TTail}`
+    ? `${TLeading}.*` | `${TLeading}.${PartialEventDescriptor<TTail>}`
+    : never;
+
+export type EventDescriptor<TEvent extends EventObject> =
+  | TEvent['type']
+  | PartialEventDescriptor<TEvent['type']>
+  | '*';
+
+type NormalizeDescriptor<TDescriptor extends string> = TDescriptor extends '*'
+  ? string
+  : TDescriptor extends `${infer TLeading}.*`
+  ? `${TLeading}.${string}`
+  : TDescriptor;
 
 type IsLiteralString<T extends string> = string extends T ? false : true;
 
@@ -1555,13 +1562,13 @@ export interface TransitionDefinition<
   actions: readonly UnknownAction[];
   reenter: boolean;
   guard?: UnknownGuard;
-  eventType: TEvent['type'] | '*';
+  eventType: EventDescriptor<TEvent>;
   toJSON: () => {
     target: string[] | undefined;
     source: string;
     actions: readonly UnknownAction[];
     guard?: UnknownGuard;
-    eventType: TEvent['type'] | '*';
+    eventType: EventDescriptor<TEvent>;
     meta?: Record<string, any>;
   };
 }
@@ -1580,11 +1587,8 @@ export type TransitionDefinitionMap<
   TContext extends MachineContext,
   TEvent extends EventObject
 > = {
-  [K in TEvent['type'] | '*']: Array<
-    TransitionDefinition<
-      TContext,
-      K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
-    >
+  [K in EventDescriptor<TEvent>]: Array<
+    TransitionDefinition<TContext, ExtractEvent<TEvent, K>>
   >;
 };
 
@@ -1705,10 +1709,14 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
 
 export type ExtractEvent<
   TEvent extends EventObject,
-  TEventType extends TEvent['type']
-> = TEvent extends any
-  ? TEventType extends TEvent['type']
-    ? TEvent
+  TDescriptor extends EventDescriptor<TEvent>
+> = string extends TEvent['type']
+  ? TEvent
+  : NormalizeDescriptor<TDescriptor> extends infer TNormalizedDescriptor
+  ? TEvent extends any
+    ? TEvent['type'] extends TNormalizedDescriptor
+      ? TEvent
+      : never
     : never
   : never;
 

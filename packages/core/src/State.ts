@@ -22,7 +22,8 @@ import type {
   StateValue,
   TODO,
   AnyActorRef,
-  Compute
+  Compute,
+  EventDescriptor
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -257,7 +258,7 @@ export class State<
   /**
    * The next events that will cause a transition from the current state.
    */
-  public get nextEvents(): Array<string> {
+  public get nextEvents(): Array<EventDescriptor<TEvent>> {
     return memo(this, 'nextEvents', () => {
       return [
         ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
