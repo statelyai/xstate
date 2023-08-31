@@ -1,5 +1,39 @@
 # xstate
 
+## 5.0.0-beta.26
+
+### Minor Changes
+
+- [#4220](https://github.com/statelyai/xstate/pull/4220) [`c67a3d3b0`](https://github.com/statelyai/xstate/commit/c67a3d3b0255b28f8da2a62ebdfe99d82b21b600) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Partial event descriptors are now type-safe:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      events:
+        | { type: 'mouse.click.up'; direction: 'up' }
+        | { type: 'mouse.click.down'; direction: 'down' }
+        | { type: 'mouse.move' }
+        | { type: 'keypress' };
+    },
+    on: {
+      'mouse.click.*': {
+        actions: ({ event }) => {
+          event.type;
+          // 'mouse.click.up' | 'mouse.click.down'
+          event.direction;
+          // 'up' | 'down'
+        }
+      },
+      'mouse.*': {
+        actions: ({ event }) => {
+          event.type;
+          // 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+        }
+      }
+    }
+  });
+  ```
+
 ## 5.0.0-beta.25
 
 ### Minor Changes
