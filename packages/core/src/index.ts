@@ -50,8 +50,6 @@ export {
   fromTransition
 } from './actors/index.ts';
 
-export { toPromise } from './toPromise.ts';
-
 export { stateIn, not, and, or } from './guards.ts';
 
 declare global {
