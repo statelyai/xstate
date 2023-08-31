@@ -15,7 +15,8 @@ import {
   choose,
   not,
   stateIn,
-  sendTo
+  sendTo,
+  ProvidedActor
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -602,11 +603,13 @@ describe('spawn', () => {
     const createChild = () => createMachine({});
 
     function createParent(_deps: {
-      spawnChild: (spawn: Spawner) => ActorRefFrom<typeof createChild>;
+      spawnChild: (
+        spawn: Spawner<ProvidedActor>
+      ) => ActorRefFrom<typeof createChild>;
     }) {}
 
     createParent({
-      spawnChild: (spawn: Spawner) => spawn(createChild())
+      spawnChild: (spawn) => spawn(createChild())
     });
   });
 });

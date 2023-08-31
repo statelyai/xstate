@@ -4,15 +4,17 @@ import {
   EventObject,
   MachineContext,
   ParameterizedObject,
+  ProvidedActor,
   assign as xstateAssign
 } from 'xstate';
 
 export type ImmerAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TActor extends ProvidedActor
 > = (
-  args: AssignArgs<Draft<TContext>, TExpressionEvent, TExpressionAction>
+  args: AssignArgs<Draft<TContext>, TExpressionEvent, TExpressionAction, TActor>
 ) => void;
 
 function immerAssign<
@@ -20,9 +22,12 @@ function immerAssign<
   TExpressionEvent extends EventObject = EventObject,
   TExpressionAction extends ParameterizedObject | undefined =
     | ParameterizedObject
-    | undefined
->(recipe: ImmerAssigner<TContext, TExpressionEvent, TExpressionAction>) {
-  return xstateAssign<TContext, TExpressionEvent, TExpressionAction>(
+    | undefined,
+  TActor extends ProvidedActor = ProvidedActor
+>(
+  recipe: ImmerAssigner<TContext, TExpressionEvent, TExpressionAction, TActor>
+) {
+  return xstateAssign<TContext, TExpressionEvent, TExpressionAction, TActor>(
     ({ context, ...rest }) => {
       return produce(
         context,
@@ -48,10 +53,16 @@ export interface ImmerUpdateEvent<
 
 export function createUpdater<
   TContext extends MachineContext,
-  TEvent extends ImmerUpdateEvent
+  TEvent extends ImmerUpdateEvent,
+  TActor extends ProvidedActor = ProvidedActor
 >(
   type: TEvent['type'],
-  recipe: ImmerAssigner<TContext, TEvent, ParameterizedObject | undefined>
+  recipe: ImmerAssigner<
+    TContext,
+    TEvent,
+    ParameterizedObject | undefined,
+    TActor
+  >
 ) {
   const update = (input: TEvent['input']): TEvent => {
     return {
@@ -62,7 +73,12 @@ export function createUpdater<
 
   return {
     update,
-    action: immerAssign<TContext, TEvent>(recipe),
+    action: immerAssign<
+      TContext,
+      TEvent,
+      ParameterizedObject | undefined, // TODO: not sure if this is correct
+      TActor
+    >(recipe),
     type
   };
 }

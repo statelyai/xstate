@@ -30,7 +30,8 @@ import type {
   UnknownAction,
   ParameterizedObject,
   AnyStateMachine,
-  AnyStateNodeConfig
+  AnyStateNodeConfig,
+  ProvidedActor
 } from './types.ts';
 import {
   createInvokeId,
@@ -293,6 +294,7 @@ export class StateNode<
     InvokeDefinition<
       TContext,
       TEvent,
+      ProvidedActor,
       ParameterizedObject,
       ParameterizedObject,
       string
@@ -339,6 +341,7 @@ export class StateNode<
         } as InvokeDefinition<
           TContext,
           TEvent,
+          ProvidedActor,
           ParameterizedObject,
           ParameterizedObject,
           string

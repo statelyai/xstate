@@ -7,7 +7,8 @@ import {
   AnyState,
   ActionArgs,
   ParameterizedObject,
-  NoInfer
+  NoInfer,
+  ProvidedActor
 } from '../types.ts';
 import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
@@ -24,6 +25,7 @@ function resolve(
         MachineContext,
         EventObject,
         EventObject,
+        ProvidedActor,
         ParameterizedObject,
         ParameterizedObject,
         string
@@ -46,6 +48,7 @@ export function choose<
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
@@ -55,6 +58,7 @@ export function choose<
       TContext,
       TExpressionEvent,
       TEvent,
+      TActor,
       NoInfer<TAction>,
       NoInfer<TGuard>,
       TDelay
@@ -76,6 +80,7 @@ export function choose<
 
   return choose as {
     (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+    _out_TActor?: TActor;
     _out_TAction?: TAction;
     _out_TGuard?: TGuard;
     _out_TDelay?: TDelay;

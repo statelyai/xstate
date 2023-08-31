@@ -1,19 +1,28 @@
 import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
-import { createSpawner } from '../spawn.ts';
+import { Spawner, createSpawner } from '../spawn.ts';
 import type {
   ActionArgs,
   AnyActorContext,
   AnyActorRef,
   AnyState,
-  AssignArgs,
   Assigner,
   EventObject,
   LowInfer,
   MachineContext,
   ParameterizedObject,
-  PropertyAssigner
+  PropertyAssigner,
+  ProvidedActor
 } from '../types.ts';
+
+export interface AssignArgs<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TActor extends ProvidedActor
+> extends ActionArgs<TContext, TExpressionEvent, TExpressionAction> {
+  spawn: Spawner<TActor>;
+}
 
 function resolve(
   actorContext: AnyActorContext,
@@ -22,7 +31,9 @@ function resolve(
   {
     assignment
   }: {
-    assignment: Assigner<any, any, any> | PropertyAssigner<any, any, any>;
+    assignment:
+      | Assigner<any, any, any, any>
+      | PropertyAssigner<any, any, any, any>;
   }
 ) {
   if (!state.context) {
@@ -32,7 +43,7 @@ function resolve(
   }
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
-  const assignArgs: AssignArgs<any, any, any> = {
+  const assignArgs: AssignArgs<any, any, any, any> = {
     context: state.context,
     event: actionArgs.event,
     action: actionArgs.action,
@@ -73,6 +84,16 @@ function resolve(
   ];
 }
 
+interface AssignAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TActor extends ProvidedActor
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  _out_TActor?: TActor;
+}
+
 /**
  * Updates the current context of the machine.
  *
@@ -83,12 +104,18 @@ export function assign<
   TExpressionEvent extends EventObject = EventObject,
   TExpressionAction extends ParameterizedObject | undefined =
     | ParameterizedObject
-    | undefined
+    | undefined,
+  TActor extends ProvidedActor = ProvidedActor
 >(
   assignment:
-    | Assigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
-    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
-) {
+    | Assigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction, TActor>
+    | PropertyAssigner<
+        LowInfer<TContext>,
+        TExpressionEvent,
+        TExpressionAction,
+        TActor
+      >
+): AssignAction<TContext, TExpressionEvent, TExpressionAction, TActor> {
   function assign(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {
