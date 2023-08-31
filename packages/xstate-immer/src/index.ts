@@ -7,6 +7,7 @@ import {
   ProvidedActor,
   assign as xstateAssign
 } from 'xstate';
+export { type AssignArgs };
 
 export type ImmerAssigner<
   TContext extends MachineContext,
