@@ -13,7 +13,11 @@ import {
 import { mapState } from './mapState.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { StateMachine } from './StateMachine.ts';
-export { assign, type AssignArgs } from './actions/assign.ts';
+export {
+  assign,
+  type AssignArgs,
+  type AssignAction
+} from './actions/assign.ts';
 export { cancel } from './actions/cancel.ts';
 export { choose } from './actions/choose.ts';
 export { log } from './actions/log.ts';

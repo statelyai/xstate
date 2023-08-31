@@ -7,7 +7,7 @@ import {
   ProvidedActor,
   assign as xstateAssign
 } from 'xstate';
-export { type AssignArgs };
+export { immerAssign as assign };
 
 export type ImmerAssigner<
   TContext extends MachineContext,
@@ -41,8 +41,6 @@ function immerAssign<
     }
   );
 }
-
-export { immerAssign as assign };
 
 export interface ImmerUpdateEvent<
   TType extends string = string,
