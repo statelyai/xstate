@@ -477,23 +477,14 @@ export type TransitionsConfig<
       [K in
         | TEvent['type']
         | PartialEventType<TEvent['type']>
-        | '*']?: K extends '*'
-        ? TransitionConfigOrTarget<
-            TContext,
-            TEvent,
-            TEvent,
-            TAction,
-            TGuard,
-            TDelay
-          >
-        : TransitionConfigOrTarget<
-            TContext,
-            ExtractEvent<TEvent, K>,
-            TEvent,
-            TAction,
-            TGuard,
-            TDelay
-          >;
+        | '*']?: TransitionConfigOrTarget<
+        TContext,
+        ExtractEvent<TEvent, K>,
+        TEvent,
+        TAction,
+        TGuard,
+        TDelay
+      >;
     };
 
 type PartialEventType<TEventType extends string> =
@@ -501,10 +492,11 @@ type PartialEventType<TEventType extends string> =
     ? `${TEventPrefix}.*` | `${TEventPrefix}.${PartialEventType<TEventSuffix>}`
     : never;
 
-type PartialEventTypeMatcher<TPartialEventType extends string> =
-  TPartialEventType extends `${infer TEventPrefix}.*`
-    ? `${TEventPrefix}.${string}`
-    : never;
+type NormalizeDescriptor<TDescriptor extends string> = TDescriptor extends '*'
+  ? string
+  : TDescriptor extends `${infer TLeadingPrefix}.*`
+  ? `${TLeadingPrefix}.${string}`
+  : TDescriptor;
 
 type IsLiteralString<T extends string> = string extends T ? false : true;
 
@@ -1718,12 +1710,14 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
 
 export type ExtractEvent<
   TEvent extends EventObject,
-  TEventType extends TEvent['type'] | PartialEventType<TEvent['type']>
-> = TEvent extends any
-  ? TEventType extends TEvent['type']
-    ? TEvent
-    : TEventType extends PartialEventType<TEvent['type']>
-    ? TEvent & { type: PartialEventTypeMatcher<TEventType> }
+  TDescriptor extends TEvent['type'] | PartialEventType<TEvent['type']> | '*'
+> = string extends TEvent['type']
+  ? TEvent
+  : NormalizeDescriptor<TDescriptor> extends infer TNormalizedDescriptor
+  ? TEvent extends any
+    ? TEvent['type'] extends TNormalizedDescriptor
+      ? TEvent
+      : never
     : never
   : never;
 
