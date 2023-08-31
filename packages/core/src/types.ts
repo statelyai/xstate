@@ -727,20 +727,6 @@ export interface StateNodeConfig<
    * The mapping of event types to their potential transition(s).
    */
   on?: TransitionsConfig<TContext, TEvent, TAction, TGuard, TDelay>;
-  onPartial?: {
-    [K in PartialEventType<TEvent['type']>]?: TransitionConfigOrTarget<
-      TContext,
-      Values<{
-        [Z in TEvent['type']]: Z extends PartialEventTypeMatcher<K>
-          ? TEvent & { type: Z }
-          : never;
-      }>,
-      TEvent,
-      TAction,
-      TGuard,
-      TDelay
-    >;
-  };
   /**
    * The action(s) to be executed upon entering the state node.
    */
