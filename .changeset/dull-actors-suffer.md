@@ -11,7 +11,7 @@ createMachine({
       | { type: 'mouse.click.up'; direction: 'up' }
       | { type: 'mouse.click.down'; direction: 'down' }
       | { type: 'mouse.move' }
-      | { type: 'anotherEvent' };
+      | { type: 'keypress' };
   },
   on: {
     'mouse.click.*': {
