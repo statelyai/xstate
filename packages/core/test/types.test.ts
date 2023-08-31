@@ -528,6 +528,128 @@ describe('events', () => {
     });
   });
 
+  it('should infer inline function parameter with a partial transition descriptor matching multiple events with the matching count of segments', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        'mouse.click.*': {
+          actions: ({ event }) => {
+            ((_accept: 'mouse.click.up' | 'mouse.click.down') => {})(
+              event.type
+            );
+            ((_accept: 'up' | 'down') => {})(event.direction);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should infer inline function parameter with a partial transition descriptor matching multiple events with the same count of segments or more', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        'mouse.*': {
+          actions: ({ event }) => {
+            ((
+              _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+            ) => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'mouse.doubleClick': {}
+      }
+    });
+  });
+
+  it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'mouse.doubleClick': {}
+      }
+    });
+  });
+
+  it(`should infer inline function parameter only using a direct match when the transition descriptor doesn't has a trailing wildcard`, () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        mouse: {
+          actions: ({ event }) => {
+            ((_accept: 'mouse') => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should not allow a transition using a partial descriptor related to an event type that is only defined exxactly', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'keypress.*': {}
+      }
+    });
+  });
+
   it('action objects used within implementations parameter should get access to the provided event type', () => {
     createMachine(
       {
@@ -3192,46 +3314,5 @@ describe('tags', () => {
 
     // @ts-expect-error
     actor.getSnapshot().hasTag('other');
-  });
-
-  it('supports partial event descriptor types', () => {
-    createMachine({
-      types: {} as {
-        events:
-          | { type: 'mouse.click.up'; direction: 'up' }
-          | { type: 'mouse.click.down'; direction: 'down' }
-          | { type: 'mouse.move' }
-          | { type: 'anotherEvent' };
-      },
-      on: {
-        'mouse.click.*': {
-          actions: ({ event }) => {
-            ((_accept: 'mouse.click.up' | 'mouse.click.down') => {})(
-              event.type
-            );
-            ((_accept: 'up' | 'down') => {})(event.direction);
-          }
-        },
-        'mouse.*': {
-          actions: ({ event }) => {
-            ((
-              _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
-            ) => {})(event.type);
-          }
-        },
-        anotherEvent: {},
-        // @ts-expect-error
-        'mouse.doubleClick': {}
-      },
-      initial: 'tooDeep',
-      states: {
-        tooDeep: {
-          on: {
-            // @ts-expect-error
-            'mouse.move.up': {}
-          }
-        }
-      }
-    });
   });
 });
