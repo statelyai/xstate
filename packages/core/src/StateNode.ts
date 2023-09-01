@@ -29,8 +29,7 @@ import type {
   TODO,
   UnknownAction,
   ParameterizedObject,
-  AnyStateMachine,
-  AnyStateNodeConfig
+  AnyStateMachine
 } from './types.ts';
 import {
   createInvokeId,
@@ -65,6 +64,13 @@ interface StateNodeOptions<
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
   _machine: AnyStateMachine;
+}
+
+interface LightStateNode {
+  key: string | undefined;
+  states: Record<string, LightStateNode> | undefined;
+  parent: LightStateNode | undefined;
+  meta: Record<string, unknown> | undefined;
 }
 
 export class StateNode<
@@ -150,6 +156,8 @@ export class StateNode<
   public transitions!: Map<string, TransitionDefinition<TContext, TEvent>[]>;
   public always?: Array<TransitionDefinition<TContext, TEvent>>;
 
+  public lightNode: LightStateNode;
+
   constructor(
     /**
      * The raw config used to create the machine.
@@ -184,21 +192,29 @@ export class StateNode<
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
 
-    this.states = (
-      this.config.states
-        ? mapValues(
-            this.config.states,
-            (stateConfig: AnyStateNodeConfig, key) => {
-              const stateNode = new StateNode(stateConfig, {
-                _parent: this,
-                _key: key as string,
-                _machine: this.machine
-              });
-              return stateNode;
-            }
-          )
-        : EMPTY_OBJECT
-    ) as StateNodesConfig<TContext, TEvent>;
+    this.lightNode = {
+      key: this.parent ? options._key : undefined,
+      states: undefined,
+      parent: this.parent?.lightNode,
+      meta: config.meta
+    };
+
+    if (config.states) {
+      this.states = {};
+      for (const key of Object.keys(config.states)) {
+        const stateConfig = config.states[key];
+        const stateNode = new StateNode(stateConfig, {
+          _parent: this,
+          _key: key as string,
+          _machine: this.machine
+        });
+        this.states[key] = stateNode;
+        this.lightNode.states ??= {};
+        this.lightNode.states[key] = stateNode.lightNode;
+      }
+    } else {
+      this.states = EMPTY_OBJECT;
+    }
 
     if (this.type === 'compound' && !this.config.initial) {
       throw new Error(
