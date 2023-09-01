@@ -537,8 +537,8 @@ type DistributeActors<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
-  TAllActor extends ProvidedActor
-> = TActor extends { src: infer TSrc }
+  TSpecificActor extends ProvidedActor
+> = TSpecificActor extends { src: infer TSrc }
   ? Compute<
       {
         systemId?: string;
@@ -551,8 +551,8 @@ type DistributeActors<
         // in a sense, we shouldn't - they could be provided within the `implementations` object
         // how do we verify if the required input has been provided?
         input?:
-          | Mapper<TContext, TEvent, InputFrom<TActor['logic']>>
-          | InputFrom<TActor['logic']>;
+          | Mapper<TContext, TEvent, InputFrom<TSpecificActor['logic']>>
+          | InputFrom<TSpecificActor['logic']>;
         /**
          * The transition to take upon the invoked child machine reaching its final top-level state.
          */
@@ -561,9 +561,9 @@ type DistributeActors<
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
-                DoneInvokeEvent<OutputFrom<TActor['logic']>>,
+                DoneInvokeEvent<OutputFrom<TSpecificActor['logic']>>,
                 TEvent,
-                TAllActor,
+                TActor,
                 TAction,
                 TGuard,
                 TDelay
@@ -579,7 +579,7 @@ type DistributeActors<
                 TContext,
                 ErrorEvent<any>,
                 TEvent,
-                TAllActor,
+                TActor,
                 TAction,
                 TGuard,
                 TDelay
@@ -593,7 +593,7 @@ type DistributeActors<
                 TContext,
                 SnapshotEvent<any>,
                 TEvent,
-                TAllActor,
+                TActor,
                 TAction,
                 TGuard,
                 TDelay
@@ -603,13 +603,13 @@ type DistributeActors<
          * Meta data related to this invocation
          */
         meta?: MetaObject;
-      } & (TActor['id'] extends string
+      } & (TSpecificActor['id'] extends string
         ? {
             /**
              * The unique identifier for the invoked machine. If not specified, this
              * will be the machine's own `id`, or the URL (from `src`).
              */
-            id: TActor['id'];
+            id: TSpecificActor['id'];
           }
         : {
             /**
