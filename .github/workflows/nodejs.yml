@@ -1,11 +1,7 @@
 name: Node CI
-
-on:
-  push:
-    branches:
       - main
       - next
-  pull_request:
+  pull_request/push:
     branches:
       - '**'
 
