@@ -3,7 +3,10 @@ import {
   AnyStateMachine,
   StateFrom,
   EventFrom,
-  ActorLogic
+  ActorLogic,
+  AnyActorLogic,
+  EventFromLogic,
+  SnapshotFrom
 } from 'xstate';
 import {
   SerializedEvent,
@@ -15,23 +18,15 @@ import {
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
 
-export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  const resolvedOptions = resolveTraversalOptions(
-    options,
-    createDefaultMachineOptions(machine)
-  );
-
-  return getSimplePaths(machine as any, resolvedOptions);
-}
-
-export function getSimplePaths<TState, TEvent extends EventObject>(
-  logic: ActorLogic<TEvent, TState>,
-  options: TraversalOptions<TState, TEvent>
+export function getSimplePaths<
+  TLogic extends AnyActorLogic,
+  TState extends SnapshotFrom<TLogic>,
+  TEvent extends EventFromLogic<TLogic>
+>(
+  logic: TLogic,
+  options?: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
+  const resolvedOptions = resolveTraversalOptions(logic, options);
   const actorContext = { self: {} } as any; // TODO: figure out the simulation API
   const fromState =
     resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);

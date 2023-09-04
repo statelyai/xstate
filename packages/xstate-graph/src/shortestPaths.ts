@@ -3,7 +3,10 @@ import {
   AnyStateMachine,
   StateFrom,
   EventFrom,
-  ActorLogic
+  ActorLogic,
+  AnyActorLogic,
+  SnapshotFrom,
+  EventFromLogic
 } from 'xstate';
 import {
   SerializedEvent,
@@ -15,11 +18,15 @@ import {
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
 
-export function getShortestPaths<TState, TEvent extends EventObject>(
-  logic: ActorLogic<TEvent, TState>,
+export function getShortestPaths<
+  TLogic extends AnyActorLogic,
+  TState extends SnapshotFrom<TLogic>,
+  TEvent extends EventFromLogic<TLogic>
+>(
+  logic: TLogic,
   options?: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
+  const resolvedOptions = resolveTraversalOptions(logic, options);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
@@ -130,16 +137,4 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   }
 
   return paths;
-}
-
-export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  const resolvedOptions = resolveTraversalOptions(
-    options,
-    createDefaultMachineOptions(machine, options)
-  );
-
-  return getShortestPaths(machine as any, resolvedOptions);
 }
