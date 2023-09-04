@@ -1303,15 +1303,26 @@ export type ResolveTypes<TTypes extends MachineTypesConstraint> = {
     : TypegenConstraint;
 };
 
-export type MachineConfig<TTypes> = (RootStateNodeConfig<
-  ResolveTypes<TTypes & MachineTypesConstraint>['context'],
-  ResolveTypes<TTypes & MachineTypesConstraint>['events'],
-  ResolveTypes<TTypes & MachineTypesConstraint>['actors'],
-  ResolveTypes<TTypes & MachineTypesConstraint>['actions'],
-  ResolveTypes<TTypes & MachineTypesConstraint>['guards'],
-  ResolveTypes<TTypes & MachineTypesConstraint>['delays'],
-  ResolveTypes<TTypes & MachineTypesConstraint>['tags'],
-  ResolveTypes<TTypes & MachineTypesConstraint>['output']
+export type MachineConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor = ProvidedActor,
+  TAction extends ParameterizedObject = ParameterizedObject,
+  TGuard extends ParameterizedObject = ParameterizedObject,
+  TDelay extends string = string,
+  TTag extends string = string,
+  TInput = any,
+  TOutput = unknown,
+  TTypesMeta = TypegenDisabled
+> = (RootStateNodeConfig<
+  NoInfer<TContext>,
+  NoInfer<TEvent>,
+  NoInfer<TActor>,
+  NoInfer<TAction>,
+  NoInfer<TGuard>,
+  NoInfer<TDelay>,
+  NoInfer<TTag>,
+  NoInfer<TOutput>
 > & {
   /**
    * The initial context (extended state)
@@ -1320,24 +1331,22 @@ export type MachineConfig<TTypes> = (RootStateNodeConfig<
    * The machine's own version.
    */
   version?: string;
-  types: TTypes;
+  types?: MachineTypes<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TTypesMeta
+  >;
 }) &
-  (Equals<
-    ResolveTypes<TTypes & MachineTypesConstraint>['context'],
-    MachineContext
-  > extends true
-    ? {
-        context?: InitialContext<
-          ResolveTypes<TTypes & MachineTypesConstraint>['context'],
-          ResolveTypes<TTypes & MachineTypesConstraint>['input']
-        >;
-      }
-    : {
-        context: InitialContext<
-          ResolveTypes<TTypes & MachineTypesConstraint>['context'],
-          ResolveTypes<TTypes & MachineTypesConstraint>['input']
-        >;
-      });
+  (Equals<TContext, MachineContext> extends true
+    ? { context?: InitialContext<LowInfer<TContext>, TInput> }
+    : { context: InitialContext<LowInfer<TContext>, TInput> });
 
 export interface ProvidedActor {
   src: string;

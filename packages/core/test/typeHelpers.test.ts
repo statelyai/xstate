@@ -308,7 +308,7 @@ describe('StateValueFrom', () => {
         context: { DO_YOU_SEE_IT: 1 }
       },
       context: {
-        DO_YOU_SEE_IT: 10
+        DO_YOU_SEE_IT: '10'
       }
     });
 
