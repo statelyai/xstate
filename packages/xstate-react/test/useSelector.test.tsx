@@ -17,7 +17,6 @@ import {
   useSelector
 } from '../src/index.ts';
 import { describeEachReactMode } from './utils';
-import { createEmptyActor } from 'xstate/actors';
 
 const originalConsoleError = console.error;
 
@@ -734,7 +733,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const Child = (props: {
       actor: ActorRef<any, { count: number }> | undefined;
     }) => {
-      const state = useSelector(props.actor ?? createEmptyActor(), (s) => s);
+      const state = useSelector(props.actor, (s) => s);
 
       // @ts-expect-error
       ((_accept: { count: number }) => {})(state);
