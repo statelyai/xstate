@@ -22,7 +22,8 @@ import type {
   StateValue,
   TODO,
   AnyActorRef,
-  Compute
+  Compute,
+  EventDescriptor
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -70,6 +71,8 @@ export class State<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -80,9 +83,9 @@ export class State<
    */
   public done: boolean;
   /**
-   * The done data of the top-level finite state.
+   * The output data of the top-level finite state.
    */
-  public output: any; // TODO: add an explicit type for `output`
+  public output: TOutput | undefined;
   public error: unknown;
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
@@ -105,13 +108,29 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent, TODO, any> | StateValue,
+    stateValue:
+      | State<
+          TContext,
+          TEvent,
+          TODO,
+          any, // tags
+          any, // output
+          any // typegen
+        >
+      | StateValue,
     context: TContext = {} as TContext,
     machine: AnyStateMachine
-  ): State<TContext, TEvent, TODO, any> {
+  ): State<
+    TContext,
+    TEvent,
+    TODO,
+    any, // tags
+    any, // output
+    any // typegen
+  > {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TContext, TEvent, TODO, any>(
+        return new State<TContext, TEvent, TODO, any, any, any>(
           {
             value: stateValue.value,
             context,
@@ -130,7 +149,7 @@ export class State<
       getStateNodes(machine.root, stateValue)
     );
 
-    return new State<TContext, TEvent, TODO, any>(
+    return new State<TContext, TEvent, TODO, any, any, any>(
       {
         value: stateValue,
         context,
@@ -208,11 +227,7 @@ export class State<
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
-  public hasTag(
-    tag: TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
-      : string
-  ): boolean {
+  public hasTag(tag: TTag): boolean {
     return this.tags.has(tag as string);
   }
 
@@ -243,7 +258,7 @@ export class State<
   /**
    * The next events that will cause a transition from the current state.
    */
-  public get nextEvents(): Array<TEvent['type']> {
+  public get nextEvents(): Array<EventDescriptor<TEvent>> {
     return memo(this, 'nextEvents', () => {
       return [
         ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))

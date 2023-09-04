@@ -11,7 +11,6 @@ import {
   getDelayedTransitions
 } from './stateUtils.ts';
 import type {
-  Action,
   AnyActorLogic,
   DelayedTransitionDefinition,
   EventObject,
@@ -21,14 +20,17 @@ import type {
   InvokeDefinition,
   MachineContext,
   Mapper,
-  PropertyMapper,
   StateNodeConfig,
   StateNodeDefinition,
   StateNodesConfig,
   StatesDefinition,
   TransitionDefinition,
   TransitionDefinitionMap,
-  TODO
+  TODO,
+  UnknownAction,
+  ParameterizedObject,
+  AnyStateMachine,
+  AnyStateNodeConfig
 } from './types.ts';
 import {
   createInvokeId,
@@ -41,7 +43,7 @@ import {
 
 const EMPTY_OBJECT = {};
 
-const toSerializableActon = (action: Action<any, any, any>) => {
+const toSerializableActon = (action: UnknownAction) => {
   if (typeof action === 'string') {
     return { type: action };
   }
@@ -62,7 +64,7 @@ interface StateNodeOptions<
 > {
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
-  _machine: StateMachine<TContext, TEvent, any, any, any>;
+  _machine: AnyStateMachine;
 }
 
 export class StateNode<
@@ -105,11 +107,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: Action<any, any, any>[];
+  public entry: UnknownAction[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: Action<any, any, any>[];
+  public exit: UnknownAction[];
   /**
    * The parent state node.
    */
@@ -117,7 +119,17 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: StateMachine<TContext, TEvent, any, any, TODO, TODO>;
+  public machine: StateMachine<
+    TContext,
+    TEvent,
+    any, // actors
+    any, // input
+    TODO, // output
+    TODO, // guards
+    TODO, // delays
+    TODO, // tags
+    TODO // types meta
+  >;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -142,7 +154,16 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent, TODO, TODO>,
+    public config: StateNodeConfig<
+      TContext,
+      TEvent,
+      TODO, // actions
+      TODO, // actors
+      TODO, // output
+      TODO, // guards
+      TODO, // delays
+      TODO // tags
+    >,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
@@ -167,10 +188,7 @@ export class StateNode<
       this.config.states
         ? mapValues(
             this.config.states,
-            (
-              stateConfig: StateNodeConfig<TContext, TEvent, TODO, TODO>,
-              key
-            ) => {
+            (stateConfig: AnyStateNodeConfig, key) => {
               const stateNode = new StateNode(stateConfig, {
                 _parent: this,
                 _key: key as string,
@@ -196,15 +214,15 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry);
-    this.exit = toArray(this.config.exit);
+    this.entry = toArray(this.config.entry).slice();
+    this.exit = toArray(this.config.exit).slice();
 
     this.meta = this.config.meta;
     this.output =
       this.type === 'final'
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).output
         : undefined;
-    this.tags = toArray(config.tags);
+    this.tags = toArray(config.tags).slice();
   }
 
   public _initialize() {
@@ -271,7 +289,15 @@ export class StateNode<
   /**
    * The logic invoked as actors by this state node.
    */
-  public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
+  public get invoke(): Array<
+    InvokeDefinition<
+      TContext,
+      TEvent,
+      ParameterizedObject,
+      ParameterizedObject,
+      string
+    >
+  > {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
         const generatedId = createInvokeId(this.id, i);
@@ -310,7 +336,13 @@ export class StateNode<
               id: resolvedId
             };
           }
-        } as InvokeDefinition<TContext, TEvent>;
+        } as InvokeDefinition<
+          TContext,
+          TEvent,
+          ParameterizedObject,
+          ParameterizedObject,
+          string
+        >;
       })
     );
   }
@@ -333,7 +365,11 @@ export class StateNode<
   }
 
   public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
-    return memo(this, 'delayedTransitions', () => getDelayedTransitions(this));
+    return memo(
+      this,
+      'delayedTransitions',
+      () => getDelayedTransitions(this) as any
+    );
   }
 
   public get initial(): InitialTransitionDefinition<TContext, TEvent> {
@@ -343,11 +379,11 @@ export class StateNode<
   }
 
   public next(
-    state: State<TContext, TEvent, TODO>,
+    state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
-    const actions: Action<any, any, any>[] = [];
+    const actions: UnknownAction[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
@@ -368,10 +404,16 @@ export class StateNode<
           !guard ||
           evaluateGuard<TContext, TEvent>(guard, resolvedContext, event, state);
       } catch (err: any) {
+        const guardType =
+          typeof guard === 'string'
+            ? guard
+            : typeof guard === 'object'
+            ? guard.type
+            : undefined;
         throw new Error(
-          `Unable to evaluate guard '${
-            guard!.type
-          }' in transition for event '${eventType}' in state node '${
+          `Unable to evaluate guard ${
+            guardType ? `'${guardType}' ` : ''
+          }in transition for event '${eventType}' in state node '${
             this.id
           }':\n${err.message}`
         );

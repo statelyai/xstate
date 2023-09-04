@@ -16,6 +16,7 @@ import {
 import {
   AnyStateMachine,
   AnyStateNode,
+  AnyStateNodeConfig,
   ChooseBranch,
   DelayExpr,
   EventObject,
@@ -173,11 +174,13 @@ function createGuard<
   };
 }
 
-function mapAction(element: XMLElement): ActionFunction<any, any, any> {
+function mapAction(
+  element: XMLElement
+): ActionFunction<any, any, any, any, any, any, any> {
   switch (element.name) {
     case 'raise': {
       return raise({
-        type: element.attributes!.event!
+        type: element.attributes!.event as string
       });
     }
     case 'assign': {
@@ -206,10 +209,12 @@ return ${element.attributes!.sendidexpr};
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: EventObject | SendExpr<MachineContext, EventObject>;
+      let convertedEvent:
+        | EventObject
+        | SendExpr<MachineContext, EventObject, undefined, EventObject>;
       let convertedDelay:
         | number
-        | DelayExpr<MachineContext, EventObject>
+        | DelayExpr<MachineContext, EventObject, undefined>
         | undefined;
 
       const params =
@@ -315,8 +320,10 @@ return ${element.attributes!.expr};
   }
 }
 
-function mapActions(elements: XMLElement[]): ActionFunction<any, any, any>[] {
-  const mapped: ActionFunction<any, any, any>[] = [];
+function mapActions(
+  elements: XMLElement[]
+): ActionFunction<any, any, any, any, any, any, any>[] {
+  const mapped: ActionFunction<any, any, any, any, any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {
@@ -331,10 +338,7 @@ function mapActions(elements: XMLElement[]): ActionFunction<any, any, any>[] {
 
 type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
 
-function toConfig(
-  nodeJson: XMLElement,
-  id: string
-): StateNodeConfig<any, any, any, any> {
+function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   const { elements } = nodeJson;

@@ -282,6 +282,9 @@ describe('assign meta', () => {
   it('should provide the parametrized action to the assigner', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          actions: { type: 'inc'; params: { by: number } };
+        },
         context: { count: 1 },
         entry: {
           type: 'inc',
@@ -291,7 +294,7 @@ describe('assign meta', () => {
       {
         actions: {
           inc: assign(({ context, action }) => ({
-            count: context.count + action.params!.by
+            count: context.count + action.params.by
           }))
         }
       }
@@ -305,6 +308,9 @@ describe('assign meta', () => {
   it('should provide the parametrized action to the partial assigner', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          actions: { type: 'inc'; params: { by: number } };
+        },
         context: { count: 1 },
         entry: {
           type: 'inc',
@@ -314,7 +320,7 @@ describe('assign meta', () => {
       {
         actions: {
           inc: assign({
-            count: ({ context, action }) => context.count + action.params!.by
+            count: ({ context, action }) => context.count + action.params.by
           })
         }
       }
