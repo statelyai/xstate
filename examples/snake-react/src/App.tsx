@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import './App.css';
 import { useActor } from '@xstate/react';
 import {
   SnakeMachineContext,
