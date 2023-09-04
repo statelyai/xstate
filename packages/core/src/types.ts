@@ -1,5 +1,5 @@
 import type { StateNode } from './StateNode.ts';
-import type { State } from './State.ts';
+import type { State, StateTimer } from './State.ts';
 import type { ActorStatus, Clock, Actor } from './interpreter.ts';
 import type { StateMachine } from './StateMachine.ts';
 import {
@@ -1621,6 +1621,7 @@ export interface StateConfig<
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
   _internalQueue?: Array<TEvent>;
+  timers?: StateTimer[];
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {

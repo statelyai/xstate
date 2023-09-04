@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { cloneState } from '../State.ts';
 import { constantPrefixes, error } from '../actions.ts';
 import {
   ActionArgs,
@@ -98,8 +99,17 @@ function resolve(
     targetActorRef = resolvedTarget || actorContext?.self;
   }
 
+  const nextState = cloneState(state, {
+    timers: (state.timers ?? []).concat({
+      delay: resolvedDelay ?? 0,
+      event: resolvedEvent,
+      target: targetActorRef,
+      startedAt: Date.now()
+    })
+  });
+
   return [
-    state,
+    nextState,
     { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
   ];
 }

@@ -15,7 +15,7 @@ import {
 } from '../types.ts';
 
 function resolve(
-  _: AnyActorContext,
+  { self }: AnyActorContext,
   state: AnyState,
   args: ActionArgs<any, any, any>,
   {
@@ -57,14 +57,23 @@ function resolve(
   } else {
     resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
   }
-  return [
+  const nextState = cloneState(
+    state,
     typeof resolvedDelay !== 'number'
-      ? cloneState(state, {
+      ? {
           _internalQueue: state._internalQueue.concat(resolvedEvent)
-        })
-      : state,
-    { event: resolvedEvent, id, delay: resolvedDelay }
-  ];
+        }
+      : {
+          timers: (state.timers ?? []).concat({
+            delay: resolvedDelay,
+            event: resolvedEvent,
+            target: self,
+            startedAt: Date.now()
+          })
+        }
+  );
+
+  return [nextState, { event: resolvedEvent, id, delay: resolvedDelay }];
 }
 
 function execute(
