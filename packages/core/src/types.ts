@@ -424,9 +424,10 @@ export type StatesConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TOutput
+  TOutput,
+  TStateKey extends string
 > = {
-  [K in string]: StateNodeConfig<
+  [K in TStateKey]: StateNodeConfig<
     TContext,
     TEvent,
     TActor,
@@ -434,7 +435,8 @@ export type StatesConfig<
     TGuard,
     TDelay,
     TTag,
-    TOutput
+    TOutput,
+    any
   >;
 };
 
@@ -670,7 +672,8 @@ export interface StateNodeConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TOutput
+  TOutput,
+  TStateKey extends string
 > {
   /**
    * The initial state transition.
@@ -707,7 +710,8 @@ export interface StateNodeConfig<
         TGuard,
         TDelay,
         TTag,
-        NonReducibleUnknown
+        NonReducibleUnknown,
+        TStateKey
       >
     | undefined;
   /**
@@ -812,6 +816,7 @@ export type AnyStateNodeConfig = StateNodeConfig<
   any,
   any,
   any,
+  any,
   any
 >;
 
@@ -883,6 +888,7 @@ export interface AtomicStateNodeConfig<
     TODO,
     TODO,
     TODO,
+    TODO,
     TODO
   > {
   initial?: undefined;
@@ -916,7 +922,7 @@ export type SimpleOrStateNodeConfig<
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>;
+  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO, TODO>;
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
@@ -1244,7 +1250,8 @@ type RootStateNodeConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TOutput
+  TOutput,
+  TStateKey extends string
 > = Omit<
   StateNodeConfig<
     TContext,
@@ -1254,7 +1261,8 @@ type RootStateNodeConfig<
     TGuard,
     TDelay,
     TTag,
-    TOutput
+    TOutput,
+    TStateKey
   >,
   'states'
 > & {
@@ -1267,7 +1275,8 @@ type RootStateNodeConfig<
         TGuard,
         TDelay,
         TTag,
-        TOutput
+        TOutput,
+        TStateKey
       >
     | undefined;
 };
@@ -1282,7 +1291,8 @@ export type MachineConfig<
   TTag extends string = string,
   TInput = any,
   TOutput = unknown,
-  TTypesMeta = TypegenDisabled
+  TTypesMeta = TypegenDisabled,
+  TStateKey extends string = string
 > = (RootStateNodeConfig<
   NoInfer<TContext>,
   NoInfer<TEvent>,
@@ -1291,7 +1301,8 @@ export type MachineConfig<
   NoInfer<TGuard>,
   NoInfer<TDelay>,
   NoInfer<TTag>,
-  NoInfer<TOutput>
+  NoInfer<TOutput>,
+  TStateKey
 > & {
   /**
    * The initial context (extended state)
