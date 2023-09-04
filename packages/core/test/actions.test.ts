@@ -2511,6 +2511,8 @@ describe('forwardTo()', () => {
       }
     });
 
+    parent._state;
+
     const service = createActor(parent);
     service.subscribe({ complete: () => done() });
     service.start();
