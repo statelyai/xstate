@@ -2348,6 +2348,102 @@ describe('action meta', () => {
       type: 'entryAction'
     });
   });
+
+  it('should provide the action with resolved params when they are dynamic', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: {
+          type: 'entryAction',
+          params: () => ({ stuff: 100 })
+        }
+      },
+      {
+        actions: {
+          entryAction: ({ action }) => {
+            spy(action);
+          }
+        }
+      }
+    );
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'entryAction',
+      params: {
+        stuff: 100
+      }
+    });
+  });
+
+  it('should resolve dynamic params using context value', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: {
+          secret: 42
+        },
+        entry: {
+          type: 'entryAction',
+          params: ({ context }) => ({ secret: context.secret })
+        }
+      },
+      {
+        actions: {
+          entryAction: ({ action }) => {
+            spy(action);
+          }
+        }
+      }
+    );
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'entryAction',
+      params: {
+        secret: 42
+      }
+    });
+  });
+
+  it('should resolve dynamic params using event value', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            actions: {
+              type: 'myAction',
+              params: ({ event }) => ({ secret: event.secret })
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          myAction: ({ action }) => {
+            spy(action);
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO', secret: 77 });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myAction',
+      params: {
+        secret: 77
+      }
+    });
+  });
 });
 
 describe('purely defined actions', () => {

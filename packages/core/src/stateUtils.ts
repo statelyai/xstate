@@ -1447,7 +1447,13 @@ export function resolveActionsAndContext<
         ? undefined
         : typeof action === 'string'
         ? { type: action }
-        : action
+        : typeof action.params === 'function'
+        ? {
+            type: action.type,
+            params: action.params({ context: intermediateState.context, event })
+          }
+        : // TS isn't able to narrow it down here
+          (action as { type: string })
     };
 
     if (!('resolve' in resolved)) {

@@ -410,9 +410,19 @@ describe('custom guards', () => {
       type: 'EVENT';
       value: number;
     }
-    const machine = createMachine<Ctx, Events>(
+    const machine = createMachine(
       {
-        id: 'custom',
+        types: {} as {
+          context: Ctx;
+          guards: {
+            type: 'custom';
+            params: {
+              prop: keyof Ctx;
+              op: 'greaterThan';
+              compare: number;
+            };
+          };
+        },
         initial: 'inactive',
         context: {
           count: 0
@@ -435,11 +445,9 @@ describe('custom guards', () => {
       {
         guards: {
           custom: ({ context, event, guard }) => {
-            const { prop, compare, op } = (guard as any).params;
+            const { prop, compare, op } = guard.params;
             if (op === 'greaterThan') {
-              return (
-                context[prop as keyof typeof context] + event.value > compare
-              );
+              return context[prop] + event.value > compare;
             }
 
             return false;
@@ -459,6 +467,141 @@ describe('custom guards', () => {
     const failState = actorRef2.getSnapshot();
 
     expect(failState.value).toEqual('inactive');
+  });
+
+  it('should provide the guard in its object form even if it was configured as string', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: 'myGuard'
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: ({ guard }) => {
+            spy(guard);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myGuard'
+    });
+  });
+
+  it('should provide the guard with resolved params when they are dynamic', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: { type: 'myGuard', params: () => ({ stuff: 100 }) }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: ({ guard }) => {
+            spy(guard);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myGuard',
+      params: {
+        stuff: 100
+      }
+    });
+  });
+
+  it('should resolve dynamic params using context value', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: {
+          secret: 42
+        },
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: ({ context }) => ({ secret: context.secret })
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: ({ guard }) => {
+            spy(guard);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myGuard',
+      params: {
+        secret: 42
+      }
+    });
+  });
+
+  it('should resolve dynamic params using event value', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: ({ event }) => ({ secret: event.secret })
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: ({ guard }) => {
+            spy(guard);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO', secret: 77 });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myGuard',
+      params: {
+        secret: 77
+      }
+    });
   });
 });
 
@@ -728,6 +871,9 @@ describe('not() guard', () => {
   it('should guard with object', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          guards: { type: 'greaterThan10'; params: { value: number } };
+        },
         initial: 'a',
         states: {
           a: {
@@ -744,7 +890,7 @@ describe('not() guard', () => {
       {
         guards: {
           greaterThan10: ({ guard }) => {
-            return (guard as any).params.value > 10;
+            return guard.params.value > 10;
           }
         }
       }
@@ -842,6 +988,12 @@ describe('and() guard', () => {
   it('should guard with object', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          guards: {
+            type: 'greaterThan10';
+            params: { value: number };
+          };
+        },
         initial: 'a',
         states: {
           a: {
@@ -861,7 +1013,7 @@ describe('and() guard', () => {
       {
         guards: {
           greaterThan10: ({ guard }) => {
-            return (guard as any).params.value > 10;
+            return guard.params.value > 10;
           }
         }
       }
@@ -964,6 +1116,12 @@ describe('or() guard', () => {
   it('should guard with object', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          guards: {
+            type: 'greaterThan10';
+            params: { value: number };
+          };
+        },
         initial: 'a',
         states: {
           a: {
@@ -983,7 +1141,7 @@ describe('or() guard', () => {
       {
         guards: {
           greaterThan10: ({ guard }) => {
-            return (guard as any).params.value > 10;
+            return guard.params.value > 10;
           }
         }
       }
