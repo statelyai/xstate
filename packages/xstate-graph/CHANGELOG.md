@@ -1,5 +1,26 @@
 # @xstate/graph
 
+## 2.0.0-beta.3
+
+### Major Changes
+
+- [#4233](https://github.com/statelyai/xstate/pull/4233) [`3d96d0f95`](https://github.com/statelyai/xstate/commit/3d96d0f95f7f2a7f7dd872d756a5eba1f61a072f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove `getMachineShortestPaths` and `getMachineSimplePaths`
+
+  ```diff
+  import {
+  - getMachineShortestPaths,
+  + getShortestPaths,
+  - getMachineSimplePaths,
+  + getSimplePaths
+  } from '@xstate/graph';
+
+  -const paths = getMachineShortestPaths(machine);
+  +const paths = getShortestPaths(machine);
+
+  -const paths = getMachineSimplePaths(machine);
+  +const paths = getSimplePaths(machine);
+  ```
+
 ## 2.0.0-alpha.2
 
 ### Patch Changes
