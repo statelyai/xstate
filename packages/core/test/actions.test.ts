@@ -837,7 +837,10 @@ describe('entry/exit actions', () => {
         states: {
           green: {
             on: {
-              RESTART: 'green'
+              RESTART: {
+                target: 'green',
+                reenter: true
+              }
             }
           }
         }
@@ -1009,13 +1012,52 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should exit deep descendant during a self-transition', () => {
+    it('should exit deep descendant during a default self-transition', () => {
       const m = createMachine({
         initial: 'a',
         states: {
           a: {
             on: {
               EV: 'a'
+            },
+            initial: 'a1',
+            states: {
+              a1: {
+                initial: 'a11',
+                states: {
+                  a11: {}
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = createActor(m).start();
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a1.a11',
+        'exit: a.a1',
+        'enter: a.a1',
+        'enter: a.a1.a11'
+      ]);
+    });
+
+    it('should exit deep descendant during a reentering self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: {
+                target: 'a',
+                reenter: true
+              }
             },
             initial: 'a1',
             states: {
@@ -1047,7 +1089,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should reenter leaf state during its self-transition', () => {
+    it('should not reenter leaf state during its default self-transition', () => {
       const m = createMachine({
         initial: 'a',
         states: {
@@ -1057,6 +1099,36 @@ describe('entry/exit actions', () => {
               a1: {
                 on: {
                   EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = createActor(m).start();
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual([]);
+    });
+
+    it('should reenter leaf state during its reentering self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: {
+                    target: 'a1',
+                    reenter: true
+                  }
                 }
               }
             }
@@ -2091,7 +2163,7 @@ describe('initial actions', () => {
           on: { NEXT: 'b' }
         },
         b: {
-          entry: () => actual.push('entryC'),
+          entry: () => actual.push('entryB'),
           initial: {
             target: '#bar',
             actions: () => actual.push('initialBar')
@@ -2110,7 +2182,7 @@ describe('initial actions', () => {
 
     actor.send({ type: 'NEXT' });
 
-    expect(actual).toEqual(['entryC', 'initialBar', 'entryBar']);
+    expect(actual).toEqual(['entryB', 'initialBar', 'entryBar']);
   });
 });
 

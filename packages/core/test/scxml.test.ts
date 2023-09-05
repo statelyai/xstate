@@ -295,7 +295,7 @@ const testGroups: Record<string, string[]> = {
     'test503.txml',
     'test504.txml',
     'test505.txml',
-    'test506.txml',
+    // 'test506.txml', // `reenter` semantics in v5 are different from SCXML type="internal"/"external" transitions, we respect `reenter` on all state types, not just on compound states
     // 'test509.txml', // Basic HTTP Event I/O processor not implemented
     // 'test510.txml', // Basic HTTP Event I/O processor not implemented
     // 'test518.txml', // Basic HTTP Event I/O processor not implemented

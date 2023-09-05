@@ -560,7 +560,28 @@ describe('parallel states', () => {
   });
 
   it('should have all parallel states represented in the state value', () => {
-    const actorRef = createActor(wakMachine).start();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        wak1: {
+          initial: 'wak1sonA',
+          states: {
+            wak1sonA: {},
+            wak1sonB: {}
+          },
+          on: {
+            WAK1: '.wak1sonB'
+          }
+        },
+        wak2: {
+          initial: 'wak2sonA',
+          states: {
+            wak2sonA: {}
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'WAK1' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -879,29 +900,20 @@ describe('parallel states', () => {
     // https://github.com/statelyai/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
       const testMachine = createMachine({
-        id: 'app',
         type: 'parallel',
         states: {
           Pages: {
-            id: 'Pages',
             initial: 'About',
             states: {
               About: {
-                id: 'About',
-                on: {
-                  dashboard: '#Dashboard'
-                }
+                id: 'About'
               },
               Dashboard: {
-                id: 'Dashboard',
-                on: {
-                  about: '#About'
-                }
+                id: 'Dashboard'
               }
             }
           },
           Menu: {
-            id: 'Menu',
             initial: 'Closed',
             states: {
               Closed: {
@@ -915,7 +927,6 @@ describe('parallel states', () => {
                 on: {
                   toggle: '#Closed',
                   'go to dashboard': {
-                    // TODO: see if just '#Dashboard' conforms to SCXML spec
                     target: ['#Dashboard', '#Opened']
                   }
                 }
@@ -955,7 +966,10 @@ describe('parallel states', () => {
                   log: ({ context }) => [...context.log, 'entered foobaz']
                 }),
                 on: {
-                  GOTO_FOOBAZ: 'foobaz'
+                  GOTO_FOOBAZ: {
+                    target: 'foobaz',
+                    reenter: true
+                  }
                 }
               }
             }
