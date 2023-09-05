@@ -7,6 +7,7 @@
   "baseBranch": "main",
   "ignore": [
     "@xstate/analytics",
+    "@xstate/graph",
     "@xstate/immer",
     "@xstate/inspect",
     "@xstate/solid",
