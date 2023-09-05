@@ -294,7 +294,7 @@ describe('deterministic machine', () => {
         initial: 'test',
         states: {
           test: {
-            invoke: ['activity'],
+            invoke: [{ src: 'activity' }],
             entry: ['onEntry'],
             on: {
               NEXT: 'test'

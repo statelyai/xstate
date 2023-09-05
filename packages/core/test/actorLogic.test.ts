@@ -498,14 +498,15 @@ describe('machine logic', () => {
     });
 
     const machine = createMachine({
+      types: {} as { context: { count: number } },
+      context: { count: 100 },
       initial: 'waiting',
       invoke: [
         {
           id: 'a',
           src: fromPromise(() => Promise.resolve(42)),
           onDone: {
-            // @ts-ignore TODO: fix types
-            actions: raise({ type: 'done' })
+            actions: [raise({ type: 'done' }), ({ context }) => {}]
           }
         },
         {

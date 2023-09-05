@@ -400,7 +400,7 @@ export type StateTypes =
   | 'history'
   | string; // TODO: remove once TS fixes this type-widening issue
 
-export type SingleOrArray<T> = T[] | T;
+export type SingleOrArray<T> = readonly T[] | T;
 
 export type StateNodesConfig<
   TContext extends MachineContext,
@@ -1047,8 +1047,12 @@ export type MachineStates<Literal = string> = {
   states?: Record<string, MachineStates<Literal>>;
   on?: unknown;
   invoke?: SingleOrArray<{
+    id?: Literal;
     src: Literal | NonReducibleUnknown;
+    onDone?: unknown;
   }>;
+  entry?: unknown;
+  exit?: unknown;
 };
 
 export interface ProvidedActor {
@@ -1786,6 +1790,7 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
   };
 };
 
+// TODO: `StateValueFrom2<{}>` should return `never`
 export type StateValueFrom2<T extends MachineStates> = IsAny<T> extends true
   ? StateValue
   : T extends {
