@@ -1,4 +1,4 @@
-import { createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor, raise } from '../src/index.ts';
 import { after } from '../src/actions.ts';
 
 const lightMachine = createMachine({
@@ -304,5 +304,42 @@ describe('delayed transitions', () => {
       jest.advanceTimersByTime(200);
       expect(actor.getSnapshot().value).toBe('inactive');
     });
+  });
+
+  it('should keep timers in state', () => {
+    jest.useFakeTimers();
+
+    const machine = createMachine({
+      initial: 'go',
+      states: {
+        go: {
+          entry: raise({ type: 'someEvent' }, { delay: 500 }),
+          after: {
+            1000: 'stop'
+          }
+        },
+        stop: {}
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    // Delayed raise event
+    expect(actorRef.getSnapshot().timers[0].target).toBe(actorRef);
+    expect(actorRef.getSnapshot().timers[0].event).toEqual({
+      type: 'someEvent'
+    });
+    expect(actorRef.getSnapshot().timers[0].delay).toBe(500);
+
+    // After transition
+    expect(actorRef.getSnapshot().timers[1].target).toBe(actorRef);
+    expect(actorRef.getSnapshot().timers[1].event.type).toEqual(
+      expect.stringMatching(/xstate\.after/)
+    );
+    expect(actorRef.getSnapshot().timers[1].delay).toBe(1000);
+
+    // TODO: figure out how to do cleanup (tricky)
+    // jest.advanceTimersByTime(1010);
+    // expect(actorRef.getSnapshot().timers).toHaveLength(0);
   });
 });

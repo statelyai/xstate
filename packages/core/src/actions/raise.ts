@@ -46,6 +46,7 @@ function resolve(
       `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
     );
   }
+
   const resolvedEvent =
     typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
 
@@ -57,21 +58,23 @@ function resolve(
   } else {
     resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
   }
-  const nextState = cloneState(
-    state,
-    typeof resolvedDelay !== 'number'
-      ? {
-          _internalQueue: state._internalQueue.concat(resolvedEvent)
-        }
-      : {
-          timers: (state.timers ?? []).concat({
-            delay: resolvedDelay,
-            event: resolvedEvent,
-            target: self,
-            startedAt: Date.now()
-          })
-        }
-  );
+
+  let nextState;
+  if (typeof resolvedDelay !== 'number') {
+    nextState = cloneState(state, {
+      _internalQueue: state._internalQueue.concat(resolvedEvent)
+    });
+  } else {
+    const startedAt = Date.now();
+    nextState = cloneState(state, {
+      timers: (state.timers ?? []).concat({
+        delay: resolvedDelay,
+        event: resolvedEvent,
+        target: self,
+        startedAt
+      })
+    });
+  }
 
   return [nextState, { event: resolvedEvent, id, delay: resolvedDelay }];
 }
