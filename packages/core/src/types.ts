@@ -1902,16 +1902,22 @@ export type ActorStatusObject<TOutput> =
   | {
       status: 'done';
       output: TOutput;
+      error: undefined;
     }
   | {
       status: 'error';
-      data: unknown;
+      output: undefined;
+      error: unknown;
     }
   | {
       status: 'stopped';
+      output: TOutput | undefined;
+      error: unknown | undefined;
     }
   | {
       status: 'active';
+      output: undefined;
+      error: undefined;
     };
 
 export interface ActorLogic<

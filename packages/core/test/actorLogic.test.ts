@@ -182,7 +182,7 @@ describe('promise logic (fromPromise)', () => {
     const rejectedPersistedState = actor.getPersistedState();
     expect(rejectedPersistedState).toEqual(
       expect.objectContaining({
-        data: 1
+        error: 1
       })
     );
     expect(createdPromises).toBe(1);

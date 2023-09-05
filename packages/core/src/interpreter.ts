@@ -226,8 +226,8 @@ export class Actor<
         break;
       case 'error':
         this._stopProcedure();
-        this._error(status.data);
-        this._parent?.send(error(this.id, status.data));
+        this._error(status.error);
+        this._parent?.send(error(this.id, status.error));
         break;
     }
   }

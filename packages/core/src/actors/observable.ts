@@ -5,7 +5,8 @@ import {
   Subscription,
   AnyActorSystem,
   ActorRefFrom,
-  ActorStatusObject
+  ActorStatusObject,
+  TODO
 } from '../types';
 import { stopSignalType } from '../actors';
 
@@ -72,7 +73,7 @@ export function fromObservable<T, TInput>(
           return {
             ...state,
             status: 'error',
-            data: (event as any).data,
+            error: (event as any).data,
             input: undefined,
             output: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             subscription: undefined
@@ -101,7 +102,8 @@ export function fromObservable<T, TInput>(
         subscription: undefined,
         status: 'active',
         output: undefined,
-        input
+        input,
+        error: undefined
       };
     },
     start: (state, { self, system }) => {
@@ -126,11 +128,7 @@ export function fromObservable<T, TInput>(
       });
     },
     getSnapshot: (state) => state.output,
-    getPersistedState: ({ status, output: data, input }) => ({
-      status,
-      output: data,
-      input
-    }),
+    getPersistedState: (state) => state,
     getStatus: (state) => state,
     restoreState: (state) => ({
       ...state,
@@ -175,7 +173,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
             ...state,
             status: 'error',
             input: undefined,
-            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
+            error: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             subscription: undefined
           };
         case completeEventType:
@@ -228,15 +226,12 @@ export function fromEventObservable<T extends EventObject, TInput>(
       });
     },
     getSnapshot: (_) => undefined,
-    getPersistedState: ({ status, output: data, input }) => ({
-      status,
-      output: data,
-      input
-    }),
+    getPersistedState: (state) => state,
     getStatus: (state) => state,
-    restoreState: (state) => ({
-      ...state,
-      subscription: undefined
-    })
+    restoreState: (state) =>
+      ({
+        ...state,
+        subscription: undefined
+      } as TODO)
   };
 }

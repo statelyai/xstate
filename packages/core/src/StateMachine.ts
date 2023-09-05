@@ -409,7 +409,7 @@ export class StateMachine<
     state: State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
   ) {
     return state.error
-      ? { status: 'error' as const, data: state.error }
+      ? { status: 'error' as const, error: state.error }
       : state.done
       ? { status: 'done' as const, output: state.output! }
       : { status: 'active' as const };
