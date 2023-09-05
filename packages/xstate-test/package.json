@@ -53,6 +53,6 @@
     "xstate": "5.0.0-beta.26"
   },
   "dependencies": {
-    "@xstate/graph": "^2.0.0-alpha.1"
+    "@xstate/graph": "2.0.0-alpha.2"
   }
 }
