@@ -5,7 +5,9 @@ import {
   StateFrom,
   EventFrom,
   StateMachine,
-  AnyActorLogic
+  AnyActorLogic,
+  SnapshotFrom,
+  EventFromLogic
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -169,13 +171,30 @@ export interface AdjacencyMap<TState, TEvent> {
   [key: SerializedState]: AdjacencyValue<TState, TEvent>;
 }
 
-export function resolveTraversalOptions<TState, TEvent extends EventObject>(
+function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {
+  return 'getStateNodeById' in logic;
+}
+
+export function resolveTraversalOptions<
+  TLogic extends AnyActorLogic,
+  TState extends SnapshotFrom<TLogic>,
+  TEvent extends EventFromLogic<TLogic>
+>(
+  logic: AnyActorLogic,
   traversalOptions?: TraversalOptions<TState, TEvent>,
   defaultOptions?: TraversalOptions<TState, TEvent>
 ): TraversalConfig<TState, TEvent> {
+  const resolvedDefaultOptions =
+    defaultOptions ??
+    (isMachineLogic(logic)
+      ? (createDefaultMachineOptions(
+          logic,
+          traversalOptions as any
+        ) as TraversalOptions<TState, TEvent>)
+      : undefined);
   const serializeState =
     traversalOptions?.serializeState ??
-    defaultOptions?.serializeState ??
+    resolvedDefaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
   const traversalConfig: TraversalConfig<TState, TEvent> = {
     serializeState,
@@ -188,7 +207,7 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     // Traversal should not continue past the `toState` predicate
     // since the target state has already been reached at that point
     stopCondition: traversalOptions?.toState,
-    ...defaultOptions,
+    ...resolvedDefaultOptions,
     ...traversalOptions
   };
 

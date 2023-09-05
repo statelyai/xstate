@@ -28,7 +28,8 @@ export function getPathsFromEvents<
   events: TEvent[],
   options?: TraversalOptions<TInternalState, TEvent>
 ): Array<StatePath<TInternalState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions<TInternalState, TEvent>(
+  const resolvedOptions = resolveTraversalOptions(
+    logic,
     {
       events,
       ...options
