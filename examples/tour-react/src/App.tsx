@@ -1,52 +1,72 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
-import { getMachineShortestPaths } from '@xstate/graph';
+import { getShortestPaths } from '@xstate/graph';
+import { useMachine } from '@xstate/react';
 import { createMachine } from 'xstate';
+import { alterPath } from './utils';
 
 const tourMachine = createMachine({
   id: 'tour',
   initial: 'first',
   states: {
-    first: {},
-    second: {},
+    first: {
+      description: 'The first step in the tour',
+      on: {
+        next: { target: 'second', meta: { title: 'Next' } }
+      }
+    },
+
+    second: {
+      description: 'The second step in the tour',
+      on: {
+        next: { target: 'third', meta: { title: 'Keep going' } },
+        back: { target: 'first', meta: { title: 'Go back' } }
+      }
+    },
+
     third: {
-      type: 'final'
+      description: 'The third step in the tour',
+      on: {
+        restart: { target: 'first', meta: { title: 'Start over' } },
+        back: { target: 'second', meta: { title: 'Go back' } }
+      }
     }
   }
 });
 
-// const shortestPaths = getMachineShortestPaths(tourMachine);
-
-// console.log(shortestPaths);
+const shortestPaths = getShortestPaths(tourMachine, {
+  toState: (s) => s.matches('third')
+}).map(alterPath);
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [state, send] = useMachine(tourMachine);
+  const index = shortestPaths[0]?.steps.findIndex((step) =>
+    step.state.matches(state.value)
+  );
+  const description =
+    state.configuration.find((s) => s.description)?.description ?? '--';
+  const nextTransitions = state.configuration
+    .map((sn) => Object.values(sn.on ?? {}))
+    .flat(2);
 
   return (
-    <>
+    <div>
+      <h1>
+        Step {index + 1} of {shortestPaths[0]?.steps.length}
+      </h1>
       <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        <h2>{description}</h2>
+        {nextTransitions.map((t) => {
+          return (
+            <button
+              onClick={() => send({ type: t.eventType })}
+              key={t.eventType}
+            >
+              {t.meta?.title ?? t.eventType}
+            </button>
+          );
+        })}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
   );
 }
 
