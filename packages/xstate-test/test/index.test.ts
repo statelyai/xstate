@@ -253,7 +253,7 @@ it('tests transitions', async () => {
   await paths[0].test({
     events: {
       NEXT: (step) => {
-        expect(step).toHaveProperty('event');
+        expect(step).toHaveProperty('nextEvent');
         expect(step).toHaveProperty('state');
       }
     }

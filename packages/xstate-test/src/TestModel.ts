@@ -1,7 +1,7 @@
 import {
   getPathsFromEvents,
   getAdjacencyMap,
-  joinPaths2,
+  joinPaths,
   AdjacencyValue
 } from '@xstate/graph';
 import type {
@@ -99,7 +99,7 @@ export class TestModel<TState, TEvent extends EventObject> {
         fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
-        resultPaths.push(this.toTestPath(joinPaths2(path, shortestPath)));
+        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
       }
     }
 
@@ -124,7 +124,7 @@ export class TestModel<TState, TEvent extends EventObject> {
         fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
-        resultPaths.push(this.toTestPath(joinPaths2(path, shortestPath)));
+        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
       }
     }
 
@@ -283,28 +283,28 @@ export class TestModel<TState, TEvent extends EventObject> {
         testPathResult.steps.push(testStepResult);
 
         try {
-          await this.testState(params, step.state, options);
-        } catch (err: any) {
-          testStepResult.state.error = err;
-
-          throw err;
-        }
-
-        try {
           await this.testTransition(params, step);
         } catch (err: any) {
           testStepResult.event.error = err;
 
           throw err;
         }
+
+        try {
+          await this.testState(params, step.state, options);
+        } catch (err: any) {
+          testStepResult.state.error = err;
+
+          throw err;
+        }
       }
 
-      try {
-        await this.testState(params, path.state, options);
-      } catch (err: any) {
-        testPathResult.state.error = err.message;
-        throw err;
-      }
+      // try {
+      //   await this.testState(params, path.state, options);
+      // } catch (err: any) {
+      //   testPathResult.state.error = err.message;
+      //   throw err;
+      // }
     } catch (err: any) {
       // TODO: make option
       err.message += formatPathTestResult(path, testPathResult, this.options);
