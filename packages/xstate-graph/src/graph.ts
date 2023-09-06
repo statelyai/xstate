@@ -226,6 +226,7 @@ export function joinPaths<TState, TEvent extends EventObject>(
 
   return {
     state: tailPath.state,
+    // e.g. [A, B, C] + [C, D, E] = [A, B, C, D, E]
     steps: headPath.steps.concat(tailPath.steps.slice(1)),
     weight: headPath.weight + tailPath.weight
   };
