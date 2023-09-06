@@ -94,7 +94,8 @@ describe('@xstate/graph', () => {
   }
   type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
-  const condMachine = createMachine<CondMachineCtx, CondMachineEvents>({
+  const condMachine = createMachine({
+    types: {} as { context: CondMachineCtx; events: CondMachineEvents },
     initial: 'pending',
     context: {
       id: undefined
@@ -218,7 +219,8 @@ describe('@xstate/graph', () => {
     });
 
     it.skip('should represent conditional paths based on context', () => {
-      const machine = createMachine<CondMachineCtx, CondMachineEvents>({
+      const machine = createMachine({
+        types: {} as { context: CondMachineCtx; events: CondMachineEvents },
         initial: 'pending',
         context: {
           id: 'foo'
@@ -408,7 +410,8 @@ describe('@xstate/graph', () => {
         type: 'INC';
         value: number;
       }
-      const countMachine = createMachine<Ctx, Events>({
+      const countMachine = createMachine({
+        types: {} as { context: Ctx; events: Events },
         id: 'count',
         initial: 'start',
         context: {
@@ -568,7 +571,8 @@ it('shortest paths for transition functions', () => {
 
 describe('filtering', () => {
   it('should not traverse past filtered states', () => {
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
       initial: 'counting',
       context: { count: 0 },
       states: {

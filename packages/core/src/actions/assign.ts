@@ -5,6 +5,7 @@ import type {
   ActionArgs,
   AnyActorContext,
   AnyActorRef,
+  AnyEventObject,
   AnyState,
   AssignArgs,
   Assigner,
@@ -73,6 +74,14 @@ function resolve(
   ];
 }
 
+export interface AssignAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+}
+
 /**
  * Updates the current context of the machine.
  *
@@ -80,7 +89,7 @@ function resolve(
  */
 export function assign<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject = EventObject,
+  TExpressionEvent extends AnyEventObject = AnyEventObject, // TODO: consider using a stricter `EventObject` here
   TExpressionAction extends ParameterizedObject | undefined =
     | ParameterizedObject
     | undefined
@@ -88,7 +97,7 @@ export function assign<
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
     | PropertyAssigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
-) {
+): AssignAction<TContext, TExpressionEvent, TExpressionAction> {
   function assign(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {

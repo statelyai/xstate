@@ -1,32 +1,27 @@
 import {
   MachineConfig,
-  EventObject,
   MachineContext,
   InternalMachineImplementations,
   ParameterizedObject,
   ProvidedActor,
-  AnyEventObject,
   NonReducibleUnknown,
-  Prop
+  Prop,
+  AnyEventObject
 } from './types.ts';
-import {
-  TypegenConstraint,
-  TypegenDisabled,
-  ResolveTypegenMeta
-} from './typegenTypes.ts';
+import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TTag extends string = string,
-  TInput = any,
-  TOutput = NonReducibleUnknown,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TTypesMeta extends TypegenConstraint
 >(
   config: MachineConfig<
     TContext,

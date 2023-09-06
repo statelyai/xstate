@@ -13,7 +13,8 @@ import { createMemo, createSignal, from } from 'solid-js';
 describe('usage of selectors with reactive service state', () => {
   // TODO: rewrite this test to not use `from()`
   it.skip('only rerenders for selected values', () => {
-    const machine = createMachine<{ count: number; other: number }>({
+    const machine = createMachine({
+      types: {} as { context: { count: number; other: number } },
       initial: 'active',
       context: {
         other: 0,
@@ -80,7 +81,11 @@ describe('usage of selectors with reactive service state', () => {
 
   // TODO: rewrite this test to not use `from()`
   it.skip('should work with a custom comparison function', () => {
-    const machine = createMachine<{ name: string }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { name: string };
+        events: { type: 'CHANGE'; value: string };
+      },
       initial: 'active',
       context: {
         name: 'david'
@@ -141,7 +146,8 @@ describe('usage of selectors with reactive service state', () => {
   });
 
   it('should work with selecting values from initially spawned actors', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },
@@ -196,7 +202,8 @@ describe('usage of selectors with reactive service state', () => {
   });
 
   it('should rerender with a new value when the selector changes', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },
@@ -242,7 +249,8 @@ describe('usage of selectors with reactive service state', () => {
 
   it('should update selector value when actor changes', () => {
     const childMachine = (count: number) =>
-      createMachine<{ count: number }>({
+      createMachine({
+        types: {} as { context: { count: number } },
         initial: 'active',
         context: {
           count
@@ -302,7 +310,8 @@ describe('usage of selectors with reactive service state', () => {
   });
 
   it('should use a fresh selector for subscription updates after selector change', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },

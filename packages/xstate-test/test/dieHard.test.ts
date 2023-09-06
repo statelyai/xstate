@@ -65,8 +65,9 @@ describe('die hard example', () => {
   let jugs: Jugs;
 
   const createDieHardModel = () => {
-    const dieHardMachine = createMachine<DieHardContext>(
+    const dieHardMachine = createMachine(
       {
+        types: {} as { context: DieHardContext },
         id: 'dieHard',
         initial: 'pending',
         context: { three: 0, five: 0 },

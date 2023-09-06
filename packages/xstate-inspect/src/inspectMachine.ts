@@ -24,12 +24,13 @@ export function createInspectMachine(
     serviceMap.set(service.sessionId, service);
   });
 
-  return createMachine<
-    {
-      client?: Pick<ActorRef<any>, 'send'>;
+  return createMachine({
+    types: {} as {
+      context: {
+        client?: Pick<ActorRef<any>, 'send'>;
+      };
+      events: InspectMachineEvent;
     },
-    InspectMachineEvent
-  >({
     initial: 'pendingConnection',
     context: {
       client: undefined
