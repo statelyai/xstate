@@ -390,16 +390,6 @@ export function reportUnhandledExceptionOnInvocation(
   }
 }
 
-export function toInvokeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(invocable: AnyInvokeConfig, id: string) {
-  return {
-    id,
-    src: invocable.src
-  };
-}
-
 export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,

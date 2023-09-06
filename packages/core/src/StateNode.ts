@@ -34,10 +34,8 @@ import type {
 } from './types.ts';
 import {
   createInvokeId,
-  flatten,
   mapValues,
   toArray,
-  toInvokeConfig,
   toTransitionConfigArray
 } from './utils.ts';
 
