@@ -5,12 +5,12 @@ import { after, done, raise } from './actions.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
-import { stopSignalType } from './actors/index.ts';
 import {
-  INIT_TYPE,
+  XSTATE_INIT,
   NULL_EVENT,
   STATE_DELIMITER,
   STATE_IDENTIFIER,
+  XSTATE_STOP,
   WILDCARD
 } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
@@ -1506,7 +1506,7 @@ export function macrostep(
   const states: AnyState[] = [];
 
   // Handle stop event
-  if (event.type === stopSignalType) {
+  if (event.type === XSTATE_STOP) {
     nextState = stopStep(event, nextState, actorCtx);
     states.push(nextState);
 
@@ -1520,7 +1520,7 @@ export function macrostep(
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (nextEvent.type !== INIT_TYPE) {
+  if (nextEvent.type !== XSTATE_INIT) {
     const transitions = selectTransitions(nextEvent, nextState);
     nextState = microstep(transitions, state, actorCtx, nextEvent, false);
     states.push(nextState);
