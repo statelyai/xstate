@@ -298,10 +298,9 @@ export class StateNode<
   > {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
-        const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
-        const src = invokeConfig.src;
-        const { systemId } = invokeConfig;
+        const { src, systemId } = invokeConfig;
 
+        const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
         // TODO: resolving should not happen here
         const resolvedSrc =
           typeof src === 'string' ? src : !('type' in src) ? resolvedId : src;
