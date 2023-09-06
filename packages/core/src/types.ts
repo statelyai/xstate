@@ -303,11 +303,6 @@ export type AnyTransitionConfig = TransitionConfig<
   any
 >;
 
-export interface InvokeMeta {
-  src: string;
-  meta: MetaObject | undefined;
-}
-
 export interface InvokeDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -372,7 +367,6 @@ export interface InvokeDefinition<
     InvokeDefinition<TContext, TEvent, TAction, TGuard, TDelay>,
     'onDone' | 'onError' | 'toJSON'
   >;
-  meta: MetaObject | undefined;
 }
 
 type Delay<TDelay extends string> = TDelay | number;
@@ -564,10 +558,6 @@ type DistributeActors<
                 TDelay
               >
             >;
-        /**
-         * Meta data related to this invocation
-         */
-        meta?: MetaObject;
       } & (TActor['id'] extends string
         ? {
             /**
@@ -654,10 +644,6 @@ export type InvokeConfig<
               TDelay
             >
           >;
-      /**
-       * Meta data related to this invocation
-       */
-      meta?: MetaObject;
     };
 
 export type AnyInvokeConfig = InvokeConfig<any, any, any, any, any, any>;

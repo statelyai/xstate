@@ -430,34 +430,6 @@ export class StateNode<
   }
 
   /**
-   * The target state value of the history state node, if it exists. This represents the
-   * default state value to transition to if no history value exists yet.
-   */
-  public get target(): string | undefined {
-    if (this.type === 'history') {
-      const historyConfig = this.config as HistoryStateNodeConfig<
-        TContext,
-        TEvent
-      >;
-      return historyConfig.target;
-    }
-
-    return undefined;
-  }
-
-  /**
-   * All the state node IDs of this state node and its descendant state nodes.
-   */
-  public get stateIds(): string[] {
-    const childStateIds = flatten(
-      Object.keys(this.states).map((stateKey) => {
-        return this.states[stateKey].stateIds;
-      })
-    );
-    return [this.id].concat(childStateIds);
-  }
-
-  /**
    * All the event types accepted by this state node and its descendants.
    */
   public get events(): Array<TEvent['type']> {
