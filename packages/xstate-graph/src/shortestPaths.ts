@@ -103,15 +103,19 @@ export function getShortestPaths<
 
   weightMap.forEach(
     ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
+      weightMap;
+
       const state = stateMap.get(stateSerial)!;
+      const steps = !fromState
+        ? []
+        : statePlanMap[fromState].paths[0].steps.concat({
+            state: stateMap.get(fromState)!,
+            nextEvent: fromEvent!
+          });
+
       paths.push({
         state,
-        steps: !fromState
-          ? []
-          : statePlanMap[fromState].paths[0].steps.concat({
-              state: stateMap.get(fromState)!,
-              event: fromEvent!
-            }),
+        steps,
         weight
       });
       statePlanMap[stateSerial] = {
@@ -119,12 +123,7 @@ export function getShortestPaths<
         paths: [
           {
             state,
-            steps: !fromState
-              ? []
-              : statePlanMap[fromState].paths[0].steps.concat({
-                  state: stateMap.get(fromState)!,
-                  event: fromEvent!
-                }),
+            steps,
             weight
           }
         ]
@@ -133,8 +132,41 @@ export function getShortestPaths<
   );
 
   if (resolvedOptions.toState) {
-    return paths.filter((path) => resolvedOptions.toState!(path.state));
+    return paths
+      .filter((path) => resolvedOptions.toState!(path.state))
+      .map(alterPath);
   }
 
-  return paths;
+  return paths.map(alterPath);
+}
+
+export function alterPath<T extends StatePath<any, any>>(path: T): T {
+  let steps: T['steps'] = [];
+
+  if (!path.steps.length) {
+    steps = [
+      {
+        state: path.state,
+        nextEvent: { type: 'xstate.init' } as any
+      }
+    ];
+  } else {
+    for (let i = 0; i < path.steps.length; i++) {
+      const step = path.steps[i];
+
+      steps.push({
+        state: step.state,
+        nextEvent:
+          i === 0 ? { type: 'xstate.init' } : path.steps[i - 1].nextEvent
+      });
+    }
+    steps.push({
+      state: path.state,
+      nextEvent: path.steps[path.steps.length - 1].nextEvent
+    });
+  }
+  return {
+    ...path,
+    steps
+  };
 }

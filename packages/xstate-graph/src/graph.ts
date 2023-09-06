@@ -215,18 +215,18 @@ export function resolveTraversalOptions<
 }
 
 export function joinPaths<TState, TEvent extends EventObject>(
-  path1: StatePath<TState, TEvent>,
-  path2: StatePath<TState, TEvent>
+  headPath: StatePath<TState, TEvent>,
+  tailPath: StatePath<TState, TEvent>
 ): StatePath<TState, TEvent> {
-  const secondPathSource = path2.steps[0]?.state ?? path2.state;
+  const secondPathSource = tailPath.steps[0].state;
 
-  if (secondPathSource !== path1.state) {
+  if (secondPathSource !== headPath.state) {
     throw new Error(`Paths cannot be joined`);
   }
 
   return {
-    state: path2.state,
-    steps: path1.steps.concat(path2.steps),
-    weight: path1.weight + path2.weight
+    state: tailPath.state,
+    steps: headPath.steps.concat(tailPath.steps.slice(1)),
+    weight: headPath.weight + tailPath.weight
   };
 }

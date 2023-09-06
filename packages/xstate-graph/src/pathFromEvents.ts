@@ -12,6 +12,7 @@ import {
   createDefaultMachineOptions,
   createDefaultLogicOptions
 } from './graph';
+import { alterPath } from './shortestPaths';
 
 function isMachine(value: any): value is AnyStateMachine {
   return !!value && '__xstatenode' in value;
@@ -61,7 +62,7 @@ export function getPathsFromEvents<
   for (const event of events) {
     steps.push({
       state: stateMap.get(stateSerial)!,
-      event
+      nextEvent: event
     });
 
     const eventSerial = serializeEvent(event) as SerializedEvent;
@@ -92,10 +93,10 @@ export function getPathsFromEvents<
   }
 
   return [
-    {
+    alterPath({
       state,
       steps,
       weight: steps.length
-    }
+    })
   ];
 }

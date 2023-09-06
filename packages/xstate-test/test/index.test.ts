@@ -125,7 +125,7 @@ describe('events', () => {
 
     await testUtils.testPaths(paths, {
       events: {
-        EVENT: ({ event }) => {
+        EVENT: ({ nextEvent: event }) => {
           testedEvents.push(event);
         }
       }
@@ -289,7 +289,7 @@ it('Event in event executor should contain payload from case', async () => {
     {
       events: {
         NEXT: (step) => {
-          expect(step.event).toEqual({
+          expect(step.nextEvent).toEqual({
             type: 'NEXT',
             payload: 10,
             fn: nonSerializableData

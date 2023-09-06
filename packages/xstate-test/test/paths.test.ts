@@ -57,7 +57,7 @@ describe('testModel.testPaths(...)', () => {
           steps: [
             {
               state: initialState,
-              event: events[0]
+              nextEvent: events[0]
             }
           ],
           weight: 1

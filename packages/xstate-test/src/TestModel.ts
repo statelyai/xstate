@@ -1,7 +1,7 @@
 import {
   getPathsFromEvents,
   getAdjacencyMap,
-  joinPaths,
+  joinPaths2,
   AdjacencyValue
 } from '@xstate/graph';
 import type {
@@ -99,7 +99,7 @@ export class TestModel<TState, TEvent extends EventObject> {
         fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
-        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
+        resultPaths.push(this.toTestPath(joinPaths2(path, shortestPath)));
       }
     }
 
@@ -124,7 +124,7 @@ export class TestModel<TState, TEvent extends EventObject> {
         fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
-        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
+        resultPaths.push(this.toTestPath(joinPaths2(path, shortestPath)));
       }
     }
 
@@ -145,7 +145,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     }
 
     const eventsString = statePath.steps
-      .map((s) => formatEvent(s.event))
+      .map((s) => formatEvent(s.nextEvent))
       .join(' → ');
     return {
       ...statePath,
@@ -368,7 +368,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     step: Step<TState, TEvent>
   ) {
     const eventExec =
-      params.events?.[(step.event as any).type as TEvent['type']];
+      params.events?.[(step.nextEvent as any).type as TEvent['type']];
 
     return eventExec;
   }
@@ -389,7 +389,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
     errorIfPromise(
       (eventExec as EventExecutor<TState, TEvent>)?.(step),
-      `The event '${step.event.type}' returned a promise - did you mean to use the sync method?`
+      `The event '${step.nextEvent.type}' returned a promise - did you mean to use the sync method?`
     );
   }
 
