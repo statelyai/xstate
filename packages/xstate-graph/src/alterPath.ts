@@ -1,5 +1,6 @@
 import { StatePath } from './types';
 
+// TODO: rewrite parts of the algorithm leading to this to make this function obsolete
 export function alterPath<T extends StatePath<any, any>>(path: T): T {
   let steps: T['steps'] = [];
 
