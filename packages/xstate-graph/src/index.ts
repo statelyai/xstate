@@ -6,8 +6,8 @@ export {
   toDirectedGraph,
   joinPaths
 } from './graph.ts';
-export { getMachineSimplePaths, getSimplePaths } from './simplePaths.ts';
-export { getShortestPaths, getMachineShortestPaths } from './shortestPaths.ts';
+export { getSimplePaths } from './simplePaths.ts';
+export { getShortestPaths } from './shortestPaths.ts';
 export { getPathsFromEvents } from './pathFromEvents.ts';
 export { getAdjacencyMap } from './adjacency.ts';
 

@@ -1,8 +1,8 @@
 import { assign, createMachine } from 'xstate';
 import { joinPaths } from '../src/graph';
-import { getMachineShortestPaths } from '../src/shortestPaths';
+import { getShortestPaths } from '../src/shortestPaths';
 
-describe('getMachineShortestPaths', () => {
+describe('getShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
     const m = createMachine({
       types: {} as { context: { count: number } },
@@ -39,7 +39,7 @@ describe('getMachineShortestPaths', () => {
       }
     });
 
-    const p = getMachineShortestPaths(m, {
+    const p = getShortestPaths(m, {
       toState: (state) => state.matches('c')
     });
 
@@ -75,11 +75,11 @@ describe('getMachineShortestPaths', () => {
       }
     });
 
-    const pathsToB = getMachineShortestPaths(m, {
+    const pathsToB = getShortestPaths(m, {
       toState: (state) => state.matches('b')
     });
     const paths = pathsToB.flatMap((path) => {
-      const pathsToY = getMachineShortestPaths(m, {
+      const pathsToY = getShortestPaths(m, {
         fromState: path.state,
         toState: (state) => state.matches('y')
       });
@@ -92,6 +92,7 @@ describe('getMachineShortestPaths', () => {
     expect(paths).toHaveLength(1);
     expect(paths[0].steps.map((s) => s.event.type)).toMatchInlineSnapshot(`
       [
+        "xstate.init",
         "TO_B",
         "NEXT_B_TO_X",
         "NEXT_X_TO_Y",
@@ -119,7 +120,7 @@ describe('getMachineShortestPaths', () => {
       }
     });
 
-    const shortestPaths = getMachineShortestPaths(machine, {
+    const shortestPaths = getShortestPaths(machine, {
       events: [
         {
           type: 'todo.add',

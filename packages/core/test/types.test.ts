@@ -401,6 +401,60 @@ it('should not widen literal types defined in `schema.context` based on `config.
   });
 });
 
+describe('states', () => {
+  it('should accept a state handling subset of events as part of the whole config handling superset of those events', () => {
+    const italicState = {
+      on: {
+        TOGGLE_BOLD: {
+          actions: () => {}
+        }
+      }
+    };
+
+    const boldState = {
+      on: {
+        TOGGLE_BOLD: {
+          actions: () => {}
+        }
+      }
+    };
+
+    createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
+      },
+      type: 'parallel',
+      states: {
+        italic: italicState,
+        bold: boldState
+      }
+    });
+  });
+
+  // technically it wouldn't be a big problem accepting this, such transitions would just never be selected
+  // it's not worth complicating our types to support this though unless a strong argument is made in favor for this
+  it('should not accept a state handling an event type outside of the events accepted by the machine', () => {
+    const underlineState = {
+      on: {
+        TOGGLE_UNDERLINE: {
+          actions: () => {}
+        }
+      }
+    };
+
+    createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
+      },
+      type: 'parallel',
+      states: {
+        // @ts-expect-error
+        underline: underlineState
+      }
+    });
+  });
+});
+
 describe('events', () => {
   it('should not use actions as possible inference sites 1', () => {
     const machine = createMachine({
@@ -525,6 +579,128 @@ describe('events', () => {
             ((_accept: 'is not any') => {})(event);
           }
         }
+      }
+    });
+  });
+
+  it('should infer inline function parameter with a partial transition descriptor matching multiple events with the matching count of segments', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        'mouse.click.*': {
+          actions: ({ event }) => {
+            ((_accept: 'mouse.click.up' | 'mouse.click.down') => {})(
+              event.type
+            );
+            ((_accept: 'up' | 'down') => {})(event.direction);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should infer inline function parameter with a partial transition descriptor matching multiple events with the same count of segments or more', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        'mouse.*': {
+          actions: ({ event }) => {
+            ((
+              _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+            ) => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'mouse.doubleClick': {}
+      }
+    });
+  });
+
+  it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'mouse.doubleClick': {}
+      }
+    });
+  });
+
+  it(`should infer inline function parameter only using a direct match when the transition descriptor doesn't has a trailing wildcard`, () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        mouse: {
+          actions: ({ event }) => {
+            ((_accept: 'mouse') => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should not allow a transition using a partial descriptor related to an event type that is only defined exxactly', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'keypress.*': {}
       }
     });
   });

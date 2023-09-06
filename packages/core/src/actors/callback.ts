@@ -9,7 +9,7 @@ import {
 } from '../types';
 import { isPromiseLike } from '../utils';
 import { doneInvoke, error } from '../actions.ts';
-import { startSignalType, stopSignalType, isSignal } from '../actors/index.ts';
+import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
 export interface CallbackInternalState<
   TEvent extends EventObject,
@@ -69,10 +69,10 @@ export function fromCallback<TEvent extends EventObject, TInput>(
   return {
     config: invokeCallback,
     start: (_state, { self }) => {
-      self.send({ type: startSignalType } as TEvent);
+      self.send({ type: XSTATE_INIT } as TEvent);
     },
     transition: (state, event, { self, id, system }) => {
-      if (event.type === startSignalType) {
+      if (event.type === XSTATE_INIT) {
         const sendBack = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
             return;
@@ -108,17 +108,12 @@ export function fromCallback<TEvent extends EventObject, TInput>(
         return state;
       }
 
-      if (event.type === stopSignalType) {
+      if (event.type === XSTATE_STOP) {
         state.canceled = true;
 
         if (typeof state.dispose === 'function') {
           state.dispose();
         }
-        return state;
-      }
-
-      if (isSignal(event)) {
-        // TODO: unrecognized signal
         return state;
       }
 

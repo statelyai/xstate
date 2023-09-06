@@ -20,7 +20,7 @@ export function getAdjacencyMap<
     traversalLimit: limit,
     fromState: customFromState,
     stopCondition
-  } = resolveTraversalOptions(options);
+  } = resolveTraversalOptions(logic, options);
   const actorContext = { self: {} } as any; // TODO: figure out the simulation API
   const fromState =
     customFromState ?? logic.getInitialState(actorContext, undefined);

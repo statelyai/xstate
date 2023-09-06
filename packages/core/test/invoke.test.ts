@@ -2964,38 +2964,6 @@ describe('invoke', () => {
     });
   });
 
-  describe('meta data', () => {
-    it('should show meta data', () => {
-      const machine = createMachine({
-        invoke: {
-          src: 'someSource',
-          meta: {
-            url: 'stately.ai'
-          }
-        }
-      });
-
-      expect(machine.root.invoke[0].meta).toEqual({ url: 'stately.ai' });
-    });
-
-    it('meta data should be available in the invoke source function', () => {
-      expect.assertions(1);
-      const machine = createMachine({
-        invoke: {
-          src: fromPromise(({ input }) => {
-            expect(input).toEqual({ url: 'stately.ai' });
-            return Promise.resolve();
-          }),
-          input: {
-            url: 'stately.ai'
-          }
-        }
-      });
-
-      createActor(machine).start();
-    });
-  });
-
   it('invoke generated ID should be predictable based on the state node where it is defined', (done) => {
     const machine = createMachine(
       {

@@ -5,7 +5,7 @@ import {
   DoneEventObject
 } from './types.ts';
 import * as constantPrefixes from './constantPrefixes.ts';
-import { INIT_TYPE } from './constants.ts';
+import { XSTATE_INIT } from './constants.ts';
 export { sendTo, sendParent, forwardTo, escalate } from './actions/send.ts';
 
 export { stop } from './actions/stop.ts';
@@ -79,5 +79,5 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
 }
 
 export function createInitEvent(input: unknown) {
-  return { type: INIT_TYPE, input } as const;
+  return { type: XSTATE_INIT, input } as const;
 }
