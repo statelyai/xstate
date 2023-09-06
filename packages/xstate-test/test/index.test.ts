@@ -125,7 +125,7 @@ describe('events', () => {
 
     await testUtils.testPaths(paths, {
       events: {
-        EVENT: ({ event: event }) => {
+        EVENT: ({ event }) => {
           testedEvents.push(event);
         }
       }
