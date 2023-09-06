@@ -206,7 +206,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     return adjList;
   }
 
-  // TODO: remove this
   public testPathSync(
     path: StatePath<TState, TEvent>,
     params: TestParam<TState, TEvent>,
