@@ -2,7 +2,10 @@
   import { createActor, createMachine, assign } from 'xstate';
   import { useSelector } from '../src/index.ts';
 
-  const machine = createMachine<{ name: string }>({
+  const machine = createMachine({
+    types: {} as {
+      context: { name: string };
+    },
     initial: 'active',
     context: {
       name: 'david'
