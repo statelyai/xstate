@@ -5,6 +5,7 @@ import type {
   ActionArgs,
   AnyActorContext,
   AnyActorRef,
+  AnyEventObject,
   AnyState,
   AssignArgs,
   Assigner,
@@ -88,10 +89,8 @@ export interface AssignAction<
  */
 export function assign<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject = EventObject,
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
-    | undefined
+  TExpressionEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TExpressionAction extends ParameterizedObject | undefined
 >(
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>

@@ -13,7 +13,7 @@ import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
   TContext extends MachineContext,
-  TEvent extends AnyEventObject, // consider using a stricter `EventObject` here
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
