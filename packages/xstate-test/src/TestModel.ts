@@ -298,13 +298,6 @@ export class TestModel<TState, TEvent extends EventObject> {
           throw err;
         }
       }
-
-      // try {
-      //   await this.testState(params, path.state, options);
-      // } catch (err: any) {
-      //   testPathResult.state.error = err.message;
-      //   throw err;
-      // }
     } catch (err: any) {
       // TODO: make option
       err.message += formatPathTestResult(path, testPathResult, this.options);

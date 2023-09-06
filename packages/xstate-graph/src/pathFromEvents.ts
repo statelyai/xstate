@@ -62,7 +62,7 @@ export function getPathsFromEvents<
   for (const event of events) {
     steps.push({
       state: stateMap.get(stateSerial)!,
-      event: event
+      event
     });
 
     const eventSerial = serializeEvent(event) as SerializedEvent;
