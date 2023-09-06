@@ -110,7 +110,7 @@ export function getShortestPaths<
         ? []
         : statePlanMap[fromState].paths[0].steps.concat({
             state: stateMap.get(fromState)!,
-            nextEvent: fromEvent!
+            event: fromEvent!
           });
 
       paths.push({
@@ -147,7 +147,7 @@ export function alterPath<T extends StatePath<any, any>>(path: T): T {
     steps = [
       {
         state: path.state,
-        nextEvent: { type: 'xstate.init' } as any
+        event: { type: 'xstate.init' } as any
       }
     ];
   } else {
@@ -156,13 +156,12 @@ export function alterPath<T extends StatePath<any, any>>(path: T): T {
 
       steps.push({
         state: step.state,
-        nextEvent:
-          i === 0 ? { type: 'xstate.init' } : path.steps[i - 1].nextEvent
+        event: i === 0 ? { type: 'xstate.init' } : path.steps[i - 1].event
       });
     }
     steps.push({
       state: path.state,
-      nextEvent: path.steps[path.steps.length - 1].nextEvent
+      event: path.steps[path.steps.length - 1].event
     });
   }
   return {

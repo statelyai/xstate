@@ -89,7 +89,7 @@ describe('getShortestPaths', () => {
     });
 
     expect(paths).toHaveLength(1);
-    expect(paths[0].steps.map((s) => s.nextEvent.type)).toMatchInlineSnapshot(`
+    expect(paths[0].steps.map((s) => s.event.type)).toMatchInlineSnapshot(`
       [
         "xstate.init",
         "TO_B",

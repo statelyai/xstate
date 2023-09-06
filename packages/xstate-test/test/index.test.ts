@@ -125,7 +125,7 @@ describe('events', () => {
 
     await testUtils.testPaths(paths, {
       events: {
-        EVENT: ({ nextEvent: event }) => {
+        EVENT: ({ event: event }) => {
           testedEvents.push(event);
         }
       }
@@ -253,7 +253,7 @@ it('tests transitions', async () => {
   await paths[0].test({
     events: {
       NEXT: (step) => {
-        expect(step).toHaveProperty('nextEvent');
+        expect(step).toHaveProperty('event');
         expect(step).toHaveProperty('state');
       }
     }
@@ -289,7 +289,7 @@ it('Event in event executor should contain payload from case', async () => {
     {
       events: {
         NEXT: (step) => {
-          expect(step.nextEvent).toEqual({
+          expect(step.event).toEqual({
             type: 'NEXT',
             payload: 10,
             fn: nonSerializableData

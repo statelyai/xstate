@@ -28,12 +28,12 @@ describe('types', () => {
     for (const path of createTestModel(machine).getShortestPaths()) {
       path.test({
         events: {
-          a: ({ nextEvent: event }) => {
+          a: ({ event: event }) => {
             ((_accept: 'a') => {})(event.type);
             // @ts-expect-error
             ((_accept: 'b') => {})(event.type);
           },
-          b: ({ nextEvent: event }) => {
+          b: ({ event: event }) => {
             // @ts-expect-error
             ((_accept: 'a') => {})(event.type);
             ((_accept: 'b') => {})(event.type);

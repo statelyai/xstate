@@ -145,7 +145,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     }
 
     const eventsString = statePath.steps
-      .map((s) => formatEvent(s.nextEvent))
+      .map((s) => formatEvent(s.event))
       .join(' → ');
     return {
       ...statePath,
@@ -368,7 +368,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     step: Step<TState, TEvent>
   ) {
     const eventExec =
-      params.events?.[(step.nextEvent as any).type as TEvent['type']];
+      params.events?.[(step.event as any).type as TEvent['type']];
 
     return eventExec;
   }
@@ -389,7 +389,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
     errorIfPromise(
       (eventExec as EventExecutor<TState, TEvent>)?.(step),
-      `The event '${step.nextEvent.type}' returned a promise - did you mean to use the sync method?`
+      `The event '${step.event.type}' returned a promise - did you mean to use the sync method?`
     );
   }
 

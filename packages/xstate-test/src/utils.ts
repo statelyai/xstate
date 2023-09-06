@@ -28,7 +28,7 @@ export function formatPathTestResult(
 
   const targetStateString = serializeState(
     state,
-    path.steps.length ? path.steps[path.steps.length - 1].nextEvent : undefined
+    path.steps.length ? path.steps[path.steps.length - 1].event : undefined
   );
 
   let errMessage = '';
@@ -39,9 +39,9 @@ export function formatPathTestResult(
       .map((s, i, steps) => {
         const stateString = serializeState(
           s.step.state,
-          i > 0 ? steps[i - 1].step.nextEvent : undefined
+          i > 0 ? steps[i - 1].step.event : undefined
         );
-        const eventString = serializeEvent(s.step.nextEvent);
+        const eventString = serializeEvent(s.step.event);
 
         const stateResult = `\tState: ${
           hasFailed

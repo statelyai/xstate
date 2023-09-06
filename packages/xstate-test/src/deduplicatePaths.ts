@@ -21,7 +21,7 @@ export const deduplicatePaths = <TState, TEvent extends EventObject>(
   paths.forEach((path) => {
     allPathsWithEventSequence.push({
       path,
-      eventSequence: path.steps.map((step) => serializeEvent(step.nextEvent))
+      eventSequence: path.steps.map((step) => serializeEvent(step.event))
     });
   });
 

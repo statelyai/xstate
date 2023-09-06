@@ -90,7 +90,7 @@ export function getSimplePaths<
           visitCtx.edges.add(serializedEvent);
           steps.push({
             state: stateMap.get(fromStateSerial)!,
-            nextEvent: subEvent
+            event: subEvent
           });
           util(nextStateSerial, toStateSerial);
         }

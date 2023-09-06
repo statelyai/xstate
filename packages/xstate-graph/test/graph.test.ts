@@ -31,7 +31,7 @@ function getPathSnapshot(path: StatePath<any, any>): {
     state: path.state instanceof State ? path.state.value : path.state,
     steps: path.steps.map((step) => ({
       state: step.state instanceof State ? step.state.value : step.state,
-      eventType: step.nextEvent.type
+      eventType: step.event.type
     }))
   };
 }
@@ -707,7 +707,7 @@ describe('joinPaths()', () => {
 
     const pathToBAndC = joinPaths(pathToB, pathToC);
 
-    expect(pathToBAndC.steps.map((step) => step.nextEvent.type))
+    expect(pathToBAndC.steps.map((step) => step.event.type))
       .toMatchInlineSnapshot(`
       [
         "xstate.init",

@@ -98,13 +98,13 @@ export interface StatePlanMap<TState, TEvent extends EventObject> {
 
 export interface Step<TState, TEvent extends EventObject> {
   /**
+   * The event that resulted in the current state
+   */
+  event: TEvent;
+  /**
    * The current state after taking the event.
    */
   state: TState;
-  /**
-   * The event that resulted in the current state
-   */
-  nextEvent: TEvent;
 }
 
 export type Steps<TState, TEvent extends EventObject> = Array<
