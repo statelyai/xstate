@@ -563,7 +563,9 @@ function resolveHistoryTarget<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(stateNode: AnyStateNode & { type: 'history' }): ReadonlyArray<AnyStateNode> {
-  const normalizedTarget = normalizeTarget<TContext, TEvent>(stateNode.target);
+  const normalizedTarget = normalizeTarget<TContext, TEvent>(
+    stateNode.config.target
+  );
   if (!normalizedTarget) {
     return stateNode.parent!.initial.target;
   }
