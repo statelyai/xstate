@@ -12,11 +12,13 @@ import {
   SerializedEvent,
   SerializedState,
   StatePath,
+  Steps,
   TraversalOptions,
   VisitedContext
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
+import { alterPath } from './alterPath';
 
 export function getSimplePaths<
   TLogic extends AnyActorLogic,
@@ -39,7 +41,7 @@ export function getSimplePaths<
     vertices: new Set(),
     edges: new Set()
   };
-  const path: any[] = [];
+  const steps: Steps<TState, TEvent> = [];
   const pathMap: Record<
     SerializedState,
     { state: TState; paths: Array<StatePath<TState, TEvent>> }
@@ -64,8 +66,8 @@ export function getSimplePaths<
 
       const path2: StatePath<TState, TEvent> = {
         state: fromState,
-        weight: path.length,
-        steps: [...path]
+        weight: steps.length,
+        steps: [...steps]
       };
 
       toStatePlan.paths.push(path2);
@@ -86,7 +88,7 @@ export function getSimplePaths<
 
         if (!visitCtx.vertices.has(nextStateSerial)) {
           visitCtx.edges.add(serializedEvent);
-          path.push({
+          steps.push({
             state: stateMap.get(fromStateSerial)!,
             event: subEvent
           });
@@ -95,7 +97,7 @@ export function getSimplePaths<
       }
     }
 
-    path.pop();
+    steps.pop();
     visitCtx.vertices.delete(fromStateSerial);
   }
 
@@ -109,8 +111,10 @@ export function getSimplePaths<
   const simplePaths = Object.values(pathMap).flatMap((p) => p.paths);
 
   if (resolvedOptions.toState) {
-    return simplePaths.filter((path) => resolvedOptions.toState!(path.state));
+    return simplePaths
+      .filter((path) => resolvedOptions.toState!(path.state))
+      .map(alterPath);
   }
 
-  return simplePaths;
+  return simplePaths.map(alterPath);
 }
