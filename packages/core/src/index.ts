@@ -1,5 +1,5 @@
 import { doneInvoke, forwardTo, sendParent, sendTo } from './actions.ts';
-export { assign } from './actions/assign.ts';
+export { assign, type AssignAction } from './actions/assign.ts';
 export { cancel } from './actions/cancel.ts';
 export { choose } from './actions/choose.ts';
 export { log } from './actions/log.ts';

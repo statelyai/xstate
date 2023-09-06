@@ -73,7 +73,7 @@ function resolve(
   ];
 }
 
-interface AssignAction<
+export interface AssignAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined
