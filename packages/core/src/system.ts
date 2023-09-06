@@ -24,6 +24,13 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
     get: (systemId) => {
       return keyedActors.get(systemId) as T['actors'][any];
     },
+    *[Symbol.iterator]() {
+      for (const [sessionId, actorRef] of children) {
+        const systemId = reverseKeyedActors.get(actorRef);
+
+        yield [sessionId, actorRef, systemId];
+      }
+    },
     _set: (systemId, actorRef) => {
       const existing = keyedActors.get(systemId);
       if (existing && existing !== actorRef) {

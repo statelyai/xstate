@@ -21,6 +21,7 @@ import { StateNode } from './StateNode.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { StateMachine } from './StateMachine.ts';
 export { getStateNodes } from './stateUtils.ts';
+export { createSystemObservable } from './systemObservable.ts';
 export { waitFor } from './waitFor.ts';
 export * from './typegenTypes.ts';
 export * from './types.ts';
