@@ -12,7 +12,7 @@ import {
   createDefaultMachineOptions,
   createDefaultLogicOptions
 } from './graph';
-import { alterPath } from './shortestPaths';
+import { alterPath } from './alterPath';
 
 function isMachine(value: any): value is AnyStateMachine {
   return !!value && '__xstatenode' in value;

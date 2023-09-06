@@ -18,7 +18,7 @@ import {
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
-import { alterPath } from './shortestPaths';
+import { alterPath } from './alterPath';
 
 export function getSimplePaths<
   TLogic extends AnyActorLogic,
