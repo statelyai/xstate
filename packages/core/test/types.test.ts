@@ -3345,7 +3345,7 @@ describe('meta', () => {
   it('event meta', () => {
     createMachine({
       types: {
-        eventMeta: {} as { title: string }
+        transitionMeta: {} as { title: string }
       },
       initial: 'a',
       on: {

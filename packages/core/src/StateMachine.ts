@@ -63,7 +63,7 @@ export class StateMachine<
   TInput,
   TOutput,
   TStateMeta extends MetaObject,
-  TEventMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
@@ -104,7 +104,7 @@ export class StateMachine<
     TInput,
     TOutput,
     TStateMeta,
-    TEventMeta,
+    TTransitionMeta,
     TResolvedTypesMeta
   >;
 
@@ -191,7 +191,7 @@ export class StateMachine<
     TInput,
     TOutput,
     TStateMeta,
-    TEventMeta,
+    TTransitionMeta,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta

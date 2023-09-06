@@ -28,7 +28,7 @@ export function createMachine<
   TInput = any,
   TOutput = NonReducibleUnknown,
   TStateMeta extends MetaObject = MetaObject,
-  TEventMeta extends MetaObject = MetaObject,
+  TTransitionMeta extends MetaObject = MetaObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<
@@ -42,7 +42,7 @@ export function createMachine<
     TInput,
     TOutput,
     TStateMeta,
-    TEventMeta,
+    TTransitionMeta,
     TTypesMeta
   >,
   implementations?: InternalMachineImplementations<
@@ -84,7 +84,7 @@ export function createMachine<
   TInput,
   TOutput,
   TStateMeta,
-  TEventMeta,
+  TTransitionMeta,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
   return new StateMachine<
@@ -99,6 +99,6 @@ export function createMachine<
     any,
     any,
     any, // TStateMeta
-    any // TEventMeta
+    any // TTransitionMeta
   >(config as any, implementations as any);
 }
