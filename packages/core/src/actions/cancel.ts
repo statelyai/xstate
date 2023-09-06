@@ -34,6 +34,14 @@ function execute(actorContext: AnyActorContext, resolvedSendId: string) {
   (actorContext.self as AnyActor).cancel(resolvedSendId);
 }
 
+export interface CancelAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+}
+
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
  * be executed, nor will its event be sent, unless it has already been sent
@@ -45,7 +53,9 @@ export function cancel<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined
->(sendId: ResolvableSendId<TContext, TExpressionEvent, TExpressionAction>) {
+>(
+  sendId: ResolvableSendId<TContext, TExpressionEvent, TExpressionAction>
+): CancelAction<TContext, TExpressionEvent, TExpressionAction> {
   function cancel(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {
