@@ -89,8 +89,10 @@ export interface AssignAction<
  */
 export function assign<
   TContext extends MachineContext,
-  TExpressionEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionEvent extends AnyEventObject = AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TExpressionAction extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined
 >(
   assignment:
     | Assigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
