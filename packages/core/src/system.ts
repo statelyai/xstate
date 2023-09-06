@@ -1,6 +1,6 @@
 import { ActorSystem, ActorSystemInfo, AnyActorRef } from './types.js';
 
-import { interpret } from './interpreter.ts';
+import { createActor } from './interpreter.ts';
 
 let count = 0;
 export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
@@ -57,7 +57,7 @@ export function createSystem<T extends ActorSystemInfo>(): ActorSystem<T> {
     _system: systemState
   };
 
-  const system = interpret(logic);
+  const system = createActor(logic);
 
   system.get = systemState.get;
   system._set = systemState._set;
