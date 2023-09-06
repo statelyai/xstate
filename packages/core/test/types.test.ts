@@ -2041,9 +2041,9 @@ describe('actions', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // @ts-expect-error
       entry: {
         type: 'greet',
+        // @ts-expect-error
         params: {}
       }
     });
