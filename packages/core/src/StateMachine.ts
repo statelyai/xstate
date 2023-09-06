@@ -44,7 +44,8 @@ import type {
   ProvidedActor,
   AnyActorRef,
   Equals,
-  TODO
+  TODO,
+  MetaObject
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -61,6 +62,8 @@ export class StateMachine<
   TTag extends string,
   TInput,
   TOutput,
+  TStateMeta extends MetaObject,
+  TEventMeta extends MetaObject,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
@@ -100,6 +103,8 @@ export class StateMachine<
     TTag,
     TInput,
     TOutput,
+    TStateMeta,
+    TEventMeta,
     TResolvedTypesMeta
   >;
 
@@ -128,7 +133,9 @@ export class StateMachine<
       any,
       any,
       TOutput,
-      any
+      any, // state meta
+      any, // event meta
+      any // typegen meta
     >,
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
@@ -183,6 +190,8 @@ export class StateMachine<
     TTag,
     TInput,
     TOutput,
+    TStateMeta,
+    TEventMeta,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta

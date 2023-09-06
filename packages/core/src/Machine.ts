@@ -7,7 +7,8 @@ import {
   ProvidedActor,
   AnyEventObject,
   NonReducibleUnknown,
-  Prop
+  Prop,
+  MetaObject
 } from './types.ts';
 import {
   TypegenConstraint,
@@ -26,6 +27,8 @@ export function createMachine<
   TTag extends string = string,
   TInput = any,
   TOutput = NonReducibleUnknown,
+  TStateMeta extends MetaObject = MetaObject,
+  TEventMeta extends MetaObject = MetaObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<
@@ -38,6 +41,8 @@ export function createMachine<
     TTag,
     TInput,
     TOutput,
+    TStateMeta,
+    TEventMeta,
     TTypesMeta
   >,
   implementations?: InternalMachineImplementations<
@@ -78,10 +83,22 @@ export function createMachine<
     string,
   TInput,
   TOutput,
+  TStateMeta,
+  TEventMeta,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
-  return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
-    config as any,
-    implementations as any
-  );
+  return new StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any, // TStateMeta
+    any // TEventMeta
+  >(config as any, implementations as any);
 }

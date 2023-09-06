@@ -380,7 +380,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any, any, any, any> {
+  ): StateMachine<TContext, any, any, any, any, any, any, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -458,6 +458,8 @@ describe('events', () => {
       _machine: StateMachine<
         TContext,
         TEvent,
+        any,
+        any,
         any,
         any,
         any,
@@ -3314,5 +3316,51 @@ describe('tags', () => {
 
     // @ts-expect-error
     actor.getSnapshot().hasTag('other');
+  });
+});
+
+describe('meta', () => {
+  it('state meta', () => {
+    createMachine({
+      types: {
+        stateMeta: {} as { title: string }
+      },
+      initial: 'a',
+      states: {
+        a: {
+          meta: {
+            title: 'string'
+          }
+        },
+        b: {
+          meta: {
+            // @ts-expect-error
+            title: 1234
+          }
+        }
+      }
+    });
+  });
+
+  it('event meta', () => {
+    createMachine({
+      types: {
+        eventMeta: {} as { title: string }
+      },
+      initial: 'a',
+      on: {
+        event: {
+          meta: {
+            title: 'string'
+          }
+        },
+        // @ts-expect-error (wish it was at `title` though)
+        wrong: {
+          meta: {
+            title: 1234
+          }
+        }
+      }
+    });
   });
 });

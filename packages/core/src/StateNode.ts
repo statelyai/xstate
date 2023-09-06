@@ -128,6 +128,8 @@ export class StateNode<
     TODO, // guards
     TODO, // delays
     TODO, // tags
+    TODO, // state meta
+    TODO, // event meta
     TODO // types meta
   >;
   /**
@@ -162,7 +164,9 @@ export class StateNode<
       TODO, // output
       TODO, // guards
       TODO, // delays
-      TODO // tags
+      TODO, // tags,
+      TODO, // state meta
+      TODO // event meta
     >,
     options: StateNodeOptions<TContext, TEvent>
   ) {
@@ -295,7 +299,8 @@ export class StateNode<
       TEvent,
       ParameterizedObject,
       ParameterizedObject,
-      string
+      string,
+      TODO
     >
   > {
     return memo(this, 'invoke', () =>
@@ -341,7 +346,8 @@ export class StateNode<
           TEvent,
           ParameterizedObject,
           ParameterizedObject,
-          string
+          string,
+          TODO
         >;
       })
     );
