@@ -3,7 +3,10 @@ import {
   AnyStateMachine,
   StateFrom,
   EventFrom,
-  ActorLogic
+  ActorLogic,
+  AnyActorLogic,
+  SnapshotFrom,
+  EventFromLogic
 } from 'xstate';
 import {
   SerializedEvent,
@@ -14,12 +17,17 @@ import {
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
+import { alterPath } from './alterPath';
 
-export function getShortestPaths<TState, TEvent extends EventObject>(
-  logic: ActorLogic<TEvent, TState>,
+export function getShortestPaths<
+  TLogic extends AnyActorLogic,
+  TState extends SnapshotFrom<TLogic>,
+  TEvent extends EventFromLogic<TLogic>
+>(
+  logic: TLogic,
   options?: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
+  const resolvedOptions = resolveTraversalOptions(logic, options);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
@@ -97,14 +105,16 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   weightMap.forEach(
     ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
       const state = stateMap.get(stateSerial)!;
+      const steps = !fromState
+        ? []
+        : statePlanMap[fromState].paths[0].steps.concat({
+            state: stateMap.get(fromState)!,
+            event: fromEvent!
+          });
+
       paths.push({
         state,
-        steps: !fromState
-          ? []
-          : statePlanMap[fromState].paths[0].steps.concat({
-              state: stateMap.get(fromState)!,
-              event: fromEvent!
-            }),
+        steps,
         weight
       });
       statePlanMap[stateSerial] = {
@@ -112,12 +122,7 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
         paths: [
           {
             state,
-            steps: !fromState
-              ? []
-              : statePlanMap[fromState].paths[0].steps.concat({
-                  state: stateMap.get(fromState)!,
-                  event: fromEvent!
-                }),
+            steps,
             weight
           }
         ]
@@ -126,20 +131,10 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   );
 
   if (resolvedOptions.toState) {
-    return paths.filter((path) => resolvedOptions.toState!(path.state));
+    return paths
+      .filter((path) => resolvedOptions.toState!(path.state))
+      .map(alterPath);
   }
 
-  return paths;
-}
-
-export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  const resolvedOptions = resolveTraversalOptions(
-    options,
-    createDefaultMachineOptions(machine, options)
-  );
-
-  return getShortestPaths(machine as any, resolvedOptions);
+  return paths.map(alterPath);
 }

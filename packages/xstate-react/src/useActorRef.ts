@@ -58,6 +58,7 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
             TLogic['__TEvent'],
             TODO,
             TODO,
+            TODO,
             TLogic['__TResolvedTypesMeta'],
             true
           >,
@@ -70,6 +71,7 @@ type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
           InternalMachineImplementations<
             TLogic['__TContext'],
             TLogic['__TEvent'],
+            TODO,
             TODO,
             TODO,
             TLogic['__TResolvedTypesMeta']

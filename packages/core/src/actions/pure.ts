@@ -1,19 +1,22 @@
 import isDevelopment from '#is-development';
 import {
-  Action,
+  Actions,
   ActionArgs,
+  UnknownAction,
   AnyActorContext,
   AnyState,
   EventObject,
   MachineContext,
-  SingleOrArray
+  ParameterizedObject,
+  SingleOrArray,
+  NoInfer
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any>,
+  args: ActionArgs<any, any, any>,
   {
     get
   }: {
@@ -23,20 +26,26 @@ function resolve(
     }: {
       context: MachineContext;
       event: EventObject;
-    }) => SingleOrArray<Action<any, any, any>> | undefined;
+    }) => SingleOrArray<UnknownAction> | undefined;
   }
 ) {
   return [
     state,
     undefined,
-    toArray(get({ context: state.context, event: args.event }))
+    toArray(get({ context: args.context, event: args.event }))
   ];
 }
 
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TEvent extends EventObject = TExpressionEvent,
+  TExpressionAction extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined,
+  TAction extends ParameterizedObject = ParameterizedObject,
+  TGuard extends ParameterizedObject = ParameterizedObject,
+  TDelay extends string = string
 >(
   getActions: ({
     context,
@@ -44,9 +53,19 @@ export function pure<
   }: {
     context: TContext;
     event: TExpressionEvent;
-  }) => SingleOrArray<Action<TContext, TExpressionEvent> | string> | undefined
+  }) =>
+    | Actions<
+        TContext,
+        TExpressionEvent,
+        NoInfer<TEvent>,
+        undefined,
+        NoInfer<TAction>,
+        NoInfer<TGuard>,
+        TDelay
+      >
+    | undefined
 ) {
-  function pure(_: ActionArgs<TContext, TExpressionEvent>) {
+  function pure(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -56,5 +75,11 @@ export function pure<
   pure.get = getActions;
   pure.resolve = resolve;
 
-  return pure;
+  return pure as {
+    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+    _out_TEvent?: TEvent;
+    _out_TAction?: TAction;
+    _out_TGuard?: TGuard;
+    _out_TDelay?: TDelay;
+  };
 }
