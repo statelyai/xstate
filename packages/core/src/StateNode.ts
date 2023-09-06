@@ -301,25 +301,9 @@ export class StateNode<
         const { src, systemId } = invokeConfig;
 
         const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
-        // TODO: resolving should not happen here
-        const resolvedSrc =
-          typeof src === 'string' ? src : !('type' in src) ? resolvedId : src;
-
-        if (
-          !this.machine.implementations.actors[resolvedId] &&
-          typeof src !== 'string' &&
-          !('type' in src)
-        ) {
-          this.machine.implementations.actors = {
-            ...this.machine.implementations.actors,
-            // TODO: this should accept `src` as-is
-            [resolvedId]: src
-          };
-        }
-
         return {
           ...invokeConfig,
-          src: resolvedSrc,
+          src: src,
           id: resolvedId,
           systemId: systemId,
           toJSON() {
@@ -327,7 +311,7 @@ export class StateNode<
             return {
               ...invokeDefValues,
               type: 'xstate.invoke',
-              src: resolvedSrc,
+              src: typeof src === 'string' ? src : resolvedId,
               id: resolvedId
             };
           }

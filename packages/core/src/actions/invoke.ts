@@ -10,7 +10,8 @@ import {
   AnyState,
   EventObject,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  AnyActorLogic
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -26,13 +27,14 @@ function resolve(
   }: {
     id: string;
     systemId: string | undefined;
-    src: string;
+    src: AnyActorLogic | string;
     input?: unknown;
   }
 ) {
-  const referenced = resolveReferencedActor(
-    state.machine.implementations.actors[src]
-  );
+  const referenced =
+    typeof src === 'string'
+      ? resolveReferencedActor(state.machine.implementations.actors[src])
+      : { src, input: undefined };
 
   let actorRef: AnyActorRef | undefined;
 
@@ -41,7 +43,7 @@ function resolve(
     const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
       id,
-      src,
+      src: typeof src === 'string' ? src : undefined,
       parent: actorContext?.self,
       systemId,
       input:
@@ -107,7 +109,7 @@ export function invoke<
 }: {
   id: string;
   systemId: string | undefined;
-  src: string;
+  src: AnyActorLogic | string;
   input?: unknown;
 }) {
   function invoke(
