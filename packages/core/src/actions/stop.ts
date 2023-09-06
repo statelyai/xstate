@@ -64,17 +64,26 @@ function execute(
   });
 }
 
+export interface StopAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+}
+
 /**
  * Stops an actor.
  *
  * @param actorRef The actor to stop.
  */
-
 export function stop<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined
->(actorRef: ResolvableActorRef<TContext, TExpressionEvent, TExpressionAction>) {
+>(
+  actorRef: ResolvableActorRef<TContext, TExpressionEvent, TExpressionAction>
+): StopAction<TContext, TExpressionEvent, TExpressionAction> {
   function stop(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

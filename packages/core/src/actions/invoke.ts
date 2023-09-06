@@ -95,6 +95,15 @@ function execute(
   });
 }
 
+// we don't export this since it's an internal action that is not meant to be used in the user's code
+interface InvokeAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+}
+
 export function invoke<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -109,7 +118,7 @@ export function invoke<
   systemId: string | undefined;
   src: string;
   input?: unknown;
-}) {
+}): InvokeAction<TContext, TExpressionEvent, TExpressionAction> {
   function invoke(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {

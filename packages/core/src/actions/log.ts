@@ -44,6 +44,14 @@ function execute(
   }
 }
 
+export interface LogAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+}
+
 /**
  *
  * @param expr The expression function to evaluate which will be logged.
@@ -62,7 +70,7 @@ export function log<
     event
   }) => ({ context, event }),
   label?: string
-) {
+): LogAction<TContext, TExpressionEvent, TExpressionAction> {
   function log(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
