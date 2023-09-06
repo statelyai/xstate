@@ -103,7 +103,6 @@ export function getShortestPaths<
 
   weightMap.forEach(
     ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
-      weightMap;
 
       const state = stateMap.get(stateSerial)!;
       const steps = !fromState
