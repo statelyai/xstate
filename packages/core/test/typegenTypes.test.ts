@@ -1088,7 +1088,19 @@ describe('typegen types', () => {
       TContext extends MachineContext,
       TEvent extends { type: string }
     >(
-      machine: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>
+      machine: StateMachine<
+        TContext,
+        TEvent,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any, // state meta
+        any // event meta
+      >
     ) {
       return machine;
     }

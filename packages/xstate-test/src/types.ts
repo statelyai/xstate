@@ -37,8 +37,10 @@ export interface TestMachineConfig<
     TODO,
     TODO,
     TODO,
-    TODO, // delays
-    TODO, // tags
+    TODO, // input
+    TODO, // output
+    TODO, // state meta
+    TODO, // event meta
     TTypesMeta
   >;
 }
@@ -53,6 +55,8 @@ export interface TestStateNodeConfig<
       TODO,
       TODO,
       ParameterizedObject,
+      TODO,
+      TODO,
       TODO,
       TODO,
       TODO
@@ -169,7 +173,7 @@ export interface TestTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
-> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, string> {
+> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, string, TODO> {
   test?: (
     state: State<TContext, TEvent, any, any, any, any>,
     testContext: TTestContext
