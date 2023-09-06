@@ -700,8 +700,7 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    | TActor['src']
-    | InvokeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
+    InvokeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
   >;
   /**
    * The mapping of event types to their potential transition(s).
