@@ -206,6 +206,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     return adjList;
   }
 
+  // TODO: remove this
   public testPathSync(
     path: StatePath<TState, TEvent>,
     params: TestParam<TState, TEvent>,
@@ -229,27 +230,20 @@ export class TestModel<TState, TEvent extends EventObject> {
         testPathResult.steps.push(testStepResult);
 
         try {
-          this.testStateSync(params, step.state, options);
-        } catch (err: any) {
-          testStepResult.state.error = err;
-
-          throw err;
-        }
-
-        try {
           this.testTransitionSync(params, step);
         } catch (err: any) {
           testStepResult.event.error = err;
 
           throw err;
         }
-      }
 
-      try {
-        this.testStateSync(params, path.state, options);
-      } catch (err: any) {
-        testPathResult.state.error = err.message;
-        throw err;
+        try {
+          this.testStateSync(params, step.state, options);
+        } catch (err: any) {
+          testStepResult.state.error = err;
+
+          throw err;
+        }
       }
     } catch (err: any) {
       // TODO: make option
