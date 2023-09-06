@@ -393,26 +393,10 @@ export function reportUnhandledExceptionOnInvocation(
 export function toInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
->(
-  invocable: AnyInvokeConfig | string | AnyActorLogic,
-  id: string
-): AnyInvokeConfig {
-  if (typeof invocable === 'object') {
-    if ('src' in invocable) {
-      return invocable;
-    }
-
-    if ('transition' in invocable) {
-      return {
-        id,
-        src: invocable
-      };
-    }
-  }
-
+>(invocable: AnyInvokeConfig, id: string) {
   return {
     id,
-    src: invocable
+    src: invocable.src
   };
 }
 

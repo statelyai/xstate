@@ -467,7 +467,9 @@ describe('interpreter', () => {
           initial: 'on',
           states: {
             on: {
-              invoke: 'myActivity',
+              invoke: {
+                src: 'myActivity'
+              },
               on: {
                 TURN_OFF: 'off'
               }
@@ -497,7 +499,9 @@ describe('interpreter', () => {
           initial: 'on',
           states: {
             on: {
-              invoke: 'myActivity',
+              invoke: {
+                src: 'myActivity'
+              },
               on: {
                 TURN_OFF: 'off'
               }
@@ -531,7 +535,9 @@ describe('interpreter', () => {
           initial: 'on',
           states: {
             on: {
-              invoke: 'myActivity',
+              invoke: {
+                src: 'myActivity'
+              },
               on: {
                 TURN_OFF: 'off'
               }
@@ -566,7 +572,7 @@ describe('interpreter', () => {
               on: { TOGGLE: 'active' }
             },
             active: {
-              invoke: 'blink',
+              invoke: { src: 'blink' },
               on: { TOGGLE: 'inactive' },
               initial: 'A',
               states: {

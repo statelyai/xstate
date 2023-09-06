@@ -299,11 +299,9 @@ export class StateNode<
     >
   > {
     return memo(this, 'invoke', () =>
-      toArray(this.config.invoke).map((invocable, i) => {
-        const generatedId = createInvokeId(this.id, i);
-        const invokeConfig = toInvokeConfig(invocable, generatedId);
-        const resolvedId = invokeConfig.id || generatedId;
-        const src = invokeConfig.src as string | AnyActorLogic;
+      toArray(this.config.invoke).map((invokeConfig, i) => {
+        const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
+        const src = invokeConfig.src;
         const { systemId } = invokeConfig;
 
         // TODO: resolving should not happen here
