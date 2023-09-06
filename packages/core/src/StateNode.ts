@@ -430,18 +430,6 @@ export class StateNode<
   }
 
   /**
-   * All the state node IDs of this state node and its descendant state nodes.
-   */
-  public get stateIds(): string[] {
-    const childStateIds = flatten(
-      Object.keys(this.states).map((stateKey) => {
-        return this.states[stateKey].stateIds;
-      })
-    );
-    return [this.id].concat(childStateIds);
-  }
-
-  /**
    * All the event types accepted by this state node and its descendants.
    */
   public get events(): Array<TEvent['type']> {
