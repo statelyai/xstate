@@ -48,6 +48,10 @@ export function done(id: string, output?: any): DoneEventObject {
   return eventObject as DoneEvent;
 }
 
+export function doneInvokeEventType<T extends string = string>(invokeId: T) {
+  return `${ConstantPrefix.DoneInvoke}.${invokeId}` as const;
+}
+
 /**
  * Returns an event that represents that an invoked service has terminated.
  *
@@ -58,7 +62,7 @@ export function done(id: string, output?: any): DoneEventObject {
  * @param output The data to pass into the event
  */
 export function doneInvoke(invokeId: string, output?: any): DoneEvent {
-  const type = `${ConstantPrefix.DoneInvoke}.${invokeId}`;
+  const type = doneInvokeEventType(invokeId);
   const eventObject = {
     type,
     output
@@ -69,8 +73,12 @@ export function doneInvoke(invokeId: string, output?: any): DoneEvent {
   return eventObject as DoneEvent;
 }
 
+export function errorEventType<T extends string = string>(id: T) {
+  return `${ConstantPrefix.ErrorPlatform}.${id}` as const;
+}
+
 export function error(id: string, data?: any): ErrorPlatformEvent & string {
-  const type = `${ConstantPrefix.ErrorPlatform}.${id}`;
+  const type = errorEventType(id);
   const eventObject = { type, data };
 
   eventObject.toString = () => type;

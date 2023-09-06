@@ -9,7 +9,12 @@ import {
   Observer,
   AnyActorRef
 } from '../src/index.ts';
-import { sendParent, doneInvoke, forwardTo, error } from '../src/actions.ts';
+import {
+  sendParent,
+  forwardTo,
+  doneInvokeEventType,
+  errorEventType
+} from '../src/actions.ts';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { sendTo } from '../src/actions/send';
@@ -224,6 +229,8 @@ describe('spawning machines', () => {
   });
 });
 
+const aaa = 'dadasda';
+
 describe('spawning promises', () => {
   it('should be able to spawn a promise', (done) => {
     const promiseMachine = createMachine({
@@ -253,7 +260,7 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            [doneInvoke('my-promise')]: {
+            [doneInvokeEventType('my-promise')]: {
               target: 'success',
               guard: ({ event }) => event.output === 'response'
             }
@@ -293,7 +300,7 @@ describe('spawning promises', () => {
                 spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
-              [doneInvoke('my-promise')]: {
+              [doneInvokeEventType('my-promise')]: {
                 target: 'success',
                 guard: ({ event }) => event.output === 'response'
               }
@@ -1019,7 +1026,7 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              [error('test')]: {
+              [errorEventType('test')]: {
                 target: 'success',
                 guard: ({ event }) => {
                   return event.data === errorMessage;
