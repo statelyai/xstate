@@ -2201,8 +2201,9 @@ describe('actions config', () => {
   });
 
   it('should be able to reference action implementations from action objects', () => {
-    const machine = createMachine<Context, EventType>(
+    const machine = createMachine(
       {
+        types: {} as { context: Context; events: EventType },
         initial: 'a',
         context: {
           count: 0
@@ -2636,10 +2637,11 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = createMachine<
-      { child?: ActorRef<any> },
-      { type: 'EVENT'; value: number } | { type: 'SUCCESS' }
-    >({
+    const parent = createMachine({
+      types: {} as {
+        context: { child?: ActorRef<any> };
+        events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
+      },
       id: 'parent',
       initial: 'first',
       context: {
@@ -2743,13 +2745,14 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       context: {},
       initial: 'foo',
       states: {
         foo: {
           entry: choose([
-            { guard: () => true, actions: assign<Ctx>({ answer: 42 }) }
+            { guard: () => true, actions: assign({ answer: 42 }) }
           ])
         }
       }
@@ -2767,7 +2770,8 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       context: {},
       initial: 'foo',
       states: {
@@ -2775,7 +2779,7 @@ describe('choose', () => {
           entry: choose([
             {
               guard: () => true,
-              actions: [() => (executed = true), assign<Ctx>({ answer: 42 })]
+              actions: [() => (executed = true), assign({ answer: 42 })]
             }
           ])
         }
@@ -2794,7 +2798,8 @@ describe('choose', () => {
       shouldNotAppear?: boolean;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       context: {},
       initial: 'foo',
       states: {
@@ -2802,9 +2807,9 @@ describe('choose', () => {
           entry: choose([
             {
               guard: () => false,
-              actions: assign<Ctx>({ shouldNotAppear: true })
+              actions: assign({ shouldNotAppear: true })
             },
-            { guard: () => true, actions: assign<Ctx>({ answer: 42 }) }
+            { guard: () => true, actions: assign({ answer: 42 }) }
           ])
         }
       }
@@ -2821,7 +2826,8 @@ describe('choose', () => {
       shouldNotAppear?: boolean;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       context: {},
       initial: 'foo',
       states: {
@@ -2829,9 +2835,9 @@ describe('choose', () => {
           entry: choose([
             {
               guard: () => false,
-              actions: assign<Ctx>({ shouldNotAppear: true })
+              actions: assign({ shouldNotAppear: true })
             },
-            { actions: assign<Ctx>({ answer: 42 }) }
+            { actions: assign({ answer: 42 }) }
           ])
         }
       }
@@ -2849,7 +2855,8 @@ describe('choose', () => {
       thirdLevel: boolean;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       context: {
         firstLevel: false,
         secondLevel: false,
@@ -2862,16 +2869,16 @@ describe('choose', () => {
             {
               guard: () => true,
               actions: [
-                assign<Ctx>({ firstLevel: true }),
+                assign({ firstLevel: true }),
                 choose([
                   {
                     guard: () => true,
                     actions: [
-                      assign<Ctx>({ secondLevel: true }),
+                      assign({ secondLevel: true }),
                       choose([
                         {
                           guard: () => true,
-                          actions: [assign<Ctx>({ thirdLevel: true })]
+                          actions: [assign({ thirdLevel: true })]
                         }
                       ])
                     ]
@@ -2898,7 +2905,8 @@ describe('choose', () => {
       counter: number;
       answer?: number;
     }
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       context: {
         counter: 101
       },
@@ -2908,7 +2916,7 @@ describe('choose', () => {
           entry: choose([
             {
               guard: ({ context }) => context.counter > 100,
-              actions: assign<Ctx>({ answer: 42 })
+              actions: assign({ answer: 42 })
             }
           ])
         }
@@ -2964,8 +2972,9 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>(
+    const machine = createMachine(
       {
+        types: {} as { context: Ctx },
         context: {},
         initial: 'foo',
         states: {
@@ -2979,7 +2988,7 @@ describe('choose', () => {
           worstGuard: () => true
         },
         actions: {
-          revealAnswer: assign<Ctx>({ answer: 42 })
+          revealAnswer: assign({ answer: 42 })
         }
       }
     );
@@ -2994,8 +3003,9 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>(
+    const machine = createMachine(
       {
+        types: {} as { context: Ctx },
         context: {},
         initial: 'foo',
         states: {
@@ -3009,7 +3019,7 @@ describe('choose', () => {
           worstGuard: () => true
         },
         actions: {
-          revealAnswer: assign<Ctx>({ answer: 42 }),
+          revealAnswer: assign({ answer: 42 }),
           conditionallyRevealAnswer: choose([
             { guard: 'worstGuard', actions: 'revealAnswer' }
           ])
@@ -3158,9 +3168,8 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
       context: ({ spawn }) => ({
         child: spawn(childMachine, { id: 'child' })
       }),
@@ -3188,9 +3197,8 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as { context: { child: ActorRefFrom<typeof childMachine> } },
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
@@ -3405,7 +3413,8 @@ describe('raise', () => {
     interface MachineContext {
       eventType: MachineEvent['type'];
     }
-    const machine = createMachine<MachineContext, MachineEvent>({
+    const machine = createMachine({
+      types: {} as { context: MachineContext; events: MachineEvent },
       initial: 'a',
       context: {
         eventType: 'RAISED'
@@ -3516,9 +3525,9 @@ describe('assign action order', () => {
           ({ context }) => captured.push(context.count), // 0
           pure(() => {
             return [
-              assign<CountCtx>({ count: ({ context }) => context.count + 1 }),
+              assign({ count: ({ context }) => context.count + 1 }),
               { type: 'capture' }, // 1
-              assign<CountCtx>({ count: ({ context }) => context.count + 1 })
+              assign({ count: ({ context }) => context.count + 1 })
             ];
           }),
           ({ context }) => captured.push(context.count) // 2

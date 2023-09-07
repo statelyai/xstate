@@ -1,56 +1,59 @@
-import { doneInvoke, forwardTo, sendParent, sendTo } from './actions.ts';
-export { assign } from './actions/assign.ts';
-export { cancel } from './actions/cancel.ts';
-export { choose } from './actions/choose.ts';
-export { log } from './actions/log.ts';
-export { pure } from './actions/pure.ts';
-export { raise } from './actions/raise.ts';
-export { stop } from './actions/stop.ts';
+import { doneInvoke } from './actions.ts';
 import {
-  createActor,
-  interpret,
   Actor,
   ActorStatus,
-  InterpreterStatus,
-  Interpreter
+  createActor,
+  interpret,
+  Interpreter,
+  InterpreterStatus
 } from './interpreter.ts';
 import { createMachine } from './Machine.ts';
 import { mapState } from './mapState.ts';
 import { State } from './State.ts';
 import { StateNode } from './StateNode.ts';
+export { assign, type AssignAction } from './actions/assign.ts';
+export { cancel, type CancelAction } from './actions/cancel.ts';
+export { choose, type ChooseAction } from './actions/choose.ts';
+export { log, type LogAction } from './actions/log.ts';
+export { pure, type PureAction } from './actions/pure.ts';
+export { raise, type RaiseAction } from './actions/raise.ts';
+export {
+  forwardTo,
+  sendParent,
+  sendTo,
+  type SendToAction
+} from './actions/send.ts';
+export { stop, type StopAction } from './actions/stop.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { StateMachine } from './StateMachine.ts';
 export { getStateNodes } from './stateUtils.ts';
-export { waitFor } from './waitFor.ts';
 export * from './typegenTypes.ts';
 export * from './types.ts';
+export { waitFor } from './waitFor.ts';
 // TODO: decide from where those should be exported
-export { matchesState, pathToStateValue, toObserver } from './utils.ts';
 export {
-  StateNode,
-  State,
-  mapState,
-  sendTo,
-  sendParent,
-  forwardTo,
-  createActor,
-  interpret, // deprecated
-  Actor,
-  type Interpreter,
-  ActorStatus,
-  InterpreterStatus,
-  doneInvoke,
-  createMachine
-};
-export {
-  fromPromise,
-  fromObservable,
   fromCallback,
   fromEventObservable,
+  fromObservable,
+  fromPromise,
   fromTransition
 } from './actors/index.ts';
+export { matchesState, pathToStateValue, toObserver } from './utils.ts';
+export {
+  Actor,
+  ActorStatus,
+  createActor,
+  createMachine,
+  doneInvoke,
+  interpret,
+  InterpreterStatus,
+  mapState,
+  State,
+  StateNode,
+  type Interpreter
+};
 
-export { stateIn, not, and, or } from './guards.ts';
+export { and, not, or, stateIn } from './guards.ts';
 
 declare global {
   interface SymbolConstructor {

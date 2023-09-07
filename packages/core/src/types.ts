@@ -331,11 +331,6 @@ export type AnyTransitionConfig = TransitionConfig<
   any
 >;
 
-export interface InvokeMeta {
-  src: string;
-  meta: MetaObject | undefined;
-}
-
 export interface InvokeDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -400,7 +395,6 @@ export interface InvokeDefinition<
     InvokeDefinition<TContext, TEvent, TAction, TGuard, TDelay>,
     'onDone' | 'onError' | 'toJSON'
   >;
-  meta: MetaObject | undefined;
 }
 
 type Delay<TDelay extends string> = TDelay | number;
@@ -592,10 +586,6 @@ type DistributeActors<
                 TDelay
               >
             >;
-        /**
-         * Meta data related to this invocation
-         */
-        meta?: MetaObject;
       } & (TActor['id'] extends string
         ? {
             /**
@@ -682,10 +672,6 @@ export type InvokeConfig<
               TDelay
             >
           >;
-      /**
-       * Meta data related to this invocation
-       */
-      meta?: MetaObject;
     };
 
 export type AnyInvokeConfig = InvokeConfig<any, any, any, any, any, any>;
@@ -742,8 +728,7 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    | TActor['src']
-    | InvokeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
+    InvokeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
   >;
   /**
    * The mapping of event types to their potential transition(s).

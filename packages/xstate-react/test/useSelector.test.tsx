@@ -27,7 +27,8 @@ afterEach(() => {
 
 describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('only rerenders for selected values', () => {
-    const machine = createMachine<{ count: number; other: number }>({
+    const machine = createMachine({
+      types: {} as { context: { count: number; other: number } },
       initial: 'active',
       context: {
         other: 0,
@@ -91,7 +92,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with a custom comparison function', () => {
-    const machine = createMachine<{ name: string }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { name: string };
+        events: { type: 'CHANGE'; value: string };
+      },
       initial: 'active',
       context: {
         name: 'david'
@@ -151,7 +156,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with the shallowEqual comparison function', () => {
-    const machine = createMachine<{ user: { name: string } }>({
+    const machine = createMachine({
+      types: {} as { context: { user: { name: string } } },
       initial: 'active',
       context: {
         user: { name: 'david' }
@@ -275,7 +281,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with selecting values from initially spawned actors', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },
@@ -366,7 +373,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should rerender with a new value when the selector changes', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },
@@ -410,7 +418,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should use a fresh selector for subscription updates after selector change', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },
@@ -575,7 +584,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('should only rerender once when the selected value changes', () => {
     const selector = (state: any) => state.context.foo;
 
-    const machine = createMachine<{ foo: number }, { type: 'INC' }>({
+    const machine = createMachine({
+      types: {} as { context: { foo: number }; events: { type: 'INC' } },
       context: {
         foo: 0
       },
@@ -672,7 +682,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine<{ ref: ActorRefFrom<typeof childMachine> }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { ref: ActorRefFrom<typeof childMachine> };
+      },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),

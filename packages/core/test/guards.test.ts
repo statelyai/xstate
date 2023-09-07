@@ -171,8 +171,9 @@ describe('guard conditions', () => {
   });
 
   it('should work with defined string transitions (condition not met)', () => {
-    const machine = createMachine<LightMachineCtx, LightMachineEvents>(
+    const machine = createMachine(
       {
+        types: {} as { context: LightMachineCtx; events: LightMachineEvents },
         context: {
           elapsed: 10
         },
@@ -414,6 +415,7 @@ describe('custom guards', () => {
       {
         types: {} as {
           context: Ctx;
+          events: Events;
           guards: {
             type: 'custom';
             params: {
