@@ -1445,24 +1445,21 @@ export function resolveActionsAndContext<
       event,
       self: actorCtx?.self,
       system: actorCtx?.system,
-      action: isInline
-        ? undefined
-        : typeof action === 'string'
-        ? { type: action }
-        : typeof action.params === 'function'
-        ? {
-            type: action.type,
-            params: action.params({ context: intermediateState.context, event })
-          }
-        : // TS isn't able to narrow it down here
-          (action as { type: string })
+      params:
+        isInline || typeof action === 'string'
+          ? undefined
+          : 'params' in action
+          ? typeof action.params === 'function'
+            ? action.params({ context: intermediateState.context, event })
+            : action.params
+          : undefined
     };
 
     if (!('resolve' in resolved)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolved(actionArgs);
+        resolved(actionArgs as never);
       } else {
-        actorCtx?.defer(() => resolved(actionArgs));
+        actorCtx?.defer(() => resolved(actionArgs as never));
       }
       continue;
     }

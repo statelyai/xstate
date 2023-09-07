@@ -12,6 +12,9 @@ import {
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 
+export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
+  T extends any ? ('params' extends keyof T ? T['params'] : undefined) : never;
+
 /**
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
  * It especially is a problem when the union has a function member, like here:
@@ -89,10 +92,10 @@ export type MachineContext = Record<string, any>;
 
 export interface ActionArgs<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TAction extends ParameterizedObject | undefined
-> extends UnifiedArg<TContext, TEvent> {
-  action: TAction;
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> extends UnifiedArg<TContext, TExpressionEvent> {
+  params: GetParameterizedParams<TExpressionAction>;
 }
 
 export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<

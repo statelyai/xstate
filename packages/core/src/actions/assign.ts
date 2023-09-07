@@ -36,7 +36,7 @@ function resolve(
   const assignArgs: AssignArgs<any, any, any> = {
     context: state.context,
     event: actionArgs.event,
-    action: actionArgs.action,
+    params: actionArgs.params,
     spawn: createSpawner(
       actorContext,
       state,

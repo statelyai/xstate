@@ -2284,7 +2284,7 @@ describe('actions config', () => {
 });
 
 describe('action meta', () => {
-  it('should provide the original action', () => {
+  it('should provide the original params', () => {
     const spy = jest.fn();
 
     const testMachine = createMachine(
@@ -2304,8 +2304,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: ({ params }) => {
+            spy(params);
           }
         }
       }
@@ -2314,14 +2314,11 @@ describe('action meta', () => {
     createActor(testMachine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        value: 'something'
-      }
+      value: 'something'
     });
   });
 
-  it('should provide the action in its object form even if it was configured as string', () => {
+  it('should provide undefined params when it was configured as string', () => {
     const spy = jest.fn();
 
     const testMachine = createMachine(
@@ -2336,8 +2333,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: ({ params }) => {
+            spy(params);
           }
         }
       }
@@ -2345,9 +2342,7 @@ describe('action meta', () => {
 
     createActor(testMachine).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
   it('should provide the action with resolved params when they are dynamic', () => {
@@ -2362,8 +2357,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: ({ params }) => {
+            spy(params);
           }
         }
       }
@@ -2372,10 +2367,7 @@ describe('action meta', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        stuff: 100
-      }
+      stuff: 100
     });
   });
 
@@ -2394,8 +2386,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: ({ params }) => {
+            spy(params);
           }
         }
       }
@@ -2404,10 +2396,7 @@ describe('action meta', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        secret: 42
-      }
+      secret: 42
     });
   });
 
@@ -2427,8 +2416,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          myAction: ({ action }) => {
-            spy(action);
+          myAction: ({ params }) => {
+            spy(params);
           }
         }
       }
@@ -2439,10 +2428,7 @@ describe('action meta', () => {
     actorRef.send({ type: 'FOO', secret: 77 });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        secret: 77
-      }
+      secret: 77
     });
   });
 });
@@ -2464,7 +2450,7 @@ describe('purely defined actions', () => {
       },
       {
         actions: {
-          doSomething: ({ action }) => spy(action.params)
+          doSomething: ({ params }) => spy(params)
         }
       }
     );
@@ -2508,8 +2494,8 @@ describe('purely defined actions', () => {
       },
       {
         actions: {
-          doSomething: ({ action }) => {
-            spy(action.params);
+          doSomething: ({ params }) => {
+            spy(params);
           }
         }
       }
@@ -3860,8 +3846,8 @@ describe('actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: ({ action }) => {
-          spy(action);
+        entry: ({ params }) => {
+          spy(params);
         }
       })
     ).start();
@@ -3873,8 +3859,8 @@ describe('actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: assign(({ action }) => {
-          spy(action);
+        entry: assign(({ params }) => {
+          spy(params);
           return {};
         })
       })
@@ -3890,8 +3876,8 @@ describe('actions', () => {
       createMachine({
         on: {
           FOO: {
-            actions: ({ action }) => {
-              spy(action);
+            actions: ({ params }) => {
+              spy(params);
             }
           }
         }
@@ -3902,15 +3888,15 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it('should call inline transition builtin action with undefined parametrized action object', () => {
+  it('should call inline transition builtin action with undefined parameters', () => {
     const spy = jest.fn();
 
     const actorRef = createActor(
       createMachine({
         on: {
           FOO: {
-            actions: assign(({ action }) => {
-              spy(action);
+            actions: assign(({ params }) => {
+              spy(params);
               return {};
             })
           }
@@ -3922,7 +3908,7 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced custom action with a parametrized action object when it's referenced using a string", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3932,18 +3918,18 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: ({ params }) => {
+              spy(params);
             }
           }
         }
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with a parametrized action object when it's referenced using a string", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3953,8 +3939,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign(({ params }) => {
+              spy(params);
               return {};
             })
           }
@@ -3962,7 +3948,7 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
   it('should call a referenced custom action with the provided parametrized action object', () => {
@@ -3980,8 +3966,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: ({ params }) => {
+              spy(params);
             }
           }
         }
@@ -3989,10 +3975,7 @@ describe('actions', () => {
     ).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        foo: 'bar'
-      }
+      foo: 'bar'
     });
   });
 
@@ -4011,8 +3994,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign(({ params }) => {
+              spy(params);
               return {};
             })
           }
@@ -4021,14 +4004,11 @@ describe('actions', () => {
     ).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        foo: 'bar'
-      }
+      foo: 'bar'
     });
   });
 
-  it("should call a referenced custom action with its parametrized action object when it's referenced by an inline pure", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced by an inline pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -4038,8 +4018,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: ({ params }) => {
+              spy(params);
               return {};
             }
           }
@@ -4047,12 +4027,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with its parametrized action object when it's referenced by an inline pure", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced by an inline pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -4062,8 +4040,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign(({ params }) => {
+              spy(params);
               return {};
             })
           }
@@ -4071,12 +4049,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced custom action with its parametrized action object when it's referenced by a referenced pure", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced by a referenced pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -4087,8 +4063,8 @@ describe('actions', () => {
         {
           actions: {
             myPure: pure(() => ['myAction']),
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: ({ params }) => {
+              spy(params);
               return {};
             }
           }
@@ -4096,12 +4072,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with its parametrized action object when it's referenced by a referenced pure", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced by a referenced pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -4112,8 +4086,8 @@ describe('actions', () => {
         {
           actions: {
             myPure: pure(() => ['myAction']),
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign(({ params }) => {
+              spy(params);
               return {};
             })
           }
@@ -4121,8 +4095,6 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 });

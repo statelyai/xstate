@@ -446,8 +446,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          custom: ({ context, event, guard }) => {
-            const { prop, compare, op } = guard.params;
+          custom: ({ context, event, params }) => {
+            const { prop, compare, op } = params;
             if (op === 'greaterThan') {
               return context[prop] + event.value > compare;
             }
@@ -471,7 +471,7 @@ describe('custom guards', () => {
     expect(failState.value).toEqual('inactive');
   });
 
-  it('should provide the guard in its object form even if it was configured as string', () => {
+  it('should provide the undefined params if a guard was configured using a string', () => {
     const spy = jest.fn();
 
     const machine = createMachine(
@@ -484,8 +484,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ guard }) => {
-            spy(guard);
+          myGuard: ({ params }) => {
+            spy(params);
             return true;
           }
         }
@@ -495,9 +495,7 @@ describe('custom guards', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'FOO' });
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myGuard'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
   it('should provide the guard with resolved params when they are dynamic', () => {
@@ -513,8 +511,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ guard }) => {
-            spy(guard);
+          myGuard: ({ params }) => {
+            spy(params);
             return true;
           }
         }
@@ -525,10 +523,7 @@ describe('custom guards', () => {
     actorRef.send({ type: 'FOO' });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myGuard',
-      params: {
-        stuff: 100
-      }
+      stuff: 100
     });
   });
 
@@ -551,8 +546,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ guard }) => {
-            spy(guard);
+          myGuard: ({ params }) => {
+            spy(params);
             return true;
           }
         }
@@ -563,10 +558,7 @@ describe('custom guards', () => {
     actorRef.send({ type: 'FOO' });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myGuard',
-      params: {
-        secret: 42
-      }
+      secret: 42
     });
   });
 
@@ -586,8 +578,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ guard }) => {
-            spy(guard);
+          myGuard: ({ params }) => {
+            spy(params);
             return true;
           }
         }
@@ -599,10 +591,7 @@ describe('custom guards', () => {
     actorRef.send({ type: 'FOO', secret: 77 });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myGuard',
-      params: {
-        secret: 77
-      }
+      secret: 77
     });
   });
 });
@@ -891,8 +880,8 @@ describe('not() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+          greaterThan10: ({ params }) => {
+            return params.value > 10;
           }
         }
       }
@@ -1014,8 +1003,8 @@ describe('and() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+          greaterThan10: ({ params }) => {
+            return params.value > 10;
           }
         }
       }
@@ -1142,8 +1131,8 @@ describe('or() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+          greaterThan10: ({ params }) => {
+            return params.value > 10;
           }
         }
       }

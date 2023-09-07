@@ -7,7 +7,8 @@ import type {
   AnyState,
   NoRequiredParams,
   NoInfer,
-  WithDynamicParams
+  WithDynamicParams,
+  GetParameterizedParams
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 
@@ -28,7 +29,7 @@ export interface GuardArgs<
 > {
   context: TContext;
   event: TExpressionEvent;
-  guard: TExpressionGuard;
+  params: GetParameterizedParams<TExpressionGuard>;
 }
 
 export type Guard<
@@ -239,16 +240,14 @@ export function evaluateGuard<
   const guardArgs = {
     context,
     event,
-    guard: isInline
-      ? undefined
-      : typeof guard === 'string'
-      ? { type: guard }
-      : typeof guard.params === 'function'
-      ? {
-          type: guard.type,
-          params: guard.params({ context, event })
-        }
-      : guard
+    params:
+      isInline || typeof guard === 'string'
+        ? undefined
+        : 'params' in guard
+        ? typeof guard.params === 'function'
+          ? guard.params({ context, event })
+          : guard.params
+        : undefined
   };
 
   if (!('check' in resolved)) {
