@@ -7,8 +7,9 @@ import {
   ActorRefFrom,
   assign,
   createMachine,
-  DoneEventObject,
+  DoneInvokeEventObject,
   doneInvoke,
+  doneInvokeEventType,
   createActor,
   PersistedMachineState,
   raise,
@@ -31,7 +32,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     id: 'fetch',
     types: {} as {
       context: typeof context;
-      events: { type: 'FETCH' } | DoneEventObject;
+      events: { type: 'FETCH' } | DoneInvokeEventObject;
       actors: {
         src: 'fetchData';
         logic: ActorLogicFrom<Promise<string>>;
@@ -216,7 +217,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
               )
           }),
           on: {
-            [doneInvoke('my-promise')]: 'success'
+            [doneInvokeEventType('my-promise')]: 'success'
           }
         },
         success: {

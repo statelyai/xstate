@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
-import { doneInvoke, error } from './actions.ts';
+import { doneInvoke, error } from './eventUtils.ts';
 import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
@@ -19,11 +19,11 @@ import type {
   EventFromLogic,
   PersistedStateFrom,
   SnapshotFrom,
-  AnyActorRef
+  AnyActorRef,
+  DoneInvokeEventObject
 } from './types.ts';
 import {
   ActorRef,
-  DoneEvent,
   EventObject,
   InteropSubscribable,
   ActorOptions,
@@ -123,7 +123,7 @@ export class Actor<
   public sessionId: string;
 
   public system: ActorSystem<any>;
-  private _doneEvent?: DoneEvent;
+  private _doneEvent?: DoneInvokeEventObject;
 
   public src?: string;
 
@@ -446,11 +446,7 @@ export class Actor<
         const eventString = JSON.stringify(event);
 
         console.warn(
-          `Event "${event.type.toString()}" was sent to stopped actor "${
-            this.id
-          } (${
-            this.sessionId
-          })". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
         );
       }
       return;

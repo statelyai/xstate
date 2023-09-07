@@ -8,7 +8,7 @@ import {
   TODO
 } from '../types';
 import { isPromiseLike } from '../utils';
-import { doneInvoke, error } from '../actions.ts';
+import { doneInvoke, error } from '../eventUtils.ts';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
 export interface CallbackInternalState<

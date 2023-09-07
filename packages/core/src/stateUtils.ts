@@ -1,7 +1,8 @@
 import isDevelopment from '#is-development';
 import { State, cloneState } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { after, done, raise } from './actions.ts';
+import { raise } from './actions.ts';
+import { after, doneState, doneStateEventType } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
@@ -402,7 +403,7 @@ export function formatTransitions<
     }
   }
   if (stateNode.config.onDone) {
-    const descriptor = String(done(stateNode.id));
+    const descriptor = doneStateEventType(stateNode.id);
     transitions.set(
       descriptor,
       toTransitionConfigArray(stateNode.config.onDone).map((t) =>
@@ -1168,7 +1169,7 @@ function enterStates(
       }
 
       internalQueue.push(
-        done(
+        doneState(
           parent!.id,
           stateNodeToEnter.output
             ? mapContext(
@@ -1190,7 +1191,7 @@ function enterStates(
               isInFinalState([...mutConfiguration], parentNode)
             )
           ) {
-            internalQueue.push(done(grandparent.id));
+            internalQueue.push(doneState(grandparent.id));
           }
         }
       }

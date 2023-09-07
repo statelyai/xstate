@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
-import { constantPrefixes, error } from '../actions.ts';
+import { error } from '../eventUtils.ts';
+import * as constantPrefixes from '../constantPrefixes.ts';
 import {
   ActionArgs,
   ActorRef,
@@ -124,10 +125,7 @@ function execute(
   actorContext.defer(() => {
     to.send(
       event.type === constantPrefixes.error
-        ? {
-            type: `${error(actorContext.self.id)}`,
-            data: (event as any).data
-          }
+        ? error(actorContext.self.id, (event as any).data)
         : event
     );
   });

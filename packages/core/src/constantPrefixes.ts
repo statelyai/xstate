@@ -1,7 +1,6 @@
-import { ConstantPrefix } from './types.ts';
-
-export const after = ConstantPrefix.After;
-export const doneState = ConstantPrefix.DoneState;
-export const errorExecution = ConstantPrefix.ErrorExecution;
-export const errorPlatform = ConstantPrefix.ErrorPlatform;
-export const error = ConstantPrefix.ErrorCustom;
+export const after = 'xstate.after';
+export const doneInvoke = 'done.invoke';
+export const doneState = 'done.state';
+export const error = 'xstate.error';
+export const errorExecution = 'error.execution';
+export const errorPlatform = 'error.platform';

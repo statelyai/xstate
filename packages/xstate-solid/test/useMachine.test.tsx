@@ -3,6 +3,7 @@ import { useMachine, useActor } from '../src';
 import {
   assign,
   doneInvoke,
+  doneInvokeEventType,
   createMachine,
   PersistedMachineState,
   raise,
@@ -232,7 +233,7 @@ describe('useMachine hook', () => {
               )
           }),
           on: {
-            [doneInvoke('my-promise')]: 'success'
+            [doneInvokeEventType('my-promise')]: 'success'
           }
         },
         success: {

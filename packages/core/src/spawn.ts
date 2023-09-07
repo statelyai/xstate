@@ -1,4 +1,4 @@
-import { error } from './actions.ts';
+import { error } from './eventUtils.ts';
 import { ActorStatus, createActor } from './interpreter.ts';
 import {
   AnyActorContext,
