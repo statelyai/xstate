@@ -2193,6 +2193,84 @@ describe('actions', () => {
       }
     );
   });
+
+  it('should allow dynamic params that return correct params type', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: {
+        type: 'greet',
+        params: () => ({
+          name: 'Anders'
+        })
+      }
+    });
+  });
+
+  it('should disallow dynamic params that return invalid params type', () => {
+    createMachine({
+      types: {} as {
+        actions:
+          | { type: 'greet'; params: { surname: string } }
+          | { type: 'poke' };
+      },
+      entry: {
+        type: 'greet',
+        // @ts-expect-error
+        params: () => ({
+          surname: 100
+        })
+      }
+    });
+  });
+
+  it('should provide context type to dynamic params', () => {
+    createMachine({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      context: { count: 1 },
+      entry: {
+        type: 'greet',
+        params: ({ context }) => {
+          ((_accept: number) => {})(context.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(context.count);
+          return {
+            name: 'Anders'
+          };
+        }
+      }
+    });
+  });
+
+  it('should provide narrowed down event type to dynamic params', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      on: {
+        FOO: {
+          actions: {
+            type: 'greet',
+            params: ({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: 'not any') => {})(event.type);
+              return {
+                name: 'Anders'
+              };
+            }
+          }
+        }
+      }
+    });
+  });
 });
 
 describe('choose', () => {
@@ -3096,6 +3174,118 @@ describe('guards', () => {
         }
       }
     );
+  });
+
+  it('should allow dynamic params that return correct params type', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        FOO: {
+          guard: {
+            type: 'isGreaterThan',
+            params: () => ({ count: 100 })
+          }
+        }
+      }
+    });
+  });
+
+  it('should disallow dynamic params that return invalid params type', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        FOO: {
+          guard: {
+            type: 'isGreaterThan',
+            params: () => ({ count: 'bazinga' })
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide context type to dynamic params', () => {
+    createMachine({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      context: { count: 1 },
+      on: {
+        FOO: {
+          guard: {
+            type: 'isGreaterThan',
+            params: ({ context }) => {
+              ((_accept: number) => {})(context.count);
+              // @ts-expect-error
+              ((_accept: 'not any') => {})(context.count);
+              return {
+                count: context.count
+              };
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide narrowed down event type to dynamic params', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        FOO: {
+          guard: {
+            type: 'isGreaterThan',
+            params: ({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: 'not any') => {})(event.type);
+              return {
+                count: 100
+              };
+            }
+          }
+        }
+      }
+    });
   });
 });
 

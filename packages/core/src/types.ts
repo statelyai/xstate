@@ -193,6 +193,32 @@ export type NoRequiredParams<T extends ParameterizedObject> = T extends any
     : never
   : never;
 
+type ConditionalRequired<T, Condition extends boolean> = Condition extends true
+  ? Required<T>
+  : T;
+
+export type WithDynamicParams<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  T extends ParameterizedObject
+> = T extends any
+  ? ConditionalRequired<
+      {
+        type: T['type'];
+        params?:
+          | T['params']
+          | (({
+              context,
+              event
+            }: {
+              context: TContext;
+              event: TExpressionEvent;
+            }) => T['params']);
+      },
+      undefined extends T['params'] ? false : true
+    >
+  : never;
+
 export type Action<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -202,8 +228,10 @@ export type Action<
   TGuard extends ParameterizedObject,
   TDelay extends string
 > =
+  // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
+  // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice
   | NoRequiredParams<TAction>
-  | TAction
+  | WithDynamicParams<TContext, TExpressionEvent, TAction>
   | ActionFunction<
       TContext,
       TExpressionEvent,
