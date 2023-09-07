@@ -395,7 +395,7 @@ export class StateMachine<
     return getPersistedState(state);
   }
   public getOutput(
-    state: State<TContext, TEvent, TActor, TOutput, TResolvedTypesMeta>
+    state: State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
   ) {
     return state.output;
   }
