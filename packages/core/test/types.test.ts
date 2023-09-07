@@ -2211,13 +2211,15 @@ describe('actions', () => {
   it('should disallow dynamic params that return invalid params type', () => {
     createMachine({
       types: {} as {
-        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+        actions:
+          | { type: 'greet'; params: { surname: string } }
+          | { type: 'poke' };
       },
-      // @ts-expect-error
       entry: {
         type: 'greet',
+        // @ts-expect-error
         params: () => ({
-          name: 100
+          surname: 100
         })
       }
     });
