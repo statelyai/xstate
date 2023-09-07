@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
 import { doneInvoke, error } from './actions.ts';
-import { stopSignalType } from './actors/index.ts';
+import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
@@ -346,7 +346,7 @@ export class Actor<
     }
 
     this.update(nextState);
-    if (event.type === stopSignalType) {
+    if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();
     }
@@ -361,7 +361,7 @@ export class Actor<
       this.status = ActorStatus.Stopped;
       return this;
     }
-    this.mailbox.enqueue({ type: stopSignalType } as any);
+    this.mailbox.enqueue({ type: XSTATE_STOP } as any);
 
     return this;
   }

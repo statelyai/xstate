@@ -7,7 +7,8 @@ interface CounterContext {
 }
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
-  createMachine<CounterContext>({
+  createMachine({
+    types: {} as { context: CounterContext },
     initial: 'counting',
     context: { count: 0, foo: 'bar', ...context },
     states: {
@@ -250,10 +251,11 @@ describe('assign', () => {
   });
 
   it('can assign from event', () => {
-    const machine = createMachine<
-      { count: number },
-      { type: 'INC'; value: number }
-    >({
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+        events: { type: 'INC'; value: number };
+      },
       initial: 'active',
       context: {
         count: 0
@@ -282,6 +284,9 @@ describe('assign meta', () => {
   it('should provide the parametrized action to the assigner', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          actions: { type: 'inc'; params: { by: number } };
+        },
         context: { count: 1 },
         entry: {
           type: 'inc',
@@ -291,7 +296,7 @@ describe('assign meta', () => {
       {
         actions: {
           inc: assign(({ context, action }) => ({
-            count: context.count + action.params!.by
+            count: context.count + action.params.by
           }))
         }
       }
@@ -305,6 +310,9 @@ describe('assign meta', () => {
   it('should provide the parametrized action to the partial assigner', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          actions: { type: 'inc'; params: { by: number } };
+        },
         context: { count: 1 },
         entry: {
           type: 'inc',
@@ -314,7 +322,7 @@ describe('assign meta', () => {
       {
         actions: {
           inc: assign({
-            count: ({ context, action }) => context.count + action.params!.by
+            count: ({ context, action }) => context.count + action.params.by
           })
         }
       }

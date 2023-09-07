@@ -5,42 +5,86 @@ import {
   MachineContext,
   AnyActorContext,
   AnyState,
-  ActionArgs
+  ActionArgs,
+  ParameterizedObject,
+  NoInfer
 } from '../types.ts';
-import { evaluateGuard, toGuardDefinition } from '../guards.ts';
+import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any>,
+  actionArgs: ActionArgs<any, any, any>,
   {
     branches
   }: {
-    branches: Array<ChooseBranch<MachineContext, EventObject>>;
+    branches: Array<
+      ChooseBranch<
+        MachineContext,
+        EventObject,
+        EventObject,
+        ParameterizedObject,
+        ParameterizedObject,
+        string
+      >
+    >;
   }
 ) {
   const matchedActions = branches.find((condition) => {
-    const guard =
-      condition.guard &&
-      toGuardDefinition(
-        condition.guard,
-        (guardType) => state.machine.implementations.guards[guardType]
-      );
     return (
-      !guard || evaluateGuard(guard, state.context, actionArgs.event, state)
+      !condition.guard ||
+      evaluateGuard(condition.guard, state.context, actionArgs.event, state)
     );
   })?.actions;
 
   return [state, undefined, toArray(matchedActions)];
 }
 
+export interface ChooseAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  _out_TAction?: TAction;
+  _out_TGuard?: TGuard;
+  _out_TDelay?: TDelay;
+}
+
 export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
->(branches: Array<ChooseBranch<TContext, TExpressionEvent>>) {
-  function choose(_: ActionArgs<TContext, TExpressionEvent>) {
+  TEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+>(
+  branches: ReadonlyArray<
+    ChooseBranch<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      NoInfer<TAction>,
+      NoInfer<TGuard>,
+      TDelay
+    >
+  >
+): ChooseAction<
+  TContext,
+  TExpressionEvent,
+  TExpressionAction,
+  TAction,
+  TGuard,
+  TDelay
+> {
+  function choose(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

@@ -1,5 +1,180 @@
 # xstate
 
+## 5.0.0-beta.27
+
+### Major Changes
+
+- [#4248](https://github.com/statelyai/xstate/pull/4248) [`d02226cd2`](https://github.com/statelyai/xstate/commit/d02226cd2faaee9f469d579906012737562d0fdf) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to pass a string value directly to `invoke`. To migrate you should use the object version of `invoke`:
+
+  ```diff
+  -invoke: 'myActor'
+  +invoke: { src: 'myActor' }
+  ```
+
+### Minor Changes
+
+- [#4228](https://github.com/statelyai/xstate/pull/4228) [`824bee882`](https://github.com/statelyai/xstate/commit/824bee8820060b3cf09382f7a832f336d67a5fc7) Thanks [@Andarist](https://github.com/Andarist)! - Params of `actions` and `guards` can now be resolved dynamically
+
+  ```ts
+  createMachine({
+    types: {} as {
+      actions:
+        | { type: 'greet'; params: { surname: string } }
+        | { type: 'poke' };
+    },
+    entry: {
+      type: 'greet',
+      params: ({ context }) => ({
+        surname: 'Doe'
+      })
+    }
+  });
+  ```
+
+## 5.0.0-beta.26
+
+### Minor Changes
+
+- [#4220](https://github.com/statelyai/xstate/pull/4220) [`c67a3d3b0`](https://github.com/statelyai/xstate/commit/c67a3d3b0255b28f8da2a62ebdfe99d82b21b600) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Partial event descriptors are now type-safe:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      events:
+        | { type: 'mouse.click.up'; direction: 'up' }
+        | { type: 'mouse.click.down'; direction: 'down' }
+        | { type: 'mouse.move' }
+        | { type: 'keypress' };
+    },
+    on: {
+      'mouse.click.*': {
+        actions: ({ event }) => {
+          event.type;
+          // 'mouse.click.up' | 'mouse.click.down'
+          event.direction;
+          // 'up' | 'down'
+        }
+      },
+      'mouse.*': {
+        actions: ({ event }) => {
+          event.type;
+          // 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+        }
+      }
+    }
+  });
+  ```
+
+## 5.0.0-beta.25
+
+### Minor Changes
+
+- [#4213](https://github.com/statelyai/xstate/pull/4213) [`243d36fa8`](https://github.com/statelyai/xstate/commit/243d36fa81444dedda41885b284b87433bdd3b80) Thanks [@Andarist](https://github.com/Andarist)! - You can now define strict tags for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      tags: 'pending' | 'success' | 'error';
+    }
+    // ...
+  });
+  ```
+
+- [#4209](https://github.com/statelyai/xstate/pull/4209) [`e658a37f4`](https://github.com/statelyai/xstate/commit/e658a37f49f2e30309ca34761e3bd82bf9c89cfd) Thanks [@Andarist](https://github.com/Andarist)! - Allow the `TGuard` type to flow into actions. Thanks to that `choose` can benefit from strongly-typed guards.
+
+- [#4182](https://github.com/statelyai/xstate/pull/4182) [`d34f8b102`](https://github.com/statelyai/xstate/commit/d34f8b1024dbdfa98c86c57f461cc2fceba08d39) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now specify delay types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      delays: 'one second' | 'one minute';
+    }
+    // ...
+  });
+  ```
+
+## 5.0.0-beta.24
+
+### Minor Changes
+
+- [#4181](https://github.com/statelyai/xstate/pull/4181) [`70bd8d06f`](https://github.com/statelyai/xstate/commit/70bd8d06fd1422bc215a06bc4e19ae7dfe0184cc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now specify guard types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      guards:
+        | {
+            type: 'isGreaterThan';
+            params: {
+              count: number;
+            };
+          }
+        | { type: 'plainGuard' };
+    }
+    // ...
+  });
+  ```
+
+### Patch Changes
+
+- [#4206](https://github.com/statelyai/xstate/pull/4206) [`e7b59493a`](https://github.com/statelyai/xstate/commit/e7b59493adad65570d5cb331296b4fa37ebec407) Thanks [@Andarist](https://github.com/Andarist)! - Fixed type-related issue that prevented guards `not('checkFoo')` from being used in machines.
+
+- [#4210](https://github.com/statelyai/xstate/pull/4210) [`5d19c5a75`](https://github.com/statelyai/xstate/commit/5d19c5a755a4002dab0a82391314c090ddc3d654) Thanks [@Andarist](https://github.com/Andarist)! - Allow the types to flow from `pure` to `raise` that it returns. It now should properly raise errors on attempts to raise non-defined events and it should allow all defined events to be raised.
+
+## 5.0.0-beta.23
+
+### Minor Changes
+
+- [#4180](https://github.com/statelyai/xstate/pull/4180) [`6b1646ba8`](https://github.com/statelyai/xstate/commit/6b1646ba898605021bdbbb8429417db7d967cf2a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now specify action types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      actions: { type: 'greet'; params: { name: string } };
+    },
+    entry: [
+      {
+        type: 'greet',
+        params: {
+          name: 'David'
+        }
+      },
+      // @ts-expect-error
+      { type: 'greet' },
+      // @ts-expect-error
+      { type: 'unknownAction' }
+    ]
+    // ...
+  });
+  ```
+
+- [#4179](https://github.com/statelyai/xstate/pull/4179) [`2b7548579`](https://github.com/statelyai/xstate/commit/2b75485793a61703792764f8058ab6621a3ed442) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Output types can now be specified in the machine:
+
+  ```ts
+  const machine = createMachine({
+    types: {} as {
+      output: {
+        result: 'pass' | 'fail';
+        score: number;
+      };
+    }
+    // ...
+  });
+
+  const actor = createActor(machine);
+
+  // ...
+
+  const snapshot = actor.getSnapshot();
+
+  if (snapshot.output) {
+    snapshot.output.result;
+    // strongly typed as 'pass' | 'fail'
+    snapshot.output.score;
+    // strongly typed as number
+  }
+  ```
+
 ## 5.0.0-beta.22
 
 ### Major Changes

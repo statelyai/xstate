@@ -5,19 +5,25 @@ import {
   AnyState,
   EventObject,
   MachineContext,
-  ActionArgs
+  ActionArgs,
+  ParameterizedObject
 } from '../types.ts';
 
 type ResolvableSendId<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject
-> = string | ((args: ActionArgs<TContext, TExpressionEvent>) => string);
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> =
+  | string
+  | ((
+      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+    ) => string);
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any>,
-  { sendId }: { sendId: ResolvableSendId<any, any> }
+  actionArgs: ActionArgs<any, any, any>,
+  { sendId }: { sendId: ResolvableSendId<any, any, any> }
 ) {
   const resolvedSendId =
     typeof sendId === 'function' ? sendId(actionArgs) : sendId;
@@ -26,6 +32,14 @@ function resolve(
 
 function execute(actorContext: AnyActorContext, resolvedSendId: string) {
   (actorContext.self as AnyActor).cancel(resolvedSendId);
+}
+
+export interface CancelAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
 }
 
 /**
@@ -38,9 +52,13 @@ function execute(actorContext: AnyActorContext, resolvedSendId: string) {
 export function cancel<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
->(sendId: ResolvableSendId<TContext, TExpressionEvent>) {
-  function cancel(_: ActionArgs<TContext, TExpressionEvent>) {
+  TExpressionAction extends ParameterizedObject | undefined
+>(
+  sendId: ResolvableSendId<TContext, TExpressionEvent, TExpressionAction>
+): CancelAction<TContext, TExpressionEvent, TExpressionAction> {
+  function cancel(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

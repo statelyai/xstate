@@ -12,36 +12,6 @@ export { fromEventObservable, fromObservable } from './observable.ts';
 export { fromPromise, type PromiseActorLogic } from './promise.ts';
 export { fromTransition } from './transition.ts';
 
-export const startSignalType = 'xstate.init';
-export const stopSignalType = 'xstate.stop';
-export const startSignal: StartSignal = { type: 'xstate.init' };
-export const stopSignal: StopSignal = { type: 'xstate.stop' };
-
-export interface StartSignal {
-  type: 'xstate.init';
-}
-
-export interface StopSignal {
-  type: 'xstate.stop';
-}
-
-export type LifecycleSignal = StartSignal | StopSignal;
-export type LifecycleSignalType =
-  | typeof startSignalType
-  | typeof stopSignalType;
-
-/**
- * An object that expresses the actor logic in reaction to received events,
- * as well as an optionally emitted stream of values.
- *
- * @template TReceived The received event
- * @template TSnapshot The emitted value
- */
-
-export function isSignal(event: EventObject): event is LifecycleSignal {
-  return event.type === startSignalType || event.type === stopSignalType;
-}
-
 export function isActorRef(item: any): item is ActorRef<any> {
   return !!item && typeof item === 'object' && typeof item.send === 'function';
 }

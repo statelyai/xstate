@@ -3,35 +3,32 @@ import {
   AnyStateMachine,
   StateFrom,
   EventFrom,
-  ActorLogic
+  ActorLogic,
+  AnyActorLogic,
+  EventFromLogic,
+  SnapshotFrom
 } from 'xstate';
 import {
   SerializedEvent,
   SerializedState,
   StatePath,
+  Steps,
   TraversalOptions,
   VisitedContext
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
+import { alterPath } from './alterPath';
 
-export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  const resolvedOptions = resolveTraversalOptions(
-    options,
-    createDefaultMachineOptions(machine)
-  );
-
-  return getSimplePaths(machine as any, resolvedOptions);
-}
-
-export function getSimplePaths<TState, TEvent extends EventObject>(
-  logic: ActorLogic<TEvent, TState>,
-  options: TraversalOptions<TState, TEvent>
+export function getSimplePaths<
+  TLogic extends AnyActorLogic,
+  TState extends SnapshotFrom<TLogic>,
+  TEvent extends EventFromLogic<TLogic>
+>(
+  logic: TLogic,
+  options?: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
+  const resolvedOptions = resolveTraversalOptions(logic, options);
   const actorContext = { self: {} } as any; // TODO: figure out the simulation API
   const fromState =
     resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
@@ -44,7 +41,7 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
     vertices: new Set(),
     edges: new Set()
   };
-  const path: any[] = [];
+  const steps: Steps<TState, TEvent> = [];
   const pathMap: Record<
     SerializedState,
     { state: TState; paths: Array<StatePath<TState, TEvent>> }
@@ -69,8 +66,8 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
 
       const path2: StatePath<TState, TEvent> = {
         state: fromState,
-        weight: path.length,
-        steps: [...path]
+        weight: steps.length,
+        steps: [...steps]
       };
 
       toStatePlan.paths.push(path2);
@@ -91,7 +88,7 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
 
         if (!visitCtx.vertices.has(nextStateSerial)) {
           visitCtx.edges.add(serializedEvent);
-          path.push({
+          steps.push({
             state: stateMap.get(fromStateSerial)!,
             event: subEvent
           });
@@ -100,7 +97,7 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
       }
     }
 
-    path.pop();
+    steps.pop();
     visitCtx.vertices.delete(fromStateSerial);
   }
 
@@ -114,8 +111,10 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
   const simplePaths = Object.values(pathMap).flatMap((p) => p.paths);
 
   if (resolvedOptions.toState) {
-    return simplePaths.filter((path) => resolvedOptions.toState!(path.state));
+    return simplePaths
+      .filter((path) => resolvedOptions.toState!(path.state))
+      .map(alterPath);
   }
 
-  return simplePaths;
+  return simplePaths.map(alterPath);
 }

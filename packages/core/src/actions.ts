@@ -5,7 +5,7 @@ import {
   DoneEventObject
 } from './types.ts';
 import * as constantPrefixes from './constantPrefixes.ts';
-import { INIT_TYPE } from './constants.ts';
+import { XSTATE_INIT } from './constants.ts';
 export { sendTo, sendParent, forwardTo, escalate } from './actions/send.ts';
 
 export { stop } from './actions/stop.ts';
@@ -48,6 +48,10 @@ export function done(id: string, output?: any): DoneEventObject {
   return eventObject as DoneEvent;
 }
 
+export function doneInvokeEventType<T extends string = string>(invokeId: T) {
+  return `${ConstantPrefix.DoneInvoke}.${invokeId}` as const;
+}
+
 /**
  * Returns an event that represents that an invoked service has terminated.
  *
@@ -58,7 +62,7 @@ export function done(id: string, output?: any): DoneEventObject {
  * @param output The data to pass into the event
  */
 export function doneInvoke(invokeId: string, output?: any): DoneEvent {
-  const type = `${ConstantPrefix.DoneInvoke}.${invokeId}`;
+  const type = doneInvokeEventType(invokeId);
   const eventObject = {
     type,
     output
@@ -69,8 +73,12 @@ export function doneInvoke(invokeId: string, output?: any): DoneEvent {
   return eventObject as DoneEvent;
 }
 
+export function errorEventType<T extends string = string>(id: T) {
+  return `${ConstantPrefix.ErrorPlatform}.${id}` as const;
+}
+
 export function error(id: string, data?: any): ErrorPlatformEvent & string {
-  const type = `${ConstantPrefix.ErrorPlatform}.${id}`;
+  const type = errorEventType(id);
   const eventObject = { type, data };
 
   eventObject.toString = () => type;
@@ -79,5 +87,5 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
 }
 
 export function createInitEvent(input: unknown) {
-  return { type: INIT_TYPE, input } as const;
+  return { type: XSTATE_INIT, input } as const;
 }

@@ -95,6 +95,8 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
     indexedActors: Record<string, ProvidedActor>;
     indexedActions: Record<string, ParameterizedObject>;
     indexedEvents: Record<string, EventObject>;
+    indexedGuards: Record<string, ParameterizedObject>;
+    indexedDelays: Record<string, ParameterizedObject>;
   };
 }
 
@@ -186,16 +188,43 @@ type AllowAllEvents = {
   eventsCausingGuards: Record<string, string>;
 };
 
+type IndexParameterizedImplementation<
+  TParameterizedImplementation extends ParameterizedObject,
+  TCausingLookup
+> = string extends TParameterizedImplementation['type']
+  ? // this ensures that we can error on provided implementations when no implementations could be inferred by typegen
+    // technically, it's not even a type issue to accept them since we just won't try to execute them
+    // that is - if our typegen would be 100% correct and if it could actually handle all scenarios that we consider valid
+    // (or at least if it would error on the ones that we can't handle)
+    // it should still be at least a lint warning or something if the user provides an implementation that can't be executed
+    // so there is still value in this - but we can reevaluate this later
+    // note that we don't exactly do the same right now when `TAction`/`TGuard`/etc *is* provided together with typegen information
+    // so the behavior around this could be considered inconsistent (one way or another: either we should always error or we shouldn't error at all)
+    IsNever<TCausingLookup> extends true
+    ? never
+    : Record<keyof TCausingLookup, ParameterizedObject>
+  : IndexByType<TParameterizedImplementation>;
+
+type WrapIntoParameterizedObject<T extends string> = T extends any
+  ? { type: T }
+  : never;
+
 export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
-  TActor extends ProvidedActor
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {
     enabled: TTypesMeta & {
-      indexedActions: IndexByType<TAction>;
+      indexedActions: IndexParameterizedImplementation<
+        TAction,
+        Prop<TTypesMeta, 'eventsCausingActions'>
+      >;
       // we could add `id` based on typegen information (in both branches)
       // but it doesn't seem to be needed for anything right now
       indexedActors: string extends TActor['src']
@@ -211,18 +240,33 @@ export interface ResolveTypegenMeta<
         >,
         Prop<TTypesMeta, 'internalEvents'>
       >;
+      indexedGuards: IndexParameterizedImplementation<
+        TGuard,
+        Prop<TTypesMeta, 'eventsCausingGuards'>
+      >;
+      // delays are not parameterized but we can reuse this helper and the style of helpers depending on this if we convert delays to paremeterized objects here
+      // if we ever decide to allow parameterized delays then we'll only have to adjust this place which is nice
+      indexedDelays: IndexParameterizedImplementation<
+        WrapIntoParameterizedObject<TDelay>,
+        Prop<TTypesMeta, 'eventsCausingDelays'>
+      >;
+      tags: string extends TTag ? Prop<TTypesMeta, 'tags'> : TTag;
     };
     disabled: TypegenDisabled &
       AllImplementationsProvided &
       AllowAllEvents & {
         indexedActions: IndexByType<TAction>;
         indexedActors: IndexByProp<TActor, 'src'>;
+        // we don't have to iterate through this since we'll never index a concrete event type on this without the typegen meta
         indexedEvents: Record<string, TEvent>;
+        indexedGuards: IndexByType<TGuard>;
+        indexedDelays: IndexByType<WrapIntoParameterizedObject<TDelay>>;
         invokeSrcNameMap: Record<string, string>;
+        tags: TTag;
       };
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'
-    : TTypesMeta extends TypegenEnabled
+    : TTypesMeta['@@xstate/typegen'] extends true
     ? 'enabled'
     : 'disabled'];
 }
