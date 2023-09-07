@@ -2225,6 +2225,30 @@ describe('actions', () => {
     });
   });
 
+  it('should disallow dynamic params that return invalid params type when properties overlap with the function type', () => {
+    createMachine({
+      types: {} as {
+        actions:
+          | {
+              type: 'greet';
+              params: {
+                // (() => {}).name // string
+                // const a: { name: string } = () => {}; // #thisisfine
+                name: string;
+              };
+            }
+          | { type: 'poke' };
+      },
+      entry: {
+        type: 'greet',
+        // @ts-expect-error
+        params: () => ({
+          name: 100
+        })
+      }
+    });
+  });
+
   it('should provide context type to dynamic params', () => {
     createMachine({
       types: {} as {

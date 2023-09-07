@@ -197,6 +197,14 @@ type ConditionalRequired<T, Condition extends boolean> = Condition extends true
   ? Required<T>
   : T;
 
+declare const functionBrand: unique symbol;
+type NotAFunction<T> = T & { [functionBrand]?: never };
+declare global {
+  interface Function {
+    [functionBrand]?: true;
+  }
+}
+
 export type WithDynamicParams<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -206,7 +214,7 @@ export type WithDynamicParams<
       {
         type: T['type'];
         params?:
-          | T['params']
+          | NotAFunction<T['params']>
           | (({
               context,
               event
