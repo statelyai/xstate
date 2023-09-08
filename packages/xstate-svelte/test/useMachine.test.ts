@@ -1,18 +1,21 @@
-import { render, fireEvent } from '@testing-library/svelte';
+import { fireEvent, render } from '@testing-library/svelte';
+import { createActor, createMachine } from 'xstate';
 import UseMachine from './UseMachine.svelte';
 import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcription.svelte';
 import { fetchMachine } from './fetchMachine';
-import { fromCallback, createActor } from 'xstate';
 
 const actorRef = createActor(
   fetchMachine.provide({
     actors: {
-      fetchData: fromCallback(({ sendBack }) => {
-        sendBack({
-          type: 'done.invoke.fetchData',
-          output: 'persisted data'
-        });
-      }) as any // TODO: callback actors don't support output (yet?)
+      fetchData: createMachine({
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final',
+            output: 'persisted data'
+          }
+        }
+      }) as any
     }
   })
 ).start();

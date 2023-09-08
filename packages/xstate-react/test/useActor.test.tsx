@@ -2,17 +2,17 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
+  Actor,
   ActorLogicFrom,
   ActorRef,
   ActorRefFrom,
-  assign,
-  createMachine,
   DoneInvokeEventObject,
-  createActor,
   PersistedMachineState,
-  raise,
   StateFrom,
-  Actor
+  assign,
+  createActor,
+  createMachine,
+  raise
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
@@ -66,12 +66,15 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback(({ sendBack }) => {
-          sendBack({
-            type: 'done.invoke.fetchData',
-            output: 'persisted data'
-          });
-        }) as any // TODO: callback actors don't support output (yet?)
+        fetchData: createMachine({
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final',
+              output: 'persisted data'
+            }
+          }
+        }) as any
       }
     })
   ).start();
