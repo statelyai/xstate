@@ -28,7 +28,10 @@ export function doneStateEventType<T extends string = string>(id: T) {
  * @param id The final state node's parent state node `id`
  * @param output The data to pass into the event
  */
-export function doneState(id: string, output?: unknown): DoneStateEventObject {
+export function createDoneStateEvent(
+  id: string,
+  output?: unknown
+): DoneStateEventObject {
   return {
     type: doneStateEventType(id),
     output
@@ -48,7 +51,7 @@ export function doneInvokeEventType<T extends string = string>(invokeId: T) {
  * @param invokeId The invoked service ID
  * @param output The data to pass into the event
  */
-export function doneInvoke(
+export function createDoneInvokeEvent(
   invokeId: string,
   output?: unknown
 ): DoneInvokeEventObject {
@@ -62,7 +65,10 @@ export function errorEventType<T extends string = string>(id: T) {
   return `error.platform.${id}` as const;
 }
 
-export function error(id: string, data?: unknown): ErrorPlatformEvent {
+export function createErrorPlatformEvent(
+  id: string,
+  data?: unknown
+): ErrorPlatformEvent {
   return { type: errorEventType(id), data };
 }
 

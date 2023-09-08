@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { error } from '../eventUtils.ts';
+import { createErrorPlatformEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActorRef,
@@ -125,7 +125,7 @@ function execute(
   actorContext.defer(() => {
     to.send(
       event.type === XSTATE_ERROR
-        ? error(actorContext.self.id, (event as any).data)
+        ? createErrorPlatformEvent(actorContext.self.id, (event as any).data)
         : event
     );
   });

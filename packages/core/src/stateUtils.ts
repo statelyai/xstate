@@ -2,7 +2,11 @@ import isDevelopment from '#is-development';
 import { State, cloneState } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { raise } from './actions.ts';
-import { after, doneState, doneStateEventType } from './eventUtils.ts';
+import {
+  after,
+  createDoneStateEvent,
+  doneStateEventType
+} from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
@@ -1169,7 +1173,7 @@ function enterStates(
       }
 
       internalQueue.push(
-        doneState(
+        createDoneStateEvent(
           parent!.id,
           stateNodeToEnter.output
             ? mapContext(
@@ -1191,7 +1195,7 @@ function enterStates(
               isInFinalState([...mutConfiguration], parentNode)
             )
           ) {
-            internalQueue.push(doneState(grandparent.id));
+            internalQueue.push(createDoneStateEvent(grandparent.id));
           }
         }
       }
