@@ -569,13 +569,14 @@ describe('transient states (eventless transitions)', () => {
 
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
     const timerMachine = createMachine({
+      types: {} as {
+        context: { duration: number };
+        input: { duration: number };
+      },
       initial: 'initial',
-      context: ({ input }: { input: { duration: number } }) => ({
+      context: ({ input }) => ({
         duration: input.duration
       }),
-      types: {
-        context: {} as { duration: number }
-      },
       states: {
         initial: {
           always: [

@@ -768,14 +768,13 @@ describe('invoke', () => {
   promiseTypes.forEach(({ type, createPromise }) => {
     describe(`with promises (${type})`, () => {
       const invokePromiseMachine = createMachine({
-        types: {} as { context: { id: number; succeed: boolean } },
+        types: {} as {
+          context: { id: number; succeed: boolean };
+          input: { id?: number; succeed?: boolean };
+        },
         id: 'invokePromise',
         initial: 'pending',
-        context: ({
-          input
-        }: {
-          input: { id?: number; succeed?: boolean };
-        }) => ({
+        context: ({ input }) => ({
           id: 42,
           succeed: true,
           ...input

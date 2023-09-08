@@ -1317,8 +1317,8 @@ export type MachineConfig<
   types?: unknown;
 }) &
   (Equals<TContext, MachineContext> extends true
-    ? { context?: InitialContext<LowInfer<TContext>, TInput> }
-    : { context: InitialContext<LowInfer<TContext>, TInput> });
+    ? { context?: InitialContext<TContext, TInput> }
+    : { context: InitialContext<TContext, TInput> });
 
 export interface ProvidedActor {
   src: string;

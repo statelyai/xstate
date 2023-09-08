@@ -836,11 +836,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
-      types: {
-        context: {} as { value: number }
+      types: {} as {
+        context: { value: number };
+        input: { value: number };
       },
       initial: 'intitial',
-      context: ({ input }: { input: { value: number } }) => {
+      context: ({ input }) => {
         return {
           value: input.value
         };

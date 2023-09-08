@@ -446,8 +446,9 @@ describe('createActorContext', () => {
       createMachine({
         types: {} as {
           context: { doubled: number };
+          input: number;
         },
-        context: ({ input }: { input: number }) => ({
+        context: ({ input }) => ({
           doubled: input * 2
         })
       })
