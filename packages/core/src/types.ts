@@ -1296,14 +1296,14 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown
 > = (RootStateNodeConfig<
-  NoInfer<TContext>,
-  NoInfer<TEvent>,
-  NoInfer<TActor>,
-  NoInfer<TAction>,
-  NoInfer<TGuard>,
-  NoInfer<TDelay>,
-  NoInfer<TTag>,
-  NoInfer<TOutput>
+  TContext,
+  TEvent,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay,
+  TTag,
+  TOutput
 > & {
   /**
    * The initial context (extended state)
