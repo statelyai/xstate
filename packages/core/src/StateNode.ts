@@ -11,11 +11,9 @@ import {
   getDelayedTransitions
 } from './stateUtils.ts';
 import type {
-  AnyActorLogic,
   DelayedTransitionDefinition,
   EventObject,
   FinalStateNodeConfig,
-  HistoryStateNodeConfig,
   InitialTransitionDefinition,
   InvokeDefinition,
   MachineContext,

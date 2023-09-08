@@ -752,8 +752,8 @@ export interface StateNodeConfig<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          DoneEventObject,
-          DoneEventObject,
+          DoneStateEventObject,
+          TEvent,
           TAction,
           TGuard,
           TDelay
@@ -1376,47 +1376,36 @@ export type Transitions<
   TEvent extends EventObject
 > = Array<TransitionDefinition<TContext, TEvent>>;
 
-export enum ConstantPrefix {
-  After = 'xstate.after',
-  DoneState = 'done.state',
-  DoneInvoke = 'done.invoke',
-  ErrorExecution = 'error.execution',
-  ErrorCommunication = 'error.communication',
-  ErrorPlatform = 'error.platform',
-  ErrorCustom = 'xstate.error'
-}
-
+// TODO: deduplicate this
 export interface DoneInvokeEvent<TOutput> {
   type: `done.invoke.${string}`;
   output: TOutput;
 }
 
-export interface ErrorEvent<TErrorData> {
+export interface ErrorEvent<TErrorData> extends EventObject {
   type: `error.${string}`;
   data: TErrorData;
 }
 
-export interface SnapshotEvent<TData> {
+export interface SnapshotEvent<TData> extends EventObject {
   type: `xstate.snapshot.${string}`;
   data: TData;
 }
 
-export interface ErrorExecutionEvent extends EventObject {
-  src: string;
-  type: ConstantPrefix.ErrorExecution;
-  data: any;
-}
-
 export interface ErrorPlatformEvent extends EventObject {
-  data: any;
+  type: `error.platform.${string}`;
+  data: unknown;
 }
 
-export interface DoneEventObject extends EventObject {
-  output?: any;
-  toString(): string;
+export interface DoneInvokeEventObject extends EventObject {
+  type: `done.invoke.${string}`;
+  output: unknown;
 }
 
-export type DoneEvent = DoneEventObject & string;
+export interface DoneStateEventObject extends EventObject {
+  type: `done.state.${string}`;
+  output: any;
+}
 
 export type DelayExpr<
   TContext extends MachineContext,
