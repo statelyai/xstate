@@ -4,7 +4,6 @@ import {
   DoneStateEventObject,
   ErrorPlatformEvent
 } from './types.ts';
-import * as constantPrefixes from './constantPrefixes.ts';
 
 /**
  * Returns an event type that represents an implicit event that
@@ -15,11 +14,11 @@ import * as constantPrefixes from './constantPrefixes.ts';
  */
 export function after(delayRef: number | string, id?: string) {
   const idSuffix = id ? `#${id}` : '';
-  return `${constantPrefixes.after}(${delayRef})${idSuffix}`;
+  return `xstate.after(${delayRef})${idSuffix}`;
 }
 
 export function doneStateEventType<T extends string = string>(id: T) {
-  return `${constantPrefixes.doneState}.${id}` as const;
+  return `done.state.${id}` as const;
 }
 
 /**
@@ -37,7 +36,7 @@ export function doneState(id: string, output?: unknown): DoneStateEventObject {
 }
 
 export function doneInvokeEventType<T extends string = string>(invokeId: T) {
-  return `${constantPrefixes.doneInvoke}.${invokeId}` as const;
+  return `done.invoke.${invokeId}` as const;
 }
 
 /**
@@ -60,7 +59,7 @@ export function doneInvoke(
 }
 
 export function errorEventType<T extends string = string>(id: T) {
-  return `${constantPrefixes.errorPlatform}.${id}` as const;
+  return `error.platform.${id}` as const;
 }
 
 export function error(id: string, data?: unknown): ErrorPlatformEvent {
