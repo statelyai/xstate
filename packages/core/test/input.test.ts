@@ -225,7 +225,8 @@ describe('input', () => {
     const spy = jest.fn();
 
     const child = createMachine({
-      context: ({ input }: { input: number }) => {
+      types: {} as { input: number },
+      context: ({ input }) => {
         spy(input);
         return {};
       }
