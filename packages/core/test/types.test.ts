@@ -1646,12 +1646,14 @@ describe('actor types', () => {
 
   it('when some provided actors have specified ids index signature should be allowed', () => {
     const child1 = createMachine({
+      types: {} as { context: { counter: number } },
       context: {
         counter: 0
       }
     });
 
     const child2 = createMachine({
+      types: {} as { context: { answer: string } },
       context: {
         answer: ''
       }
