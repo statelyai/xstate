@@ -7,10 +7,37 @@ import {
   NonReducibleUnknown,
   Prop,
   AnyEventObject,
-  MachineTypes
+  MachineTypes,
+  EventObject
 } from './types.ts';
 import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
+
+interface InferenceSources<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TTypesMeta extends TypegenConstraint
+> {
+  types?: MachineTypes<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TTypesMeta
+  >;
+}
 
 export function createMachine<
   TContext extends MachineContext,
@@ -35,20 +62,19 @@ export function createMachine<
     TOutput
   >
 >(
-  config: {
-    types?: MachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TInput,
-      TOutput,
-      TTypesMeta
-    >;
-  } & TConfig,
+  config: InferenceSources<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TTypesMeta
+  > &
+    TConfig,
   implementations?: InternalMachineImplementations<
     TContext,
     TEvent,
