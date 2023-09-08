@@ -6,19 +6,15 @@ import {
 } from './types.ts';
 
 /**
- * Returns an event type that represents an implicit event that
+ * Returns an event that represents an implicit event that
  * is sent after the specified `delay`.
  *
  * @param delayRef The delay in milliseconds
  * @param id The state node ID where this event is handled
  */
-export function after(delayRef: number | string, id?: string) {
+export function createAfterEvent(delayRef: number | string, id?: string) {
   const idSuffix = id ? `#${id}` : '';
-  return `xstate.after(${delayRef})${idSuffix}`;
-}
-
-export function doneStateEventType<T extends string = string>(id: T) {
-  return `done.state.${id}` as const;
+  return { type: `xstate.after(${delayRef})${idSuffix}` } as const;
 }
 
 /**
@@ -33,13 +29,9 @@ export function createDoneStateEvent(
   output?: unknown
 ): DoneStateEventObject {
   return {
-    type: doneStateEventType(id),
+    type: `done.state.${id}`,
     output
   };
-}
-
-export function doneInvokeEventType<T extends string = string>(invokeId: T) {
-  return `done.invoke.${invokeId}` as const;
 }
 
 /**
@@ -56,20 +48,16 @@ export function createDoneInvokeEvent(
   output?: unknown
 ): DoneInvokeEventObject {
   return {
-    type: doneInvokeEventType(invokeId),
+    type: `done.invoke.${invokeId}`,
     output
   };
-}
-
-export function errorEventType<T extends string = string>(id: T) {
-  return `error.platform.${id}` as const;
 }
 
 export function createErrorPlatformEvent(
   id: string,
   data?: unknown
 ): ErrorPlatformEvent {
-  return { type: errorEventType(id), data };
+  return { type: `error.platform.${id}`, data };
 }
 
 export function createInitEvent(input: unknown) {

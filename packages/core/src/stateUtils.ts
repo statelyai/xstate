@@ -2,11 +2,7 @@ import isDevelopment from '#is-development';
 import { State, cloneState } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { raise } from './actions.ts';
-import {
-  after,
-  createDoneStateEvent,
-  doneStateEventType
-} from './eventUtils.ts';
+import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
@@ -306,8 +302,9 @@ export function getDelayedTransitions(
   ) => {
     const delayRef =
       typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
-    const eventType = after(delayRef, stateNode.id);
-    stateNode.entry.push(raise({ type: eventType }, { id: eventType, delay }));
+    const afterEvent = createAfterEvent(delayRef, stateNode.id);
+    const eventType = afterEvent.type;
+    stateNode.entry.push(raise(afterEvent, { id: eventType, delay }));
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
@@ -407,7 +404,7 @@ export function formatTransitions<
     }
   }
   if (stateNode.config.onDone) {
-    const descriptor = doneStateEventType(stateNode.id);
+    const descriptor = `done.state.${stateNode.id}`;
     transitions.set(
       descriptor,
       toTransitionConfigArray(stateNode.config.onDone).map((t) =>
