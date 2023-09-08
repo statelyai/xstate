@@ -6,15 +6,11 @@ import {
   ProvidedActor,
   NonReducibleUnknown,
   Prop,
-  AnyEventObject
+  AnyEventObject,
+  MachineTypes
 } from './types.ts';
 import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
-
-interface StatesSchema {
-  states?: Record<string, StatesSchema>;
-  [k: string]: unknown;
-}
 
 export function createMachine<
   TContext extends MachineContext,
@@ -27,9 +23,7 @@ export function createMachine<
   TInput,
   TOutput extends NonReducibleUnknown,
   TTypesMeta extends TypegenConstraint,
-  TConfig extends StatesSchema
->(
-  config: MachineConfig<
+  TConfig extends MachineConfig<
     TContext,
     TEvent,
     TActor,
@@ -38,10 +32,23 @@ export function createMachine<
     TDelay,
     TTag,
     TInput,
-    TOutput,
-    TTypesMeta
-  > &
-    TConfig,
+    TOutput
+  >
+>(
+  config: {
+    types?: MachineTypes<
+      TContext,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag,
+      TInput,
+      TOutput,
+      TTypesMeta
+    >;
+  } & TConfig,
   implementations?: InternalMachineImplementations<
     TContext,
     TEvent,

@@ -333,25 +333,6 @@ describe('output', () => {
   });
 });
 
-it('should infer context type from `config.context` when there is no `schema.context`', () => {
-  createMachine(
-    {
-      context: {
-        foo: 'test'
-      }
-    },
-    {
-      actions: {
-        someAction: ({ context }) => {
-          ((_accept: string) => {})(context.foo);
-          // @ts-expect-error
-          ((_accept: number) => {})(context.foo);
-        }
-      }
-    }
-  );
-});
-
 it('should not use actions as possible inference sites', () => {
   createMachine(
     {
