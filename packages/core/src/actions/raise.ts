@@ -95,13 +95,24 @@ function execute(
   }
 }
 
+export interface RaiseAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  _out_TEvent?: TEvent;
+  _out_TDelay?: TDelay;
+}
+
 /**
  * Raises an event. This places the event in the internal event queue, so that
  * the event is immediately consumed by the machine in the current step.
  *
  * @param eventType The event to raise.
  */
-
 export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -120,7 +131,7 @@ export function raise<
     TExpressionAction,
     NoInfer<TDelay>
   >
-) {
+): RaiseAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TDelay> {
   function raise(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -135,9 +146,5 @@ export function raise<
   raise.resolve = resolve;
   raise.execute = execute;
 
-  return raise as {
-    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
-    _out_TEvent?: TEvent;
-    _out_TDelay?: TDelay;
-  };
+  return raise;
 }

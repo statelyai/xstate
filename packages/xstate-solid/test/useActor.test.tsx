@@ -170,9 +170,12 @@ describe('useActor', () => {
   });
 
   it('should only trigger effects once for nested context values', () => {
-    const childMachine = createMachine<{
-      item: { count: number; total: number };
-    }>({
+    const childMachine = createMachine({
+      types: {} as {
+        context: {
+          item: { count: number; total: number };
+        };
+      },
       id: 'childMachine',
       initial: 'active',
       context: {
@@ -210,9 +213,12 @@ describe('useActor', () => {
         }
       }
     });
-    const machine = createMachine<{
-      actorRef?: ActorRefFrom<typeof childMachine>;
-    }>({
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef?: ActorRefFrom<typeof childMachine>;
+        };
+      },
       initial: 'active',
       context: {
         actorRef: undefined
@@ -295,7 +301,8 @@ describe('useActor', () => {
       actorRef?: ActorRefFrom<typeof childMachine>;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       initial: 'active',
       context: {
         actorRef: undefined
@@ -592,9 +599,12 @@ describe('useActor', () => {
         }
       }
     });
-    const machine = createMachine<{
-      actorRef?: ActorRefFrom<typeof childMachine>;
-    }>({
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef?: ActorRefFrom<typeof childMachine>;
+        };
+      },
       initial: 'active',
       context: {
         actorRef: undefined
@@ -795,7 +805,8 @@ describe('useActor', () => {
   });
 
   it('should properly handle array updates', () => {
-    const numberListMachine = createMachine<{ numbers: number[] }>({
+    const numberListMachine = createMachine({
+      types: {} as { context: { numbers: number[] } },
       context: {
         numbers: [1, 2, 3, 4, 5, 6]
       },
@@ -873,10 +884,11 @@ describe('useActor', () => {
       { id: '1', value: 10 },
       { id: '2', value: 20 }
     ];
-    const actorMachine = createMachine<
-      { arr: Array<{ id: string; value: number }> },
-      { type: 'CHANGE'; index: number; value: number }
-    >({
+    const actorMachine = createMachine({
+      types: {} as {
+        context: { arr: Array<{ id: string; value: number }> };
+        events: { type: 'CHANGE'; index: number; value: number };
+      },
       context: {
         arr
       },
@@ -1161,11 +1173,12 @@ describe('useActor', () => {
   });
 
   it('should also work with services', () => {
-    const counterMachine = createMachine<
-      { count: number },
-      { type: 'INC' } | { type: 'SOMETHING' }
-    >(
+    const counterMachine = createMachine(
       {
+        types: {} as {
+          context: { count: number };
+          events: { type: 'INC' } | { type: 'SOMETHING' };
+        },
         id: 'counter',
         initial: 'active',
         context: { count: 0 },
@@ -1236,7 +1249,10 @@ describe('useActor', () => {
       counter: number;
     }
 
-    const machine = createMachine<MachineContext>({
+    const machine = createMachine({
+      types: {} as {
+        context: MachineContext;
+      },
       context: {
         counter: 0
       },
@@ -1289,7 +1305,8 @@ describe('useActor', () => {
   });
 
   it('actor should be updated when it changes shallow', () => {
-    const counterMachine = createMachine<{ count: number }>({
+    const counterMachine = createMachine({
+      types: {} as { context: { count: number } },
       id: 'counter',
       initial: 'active',
       context: { count: 0 },
@@ -1348,9 +1365,12 @@ describe('useActor', () => {
   });
 
   it('actor should be updated when it changes deep', () => {
-    const counterMachine2 = createMachine<{
-      subCount: { subCount1: { subCount2: { count: number } } };
-    }>({
+    const counterMachine2 = createMachine({
+      types: {} as {
+        context: {
+          subCount: { subCount1: { subCount2: { count: number } } };
+        };
+      },
       id: 'counter',
       initial: 'active',
       context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
@@ -1423,9 +1443,12 @@ describe('useActor', () => {
   });
 
   it('actor should only trigger effect of directly tracked value', () => {
-    const counterMachine2 = createMachine<{
-      subCount: { subCount1: { subCount2: { count: number } } };
-    }>({
+    const counterMachine2 = createMachine({
+      types: {} as {
+        context: {
+          subCount: { subCount1: { subCount2: { count: number } } };
+        };
+      },
       id: 'counter',
       initial: 'active',
       context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
@@ -1498,7 +1521,11 @@ describe('useActor', () => {
     interface Context {
       latestValue: { value: number };
     }
-    const machine = createMachine<Context, { type: 'INC' }>({
+    const machine = createMachine({
+      types: {} as {
+        context: Context;
+        events: { type: 'INC' };
+      },
       initial: 'initial',
       context: {
         latestValue
@@ -1586,7 +1613,8 @@ describe('useActor', () => {
       }
     });
 
-    const machine = createMachine<{ ref: ActorRef<any> }>({
+    const machine = createMachine({
+      types: {} as { context: { ref: ActorRef<any> } },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),

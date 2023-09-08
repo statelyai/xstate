@@ -266,7 +266,7 @@ export interface ResolveTypegenMeta<
       };
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'
-    : TTypesMeta extends TypegenEnabled
+    : TTypesMeta['@@xstate/typegen'] extends true
     ? 'enabled'
     : 'disabled'];
 }

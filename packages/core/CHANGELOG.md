@@ -1,5 +1,36 @@
 # xstate
 
+## 5.0.0-beta.27
+
+### Major Changes
+
+- [#4248](https://github.com/statelyai/xstate/pull/4248) [`d02226cd2`](https://github.com/statelyai/xstate/commit/d02226cd2faaee9f469d579906012737562d0fdf) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to pass a string value directly to `invoke`. To migrate you should use the object version of `invoke`:
+
+  ```diff
+  -invoke: 'myActor'
+  +invoke: { src: 'myActor' }
+  ```
+
+### Minor Changes
+
+- [#4228](https://github.com/statelyai/xstate/pull/4228) [`824bee882`](https://github.com/statelyai/xstate/commit/824bee8820060b3cf09382f7a832f336d67a5fc7) Thanks [@Andarist](https://github.com/Andarist)! - Params of `actions` and `guards` can now be resolved dynamically
+
+  ```ts
+  createMachine({
+    types: {} as {
+      actions:
+        | { type: 'greet'; params: { surname: string } }
+        | { type: 'poke' };
+    },
+    entry: {
+      type: 'greet',
+      params: ({ context }) => ({
+        surname: 'Doe'
+      })
+    }
+  });
+  ```
+
 ## 5.0.0-beta.26
 
 ### Minor Changes

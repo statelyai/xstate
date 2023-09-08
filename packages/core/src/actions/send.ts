@@ -143,6 +143,16 @@ function execute(
   });
 }
 
+export interface SendToAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  _out_TDelay?: TDelay;
+}
+
 /**
  * Sends an event to an actor.
  *
@@ -179,7 +189,7 @@ export function sendTo<
     TExpressionAction,
     NoInfer<TDelay>
   >
-) {
+): SendToAction<TContext, TExpressionEvent, TExpressionAction, TDelay> {
   function sendTo(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {
@@ -197,10 +207,7 @@ export function sendTo<
   sendTo.resolve = resolve;
   sendTo.execute = execute;
 
-  return sendTo as {
-    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
-    _out_TDelay?: TDelay;
-  };
+  return sendTo;
 }
 
 /**

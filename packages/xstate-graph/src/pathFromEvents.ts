@@ -12,6 +12,7 @@ import {
   createDefaultMachineOptions,
   createDefaultLogicOptions
 } from './graph';
+import { alterPath } from './alterPath';
 
 function isMachine(value: any): value is AnyStateMachine {
   return !!value && '__xstatenode' in value;
@@ -92,10 +93,10 @@ export function getPathsFromEvents<
   }
 
   return [
-    {
+    alterPath({
       state,
       steps,
       weight: steps.length
-    }
+    })
   ];
 }
