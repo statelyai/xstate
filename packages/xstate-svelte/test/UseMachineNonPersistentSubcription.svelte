@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useMachine } from '../src/index.ts';
+  import { useMachine } from '@xstate/svelte';
   import UseMachineNonPersistentSubcriptionChild from './UseMachineNonPersistentSubcriptionChild.svelte';
   import { assign, createMachine } from 'xstate';
 
