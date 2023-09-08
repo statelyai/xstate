@@ -9,12 +9,7 @@ import {
   Observer,
   AnyActorRef
 } from '../src/index.ts';
-import {
-  sendParent,
-  forwardTo,
-  doneInvokeEventType,
-  errorEventType
-} from '../src/actions.ts';
+import { sendParent, forwardTo } from '../src/actions.ts';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { sendTo } from '../src/actions/send';
@@ -260,7 +255,7 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            [doneInvokeEventType('my-promise')]: {
+            'done.invoke.my-promise': {
               target: 'success',
               guard: ({ event }) => event.output === 'response'
             }
@@ -300,7 +295,7 @@ describe('spawning promises', () => {
                 spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
-              [doneInvokeEventType('my-promise')]: {
+              'done.invoke.my-promise': {
                 target: 'success',
                 guard: ({ event }) => event.output === 'response'
               }
@@ -1026,7 +1021,7 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              [errorEventType('test')]: {
+              'error.platform.test': {
                 target: 'success',
                 guard: ({ event }) => {
                   return event.data === errorMessage;
