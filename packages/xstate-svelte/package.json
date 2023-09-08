@@ -68,7 +68,7 @@
   },
   "devDependencies": {
     "@testing-library/svelte": "^3.2.2",
-    "@tsconfig/svelte": "^1.0.8",
+    "@tsconfig/svelte": "^5.0.2",
     "@types/jest": "^29.5.1",
     "@xstate/fsm": "3.0.0-beta.3",
     "svelte": "^3.55.1",

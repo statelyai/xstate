@@ -2,7 +2,7 @@ import { fireEvent, render } from '@testing-library/svelte';
 import { createActor, createMachine } from 'xstate';
 import UseMachine from './UseMachine.svelte';
 import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcription.svelte';
-import { fetchMachine } from './fetchMachine';
+import { fetchMachine } from './fetchMachine.ts';
 
 const actorRef = createActor(
   fetchMachine.provide({
