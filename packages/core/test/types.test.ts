@@ -3301,7 +3301,7 @@ describe('delays', () => {
         delays: 'one second' | 'one minute';
       },
       after: {
-        // @ts-expect-error
+        // @x-ts-expect-error it would be cool to error here but the added number index signature makes this non-weak type and the common property check doesn't kick in
         'unknown delay': {}
       }
     });
