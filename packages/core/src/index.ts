@@ -1,8 +1,4 @@
 export * from './actions.ts';
-export {
-  createDoneInvokeEvent as doneInvoke,
-  doneInvokeEventType
-} from './eventUtils.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { StateMachine } from './StateMachine.ts';
 export { getStateNodes } from './stateUtils.ts';

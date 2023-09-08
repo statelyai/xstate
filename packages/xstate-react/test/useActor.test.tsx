@@ -8,8 +8,6 @@ import {
   assign,
   createMachine,
   DoneInvokeEventObject,
-  doneInvoke,
-  doneInvokeEventType,
   createActor,
   PersistedMachineState,
   raise,
@@ -69,7 +67,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     fetchMachine.provide({
       actors: {
         fetchData: fromCallback(({ sendBack }) => {
-          sendBack(doneInvoke('fetchData', 'persisted data'));
+          sendBack({
+            type: 'done.invoke.fetchData',
+            output: 'persisted data'
+          });
         }) as any // TODO: callback actors don't support output (yet?)
       }
     })
@@ -217,7 +218,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
               )
           }),
           on: {
-            [doneInvokeEventType('my-promise')]: 'success'
+            'done.invoke.my-promise': 'success'
           }
         },
         success: {

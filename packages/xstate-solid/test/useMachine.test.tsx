@@ -2,8 +2,6 @@
 import { useMachine, useActor } from '../src';
 import {
   assign,
-  doneInvoke,
-  doneInvokeEventType,
   createMachine,
   PersistedMachineState,
   raise,
@@ -74,7 +72,10 @@ describe('useMachine hook', () => {
     fetchMachine.provide({
       actors: {
         fetchData: fromCallback(({ sendBack }) => {
-          sendBack(doneInvoke('fetchData', 'persisted data'));
+          sendBack({
+            type: 'done.invoke.fetchData',
+            output: 'persisted data'
+          });
         }) as any // TODO: callback actors don't support output (yet?)
       }
     })
@@ -233,7 +234,7 @@ describe('useMachine hook', () => {
               )
           }),
           on: {
-            [doneInvokeEventType('my-promise')]: 'success'
+            'done.invoke.my-promise': 'success'
           }
         },
         success: {
