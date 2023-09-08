@@ -12,9 +12,7 @@ import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
 
 interface StatesSchema {
-  states?: {
-    [key: string]: StatesSchema;
-  };
+  states?: Record<string, StatesSchema>;
   [k: string]: unknown;
 }
 
