@@ -368,7 +368,7 @@ it('should work with generic context', () => {
   createMachineWithExtras({ counter: 42 });
 });
 
-it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
+it('should not widen literal types defined in `types.context` based on `config.context`', () => {
   createMachine({
     types: {
       context: {} as {

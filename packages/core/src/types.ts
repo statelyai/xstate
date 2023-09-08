@@ -1295,7 +1295,7 @@ export type MachineConfig<
   TTag extends string = string,
   TInput = any,
   TOutput = unknown
-> = (RootStateNodeConfig<
+> = RootStateNodeConfig<
   TContext,
   TEvent,
   TActor,
@@ -1312,13 +1312,14 @@ export type MachineConfig<
    * The machine's own version.
    */
   version?: string;
+  context?: InitialContext<TContext, TInput>;
   // we need to avoid failing the common property check for empty machine configs or ones that only contain `types` property
   // without it whe inferred config type (like `{}` or `{ types: {} }`) fails the assignability check to its constraint
   types?: unknown;
-}) &
-  (Equals<TContext, MachineContext> extends true
-    ? { context?: InitialContext<TContext, TInput> }
-    : { context: InitialContext<TContext, TInput> });
+} & ConditionalRequired<
+    { context?: unknown },
+    MachineContext extends TContext ? false : true
+  >;
 
 export interface ProvidedActor {
   src: string;

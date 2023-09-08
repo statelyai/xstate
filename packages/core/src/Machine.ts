@@ -1,19 +1,19 @@
+import { StateMachine } from './StateMachine.ts';
+import { ResolveTypegenMeta, TypegenConstraint } from './typegenTypes.ts';
 import {
+  AnyEventObject,
+  EventObject,
+  InternalMachineImplementations,
   MachineConfig,
   MachineContext,
-  InternalMachineImplementations,
-  ParameterizedObject,
-  ProvidedActor,
-  NonReducibleUnknown,
-  Prop,
-  AnyEventObject,
   MachineTypes,
-  EventObject
+  NonReducibleUnknown,
+  ParameterizedObject,
+  Prop,
+  ProvidedActor
 } from './types.ts';
-import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
-import { StateMachine } from './StateMachine.ts';
 
-interface InferenceSources<
+interface InferenceSource<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
@@ -62,7 +62,7 @@ export function createMachine<
     TOutput
   >
 >(
-  config: InferenceSources<
+  config: InferenceSource<
     TContext,
     TEvent,
     TActor,
