@@ -114,7 +114,6 @@ export class StateMachine<
 
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<TEvent['type']>;
-  public name = 'machine';
 
   constructor(
     /**
