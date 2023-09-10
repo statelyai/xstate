@@ -2,7 +2,8 @@ import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
 import {
   createDoneInvokeEvent,
-  createErrorPlatformEvent
+  createErrorPlatformEvent,
+  createInitEvent
 } from './eventUtils.ts';
 import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
@@ -235,11 +236,6 @@ export class Actor<
     switch (status?.status) {
       case 'done':
         this._stopProcedure();
-        // if (this._parent) {
-        //   this._doneEvent = doneInvoke(this.id, status.data);
-        //   this.system.sendTo(this._parent, this._doneEvent, this);
-        // }
-        // this._complete();
         this._complete();
         this._doneEvent = createDoneInvokeEvent(this.id, status.data);
         this.system.sendTo(this._parent, this._doneEvent, this);
@@ -317,9 +313,11 @@ export class Actor<
     }
     this.status = ActorStatus.Running;
 
+    const initEvent = createInitEvent(this.options.input);
+
     this.system._sendInspectionEvent({
       type: '@xstate.communication',
-      event: { type: 'xstate.init' },
+      event: initEvent,
       sourceId: this._parent?.sessionId,
       targetId: this.sessionId
     });
@@ -330,7 +328,7 @@ export class Actor<
       case 'done':
         // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
-        this.update(this._state, { type: 'xstate.init' } as TEvent);
+        this.update(this._state, initEvent as unknown as TEvent);
       // fallthrough
       case 'error':
         // TODO: rethink cleanup of observers, mailbox, etc
@@ -351,7 +349,7 @@ export class Actor<
     // TODO: this notifies all subscribers but usually this is redundant
     // there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(this._state, { type: 'xstate.init' } as TEvent);
+    this.update(this._state, initEvent as unknown as TEvent);
 
     if (this.options.devTools) {
       this.attachDevTools();
