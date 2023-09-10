@@ -158,7 +158,7 @@ export class Actor<
       this.system._set(systemId, this);
     }
 
-    this.sessionId = this.system._bookId(this.logic.name);
+    this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;

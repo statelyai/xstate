@@ -791,7 +791,7 @@ describe('interpreter', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Event "TIMER" was sent to stopped actor "machine:29 (machine:29)". This actor has already reached its final state, and will not transition.
+          "Event "TIMER" was sent to stopped actor "x:29 (x:29)". This actor has already reached its final state, and will not transition.
       Event: {"type":"TIMER"}",
         ],
       ]
@@ -1206,7 +1206,7 @@ describe('interpreter', () => {
         expect(console.warn).toMatchMockCallsInlineSnapshot(`
           [
             [
-              "Event "TRIGGER" was sent to stopped actor "machine:45 (machine:45)". This actor has already reached its final state, and will not transition.
+              "Event "TRIGGER" was sent to stopped actor "x:45 (x:45)". This actor has already reached its final state, and will not transition.
           Event: {"type":"TRIGGER"}",
             ],
           ]

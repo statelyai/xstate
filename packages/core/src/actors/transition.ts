@@ -49,7 +49,6 @@ export function fromTransition<
       }) => TState) // TODO: type
 ): TransitionActorLogic<TState, TEvent, TInput> {
   return {
-    name: 'transition',
     config: transition,
     transition: (state, event, actorContext) => {
       return transition(state, event as TEvent, actorContext as any);

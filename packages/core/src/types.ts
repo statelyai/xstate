@@ -1910,7 +1910,6 @@ export interface ActorLogic<
   TInput = any,
   TOutput = unknown
 > {
-  name?: string; // Used for logging/inspection
   config?: unknown;
   transition: (
     state: TInternalState,
@@ -2105,7 +2104,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   /**
    * @private
    */
-  _bookId: (name?: string) => string;
+  _bookId: () => string;
   /**
    * @private
    */

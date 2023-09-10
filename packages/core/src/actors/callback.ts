@@ -70,7 +70,6 @@ export function fromCallback<TEvent extends EventObject, TInput>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
   const logic: CallbackActorLogic<TEvent, TInput> = {
-    name: 'callback',
     config: invokeCallback,
     start: (_state, { self, system }) => {
       system.sendTo(self, { type: XSTATE_INIT }, self);

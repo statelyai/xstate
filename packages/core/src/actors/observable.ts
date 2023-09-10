@@ -47,7 +47,6 @@ export function fromObservable<T, TInput>(
 
   // TODO: add event types
   const logic: ObservableActorLogic<T, TInput> = {
-    name: 'observable',
     config: observableCreator,
     transition: (state, event, { self, id, defer, system }) => {
       if (state.status !== 'active') {
@@ -168,7 +167,6 @@ export function fromEventObservable<T extends EventObject, TInput>(
 
   // TODO: event types
   const logic: ObservableActorLogic<T, TInput> = {
-    name: 'eventObservable',
     config: lazyObservable,
     transition: (state, event) => {
       if (state.status !== 'active') {
