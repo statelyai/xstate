@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
-import { error } from '../actions.ts';
+import { createErrorPlatformEvent } from '../eventUtils.ts';
 import { ActorStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
@@ -9,14 +9,15 @@ import {
   AnyActor,
   AnyState,
   EventObject,
-  MachineContext
+  MachineContext,
+  ParameterizedObject
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
 function resolve(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any>,
+  actionArgs: ActionArgs<any, any, any>,
   {
     id,
     systemId,
@@ -88,16 +89,25 @@ function execute(
     try {
       actorRef.start?.();
     } catch (err) {
-      (actorContext.self as AnyActor).send(error(id, err));
+      (actorContext.self as AnyActor).send(createErrorPlatformEvent(id, err));
       return;
     }
   });
 }
 
+// we don't export this since it's an internal action that is not meant to be used in the user's code
+interface InvokeAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+}
+
 export function invoke<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject
+  TExpressionAction extends ParameterizedObject | undefined
 >({
   id,
   systemId,
@@ -108,8 +118,10 @@ export function invoke<
   systemId: string | undefined;
   src: string;
   input?: unknown;
-}) {
-  function invoke(_: ActionArgs<TContext, TExpressionEvent>) {
+}): InvokeAction<TContext, TExpressionEvent, TExpressionAction> {
+  function invoke(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

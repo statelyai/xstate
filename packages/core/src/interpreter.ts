@@ -1,7 +1,10 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
-import { doneInvoke, error } from './actions.ts';
-import { stopSignalType } from './actors/index.ts';
+import {
+  createDoneInvokeEvent,
+  createErrorPlatformEvent
+} from './eventUtils.ts';
+import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
@@ -19,11 +22,11 @@ import type {
   EventFromLogic,
   PersistedStateFrom,
   SnapshotFrom,
-  AnyActorRef
+  AnyActorRef,
+  DoneInvokeEventObject
 } from './types.ts';
 import {
   ActorRef,
-  DoneEvent,
   EventObject,
   InteropSubscribable,
   ActorOptions,
@@ -125,7 +128,7 @@ export class Actor<
   public sessionId: string;
 
   public system: ActorSystem<any>;
-  private _doneEvent?: DoneEvent;
+  private _doneEvent?: DoneInvokeEventObject;
 
   public src?: string;
 
@@ -238,14 +241,18 @@ export class Actor<
         // }
         // this._complete();
         this._complete();
-        this._doneEvent = doneInvoke(this.id, status.data);
-        // this._parent?.send(this._doneEvent as any);
+        this._doneEvent = createDoneInvokeEvent(this.id, status.data);
         this.system.sendTo(this._parent, this._doneEvent, this);
+
         break;
       case 'error':
         this._stopProcedure();
         this._error(status.data);
-        this.system.sendTo(this._parent, error(this.id, status.data), this);
+        this.system.sendTo(
+          this._parent,
+          createErrorPlatformEvent(this.id, status.data),
+          this
+        );
         break;
     }
     this.system._sendInspectionEvent({
@@ -336,7 +343,7 @@ export class Actor<
       } catch (err) {
         this._stopProcedure();
         this._error(err);
-        this._parent?.send(error(this.id, err));
+        this._parent?.send(createErrorPlatformEvent(this.id, err));
         return this;
       }
     }
@@ -371,13 +378,12 @@ export class Actor<
 
       this._stopProcedure();
       this._error(err);
-      this._parent?.send(error(this.id, err));
+      this._parent?.send(createErrorPlatformEvent(this.id, err));
       return;
     }
 
     this.update(nextState, event);
-
-    if (event.type === stopSignalType) {
+    if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();
     }
@@ -392,7 +398,7 @@ export class Actor<
       this.status = ActorStatus.Stopped;
       return this;
     }
-    this.mailbox.enqueue({ type: stopSignalType } as any);
+    this.mailbox.enqueue({ type: XSTATE_STOP } as any);
 
     return this;
   }
@@ -490,11 +496,7 @@ export class Actor<
         const eventString = JSON.stringify(event);
 
         console.warn(
-          `Event "${event.type.toString()}" was sent to stopped actor "${
-            this.id
-          } (${
-            this.sessionId
-          })". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
         );
       }
       return;

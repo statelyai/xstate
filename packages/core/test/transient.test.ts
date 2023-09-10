@@ -4,7 +4,8 @@ import { assign } from '../src/actions/assign';
 import { stateIn } from '../src/guards';
 
 const greetingContext = { hour: 10 };
-const greetingMachine = createMachine<typeof greetingContext>({
+const greetingMachine = createMachine({
+  types: {} as { context: typeof greetingContext },
   id: 'greeting',
   initial: 'pending',
   context: greetingContext,
@@ -28,7 +29,8 @@ const greetingMachine = createMachine<typeof greetingContext>({
 
 describe('transient states (eventless transitions)', () => {
   it('should choose the first candidate target that matches the guard 1', () => {
-    const machine = createMachine<{ data: boolean; status?: string }>({
+    const machine = createMachine({
+      types: {} as { context: { data: boolean } },
       context: { data: false },
       initial: 'G',
       states: {
@@ -53,7 +55,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the first candidate target that matches the guard 2', () => {
-    const machine = createMachine<{ data: boolean; status?: string }>({
+    const machine = createMachine({
+      types: {} as { context: { data: boolean; status?: string } },
       context: { data: false },
       initial: 'G',
       states: {
@@ -78,7 +81,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the final candidate without a guard if none others match', () => {
-    const machine = createMachine<{ data: boolean; status?: string }>({
+    const machine = createMachine({
+      types: {} as { context: { data: boolean; status?: string } },
       context: { data: true },
       initial: 'G',
       states: {
@@ -495,7 +499,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root', () => {
-    const machine = createMachine<{ count: number }, any>({
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -528,7 +533,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root (with `always`)', () => {
-    const machine = createMachine<{ count: number }, any>({
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -564,7 +570,7 @@ describe('transient states (eventless transitions)', () => {
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
     const timerMachine = createMachine({
       initial: 'initial',
-      context: ({ input }) => ({
+      context: ({ input }: { input: { duration: number } }) => ({
         duration: input.duration
       }),
       types: {

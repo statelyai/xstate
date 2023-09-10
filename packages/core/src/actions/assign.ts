@@ -5,23 +5,25 @@ import type {
   ActionArgs,
   AnyActorContext,
   AnyActorRef,
+  AnyEventObject,
   AnyState,
   AssignArgs,
   Assigner,
   EventObject,
   LowInfer,
   MachineContext,
+  ParameterizedObject,
   PropertyAssigner
 } from '../types.ts';
 
 function resolve(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any>,
+  actionArgs: ActionArgs<any, any, any>,
   {
     assignment
   }: {
-    assignment: Assigner<any, any> | PropertyAssigner<any, any>;
+    assignment: Assigner<any, any, any> | PropertyAssigner<any, any, any>;
   }
 ) {
   if (!state.context) {
@@ -31,7 +33,7 @@ function resolve(
   }
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
-  const assignArgs: AssignArgs<any, any> = {
+  const assignArgs: AssignArgs<any, any, any> = {
     context: state.context,
     event: actionArgs.event,
     action: actionArgs.action,
@@ -72,6 +74,14 @@ function resolve(
   ];
 }
 
+export interface AssignAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+}
+
 /**
  * Updates the current context of the machine.
  *
@@ -79,14 +89,18 @@ function resolve(
  */
 export function assign<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject = EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TExpressionEvent extends AnyEventObject = AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TExpressionAction extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined
 >(
   assignment:
-    | Assigner<LowInfer<TContext>, TExpressionEvent>
-    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent>
-) {
-  function assign(_: ActionArgs<TContext, TExpressionEvent>) {
+    | Assigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
+    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction>
+): AssignAction<TContext, TExpressionEvent, TExpressionAction> {
+  function assign(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

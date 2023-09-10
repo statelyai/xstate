@@ -1,30 +1,29 @@
 /* @jsxImportSource solid-js */
-import { useMachine, useActor } from '../src';
 import {
-  assign,
-  doneInvoke,
-  createMachine,
-  PersistedMachineState,
-  raise,
-  createActor,
-  ActorLogicFrom,
-  Actor,
-  ActorStatus
-} from 'xstate';
-import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
-import { fromPromise, fromCallback } from 'xstate/actors';
-import {
-  createEffect,
-  createSignal,
   For,
   Match,
+  Show,
+  Switch,
+  createEffect,
+  createSignal,
   mergeProps,
   on,
   onCleanup,
-  onMount,
-  Show,
-  Switch
+  onMount
 } from 'solid-js';
+import { fireEvent, render, screen, waitFor } from 'solid-testing-library';
+import {
+  Actor,
+  ActorLogicFrom,
+  ActorStatus,
+  PersistedMachineState,
+  assign,
+  createActor,
+  createMachine,
+  raise
+} from 'xstate';
+import { fromCallback, fromPromise } from 'xstate/actors';
+import { useActor, useMachine } from '../src';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -72,9 +71,15 @@ describe('useMachine hook', () => {
   const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback(({ sendBack }) => {
-          sendBack(doneInvoke('fetchData', 'persisted data'));
-        }) as any // TODO: callback actors don't support output (yet?)
+        fetchData: createMachine({
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final',
+              output: 'persisted data'
+            }
+          }
+        }) as any
       }
     })
   ).start();
@@ -217,7 +222,8 @@ describe('useMachine hook', () => {
   });
 
   it('should not spawn actors until service is started', (done) => {
-    const spawnMachine = createMachine<any>({
+    const spawnMachine = createMachine({
+      types: {} as { context: any },
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined },
@@ -231,7 +237,7 @@ describe('useMachine hook', () => {
               )
           }),
           on: {
-            [doneInvoke('my-promise')]: 'success'
+            'done.invoke.my-promise': 'success'
           }
         },
         success: {
@@ -414,15 +420,16 @@ describe('useMachine hook', () => {
   });
 
   it('should capture only array updates', () => {
-    const machine = createMachine<
-      {
-        item: {
-          counts: Array<{ value: number }>;
-          totals: Array<{ value: number }>;
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          item: {
+            counts: Array<{ value: number }>;
+            totals: Array<{ value: number }>;
+          };
         };
+        events: { type: 'COUNT' } | { type: 'TOTAL' };
       },
-      { type: 'COUNT' } | { type: 'TOTAL' }
-    >({
       initial: 'active',
       context: {
         item: {
@@ -495,9 +502,12 @@ describe('useMachine hook', () => {
   });
 
   it('useMachine state should only trigger effect of directly tracked value', () => {
-    const counterMachine2 = createMachine<{
-      subCount: { subCount1: { subCount2: { count: number } } };
-    }>({
+    const counterMachine2 = createMachine({
+      types: {} as {
+        context: {
+          subCount: { subCount1: { subCount2: { count: number } } };
+        };
+      },
       id: 'counter',
       initial: 'active',
       context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
@@ -565,10 +575,11 @@ describe('useMachine hook', () => {
   });
 
   it('should capture only nested value update', () => {
-    const machine = createMachine<
-      { item: { count: number; total: number } },
-      { type: 'COUNT' } | { type: 'TOTAL' }
-    >({
+    const machine = createMachine({
+      types: {} as {
+        context: { item: { count: number; total: number } };
+        events: { type: 'COUNT' } | { type: 'TOTAL' };
+      },
       initial: 'active',
       context: {
         item: {
@@ -970,7 +981,8 @@ describe('useMachine hook', () => {
       counter: number;
     }
 
-    const machine = createMachine<MachineContext>({
+    const machine = createMachine({
+      types: {} as { context: MachineContext },
       context: {
         counter: 0
       },
@@ -1258,7 +1270,8 @@ describe('useMachine hook', () => {
       return 2;
     }
 
-    const machine = createMachine<{ getValue: () => number }>({
+    const machine = createMachine({
+      types: {} as { context: { getValue: () => number } },
       initial: 'a',
       context: {
         getValue() {
@@ -1301,7 +1314,10 @@ describe('useMachine hook', () => {
   });
 
   it('should not miss initial synchronous updates', () => {
-    const m = createMachine<{ count: number }>({
+    const m = createMachine({
+      types: {} as {
+        context: { count: number };
+      },
       initial: 'idle',
       context: {
         count: 0
@@ -1373,7 +1389,11 @@ describe('useMachine hook', () => {
     interface Context {
       latestValue: { value: number };
     }
-    const machine = createMachine<Context, { type: 'INC' }>({
+    const machine = createMachine({
+      types: {} as {
+        context: Context;
+        events: { type: 'INC' };
+      },
       initial: 'initial',
       context: {
         latestValue
@@ -1642,7 +1662,7 @@ describe('useMachine (strict mode)', () => {
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
       initial: 'intitial',
-      context: ({ input }) => ({
+      context: ({ input }: { input: { value: number } }) => ({
         value: input.value
       }),
       states: {

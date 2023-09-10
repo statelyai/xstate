@@ -8,8 +8,11 @@ import {
   TODO
 } from '../types';
 import { isPromiseLike } from '../utils';
-import { doneInvoke, error } from '../actions.ts';
-import { startSignalType, stopSignalType, isSignal } from '../actors/index.ts';
+import {
+  createDoneInvokeEvent,
+  createErrorPlatformEvent
+} from '../eventUtils.ts';
+import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
 export interface CallbackInternalState<
   TEvent extends EventObject,
@@ -70,10 +73,10 @@ export function fromCallback<TEvent extends EventObject, TInput>(
     name: 'callback',
     config: invokeCallback,
     start: (_state, { self, system }) => {
-      system.sendTo(self, { type: startSignalType }, self);
+      system.sendTo(self, { type: XSTATE_INIT }, self);
     },
     transition: (state, event, { self, id, system }) => {
-      if (event.type === startSignalType) {
+      if (event.type === XSTATE_INIT) {
         const sendBack = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
             return;
@@ -97,29 +100,32 @@ export function fromCallback<TEvent extends EventObject, TInput>(
         if (isPromiseLike(state.dispose)) {
           state.dispose.then(
             (resolved) => {
-              system.sendTo(self._parent, doneInvoke(id, resolved), self);
+              system.sendTo(
+                self._parent,
+                createDoneInvokeEvent(id, resolved),
+                self
+              );
               state.canceled = true;
             },
             (errorData) => {
               state.canceled = true;
-              system.sendTo(self._parent, error(id, errorData), self);
+              system.sendTo(
+                self._parent,
+                createErrorPlatformEvent(id, errorData),
+                self
+              );
             }
           );
         }
         return state;
       }
 
-      if (event.type === stopSignalType) {
+      if (event.type === XSTATE_STOP) {
         state.canceled = true;
 
         if (typeof state.dispose === 'function') {
           state.dispose();
         }
-        return state;
-      }
-
-      if (isSignal(event)) {
-        // TODO: unrecognized signal
         return state;
       }
 

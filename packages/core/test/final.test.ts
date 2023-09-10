@@ -1,4 +1,9 @@
-import { createMachine, createActor, assign } from '../src/index.ts';
+import {
+  createMachine,
+  createActor,
+  assign,
+  AnyActorRef
+} from '../src/index.ts';
 
 describe('final states', () => {
   it('should emit the "done.state.*" event when all nested states are in their final states', () => {
@@ -96,7 +101,8 @@ describe('final states', () => {
       revealedSecret?: string;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       initial: 'secret',
       context: {
         revealedSecret: undefined
@@ -170,6 +176,11 @@ describe('final states', () => {
 
   it('output mapper should receive self', () => {
     const machine = createMachine({
+      types: {
+        output: {} as {
+          selfRef: AnyActorRef;
+        }
+      },
       initial: 'done',
       states: {
         done: {
@@ -180,6 +191,6 @@ describe('final states', () => {
     });
 
     const actor = createActor(machine).start();
-    expect(actor.getSnapshot().output.selfRef.send).toBeDefined();
+    expect(actor.getSnapshot().output!.selfRef.send).toBeDefined();
   });
 });

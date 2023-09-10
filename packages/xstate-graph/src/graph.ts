@@ -5,7 +5,9 @@ import {
   StateFrom,
   EventFrom,
   StateMachine,
-  AnyActorLogic
+  AnyActorLogic,
+  SnapshotFrom,
+  EventFromLogic
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -169,13 +171,30 @@ export interface AdjacencyMap<TState, TEvent> {
   [key: SerializedState]: AdjacencyValue<TState, TEvent>;
 }
 
-export function resolveTraversalOptions<TState, TEvent extends EventObject>(
+function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {
+  return 'getStateNodeById' in logic;
+}
+
+export function resolveTraversalOptions<
+  TLogic extends AnyActorLogic,
+  TState extends SnapshotFrom<TLogic>,
+  TEvent extends EventFromLogic<TLogic>
+>(
+  logic: AnyActorLogic,
   traversalOptions?: TraversalOptions<TState, TEvent>,
   defaultOptions?: TraversalOptions<TState, TEvent>
 ): TraversalConfig<TState, TEvent> {
+  const resolvedDefaultOptions =
+    defaultOptions ??
+    (isMachineLogic(logic)
+      ? (createDefaultMachineOptions(
+          logic,
+          traversalOptions as any
+        ) as TraversalOptions<TState, TEvent>)
+      : undefined);
   const serializeState =
     traversalOptions?.serializeState ??
-    defaultOptions?.serializeState ??
+    resolvedDefaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
   const traversalConfig: TraversalConfig<TState, TEvent> = {
     serializeState,
@@ -188,7 +207,7 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     // Traversal should not continue past the `toState` predicate
     // since the target state has already been reached at that point
     stopCondition: traversalOptions?.toState,
-    ...defaultOptions,
+    ...resolvedDefaultOptions,
     ...traversalOptions
   };
 
@@ -196,18 +215,19 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
 }
 
 export function joinPaths<TState, TEvent extends EventObject>(
-  path1: StatePath<TState, TEvent>,
-  path2: StatePath<TState, TEvent>
+  headPath: StatePath<TState, TEvent>,
+  tailPath: StatePath<TState, TEvent>
 ): StatePath<TState, TEvent> {
-  const secondPathSource = path2.steps[0]?.state ?? path2.state;
+  const secondPathSource = tailPath.steps[0].state;
 
-  if (secondPathSource !== path1.state) {
+  if (secondPathSource !== headPath.state) {
     throw new Error(`Paths cannot be joined`);
   }
 
   return {
-    state: path2.state,
-    steps: path1.steps.concat(path2.steps),
-    weight: path1.weight + path2.weight
+    state: tailPath.state,
+    // e.g. [A, B, C] + [C, D, E] = [A, B, C, D, E]
+    steps: headPath.steps.concat(tailPath.steps.slice(1)),
+    weight: headPath.weight + tailPath.weight
   };
 }

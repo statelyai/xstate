@@ -24,6 +24,7 @@ type RestParams<TMachine extends AnyStateMachine> =
             TMachine['__TEvent'],
             TODO,
             TODO,
+            TODO,
             TMachine['__TResolvedTypesMeta'],
             true
           >
@@ -33,6 +34,7 @@ type RestParams<TMachine extends AnyStateMachine> =
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
             TODO,
             TODO,
             TMachine['__TResolvedTypesMeta']

@@ -16,17 +16,25 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
   TMachine extends StateMachine<
     infer TContext,
     infer TEvent,
+    infer TActor,
     infer TAction,
-    infer TActorMap,
+    infer TGuard,
+    infer TDelay,
+    infer TTag,
     infer TInput,
+    infer TOutput,
     infer TResolvedTypesMeta
   >
     ? StateMachine<
         TContext,
         TEvent,
+        TActor,
         TAction,
-        TActorMap,
+        TGuard,
+        TDelay,
+        TTag,
         TInput,
+        TOutput,
         AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
           ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
           : TResolvedTypesMeta

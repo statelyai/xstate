@@ -10,21 +10,33 @@ import {
   MachineContext,
   NoInfer,
   RaiseActionOptions,
-  SendExpr
+  SendExpr,
+  ParameterizedObject
 } from '../types.ts';
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any>,
+  args: ActionArgs<any, any, any>,
   {
     event: eventOrExpr,
     id,
     delay
   }: {
-    event: EventObject | SendExpr<MachineContext, EventObject, EventObject>;
+    event:
+      | EventObject
+      | SendExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject | undefined,
+          EventObject
+        >;
     id: string | undefined;
-    delay: string | number | DelayExpr<MachineContext, EventObject> | undefined;
+    delay:
+      | string
+      | number
+      | DelayExpr<MachineContext, EventObject, ParameterizedObject | undefined>
+      | undefined;
   }
 ) {
   const delaysMap = state.machine.implementations.delays;
@@ -71,24 +83,44 @@ function execute(
   }
 }
 
+export interface RaiseAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  _out_TEvent?: TEvent;
+  _out_TDelay?: TDelay;
+}
+
 /**
  * Raises an event. This places the event in the internal event queue, so that
  * the event is immediately consumed by the machine in the current step.
  *
  * @param eventType The event to raise.
  */
-
 export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TEvent extends EventObject = TExpressionEvent,
+  TExpressionAction extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined,
+  TDelay extends string = string
 >(
   eventOrExpr:
     | NoInfer<TEvent>
-    | SendExpr<TContext, TExpressionEvent, NoInfer<TEvent>>,
-  options?: RaiseActionOptions<TContext, TExpressionEvent>
-) {
-  function raise(_: ActionArgs<TContext, TExpressionEvent>) {
+    | SendExpr<TContext, TExpressionEvent, TExpressionAction, NoInfer<TEvent>>,
+  options?: RaiseActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    NoInfer<TDelay>
+  >
+): RaiseAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TDelay> {
+  function raise(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -102,8 +134,5 @@ export function raise<
   raise.resolve = resolve;
   raise.execute = execute;
 
-  return raise as {
-    (args: ActionArgs<TContext, TExpressionEvent>): void;
-    _out_TEvent?: TEvent;
-  };
+  return raise;
 }

@@ -1,5 +1,5 @@
 import { createActor, createMachine, raise } from '../src/index.ts';
-import { and, not, or } from '../src/guards';
+import { and, not, or, stateIn } from '../src/guards';
 import { trackEntries } from './utils.ts';
 
 describe('guard conditions', () => {
@@ -171,8 +171,9 @@ describe('guard conditions', () => {
   });
 
   it('should work with defined string transitions (condition not met)', () => {
-    const machine = createMachine<LightMachineCtx, LightMachineEvents>(
+    const machine = createMachine(
       {
+        types: {} as { context: LightMachineCtx; events: LightMachineEvents },
         context: {
           elapsed: 10
         },
@@ -331,7 +332,7 @@ describe('guard conditions', () => {
                 T2: [
                   {
                     target: 'B2',
-                    guard: ({ state }) => state.matches('A.A2')
+                    guard: stateIn('A.A2')
                   }
                 ]
               }
@@ -381,7 +382,7 @@ describe('guard conditions', () => {
               always: [
                 {
                   target: 'B4',
-                  guard: ({ state }) => state.matches('A.A4')
+                  guard: stateIn('A.A4')
                 }
               ]
             },
@@ -399,35 +400,6 @@ describe('guard conditions', () => {
       B: 'B4'
     });
   });
-
-  it('should be able to check source state tags when checking', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            MACRO: 'b'
-          }
-        },
-        b: {
-          entry: raise({ type: 'MICRO' }),
-          tags: 'theTag',
-          on: {
-            MICRO: {
-              guard: ({ state }) => state.hasTag('theTag'),
-              target: 'c'
-            }
-          }
-        },
-        c: {}
-      }
-    });
-
-    const service = createActor(machine).start();
-    service.send({ type: 'MACRO' });
-
-    expect(service.getSnapshot().value).toBe('c');
-  });
 });
 
 describe('custom guards', () => {
@@ -439,9 +411,20 @@ describe('custom guards', () => {
       type: 'EVENT';
       value: number;
     }
-    const machine = createMachine<Ctx, Events>(
+    const machine = createMachine(
       {
-        id: 'custom',
+        types: {} as {
+          context: Ctx;
+          events: Events;
+          guards: {
+            type: 'custom';
+            params: {
+              prop: keyof Ctx;
+              op: 'greaterThan';
+              compare: number;
+            };
+          };
+        },
         initial: 'inactive',
         context: {
           count: 0
@@ -466,9 +449,7 @@ describe('custom guards', () => {
           custom: ({ context, event, guard }) => {
             const { prop, compare, op } = guard.params;
             if (op === 'greaterThan') {
-              return (
-                context[prop as keyof typeof context] + event.value > compare
-              );
+              return context[prop] + event.value > compare;
             }
 
             return false;
@@ -489,63 +470,200 @@ describe('custom guards', () => {
 
     expect(failState.value).toEqual('inactive');
   });
-});
 
-describe('referencing guards', () => {
-  const stringGuardFn = () => true;
-  const guardsMachine = createMachine(
-    {
-      id: 'guards',
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            EVENT: [
-              { guard: 'string' },
-              {
-                guard: function guardFn() {
-                  return true;
-                }
-              },
-              {
-                guard: {
-                  type: 'object',
-                  params: { foo: 'bar' }
-                }
-              }
-            ]
+  it('should provide the guard in its object form even if it was configured as string', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: 'myGuard'
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: ({ guard }) => {
+            spy(guard);
+            return true;
           }
         }
       }
-    },
-    {
-      guards: {
-        string: stringGuardFn
-      }
-    }
-  );
-
-  const def = guardsMachine.definition;
-  const [stringGuard, functionGuard, objectGuard] = def.states.active.on.EVENT;
-
-  it('guard predicates should be able to be referenced from a string', () => {
-    expect(stringGuard.guard!.predicate).toBeDefined();
-    expect(stringGuard.guard!.type).toEqual('string');
-  });
-
-  it('guard predicates should be able to be referenced from a function', () => {
-    expect(functionGuard.guard!.predicate).toBeDefined();
-    expect(functionGuard.guard!.type).toEqual('guardFn');
-  });
-
-  it('guard predicates should be able to be referenced from an object', () => {
-    expect(objectGuard.guard).toBeDefined();
-    expect(objectGuard.guard).toEqual(
-      expect.objectContaining({
-        type: 'object',
-        params: expect.objectContaining({ foo: 'bar' })
-      })
     );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myGuard'
+    });
+  });
+
+  it('should provide the guard with resolved params when they are dynamic', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: { type: 'myGuard', params: () => ({ stuff: 100 }) }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: ({ guard }) => {
+            spy(guard);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myGuard',
+      params: {
+        stuff: 100
+      }
+    });
+  });
+
+  it('should resolve dynamic params using context value', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: {
+          secret: 42
+        },
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: ({ context }) => ({ secret: context.secret })
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: ({ guard }) => {
+            spy(guard);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myGuard',
+      params: {
+        secret: 42
+      }
+    });
+  });
+
+  it('should resolve dynamic params using event value', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: ({ event }) => ({ secret: event.secret })
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: ({ guard }) => {
+            spy(guard);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO', secret: 77 });
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'myGuard',
+      params: {
+        secret: 77
+      }
+    });
+  });
+});
+
+describe('referencing guards', () => {
+  it('guard should be checked when referenced by a string', () => {
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: 'checkStuff'
+          }
+        }
+      },
+      {
+        guards: {
+          checkStuff: spy
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    expect(spy).not.toHaveBeenCalled();
+
+    actorRef.send({
+      type: 'EV'
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('guard should be checked when referenced by a parametrized guard object', () => {
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: {
+              type: 'checkStuff'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          checkStuff: spy
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    expect(spy).not.toHaveBeenCalled();
+
+    actorRef.send({
+      type: 'EV'
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('should throw for guards with missing predicates', () => {
@@ -644,6 +762,37 @@ describe('referencing guards', () => {
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
+
+  it('should be possible to resolve referenced guards recursively', () => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT: {
+                target: 'b',
+                guard: 'ref1'
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        guards: {
+          ref1: 'ref2',
+          ref2: 'ref3',
+          ref3: () => true
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EVENT' });
+
+    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+  });
 });
 
 describe('guards - other', () => {
@@ -665,58 +814,6 @@ describe('guards - other', () => {
     service.send({ type: 'EVENT' });
 
     expect(service.getSnapshot().value).toBe('c');
-  });
-});
-
-describe('guards with child guards', () => {
-  it('guards can contain child guards', () => {
-    expect.assertions(3);
-
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: {
-                target: 'b',
-                guard: {
-                  type: 'testGuard',
-                  children: [
-                    {
-                      type: 'customGuard',
-                      predicate: () => true
-                    },
-                    { type: 'customGuard' }
-                  ],
-                  predicate: ({ guard }) => {
-                    expect(guard.children).toHaveLength(2);
-                    expect(
-                      guard.children?.find(
-                        (childGuard: any) => childGuard.type === 'customGuard'
-                      )?.predicate
-                    ).toBeInstanceOf(Function);
-
-                    return true;
-                  }
-                }
-              }
-            }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          customGuard: () => true
-        }
-      }
-    );
-
-    const actorRef = createActor(machine).start();
-    actorRef.send({ type: 'EVENT' });
-
-    expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
 });
 
@@ -776,6 +873,9 @@ describe('not() guard', () => {
   it('should guard with object', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          guards: { type: 'greaterThan10'; params: { value: number } };
+        },
         initial: 'a',
         states: {
           a: {
@@ -890,6 +990,12 @@ describe('and() guard', () => {
   it('should guard with object', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          guards: {
+            type: 'greaterThan10';
+            params: { value: number };
+          };
+        },
         initial: 'a',
         states: {
           a: {
@@ -1012,6 +1118,12 @@ describe('or() guard', () => {
   it('should guard with object', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          guards: {
+            type: 'greaterThan10';
+            params: { value: number };
+          };
+        },
         initial: 'a',
         states: {
           a: {

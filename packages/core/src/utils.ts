@@ -1,18 +1,19 @@
 import isDevelopment from '#is-development';
 import { AnyActorLogic, AnyState } from './index.ts';
-import { errorExecution, errorPlatform } from './constantPrefixes.ts';
-import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
+import {
+  ERROR_EXECUTION,
+  STATE_DELIMITER,
+  TARGETLESS_KEY
+} from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
   ActorLogic,
   AnyEventObject,
   EventObject,
-  EventType,
   InvokeConfig,
   MachineContext,
   Mapper,
   Observer,
-  PropertyMapper,
   ErrorEvent,
   SingleOrArray,
   StateLike,
@@ -21,7 +22,9 @@ import type {
   TransitionConfig,
   TransitionConfigTarget,
   TODO,
-  AnyActorRef
+  AnyActorRef,
+  AnyTransitionConfig,
+  AnyInvokeConfig
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -212,14 +215,14 @@ export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
 }
 
-export function toArrayStrict<T>(value: T[] | T): T[] {
+export function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
   if (isArray(value)) {
     return value;
   }
   return [value];
 }
 
-export function toArray<T>(value: T[] | T | undefined): T[] {
+export function toArray<T>(value: readonly T[] | T | undefined): readonly T[] {
   if (value === undefined) {
     return [];
   }
@@ -262,7 +265,7 @@ export function mapContext<
   return mapper;
 }
 
-export function isBuiltInEvent(eventType: EventType): boolean {
+export function isBuiltInEvent(eventType: string): boolean {
   return /^(done|error)\./.test(eventType);
 }
 
@@ -307,7 +310,7 @@ export function partition<T, A extends T, B extends T>(
   return [truthy, falsy];
 }
 
-export function isArray(value: any): value is any[] {
+export function isArray(value: any): value is readonly any[] {
   return Array.isArray(value);
 }
 
@@ -329,7 +332,7 @@ export const uniqueId = (() => {
 export function isErrorEvent(event: AnyEventObject): event is ErrorEvent<any> {
   return (
     typeof event.type === 'string' &&
-    (event.type === errorExecution || event.type.startsWith(errorPlatform))
+    (event.type === ERROR_EXECUTION || event.type.startsWith('error.platform'))
   );
 }
 
@@ -337,10 +340,8 @@ export function toTransitionConfigArray<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  configLike: SingleOrArray<
-    TransitionConfig<TContext, TEvent> | TransitionConfigTarget
-  >
-): Array<TransitionConfig<TContext, TEvent>> {
+  configLike: SingleOrArray<AnyTransitionConfig | TransitionConfigTarget>
+): Array<AnyTransitionConfig> {
   return toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
@@ -358,7 +359,7 @@ export function normalizeTarget<
   TEvent extends EventObject
 >(
   target: SingleOrArray<string | StateNode<TContext, TEvent>> | undefined
-): Array<string | StateNode<TContext, TEvent>> | undefined {
+): ReadonlyArray<string | StateNode<TContext, TEvent>> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
     return undefined;
   }
@@ -390,32 +391,6 @@ export function reportUnhandledExceptionOnInvocation(
       );
     }
   }
-}
-
-export function toInvokeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  invocable: InvokeConfig<TContext, TEvent, TODO> | string | AnyActorLogic,
-  id: string
-): InvokeConfig<TContext, TEvent, TODO> {
-  if (typeof invocable === 'object') {
-    if ('src' in invocable) {
-      return invocable;
-    }
-
-    if ('transition' in invocable) {
-      return {
-        id,
-        src: invocable
-      };
-    }
-  }
-
-  return {
-    id,
-    src: invocable
-  };
 }
 
 export function toObserver<T>(
