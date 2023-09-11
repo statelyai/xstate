@@ -6,7 +6,8 @@ import type {
   ParameterizedObject,
   AnyState,
   NoRequiredParams,
-  NoInfer
+  NoInfer,
+  WithDynamicParams
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 
@@ -37,7 +38,7 @@ export type Guard<
   TGuard extends ParameterizedObject
 > =
   | NoRequiredParams<TGuard>
-  | TGuard
+  | WithDynamicParams<TContext, TExpressionEvent, TGuard>
   | GuardPredicate<TContext, TExpressionEvent, TExpressionGuard, TGuard>;
 
 export type UnknownGuard = UnknownReferencedGuard | UnknownInlineGuard;
@@ -242,6 +243,11 @@ export function evaluateGuard<
       ? undefined
       : typeof guard === 'string'
       ? { type: guard }
+      : typeof guard.params === 'function'
+      ? {
+          type: guard.type,
+          params: guard.params({ context, event })
+        }
       : guard
   };
 

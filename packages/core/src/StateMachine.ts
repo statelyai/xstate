@@ -1,4 +1,5 @@
-import { error, createInitEvent, assign } from './actions.ts';
+import { assign } from './actions.ts';
+import { createInitEvent } from './eventUtils.ts';
 import { STATE_DELIMITER } from './constants.ts';
 import { cloneState, getPersistedState, State } from './State.ts';
 import { StateNode } from './StateNode.ts';

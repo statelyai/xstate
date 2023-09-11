@@ -113,8 +113,8 @@ describe('path.description', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((path) => path.description)).toEqual([
-      'Reaches state "d": EVENT → EVENT → EVENT',
-      'Reaches state "e": EVENT → EVENT → EVENT_2'
+      'Reaches state "d": xstate.init → EVENT → EVENT → EVENT',
+      'Reaches state "e": xstate.init → EVENT → EVENT → EVENT_2'
     ]);
   });
 });
@@ -145,9 +145,9 @@ describe('transition coverage', () => {
 
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       [
-        "Reaches state "a": NEXT → PREV",
-        "Reaches state "a": NEXT → RESTART",
-        "Reaches state "b": END",
+        "Reaches state "a": xstate.init → NEXT → PREV",
+        "Reaches state "a": xstate.init → NEXT → RESTART",
+        "Reaches state "b": xstate.init → END",
       ]
     `);
   });
@@ -187,9 +187,9 @@ describe('transition coverage', () => {
     // { value: 1000 } already covered by first guarded transition
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       [
-        "Reaches state "b": NEXT ({"value":0}) → NEXT ({"value":0})",
-        "Reaches state "b": NEXT ({"value":100})",
-        "Reaches state "b": NEXT ({"value":1000})",
+        "Reaches state "b": xstate.init → NEXT ({"value":0}) → NEXT ({"value":0})",
+        "Reaches state "b": xstate.init → NEXT ({"value":100})",
+        "Reaches state "b": xstate.init → NEXT ({"value":1000})",
       ]
     `);
   });
@@ -222,8 +222,8 @@ describe('transition coverage', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((p) => p.description)).toEqual([
-      `Reaches state "a": GO_TO_B → GO_TO_A`,
-      `Reaches state "a": GO_TO_C → GO_TO_A`
+      `Reaches state "a": xstate.init → GO_TO_B → GO_TO_A`,
+      `Reaches state "a": xstate.init → GO_TO_C → GO_TO_A`
     ]);
   });
 });
@@ -297,7 +297,7 @@ describe('getShortestPathsFrom', () => {
     // a (OTHER) -> b (TO_D) -> d
     expect(shortestPaths).toHaveLength(4);
 
-    expect(shortestPaths.every((path) => path.steps.length === 2)).toBeTruthy();
+    expect(shortestPaths.every((path) => path.steps.length === 3)).toBeTruthy();
   });
 
   describe('getSimplePathsFrom', () => {
@@ -336,7 +336,7 @@ describe('getShortestPathsFrom', () => {
       // a (OTHER) -> b (TO_D) -> d
       expect(simplePaths).toHaveLength(4);
 
-      expect(simplePaths.every((path) => path.steps.length === 2)).toBeTruthy();
+      expect(simplePaths.every((path) => path.steps.length === 3)).toBeTruthy();
     });
   });
 });

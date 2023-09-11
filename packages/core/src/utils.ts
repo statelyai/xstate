@@ -1,7 +1,10 @@
 import isDevelopment from '#is-development';
 import { AnyActorLogic, AnyState } from './index.ts';
-import { errorExecution, errorPlatform } from './constantPrefixes.ts';
-import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
+import {
+  ERROR_EXECUTION,
+  STATE_DELIMITER,
+  TARGETLESS_KEY
+} from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
   ActorLogic,
@@ -329,7 +332,7 @@ export const uniqueId = (() => {
 export function isErrorEvent(event: AnyEventObject): event is ErrorEvent<any> {
   return (
     typeof event.type === 'string' &&
-    (event.type === errorExecution || event.type.startsWith(errorPlatform))
+    (event.type === ERROR_EXECUTION || event.type.startsWith('error.platform'))
   );
 }
 
@@ -388,32 +391,6 @@ export function reportUnhandledExceptionOnInvocation(
       );
     }
   }
-}
-
-export function toInvokeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  invocable: AnyInvokeConfig | string | AnyActorLogic,
-  id: string
-): AnyInvokeConfig {
-  if (typeof invocable === 'object') {
-    if ('src' in invocable) {
-      return invocable;
-    }
-
-    if ('transition' in invocable) {
-      return {
-        id,
-        src: invocable
-      };
-    }
-  }
-
-  return {
-    id,
-    src: invocable
-  };
 }
 
 export function toObserver<T>(

@@ -12,7 +12,8 @@ describe('json', () => {
       [key: string]: any;
     }
 
-    const machine = createMachine<Context>({
+    const machine = createMachine({
+      types: {} as { context: Context },
       initial: 'foo',
       version: '1.0.0',
       context: {

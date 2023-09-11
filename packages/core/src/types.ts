@@ -179,6 +179,32 @@ export type NoRequiredParams<T extends ParameterizedObject> = T extends any
     : never
   : never;
 
+type ConditionalRequired<T, Condition extends boolean> = Condition extends true
+  ? Required<T>
+  : T;
+
+export type WithDynamicParams<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  T extends ParameterizedObject
+> = T extends any
+  ? ConditionalRequired<
+      {
+        type: T['type'];
+        params?:
+          | T['params']
+          | (({
+              context,
+              event
+            }: {
+              context: TContext;
+              event: TExpressionEvent;
+            }) => T['params']);
+      },
+      undefined extends T['params'] ? false : true
+    >
+  : never;
+
 export type Action<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -189,8 +215,10 @@ export type Action<
   TGuard extends ParameterizedObject,
   TDelay extends string
 > =
+  // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
+  // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice
   | NoRequiredParams<TAction>
-  | TAction
+  | WithDynamicParams<TContext, TExpressionEvent, TAction>
   | ActionFunction<
       TContext,
       TExpressionEvent,
@@ -306,11 +334,6 @@ export type AnyTransitionConfig = TransitionConfig<
   any
 >;
 
-export interface InvokeMeta {
-  src: string;
-  meta: MetaObject | undefined;
-}
-
 export interface InvokeDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -379,7 +402,6 @@ export interface InvokeDefinition<
     InvokeDefinition<TContext, TEvent, TActor, TAction, TGuard, TDelay>,
     'onDone' | 'onError' | 'toJSON'
   >;
-  meta: MetaObject | undefined;
 }
 
 type Delay<TDelay extends string> = TDelay | number;
@@ -599,10 +621,6 @@ type DistributeActors<
                 TDelay
               >
             >;
-        /**
-         * Meta data related to this invocation
-         */
-        meta?: MetaObject;
       } & (TSpecificActor['id'] extends string
         ? {
             /**
@@ -692,10 +710,6 @@ export type InvokeConfig<
               TDelay
             >
           >;
-      /**
-       * Meta data related to this invocation
-       */
-      meta?: MetaObject;
     };
 
 export type AnyInvokeConfig = InvokeConfig<any, any, any, any, any, any>;
@@ -752,8 +766,7 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    | TActor['src']
-    | InvokeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
+    InvokeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -795,8 +808,8 @@ export interface StateNodeConfig<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          DoneEventObject,
-          DoneEventObject,
+          DoneStateEventObject,
+          TEvent,
           TActor,
           TAction,
           TGuard,
@@ -1436,47 +1449,36 @@ export type Transitions<
   TEvent extends EventObject
 > = Array<TransitionDefinition<TContext, TEvent>>;
 
-export enum ConstantPrefix {
-  After = 'xstate.after',
-  DoneState = 'done.state',
-  DoneInvoke = 'done.invoke',
-  ErrorExecution = 'error.execution',
-  ErrorCommunication = 'error.communication',
-  ErrorPlatform = 'error.platform',
-  ErrorCustom = 'xstate.error'
-}
-
+// TODO: deduplicate this
 export interface DoneInvokeEvent<TOutput> {
   type: `done.invoke.${string}`;
   output: TOutput;
 }
 
-export interface ErrorEvent<TErrorData> {
+export interface ErrorEvent<TErrorData> extends EventObject {
   type: `error.${string}`;
   data: TErrorData;
 }
 
-export interface SnapshotEvent<TData> {
+export interface SnapshotEvent<TData> extends EventObject {
   type: `xstate.snapshot.${string}`;
   data: TData;
 }
 
-export interface ErrorExecutionEvent extends EventObject {
-  src: string;
-  type: ConstantPrefix.ErrorExecution;
-  data: any;
-}
-
 export interface ErrorPlatformEvent extends EventObject {
-  data: any;
+  type: `error.platform.${string}`;
+  data: unknown;
 }
 
-export interface DoneEventObject extends EventObject {
-  output?: any;
-  toString(): string;
+export interface DoneInvokeEventObject extends EventObject {
+  type: `done.invoke.${string}`;
+  output: unknown;
 }
 
-export type DoneEvent = DoneEventObject & string;
+export interface DoneStateEventObject extends EventObject {
+  type: `done.state.${string}`;
+  output: any;
+}
 
 export type DelayExpr<
   TContext extends MachineContext,

@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
-import { error } from '../actions.ts';
+import { createErrorPlatformEvent } from '../eventUtils.ts';
 import { ActorStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
@@ -89,10 +89,19 @@ function execute(
     try {
       actorRef.start?.();
     } catch (err) {
-      (actorContext.self as AnyActor).send(error(id, err));
+      (actorContext.self as AnyActor).send(createErrorPlatformEvent(id, err));
       return;
     }
   });
+}
+
+// we don't export this since it's an internal action that is not meant to be used in the user's code
+interface InvokeAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
 }
 
 export function invoke<
@@ -109,7 +118,7 @@ export function invoke<
   systemId: string | undefined;
   src: string;
   input?: unknown;
-}) {
+}): InvokeAction<TContext, TExpressionEvent, TExpressionAction> {
   function invoke(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {

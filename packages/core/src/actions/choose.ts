@@ -43,6 +43,22 @@ function resolve(
   return [state, undefined, toArray(matchedActions)];
 }
 
+export interface ChooseAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  _out_TActor?: TActor;
+  _out_TAction?: TAction;
+  _out_TGuard?: TGuard;
+  _out_TDelay?: TDelay;
+}
+
 export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -64,7 +80,15 @@ export function choose<
       TDelay
     >
   >
-) {
+): ChooseAction<
+  TContext,
+  TExpressionEvent,
+  TExpressionAction,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay
+> {
   function choose(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {
@@ -78,11 +102,5 @@ export function choose<
 
   choose.resolve = resolve;
 
-  return choose as {
-    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
-    _out_TActor?: TActor;
-    _out_TAction?: TAction;
-    _out_TGuard?: TGuard;
-    _out_TDelay?: TDelay;
-  };
+  return choose;
 }

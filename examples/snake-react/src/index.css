@@ -1,0 +1,64 @@
+.App {
+  font-family: monospace;
+  font-size: 1.3rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.grid {
+  display: grid;
+  border-style: solid;
+  border-width: 2px;
+  border-color: black;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+.cell {
+  width: 1.25em;
+  height: 1.25em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* even cells */
+.cell:nth-child(even) {
+  background: aliceblue;
+}
+
+.head,
+.body {
+  display: inline-block;
+}
+
+.head::before {
+  content: '🧑‍🍳';
+}
+
+.body::before {
+  content: '🥧';
+}
+
+.apple::before {
+  content: '🍎';
+}
+
+.head[data-dir='Right'],
+.body[data-dir='Right'] {
+  transform: rotate(-90deg);
+}
+.head[data-dir='Left'],
+.body[data-dir='Left'] {
+  transform: rotate(90deg);
+}
+.head[data-dir='Up'],
+.body[data-dir='Up'] {
+  transform: rotate(180deg);
+}

@@ -37,13 +37,31 @@ function resolve(
   ];
 }
 
+export interface PureAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  _out_TEvent?: TEvent;
+  _out_TActor?: TActor;
+  _out_TAction?: TAction;
+  _out_TGuard?: TGuard;
+  _out_TDelay?: TDelay;
+}
+
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent,
   TExpressionAction extends ParameterizedObject | undefined =
     | ParameterizedObject
     | undefined,
+  TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
@@ -67,7 +85,16 @@ export function pure<
         TDelay
       >
     | undefined
-) {
+): PureAction<
+  TContext,
+  TExpressionEvent,
+  TExpressionAction,
+  TEvent,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay
+> {
   function pure(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -78,12 +105,5 @@ export function pure<
   pure.get = getActions;
   pure.resolve = resolve;
 
-  return pure as {
-    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
-    _out_TEvent?: TEvent;
-    _out_Actor?: TActor;
-    _out_TAction?: TAction;
-    _out_TGuard?: TGuard;
-    _out_TDelay?: TDelay;
-  };
+  return pure;
 }

@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { constantPrefixes, error } from '../actions.ts';
+import { createErrorPlatformEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActorRef,
@@ -22,6 +22,7 @@ import {
   ParameterizedObject,
   NoInfer
 } from '../types.ts';
+import { XSTATE_ERROR } from '../constants.ts';
 
 function resolve(
   actorContext: AnyActorContext,
@@ -123,14 +124,21 @@ function execute(
 
   actorContext.defer(() => {
     to.send(
-      event.type === constantPrefixes.error
-        ? {
-            type: `${error(actorContext.self.id)}`,
-            data: (event as any).data
-          }
+      event.type === XSTATE_ERROR
+        ? createErrorPlatformEvent(actorContext.self.id, (event as any).data)
         : event
     );
   });
+}
+
+export interface SendToAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  _out_TDelay?: TDelay;
 }
 
 /**
@@ -169,7 +177,7 @@ export function sendTo<
     TExpressionAction,
     NoInfer<TDelay>
   >
-) {
+): SendToAction<TContext, TExpressionEvent, TExpressionAction, TDelay> {
   function sendTo(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
   ) {
@@ -187,10 +195,7 @@ export function sendTo<
   sendTo.resolve = resolve;
   sendTo.execute = execute;
 
-  return sendTo as {
-    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
-    _out_TDelay?: TDelay;
-  };
+  return sendTo;
 }
 
 /**
@@ -309,7 +314,7 @@ export function escalate<
   return sendParent<TContext, TExpressionEvent, TExpressionAction, EventObject>(
     (arg) => {
       return {
-        type: constantPrefixes.error,
+        type: XSTATE_ERROR,
         data:
           typeof errorData === 'function' ? (errorData as any)(arg) : errorData
       };

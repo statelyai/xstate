@@ -11,11 +11,9 @@ import {
   getDelayedTransitions
 } from './stateUtils.ts';
 import type {
-  AnyActorLogic,
   DelayedTransitionDefinition,
   EventObject,
   FinalStateNodeConfig,
-  HistoryStateNodeConfig,
   InitialTransitionDefinition,
   InvokeDefinition,
   MachineContext,
@@ -35,10 +33,8 @@ import type {
 } from './types.ts';
 import {
   createInvokeId,
-  flatten,
   mapValues,
   toArray,
-  toInvokeConfig,
   toTransitionConfigArray
 } from './utils.ts';
 
@@ -301,13 +297,10 @@ export class StateNode<
     >
   > {
     return memo(this, 'invoke', () =>
-      toArray(this.config.invoke).map((invocable, i) => {
-        const generatedId = createInvokeId(this.id, i);
-        const invokeConfig = toInvokeConfig(invocable, generatedId);
-        const resolvedId = invokeConfig.id || generatedId;
-        const src = invokeConfig.src as string | AnyActorLogic;
-        const { systemId } = invokeConfig;
+      toArray(this.config.invoke).map((invokeConfig, i) => {
+        const { src, systemId } = invokeConfig;
 
+        const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
         // TODO: resolving should not happen here
         const resolvedSrc =
           typeof src === 'string' ? src : !('type' in src) ? resolvedId : src;
@@ -430,34 +423,6 @@ export class StateNode<
     }
 
     return selectedTransition ? [selectedTransition] : undefined;
-  }
-
-  /**
-   * The target state value of the history state node, if it exists. This represents the
-   * default state value to transition to if no history value exists yet.
-   */
-  public get target(): string | undefined {
-    if (this.type === 'history') {
-      const historyConfig = this.config as HistoryStateNodeConfig<
-        TContext,
-        TEvent
-      >;
-      return historyConfig.target;
-    }
-
-    return undefined;
-  }
-
-  /**
-   * All the state node IDs of this state node and its descendant state nodes.
-   */
-  public get stateIds(): string[] {
-    const childStateIds = flatten(
-      Object.keys(this.states).map((stateKey) => {
-        return this.states[stateKey].stateIds;
-      })
-    );
-    return [this.id].concat(childStateIds);
   }
 
   /**
