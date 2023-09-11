@@ -789,9 +789,164 @@ describe('spawn', () => {
       spawnChild: (spawn) => spawn(createChild())
     });
   });
+
+  it('should reject actor outside of the defined ones at usage site', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        // @ts-expect-error
+        spawn('other');
+        return {};
+      })
+    });
+  });
+
+  it('should accept a defined actor at usage site', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child');
+        return {};
+      })
+    });
+  });
+
+  it('should allow valid configured actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', { id: 'ok1' });
+        return {};
+      })
+    });
+  });
+
+  it('should disallow invalid actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          // @ts-expect-error
+          id: 'child'
+        });
+        return {};
+      })
+    });
+  });
+
+  it('should require id to be specified when it was configured', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        // @ts-expect-error
+        spawn('child');
+        return {};
+      })
+    });
+  });
+
+  it(`shouldn't require id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child');
+        return {};
+      })
+    });
+  });
+
+  it(`should allow id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', { id: 'someId' });
+        return {};
+      })
+    });
+  });
+
+  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        // @ts-expect-error
+        spawn(child2);
+        return {};
+      })
+    });
+  });
 });
 
-describe('actor types', () => {
+describe('invoke', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
@@ -825,6 +980,171 @@ describe('actor types', () => {
     });
   });
 
+  it('should allow valid configured actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        id: 'ok1',
+        src: 'child'
+      }
+    });
+  });
+
+  it('should disallow invalid actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        id: 'child',
+        src: 'child'
+      }
+    });
+  });
+
+  it('should require id to be specified when it was configured', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it(`shouldn't require id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it(`should allow id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        id: 'someId',
+        src: 'child'
+      }
+    });
+  });
+
+  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: child2
+      }
+    });
+  });
+
+  it('onDone should work with a service that uses strings for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: ['.a', '.b']
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('onDone should work with a service that uses transition objects for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: [{ target: '.a' }, { target: '.b' }]
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('onDone should work with a service that uses a string for one target and a transition object for another', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: [{ target: '.a' }, '.b']
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+});
+
+describe('actor implementations', () => {
   it('should reject actor outside of the defined ones in provided implementations', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
@@ -1419,7 +1739,9 @@ describe('actor types', () => {
       }
     );
   });
+});
 
+describe('state.children', () => {
   it('should return the correct child type on the available snapshot when the ID for the actor was configured', () => {
     const child = createMachine({
       types: {} as {
@@ -1467,121 +1789,6 @@ describe('actor types', () => {
       // @ts-expect-error
       childSnapshot.context.foo
     );
-  });
-
-  it('should allow valid configured actor id', () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      invoke: {
-        id: 'ok1',
-        src: 'child'
-      }
-    });
-  });
-
-  it('should disallow invalid actor id', () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      // @ts-expect-error
-      invoke: {
-        id: 'child',
-        src: 'child'
-      }
-    });
-  });
-
-  it('should require id to be specified when it was configured', () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      // @ts-expect-error
-      invoke: {
-        src: 'child'
-      }
-    });
-  });
-
-  it(`shouldn't require id to be specified when it was not configured`, () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      invoke: {
-        src: 'child'
-      }
-    });
-  });
-
-  it(`should allow id to be specified when it was not configured`, () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      invoke: {
-        id: 'someId',
-        src: 'child'
-      }
-    });
-  });
-
-  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
-    const child1 = createMachine({
-      context: {
-        counter: 0
-      }
-    });
-
-    const child2 = createMachine({
-      context: {
-        answer: ''
-      }
-    });
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child1;
-        };
-      },
-      // @ts-expect-error
-      invoke: {
-        src: child2
-      }
-    });
   });
 
   it('specific children with id should be optional on the snapshot', () => {
@@ -1706,56 +1913,6 @@ describe('actor types', () => {
         | ActorRefFrom<typeof child2>
         | undefined
     ) => {})(someActor);
-  });
-});
-
-describe('invoke onDone targets', () => {
-  it('should work with a service that uses strings for both targets', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: ['.a', '.b']
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
-  });
-
-  it('should work with a service that uses TransitionConfigs for both targets', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: '.a' }, { target: '.b' }]
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
-  });
-
-  it('should work with a service that uses a string for one target and a TransitionConfig for another', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: '.a' }, '.b']
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
   });
 });
 
