@@ -25,7 +25,6 @@ Vous débutez avec les machines d'état et les diagrammes d'état ? [Lire notre 
 ## Packages
 
 - 🤖 `xstate` - Machine à états finis de base et bibliothèque de diagrammes d'états + interpréteur
-- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Bibliothèque minimale de machines à états finis
 - [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
 - [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - Hooks et utilitaires React pour utiliser XState dans les applications React
 - [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Fonctions et utilitaires de composition Vue.js pour utiliser XState dans les applications Vue.js
@@ -206,8 +205,9 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
-  .value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 
 // => 'yellow'
 ```
@@ -261,8 +261,9 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
-  .value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 // => {
 //   red: 'walk'
 // }
@@ -375,8 +376,9 @@ const wordMachine = createMachine({
   }
 });
 
-const boldState = wordMachine.transition('bold.off', { type: 'TOGGLE_BOLD' })
-  .value;
+const boldState = wordMachine.transition('bold.off', {
+  type: 'TOGGLE_BOLD'
+}).value;
 
 // {
 //   bold: 'on',
