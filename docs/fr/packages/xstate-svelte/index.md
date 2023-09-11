@@ -18,14 +18,6 @@ npm i xstate @xstate/svelte
 
 By using the global variable `XStateSvelte`
 
-or
-
-```html
-<script src="https://unpkg.com/@xstate/svelte/dist/xstate-svelte.fsm.min.js"></script>
-```
-
-By using the global variable `XStateSvelteFSM`
-
 2. Import `useMachine`
 
 ```svelte
@@ -72,78 +64,6 @@ A function that interprets the given `machine` and starts a service that runs fo
 - `state` - A [Svelte store](https://svelte.dev/docs#svelte_store) representing the current state of the machine as an XState `State` object. You should reference the store value by prefixing with `$` i.e. `$state`.
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
-
-### `useMachine(machine)` with `@xstate/fsm`
-
-A function that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
-
-This special `useMachine` hook is imported from `@xstate/svelte/lib/fsm`
-
-**Arguments**
-
-- `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
-
-**Returns** an object `{state, send, service}`:
-
-- `state` - A [Svelte store](https://svelte.dev/docs#svelte_store) representing the current state of the machine as an `@xstate/fsm` `StateMachine.State` object. You should reference the store value by prefixing with `$` i.e. `$state`.
-- `send` - A function that sends events to the running service.
-- `service` - The created `@xstate/fsm` service.
-
-**Example**
-
-```svelte
-<script>
-  import { useMachine } from '@xstate/svelte/lib/fsm';
-  import { createMachine, assign } from '@xstate/fsm';
-
-  const fetchMachine = createMachine({
-    id: 'fetch',
-    initial: 'idle',
-    context: {
-      data: undefined
-    },
-    states: {
-      idle: {
-        on: { FETCH: 'loading' }
-      },
-      loading: {
-        entry: ['load'],
-        on: {
-          RESOLVE: {
-            target: 'success',
-            actions: assign({
-              data: (context, event) => event.data
-            })
-          }
-        }
-      },
-      success: {}
-    }
-  });
-
-  const onFetch = () => new Promise((res) => res('some data'));
-
-  const { state, send } = useMachine(fetchMachine, {
-    actions: {
-      load: () => {
-        onFetch().then((res) => {
-          send({ type: 'RESOLVE', data: res });
-        });
-      }
-    }
-  });
-</script>
-
-{#if $state.value === 'idle'}
-  <button on:click={() => send('FETCH')}>Fetch</button>
-{:else if $state.value === 'loading'}
-  <div>Loading...</div>
-{:else if $state.value === 'success'}
-  <div>
-    Success! Data: <div data-testid="data">{$state.context.data}</div>
-  </div>
-{/if}
-```
 
 ### `useSelector(actor, selector, compare?, getSnapshot?)`
 

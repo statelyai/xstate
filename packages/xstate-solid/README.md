@@ -20,14 +20,6 @@ npm i xstate @xstate/solid
 
 By using the global variable `XStateSolid`
 
-or
-
-```html
-<script src="https://unpkg.com/@xstate/solid/dist/xstate-solid-fsm.umd.min.js"></script>
-```
-
-By using the global variable `XStateSolidFSM`
-
 2. Import the `useMachine` hook:
 
 ```js
@@ -130,85 +122,6 @@ const App = () => {
   });
 
   // ...
-};
-```
-
-### `useMachine(machine)` with `@xstate/fsm`
-
-A SolidJS hook that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
-
-This special `useMachine` hook is imported from `@xstate/solid/lib/fsm`
-
-**Arguments**
-
-- `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
-- `options` - An optional `options` object.
-
-**Returns** a tuple of `[state, send, service]`:
-
-- `state` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object. This is a read-only value that is tracked by SolidJS for granular reactivity.
-- `send` - A function that sends events to the running service.
-- `service` - The created `@xstate/fsm` service.
-
-**Example**
-
-```js
-import { useEffect } from 'solid-js';
-import { useMachine } from '@xstate/solid/lib/fsm';
-import { createMachine } from '@xstate/fsm';
-
-const context = {
-  data: undefined
-};
-const fetchMachine = createMachine({
-  id: 'fetch',
-  initial: 'idle',
-  context,
-  states: {
-    idle: {
-      on: { FETCH: 'loading' }
-    },
-    loading: {
-      entry: ['load'],
-      on: {
-        RESOLVE: {
-          target: 'success',
-          actions: assign({
-            data: (context, event) => event.data
-          })
-        }
-      }
-    },
-    success: {}
-  }
-});
-
-const Fetcher = ({
-  onFetch = () => new Promise((res) => res('some data'))
-}) => {
-  const [state, send] = useMachine(fetchMachine, {
-    actions: {
-      load: () => {
-        onFetch().then((res) => {
-          send({ type: 'RESOLVE', data: res });
-        });
-      }
-    }
-  });
-
-  return (
-    <Switch fallback={null}>
-      <Match when={state.value === 'idle'}>
-        <button onclick={(_) => send({ send: 'FETCH' })}>Fetch</button>;
-      </Match>
-      <Match when={state.value === 'loading'}>
-        <div>Loading...</div>;
-      </Match>
-      <Match when={state.value === 'success'}>
-        Success! Data: <div data-testid="data">{state.context.data}</div>
-      </Match>
-    </Switch>
-  );
 };
 ```
 
