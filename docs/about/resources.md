@@ -9,7 +9,7 @@ Below is an incomplete collection of many resources for learning and applying XS
 :::tip Official Course
 Watch the official [State Machines in JavaScript with XState](https://frontendmasters.com/courses/xstate/) course by [@davidkpiano](https://twitter.com/davidkpiano) on Frontend Masters! In this course, you’ll learn the fundamentals of state machines and statecharts, from building your own without any libraries in pure JavaScript, up to using XState to take advantage of a wide variety of other features.
 
-The workshop code examples are [open-sourced and available on GitHub](https://github.com/statelyai/frontend-masters-xstate-workshop).
+The workshop code examples are [open-sourced and available on GitHub](https://github.com/davidkpiano/frontend-masters-xstate-workshop).
 
 There is also a follow-up course: [State Modeling with React and XState](https://frontendmasters.com/workshops/xstate-react/). Once you've gone through the first course, be sure to take this one too so you can learn how to apply state machines and statecharts to real-world apps and master advanced concepts such as spawning/invoking actors and model-based testing.
 :::
