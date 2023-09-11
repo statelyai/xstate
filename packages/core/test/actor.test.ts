@@ -697,8 +697,11 @@ describe('communicating with spawned actors', () => {
         pending: {
           entry: assign({
             // TODO: fix (spawn existing service)
-            // @ts-ignore
-            existingRef: () => spawn(existingService, 'existing')
+            existingRef: ({ spawn }) =>
+              // @ts-expect-error
+              spawn(existingService, {
+                id: 'existing'
+              })
           }),
           on: {
             'EXISTING.DONE': 'success'

@@ -944,6 +944,114 @@ describe('spawn', () => {
       })
     });
   });
+
+  it(`should reject static wrong input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          // @ts-expect-error
+          input: 'hello'
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should allow static correct input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          input: 42
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should allow static input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          input: 42
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should reject static input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          // @ts-expect-error
+          input: Math.random() > 0.5 ? 'string' : 42
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should reject an attempt to provide dynamic input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          // @ts-expect-error
+          input: () => 42
+        });
+        return {};
+      })
+    });
+  });
 });
 
 describe('invoke', () => {
@@ -1091,6 +1199,162 @@ describe('invoke', () => {
       // @ts-expect-error
       invoke: {
         src: child2
+      }
+    });
+  });
+
+  it(`should reject static wrong input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        input: 'hello'
+      }
+    });
+  });
+
+  it(`should allow static correct input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child',
+        input: 42
+      }
+    });
+  });
+
+  it(`should allow static input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child',
+        input: 42
+      }
+    });
+  });
+
+  it(`should reject static input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        input: Math.random() > 0.5 ? 'string' : 42
+      }
+    });
+  });
+
+  it(`should reject dynamic wrong input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        input: () => 'hello'
+      }
+    });
+  });
+
+  it(`should allow dynamic correct input in the provided implementations`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child',
+        input: () => 42
+      }
+    });
+  });
+
+  it(`should reject dynamic input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        input: () => (Math.random() > 0.5 ? 42 : 'hello')
+      }
+    });
+  });
+
+  it(`should allow dynamic input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child',
+        input: () => 'hello'
       }
     });
   });
