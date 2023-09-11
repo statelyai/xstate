@@ -1,4 +1,8 @@
-export { assign, type AssignAction } from './actions/assign.ts';
+export {
+  assign,
+  type AssignAction,
+  type AssignArgs
+} from './actions/assign.ts';
 export { cancel, type CancelAction } from './actions/cancel.ts';
 export { choose, type ChooseAction } from './actions/choose.ts';
 export { log, type LogAction } from './actions/log.ts';
