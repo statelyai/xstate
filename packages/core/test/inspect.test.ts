@@ -10,7 +10,7 @@ import {
 } from '../src';
 
 function simplifyEvent(inspectionEvent: InspectionEvent) {
-  if (inspectionEvent.type === '@xstate.communication') {
+  if (inspectionEvent.type === '@xstate.event') {
     return {
       type: inspectionEvent.type,
       sourceId: inspectionEvent.sourceId,
