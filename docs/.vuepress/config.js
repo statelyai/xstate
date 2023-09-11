@@ -306,9 +306,9 @@ module.exports = {
       }
     },
     nav: [
-      { text: 'API', link: 'https://paka.dev/npm/xstate/' },
+      { text: 'API', link: 'https://doc.deno.land/https://esm.sh/v131/xstate' },
       { text: 'Visualizer', link: 'https://stately.ai/viz' },
-      { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
+      { text: 'Discord', link: 'https://discord.gg/xstate' },
       {
         text: 'Community',
         link: 'https://github.com/statelyai/xstate/discussions'
