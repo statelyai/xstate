@@ -87,9 +87,9 @@ describe('inspect', () => {
         },
         {
           "event": "xstate.init",
-          "sourceId": undefined,
-          "targetId": "x:0",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "xstate.init",
@@ -101,9 +101,9 @@ describe('inspect', () => {
         },
         {
           "event": "NEXT",
-          "sourceId": undefined,
-          "targetId": "x:0",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "NEXT",
@@ -115,9 +115,9 @@ describe('inspect', () => {
         },
         {
           "event": "NEXT",
-          "sourceId": undefined,
-          "targetId": "x:0",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "NEXT",
@@ -210,15 +210,15 @@ describe('inspect', () => {
         },
         {
           "event": "xstate.init",
-          "sourceId": undefined,
-          "targetId": "x:1",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "xstate.init",
-          "sourceId": "x:1",
-          "targetId": "x:2",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "xstate.init",
@@ -238,15 +238,15 @@ describe('inspect', () => {
         },
         {
           "event": "load",
-          "sourceId": undefined,
-          "targetId": "x:1",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "loadChild",
-          "sourceId": "x:1",
-          "targetId": "x:2",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "sessionId": "x:3",
@@ -254,9 +254,9 @@ describe('inspect', () => {
         },
         {
           "event": "xstate.init",
-          "sourceId": "x:2",
-          "targetId": "x:3",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "xstate.init",
@@ -282,21 +282,21 @@ describe('inspect', () => {
         },
         {
           "event": "$$xstate.resolve",
-          "sourceId": "x:3",
-          "targetId": "x:3",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "done.invoke.(machine).loading:invocation[0]",
-          "sourceId": "x:3",
-          "targetId": "x:2",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "toParent",
-          "sourceId": "x:2",
-          "targetId": "x:1",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "toParent",
@@ -308,9 +308,9 @@ describe('inspect', () => {
         },
         {
           "event": "done.invoke.child",
-          "sourceId": "x:2",
-          "targetId": "x:1",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "data": [Function],
@@ -393,9 +393,9 @@ describe('inspect', () => {
         },
         {
           "event": "xstate.init",
-          "sourceId": undefined,
-          "targetId": "x:4",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "event": "xstate.init",
@@ -407,9 +407,9 @@ describe('inspect', () => {
         },
         {
           "event": "event",
-          "sourceId": undefined,
-          "targetId": "x:4",
-          "type": "@xstate.communication",
+          "sessionId": undefined,
+          "snapshot": undefined,
+          "type": "@xstate.event",
         },
         {
           "data": "exit-a",

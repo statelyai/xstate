@@ -2172,7 +2172,7 @@ export interface ActorTransitionEvent {
 }
 
 export interface ActorCommunicationEvent {
-  type: '@xstate.communication';
+  type: '@xstate.event';
   event: AnyEventObject; // { type: string, ... }
   sourceId: string | undefined; // Session ID
   targetId: string; // Session ID, required

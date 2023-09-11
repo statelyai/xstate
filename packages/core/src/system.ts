@@ -63,7 +63,7 @@ export function createSystem<T extends ActorSystemInfo>(
       const sourceId = source?.sessionId;
       const id = `${sourceId ?? 'anon'}--${Math.random().toString()}`;
       system._sendInspectionEvent({
-        type: '@xstate.communication',
+        type: '@xstate.event',
         event,
         targetId: target?.sessionId ?? 'deadletter',
         sourceId: source?.sessionId

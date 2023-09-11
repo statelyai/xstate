@@ -316,7 +316,7 @@ export class Actor<
     const initEvent = createInitEvent(this.options.input);
 
     this.system._sendInspectionEvent({
-      type: '@xstate.communication',
+      type: '@xstate.event',
       event: initEvent,
       sourceId: this._parent?.sessionId,
       targetId: this.sessionId
@@ -481,7 +481,7 @@ export class Actor<
     }
     if (!('__id' in event)) {
       this.system._sendInspectionEvent({
-        type: '@xstate.communication',
+        type: '@xstate.event',
         event,
         sourceId: undefined,
         targetId: this.sessionId
