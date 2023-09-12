@@ -672,7 +672,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              DoneActorEvent<unknown>,
+              DoneActorEvent<any>, // TODO: consider replacing with `unknown`
               TEvent,
               TActor,
               TAction,
@@ -702,7 +702,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              SnapshotEvent<unknown>,
+              SnapshotEvent<any>, // TODO: consider replacing with `unknown`
               TEvent,
               TActor,
               TAction,
@@ -1459,14 +1459,14 @@ export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
   data: TErrorData;
 }
 
-export interface SnapshotEvent<TData> extends EventObject {
+export interface SnapshotEvent<TData = unknown> extends EventObject {
   type: `xstate.snapshot.${string}`;
   data: TData;
 }
 
-export interface DoneStateEvent extends EventObject {
+export interface DoneStateEvent<TOutput = unknown> extends EventObject {
   type: `xstate.done.state.${string}`;
-  output: unknown;
+  output: TOutput;
 }
 
 export type DelayExpr<
