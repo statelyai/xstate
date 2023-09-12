@@ -57,7 +57,7 @@ export function createErrorPlatformEvent(
   id: string,
   data?: unknown
 ): ErrorPlatformEvent {
-  return { type: `error.platform.${id}`, data };
+  return { type: `xstate.error.platform.${id}`, data };
 }
 
 export function createInitEvent(input: unknown) {

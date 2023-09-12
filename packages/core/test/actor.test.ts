@@ -1024,7 +1024,7 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              'error.platform.test': {
+              'xstate.error.platform.test': {
                 target: 'success',
                 guard: ({ event }) => {
                   return event.data === errorMessage;

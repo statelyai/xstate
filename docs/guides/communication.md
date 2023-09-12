@@ -132,7 +132,7 @@ The resolved data is placed into a `'xstate.done.invoke.<id>'` event, under the 
 
 ### Promise Rejection
 
-If a Promise rejects, the `onError` transition will be taken with a `{ type: 'error.platform' }` event. The error data is available on the event's `data` property:
+If a Promise rejects, the `onError` transition will be taken with a `{ type: 'xstate.error.platform' }` event. The error data is available on the event's `data` property:
 
 ```js
 const search = (context, event) =>
@@ -169,7 +169,7 @@ const searchMachine = createMachine({
           actions: assign({
             errorMessage: (context, event) => {
               // event is:
-              // { type: 'error.platform', data: 'No query specified' }
+              // { type: 'xstate.error.platform', data: 'No query specified' }
               return event.data;
             }
           })

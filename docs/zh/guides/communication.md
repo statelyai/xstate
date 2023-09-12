@@ -128,7 +128,7 @@ const userMachine = createMachine({
 
 ### Promise Rejection
 
-如果 Promise 拒绝，则将使用 `{ type: 'error.platform' }` 事件进行 `onError` 转换。 错误数据在事件的 `data` 属性中可用：
+如果 Promise 拒绝，则将使用 `{ type: 'xstate.error.platform' }` 事件进行 `onError` 转换。 错误数据在事件的 `data` 属性中可用：
 
 ```js
 const search = (context, event) =>
@@ -165,7 +165,7 @@ const searchMachine = createMachine({
           actions: assign({
             errorMessage: (context, event) => {
               // event is:
-              // { type: 'error.platform', data: 'No query specified' }
+              // { type: 'xstate.error.platform', data: 'No query specified' }
               return event.data;
             }
           })

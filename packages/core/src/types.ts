@@ -1466,7 +1466,7 @@ export interface SnapshotEvent<TData> extends EventObject {
 }
 
 export interface ErrorPlatformEvent extends EventObject {
-  type: `error.platform.${string}`;
+  type: `xstate.error.platform.${string}`;
   data: unknown;
 }
 

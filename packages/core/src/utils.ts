@@ -327,7 +327,8 @@ export const uniqueId = (() => {
 
 export function isErrorEvent(event: AnyEventObject): event is ErrorEvent<any> {
   return (
-    typeof event.type === 'string' && event.type.startsWith('error.platform')
+    typeof event.type === 'string' &&
+    event.type.startsWith('xstate.error.platform')
   );
 }
 

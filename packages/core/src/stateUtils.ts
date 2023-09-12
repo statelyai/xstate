@@ -424,7 +424,7 @@ export function formatTransitions<
       );
     }
     if (invokeDef.onError) {
-      const descriptor = `error.platform.${invokeDef.id}`;
+      const descriptor = `xstate.error.platform.${invokeDef.id}`;
       transitions.set(
         descriptor,
         toTransitionConfigArray(invokeDef.onError).map((t) =>

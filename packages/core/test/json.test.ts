@@ -167,7 +167,7 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "eventType": "error.platform.active:invocation[0]",
+          "eventType": "xstate.error.platform.active:invocation[0]",
           "guard": undefined,
           "reenter": false,
           "source": "#active",
