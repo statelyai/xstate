@@ -10,11 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@xstate/graph": "2.0.0-alpha.2",
+    "@xstate/graph": "2.0.0-beta.4",
     "@xstate/react": "4.0.0-beta.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "xstate": "5.0.0-beta.26"
+    "xstate": "5.0.0-beta.27"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",

@@ -2,11 +2,11 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@xstate/graph':
-    specifier: 2.0.0-alpha.2
-    version: 2.0.0-alpha.2(xstate@5.0.0-beta.26)
+    specifier: 2.0.0-beta.4
+    version: 2.0.0-beta.4(xstate@5.0.0-beta.27)
   '@xstate/react':
     specifier: 4.0.0-beta.8
-    version: 4.0.0-beta.8(@types/react@18.2.21)(react@18.2.0)(xstate@5.0.0-beta.26)
+    version: 4.0.0-beta.8(@types/react@18.2.21)(react@18.2.0)(xstate@5.0.0-beta.27)
   react:
     specifier: ^18.2.0
     version: 18.2.0
@@ -14,8 +14,8 @@ dependencies:
     specifier: ^18.2.0
     version: 18.2.0(react@18.2.0)
   xstate:
-    specifier: 5.0.0-beta.26
-    version: 5.0.0-beta.26
+    specifier: 5.0.0-beta.27
+    version: 5.0.0-beta.27
 
 devDependencies:
   '@types/react':
@@ -759,15 +759,15 @@ packages:
       - supports-color
     dev: true
 
-  /@xstate/graph@2.0.0-alpha.2(xstate@5.0.0-beta.26):
-    resolution: {integrity: sha512-7jqRqt5Sh+vR4olCq9JpGij5vWUKaN+EBEYvECg8fLnLYC9ULbXw7HjPpVk6Rq3aR6RWkBfc5JUDt8ib1x/rUA==}
+  /@xstate/graph@2.0.0-beta.4(xstate@5.0.0-beta.27):
+    resolution: {integrity: sha512-YfMLPdFfdNnS6jDuKWu31Z8IYAAxhdE33xVgYTRffre+dTNk1ZfuTixuANqV4nQdGUML9aW8AnX9ziQn/2VWSA==}
     peerDependencies:
-      xstate: ^4.37.2
+      xstate: ^5.0.0-beta.26
     dependencies:
-      xstate: 5.0.0-beta.26
+      xstate: 5.0.0-beta.27
     dev: false
 
-  /@xstate/react@4.0.0-beta.8(@types/react@18.2.21)(react@18.2.0)(xstate@5.0.0-beta.26):
+  /@xstate/react@4.0.0-beta.8(@types/react@18.2.21)(react@18.2.0)(xstate@5.0.0-beta.27):
     resolution: {integrity: sha512-27L6LJP/7hWyEY5vtvfD/N3wgVgVTyTrbL9n25iT1OV3Shg3lpfA2hA/mJppttLNhkR/7V3WoFC4fmKu1BwVSA==}
     peerDependencies:
       '@xstate/fsm': ^3.0.0-beta.3
@@ -782,7 +782,7 @@ packages:
       react: 18.2.0
       use-isomorphic-layout-effect: 1.1.2(@types/react@18.2.21)(react@18.2.0)
       use-sync-external-store: 1.2.0(react@18.2.0)
-      xstate: 5.0.0-beta.26
+      xstate: 5.0.0-beta.27
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -1776,8 +1776,8 @@ packages:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
     dev: true
 
-  /xstate@5.0.0-beta.26:
-    resolution: {integrity: sha512-9GVayWWr3aIQKtbpsB81vcgeGB8lfeTaoWIreTswRqrvNjIIalHl/FfMCZrwkWueRCq1r0q0RIY/Q30L7FWCUQ==}
+  /xstate@5.0.0-beta.27:
+    resolution: {integrity: sha512-oNuu2oPy/S/YP1ZcGg6WhezO7MUCHhziauVDmkwOEgTX9/XpvFdC7gv7Wmhm4DoUETk5DZ7aDNbUuq9QgKLFYA==}
     dev: false
 
   /yallist@3.1.1:
