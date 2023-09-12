@@ -190,7 +190,7 @@ export class Actor<
     // if destructured
     this.send = this.send.bind(this);
     this.system._sendInspectionEvent({
-      type: '@xstate.registration',
+      type: '@xstate.actor',
       actorRef: this,
       sessionId: this.sessionId,
       // definition: JSON.stringify(this.logic.config),
@@ -252,13 +252,12 @@ export class Actor<
         break;
     }
     this.system._sendInspectionEvent({
-      type: '@xstate.transition',
+      type: '@xstate.snapshot',
       actorRef: this,
       event,
       sessionId: this.sessionId,
       snapshot: this.getSnapshot(),
-      status: this.status,
-      sourceId: this._parent?.sessionId
+      status: this.status
     });
   }
 

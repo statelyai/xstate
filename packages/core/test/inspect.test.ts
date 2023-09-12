@@ -18,18 +18,13 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
       event: inspectionEvent.event.type
     };
   }
-  if (inspectionEvent.type === '@xstate.registration') {
+  if (inspectionEvent.type === '@xstate.actor') {
     return {
       type: inspectionEvent.type,
       sessionId: inspectionEvent.sessionId
     };
   }
-  if (inspectionEvent.type === '@xstate.action') {
-    return {
-      type: inspectionEvent.type,
-      data: inspectionEvent.data
-    };
-  }
+
   return {
     type: inspectionEvent.type,
     sessionId: inspectionEvent.sessionId,
@@ -83,12 +78,12 @@ describe('inspect', () => {
       [
         {
           "sessionId": "x:0",
-          "type": "@xstate.registration",
+          "type": "@xstate.actor",
         },
         {
           "event": "xstate.init",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": undefined,
+          "targetId": "x:0",
           "type": "@xstate.event",
         },
         {
@@ -97,12 +92,12 @@ describe('inspect', () => {
           "snapshot": {
             "value": "a",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "NEXT",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": undefined,
+          "targetId": "x:0",
           "type": "@xstate.event",
         },
         {
@@ -111,12 +106,12 @@ describe('inspect', () => {
           "snapshot": {
             "value": "b",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "NEXT",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": undefined,
+          "targetId": "x:0",
           "type": "@xstate.event",
         },
         {
@@ -125,7 +120,7 @@ describe('inspect', () => {
           "snapshot": {
             "value": "c",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
       ]
     `);

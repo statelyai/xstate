@@ -2228,13 +2228,12 @@ export interface BaseInspectionEvent {
 }
 
 export interface ActorTransitionEvent {
-  type: '@xstate.transition';
+  type: '@xstate.snapshot';
   snapshot: any;
   event: AnyEventObject; // { type: string, ... }
   status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped
   sessionId: string;
   actorRef: AnyActorRef; // Only available locally
-  sourceId?: string; // Session ID
 }
 
 export interface ActorCommunicationEvent {
@@ -2245,23 +2244,17 @@ export interface ActorCommunicationEvent {
 }
 
 export interface ActorRegistrationEvent {
-  type: '@xstate.registration';
+  type: '@xstate.actor';
   actorRef: AnyActorRef;
   sessionId: string;
   parentId?: string;
   definition?: string; // JSON-stringified definition or URL
 }
 
-export interface ActorActionEvent {
-  type: '@xstate.action';
-  data: any;
-}
-
 export type InspectionEvent =
   | ActorTransitionEvent
   | ActorCommunicationEvent
-  | ActorRegistrationEvent
-  | ActorActionEvent;
+  | ActorRegistrationEvent;
 
 export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
 
