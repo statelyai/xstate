@@ -5,18 +5,14 @@
 ### `src/helpers/toggle-machine.ts`
 
 ```js
-import { createMachine } from "@xstate/fsm";
+import { createMachine } from 'xstate';
 
-export const toggleMachine = createMachine<
-  undefined,
-  { type: "toggle" },
-  { value: "active" | "inactive"; context: undefined }
->({
-  id: "toggle",
-  initial: "active",
+export const toggleMachine = createMachine({
+  id: 'toggle',
+  initial: 'active',
   states: {
-    inactive: { on: { toggle: "active" } },
-    active: { on: { toggle: "inactive" } }
+    inactive: { on: { toggle: 'active' } },
+    active: { on: { toggle: 'inactive' } }
   }
 });
 ```
@@ -31,7 +27,7 @@ After a transition has occured, the `state` property is set to the machine's new
 
 ```js
 import { Component, h, State } from "@stencil/core";
-import { interpret } from "@xstate/fsm";
+import { interpret } from "xstate";
 import { toggleMachine } from "../helpers/toggle-machine";
 
 @Component({
@@ -42,7 +38,7 @@ import { toggleMachine } from "../helpers/toggle-machine";
 export class Toggle {
   private _service = interpret(toggleMachine);
 
-  @State() state = toggleMachine.initialState;
+  @State() state = this._service.getSnapshot();
 
   componentWillLoad() {
     this._service.subscribe(state => {

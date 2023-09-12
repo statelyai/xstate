@@ -1,5 +1,7 @@
 export * from './actions.ts';
+export * from './actors/index.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
+export { type Spawner } from './spawn.ts';
 export { StateMachine } from './StateMachine.ts';
 export { getStateNodes } from './stateUtils.ts';
 export * from './typegenTypes.ts';
@@ -18,13 +20,6 @@ import { mapState } from './mapState.ts';
 import { State } from './State.ts';
 import { StateNode } from './StateNode.ts';
 // TODO: decide from where those should be exported
-export {
-  fromCallback,
-  fromEventObservable,
-  fromObservable,
-  fromPromise,
-  fromTransition
-} from './actors/index.ts';
 export { matchesState, pathToStateValue, toObserver } from './utils.ts';
 export {
   Actor,

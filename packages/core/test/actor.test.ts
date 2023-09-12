@@ -255,7 +255,7 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            'done.invoke.my-promise': {
+            'xstate.done.actor.my-promise': {
               target: 'success',
               guard: ({ event }) => event.output === 'response'
             }
@@ -295,7 +295,7 @@ describe('spawning promises', () => {
                 spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
-              'done.invoke.my-promise': {
+              'xstate.done.actor.my-promise': {
                 target: 'success',
                 guard: ({ event }) => event.output === 'response'
               }
@@ -697,8 +697,11 @@ describe('communicating with spawned actors', () => {
         pending: {
           entry: assign({
             // TODO: fix (spawn existing service)
-            // @ts-ignore
-            existingRef: () => spawn(existingService, 'existing')
+            existingRef: ({ spawn }) =>
+              // @ts-expect-error
+              spawn(existingService, {
+                id: 'existing'
+              })
           }),
           on: {
             'EXISTING.DONE': 'success'
@@ -981,7 +984,7 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              'done.invoke.test': {
+              'xstate.done.actor.test': {
                 target: 'success',
                 guard: ({ event }) => event.output === 42
               }
@@ -1021,7 +1024,7 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              'error.platform.test': {
+              'xstate.error.actor.test': {
                 target: 'success',
                 guard: ({ event }) => {
                   return event.data === errorMessage;
@@ -1256,7 +1259,7 @@ describe('actors', () => {
       states: {
         init: {
           on: {
-            'done.invoke.myactor': 'done'
+            'xstate.done.actor.myactor': 'done'
           }
         },
         done: {}
