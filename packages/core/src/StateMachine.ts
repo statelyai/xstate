@@ -47,7 +47,7 @@ import type {
   Equals,
   TODO
 } from './types.ts';
-import { isErrorEvent, resolveReferencedActor } from './utils.ts';
+import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
 
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
@@ -245,7 +245,7 @@ export class StateMachine<
   ): State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta> {
     // TODO: handle error events in a better way
     if (
-      isErrorEvent(event) &&
+      isErrorActorEvent(event) &&
       !state.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
       return cloneState(state, {

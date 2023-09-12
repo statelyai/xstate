@@ -415,7 +415,7 @@ export function formatTransitions<
   }
   for (const invokeDef of stateNode.invoke) {
     if (invokeDef.onDone) {
-      const descriptor = `xstate.done.invoke.${invokeDef.id}`;
+      const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
         toTransitionConfigArray(invokeDef.onDone).map((t) =>
@@ -424,7 +424,7 @@ export function formatTransitions<
       );
     }
     if (invokeDef.onError) {
-      const descriptor = `xstate.error.platform.${invokeDef.id}`;
+      const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
         toTransitionConfigArray(invokeDef.onError).map((t) =>

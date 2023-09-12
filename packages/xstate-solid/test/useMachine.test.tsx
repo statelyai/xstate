@@ -237,7 +237,7 @@ describe('useMachine hook', () => {
               )
           }),
           on: {
-            'xstate.done.invoke.my-promise': 'success'
+            'xstate.done.actor.my-promise': 'success'
           }
         },
         success: {

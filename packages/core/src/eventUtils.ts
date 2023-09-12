@@ -1,9 +1,5 @@
 import { XSTATE_INIT } from './constants.ts';
-import {
-  DoneInvokeEventObject,
-  DoneStateEventObject,
-  ErrorPlatformEvent
-} from './types.ts';
+import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
 
 /**
  * Returns an event that represents an implicit event that
@@ -27,7 +23,7 @@ export function createAfterEvent(delayRef: number | string, id?: string) {
 export function createDoneStateEvent(
   id: string,
   output?: unknown
-): DoneStateEventObject {
+): DoneStateEvent {
   return {
     type: `xstate.done.state.${id}`,
     output
@@ -43,21 +39,21 @@ export function createDoneStateEvent(
  * @param invokeId The invoked service ID
  * @param output The data to pass into the event
  */
-export function createDoneInvokeEvent(
+export function createDoneActorEvent(
   invokeId: string,
   output?: unknown
-): DoneInvokeEventObject {
+): DoneActorEvent {
   return {
-    type: `xstate.done.invoke.${invokeId}`,
+    type: `xstate.done.actor.${invokeId}`,
     output
   };
 }
 
-export function createErrorPlatformEvent(
+export function createErrorActorEvent(
   id: string,
   data?: unknown
-): ErrorPlatformEvent {
-  return { type: `xstate.error.platform.${id}`, data };
+): ErrorActorEvent {
+  return { type: `xstate.error.actor.${id}`, data };
 }
 
 export function createInitEvent(input: unknown) {

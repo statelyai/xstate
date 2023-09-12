@@ -127,7 +127,7 @@ describe('final states', () => {
             target: 'success',
             actions: assign({
               revealedSecret: ({ event }) => {
-                return event.output.secret;
+                return (event.output as any).secret;
               }
             })
           }

@@ -41,9 +41,9 @@ export interface TypegenMeta extends TypegenEnabled {
   /**
    * A map for the internal events of the machine.
    *
-   * key: 'xstate.done.invoke.myActor'
+   * key: 'xstate.done.actor.myActor'
    * value: {
-   *   type: 'xstate.done.invoke.myActor';
+   *   type: 'xstate.done.actor.myActor';
    *   data: unknown;
    *   __tip: 'Declare the type in event types!';
    * }
@@ -53,7 +53,7 @@ export interface TypegenMeta extends TypegenEnabled {
    * Maps the src of the invoked actor to the event type that includes its known id
    *
    * key: 'invokeSrc'
-   * value: 'xstate.done.invoke.invokeName'
+   * value: 'xstate.done.actor.invokeName'
    */
   invokeSrcNameMap: Record<string, string>;
   /**
@@ -162,14 +162,14 @@ type GenerateActorEvents<
   ? {
       type: // 1. if the actor has an id, use that
       TActor['id'] extends string
-        ? `xstate.done.invoke.${TActor['id']}`
+        ? `xstate.done.actor.${TActor['id']}`
         : // 2. if the ids were inferred by typegen then use those
         // this doesn't contain *all* possible event types since we can't track spawned actors today
-        // however, those xstate.done.invoke events shouldn't exactly be usable by/surface to the user anyway
+        // however, those xstate.done.actor events shouldn't exactly be usable by/surface to the user anyway
         TActor['src'] extends keyof TInvokeSrcNameMap
-        ? `xstate.done.invoke.${TInvokeSrcNameMap[TActor['src']] & string}`
+        ? `xstate.done.actor.${TInvokeSrcNameMap[TActor['src']] & string}`
         : // 3. finally use the fallback type
-          `xstate.done.invoke.${string}`;
+          `xstate.done.actor.${string}`;
       output: OutputFrom<TActor['logic']>;
     }
   : never;

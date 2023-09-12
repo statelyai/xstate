@@ -616,17 +616,17 @@ describe('typegen types', () => {
   it('should include generated dynamic internal event in the provided parameter if types.actors is not provided', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
-        myAction: 'xstate.done.invoke.myActor' | 'FOO';
+        myAction: 'xstate.done.actor.myActor' | 'FOO';
       };
       internalEvents: {
-        'xstate.done.invoke.myActor': {
-          type: 'xstate.done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'xstate.done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -643,7 +643,7 @@ describe('typegen types', () => {
             if (event.type === 'FOO') {
               return;
             }
-            event.type === 'xstate.done.invoke.myActor';
+            event.type === 'xstate.done.actor.myActor';
             event.output;
             // indirectly check that it's not any
             // @ts-expect-error
@@ -657,17 +657,17 @@ describe('typegen types', () => {
   it('should use an event generated based on types.actors for a dynamic internal event over the generated fallback', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
-        myAction: 'xstate.done.invoke.myActor' | 'FOO';
+        myAction: 'xstate.done.actor.myActor' | 'FOO';
       };
       internalEvents: {
-        'xstate.done.invoke.myActor': {
-          type: 'xstate.done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'xstate.done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -689,7 +689,7 @@ describe('typegen types', () => {
             if (event.type === 'FOO') {
               return;
             }
-            event.type === 'xstate.done.invoke.myActor';
+            event.type === 'xstate.done.actor.myActor';
             event.output;
             ((_accept: string) => {})(event.output);
           }
@@ -704,14 +704,14 @@ describe('typegen types', () => {
         myActor: 'FOO';
       };
       internalEvents: {
-        'xstate.done.invoke.myActor': {
-          type: 'xstate.done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'xstate.done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -742,14 +742,14 @@ describe('typegen types', () => {
         myActor: 'FOO';
       };
       internalEvents: {
-        'xstate.done.invoke.myActor': {
-          type: 'xstate.done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'xstate.done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -779,14 +779,14 @@ describe('typegen types', () => {
         myActor: 'FOO';
       };
       internalEvents: {
-        'xstate.done.invoke.myActor': {
-          type: 'xstate.done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'xstate.done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -824,14 +824,14 @@ describe('typegen types', () => {
   //       myActor: 'FOO';
   //     };
   //     internalEvents: {
-  //       'xstate.done.invoke.myActor': {
-  //         type: 'xstate.done.invoke.myActor';
+  //       'xstate.done.actor.myActor': {
+  //         type: 'xstate.done.actor.myActor';
   //         output: unknown;
   //         __tip: 'Declare the type.';
   //       };
   //     };
   //     invokeSrcNameMap: {
-  //       myActor: 'xstate.done.invoke.myActor';
+  //       myActor: 'xstate.done.actor.myActor';
   //     };
   //   }
 
@@ -989,7 +989,7 @@ describe('typegen types', () => {
   // it('should error correctly for implementations called in response to internal events when there is no explicit event type', () => {
   //   interface TypesMeta extends TypegenMeta {
   //     eventsCausingActions: {
-  //       myAction: 'xstate.done.invoke.invocation';
+  //       myAction: 'xstate.done.actor.invocation';
   //     };
   //     eventsCausingActors: {
   //       myInvocation: 'xstate.init';
@@ -998,7 +998,7 @@ describe('typegen types', () => {
   //       'xstate.init': { type: 'xstate.init' };
   //     };
   //     invokeSrcNameMap: {
-  //       myInvocation: 'xstate.done.invoke.invocation';
+  //       myInvocation: 'xstate.done.actor.invocation';
   //     };
   //   }
 
@@ -1022,7 +1022,7 @@ describe('typegen types', () => {
   //       },
   //       actions: {
   //         myAction: (_context, event) => {
-  //           ((_accept: 'xstate.done.invoke.invocation') => {})(event.type);
+  //           ((_accept: 'xstate.done.actor.invocation') => {})(event.type);
   //           ((_accept: string) => {})(event.output);
   //           // @ts-expect-error
   //           ((_accept: number) => {})(event.output);

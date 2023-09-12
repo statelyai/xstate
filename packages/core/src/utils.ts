@@ -10,7 +10,7 @@ import type {
   MachineContext,
   Mapper,
   Observer,
-  ErrorEvent,
+  ErrorActorEvent,
   SingleOrArray,
   StateLike,
   StateValue,
@@ -325,11 +325,10 @@ export const uniqueId = (() => {
   };
 })();
 
-export function isErrorEvent(event: AnyEventObject): event is ErrorEvent<any> {
-  return (
-    typeof event.type === 'string' &&
-    event.type.startsWith('xstate.error.platform')
-  );
+export function isErrorActorEvent(
+  event: AnyEventObject
+): event is ErrorActorEvent {
+  return event.type.startsWith('xstate.error.actor');
 }
 
 export function toTransitionConfigArray<
