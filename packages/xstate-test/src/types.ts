@@ -169,7 +169,7 @@ export interface TestTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
-> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, string> {
+> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, string> {
   test?: (
     state: State<TContext, TEvent, any, any, any, any>,
     testContext: TTestContext

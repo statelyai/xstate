@@ -9,7 +9,8 @@ import {
   MachineContext,
   ParameterizedObject,
   SingleOrArray,
-  NoInfer
+  NoInfer,
+  ProvidedActor
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
@@ -41,12 +42,14 @@ export interface PureAction<
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
   TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
   (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
   _out_TEvent?: TEvent;
+  _out_TActor?: TActor;
   _out_TAction?: TAction;
   _out_TGuard?: TGuard;
   _out_TDelay?: TDelay;
@@ -59,6 +62,7 @@ export function pure<
     | ParameterizedObject
     | undefined,
   TEvent extends EventObject = TExpressionEvent,
+  TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string
@@ -75,6 +79,7 @@ export function pure<
         TExpressionEvent,
         NoInfer<TEvent>,
         undefined,
+        TActor,
         NoInfer<TAction>,
         NoInfer<TGuard>,
         TDelay
@@ -85,6 +90,7 @@ export function pure<
   TExpressionEvent,
   TExpressionAction,
   TEvent,
+  TActor,
   TAction,
   TGuard,
   TDelay

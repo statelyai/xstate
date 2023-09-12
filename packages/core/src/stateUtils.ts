@@ -40,7 +40,8 @@ import {
   UnknownAction,
   ParameterizedObject,
   ActionFunction,
-  AnyTransitionConfig
+  AnyTransitionConfig,
+  ProvidedActor
 } from './types.ts';
 import {
   isArray,
@@ -459,7 +460,7 @@ export function formatInitialTransition<
   stateNode: AnyStateNode,
   _target:
     | SingleOrArray<string>
-    | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO>
+    | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO, TODO>
 ): InitialTransitionDefinition<TContext, TEvent> {
   if (typeof _target === 'string' || isArray(_target)) {
     const targets = toArray(_target).map((t) => {
@@ -1431,6 +1432,7 @@ export function resolveActionsAndContext<
               EventObject,
               EventObject,
               ParameterizedObject | undefined,
+              ProvidedActor,
               ParameterizedObject,
               ParameterizedObject,
               string
