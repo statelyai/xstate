@@ -4,7 +4,11 @@ export {
   fromEventObservable,
   fromObservable,
   fromPromise,
-  fromTransition
+  fromTransition,
+  type CallbackActorLogic,
+  type ObservableActorLogic,
+  type PromiseActorLogic,
+  type TransitionActorLogic
 } from './actors/index.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { type Spawner } from './spawn.ts';
