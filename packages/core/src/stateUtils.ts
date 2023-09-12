@@ -415,7 +415,7 @@ export function formatTransitions<
   }
   for (const invokeDef of stateNode.invoke) {
     if (invokeDef.onDone) {
-      const descriptor = `done.invoke.${invokeDef.id}`;
+      const descriptor = `xstate.done.invoke.${invokeDef.id}`;
       transitions.set(
         descriptor,
         toTransitionConfigArray(invokeDef.onDone).map((t) =>

@@ -255,7 +255,7 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            'done.invoke.my-promise': {
+            'xstate.done.invoke.my-promise': {
               target: 'success',
               guard: ({ event }) => event.output === 'response'
             }
@@ -295,7 +295,7 @@ describe('spawning promises', () => {
                 spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
-              'done.invoke.my-promise': {
+              'xstate.done.invoke.my-promise': {
                 target: 'success',
                 guard: ({ event }) => event.output === 'response'
               }
@@ -984,7 +984,7 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              'done.invoke.test': {
+              'xstate.done.invoke.test': {
                 target: 'success',
                 guard: ({ event }) => event.output === 42
               }
@@ -1259,7 +1259,7 @@ describe('actors', () => {
       states: {
         init: {
           on: {
-            'done.invoke.myactor': 'done'
+            'xstate.done.invoke.myactor': 'done'
           }
         },
         done: {}

@@ -156,7 +156,7 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "eventType": "done.invoke.active:invocation[0]",
+          "eventType": "xstate.done.invoke.active:invocation[0]",
           "guard": undefined,
           "reenter": false,
           "source": "#active",

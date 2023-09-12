@@ -221,7 +221,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
               )
           }),
           on: {
-            'done.invoke.my-promise': 'success'
+            'xstate.done.invoke.my-promise': 'success'
           }
         },
         success: {

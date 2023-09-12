@@ -2975,7 +2975,8 @@ describe('invoke', () => {
               onDone: {
                 guard: ({ event }) => {
                   // invoke ID should not be 'someSrc'
-                  const expectedType = 'done.invoke.(machine).a:invocation[0]';
+                  const expectedType =
+                    'xstate.done.invoke.(machine).a:invocation[0]';
                   expect(event.type).toEqual(expectedType);
                   return event.type === expectedType;
                 },
@@ -3048,7 +3049,7 @@ describe('invoke', () => {
   );
 
   // https://github.com/statelyai/xstate/issues/464
-  it('done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
+  it('xstate.done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
     let counter = 0;
     let invoked = false;
 
@@ -3104,7 +3105,7 @@ describe('invoke', () => {
     }, 0);
   });
 
-  it('done.invoke events should have unique names when invokee is a machine with an id property', (done) => {
+  it('xstate.done.invoke events should have unique names when invokee is a machine with an id property', (done) => {
     const actual: string[] = [];
 
     const childMachine = createMachine({
@@ -3156,8 +3157,8 @@ describe('invoke', () => {
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
     setTimeout(() => {
       expect(actual).toEqual([
-        'done.invoke.(machine).first.fetch:invocation[0]',
-        'done.invoke.(machine).second.fetch:invocation[0]'
+        'xstate.done.invoke.(machine).first.fetch:invocation[0]',
+        'xstate.done.invoke.(machine).second.fetch:invocation[0]'
       ]);
       done();
     }, 100);

@@ -48,7 +48,7 @@ export function createDoneInvokeEvent(
   output?: unknown
 ): DoneInvokeEventObject {
   return {
-    type: `done.invoke.${invokeId}`,
+    type: `xstate.done.invoke.${invokeId}`,
     output
   };
 }

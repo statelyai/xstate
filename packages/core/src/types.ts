@@ -1451,7 +1451,7 @@ export type Transitions<
 
 // TODO: deduplicate this
 export interface DoneInvokeEvent<TOutput> {
-  type: `done.invoke.${string}`;
+  type: `xstate.done.invoke.${string}`;
   output: TOutput;
 }
 
@@ -1471,7 +1471,7 @@ export interface ErrorPlatformEvent extends EventObject {
 }
 
 export interface DoneInvokeEventObject extends EventObject {
-  type: `done.invoke.${string}`;
+  type: `xstate.done.invoke.${string}`;
   output: unknown;
 }
 

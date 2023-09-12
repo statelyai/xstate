@@ -460,7 +460,10 @@ function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
         if (eventType === NULL_EVENT) {
           always.push(transitionConfig);
         } else {
-          if (eventType.startsWith('done.state.')) {
+          if (
+            /^done\.state(\.|$)/.test(eventType) ||
+            /^done\.invoke(\.|$)/.test(eventType)
+          ) {
             eventType = `xstate.${eventType}`;
           }
           let existing = on[eventType];
