@@ -79,7 +79,7 @@ const fetcherMachine = createMachine({
           target: 'received',
           guard: ({ event }) => {
             // Should receive { user: { name: 'David' } } as event data
-            return event.output.user.name === 'David';
+            return (event.output as any).user.name === 'David';
           }
         }
       }
@@ -241,7 +241,7 @@ describe('invoke', () => {
               target: 'received',
               guard: ({ event }) => {
                 // Should receive { user: { name: 'David' } } as event data
-                return event.output.user.name === 'David';
+                return (event.output as any).user.name === 'David';
               }
             }
           }
@@ -1081,7 +1081,7 @@ describe('invoke', () => {
                 onDone: {
                   target: 'success',
                   actions: ({ event }) => {
-                    count = event.output.count;
+                    count = (event.output as any).count;
                   }
                 }
               }

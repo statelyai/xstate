@@ -359,7 +359,7 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          DoneActorEvent<any>,
+          DoneActorEvent<unknown>,
           TEvent,
           TActor,
           TAction,
@@ -389,7 +389,7 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          SnapshotEvent<any>,
+          SnapshotEvent<unknown>,
           TEvent,
           TActor,
           TAction,
@@ -672,7 +672,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              DoneActorEvent<any>,
+              DoneActorEvent<unknown>,
               TEvent,
               TActor,
               TAction,
