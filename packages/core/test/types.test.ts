@@ -1052,6 +1052,72 @@ describe('spawn', () => {
       })
     });
   });
+
+  it(`should return a concrete actor ref type based on actor logic argument, one that is assignable to a location expecting that concrete actor ref type`, () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          counter: number;
+        };
+      },
+      context: {
+        counter: 100
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        context: {
+          myChild?: ActorRefFrom<typeof child>;
+        };
+      },
+      context: {},
+      entry: assign({
+        myChild: ({ spawn }) => {
+          return spawn(child);
+        }
+      })
+    });
+  });
+
+  it(`should return a concrete actor ref type based on actor logic argument, one that isn't assignable to a location expecting a different concrete actor ref type`, () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          counter: number;
+        };
+      },
+      context: {
+        counter: 100
+      }
+    });
+
+    const otherChild = createMachine({
+      types: {} as {
+        context: {
+          title: string;
+        };
+      },
+      context: {
+        title: 'The Answer'
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        context: {
+          myChild?: ActorRefFrom<typeof child>;
+        };
+      },
+      context: {},
+      entry: assign({
+        // @ts-expect-error
+        myChild: ({ spawn }) => {
+          return spawn(otherChild);
+        }
+      })
+    });
+  });
 });
 
 describe('invoke', () => {

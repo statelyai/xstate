@@ -45,14 +45,14 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
       ...[options = {} as any]: SpawnOptions<TActor, TSrc>
     ) => ActorRefFrom<(TActor & { src: TSrc })['logic']>
   : // TODO: do not accept machines without all implementations
-    (
-      src: AnyActorLogic | string,
+    <TLogic extends AnyActorLogic | string>(
+      src: TLogic,
       options?: {
         id?: string;
         systemId?: string;
         input?: unknown;
       }
-    ) => AnyActorRef;
+    ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
 export function createSpawner(
   actorContext: AnyActorContext,
