@@ -844,7 +844,7 @@ export interface StateNodeConfig<
    */
   meta?: any;
   /**
-   * The output data sent with the "done.state._id_" event if this is a final state node.
+   * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
    *
    * The output data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
@@ -976,7 +976,7 @@ export interface FinalStateNodeConfig<
 > extends AtomicStateNodeConfig<TContext, TEvent> {
   type: 'final';
   /**
-   * The data to be sent with the "done.state.<id>" event. The data can be
+   * The data to be sent with the "xstate.done.state.<id>" event. The data can be
    * static or dynamic (based on assigners).
    */
   output?: Mapper<TContext, TEvent, any>;
@@ -1476,7 +1476,7 @@ export interface DoneInvokeEventObject extends EventObject {
 }
 
 export interface DoneStateEventObject extends EventObject {
-  type: `done.state.${string}`;
+  type: `xstate.done.state.${string}`;
   output: any;
 }
 

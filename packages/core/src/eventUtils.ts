@@ -29,7 +29,7 @@ export function createDoneStateEvent(
   output?: unknown
 ): DoneStateEventObject {
   return {
-    type: `done.state.${id}`,
+    type: `xstate.done.state.${id}`,
     output
   };
 }

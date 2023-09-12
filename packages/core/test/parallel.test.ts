@@ -979,7 +979,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('should raise a "done.state.*" event when all child states reach final state', (done) => {
+  it('should raise a "xstate.done.state.*" event when all child states reach final state', (done) => {
     const machine = createMachine({
       id: 'test',
       initial: 'p',
@@ -1046,7 +1046,7 @@ describe('parallel states', () => {
     service.send({ type: 'FINISH' });
   });
 
-  it('should raise a "done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
+  it('should raise a "xstate.done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
     const machine = createMachine({
       initial: 'parallelSteps',
       states: {
