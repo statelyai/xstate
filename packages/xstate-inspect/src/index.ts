@@ -102,7 +102,7 @@ export function createInspector(): Inspector {
     register: (actorRefOrId) => {
       if (typeof actorRefOrId === 'string') {
         inspector.next!({
-          type: '@xstate.registration',
+          type: '@xstate.actor',
           actorRef: null as any,
           sessionId: actorRefOrId
         });

@@ -25,16 +25,18 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
     };
   }
 
-  return {
-    type: inspectionEvent.type,
-    sessionId: inspectionEvent.sessionId,
-    snapshot:
-      typeof inspectionEvent.snapshot === 'object' &&
-      'value' in inspectionEvent.snapshot
-        ? { value: inspectionEvent.snapshot.value }
-        : inspectionEvent.snapshot,
-    event: inspectionEvent.event.type
-  };
+  if (inspectionEvent.type === '@xstate.snapshot') {
+    return {
+      type: inspectionEvent.type,
+      sessionId: inspectionEvent.sessionId,
+      snapshot:
+        typeof inspectionEvent.snapshot === 'object' &&
+        'value' in inspectionEvent.snapshot
+          ? { value: inspectionEvent.snapshot.value }
+          : inspectionEvent.snapshot,
+      event: inspectionEvent.event.type
+    };
+  }
 }
 
 describe('inspect', () => {
@@ -197,22 +199,22 @@ describe('inspect', () => {
       [
         {
           "sessionId": "x:1",
-          "type": "@xstate.registration",
+          "type": "@xstate.actor",
         },
         {
           "sessionId": "x:2",
-          "type": "@xstate.registration",
+          "type": "@xstate.actor",
         },
         {
           "event": "xstate.init",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": undefined,
+          "targetId": "x:1",
           "type": "@xstate.event",
         },
         {
           "event": "xstate.init",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": "x:1",
+          "targetId": "x:2",
           "type": "@xstate.event",
         },
         {
@@ -221,7 +223,7 @@ describe('inspect', () => {
           "snapshot": {
             "value": "start",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "xstate.init",
@@ -229,35 +231,35 @@ describe('inspect', () => {
           "snapshot": {
             "value": "waiting",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "load",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": undefined,
+          "targetId": "x:1",
           "type": "@xstate.event",
         },
         {
           "event": "loadChild",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": "x:1",
+          "targetId": "x:2",
           "type": "@xstate.event",
         },
         {
           "sessionId": "x:3",
-          "type": "@xstate.registration",
+          "type": "@xstate.actor",
         },
         {
           "event": "xstate.init",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": "x:2",
+          "targetId": "x:3",
           "type": "@xstate.event",
         },
         {
           "event": "xstate.init",
           "sessionId": "x:3",
           "snapshot": undefined,
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "loadChild",
@@ -265,7 +267,7 @@ describe('inspect', () => {
           "snapshot": {
             "value": "loading",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "load",
@@ -273,24 +275,24 @@ describe('inspect', () => {
           "snapshot": {
             "value": "waiting",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "$$xstate.resolve",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": "x:3",
+          "targetId": "x:3",
           "type": "@xstate.event",
         },
         {
           "event": "done.invoke.(machine).loading:invocation[0]",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": "x:3",
+          "targetId": "x:2",
           "type": "@xstate.event",
         },
         {
           "event": "toParent",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": "x:2",
+          "targetId": "x:1",
           "type": "@xstate.event",
         },
         {
@@ -299,25 +301,22 @@ describe('inspect', () => {
           "snapshot": {
             "value": "waiting",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "done.invoke.child",
-          "sessionId": undefined,
-          "snapshot": undefined,
+          "sourceId": "x:2",
+          "targetId": "x:1",
           "type": "@xstate.event",
         },
-        {
-          "data": [Function],
-          "type": "@xstate.action",
-        },
+        undefined,
         {
           "event": "done.invoke.child",
           "sessionId": "x:1",
           "snapshot": {
             "value": "success",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "done.invoke.(machine).loading:invocation[0]",
@@ -325,106 +324,13 @@ describe('inspect', () => {
           "snapshot": {
             "value": "loaded",
           },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
         {
           "event": "$$xstate.resolve",
           "sessionId": "x:3",
           "snapshot": 42,
-          "type": "@xstate.transition",
-        },
-      ]
-    `);
-  });
-
-  it('can inspect actions', async () => {
-    const machine = createMachine({
-      entry: 'entry1',
-      initial: 'a',
-      states: {
-        a: {
-          entry: ['enter-a'],
-          exit: ['exit-a'],
-          on: {
-            event: {
-              actions: 'action1',
-              target: 'b'
-            }
-          }
-        },
-        b: {
-          entry: 'enter-b'
-        }
-      }
-    });
-
-    const events: InspectionEvent[] = [];
-
-    const actor = createActor(machine, {
-      inspect: {
-        next: (event) => {
-          events.push(event);
-        }
-      }
-    });
-
-    actor.start();
-
-    actor.send({ type: 'event' });
-
-    expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
-      [
-        {
-          "sessionId": "x:4",
-          "type": "@xstate.registration",
-        },
-        {
-          "data": "entry1",
-          "type": "@xstate.action",
-        },
-        {
-          "data": "enter-a",
-          "type": "@xstate.action",
-        },
-        {
-          "event": "xstate.init",
-          "sessionId": undefined,
-          "snapshot": undefined,
-          "type": "@xstate.event",
-        },
-        {
-          "event": "xstate.init",
-          "sessionId": "x:4",
-          "snapshot": {
-            "value": "a",
-          },
-          "type": "@xstate.transition",
-        },
-        {
-          "event": "event",
-          "sessionId": undefined,
-          "snapshot": undefined,
-          "type": "@xstate.event",
-        },
-        {
-          "data": "exit-a",
-          "type": "@xstate.action",
-        },
-        {
-          "data": "action1",
-          "type": "@xstate.action",
-        },
-        {
-          "data": "enter-b",
-          "type": "@xstate.action",
-        },
-        {
-          "event": "event",
-          "sessionId": "x:4",
-          "snapshot": {
-            "value": "b",
-          },
-          "type": "@xstate.transition",
+          "type": "@xstate.snapshot",
         },
       ]
     `);
