@@ -4,7 +4,6 @@
   "initialVersions": {
     "xstate": "4.7.3",
     "@xstate/analytics": "0.0.1",
-    "@xstate/fsm": "1.1.0",
     "@xstate/graph": "1.0.0",
     "@xstate/immer": "0.0.1",
     "@xstate/react": "1.0.0-rc.0",
@@ -124,7 +123,6 @@
     "shy-cobras-ring",
     "shy-gifts-shake",
     "shy-walls-develop",
-    "six-pans-warn",
     "sixty-hornets-allow",
     "sixty-rules-heal",
     "slow-apples-dance",
@@ -152,7 +150,6 @@
     "twenty-fishes-fix",
     "wise-wombats-invite",
     "witty-hounds-invent",
-    "young-chefs-prove",
     "young-laws-hope"
   ]
 }

@@ -1,4 +1,0 @@
-{
-  "main": "dist/xstate-solid-fsm.cjs.js",
-  "module": "dist/xstate-solid-fsm.esm.js"
-}
