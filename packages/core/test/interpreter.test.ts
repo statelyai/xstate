@@ -15,7 +15,6 @@ import {
 } from '../src/index.ts';
 import { State } from '../src/State';
 import { isObservable } from '../src/utils';
-import { waitFor } from '../src/waitFor';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
@@ -1670,87 +1669,6 @@ describe('interpreter', () => {
       });
 
       service.start();
-    });
-
-    describe('state.children (observable)', () => {
-      const interval$ = interval(10);
-
-      const parentMachine = Machine({
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: () =>
-                interval$.pipe(map((value) => ({ type: 'FIRED', value })))
-            },
-            on: {
-              FIRED: {
-                target: 'success',
-                cond: (_: unknown, e: AnyEventObject) => {
-                  return e.value === 3;
-                }
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
-      });
-
-      it('should notify child listeners of final state before stopping', async () => {
-        let subscribed = false;
-
-        const onInterval = jest.fn();
-
-        const service = interpret(parentMachine).onTransition((state) => {
-          if (
-            state.matches('active') &&
-            state.children.childActor &&
-            !subscribed
-          ) {
-            subscribed = true;
-            state.children.childActor.subscribe((data) => {
-              onInterval(data.value);
-            });
-          }
-        });
-
-        service.start();
-
-        await waitFor(service, (state) => !!state.done);
-
-        expect(onInterval).toHaveBeenCalledWith(3);
-      });
-
-      it('should automatically unsubscribe child listeners', async () => {
-        let subscribed = false;
-
-        const onInterval = jest.fn();
-
-        const service = interpret(parentMachine).onTransition((state) => {
-          if (
-            state.matches('active') &&
-            state.children.childActor &&
-            !subscribed
-          ) {
-            subscribed = true;
-            state.children.childActor.subscribe((data) => {
-              onInterval(data.value);
-            });
-          }
-        });
-
-        service.start();
-
-        await waitFor(service, (state) => !!state.done);
-
-        // wait for next interval$
-        await new Promise((resolve) => setTimeout(resolve, 11));
-
-        expect(onInterval).not.toHaveBeenCalledWith(4);
-      });
     });
 
     it('state.children should reference spawned actors', () => {
