@@ -1,13 +1,13 @@
 import './App.css';
-import { getShortestPaths, joinPaths } from '@xstate/graph';
+import { StatePath, getShortestPaths } from '@xstate/graph';
 import { useActor } from '@xstate/react';
 import { createMachine } from 'xstate';
 
 const tourMachine = createMachine({
   id: 'tour',
-  initial: 'first',
+  initial: 'intro',
   states: {
-    first: {
+    intro: {
       description: 'The first step in the tour',
       on: {
         next: { target: 'second', meta: { title: 'Next' } }
@@ -18,59 +18,71 @@ const tourMachine = createMachine({
       description: 'The second step in the tour',
       on: {
         next: { target: 'third', meta: { title: 'Keep going' } },
-        back: { target: 'first', meta: { title: 'Go back' } },
-        long: { target: 'longWay', meta: { title: 'Go the long way' } }
+        back: { target: 'intro', meta: { title: 'Go back' } }
       }
-    },
-
-    longWay: {
-      description: 'The long way around',
-      initial: 'one',
-      states: {
-        one: {
-          on: {
-            next: 'two'
-          }
-        },
-        two: {
-          on: {
-            next: 'three'
-          }
-        },
-        three: {
-          type: 'final'
-        }
-      },
-      onDone: 'third'
     },
 
     third: {
       description: 'The third step in the tour',
       on: {
-        restart: { target: 'first', meta: { title: 'Start over' } },
-        back: { target: 'second', meta: { title: 'Go back' } }
+        restart: { target: 'intro', meta: { title: 'Start over' } },
+        back: { target: 'second', meta: { title: 'Go back' } },
+        finish: { target: 'done', meta: { title: 'Finish' } }
       }
+    },
+    done: {
+      type: 'final'
     }
   }
 });
 
 const shortestPaths = getShortestPaths(tourMachine, {
-  toState: (s) => s.matches('third')
+  toState: (s) => {
+    return s.matches('done');
+  }
 });
+
+function TourProgress({
+  path,
+  state,
+  ...rest
+}: {
+  path: StatePath<any, any>;
+  state: any;
+} & React.HTMLAttributes<HTMLDivElement>) {
+  const index = path.steps.findIndex((step) => step.state.matches(state.value));
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        gap: '1rem',
+        ...rest.style
+      }}
+    >
+      {path.steps.slice(0, -1).map((step, i) => {
+        const isVisited = i <= index;
+
+        return (
+          <div
+            key={i}
+            style={{
+              height: '1rem',
+              width: '1rem',
+              background: isVisited ? 'green' : 'gray',
+              borderRadius: '50%'
+            }}
+          ></div>
+        );
+      })}
+    </div>
+  );
+}
 
 function App() {
   const [state, send] = useActor(tourMachine);
-  const pathToState = getShortestPaths(tourMachine, {
-    toState: (s) => s.matches(state.value)
-  })[0];
-  const pathFromStateToFinal = getShortestPaths(tourMachine, {
-    fromState: pathToState.state,
-    toState: (s) => s.matches('third')
-  })[0];
-  const aggregateSteps = pathToState.steps.concat(pathFromStateToFinal.steps);
-  const index = aggregateSteps.findIndex((step) =>
-    step.state.matches(state.value)
-  );
+  const shortestPath = shortestPaths[0];
   const description =
     state.configuration.find((s) => s.description)?.description ?? '--';
   const nextTransitions = state.configuration
@@ -78,23 +90,51 @@ function App() {
     .flat(2)
     .filter((t) => !t.eventType.startsWith('done.state.'));
 
+  if (state.done) {
+    return null;
+  }
+
   return (
     <div>
-      <h1>
-        Step {index + 1} of {aggregateSteps.length - 1}
-      </h1>
-      <div>
+      <div
+        style={{
+          padding: '1rem',
+          background: 'white',
+          borderRadius: '.5rem',
+          color: '#111',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          gap: '1rem'
+        }}
+      >
         <h2>{description}</h2>
-        {nextTransitions.map((t) => {
-          return (
-            <button
-              onClick={() => send({ type: t.eventType })}
-              key={t.eventType}
-            >
-              {t.meta?.title ?? t.eventType}
-            </button>
-          );
-        })}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '1rem',
+            justifyContent: 'center'
+          }}
+        >
+          {nextTransitions.map((t) => {
+            return (
+              <button
+                onClick={() => send({ type: t.eventType })}
+                key={t.eventType}
+              >
+                {t.meta?.title ?? t.eventType}
+              </button>
+            );
+          })}
+        </div>
+        <TourProgress
+          path={shortestPath}
+          state={state}
+          style={{
+            alignSelf: 'center'
+          }}
+        />
       </div>
     </div>
   );
