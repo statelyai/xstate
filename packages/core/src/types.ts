@@ -359,8 +359,8 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          DoneInvokeEvent<any>,
-          DoneInvokeEvent<any>,
+          DoneActorEvent<unknown>,
+          TEvent,
           TActor,
           TAction,
           TGuard,
@@ -375,8 +375,8 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          ErrorEvent<any>,
-          ErrorEvent<any>,
+          ErrorActorEvent,
+          TEvent,
           TActor,
           TAction,
           TGuard,
@@ -389,8 +389,8 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          SnapshotEvent<any>,
-          SnapshotEvent<any>,
+          SnapshotEvent<unknown>,
+          TEvent,
           TActor,
           TAction,
           TGuard,
@@ -583,7 +583,7 @@ type DistributeActors<
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
-                DoneInvokeEvent<OutputFrom<TSpecificActor['logic']>>,
+                DoneActorEvent<OutputFrom<TSpecificActor['logic']>>,
                 TEvent,
                 TActor,
                 TAction,
@@ -599,7 +599,7 @@ type DistributeActors<
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
-                ErrorEvent<any>,
+                ErrorActorEvent,
                 TEvent,
                 TActor,
                 TAction,
@@ -613,7 +613,7 @@ type DistributeActors<
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
-                SnapshotEvent<any>,
+                SnapshotEvent<SnapshotFrom<TSpecificActor['logic']>>,
                 TEvent,
                 TActor,
                 TAction,
@@ -672,7 +672,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              DoneInvokeEvent<any>,
+              DoneActorEvent<any>, // TODO: consider replacing with `unknown`
               TEvent,
               TActor,
               TAction,
@@ -688,7 +688,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              ErrorEvent<any>,
+              ErrorActorEvent,
               TEvent,
               TActor,
               TAction,
@@ -702,7 +702,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              SnapshotEvent<any>,
+              SnapshotEvent<any>, // TODO: consider replacing with `unknown`
               TEvent,
               TActor,
               TAction,
@@ -808,7 +808,7 @@ export interface StateNodeConfig<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          DoneStateEventObject,
+          DoneStateEvent,
           TEvent,
           TActor,
           TAction,
@@ -844,7 +844,7 @@ export interface StateNodeConfig<
    */
   meta?: any;
   /**
-   * The output data sent with the "done.state._id_" event if this is a final state node.
+   * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
    *
    * The output data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
@@ -976,7 +976,7 @@ export interface FinalStateNodeConfig<
 > extends AtomicStateNodeConfig<TContext, TEvent> {
   type: 'final';
   /**
-   * The data to be sent with the "done.state.<id>" event. The data can be
+   * The data to be sent with the "xstate.done.state.<id>" event. The data can be
    * static or dynamic (based on assigners).
    */
   output?: Mapper<TContext, TEvent, any>;
@@ -1449,35 +1449,24 @@ export type Transitions<
   TEvent extends EventObject
 > = Array<TransitionDefinition<TContext, TEvent>>;
 
-// TODO: deduplicate this
-export interface DoneInvokeEvent<TOutput> {
-  type: `done.invoke.${string}`;
+export interface DoneActorEvent<TOutput = unknown> {
+  type: `xstate.done.actor.${string}`;
   output: TOutput;
 }
 
-export interface ErrorEvent<TErrorData> extends EventObject {
-  type: `error.${string}`;
+export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
+  type: `xstate.error.actor.${string}`;
   data: TErrorData;
 }
 
-export interface SnapshotEvent<TData> extends EventObject {
+export interface SnapshotEvent<TData = unknown> extends EventObject {
   type: `xstate.snapshot.${string}`;
   data: TData;
 }
 
-export interface ErrorPlatformEvent extends EventObject {
-  type: `error.platform.${string}`;
-  data: unknown;
-}
-
-export interface DoneInvokeEventObject extends EventObject {
-  type: `done.invoke.${string}`;
-  output: unknown;
-}
-
-export interface DoneStateEventObject extends EventObject {
-  type: `done.state.${string}`;
-  output: any;
+export interface DoneStateEvent<TOutput = unknown> extends EventObject {
+  type: `xstate.done.state.${string}`;
+  output: TOutput;
 }
 
 export type DelayExpr<

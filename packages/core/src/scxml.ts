@@ -414,7 +414,7 @@ function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
     const always: any[] = [];
     const on: Record<string, any> = [];
 
-    transitionElements.map((value) => {
+    transitionElements.forEach((value) => {
       const events = ((getAttribute(value, 'event') as string) || '').split(
         /\s+/
       );
@@ -460,6 +460,11 @@ function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
         if (eventType === NULL_EVENT) {
           always.push(transitionConfig);
         } else {
+          if (/^done\.state(\.|$)/.test(eventType)) {
+            eventType = `xstate.${eventType}`;
+          } else if (/^done\.invoke(\.|$)/.test(eventType)) {
+            eventType = eventType.replace(/^done\.invoke/, 'xstate.done.actor');
+          }
           let existing = on[eventType];
           if (!existing) {
             existing = [];

@@ -132,7 +132,7 @@ export class StateNode<
    */
   public meta?: any;
   /**
-   * The output data sent with the "done.state._id_" event if this is a final state node.
+   * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
    */
   public output?: Mapper<TContext, TEvent, any>;
 

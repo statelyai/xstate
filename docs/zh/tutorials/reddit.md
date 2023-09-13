@@ -158,7 +158,7 @@ const redditMachine = createMachine({
 
 Notice how we moved the `invoke` config to the `'loading'` state. This is useful because if we want to change the app logic in the future to have some sort of `'paused'` or `'canceled'` child state, the invoked promise will automatically be "canceled" since it's no longer in the `'loading'` state where it was invoked.
 
-When the promise resolves, a special `'done.invoke.<invoke ID>'` event will be sent to the machine, containing the resolved data as `event.data`. For convenience, XState maps the `onDone` property within the `invoke` object to this special event. You can assign the resolved data to `context.posts`:
+When the promise resolves, a special `'xstate.done.actor.<invoke ID>'` event will be sent to the machine, containing the resolved data as `event.data`. For convenience, XState maps the `onDone` property within the `invoke` object to this special event. You can assign the resolved data to `context.posts`:
 
 ```js {18-20}
 const redditMachine = createMachine({

@@ -284,7 +284,7 @@ describe('inspect', () => {
           "type": "@xstate.event",
         },
         {
-          "event": "done.invoke.(machine).loading:invocation[0]",
+          "event": "xstate.done.actor.(machine).loading:invocation[0]",
           "sourceId": "x:3",
           "targetId": "x:2",
           "type": "@xstate.event",
@@ -304,14 +304,14 @@ describe('inspect', () => {
           "type": "@xstate.snapshot",
         },
         {
-          "event": "done.invoke.child",
+          "event": "xstate.done.actor.child",
           "sourceId": "x:2",
           "targetId": "x:1",
           "type": "@xstate.event",
         },
         undefined,
         {
-          "event": "done.invoke.child",
+          "event": "xstate.done.actor.child",
           "sessionId": "x:1",
           "snapshot": {
             "value": "success",
@@ -319,7 +319,7 @@ describe('inspect', () => {
           "type": "@xstate.snapshot",
         },
         {
-          "event": "done.invoke.(machine).loading:invocation[0]",
+          "event": "xstate.done.actor.(machine).loading:invocation[0]",
           "sessionId": "x:2",
           "snapshot": {
             "value": "loaded",

@@ -8,10 +8,7 @@ import {
   TODO
 } from '../types';
 import { isPromiseLike } from '../utils';
-import {
-  createDoneInvokeEvent,
-  createErrorPlatformEvent
-} from '../eventUtils.ts';
+import { createDoneActorEvent, createErrorActorEvent } from '../eventUtils.ts';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
 export interface CallbackInternalState<
@@ -101,7 +98,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
             (resolved) => {
               system.sendTo(
                 self._parent,
-                createDoneInvokeEvent(id, resolved),
+                createDoneActorEvent(id, resolved),
                 self
               );
               state.canceled = true;
@@ -110,7 +107,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
               state.canceled = true;
               system.sendTo(
                 self._parent,
-                createErrorPlatformEvent(id, errorData),
+                createErrorActorEvent(id, errorData),
                 self
               );
             }

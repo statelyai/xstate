@@ -1,4 +1,4 @@
-import { createErrorPlatformEvent } from './eventUtils.ts';
+import { createErrorActorEvent } from './eventUtils.ts';
 import { ActorStatus, createActor } from './interpreter.ts';
 import {
   ActorRefFrom,
@@ -45,14 +45,14 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
       ...[options = {} as any]: SpawnOptions<TActor, TSrc>
     ) => ActorRefFrom<(TActor & { src: TSrc })['logic']>
   : // TODO: do not accept machines without all implementations
-    (
-      src: AnyActorLogic | string,
+    <TLogic extends AnyActorLogic | string>(
+      src: TLogic,
       options?: {
         id?: string;
         systemId?: string;
         input?: unknown;
       }
-    ) => AnyActorRef;
+    ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
 export function createSpawner(
   actorContext: AnyActorContext,
@@ -111,7 +111,7 @@ export function createSpawner(
       try {
         actorRef.start?.();
       } catch (err) {
-        actorContext.self.send(createErrorPlatformEvent(actorRef.id, err));
+        actorContext.self.send(createErrorActorEvent(actorRef.id, err));
         return;
       }
     });

@@ -1,11 +1,5 @@
 export * from './actions.ts';
-export {
-  fromCallback,
-  fromEventObservable,
-  fromObservable,
-  fromPromise,
-  fromTransition
-} from './actors/index.ts';
+export * from './actors/index.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { type Spawner } from './spawn.ts';
 export { StateMachine } from './StateMachine.ts';

@@ -1,8 +1,8 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
 import {
-  createDoneInvokeEvent,
-  createErrorPlatformEvent,
+  createDoneActorEvent,
+  createErrorActorEvent,
   createInitEvent
 } from './eventUtils.ts';
 import { XSTATE_STOP } from './constants.ts';
@@ -24,7 +24,7 @@ import type {
   PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef,
-  DoneInvokeEventObject
+  DoneActorEvent
 } from './types.ts';
 import {
   ActorRef,
@@ -129,7 +129,7 @@ export class Actor<
   public sessionId: string;
 
   public system: ActorSystem<any>;
-  private _doneEvent?: DoneInvokeEventObject;
+  private _doneEvent?: DoneActorEvent;
 
   public src?: string;
 
@@ -237,7 +237,7 @@ export class Actor<
       case 'done':
         this._stopProcedure();
         this._complete();
-        this._doneEvent = createDoneInvokeEvent(this.id, status.data);
+        this._doneEvent = createDoneActorEvent(this.id, status.data);
         this.system.sendTo(this._parent, this._doneEvent, this);
 
         break;
@@ -246,7 +246,7 @@ export class Actor<
         this._error(status.data);
         this.system.sendTo(
           this._parent,
-          createErrorPlatformEvent(this.id, status.data),
+          createErrorActorEvent(this.id, status.data),
           this
         );
         break;
@@ -340,7 +340,7 @@ export class Actor<
       } catch (err) {
         this._stopProcedure();
         this._error(err);
-        this._parent?.send(createErrorPlatformEvent(this.id, err));
+        this._parent?.send(createErrorActorEvent(this.id, err));
         return this;
       }
     }
@@ -375,7 +375,7 @@ export class Actor<
 
       this._stopProcedure();
       this._error(err);
-      this._parent?.send(createErrorPlatformEvent(this.id, err));
+      this._parent?.send(createErrorActorEvent(this.id, err));
       return;
     }
 
