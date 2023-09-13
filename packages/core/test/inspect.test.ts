@@ -3,7 +3,7 @@ import {
   createActor,
   createMachine,
   fromPromise,
-  interpret,
+  createActor,
   sendParent,
   sendTo,
   waitFor
@@ -60,7 +60,7 @@ describe('inspect', () => {
 
     const events: InspectionEvent[] = [];
 
-    const actor = interpret(machine, {
+    const actor = createActor(machine, {
       inspect: {
         next(event) {
           events.push(event);
@@ -177,7 +177,7 @@ describe('inspect', () => {
 
     const events: InspectionEvent[] = [];
 
-    const actor = interpret(parentMachine, {
+    const actor = createActor(parentMachine, {
       inspect: {
         next: (event) => {
           events.push(event);
