@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "2.0.0",
+  "version": "3.0.0-beta.5",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -15,62 +15,46 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-vue#readme",
   "license": "MIT",
-  "main": "lib/index.js",
-  "module": "es/index.js",
-  "types": "lib/index.d.ts",
-  "sideEffects": false,
-  "directories": {
-    "lib": "lib",
-    "test": "test"
+  "main": "dist/xstate-vue.cjs.js",
+  "module": "dist/xstate-vue.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-vue.cjs.mjs",
+        "default": "./dist/xstate-vue.cjs.js"
+      },
+      "module": "./dist/xstate-vue.esm.js",
+      "import": "./dist/xstate-vue.cjs.mjs",
+      "default": "./dist/xstate-vue.cjs.js"
+    },
+    "./package.json": "./package.json"
   },
+  "sideEffects": false,
   "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts",
-    "dist/**/*.js",
-    "es/**/*.js",
-    "es/**/*.d.ts"
+    "dist"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
-    "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
-    "test": "jest",
-    "prepare": "npm run build"
-  },
+  "scripts": {},
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^2.0.0",
     "vue": "^3.0.0",
-    "xstate": "^4.33.5"
+    "xstate": "^5.0.0-beta.28"
   },
   "peerDependenciesMeta": {
-    "@xstate/fsm": {
-      "optional": true
-    },
     "xstate": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.11.9",
-    "@testing-library/vue": "^6.4.0",
-    "@vue/compiler-sfc": "^3.0.7",
-    "@xstate/fsm": "*",
-    "babel-core": "^6.26.3",
-    "jest": "^26.6.3",
-    "lerna-alias": "3.0.3-0",
-    "rollup": "^2.69.0",
-    "rollup-plugin-terser": "^5.1.2",
-    "rollup-plugin-typescript2": "^0.30.0",
-    "ts-jest": "^26.5.6",
-    "typescript": "^4.8.2",
-    "vue": "^3.0.7",
-    "vue-jest": "5.0.0-alpha.7",
-    "xstate": "*"
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/vue": "^6.6.1",
+    "@vue/compiler-sfc": "^3.0.11",
+    "vue": "^3.0.11",
+    "xstate": "5.0.0-beta.28"
   }
 }

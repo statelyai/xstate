@@ -1,12 +1,68 @@
 # @xstate/graph
 
+## 2.0.0-beta.4
+
+### Major Changes
+
+- [#4238](https://github.com/statelyai/xstate/pull/4238) [`b4f12a517`](https://github.com/statelyai/xstate/commit/b4f12a517dcb2a70200de4fb33d0a5958ff22333) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The steps in the paths returned from functions like `getShortestPaths(...)` and `getSimplePaths(...)` have the following changes:
+
+  - The `step.event` property now represents the `event` object that resulted in the transition to the `step.state`, _not_ the event that comes before the next step.
+  - The `path.steps` array now includes the target `path.state` as the last step.
+    - Note: this means that `path.steps` always has at least one step.
+  - The first `step` now has the `{ type: 'xstate.init' }` event
+
+## 2.0.0-beta.3
+
+### Major Changes
+
+- [#4233](https://github.com/statelyai/xstate/pull/4233) [`3d96d0f95`](https://github.com/statelyai/xstate/commit/3d96d0f95f7f2a7f7dd872d756a5eba1f61a072f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove `getMachineShortestPaths` and `getMachineSimplePaths`
+
+  ```diff
+  import {
+  - getMachineShortestPaths,
+  + getShortestPaths,
+  - getMachineSimplePaths,
+  + getSimplePaths
+  } from '@xstate/graph';
+
+  -const paths = getMachineShortestPaths(machine);
+  +const paths = getShortestPaths(machine);
+
+  -const paths = getMachineSimplePaths(machine);
+  +const paths = getSimplePaths(machine);
+  ```
+
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- [#3992](https://github.com/statelyai/xstate/pull/3992) [`fc076d82f`](https://github.com/statelyai/xstate/commit/fc076d82f4646c3285455c33200d84f804c17f36) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed an internal import to not import from `xstate/src`
+
+## 2.0.0-alpha.1
+
+### Patch Changes
+
+- [#3864](https://github.com/statelyai/xstate/pull/3864) [`59f3a8e`](https://github.com/statelyai/xstate/commit/59f3a8e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Event cases are now specified as an array of event objects, instead of an object with event types as keys and event object payloads as values:
+
+  ```diff
+  const shortestPaths = getShortestPaths(someMachine, {
+  - eventCases: {
+  -   click: [{ x: 10, y: 10 }, { x: 20, y: 20 }]
+  - }
+  + events: [
+  +   { type: 'click', x: 10, y: 10 },
+  +   { type: 'click', x: 20, y: 20 }
+  + ]
+  });
+  ```
+
 ## 2.0.0-alpha.0
 
 ### Major Changes
 
 - [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Renamed `getAdjacencyMap` to `getValueAdjacencyMap`.
 
-* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Changed `getSimplePaths` to `getSimplePlans`, and `getShortestPaths` to `getShortestPlans`. Both of these functions can be passed a machine, and return `StatePlan[]`.
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Changed `getSimplePaths` to `getSimplePlans`, and `getShortestPaths` to `getShortestPlans`. Both of these functions can be passed a machine, and return `StatePlan[]`.
 
   Added functions `traverseSimplePlans`, `traverseShortestPlans`,`traverseShortestPlansFromTo`, `traverseSimplePlansTo` and `traverseSimplePlansFromTo`, which can be passed a `Behavior` and return `StatePlan[]`.
 

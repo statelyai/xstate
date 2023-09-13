@@ -1,5 +1,9 @@
 # Interpreting Machines
 
+:::tip Check out our new docs!
+🆕 Find more about [interpreting machines using XState](https://stately.ai/docs/xstate/running-machines/intro#interpret) in our new docs.
+:::
+
 While a state machine/statechart with a pure `.transition()` function is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:
 
 - Keep track of the current state, and persist it
@@ -48,25 +52,11 @@ Events are sent to a running service by calling `service.send(event)`. There are
 ```js {5,8,12}
 service.start();
 
-// As an object (preferred):
 service.send({ type: 'CLICK', x: 40, y: 21 });
-
-// As a string:
-// (same as service.send({ type: 'CLICK' }))
-service.send('CLICK');
-
-// As a string with an object payload:
-// (same as service.send({ type: 'CLICK', x: 40, y: 21 }))
-service.send('CLICK', { x: 40, y: 21 });
 ```
 
 - As an event object (e.g., `.send({ type: 'CLICK', x: 40, y: 21 })`)
   - The event object must have a `type: ...` string property.
-- As a string (e.g., `.send('CLICK')`, which resolves to sending `{ type: 'CLICK' }`)
-  - The string represents the event type.
-- As a string followed by an object payload (e.g., `.send('CLICK', { x: 40, y: 21 })`) <Badge text="4.5+"/>
-  - The first string argument represents the event type.
-  - The second argument must be an object without a `type: ...` property.
 
 ::: warning
 If the service is not initialized (that is, if `service.start()` wasn't called yet), events will be **deferred** until the service is started. This means that the events won't be processed until `service.start()` is called, and then they will all be sequentially processed.

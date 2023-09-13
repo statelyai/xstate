@@ -1,4 +1,4 @@
-import { createMachine, interpret, State } from '../src';
+import { createMachine, createActor } from '../src/index.ts';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -12,12 +12,14 @@ describe('rehydration', () => {
         }
       });
 
-      const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const actorRef = createActor(machine).start();
+      const persistedState = JSON.stringify(actorRef.getPersistedState());
+      actorRef.stop();
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
-      const service = interpret(machine).start(restoredState);
+      const service = createActor(machine, { state: restoredState }).start();
 
-      expect(service.state.hasTag('foo')).toBe(true);
+      expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
 
     it('should call exit actions when machine gets stopped immediately', () => {
@@ -32,10 +34,13 @@ describe('rehydration', () => {
         }
       });
 
-      const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const actorRef = createActor(machine).start();
+      const persistedState = JSON.stringify(actorRef.getPersistedState());
+      actorRef.stop();
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
-      interpret(machine).start(restoredState).stop();
+      actual.length = 0;
+      createActor(machine, { state: restoredState }).start().stop();
 
       expect(actual).toEqual(['a', 'root']);
     });
@@ -49,11 +54,13 @@ describe('rehydration', () => {
         }
       });
 
-      const persistedState = JSON.stringify(interpret(machine).start().state);
+      const persistedState = JSON.stringify(
+        createActor(machine).start().getSnapshot()
+      );
       const restoredState = JSON.parse(persistedState);
-      const service = interpret(machine).start(restoredState);
+      const service = createActor(machine, { state: restoredState }).start();
 
-      expect(service.state.can('FOO')).toBe(true);
+      expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
   });
 
@@ -71,11 +78,12 @@ describe('rehydration', () => {
         }
       });
 
-      const service = interpret(machine);
+      const activeState = machine.resolveStateValue('active');
+      const service = createActor(machine, { state: activeState });
 
-      service.start('active');
+      service.start();
 
-      expect(service.state.hasTag('foo')).toBe(true);
+      expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
 
     it('should call exit actions when machine gets stopped immediately', () => {
@@ -93,9 +101,30 @@ describe('rehydration', () => {
         }
       });
 
-      interpret(machine).start('active').stop();
+      const activeState = machine.resolveStateValue('active');
+
+      createActor(machine, { state: activeState }).start().stop();
 
       expect(actual).toEqual(['active', 'root']);
     });
+  });
+
+  it('should not replay actions when starting from a persisted state', () => {
+    const entrySpy = jest.fn();
+    const machine = createMachine({
+      entry: entrySpy
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(entrySpy).toHaveBeenCalledTimes(1);
+
+    const persistedState = actor.getPersistedState();
+
+    actor.stop();
+
+    createActor(machine, { state: persistedState }).start();
+
+    expect(entrySpy).toHaveBeenCalledTimes(1);
   });
 });

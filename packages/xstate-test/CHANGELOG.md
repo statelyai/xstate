@@ -1,5 +1,40 @@
 # @xstate/test
 
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [[`b4f12a517`](https://github.com/statelyai/xstate/commit/b4f12a517dcb2a70200de4fb33d0a5958ff22333)]:
+  - @xstate/graph@2.0.0-beta.4
+
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [[`3d96d0f95`](https://github.com/statelyai/xstate/commit/3d96d0f95f7f2a7f7dd872d756a5eba1f61a072f)]:
+  - @xstate/graph@2.0.0-beta.3
+
+## 1.0.0-alpha.1
+
+### Patch Changes
+
+- [#3864](https://github.com/statelyai/xstate/pull/3864) [`59f3a8e`](https://github.com/statelyai/xstate/commit/59f3a8e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Event cases are now specified as an array of event objects, instead of an object with event types as keys and event object payloads as values:
+
+  ```diff
+  const shortestPaths = getShortestPaths(someMachine, {
+  - eventCases: {
+  -   click: [{ x: 10, y: 10 }, { x: 20, y: 20 }]
+  - }
+  + events: [
+  +   { type: 'click', x: 10, y: 10 },
+  +   { type: 'click', x: 20, y: 20 }
+  + ]
+  });
+  ```
+
+- Updated dependencies [[`59f3a8ece`](https://github.com/statelyai/xstate/commit/59f3a8ecee83ec838040de1920b527c8bf6a803e)]:
+  - @xstate/graph@2.0.0-alpha.1
+
 ## 1.0.0-alpha.0
 
 ### Major Changes
@@ -8,7 +43,7 @@
 
   Also added `getPaths`, which defaults to `getShortestPaths`. This can be passed a `pathGenerator` to customize how paths are generated.
 
-* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock)! - Moved event cases out of `events`, and into their own attribute called `eventCases`:
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock)! - Moved event cases out of `events`, and into their own attribute called `eventCases`:
 
   ```ts
   const model = createTestModel(machine, {
@@ -41,7 +76,7 @@
 
 - [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Removed `.testCoverage()`, and instead made `getPlans`, `getShortestPlans` and `getSimplePlans` cover all states and transitions enabled by event cases by default.
 
-* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added validation on `createTestModel` to ensure that you don't include invalid machine configuration in your test machine. Invalid machine configs include `invoke`, `after`, and any actions with a `delay`.
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added validation on `createTestModel` to ensure that you don't include invalid machine configuration in your test machine. Invalid machine configs include `invoke`, `after`, and any actions with a `delay`.
 
   Added `createTestMachine`, which provides a slimmed-down API for creating machines which removes these types from the config type signature.
 
@@ -86,7 +121,7 @@
   toggledOn -> TOGGLE -> toggledOff -> TOGGLE -> toggledOn
   ```
 
-* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock), [@davidkpiano](https://github.com/davidkpiano)! - Moved `events` from `createTestModel` to `path.test`.
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock), [@davidkpiano](https://github.com/davidkpiano)! - Moved `events` from `createTestModel` to `path.test`.
 
   Old:
 

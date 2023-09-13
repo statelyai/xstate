@@ -5,7 +5,7 @@ import {
   TransitionDefinition
 } from 'xstate';
 
-export type AnyStateNode = StateNode<any, any, any, any, any>;
+export type AnyStateNode = StateNode<any, any>;
 
 export interface TransitionMap {
   state: StateValue | undefined;
@@ -98,13 +98,13 @@ export interface StatePlanMap<TState, TEvent extends EventObject> {
 
 export interface Step<TState, TEvent extends EventObject> {
   /**
-   * The current state before taking the event.
-   */
-  state: TState;
-  /**
-   * The event to be taken from the specified state.
+   * The event that resulted in the current state
    */
   event: TEvent;
+  /**
+   * The current state after taking the event.
+   */
+  state: TState;
 }
 
 export type Steps<TState, TEvent extends EventObject> = Array<
@@ -133,8 +133,7 @@ export interface VisitedContext<TState, TEvent> {
   a?: TState | TEvent; // TODO: remove
 }
 
-export interface SerializationOptions<TState, TEvent extends EventObject> {
-  eventCases: EventCaseMap<TState, TEvent>;
+export interface SerializationConfig<TState, TEvent extends EventObject> {
   serializeState: (
     state: TState,
     event: TEvent | undefined,
@@ -143,49 +142,51 @@ export interface SerializationOptions<TState, TEvent extends EventObject> {
   serializeEvent: (event: TEvent) => string;
 }
 
-/**
- * A sample event object payload (_without_ the `type` property).
- *
- * @example
- *
- * ```js
- * {
- *   value: 'testValue',
- *   other: 'something',
- *   id: 42
- * }
- * ```
- */
-type EventCase<TEvent extends EventObject> = Omit<TEvent, 'type'>;
+export type SerializationOptions<TState, TEvent extends EventObject> = Partial<
+  Pick<SerializationConfig<TState, TEvent>, 'serializeState' | 'serializeEvent'>
+>;
 
-export interface TraversalOptions<TState, TEvent extends EventObject>
-  extends SerializationOptions<TState, TEvent> {
-  filter?: (state: TState, event: TEvent) => boolean;
-  getEvents?: (
-    state: TState,
-    cases: EventCaseMap<TState, TEvent>
-  ) => ReadonlyArray<TEvent>;
+export type TraversalOptions<
+  TState,
+  TEvent extends EventObject
+> = SerializationOptions<TState, TEvent> &
+  Partial<
+    Pick<
+      TraversalConfig<TState, TEvent>,
+      | 'filter'
+      | 'events'
+      | 'traversalLimit'
+      | 'fromState'
+      | 'stopCondition'
+      | 'toState'
+    >
+  >;
+
+export interface TraversalConfig<TState, TEvent extends EventObject>
+  extends SerializationConfig<TState, TEvent> {
+  /**
+   * Determines whether to traverse a transition from `state` on
+   * `event` when building the adjacency map.
+   */
+  filter: (state: TState, event: TEvent) => boolean;
+  events: readonly TEvent[] | ((state: TState) => readonly TEvent[]);
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.
    *
    * @default `Infinity`
    */
-  traversalLimit?: number;
+  traversalLimit: number;
+  fromState: TState | undefined;
+  /**
+   * When true, traversal of the adjacency map will stop
+   * for that current state.
+   */
+  stopCondition: ((state: TState) => boolean) | undefined;
+  toState: ((state: TState) => boolean) | undefined;
 }
-
-export type EventCaseMap<TState, TEvent extends EventObject> = {
-  [E in TEvent as E['type']]?:
-    | ((state: TState) => Array<EventCase<E>>)
-    | Array<EventCase<E>>;
-};
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };
 
 export type SerializedState = Brand<string, 'state'>;
 export type SerializedEvent = Brand<string, 'event'>;
-
-export interface SimpleBehavior<TState, TEvent> {
-  transition: (state: TState, event: TEvent) => TState;
-  initialState: TState;
-}

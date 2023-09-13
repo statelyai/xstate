@@ -1,14 +1,8 @@
-import {
-  SerializationOptions,
-  SerializedEvent,
-  SerializedState,
-  StatePath,
-  StatePlan
-} from '@xstate/graph';
-import { AnyState, EventObject } from 'xstate';
-import { TestMeta, TestPathResult } from './types';
+import { SerializationConfig, StatePath } from '@xstate/graph';
+import { AnyState, MachineContext } from 'xstate';
+import { TestMeta, TestPathResult } from './types.ts';
 
-interface TestResultStringOptions extends SerializationOptions<any, any> {
+interface TestResultStringOptions extends SerializationConfig<any, any> {
   formatColor: (color: string, string: string) => string;
 }
 
@@ -23,25 +17,30 @@ export function formatPathTestResult(
 ): string {
   const resolvedOptions: TestResultStringOptions = {
     formatColor: (_color, string) => string,
-    serializeState: (state, _event) =>
-      simpleStringify(state) as SerializedState,
-    serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
-    eventCases: {},
+    serializeState: simpleStringify,
+    serializeEvent: simpleStringify,
     ...options
   };
 
   const { formatColor, serializeState, serializeEvent } = resolvedOptions;
 
   const { state } = path;
-  const targetStateString = serializeState(state, null);
+
+  const targetStateString = serializeState(
+    state,
+    path.steps.length ? path.steps[path.steps.length - 1].event : undefined
+  );
 
   let errMessage = '';
   let hasFailed = false;
   errMessage +=
     '\nPath:\n' +
     testPathResult.steps
-      .map((s) => {
-        const stateString = serializeState(s.step.state, s.step.event);
+      .map((s, i, steps) => {
+        const stateString = serializeState(
+          s.step.state,
+          i > 0 ? steps[i - 1].step.event : undefined
+        );
         const eventString = serializeEvent(s.step.event);
 
         const stateResult = `\tState: ${
@@ -75,9 +74,12 @@ export function formatPathTestResult(
   return errMessage;
 }
 
-export function getDescription<T, TContext>(state: AnyState): string {
-  const contextString =
-    state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
+export function getDescription<T, TContext extends MachineContext>(
+  state: AnyState
+): string {
+  const contextString = !Object.keys(state.context).length
+    ? ''
+    : `(${JSON.stringify(state.context)})`;
 
   const stateStrings = state.configuration
     .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
@@ -106,11 +108,3 @@ export function getDescription<T, TContext>(state: AnyState): string {
 export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
 }
-
-export const mapPlansToPaths = <TState, TEvent extends EventObject>(
-  plans: StatePlan<TState, TEvent>[]
-): Array<StatePath<TState, TEvent>> => {
-  return plans.reduce((acc, plan) => {
-    return acc.concat(plan.paths);
-  }, [] as Array<StatePath<TState, TEvent>>);
-};

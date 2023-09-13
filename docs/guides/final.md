@@ -1,5 +1,9 @@
 # Final states
 
+:::tip Check out our new docs!
+🆕 Find more about [final states in XState](https://stately.ai/docs/xstate/states/final-states) as well as a [no-code introduction to final states](https://stately.ai/docs/states/final-states).
+:::
+
 In statecharts, you can declare a state as a **final state**. The final state indicates that its parent state is “done”. To learn more, read the [final state section in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#final-state).
 
 ## API
@@ -129,7 +133,7 @@ const shoppingMachine = createMachine({
 });
 ```
 
-The `onDone` transition will only take place when all of the child states of `'cart'` (e.g., `'user'` and `'items'`) are in their final states. In the case of the shopping machine, once the `'shopping.cart.user.success'` and `'shopping.cart.items.success'` state nodes are reached, the machine will transition from the `'cart'` to the `'confirm'` state.
+The `onDone` transition will only take place when all of the child states of `'cart'` (e.g., `'user'` and `'items'`) are in their final states. In the case of the shopping machine, once the `'cart.user.success'` and `'cart.items.success'` state nodes are reached, the machine will transition from the `'cart'` to the `'confirm'` state.
 
 ::: warning
 

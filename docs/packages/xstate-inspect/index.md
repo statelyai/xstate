@@ -7,8 +7,6 @@ The [@xstate/inspect package](https://github.com/statelyai/xstate/tree/main/pack
 - [XState + Vue](https://codesandbox.io/s/xstate-vue-viz-template-r5wd7)
 - [XState + React](https://codesandbox.io/s/xstate-react-viz-template-5wq3q)
 
-![Inspector running from CodeSandbox](https://buttondown.s3.us-west-2.amazonaws.com/images/4c8c0db4-b4d5-408f-8684-57e94ff46c86.png)
-
 [See CodeSandbox example here](https://codesandbox.io/s/xstate-vue-minute-timer-viz-1txmk)
 
 ## Installation
@@ -126,8 +124,8 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
   {
     type: 'service.event';
     event: SCXML.Event<any>;
-    sessionId: string
-  };
+    sessionId: string;
+  }
   ```
 
 To listen to events from an inspected source, create a receiver with the appropriate `create*Receiver(...)` function; for example:

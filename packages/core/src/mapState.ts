@@ -1,10 +1,10 @@
-import { matchesState } from './utils';
+import { matchesState } from './utils.ts';
 
 export function mapState(
   stateMap: { [stateId: string]: any },
   stateId: string
 ) {
-  let foundStateId;
+  let foundStateId: string | undefined;
 
   for (const mappedStateId of Object.keys(stateMap)) {
     if (
@@ -15,5 +15,5 @@ export function mapState(
     }
   }
 
-  return stateMap[foundStateId];
+  return stateMap[foundStateId!];
 }

@@ -202,7 +202,7 @@ const someMachine = createMachine({
 
 ## 创建 Promises
 
-就像 [invoking promises](./communication.md#invoking-promises) 一样，promise 可以作为 演员 生成。 发送回状态机的事件将是一个 `'done.invoke.<ID>'` 操作，promise 响应作为有效负载中的 `data` 属性：
+就像 [invoking promises](./communication.md#invoking-promises) 一样，promise 可以作为 演员 生成。 发送回状态机的事件将是一个 `'xstate.done.actor.<ID>'` 操作，promise 响应作为有效负载中的 `data` 属性：
 
 ```js {11}
 // Returns a promise
@@ -315,7 +315,7 @@ const remoteMachine = createMachine({
     online: {
       after: {
         1000: {
-          actions: sendParent('REMOTE.ONLINE')
+          actions: sendParent({ type: 'REMOTE.ONLINE' })
         }
       }
     }
@@ -378,18 +378,6 @@ someService.onTransition((state) => {
   const { someRef } = state.context;
 
   console.log(someRef.getSnapshot());
-  // => State {
-  //   value: ...,
-  //   context: ...
-  // }
-});
-```
-
-```js
-someService.onTransition((state) => {
-  const { someRef } = state.context;
-
-  console.log(someRef.state);
   // => State {
   //   value: ...,
   //   context: ...

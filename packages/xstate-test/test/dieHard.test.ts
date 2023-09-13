@@ -1,5 +1,5 @@
-import { assign, createMachine } from 'xstate';
-import { createTestModel } from '../src';
+import { StateFrom, assign, createMachine } from 'xstate';
+import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
 
@@ -9,20 +9,20 @@ describe('die hard example', () => {
     five: number;
   }
 
-  const pour3to5 = assign<DieHardContext>((ctx) => {
-    const poured = Math.min(5 - ctx.five, ctx.three);
+  const pour3to5 = assign<DieHardContext>(({ context }) => {
+    const poured = Math.min(5 - context.five, context.three);
 
     return {
-      three: ctx.three - poured,
-      five: ctx.five + poured
+      three: context.three - poured,
+      five: context.five + poured
     };
   });
-  const pour5to3 = assign<DieHardContext>((ctx) => {
-    const poured = Math.min(3 - ctx.three, ctx.five);
+  const pour5to3 = assign<DieHardContext>(({ context }) => {
+    const poured = Math.min(3 - context.three, context.five);
 
     const res = {
-      three: ctx.three + poured,
-      five: ctx.five - poured
+      three: context.three + poured,
+      five: context.five - poured
     };
 
     return res;
@@ -65,8 +65,9 @@ describe('die hard example', () => {
   let jugs: Jugs;
 
   const createDieHardModel = () => {
-    const dieHardMachine = createMachine<DieHardContext>(
+    const dieHardMachine = createMachine(
       {
+        types: {} as { context: DieHardContext },
         id: 'dieHard',
         initial: 'pending',
         context: { three: 0, five: 0 },
@@ -74,7 +75,7 @@ describe('die hard example', () => {
           pending: {
             always: {
               target: 'success',
-              cond: 'weHave4Gallons'
+              guard: 'weHave4Gallons'
             },
             on: {
               POUR_3_TO_5: {
@@ -104,14 +105,14 @@ describe('die hard example', () => {
       },
       {
         guards: {
-          weHave4Gallons: (ctx) => ctx.five === 4
+          weHave4Gallons: ({ context }) => context.five === 4
         }
       }
     );
 
     const options = {
       states: {
-        pending: (state) => {
+        pending: (state: StateFrom<typeof dieHardMachine>) => {
           expect(jugs.five).not.toEqual(4);
           expect(jugs.three).toEqual(state.context.three);
           expect(jugs.five).toEqual(state.context.five);
@@ -156,36 +157,48 @@ describe('die hard example', () => {
   describe('testing a model (shortestPathsTo)', () => {
     const dieHardModel = createDieHardModel();
 
-    dieHardModel.model
-      .getShortestPathsTo((state) => state.matches('success'))
-      .forEach((path) => {
-        describe(`path ${getDescription(path.state)}`, () => {
-          it(`path ${getDescription(path.state)}`, async () => {
-            await dieHardModel.model.testPath(path, dieHardModel.options);
-          });
+    const paths = dieHardModel.model.getShortestPaths({
+      toState: (state) => state.matches('success')
+    });
+
+    it('should generate the right number of paths', () => {
+      expect(paths.length).toEqual(2);
+    });
+
+    paths.forEach((path) => {
+      describe(`path ${getDescription(path.state)}`, () => {
+        it(`path ${getDescription(path.state)}`, async () => {
+          await dieHardModel.model.testPath(path, dieHardModel.options);
         });
       });
+    });
   });
 
   describe('testing a model (simplePathsTo)', () => {
     const dieHardModel = createDieHardModel();
-    dieHardModel.model
-      .getSimplePathsTo((state) => state.matches('success'))
-      .forEach((path) => {
-        describe(`reaches state ${JSON.stringify(
-          path.state.value
-        )} (${JSON.stringify(path.state.context)})`, () => {
-          it(`path ${getDescription(path.state)}`, async () => {
-            await dieHardModel.model.testPath(path, dieHardModel.options);
-          });
+    const paths = dieHardModel.model.getSimplePaths({
+      toState: (state) => state.matches('success')
+    });
+
+    it('should generate the right number of paths', () => {
+      expect(paths.length).toEqual(14);
+    });
+
+    paths.forEach((path) => {
+      describe(`reaches state ${JSON.stringify(
+        path.state.value
+      )} (${JSON.stringify(path.state.context)})`, () => {
+        it(`path ${getDescription(path.state)}`, async () => {
+          await dieHardModel.model.testPath(path, dieHardModel.options);
         });
       });
+    });
   });
 
   describe('testing a model (getPathFromEvents)', () => {
     const dieHardModel = createDieHardModel();
 
-    const path = dieHardModel.model.getPathFromEvents(
+    const path = dieHardModel.model.getPathsFromEvents(
       [
         { type: 'FILL_5' },
         { type: 'POUR_5_TO_3' },
@@ -194,8 +207,8 @@ describe('die hard example', () => {
         { type: 'FILL_5' },
         { type: 'POUR_5_TO_3' }
       ],
-      (state) => state.matches('success')
-    );
+      { toState: (state) => state.matches('success') }
+    )[0];
 
     describe(`reaches state ${JSON.stringify(
       path.state.value
@@ -205,19 +218,28 @@ describe('die hard example', () => {
       });
     });
 
-    it('should throw if the target does not match the last entered state', () => {
-      expect(() => {
-        dieHardModel.model.getPathFromEvents([{ type: 'FILL_5' }], (state) =>
-          state.matches('success')
-        );
-      }).toThrow();
+    it('should return no paths if the target does not match the last entered state', () => {
+      const paths = dieHardModel.model.getPathsFromEvents(
+        [{ type: 'FILL_5' }],
+        {
+          toState: (state) => state.matches('success')
+        }
+      );
+
+      expect(paths).toHaveLength(0);
     });
   });
 
   describe('.testPath(path)', () => {
     const dieHardModel = createDieHardModel();
-    const paths = dieHardModel.model.getSimplePathsTo((state) => {
-      return state.matches('success') && state.context.three === 0;
+    const paths = dieHardModel.model.getSimplePaths({
+      toState: (state) => {
+        return state.matches('success') && state.context.three === 0;
+      }
+    });
+
+    it('should generate the right number of paths', () => {
+      expect(paths.length).toEqual(6);
     });
 
     paths.forEach((path) => {
@@ -239,10 +261,10 @@ describe('error path trace', () => {
       initial: 'first',
       states: {
         first: {
-          on: { NEXT: 'second' }
+          on: { NEXT_1: 'second' }
         },
         second: {
-          on: { NEXT: 'third' }
+          on: { NEXT_2: 'third' }
         },
         third: {}
       }
@@ -250,36 +272,46 @@ describe('error path trace', () => {
 
     const testModel = createTestModel(machine);
 
-    testModel
-      .getShortestPathsTo((state) => state.matches('third'))
-      .forEach((path) => {
-        it('should show an error path trace', async () => {
-          try {
-            await testModel.testPath(path, {
-              states: {
-                third: () => {
-                  throw new Error('test error');
-                }
-              }
-            });
-          } catch (err) {
-            expect(err.message).toEqual(expect.stringContaining('test error'));
-            expect(err.message).toMatchInlineSnapshot(`
-              "test error
-              Path:
-              	State: {\\"value\\":\\"first\\"}
-              	Event: {\\"type\\":\\"NEXT\\"}
+    it('should generate the right number of paths', () => {
+      expect(
+        testModel.getShortestPaths({
+          toState: (state) => state.matches('third')
+        }).length
+      ).toEqual(1);
+    });
 
-              	State: {\\"value\\":\\"second\\"} via {\\"type\\":\\"NEXT\\"}
-              	Event: {\\"type\\":\\"NEXT\\"}
-
-              	State: {\\"value\\":\\"third\\"} via {\\"type\\":\\"NEXT\\"}"
-            `);
-            return;
+    it('should show an error path trace', async () => {
+      const path = testModel.getShortestPaths({
+        toState: (state) => state.matches('third')
+      })[0];
+      try {
+        await testModel.testPath(path, {
+          states: {
+            third: () => {
+              throw new Error('test error');
+            }
           }
-
-          throw new Error('Should have failed');
         });
-      });
+      } catch (err: any) {
+        expect(err.message).toEqual(expect.stringContaining('test error'));
+        expect(err.message).toMatchInlineSnapshot(`
+          "test error
+          Path:
+          	State: {"value":"first"}
+          	Event: {"type":"xstate.init"}
+
+          	State: {"value":"second"} via {"type":"xstate.init"}
+          	Event: {"type":"NEXT_1"}
+
+          	State: {"value":"third"} via {"type":"NEXT_1"}
+          	Event: {"type":"NEXT_2"}
+
+          	State: {"value":"third"} via {"type":"NEXT_2"}"
+        `);
+        return;
+      }
+
+      throw new Error('Should have failed');
+    });
   });
 });

@@ -1,6 +1,5 @@
-import { SerializedState, serializeState, SimpleBehavior } from '@xstate/graph';
+import { SerializedState, serializeState } from '@xstate/graph';
 import {
-  ActionObject,
   AnyEventObject,
   AnyState,
   AnyStateMachine,
@@ -9,16 +8,18 @@ import {
   EventObject,
   StateFrom,
   TypegenConstraint,
-  TypegenDisabled
+  TypegenDisabled,
+  MachineContext,
+  StateValue
 } from 'xstate';
-import { TestModel } from './TestModel';
+import { TestModel } from './TestModel.ts';
 import {
   TestMachineConfig,
   TestMachineOptions,
   TestModelOptions
-} from './types';
-import { flatten, simpleStringify } from './utils';
-import { validateMachine } from './validateMachine';
+} from './types.ts';
+import { flatten, simpleStringify } from './utils.ts';
+import { validateMachine } from './validateMachine.ts';
 
 export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
@@ -30,38 +31,50 @@ export async function testStateFromMeta(state: AnyState) {
 }
 
 export function createTestMachine<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: TestMachineConfig<TContext, TEvent, TTypesMeta>,
   options?: TestMachineOptions<TContext, TEvent, TTypesMeta>
 ) {
-  return createMachine(config, options as any);
+  return createMachine(config as any, options as any);
 }
 
-export function executeAction(
-  actionObject: ActionObject<any, any>,
-  state: AnyState
-): void {
-  if (typeof actionObject.exec === 'function') {
-    actionObject.exec(state.context, state.event, {
-      _event: state._event,
-      action: actionObject,
-      state
-    });
+function stateValuesEqual(
+  a: StateValue | undefined,
+  b: StateValue | undefined
+): boolean {
+  if (a === b) {
+    return true;
   }
+
+  if (a === undefined || b === undefined) {
+    return false;
+  }
+
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a === b;
+  }
+
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every((key) => stateValuesEqual(a[key], b[key]))
+  );
 }
 
 function serializeMachineTransition(
   state: AnyState,
-  _event: AnyEventObject | undefined,
+  event: AnyEventObject | undefined,
   prevState: AnyState | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
-  // Only consider the transition via the serialized event if there actually
-  // was a defined transition for the event
-  if (!state.event || state.transitions.length === 0) {
+  // TODO: the stateValuesEqual check here is very likely not exactly correct
+  // but I'm not sure what the correct check is and what this is trying to do
+  if (!event || (prevState && stateValuesEqual(prevState.value, state.value))) {
     return '';
   }
 
@@ -69,14 +82,14 @@ function serializeMachineTransition(
     ? ` from ${simpleStringify(prevState.value)}`
     : '';
 
-  return ` via ${serializeEvent(state.event)}${prevStateString}`;
+  return ` via ${serializeEvent(event)}${prevStateString}`;
 }
 
 /**
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
  *
- * The test model is used to generate test plans, which are used to
+ * The test model is used to generate test paths, which are used to
  * verify that states in the `machine` are reachable in the SUT.
  *
  * @example
@@ -102,12 +115,15 @@ export function createTestModel<TMachine extends AnyStateMachine>(
 ): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
   validateMachine(machine);
 
-  const serializeEvent = options?.serializeEvent ?? simpleStringify;
+  const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
+    event: AnyEventObject
+  ) => string;
   const serializeTransition =
     options?.serializeTransition ?? serializeMachineTransition;
+  const { events: getEvents, ...otherOptions } = options ?? {};
 
   const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
-    machine as SimpleBehavior<any, any>,
+    machine as any,
     {
       serializeState: (state, event, prevState) => {
         // Only consider the `state` if `serializeTransition()` is opted out (empty string)
@@ -125,31 +141,23 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           ? state.configuration.includes(machine.getStateNodeById(key))
           : state.matches(key);
       },
-      execute: (state) => {
-        state.actions.forEach((action) => {
-          executeAction(action, state);
-        });
-      },
-      getEvents: (state, eventCases) =>
-        flatten(
+      events: (state) => {
+        const events =
+          typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+
+        return flatten(
           state.nextEvents.map((eventType) => {
-            const eventCaseGenerator = eventCases?.[eventType];
+            // @ts-ignore
+            if (events.some((e) => e.type === eventType)) {
+              // @ts-ignore
+              return events.filter((e) => e.type === eventType);
+            }
 
-            const cases = eventCaseGenerator
-              ? Array.isArray(eventCaseGenerator)
-                ? eventCaseGenerator
-                : eventCaseGenerator(state)
-              : [{ type: eventType }];
-
-            return (
-              // Use generated events or a plain event without payload
-              cases.map((e) => {
-                return { type: eventType, ...(e as any) };
-              })
-            );
+            return [{ type: eventType } as any]; // TODO: fix types
           })
-        ),
-      ...options
+        );
+      },
+      ...otherOptions
     }
   );
 

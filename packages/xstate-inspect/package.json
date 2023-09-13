@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -14,46 +14,51 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect#readme",
   "license": "MIT",
-  "main": "lib/index.js",
-  "module": "es/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/xstate-inspect.cjs.js",
+  "module": "dist/xstate-inspect.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-inspect.cjs.mjs",
+        "default": "./dist/xstate-inspect.cjs.js"
+      },
+      "module": "./dist/xstate-inspect.esm.js",
+      "import": "./dist/xstate-inspect.cjs.mjs",
+      "default": "./dist/xstate-inspect.cjs.js"
+    },
+    "./server": {
+      "types": {
+        "import": "./server/dist/xstate-inspect-server.cjs.mjs",
+        "default": "./server/dist/xstate-inspect-server.cjs.js"
+      },
+      "module": "./server/dist/xstate-inspect-server.esm.js",
+      "import": "./server/dist/xstate-inspect-server.cjs.mjs",
+      "default": "./server/dist/xstate-inspect-server.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts",
-    "es/**/*.js",
-    "es/**/*.d.ts",
-    "dist/**/*.js"
+    "dist",
+    "server"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
-    "test": "jest",
-    "build": "rollup -c",
-    "prepare": "npm run build"
-  },
+  "scripts": {},
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^17.0.0",
-    "@rollup/plugin-node-resolve": "^11.0.1",
     "@types/ws": "^8.2.2",
-    "rollup": "^2.69.0",
-    "rollup-plugin-replace": "^2.2.0",
-    "rollup-plugin-terser": "^5.1.2",
-    "rollup-plugin-typescript2": "^0.30.0",
-    "typescript": "^4.8.2",
     "ws": "^8.4.0",
-    "xstate": "*"
+    "xstate": "5.0.0-beta.28"
   },
   "peerDependencies": {
     "@types/ws": "^8.0.0",
     "ws": "^8.0.0",
-    "xstate": "^4.33.5"
+    "xstate": "^5.0.0-beta.28"
   },
   "peerDependenciesMeta": {
     "@types/ws": {
@@ -62,5 +67,11 @@
   },
   "dependencies": {
     "fast-safe-stringify": "^2.1.1"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts",
+      "./server.ts"
+    ]
   }
 }

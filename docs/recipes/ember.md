@@ -56,7 +56,7 @@ export default class ToggleComponent extends Component {
 
   @action
   toggle() {
-    this.statechart.send('TOGGLE');
+    this.statechart.send({ type: 'TOGGLE' });
   }
 }
 ```
@@ -135,17 +135,13 @@ export default class extends Component {
 ```
 
 ```hbs
-<this.MyLocalMachine as |state send|>
-</this.MyLocalMachine>
+<this.MyLocalMachine as |state send| />
 
-<this.CustomMachine as |state send|>
-
-</this.CustomMachine>
+<this.CustomMachine as |state send| />
 ```
 
-It is recommended to also have [ember-could-get-used-to-this](https://github.com/pzuraq/ember-could-get-used-to-this/)
-installed so that you can use `state.matches` and other xstate-provided APIs from the template (at least until the
-[Default Helper Manager](https://github.com/emberjs/rfcs/pull/756) RFC lands and is implemented.)
+If using Ember versions older than [Ember 4.5](https://blog.emberjs.com/ember-4-5-released), it is recommended to also have the [plain functions polyfill](https://github.com/ember-polyfills/ember-functions-as-helper-polyfill)
+installed so that you can use `state.matches(...)` and other XState-provided APIs from the template.
 
 ## Custom integration
 
@@ -164,8 +160,8 @@ This example is based on Ember Octane features (Ember 3.13+)
 :::
 
 ```handlebars
-<button type="button" {{on "click" (fn this.transition "TOGGLE")}}>
-  {{if this.isInactive "Off" "On"}}
+<button type='button' {{on 'click' (fn this.transition 'TOGGLE')}}>
+  {{if this.isInactive 'Off' 'On'}}
 </button>
 ```
 

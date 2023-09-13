@@ -1,11 +1,11 @@
 <template>
-  <button @click="send('TOGGLE')">
+  <button @click="send({ type: 'TOGGLE' })">
     {{ state.value === 'inactive' ? 'Turn on' : 'Turn off' }}
   </button>
 </template>
 
 <script lang="ts">
-import { useMachine } from '../src';
+import { useMachine } from '../src/index.ts';
 import { createMachine } from 'xstate';
 import { defineComponent } from 'vue';
 

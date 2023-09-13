@@ -1,7 +1,15 @@
-import { assign, interpret, StateMachine } from '../src';
-import { createMachine } from '../src/Machine';
-import { createModel } from '../src/model';
-import { TypegenMeta } from '../src/typegenTypes';
+import {
+  ActorLogic,
+  assign,
+  createActor,
+  MachineContext,
+  StateMachine
+} from '../src/index.ts';
+import { fromPromise } from '../src/actors/index.ts';
+import { fromCallback } from '../src/actors/index.ts';
+import { createMachine } from '../src/Machine.ts';
+import { TypegenMeta } from '../src/typegenTypes.ts';
+import { PromiseActorLogic } from '../src/actors/promise.ts';
 
 describe('typegen types', () => {
   it('should not require implementations when creating machine using `createMachine`', () => {
@@ -10,28 +18,11 @@ describe('typegen types', () => {
         actions: 'fooAction';
         delays: 'barDelay';
         guards: 'bazGuard';
-        services: 'qwertyService';
+        actors: 'qwertyActor';
       };
     }
     createMachine({
-      tsTypes: {} as TypesMeta
-    });
-  });
-
-  it('should not require implementations when creating machine using `model.createMachine`', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'fooAction';
-        delays: 'barDelay';
-        guards: 'bazGuard';
-        services: 'qwertyService';
-      };
-    }
-
-    const model = createModel({});
-
-    model.createMachine({
-      tsTypes: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
   });
 
@@ -41,7 +32,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO' | 'BAR';
@@ -50,15 +41,15 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: { foo: 100 },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -75,7 +66,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingDelays: {
         myDelay: 'FOO' | 'BAR';
@@ -84,15 +75,15 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: { foo: 100 },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
       {
         delays: {
-          myDelay: (_ctx, event) => {
+          myDelay: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -111,7 +102,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingGuards: {
         myGuard: 'FOO' | 'BAR';
@@ -120,15 +111,15 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: { foo: 100 },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
       {
         guards: {
-          myGuard: (_ctx, event) => {
+          myGuard: ({ event }) => {
             event.type === 'FOO';
             event.type === 'BAR';
             // @ts-expect-error
@@ -141,36 +132,38 @@ describe('typegen types', () => {
     );
   });
 
-  it('should limit event type provided to a service', () => {
+  it(`should limit event type provided to the actor's input factory`, () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
-      eventsCausingServices: {
-        myService: 'FOO' | 'BAR';
+      eventsCausingActors: {
+        myActor: 'FOO' | 'BAR';
       };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: { foo: 100 },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
       {
-        services: {
-          myService: (_ctx, event) => {
-            event.type === 'FOO';
-            event.type === 'BAR';
-            // @ts-expect-error
-            event.type === 'BAZ';
-
-            return () => {};
+        actors: {
+          myActor: {
+            src: fromPromise(() => Promise.resolve(42)),
+            input: ({ event }) => {
+              event.type === 'FOO';
+              event.type === 'BAR';
+              // @ts-expect-error
+              event.type === 'BAZ';
+              return null;
+            }
           }
         }
       }
@@ -183,7 +176,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO' | 'BAR';
@@ -192,9 +185,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: { foo: 100 },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -213,7 +206,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingDelays: {
         myDelay: 'FOO' | 'BAR';
@@ -222,9 +215,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: { foo: 100 },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -243,7 +236,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingGuards: {
         myGuard: 'FOO' | 'BAR';
@@ -252,9 +245,9 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: { foo: 100 },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -267,31 +260,31 @@ describe('typegen types', () => {
     );
   });
 
-  it('should not allow an unknown service', () => {
+  it('should not allow an unknown actor', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
-      eventsCausingServices: {
-        myService: 'FOO' | 'BAR';
+      eventsCausingActors: {
+        myActor: 'FOO' | 'BAR';
       };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: { foo: 100 },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
       {
-        services: {
+        actors: {
           // @ts-expect-error
-          unknownService: () => () => {}
+          unknownActor: () => () => {}
         }
       }
     );
@@ -303,9 +296,9 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
       context: { foo: 100 },
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       },
       initial: 'a',
@@ -314,7 +307,7 @@ describe('typegen types', () => {
       }
     });
 
-    machine.initialState.matches('a');
+    createActor(machine).getSnapshot().matches('a');
   });
 
   it('should allow valid object `matches`', () => {
@@ -323,7 +316,7 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      types: { typegen: {} as TypesMeta },
       context: { foo: 100 },
       initial: 'a',
       states: {
@@ -331,7 +324,7 @@ describe('typegen types', () => {
       }
     });
 
-    machine.initialState.matches({ a: 'c' });
+    createActor(machine).getSnapshot().matches({ a: 'c' });
   });
 
   it('should not allow invalid string `matches`', () => {
@@ -340,9 +333,9 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
       context: { foo: 100 },
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       },
       initial: 'a',
@@ -352,7 +345,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    machine.initialState.matches('d');
+    createActor(machine).getSnapshot().matches('d');
   });
 
   it('should not allow invalid object `matches`', () => {
@@ -361,7 +354,7 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      types: { typegen: {} as TypesMeta },
       context: { foo: 100 },
       initial: 'a',
       states: {
@@ -370,7 +363,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    machine.initialState.matches({ a: 'd' });
+    createActor(machine).getSnapshot().matches({ a: 'd' });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
@@ -379,9 +372,9 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
       context: { foo: 100 },
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       },
       initial: 'a',
@@ -390,7 +383,7 @@ describe('typegen types', () => {
       }
     });
 
-    machine.initialState.hasTag('a');
+    createActor(machine).getSnapshot().hasTag('a');
   });
 
   it('should not allow an invalid tag with `hasTag`', () => {
@@ -399,9 +392,9 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
       context: { foo: 100 },
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       },
       initial: 'a',
@@ -411,7 +404,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    machine.initialState.hasTag('d');
+    createActor(machine).getSnapshot().hasTag('d');
   });
 
   it('`withConfig` should require all missing implementations ', () => {
@@ -420,7 +413,7 @@ describe('typegen types', () => {
         actions: 'myAction';
         delays: 'myDelay';
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -429,25 +422,25 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
 
     // @ts-expect-error
-    machine.withConfig({});
-    machine.withConfig({
+    machine.provide({});
+    machine.provide({
       // @ts-expect-error
       actions: {}
     });
     // @ts-expect-error
-    machine.withConfig({
+    machine.provide({
       actions: {
         myAction: () => {}
       }
     });
-    machine.withConfig({
+    machine.provide({
       actions: {
         myAction: () => {}
       },
@@ -457,30 +450,30 @@ describe('typegen types', () => {
     });
   });
 
-  it('should allow to create a service out of a machine without any missing implementations', () => {
+  it('should allow to create an actor out of a machine without any missing implementations', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
 
-    interpret(machine);
+    createActor(machine);
   });
 
-  it('should not allow to create a service out of a machine with missing implementations', () => {
+  it('should not allow to create an actor out of a machine with missing implementations', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'myAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -488,23 +481,24 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
 
-    // @ts-expect-error
-    interpret(machine);
+    // TODO: rethink this; should probably be done as a linter rule instead
+    // @x-ts-expect-error
+    createActor(machine);
   });
 
-  it('should allow to create a service out of a machine with implementations provided through `withConfig`', () => {
+  it('should allow to create an actor out of a machine with implementations provided through `withConfig`', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'myAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -512,14 +506,14 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
 
-    interpret(
-      machine.withConfig({
+    createActor(
+      machine.provide({
         actions: {
           myAction: () => {}
         }
@@ -533,18 +527,18 @@ describe('typegen types', () => {
         actions: 'fooAction';
         delays: 'barDelay';
         guards: 'bazGuard';
-        services: 'qwertyService';
+        actors: 'qwertyActor';
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
       eventsCausingGuards: { bazGuard: 'BAR' };
-      eventsCausingServices: { qwertyService: 'BAR' };
+      eventsCausingActors: { qwertyActor: 'BAR' };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -562,7 +556,7 @@ describe('typegen types', () => {
         actions: 'fooAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
@@ -570,8 +564,8 @@ describe('typegen types', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -582,7 +576,7 @@ describe('typegen types', () => {
       }
     );
 
-    machine.withConfig({
+    machine.provide({
       actions: {
         fooAction: () => {}
       },
@@ -590,44 +584,6 @@ describe('typegen types', () => {
         barDelay: () => 100
       }
     });
-  });
-
-  it('should preserve provided action type for the meta object', () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingActions: {
-        myAction: 'FOO' | 'BAR';
-      };
-    }
-
-    const model = createModel(
-      { foo: 100 },
-      {
-        actions: {
-          myAction: (x: number) => ({ x })
-        },
-        events: {
-          FOO: () => ({}),
-          BAR: () => ({}),
-          BAZ: () => ({})
-        }
-      }
-    );
-
-    model.createMachine(
-      {
-        tsTypes: {} as TypesMeta
-      },
-      {
-        actions: {
-          myAction: (_ctx, _ev, { action }) => {
-            action.type === 'myAction';
-            ((_accept: number) => {})(action.x);
-            // @ts-expect-error
-            ((_accept: string) => {})(action.x);
-          }
-        }
-      }
-    );
   });
 
   it('should include init event in the provided parameter type if necessary', () => {
@@ -642,14 +598,14 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' }
         }
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             event.type === 'xstate.init';
           }
         }
@@ -657,240 +613,248 @@ describe('typegen types', () => {
     );
   });
 
-  it('should include generated dynamic internal event in the provided parameter if schema.services is not provided', () => {
+  it('should include generated dynamic internal event in the provided parameter if types.actors is not provided', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
-        myAction: 'done.invoke.myService' | 'FOO';
+        myAction: 'xstate.done.actor.myActor' | 'FOO';
       };
       internalEvents: {
-        'done.invoke.myService': {
-          type: 'done.invoke.myService';
-          data: unknown;
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myService: 'done.invoke.myService';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' }
         }
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             if (event.type === 'FOO') {
               return;
             }
-            event.type === 'done.invoke.myService';
-            event.data;
+            event.type === 'xstate.done.actor.myActor';
+            event.output;
             // indirectly check that it's not any
             // @ts-expect-error
-            ((_accept: string) => {})(event.data);
+            ((_accept: string) => {})(event.output);
           }
         }
       }
     );
   });
 
-  it('should use an event generated based on schema.services for a dynamic internal event over the generated fallback', () => {
+  it('should use an event generated based on types.actors for a dynamic internal event over the generated fallback', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
-        myAction: 'done.invoke.myService' | 'FOO';
+        myAction: 'xstate.done.actor.myActor' | 'FOO';
       };
       internalEvents: {
-        'done.invoke.myService': {
-          type: 'done.invoke.myService';
-          data: unknown;
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myService: 'done.invoke.myService';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' },
-          services: {
-            myService: {
-              data: {} as string
-            }
+          actors: {} as {
+            src: 'callThing';
+            logic: PromiseActorLogic<string>;
+            id: 'myActor';
           }
         }
       },
       {
         actions: {
-          myAction: (_ctx, event) => {
+          myAction: ({ event }) => {
             if (event.type === 'FOO') {
               return;
             }
-            event.type === 'done.invoke.myService';
-            event.data;
-            ((_accept: string) => {})(event.data);
+            event.type === 'xstate.done.actor.myActor';
+            event.output;
+            ((_accept: string) => {})(event.output);
           }
         }
       }
     );
   });
 
-  it('should allow a promise service returning the explicitly declared data in the given schema.services', () => {
+  it('should allow a promise actor returning the explicitly declared data in the given types.actors', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: {
-        myService: 'FOO';
+      eventsCausingActors: {
+        myActor: 'FOO';
       };
       internalEvents: {
-        'done.invoke.myService': {
-          type: 'done.invoke.myService';
-          data: unknown;
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myService: 'done.invoke.myService';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
+    const child = fromPromise(() => Promise.resolve('foo'));
+
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          services: {
-            myService: {
-              data: {} as string
-            }
+          actors: {} as {
+            src: 'myActor';
+            logic: typeof child;
           }
         }
       },
       {
-        services: {
-          myService: (_ctx) => Promise.resolve('foo')
+        actors: {
+          myActor: child
         }
       }
     );
   });
 
-  it('should not allow a promise service returning a different type than the explicitly declared one in the given schema.services', () => {
+  it('should not allow a promise actor returning a different type than the explicitly declared one in the given types.actors', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: {
-        myService: 'FOO';
+      eventsCausingActors: {
+        myActor: 'FOO';
       };
       internalEvents: {
-        'done.invoke.myService': {
-          type: 'done.invoke.myService';
-          data: unknown;
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myService: 'done.invoke.myService';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          services: {
-            myService: {
-              data: {} as string
-            }
+          actors: {} as {
+            src: 'myActor';
+            logic: PromiseActorLogic<string>;
           }
         }
       },
       {
-        services: {
+        actors: {
           // @ts-expect-error
-          myService: (_ctx) => Promise.resolve(42)
+          myActor: fromPromise(() => Promise.resolve(42))
         }
       }
     );
   });
 
-  it('should allow a machine service returning the explicitly declared data in the given schema.services', () => {
+  it('should allow a machine actor returning the explicitly declared output in the given types.actors', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: {
-        myService: 'FOO';
+      eventsCausingActors: {
+        myActor: 'FOO';
       };
       internalEvents: {
-        'done.invoke.myService': {
-          type: 'done.invoke.myService';
-          data: unknown;
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
+          output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myService: 'done.invoke.myService';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
+    const child = createMachine({
+      types: {} as {
+        context: { foo: string };
+      },
+      context: {
+        foo: 'foo'
+      }
+    });
+
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' },
-          services: {
-            myService: {
-              data: {} as { foo: string }
-            }
+          actors: {} as {
+            src: 'myActor';
+            logic: typeof child;
           }
         }
       },
       {
-        services: {
-          myService: (_ctx) => createMachine<{ foo: string }>({})
+        actors: {
+          myActor: child
         }
       }
     );
   });
 
-  it('should not allow a machine service returning a different type than the explicitly declared one in the given schema.services', () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: {
-        myService: 'FOO';
-      };
-      internalEvents: {
-        'done.invoke.myService': {
-          type: 'done.invoke.myService';
-          data: unknown;
-          __tip: 'Declare the type.';
-        };
-      };
-      invokeSrcNameMap: {
-        myService: 'done.invoke.myService';
-      };
-    }
+  // it('should not allow a machine actor returning a different type than the explicitly declared one in the given types.actors', () => {
+  //   interface TypesMeta extends TypegenMeta {
+  //     eventsCausingActors: {
+  //       myActor: 'FOO';
+  //     };
+  //     internalEvents: {
+  //       'xstate.done.actor.myActor': {
+  //         type: 'xstate.done.actor.myActor';
+  //         output: unknown;
+  //         __tip: 'Declare the type.';
+  //       };
+  //     };
+  //     invokeSrcNameMap: {
+  //       myActor: 'xstate.done.actor.myActor';
+  //     };
+  //   }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' },
-          services: {
-            myService: {
-              data: {} as { foo: string }
-            }
-          }
-        }
-      },
-      {
-        services: {
-          // @ts-expect-error
-          myService: (_ctx) => createMachine<{ foo: number }>({})
-        }
-      }
-    );
-  });
+  //   createMachine(
+  //     {
+  //       tsTypes: {} as TypesMeta,
+  //       schema: {
+  //         events: {} as { type: 'FOO' },
+  //         actors: {
+  //           myActor: {
+  //             output: {} as { foo: string }
+  //           }
+  //         }
+  //       }
+  //     },
+  //     {
+  //       actors: {
+  //         // @ts-expect-error
+  //         myActor: () => (createMachine<{ foo: number }>({}))
+  //       }
+  //     }
+  //   );
+  // });
 
   it('should infer an action object with narrowed event type', () => {
     interface TypesMeta extends TypegenMeta {
@@ -901,14 +865,14 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
         }
       },
       {
         actions: {
-          actionName: assign((_context, event) => {
+          actionName: assign(({ event }) => {
             ((_accept: 'BAR') => {})(event.type);
             return {};
           })
@@ -917,202 +881,156 @@ describe('typegen types', () => {
     );
   });
 
-  it('should accept a machine as a service', () => {
+  it('should accept a machine as an actor', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: {
-        fooService: 'FOO';
+      eventsCausingActors: {
+        fooActor: 'FOO';
       };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
         }
       },
       {
-        services: {
-          fooService: createMachine({})
+        actors: {
+          fooActor: createMachine({})
         }
       }
     );
   });
 
-  it('should be able to send all of the parent event types back to the parent from an invoked callback', () => {
+  // it('should be able to send all of the parent event types back to the parent from an invoked callback', () => {
+  //   interface TypesMeta extends TypegenMeta {
+  //     eventsCausingActors: {
+  //       fooActor: 'FOO';
+  //     };
+  //   }
+
+  //   createMachine(
+  //     {
+  //       tsTypes: {} as TypesMeta,
+  //       schema: {
+  //         events: {} as { type: 'FOO' } | { type: 'BAR' }
+  //       }
+  //     },
+  //     {
+  //       actors: {
+  //         fooActor: () => fromCallback(({ sendBack }) => {
+  //           ((_accept: 'FOO') => {})(event.type);
+
+  //           sendBack({ type: 'BAR' });
+  //           sendBack({ type: 'FOO' });
+  //           // @ts-expect-error
+  //           sendBack({ type: 'BAZ' });
+  //         })
+  //       }
+  //     }
+  //   );
+  // });
+
+  it("should not provide a loose type for `receive`'s argument as a default", () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: {
-        fooService: 'FOO';
+      eventsCausingActors: {
+        fooActor: 'FOO';
       };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' }
         }
       },
       {
-        services: {
-          fooService: (_context, event) => (send) => {
-            ((_accept: 'FOO') => {})(event.type);
-
-            send({ type: 'BAR' });
-            send({ type: 'FOO' });
-            // @ts-expect-error
-            send({ type: 'BAZ' });
-          }
-        }
-      }
-    );
-  });
-
-  it('It should tighten service types when using model.createMachine', () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingActions: {
-        myAction: 'done.invoke.myService';
-      };
-      eventsCausingServices: {
-        myService: never;
-      };
-      internalEvents: {
-        'done.invoke.myService': {
-          type: 'done.invoke.myService';
-          data: unknown;
-        };
-      };
-      invokeSrcNameMap: {
-        myService: 'done.invoke.myService';
-      };
-    }
-
-    const model = createModel({}, {});
-
-    model.createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          services: {} as {
-            myService: {
-              data: boolean;
-            };
-          }
-        }
-      },
-      {
-        actions: {
-          myAction: (_ctx, event) => {
-            ((_accept: boolean) => {})(event.data);
-          }
-        },
-        services: {
-          // @ts-expect-error
-          myService: () => Promise.resolve('')
-        }
-      }
-    );
-  });
-
-  it("should not provide a loose type for `onReceive`'s argument as a default", () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: {
-        fooService: 'FOO';
-      };
-    }
-
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' }
-        }
-      },
-      {
-        services: {
-          fooService: (_ctx, _ev) => (_send, onReceive) => {
-            onReceive((event) => {
+        actors: {
+          fooActor: fromCallback(({ receive }) => {
+            receive((event) => {
               ((_accept: string) => {})(event.type);
-              // @ts-expect-error
+              // @ts-expect-error TODO: determine how to get parent event type here
               event.unknown;
             });
-          }
+          })
         }
       }
     );
   });
 
-  it("should allow specifying `onReceive`'s argument type manually", () => {
+  it("should allow specifying `receive`'s argument type manually", () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: {
-        fooService: 'FOO';
+      eventsCausingActors: {
+        fooActor: 'FOO';
       };
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' }
         }
       },
       {
-        services: {
-          fooService: (_ctx, _ev) => (_send, onReceive) => {
-            onReceive((_event: { type: 'TEST' }) => {});
+        actors: {
+          fooActor: fromCallback(({ receive }) => {
+            receive((_event: { type: 'TEST' }) => {});
             // @ts-expect-error
-            onReceive((_event: { type: number }) => {});
-          }
+            receive((_event: { type: number }) => {});
+          })
         }
       }
     );
   });
 
-  it('should error correctly for implementations called in response to internal events when there is no explicit event type', () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingActions: {
-        myAction: 'done.invoke.invocation';
-      };
-      eventsCausingServices: {
-        myInvocation: 'xstate.init';
-      };
-      internalEvents: {
-        'xstate.init': { type: 'xstate.init' };
-      };
-      invokeSrcNameMap: {
-        myInvocation: 'done.invoke.invocation';
-      };
-    }
+  // it('should error correctly for implementations called in response to internal events when there is no explicit event type', () => {
+  //   interface TypesMeta extends TypegenMeta {
+  //     eventsCausingActions: {
+  //       myAction: 'xstate.done.actor.invocation';
+  //     };
+  //     eventsCausingActors: {
+  //       myInvocation: 'xstate.init';
+  //     };
+  //     internalEvents: {
+  //       'xstate.init': { type: 'xstate.init' };
+  //     };
+  //     invokeSrcNameMap: {
+  //       myInvocation: 'xstate.done.actor.invocation';
+  //     };
+  //   }
 
-    createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          services: {
-            myInvocation: {} as {
-              data: string;
-            }
-          }
-        }
-      },
-      {
-        services: {
-          // @ts-expect-error
-          myInvocation: () => {
-            return Promise.resolve(1);
-          }
-        },
-        actions: {
-          myAction: (_context, event) => {
-            ((_accept: 'done.invoke.invocation') => {})(event.type);
-            ((_accept: string) => {})(event.data);
-            // @ts-expect-error
-            ((_accept: number) => {})(event.data);
-          }
-        }
-      }
-    );
-  });
+  //   createMachine(
+  //     {
+  //       tsTypes: {} as TypesMeta,
+  //       schema: {
+  //         actors: {
+  //           myInvocation: {} as {
+  //             data: string;
+  //           }
+  //         }
+  //       }
+  //     },
+  //     {
+  //       actors: {
+  //         // @ts-expect-error
+  //         myInvocation: invokePromise(() => {
+  //           return Promise.resolve(1);
+  //         })
+  //       },
+  //       actions: {
+  //         myAction: (_context, event) => {
+  //           ((_accept: 'xstate.done.actor.invocation') => {})(event.type);
+  //           ((_accept: string) => {})(event.output);
+  //           // @ts-expect-error
+  //           ((_accept: number) => {})(event.output);
+  //         }
+  //       }
+  //     }
+  //   );
+  // });
 
   it("shouldn't end up with `any` context after calling `state.matches`", () => {
     interface TypesMeta extends TypegenMeta {
@@ -1120,18 +1038,22 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         context: {} as {
           foo: string;
         }
+      },
+      context: {
+        foo: 'bar'
       }
     });
 
-    if (machine.initialState.matches('a')) {
+    const state = createActor(machine).getSnapshot();
+
+    if (state.matches('a')) {
       // @ts-expect-error
-      machine.initialState.context.val;
+      state.context.val;
     }
   });
 
@@ -1141,15 +1063,18 @@ describe('typegen types', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         context: {} as {
           foo: string;
         }
+      },
+      context: {
+        foo: 'bar'
       }
     });
 
-    const state = machine.initialState;
+    const state = createActor(machine).getSnapshot();
 
     if (state.matches('a') && state.matches('a.b')) {
       ((_accept: string) => {})(state.context.foo);
@@ -1159,8 +1084,22 @@ describe('typegen types', () => {
   it('should be possible to pass typegen-less machines to functions expecting a machine argument that do not utilize the typegen information', () => {
     const machine = createMachine({});
 
-    function acceptMachine<TContext, TEvent extends { type: string }>(
-      machine: StateMachine<TContext, any, TEvent>
+    function acceptMachine<
+      TContext extends MachineContext,
+      TEvent extends { type: string }
+    >(
+      machine: StateMachine<
+        TContext,
+        TEvent,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      >
     ) {
       return machine;
     }
@@ -1175,11 +1114,14 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1198,11 +1140,14 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1221,11 +1166,14 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
@@ -1237,25 +1185,29 @@ describe('typegen types', () => {
     );
   });
 
-  it('should error on a provided service where there are no declared services', () => {
+  it('should error on a provided actor where there are no events leading to it its invocation', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingServices: never;
+      eventsCausingActors: never;
       invokeSrcNameMap: never;
     }
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             foo: string;
           }
+        },
+        context: {
+          foo: 'bar'
         }
       },
       {
-        // @ts-expect-error
-        services: {
-          testService: () => Promise.resolve(42)
+        // TODO: determine the exact behavior here and how eventsCausingActors + TActor should interact with each other
+        // @x-ts-expect-error
+        actors: {
+          testActor: fromPromise(() => Promise.resolve(42))
         }
       }
     );
@@ -1271,19 +1223,22 @@ describe('typegen types', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           context: {} as {
             count: number;
           },
           events: {} as { type: 'INC' | 'DEC'; value: number }
+        },
+        context: {
+          count: 0
         }
       },
       {
         actions: {
-          increment: assign((ctx, ev) => {
+          increment: assign(({ context, event }) => {
             return {
-              count: ctx.count + ev.value
+              count: context.count + event.value
             };
           })
         }

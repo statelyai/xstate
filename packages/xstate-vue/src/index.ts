@@ -1,5 +1,5 @@
-export { useMachine } from './useMachine';
-export { useActor } from './useActor';
-export { useInterpret } from './useInterpret';
-export { useSelector } from './useSelector';
-export { useSpawn } from './useSpawn';
+export { useMachine } from './useMachine.ts';
+export { useActor } from './useActor.ts';
+export { useInterpret } from './useInterpret.ts';
+export { useSelector } from './useSelector.ts';
+export { useSpawn } from './useSpawn.ts';

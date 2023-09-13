@@ -114,11 +114,11 @@ const userMachine = createMachine({
 });
 ```
 
-The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` property, e.g.:
+The resolved data is placed into a `'xstate.done.actor.<id>'` event, under the `data` property, e.g.:
 
 ```js
 {
-  type: 'done.invoke.getUser',
+  type: 'xstate.done.actor.getUser',
   data: {
     name: 'David',
     location: 'Florida'
@@ -128,18 +128,19 @@ The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` 
 
 ### Promise Rejection
 
-If a Promise rejects, the `onError` transition will be taken with a `{ type: 'error.platform' }` event. The error data is available on the event's `data` property:
+If a Promise rejects, the `onError` transition will be taken with a `{ type: 'xstate.error.actor' }` event. The error data is available on the event's `data` property:
 
 ```js
-const search = (context, event) => new Promise((resolve, reject) => {
-  if (!event.query.length) {
-    return reject('No query specified');
-    // or:
-    // throw new Error('No query specified');
-  }
+const search = (context, event) =>
+  new Promise((resolve, reject) => {
+    if (!event.query.length) {
+      return reject('No query specified');
+      // or:
+      // throw new Error('No query specified');
+    }
 
-  return resolve(getSearchResults(event.query));
-});
+    return resolve(getSearchResults(event.query));
+  });
 
 // ...
 const searchMachine = createMachine({
@@ -147,7 +148,7 @@ const searchMachine = createMachine({
   initial: 'idle',
   context: {
     results: undefined,
-    errorMessage: undefined,
+    errorMessage: undefined
   },
   states: {
     idle: {
@@ -157,14 +158,14 @@ const searchMachine = createMachine({
     },
     searching: {
       invoke: {
-        id: 'search'
+        id: 'search',
         src: search,
         onError: {
           target: 'failure',
           actions: assign({
             errorMessage: (context, event) => {
               // event is:
-              // { type: 'error.platform', data: 'No query specified' }
+              // { type: 'xstate.error.actor', data: 'No query specified' }
               return event.data;
             }
           })
@@ -250,10 +251,9 @@ const pingPongMachine = createMachine({
     }
   }
 });
-
-interpret(pingPongMachine)
-  .onDone(() => done())
-  .start();
+const actor = interpret(pingPongMachine);
+actor.subscribe({ complete: () => done() });
+actor.start();
 ```
 
 ## Invoking Observables <Badge text="4.6"/>
@@ -429,7 +429,7 @@ The `data` _replaces_ the default `context` defined on the machine; it is not me
 
 ### Done Data
 
-When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'done.invoke.someId', data: ... }`). This "done data" is specified on the final state's `data` property:
+When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'xstate.done.actor.someId', data: ... }`). This "done data" is specified on the final state's `data` property:
 
 ```js
 const secretMachine = createMachine({
@@ -469,7 +469,7 @@ const parentMachine = createMachine({
           actions: assign({
             revealedSecret: (context, event) => {
               // event is:
-              // { type: 'done.invoke.secret', data: { secret: '42' } }
+              // { type: 'xstate.done.actor.secret', data: { secret: '42' } }
               return event.data.secret;
             }
           })
@@ -539,9 +539,12 @@ const pongMachine = createMachine({
       on: {
         PING: {
           // Sends 'PONG' event to parent machine
-          actions: sendParent('PONG', {
-            delay: 1000
-          })
+          actions: sendParent(
+            { type: 'PONG' },
+            {
+              delay: 1000
+            }
+          )
         }
       }
     }

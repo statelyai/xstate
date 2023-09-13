@@ -1,13 +1,27 @@
-import { render, fireEvent } from '@testing-library/svelte';
+import { fireEvent, render } from '@testing-library/svelte';
+import { createActor, createMachine } from 'xstate';
 import UseMachine from './UseMachine.svelte';
 import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcription.svelte';
-import { fetchMachine } from './fetchMachine';
-import { doneInvoke } from 'xstate';
+import { fetchMachine } from './fetchMachine.ts';
 
-const persistedFetchState = fetchMachine.transition(
-  'loading',
-  doneInvoke('fetchData', 'persisted data')
-);
+const actorRef = createActor(
+  fetchMachine.provide({
+    actors: {
+      fetchData: createMachine({
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final',
+            output: 'persisted data'
+          }
+        }
+      }) as any
+    }
+  })
+).start();
+actorRef.send({ type: 'FETCH' });
+
+const persistedFetchState = actorRef.getPersistedState();
 
 const persistedFetchStateConfig = JSON.parse(
   JSON.stringify(persistedFetchState)

@@ -1,16 +1,16 @@
 import type {
   ActorRef,
-  AnyInterpreter,
+  AnyActor,
   AnyState,
   AnyStateMachine,
-  SCXML
+  StateConfig
 } from 'xstate';
-import { XStateDevInterface } from 'xstate';
-import { InspectMachineEvent } from './inspectMachine';
+import { XStateDevInterface } from 'xstate/dev';
+import { InspectMachineEvent } from './inspectMachine.ts';
 
 export type MaybeLazy<T> = T | (() => T);
 
-export type ServiceListener = (service: AnyInterpreter) => void;
+export type ServiceListener = (service: AnyActor) => void;
 
 export type Replacer = (key: string, value: any) => any;
 
@@ -19,6 +19,7 @@ export interface InspectorOptions {
   iframe?: MaybeLazy<HTMLIFrameElement | null | false>;
   devTools?: MaybeLazy<XStateDevInterface>;
   serialize?: Replacer | undefined;
+  targetWindow?: Window | undefined | null;
 }
 
 export interface Inspector extends ActorRef<InspectMachineEvent, AnyState> {
@@ -60,7 +61,7 @@ export type ParsedReceiverEvent =
   | {
       type: 'service.register';
       machine: AnyStateMachine;
-      state: AnyState;
+      state: StateConfig<any, any>;
       id: string;
       sessionId: string;
       parent?: string;
@@ -69,10 +70,10 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: AnyState;
+      state: StateConfig<any, any>;
       sessionId: string;
     }
-  | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };
+  | { type: 'service.event'; event: string; sessionId: string };
 
 export type InspectReceiver = ActorRef<ReceiverCommand, ParsedReceiverEvent>;
 

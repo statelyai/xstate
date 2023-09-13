@@ -1,5 +1,5 @@
-import { createMachine, send } from 'xstate';
-import { createTestModel } from '../src';
+import { createMachine, raise } from 'xstate';
+import { createTestModel } from '../src/index.ts';
 
 describe('Forbidden attributes', () => {
   it('Should not let you declare invocations on your test machine', () => {
@@ -31,7 +31,7 @@ describe('Forbidden attributes', () => {
   it('Should not let you delayed actions on your machine', () => {
     const machine = createMachine({
       entry: [
-        send(
+        raise(
           {
             type: 'EVENT'
           },

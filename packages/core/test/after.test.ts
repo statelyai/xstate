@@ -1,6 +1,4 @@
-import { createMachine, interpret, State } from '../src';
-import { after, cancel, send, actionTypes } from '../src/actions';
-import { toSCXMLEvent } from '../src/utils';
+import { createMachine, createActor } from '../src/index.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -25,21 +23,22 @@ const lightMachine = createMachine({
   }
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 describe('delayed transitions', () => {
   it('should transition after delay', () => {
-    const nextState = lightMachine.transition(
-      lightMachine.initialState,
-      after(1000, 'light.green')
-    );
+    jest.useFakeTimers();
 
-    expect(nextState.value).toEqual('yellow');
-    expect(nextState.actions).toEqual([
-      cancel(after(1000, 'light.green')),
-      {
-        ...send(after(1000, 'light.yellow'), { delay: 1000 }),
-        _event: toSCXMLEvent(after(1000, 'light.yellow'))
-      }
-    ]);
+    const actorRef = createActor(lightMachine).start();
+    expect(actorRef.getSnapshot().value).toBe('green');
+
+    jest.advanceTimersByTime(500);
+    expect(actorRef.getSnapshot().value).toBe('green');
+
+    jest.advanceTimersByTime(510);
+    expect(actorRef.getSnapshot().value).toBe('yellow');
   });
 
   it('should format transitions properly', () => {
@@ -47,9 +46,11 @@ describe('delayed transitions', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map((t) => t.eventType)).toEqual([
-      after(1000, greenNode.id)
-    ]);
+    expect([...transitions.keys()]).toMatchInlineSnapshot(`
+      [
+        "xstate.after(1000)#light.green",
+      ]
+    `);
   });
 
   it('should be able to transition with delay from nested initial state', (done) => {
@@ -73,11 +74,13 @@ describe('delayed transitions', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = createActor(machine);
+    actor.subscribe({
+      complete: () => {
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
   it('parent state should enter child state without re-entering self (relative target)', (done) => {
@@ -108,29 +111,28 @@ describe('delayed transitions', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => {
+    const actor = createActor(machine);
+    actor.subscribe({
+      complete: () => {
         expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
         done();
-      })
-      .start();
+      }
+    });
+    actor.start();
   });
 
-  it('should defer a single send event for a delayed transition with multiple conditions (#886)', () => {
-    type Events = { type: 'FOO' };
-
-    const machine = createMachine<{}, Events>({
+  it('should defer a single send event for a delayed conditional transition (#886)', () => {
+    jest.useFakeTimers();
+    const spy = jest.fn();
+    const machine = createMachine({
       initial: 'X',
       states: {
         X: {
-          on: {
-            FOO: 'X'
-          },
           after: {
-            1500: [
+            1: [
               {
                 target: 'Y',
-                cond: () => true
+                guard: () => true
               },
               {
                 target: 'Z'
@@ -138,20 +140,32 @@ describe('delayed transitions', () => {
             ]
           }
         },
-        Y: {},
+        Y: {
+          on: {
+            '*': {
+              actions: spy
+            }
+          }
+        },
         Z: {}
       }
     });
 
-    expect(machine.initialState.actions.length).toBe(1);
+    createActor(machine).start();
+
+    jest.advanceTimersByTime(10);
+    expect(spy).not.toHaveBeenCalled();
   });
 
-  it('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
+  // TODO: figure out correct behavior for restoring delayed transitions
+  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedState`', (done) => {
     const machine = createMachine({
       id: 'machine',
       initial: 'a',
       states: {
-        a: {},
+        a: {
+          on: { next: 'withAfter' }
+        },
 
         withAfter: {
           after: {
@@ -165,9 +179,13 @@ describe('delayed transitions', () => {
       }
     });
 
-    interpret(machine)
-      .onDone(() => done())
-      .start(machine.getInitialState('withAfter'));
+    const actorRef1 = createActor(machine).start();
+    actorRef1.send({ type: 'next' });
+    const withAfterState = actorRef1.getPersistedState();
+
+    const actorRef2 = createActor(machine, { state: withAfterState });
+    actorRef2.subscribe({ complete: () => done() });
+    actorRef2.start();
   });
 
   it('should execute an after transition after starting from a persisted state', (done) => {
@@ -191,110 +209,103 @@ describe('delayed transitions', () => {
         }
       });
 
-    let service = interpret(createMyMachine()).start();
+    let service = createActor(createMyMachine()).start();
 
-    const persistedState = State.create(
-      JSON.parse(JSON.stringify(service.state))
-    );
+    const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
 
-    service = interpret(createMyMachine()).start(persistedState);
+    service = createActor(createMyMachine(), { state: persistedState }).start();
 
     service.send({ type: 'NEXT' });
 
-    service.onDone(() => done());
+    service.subscribe({ complete: () => done() });
   });
 
   describe('delay expressions', () => {
-    type Events =
-      | { type: 'ACTIVATE'; delay: number }
-      | { type: 'NOEXPR'; delay: number };
-    const delayExprMachine = createMachine<{ delay: number }, Events>(
-      {
-        id: 'delayExpr',
+    it('should evaluate the expression (function) to determine the delay', () => {
+      jest.useFakeTimers();
+      const spy = jest.fn();
+      const context = {
+        delay: 500
+      };
+      const machine = createMachine({
         initial: 'inactive',
-        context: {
-          delay: 1000
-        },
+        context,
         states: {
           inactive: {
             after: [
               {
-                delay: (ctx) => ctx.delay,
+                delay: ({ context }) => {
+                  spy(context);
+                  return context.delay;
+                },
                 target: 'active'
               }
-            ],
-            on: {
-              ACTIVATE: 'active',
-              NOEXPR: 'activeNoExpr'
-            }
-          },
-          active: {
-            after: [
-              {
-                delay: 'someDelay',
-                target: 'inactive'
-              }
             ]
           },
-          activeNoExpr: {
-            after: [
-              {
-                delay: 'nonExistantDelay',
-                target: 'inactive'
-              }
-            ]
-          }
+          active: {}
         }
-      },
-      {
-        delays: {
-          someDelay: (ctx, event) => ctx.delay + (event as any).delay
-        }
-      }
-    );
+      });
 
-    it('should evaluate the expression (function) to determine the delay', () => {
-      const { initialState } = delayExprMachine;
+      const actor = createActor(machine).start();
 
-      const sendActions = initialState.actions.filter(
-        (a) => a.type === actionTypes.send
-      );
+      expect(spy).toBeCalledWith(context);
+      expect(actor.getSnapshot().value).toBe('inactive');
 
-      expect(sendActions.length).toBe(1);
+      jest.advanceTimersByTime(300);
+      expect(actor.getSnapshot().value).toBe('inactive');
 
-      expect(sendActions[0].delay).toEqual(1000);
+      jest.advanceTimersByTime(200);
+      expect(actor.getSnapshot().value).toBe('active');
     });
 
     it('should evaluate the expression (string) to determine the delay', () => {
-      const { initialState } = delayExprMachine;
-      const activeState = delayExprMachine.transition(initialState, {
+      jest.useFakeTimers();
+      const spy = jest.fn();
+      const machine = createMachine(
+        {
+          initial: 'inactive',
+          states: {
+            inactive: {
+              on: {
+                ACTIVATE: 'active'
+              }
+            },
+            active: {
+              after: [
+                {
+                  delay: 'someDelay',
+                  target: 'inactive'
+                }
+              ]
+            }
+          }
+        },
+        {
+          delays: {
+            someDelay: ({ event }) => {
+              spy(event);
+              return (event as any).delay;
+            }
+          }
+        }
+      );
+
+      const actor = createActor(machine).start();
+
+      const event = {
         type: 'ACTIVATE',
         delay: 500
-      });
+      } as const;
+      actor.send(event);
 
-      const sendActions = activeState.actions.filter(
-        (a) => a.type === actionTypes.send
-      );
+      expect(spy).toBeCalledWith(event);
+      expect(actor.getSnapshot().value).toBe('active');
 
-      expect(sendActions.length).toBe(1);
+      jest.advanceTimersByTime(300);
+      expect(actor.getSnapshot().value).toBe('active');
 
-      expect(sendActions[0].delay).toEqual(1000 + 500);
-    });
-
-    it('should set delay to undefined if expression not found', () => {
-      const { initialState } = delayExprMachine;
-      const activeState = delayExprMachine.transition(initialState, {
-        type: 'NOEXPR',
-        delay: 500
-      });
-
-      const sendActions = activeState.actions.filter(
-        (a) => a.type === actionTypes.send
-      );
-
-      expect(sendActions.length).toBe(1);
-
-      expect(sendActions[0].delay).toEqual(undefined);
+      jest.advanceTimersByTime(200);
+      expect(actor.getSnapshot().value).toBe('inactive');
     });
   });
 });

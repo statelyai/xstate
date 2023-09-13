@@ -2,6 +2,10 @@
 
 [:rocket: Quick Reference](#quick-reference)
 
+:::tip Check out our new docs!
+🆕 Find more about [context in XState](https://stately.ai/docs/xstate/actions/context) in our new docs.
+:::
+
 While _finite_ states are well-defined in finite state machines and statecharts, state that represents _quantitative data_ (e.g., arbitrary strings, numbers, objects, etc.) that can be potentially infinite is represented as [extended state](https://en.wikipedia.org/wiki/UML_state_machine#Extended_states) instead. This makes statecharts much more useful for real-life applications.
 
 In XState, extended state is known as **context**. Below is an example of how `context` is used to simulate filling a glass of water:
@@ -87,6 +91,27 @@ const counterMachine = createMachine({
     allowedToIncrement: true
     // ... etc.
   },
+  states: {
+    // ...
+  }
+});
+```
+
+The `context` property of the machine can also be initialized lazily; i.e., the context will not be created until the machine is actually created/used:
+
+```js
+const counterMachine = createMachine({
+  id: 'counter',
+  // initial context
+  context: () => ({
+    count: 0,
+    message: 'Currently empty',
+    user: {
+      name: 'David'
+    },
+    allowedToIncrement: true
+    // ... etc.
+  }),
   states: {
     // ...
   }
@@ -189,7 +214,7 @@ The `meta` object contains:
 - `action` - the assign action
 
 ::: warning
-Assigners **must be pure**; they should not contain any side-effects.
+Assigners **must be pure**; they should not contain any side-effects. This is because the `assign(...)` action is involved in determining the next state, and side-effects in the assigner could introduce nondeterminism.
 
 ```js
 actions: assign({

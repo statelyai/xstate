@@ -1,5 +1,5 @@
 import { createMachine } from 'xstate';
-import { createTestModel } from '../src';
+import { createTestModel } from '../src/index.ts';
 
 const machine = createMachine({
   initial: 'a',
@@ -22,7 +22,7 @@ const syncModel = createTestModel(machine);
 describe('.testPathSync', () => {
   it('Should error if it encounters a promise in a state', () => {
     expect(() =>
-      promiseStateModel.getPaths().forEach((path) =>
+      promiseStateModel.getShortestPaths().forEach((path) =>
         promiseStateModel.testPathSync(path, {
           states: {
             a: async () => {},
@@ -40,7 +40,7 @@ describe('.testPathSync', () => {
 
   it('Should error if it encounters a promise in an event', () => {
     expect(() =>
-      promiseEventModel.getPaths().forEach((path) =>
+      promiseEventModel.getShortestPaths().forEach((path) =>
         promiseEventModel.testPathSync(path, {
           states: {
             a: () => {},
@@ -58,7 +58,7 @@ describe('.testPathSync', () => {
 
   it('Should succeed if it encounters no promises', () => {
     expect(() =>
-      syncModel.getPaths().forEach((path) =>
+      syncModel.getShortestPaths().forEach((path) =>
         syncModel.testPathSync(path, {
           states: {
             a: () => {},

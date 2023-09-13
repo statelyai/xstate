@@ -1,20 +1,16 @@
 import { onMounted, onBeforeUnmount, shallowRef } from 'vue';
-import { ActorRef, Subscribable } from 'xstate';
-import { defaultGetSnapshot } from './useActor';
+import { ActorRef, SnapshotFrom, Subscription } from 'xstate';
 
-const defaultCompare = (a, b) => a === b;
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
+}
 
-export function useSelector<
-  TActor extends ActorRef<any, any>,
-  T,
-  TEmitted = TActor extends Subscribable<infer Emitted> ? Emitted : never
->(
+export function useSelector<TActor extends ActorRef<any, any>, T>(
   actor: TActor,
-  selector: (emitted: TEmitted) => T,
-  compare: (a: T, b: T) => boolean = defaultCompare,
-  getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
+  selector: (snapshot: SnapshotFrom<TActor>) => T,
+  compare: (a: T, b: T) => boolean = defaultCompare
 ) {
-  const selected = shallowRef(selector(getSnapshot(actor)));
+  const selected = shallowRef(selector(actor.getSnapshot()));
 
   const updateSelectedIfChanged = (nextSelected: T) => {
     if (!compare(selected.value, nextSelected)) {
@@ -22,9 +18,9 @@ export function useSelector<
     }
   };
 
-  let sub;
+  let sub: Subscription | undefined;
   onMounted(() => {
-    const initialSelected = selector(getSnapshot(actor));
+    const initialSelected = selector(actor.getSnapshot());
     updateSelectedIfChanged(initialSelected);
     sub = actor.subscribe((emitted) => {
       const nextSelected = selector(emitted);

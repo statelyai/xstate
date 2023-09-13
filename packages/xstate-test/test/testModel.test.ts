@@ -1,11 +1,11 @@
-import { TestModel } from '../src';
+import { TestModel } from '../src/index.ts';
 import { testUtils } from './testUtils';
 
 describe('custom test models', () => {
-  it('tests any behavior', async () => {
+  it('tests any logic', async () => {
     const model = new TestModel(
       {
-        initialState: 15,
+        getInitialState: () => 15,
         transition: (value, event) => {
           if (event.type === 'even') {
             return value / 2;
@@ -15,7 +15,7 @@ describe('custom test models', () => {
         }
       },
       {
-        getEvents: (state) => {
+        events: (state) => {
           if (state % 2 === 0) {
             return [{ type: 'even' }];
           }
@@ -24,17 +24,17 @@ describe('custom test models', () => {
       }
     );
 
-    const paths = model.getShortestPathsTo((state) => state === 1);
+    const paths = model.getShortestPaths({ toState: (state) => state === 1 });
 
     expect(paths.length).toBeGreaterThan(0);
   });
 
-  it('tests states for any behavior', async () => {
+  it('tests states for any logic', async () => {
     const testedStateKeys: string[] = [];
 
     const model = new TestModel(
       {
-        initialState: 15,
+        getInitialState: () => 15,
         transition: (value, event) => {
           if (event.type === 'even') {
             return value / 2;
@@ -44,7 +44,7 @@ describe('custom test models', () => {
         }
       },
       {
-        getEvents: (state) => {
+        events: (state) => {
           if (state % 2 === 0) {
             return [{ type: 'even' }];
           }
@@ -62,7 +62,7 @@ describe('custom test models', () => {
       }
     );
 
-    const paths = model.getShortestPathsTo((state) => state === 1);
+    const paths = model.getShortestPaths({ toState: (state) => state === 1 });
 
     await testUtils.testPaths(paths, {
       states: {

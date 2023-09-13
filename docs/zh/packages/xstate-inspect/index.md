@@ -7,8 +7,6 @@
 - [XState + Vue](https://codesandbox.io/s/xstate-vue-viz-template-r5wd7)
 - [XState + React](https://codesandbox.io/s/xstate-react-viz-template-5wq3q)
 
-![Inspector running from CodeSandbox](https://buttondown.s3.us-west-2.amazonaws.com/images/4c8c0db4-b4d5-408f-8684-57e94ff46c86.png)
-
 [请参阅此处的 CodeSandbox 示例](https://codesandbox.io/s/xstate-vue-minute-timer-viz-1txmk)
 
 ## 安装
@@ -126,8 +124,8 @@ inspect();
   {
     type: 'service.event';
     event: SCXML.Event<any>;
-    sessionId: string
-  };
+    sessionId: string;
+  }
   ```
 
 要监听来自受检查源的事件，请使用适当的 `create*Receiver(...)` 函数创建一个接收器； 例如：

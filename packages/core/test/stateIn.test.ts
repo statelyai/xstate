@@ -1,111 +1,68 @@
-import { Machine } from '../src/index';
+import { createMachine, createActor } from '../src/index.ts';
+import { stateIn } from '../src/guards.ts';
 
-const machine = Machine({
-  type: 'parallel',
-  states: {
-    a: {
-      initial: 'a1',
+describe('transition "in" check', () => {
+  it('should transition if string state path matches current state value', () => {
+    const machine = createMachine({
+      type: 'parallel',
       states: {
-        a1: {
-          on: {
-            EVENT1: {
-              target: 'a2',
-              in: 'b.b2'
-            },
-            EVENT2: {
-              target: 'a2',
-              in: { b: 'b2' }
-            },
-            EVENT3: {
-              target: 'a2',
-              in: '#b_b2'
-            }
-          }
-        },
-        a2: {}
-      }
-    },
-    b: {
-      initial: 'b1',
-      states: {
-        b1: {
-          on: {
-            EVENT: {
-              target: 'b2',
-              in: 'a.a2'
-            }
-          }
-        },
-        b2: {
-          id: 'b_b2',
-          type: 'parallel',
+        a: {
+          initial: 'a1',
           states: {
-            foo: {
-              initial: 'foo1',
-              states: {
-                foo1: {
-                  on: {
-                    EVENT_DEEP: { target: 'foo2', in: 'bar.bar1' }
-                  }
-                },
-                foo2: {}
+            a1: {
+              on: {
+                EVENT2: {
+                  target: 'a2',
+                  guard: stateIn({ b: 'b2' })
+                }
               }
             },
-            bar: {
-              initial: 'bar1',
+            a2: {
+              id: 'a_a2'
+            }
+          }
+        },
+        b: {
+          initial: 'b2',
+          states: {
+            b1: {
+              on: {
+                EVENT: {
+                  target: 'b2',
+                  guard: stateIn('#a_a2')
+                }
+              }
+            },
+            b2: {
+              id: 'b_b2',
+              type: 'parallel',
               states: {
-                bar1: {},
-                bar2: {}
+                foo: {
+                  initial: 'foo2',
+                  states: {
+                    foo1: {},
+                    foo2: {}
+                  }
+                },
+                bar: {
+                  initial: 'bar1',
+                  states: {
+                    bar1: {
+                      id: 'bar1'
+                    },
+                    bar2: {}
+                  }
+                }
               }
             }
           }
         }
       }
-    }
-  }
-});
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EVENT2' });
 
-const lightMachine = Machine({
-  id: 'light',
-  initial: 'green',
-  states: {
-    green: { on: { TIMER: 'yellow' } },
-    yellow: { on: { TIMER: 'red' } },
-    red: {
-      initial: 'walk',
-      states: {
-        walk: {},
-        wait: {},
-        stop: {}
-      },
-      on: {
-        TIMER: [
-          {
-            target: 'green',
-            in: { red: 'stop' }
-          }
-        ]
-      }
-    }
-  }
-});
-
-describe('transition "in" check', () => {
-  it('should transition if string state path matches current state value', () => {
-    expect(
-      machine.transition(
-        {
-          a: 'a1',
-          b: {
-            b2: {
-              foo: 'foo2',
-              bar: 'bar1'
-            }
-          }
-        },
-        'EVENT1'
-      ).value
-    ).toEqual({
+    expect(actorRef.getSnapshot().value).toEqual({
       a: 'a2',
       b: {
         b2: {
@@ -117,20 +74,59 @@ describe('transition "in" check', () => {
   });
 
   it('should transition if state node ID matches current state value', () => {
-    expect(
-      machine.transition(
-        {
-          a: 'a1',
-          b: {
-            b2: {
-              foo: 'foo2',
-              bar: 'bar1'
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'a1',
+          states: {
+            a1: {
+              on: {
+                EVENT3: {
+                  target: 'a2',
+                  guard: stateIn('#b_b2')
+                }
+              }
+            },
+            a2: {
+              id: 'a_a2'
             }
           }
         },
-        'EVENT3'
-      ).value
-    ).toEqual({
+        b: {
+          initial: 'b2',
+          states: {
+            b1: {},
+            b2: {
+              id: 'b_b2',
+              type: 'parallel',
+              states: {
+                foo: {
+                  initial: 'foo2',
+                  states: {
+                    foo1: {},
+                    foo2: {}
+                  }
+                },
+                bar: {
+                  initial: 'bar1',
+                  states: {
+                    bar1: {
+                      id: 'bar1'
+                    },
+                    bar2: {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EVENT3' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
       a: 'a2',
       b: {
         b2: {
@@ -142,27 +138,118 @@ describe('transition "in" check', () => {
   });
 
   it('should not transition if string state path does not match current state value', () => {
-    expect(machine.transition({ a: 'a1', b: 'b1' }, 'EVENT1').value).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'a1',
+          states: {
+            a1: {
+              on: {
+                EVENT1: {
+                  target: 'a2',
+                  guard: stateIn('b.b2')
+                }
+              }
+            },
+            a2: {
+              id: 'a_a2'
+            }
+          }
+        },
+        b: {
+          initial: 'b1',
+          states: {
+            b1: {},
+            b2: {
+              id: 'b_b2',
+              type: 'parallel',
+              states: {
+                foo: {
+                  initial: 'foo1',
+                  states: {
+                    foo1: {},
+                    foo2: {}
+                  }
+                },
+                bar: {
+                  initial: 'bar1',
+                  states: {
+                    bar1: {
+                      id: 'bar1'
+                    },
+                    bar2: {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EVENT1' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
       a: 'a1',
       b: 'b1'
     });
   });
 
   it('should not transition if state value matches current state value', () => {
-    expect(
-      machine.transition(
-        {
-          a: 'a1',
-          b: {
-            b2: {
-              foo: 'foo2',
-              bar: 'bar1'
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'a1',
+          states: {
+            a1: {
+              on: {
+                EVENT2: {
+                  target: 'a2',
+                  guard: stateIn({ b: 'b2' })
+                }
+              }
+            },
+            a2: {
+              id: 'a_a2'
             }
           }
         },
-        'EVENT2'
-      ).value
-    ).toEqual({
+        b: {
+          initial: 'b2',
+          states: {
+            b1: {},
+            b2: {
+              id: 'b_b2',
+              type: 'parallel',
+              states: {
+                foo: {
+                  initial: 'foo2',
+                  states: {
+                    foo1: {},
+                    foo2: {}
+                  }
+                },
+                bar: {
+                  initial: 'bar1',
+                  states: {
+                    bar1: {
+                      id: 'bar1'
+                    },
+                    bar2: {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EVENT2' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
       a: 'a2',
       b: {
         b2: {
@@ -174,12 +261,56 @@ describe('transition "in" check', () => {
   });
 
   it('matching should be relative to grandparent (match)', () => {
-    expect(
-      machine.transition(
-        { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar1' } } },
-        'EVENT_DEEP'
-      ).value
-    ).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'a1',
+          states: {
+            a1: {},
+            a2: {
+              id: 'a_a2'
+            }
+          }
+        },
+        b: {
+          initial: 'b2',
+          states: {
+            b1: {},
+            b2: {
+              id: 'b_b2',
+              type: 'parallel',
+              states: {
+                foo: {
+                  initial: 'foo1',
+                  states: {
+                    foo1: {
+                      on: {
+                        EVENT_DEEP: { target: 'foo2', guard: stateIn('#bar1') }
+                      }
+                    },
+                    foo2: {}
+                  }
+                },
+                bar: {
+                  initial: 'bar1',
+                  states: {
+                    bar1: {
+                      id: 'bar1'
+                    },
+                    bar2: {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EVENT_DEEP' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
       a: 'a1',
       b: {
         b2: {
@@ -191,12 +322,56 @@ describe('transition "in" check', () => {
   });
 
   it('matching should be relative to grandparent (no match)', () => {
-    expect(
-      machine.transition(
-        { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar2' } } },
-        'EVENT_DEEP'
-      ).value
-    ).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'a1',
+          states: {
+            a1: {},
+            a2: {
+              id: 'a_a2'
+            }
+          }
+        },
+        b: {
+          initial: 'b2',
+          states: {
+            b1: {},
+            b2: {
+              id: 'b_b2',
+              type: 'parallel',
+              states: {
+                foo: {
+                  initial: 'foo1',
+                  states: {
+                    foo1: {
+                      on: {
+                        EVENT_DEEP: { target: 'foo2', guard: stateIn('#bar1') }
+                      }
+                    },
+                    foo2: {}
+                  }
+                },
+                bar: {
+                  initial: 'bar2',
+                  states: {
+                    bar1: {
+                      id: 'bar1'
+                    },
+                    bar2: {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EVENT_DEEP' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
       a: 'a1',
       b: {
         b2: {
@@ -208,16 +383,85 @@ describe('transition "in" check', () => {
   });
 
   it('should work to forbid events', () => {
-    const walkState = lightMachine.transition('red.walk', 'TIMER');
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: { on: { TIMER: 'yellow' } },
+        yellow: { on: { TIMER: 'red' } },
+        red: {
+          initial: 'walk',
+          states: {
+            walk: {
+              on: { TIMER: 'wait' }
+            },
+            wait: {
+              on: { TIMER: 'stop' }
+            },
+            stop: {}
+          },
+          on: {
+            TIMER: [
+              {
+                target: 'green',
+                guard: stateIn({ red: 'stop' })
+              }
+            ]
+          }
+        }
+      }
+    });
 
-    expect(walkState.value).toEqual({ red: 'walk' });
+    const actorRef = createActor(machine).start();
 
-    const waitState = lightMachine.transition('red.wait', 'TIMER');
+    actorRef.send({ type: 'TIMER' });
+    actorRef.send({ type: 'TIMER' });
+    actorRef.send({ type: 'TIMER' });
+    expect(actorRef.getSnapshot().value).toEqual({ red: 'wait' });
 
-    expect(waitState.value).toEqual({ red: 'wait' });
+    actorRef.send({ type: 'TIMER' });
+    expect(actorRef.getSnapshot().value).toEqual({ red: 'stop' });
 
-    const stopState = lightMachine.transition('red.stop', 'TIMER');
+    actorRef.send({ type: 'TIMER' });
+    expect(actorRef.getSnapshot().value).toEqual('green');
+  });
 
-    expect(stopState.value).toEqual('green');
+  it('should be possible to use a referenced `stateIn` guard', () => {
+    const machine = createMachine(
+      {
+        type: 'parallel',
+        // machine definition,
+        states: {
+          selected: {},
+          location: {
+            initial: 'home',
+            states: {
+              home: {
+                on: {
+                  NEXT: {
+                    target: 'success',
+                    guard: 'hasSelection'
+                  }
+                }
+              },
+              success: {}
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          hasSelection: stateIn('selected')
+        }
+      }
+    );
+
+    const actor = createActor(machine).start();
+    actor.send({
+      type: 'NEXT'
+    });
+    expect(actor.getSnapshot().value).toEqual({
+      selected: {},
+      location: 'success'
+    });
   });
 });

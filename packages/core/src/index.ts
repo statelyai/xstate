@@ -1,47 +1,40 @@
-import * as actions from './actions';
-import { Actor, toActorRef } from './Actor';
+export * from './actions.ts';
+export * from './actors/index.ts';
+export { SimulatedClock } from './SimulatedClock.ts';
+export { type Spawner } from './spawn.ts';
+export { StateMachine } from './StateMachine.ts';
+export { getStateNodes } from './stateUtils.ts';
+export * from './typegenTypes.ts';
+export * from './types.ts';
+export { waitFor } from './waitFor.ts';
 import {
+  Actor,
+  ActorStatus,
+  createActor,
   interpret,
   Interpreter,
-  InterpreterStatus,
-  spawn
-} from './interpreter';
-import { createMachine, Machine } from './Machine';
-import { mapState } from './mapState';
-import { matchState } from './match';
-import { createSchema, t } from './schema';
-import { State } from './State';
-import { StateNode } from './StateNode';
-export { spawnBehavior } from './behaviors';
-export { XStateDevInterface } from './devTools';
-export * from './typegenTypes';
-export * from './types';
-export { matchesState, toEventObject, toObserver, toSCXMLEvent } from './utils';
+  InterpreterStatus
+} from './interpreter.ts';
+import { createMachine } from './Machine.ts';
+import { mapState } from './mapState.ts';
+import { State } from './State.ts';
+import { StateNode } from './StateNode.ts';
+// TODO: decide from where those should be exported
+export { matchesState, pathToStateValue, toObserver } from './utils.ts';
 export {
   Actor,
-  toActorRef,
-  Machine,
-  StateNode,
-  State,
-  mapState,
-  actions,
-  assign,
-  send,
-  sendParent,
-  sendUpdate,
-  forwardTo,
-  interpret,
-  Interpreter,
-  InterpreterStatus,
-  matchState,
-  spawn,
-  doneInvoke,
+  ActorStatus,
+  createActor,
   createMachine,
-  createSchema,
-  t
+  interpret,
+  InterpreterStatus,
+  mapState,
+  State,
+  StateNode,
+  type Interpreter
 };
 
-const { assign, send, sendParent, sendUpdate, forwardTo, doneInvoke } = actions;
+export { and, not, or, stateIn } from './guards.ts';
 
 declare global {
   interface SymbolConstructor {

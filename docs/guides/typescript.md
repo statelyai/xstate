@@ -50,7 +50,7 @@ const machine = createMachine({
   },
   initial: 'a',
   context: {
-    value: '',
+    value: ''
   },
   states: {
     a: {
@@ -78,7 +78,7 @@ const machine = createMachine({
     events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
   },
   context: {
-    value: '',
+    value: ''
   },
   initial: 'a',
   states: {

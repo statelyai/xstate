@@ -1,19 +1,15 @@
 import {
   ActorRef,
-  AnyInterpreter,
-  EventData,
+  AnyActor,
   EventObject,
-  interpret,
-  Interpreter,
+  createActor,
   Observer,
-  toActorRef,
-  toEventObject,
-  toObserver,
-  toSCXMLEvent,
-  XStateDevInterface
+  toObserver
 } from 'xstate';
-import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
-import { stringifyMachine, stringifyState } from './serialize';
+import { XStateDevInterface } from 'xstate/dev';
+import { toActorRef } from 'xstate/actors';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
+import { stringifyState } from './serialize.ts';
 import type {
   Inspector,
   InspectorOptions,
@@ -22,19 +18,24 @@ import type {
   ServiceListener,
   WebSocketReceiverOptions,
   WindowReceiverOptions
-} from './types';
+} from './types.ts';
 import {
   getLazy,
   isReceiverEvent,
   parseReceiverEvent,
   stringify
-} from './utils';
+} from './utils.ts';
 
-export const serviceMap = new Map<string, Interpreter<any>>();
+export const serviceMap = new Map<string, AnyActor>();
 
 export function createDevTools(): XStateDevInterface {
-  const services = new Set<Interpreter<any>>();
+  const services = new Set<AnyActor>();
   const serviceListeners = new Set<ServiceListener>();
+
+  const unregister: XStateDevInterface['unregister'] = (service) => {
+    services.delete(service);
+    serviceMap.delete(service.sessionId);
+  };
 
   return {
     services,
@@ -43,15 +44,12 @@ export function createDevTools(): XStateDevInterface {
       serviceMap.set(service.sessionId, service);
       serviceListeners.forEach((listener) => listener(service));
 
-      service.onStop(() => {
-        services.delete(service);
-        serviceMap.delete(service.sessionId);
+      service.subscribe({
+        complete: () => unregister(service),
+        error: () => unregister(service)
       });
     },
-    unregister: (service) => {
-      services.delete(service);
-      serviceMap.delete(service.sessionId);
-    },
+    unregister,
     onRegister: (listener) => {
       serviceListeners.add(listener);
       services.forEach((service) => listener(service));
@@ -71,10 +69,11 @@ const defaultInspectorOptions = {
     document.querySelector<HTMLIFrameElement>('iframe[data-xstate]'),
   devTools: () => {
     const devTools = createDevTools();
-    globalThis.__xstate__ = devTools;
+    (globalThis as any).__xstate__ = devTools;
     return devTools;
   },
-  serialize: undefined
+  serialize: undefined,
+  targetWindow: undefined
 };
 
 const getFinalOptions = (options?: Partial<InspectorOptions>) => {
@@ -87,12 +86,18 @@ const getFinalOptions = (options?: Partial<InspectorOptions>) => {
   };
 };
 
-const patchedInterpreters = new Set<AnyInterpreter>();
+const patchedInterpreters = new Set<AnyActor>();
 
 export function inspect(options?: InspectorOptions): Inspector | undefined {
-  const { iframe, url, devTools } = getFinalOptions(options);
+  const finalOptions = getFinalOptions(options);
+  const { iframe, url, devTools } = finalOptions;
 
-  if (iframe === null) {
+  if (options?.targetWindow === null) {
+    throw new Error('Received a nullable `targetWindow`.');
+  }
+  let targetWindow: Window | null | undefined = finalOptions.targetWindow;
+
+  if (iframe === null && !targetWindow) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
@@ -101,14 +106,13 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
   }
 
   const inspectMachine = createInspectMachine(devTools, options);
-  const inspectService = interpret(inspectMachine).start();
+  const inspectService = createActor(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
 
   const sub = inspectService.subscribe((state) => {
-    listeners.forEach((listener) => listener.next(state));
+    listeners.forEach((listener) => listener.next?.(state));
   });
 
-  let targetWindow: Window | null | undefined;
   let client: Pick<ActorRef<any>, 'send'>;
 
   const messageHandler = (event: MessageEvent<unknown>) => {
@@ -148,20 +152,14 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     stringify(value, options?.serialize);
 
   devTools.onRegister((service) => {
-    const state = service.state || service.initialState;
+    const state = service.getSnapshot();
     inspectService.send({
       type: 'service.register',
-      machine: stringifyMachine(service.machine, options?.serialize),
+      machine: stringify(service.logic, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
-      parent: service.parent?.sessionId
-    });
-
-    inspectService.send({
-      type: 'service.event',
-      event: stringifyWithSerializer(state._event),
-      sessionId: service.sessionId
+      parent: (service._parent as AnyActor)?.sessionId
     });
 
     if (!patchedInterpreters.has(service)) {
@@ -172,28 +170,18 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       // while the sent one is being processed, which throws the order off
       const originalSend = service.send.bind(service);
 
-      service.send = function inspectSend(
-        event: EventObject,
-        payload?: EventData
-      ) {
+      service.send = function inspectSend(event: EventObject) {
         inspectService.send({
           type: 'service.event',
-          event: stringifyWithSerializer(
-            toSCXMLEvent(toEventObject(event as EventObject, payload))
-          ),
+          event: stringifyWithSerializer(event),
           sessionId: service.sessionId
         });
 
-        return originalSend(event, payload);
+        return originalSend(event);
       };
     }
 
     service.subscribe((state) => {
-      // filter out synchronous notification from within `.start()` call
-      // when the `service.state` has not yet been assigned
-      if (state === undefined) {
-        return;
-      }
       inspectService.send({
         type: 'service.state',
         // TODO: investigate usage of structuredClone in browsers if available
@@ -202,11 +190,13 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       });
     });
 
-    service.onStop(() => {
-      inspectService.send({
-        type: 'service.stop',
-        sessionId: service.sessionId
-      });
+    service.subscribe({
+      complete() {
+        inspectService.send({
+          type: 'service.stop',
+          sessionId: service.sessionId
+        });
+      }
     });
   });
 
@@ -216,7 +206,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     });
 
     iframe.setAttribute('src', String(url));
-  } else {
+  } else if (!targetWindow) {
     targetWindow = window.open(String(url), 'xstateinspector');
   }
 
@@ -228,7 +218,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       const observer = toObserver(next, onError, onComplete);
 
       listeners.add(observer);
-      observer.next(inspectService.state);
+      observer.next?.(inspectService.getSnapshot());
 
       return {
         unsubscribe: () => {
@@ -237,7 +227,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       };
     },
     disconnect: () => {
-      inspectService.send('disconnect');
+      inspectService.send({ type: 'disconnect' });
       window.removeEventListener('message', messageHandler);
       sub.unsubscribe();
     }
@@ -258,14 +248,14 @@ export function createWindowReceiver(
     const { data } = event;
     if (isReceiverEvent(data)) {
       latestEvent = parseReceiverEvent(data);
-      observers.forEach((listener) => listener.next(latestEvent));
+      observers.forEach((listener) => listener.next?.(latestEvent));
     }
   };
 
   ownWindow.addEventListener('message', handler);
 
   const actorRef: InspectReceiver = toActorRef({
-    id: 'xstate.windowReceiver',
+    name: 'xstate.windowReceiver',
 
     send(event) {
       if (!targetWindow) {
@@ -273,8 +263,12 @@ export function createWindowReceiver(
       }
       targetWindow.postMessage(event, '*');
     },
-    subscribe(next, onError?, onComplete?) {
-      const observer = toObserver(next, onError, onComplete);
+    subscribe(
+      next: (value: ParsedReceiverEvent) => void,
+      error?: (error: any) => void,
+      complete?: () => void
+    ) {
+      const observer = toObserver(next, error, complete);
 
       observers.add(observer);
 
@@ -310,12 +304,16 @@ export function createWebSocketReceiver(
   let latestEvent: ParsedReceiverEvent;
 
   const actorRef: InspectReceiver = toActorRef({
-    id: 'xstate.webSocketReceiver',
+    name: 'xstate.webSocketReceiver',
     send(event) {
       ws.send(stringify(event, options.serialize));
     },
-    subscribe(next, onError?, onComplete?) {
-      const observer = toObserver(next, onError, onComplete);
+    subscribe(
+      next: (value: ParsedReceiverEvent) => void,
+      error?: (error: any) => void,
+      complete?: () => void
+    ) {
+      const observer = toObserver(next, error, complete);
 
       observers.add(observer);
 
@@ -347,7 +345,7 @@ export function createWebSocketReceiver(
       if (isReceiverEvent(eventObject)) {
         latestEvent = parseReceiverEvent(eventObject);
         observers.forEach((observer) => {
-          observer.next(latestEvent);
+          observer.next?.(latestEvent);
         });
       }
     } catch (e) {

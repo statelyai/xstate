@@ -21,7 +21,6 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 ## Packages
 
 - 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
 - [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
 - [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
 - [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Model-based testing utilities for XState
@@ -52,10 +51,10 @@ const toggleService = interpret(toggleMachine)
   .start();
 // => 'inactive'
 
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
 // => 'active'
 
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
 // => 'inactive'
 ```
 
@@ -63,7 +62,7 @@ toggleService.send('TOGGLE');
 - [Why? (info about statecharts)](#why)
 - [Installation](https://xstate.js.org/docs/guides/installation.html)
 - [Finite State Machines](#finite-state-machines)
-- [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
+- [Hierarchical (Nested) State Machines](#hierarchical--nested--state-machines)
 - [Parallel State Machines](#parallel-state-machines)
 - [History States](#history-states)
 
@@ -83,7 +82,8 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/statelyai/xstate/discussions))
+- [Stately Discord](https://discord.gg/xstate) chat about anything related to statecharts and XState
+- [GitHub Discussions](https://github.com/statelyai/xstate/discussions)
 
 ## Finite State Machines
 
@@ -116,7 +116,9 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, 'TIMER').value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 
 // => 'yellow'
 ```
@@ -170,12 +172,14 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, 'TIMER').value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 // => {
 //   red: 'walk'
 // }
 
-lightMachine.transition('red.walk', 'PED_TIMER').value;
+lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 // => {
 //   red: 'wait'
 // }
@@ -185,15 +189,18 @@ lightMachine.transition('red.walk', 'PED_TIMER').value;
 
 ```js
 // ...
-const waitState = lightMachine.transition({ red: 'walk' }, 'PED_TIMER').value;
+const waitState = lightMachine.transition(
+  { red: 'walk' },
+  { type: 'PED_TIMER' }
+).value;
 
 // => { red: 'wait' }
 
-lightMachine.transition(waitState, 'PED_TIMER').value;
+lightMachine.transition(waitState, { type: 'PED_TIMER' }).value;
 
 // => { red: 'stop' }
 
-lightMachine.transition({ red: 'stop' }, 'TIMER').value;
+lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value;
 
 // => 'green'
 ```
@@ -257,7 +264,9 @@ const wordMachine = createMachine({
   }
 });
 
-const boldState = wordMachine.transition('bold.off', 'TOGGLE_BOLD').value;
+const boldState = wordMachine.transition('bold.off', {
+  type: 'TOGGLE_BOLD'
+}).value;
 
 // {
 //   bold: 'on',
@@ -273,7 +282,7 @@ const nextState = wordMachine.transition(
     underline: 'on',
     list: 'bullets'
   },
-  'TOGGLE_ITALICS'
+  { type: 'TOGGLE_ITALICS' }
 ).value;
 
 // {
@@ -308,21 +317,25 @@ const paymentMachine = createMachine({
   }
 });
 
-const checkState = paymentMachine.transition('method.cash', 'SWITCH_CHECK');
+const checkState = paymentMachine.transition('method.cash', {
+  type: 'SWITCH_CHECK'
+});
 
 // => State {
 //   value: { method: 'check' },
 //   history: State { ... }
 // }
 
-const reviewState = paymentMachine.transition(checkState, 'NEXT');
+const reviewState = paymentMachine.transition(checkState, { type: 'NEXT' });
 
 // => State {
 //   value: 'review',
 //   history: State { ... }
 // }
 
-const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
+const previousState = paymentMachine.transition(reviewState, {
+  type: 'PREVIOUS'
+}).value;
 
 // => { method: 'check' }
 ```

@@ -9,7 +9,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, PropType } from 'vue';
-import { useActor } from '../src';
+import { useActor } from '../src/index.ts';
 import { ActorRefFrom, AnyStateMachine } from 'xstate';
 
 export default defineComponent({
@@ -19,7 +19,7 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const { state: actorState, send: actorSend } = useActor(props.actor);
+    const { state: actorState, send: actorSend } = useActor(props.actor!);
 
     onMounted(() => {
       actorSend({ type: 'FINISH' });

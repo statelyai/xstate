@@ -1,13 +1,6 @@
 import { render } from '@testing-library/react';
-import * as React from 'react';
-import {
-  ActorRefFrom,
-  assign,
-  createMachine,
-  InterpreterFrom,
-  TypegenMeta
-} from 'xstate';
-import { useInterpret, useMachine } from '../src';
+import { ActorRefFrom, assign, createMachine, TypegenMeta } from 'xstate';
+import { createActorContext, useActorRef, useMachine } from '../src/index.ts';
 
 describe('useMachine', () => {
   it('should allow to be used with a machine without any missing implementations', () => {
@@ -16,12 +9,12 @@ describe('useMachine', () => {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
 
     function App() {
@@ -38,7 +31,7 @@ describe('useMachine', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -46,8 +39,8 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
@@ -67,7 +60,7 @@ describe('useMachine', () => {
         actions: 'myAction';
         delays: 'myDelay';
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -76,33 +69,39 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
 
     function App() {
       // @ts-expect-error
-      useMachine(machine, {});
-      useMachine(machine, {
+      useMachine(machine);
+      useMachine(
+        machine.provide({
+          // @ts-expect-error
+          actions: {}
+        })
+      );
+      useMachine(
         // @ts-expect-error
-        actions: {}
-      });
-      // @ts-expect-error
-      useMachine(machine, {
-        actions: {
-          myAction: () => {}
-        }
-      });
-      useMachine(machine, {
-        actions: {
-          myAction: () => {}
-        },
-        delays: {
-          myDelay: () => 42
-        }
-      });
+        machine.provide({
+          actions: {
+            myAction: () => {}
+          }
+        })
+      );
+      useMachine(
+        machine.provide({
+          actions: {
+            myAction: () => {}
+          },
+          delays: {
+            myDelay: () => 42
+          }
+        })
+      );
       return null;
     }
 
@@ -115,7 +114,7 @@ describe('useMachine', () => {
         actions: 'fooAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
@@ -123,8 +122,8 @@ describe('useMachine', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -136,14 +135,16 @@ describe('useMachine', () => {
     );
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          fooAction: () => {}
-        },
-        delays: {
-          barDelay: () => 100
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            fooAction: () => {}
+          },
+          delays: {
+            barDelay: () => 100
+          }
+        })
+      );
       return null;
     }
 
@@ -154,7 +155,7 @@ describe('useMachine', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        services: never;
+        actors: never;
         guards: never;
         delays: never;
       };
@@ -164,19 +165,21 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
     });
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: (_context, _event) => {}
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            // it's important to use `event` here somehow to make this a possible source of information for inference
+            fooAction: () => {}
+          }
+        })
+      );
       return null;
     }
 
@@ -187,7 +190,7 @@ describe('useMachine', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        services: never;
+        actors: never;
         guards: never;
         delays: never;
       };
@@ -197,22 +200,24 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
     });
 
     function App() {
-      useMachine(machine, {
-        actions: {
-          fooAction: assign((_context, _event) => {
-            ((_accept: 'FOO') => {})(_event.type);
-            // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(_event.type);
-          })
-        }
-      });
+      useMachine(
+        machine.provide({
+          actions: {
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: "test that this isn't any") => {})(event.type);
+            })
+          }
+        })
+      );
       return null;
     }
 
@@ -220,23 +225,23 @@ describe('useMachine', () => {
   });
 });
 
-describe('useInterpret', () => {
+describe('useActorRef', () => {
   it('should allow to be used with a machine without any missing implementations', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
 
     function App() {
-      useInterpret(machine);
+      useActorRef(machine);
       return null;
     }
 
@@ -249,7 +254,7 @@ describe('useInterpret', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -257,15 +262,15 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
 
     function App() {
       // @ts-expect-error
-      useInterpret(machine);
+      useActorRef(machine);
       return null;
     }
 
@@ -278,7 +283,7 @@ describe('useInterpret', () => {
         actions: 'myAction';
         delays: 'myDelay';
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -287,26 +292,26 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
     });
 
     function App() {
       // @ts-expect-error
-      useInterpret(machine, {});
-      useInterpret(machine, {
+      useActorRef(machine, {});
+      useActorRef(machine, {
         // @ts-expect-error
         actions: {}
       });
       // @ts-expect-error
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           myAction: () => {}
         }
       });
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           myAction: () => {}
         },
@@ -326,7 +331,7 @@ describe('useInterpret', () => {
         actions: 'fooAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
@@ -334,8 +339,8 @@ describe('useInterpret', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as TypesMeta,
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
       },
@@ -347,7 +352,7 @@ describe('useInterpret', () => {
     );
 
     function App() {
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           fooAction: () => {}
         },
@@ -365,7 +370,7 @@ describe('useInterpret', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        services: never;
+        actors: never;
         guards: never;
         delays: never;
       };
@@ -375,17 +380,17 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
     });
 
     function App() {
-      useInterpret(machine, {
+      useActorRef(machine, {
         actions: {
           // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: (_context, _event) => {}
+          fooAction: () => {}
         }
       });
       return null;
@@ -398,7 +403,7 @@ describe('useInterpret', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        services: never;
+        actors: never;
         guards: never;
         delays: never;
       };
@@ -408,22 +413,24 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
     });
 
     function App() {
-      useInterpret(machine, {
-        actions: {
-          fooAction: assign((_context, _event) => {
-            ((_accept: 'FOO') => {})(_event.type);
-            // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(_event.type);
-          })
-        }
-      });
+      useActorRef(
+        machine.provide({
+          actions: {
+            fooAction: assign(({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: "test that this isn't any") => {})(event.type);
+            })
+          }
+        })
+      );
       return null;
     }
 
@@ -435,14 +442,14 @@ describe('useInterpret', () => {
       matchesStates: 'a' | 'b';
       missingImplementations: {
         actions: never;
-        services: never;
+        actors: never;
         guards: never;
         delays: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
 
     () => {
@@ -474,18 +481,18 @@ describe('useInterpret', () => {
     };
   });
 
-  it('returned service created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
 
     function ChildComponent({}: { actorRef: ActorRefFrom<typeof machine> }) {
@@ -493,48 +500,336 @@ describe('useInterpret', () => {
     }
 
     function App() {
-      const service = useInterpret(() =>
-        machine.withConfig({
+      const actorRef = useActorRef(
+        machine.provide({
           actions: {
             someAction: () => {}
           }
         })
       );
 
-      return <ChildComponent actorRef={service} />;
+      return <ChildComponent actorRef={actorRef} />;
     }
 
     render(<App />);
   });
 
-  it('returned service created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the InterpreterFrom<...> type', () => {
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: { typegen: {} as TypesMeta }
     });
 
-    function ChildComponent({}: { actorRef: InterpreterFrom<typeof machine> }) {
+    function ChildComponent({}: { actorRef: ActorRefFrom<typeof machine> }) {
       return null;
     }
 
     function App() {
-      const service = useInterpret(() =>
-        machine.withConfig({
+      const actorRef = useActorRef(
+        machine.provide({
           actions: {
             someAction: () => {}
           }
         })
       );
 
-      return <ChildComponent actorRef={service} />;
+      return <ChildComponent actorRef={actorRef} />;
+    }
+
+    render(<App />);
+  });
+});
+
+describe('createActorContext', () => {
+  it('should allow to be used with a machine without any missing implementations', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        delays: never;
+        guards: never;
+      };
+    }
+
+    const machine = createMachine({
+      types: { typegen: {} as TypesMeta }
+    });
+
+    const Context = createActorContext(machine);
+
+    function App() {
+      return <Context.Provider>{null}</Context.Provider>;
+    }
+
+    render(<App />);
+  });
+
+  it('should not allow to be used with a machine with some missing implementations', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'myAction';
+        actors: never;
+        delays: never;
+        guards: never;
+      };
+      eventsCausingActions: {
+        myAction: 'FOO';
+      };
+    }
+
+    const machine = createMachine({
+      types: {
+        typegen: {} as TypesMeta,
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
+      }
+    });
+
+    const Context = createActorContext(machine);
+
+    function App() {
+      // @ts-expect-error
+      return <Context.Provider>{null}</Context.Provider>;
+    }
+
+    render(<App />);
+  });
+
+  it('should require all missing implementations ', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'myAction';
+        actors: never;
+        delays: 'myDelay';
+        guards: never;
+      };
+      eventsCausingActions: {
+        myAction: 'FOO';
+        myDelay: 'BAR';
+      };
+    }
+
+    const machine = createMachine({
+      types: {
+        typegen: {} as TypesMeta,
+        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
+      }
+    });
+
+    const Context = createActorContext(machine);
+
+    function App() {
+      let ret;
+      // @ts-expect-error
+      ret = <Context.Provider options={{}}>{null}</Context.Provider>;
+      ret = (
+        <Context.Provider
+          logic={machine.provide({
+            // @ts-expect-error
+            actions: {}
+          })}
+        >
+          {null}
+        </Context.Provider>
+      );
+      ret = (
+        <Context.Provider
+          logic={machine.provide({
+            actions: {
+              myAction: () => {}
+            },
+            delays: {
+              myDelay: () => 42
+            }
+          })}
+        >
+          {null}
+        </Context.Provider>
+      );
+
+      return ret;
+    }
+
+    render(<App />);
+  });
+
+  it('should allow to override already provided implementation', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'fooAction';
+        actors: never;
+        delays: never;
+        guards: never;
+      };
+      eventsCausingActions: { fooAction: 'FOO' };
+      eventsCausingDelays: { barDelay: 'BAR' };
+    }
+
+    const machine = createMachine(
+      {
+        types: {
+          typegen: {} as TypesMeta,
+          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
+        }
+      },
+      {
+        delays: {
+          barDelay: () => 42
+        }
+      }
+    );
+
+    const Context = createActorContext(machine);
+
+    function App() {
+      return (
+        <Context.Provider
+          logic={machine.provide({
+            actions: {
+              fooAction: () => {}
+            },
+            delays: {
+              barDelay: () => 100
+            }
+          })}
+        >
+          {null}
+        </Context.Provider>
+      );
+    }
+
+    render(<App />);
+  });
+
+  it('should accept a machine that accepts a specific subset of events in one of the implementations', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        guards: never;
+        delays: never;
+      };
+      eventsCausingActions: {
+        fooAction: 'FOO';
+      };
+    }
+
+    const machine = createMachine({
+      types: {
+        typegen: {} as TypesMeta,
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      }
+    });
+
+    const Context = createActorContext(machine);
+
+    function App() {
+      return (
+        <Context.Provider
+          logic={machine.provide({
+            actions: {
+              // it's important to use `event` here somehow to make this a possible source of information for inference
+              fooAction: () => {}
+            }
+          })}
+        >
+          {null}
+        </Context.Provider>
+      );
+    }
+
+    render(<App />);
+  });
+
+  it('should provide subset of the event type to action objects given in the `options` argument', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        guards: never;
+        delays: never;
+      };
+      eventsCausingActions: {
+        fooAction: 'FOO';
+      };
+    }
+
+    const machine = createMachine({
+      types: {
+        typegen: {} as TypesMeta,
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      }
+    });
+
+    const Context = createActorContext(machine);
+
+    function App() {
+      return (
+        <Context.Provider
+          logic={machine.provide({
+            actions: {
+              fooAction: assign(({ event }) => {
+                ((_accept: 'FOO') => {})(event.type);
+                // @ts-expect-error
+                ((_accept: "test that this isn't any") => {})(event.type);
+              })
+            }
+          })}
+        >
+          {null}
+        </Context.Provider>
+      );
+    }
+
+    render(<App />);
+  });
+
+  it('returned actor created based on a machine that supplies missing implementations using `provide` should be assignable to the ActorRefFrom<...> type', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'someAction';
+        actors: never;
+        delays: never;
+        guards: never;
+      };
+    }
+
+    const machine = createMachine({
+      types: { typegen: {} as TypesMeta }
+    });
+
+    const Context = createActorContext(
+      machine.provide({
+        actions: {
+          someAction: () => {}
+        }
+      })
+    );
+
+    function GrandchildComponent({}: {
+      actorRef: ActorRefFrom<typeof machine>;
+    }) {
+      return null;
+    }
+
+    function ChildComponent() {
+      const actorRef = Context.useActorRef();
+      return <GrandchildComponent actorRef={actorRef} />;
+    }
+
+    function App() {
+      return (
+        <Context.Provider>
+          <ChildComponent />
+        </Context.Provider>
+      );
     }
 
     render(<App />);

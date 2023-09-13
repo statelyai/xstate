@@ -1,9 +1,6 @@
 <script lang="ts">
-  export let persistedState: AnyState | undefined = undefined;
-
-  import { useMachine } from '../src';
+  import { useMachine } from '@xstate/svelte';
   import UseMachineNonPersistentSubcriptionChild from './UseMachineNonPersistentSubcriptionChild.svelte';
-  import type { AnyState } from 'xstate';
   import { assign, createMachine } from 'xstate';
 
   let visible = true;
@@ -15,7 +12,7 @@
     on: {
       INC: {
         actions: assign({
-          count: (ctx: { count: number }) => ++ctx.count
+          count: ({ context }) => ++context.count
         })
       }
     }

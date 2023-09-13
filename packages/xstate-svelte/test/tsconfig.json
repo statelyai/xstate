@@ -2,6 +2,10 @@
   "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "types": ["jest"]
+    "types": ["jest"],
+    "moduleResolution": "node16",
+    "module": "node16",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   }
 }

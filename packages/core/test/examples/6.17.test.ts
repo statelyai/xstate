@@ -1,8 +1,8 @@
-import { Machine, StateValue } from '../../src/index';
+import { createMachine, StateValue } from '../../src/index';
 import { testMultiTransition } from '../utils';
 
 describe('Example 6.17', () => {
-  const machine = Machine({
+  const machine = createMachine({
     initial: 'X',
     states: {
       X: {
@@ -42,10 +42,10 @@ describe('Example 6.17', () => {
     '{"Y":{"A":"C","B":"G"}}': {
       back: 'X'
     },
-    'Y.A.C': {
+    '{"Y":{"A":"C"}}': {
       back: 'X'
     },
-    'Y.B.G': {
+    '{"Y":{"B":"G"}}': {
       back: 'X'
     }
   };
@@ -66,7 +66,7 @@ describe('Example 6.17', () => {
 });
 
 describe('Jump to ID', () => {
-  const machine = Machine({
+  const machine = createMachine({
     initial: 'X',
     states: {
       X: {
@@ -106,8 +106,8 @@ describe('Jump to ID', () => {
     }
   });
 
-  const expected: Record<string, Record<string, string>> = {
-    'Y.B.G': {
+  const expected: Record<string, Record<string, StateValue>> = {
+    '{"Y":{"B":"G"}}': {
       kill: 'X'
     },
     '{"Y":{"A":"C","B":"H"}}': {

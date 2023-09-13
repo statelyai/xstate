@@ -1,16 +1,22 @@
-import { ActorRef, Behavior, EventObject, spawnBehavior } from 'xstate';
+import { ActorRef, ActorLogic, EventObject, createActor } from 'xstate';
+import { onBeforeUnmount } from 'vue';
 
 /**
- * Vue composable that spawns an `ActorRef` with the specified `behavior`.
+ * Vue composable that spawns an `ActorRef` with the specified `logic`.
  * The returned `ActorRef` can be used with the `useActor(actorRef)` hook.
  *
- * @param behavior The actor behavior to spawn
- * @returns An ActorRef with the specified `behavior`
+ * @param logic The actor logic to spawn
+ * @returns An ActorRef with the specified `logic`
  */
 export function useSpawn<TState, TEvent extends EventObject>(
-  behavior: Behavior<TEvent, TState>
+  logic: ActorLogic<TEvent, TState>
 ): ActorRef<TEvent, TState> {
-  const actorRef = spawnBehavior(behavior);
+  const actorRef = createActor(logic);
+
+  actorRef.start?.();
+  onBeforeUnmount(() => {
+    actorRef.stop?.();
+  });
 
   return actorRef;
 }

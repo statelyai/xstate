@@ -1,5 +1,9 @@
 # Actors <Badge text="4.6+"/>
 
+:::tip Check out our new docs!
+🆕 Find our [actors in XState explainer](https://stately.ai/docs/xstate/actors/intro) in our new docs, along with a [no-code introduction to actors in statecharts and the Stately Studio](https://stately.ai/docs/actions-and-actors/actors).
+:::
+
 [:rocket: Quick Reference](#quick-reference)
 
 [[toc]]
@@ -73,7 +77,7 @@ Alternatively `spawn` accepts an options object as the second argument which may
 
 - `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
 - `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child (`false` by default)
-- `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state will be stored as `.state` on the child machine ref
+- `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state can be retrieved from `.getSnapshot()` on the child machine ref
 
 ```js {13-14}
 import { createMachine, spawn } from 'xstate';
@@ -202,14 +206,12 @@ const someMachine = createMachine({
 
 ## Spawning Promises
 
-Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'done.invoke.<ID>'` action with the promise response as the `data` property in the payload:
+Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'xstate.done.actor.<ID>'` action with the promise response as the `data` property in the payload:
 
 ```js {11}
 // Returns a promise
 const fetchData = (query) => {
-  return fetch(`http://example.com?query=${event.query}`).then((data) =>
-    data.json()
-  );
+  return fetch(`http://example.com?query=${query}`).then((data) => data.json());
 };
 
 // ...
@@ -315,7 +317,7 @@ const remoteMachine = createMachine({
     online: {
       after: {
         1000: {
-          actions: sendParent('REMOTE.ONLINE')
+          actions: sendParent({ type: 'REMOTE.ONLINE' })
         }
       }
     }
@@ -385,20 +387,8 @@ someService.onTransition((state) => {
 });
 ```
 
-```js
-someService.onTransition((state) => {
-  const { someRef } = state.context;
-
-  console.log(someRef.state);
-  // => State {
-  //   value: ...,
-  //   context: ...
-  // }
-});
-```
-
 ::: warning
-By default, `sync` is set to `false`. Never read an actor's `.state` when `sync` is disabled; otherwise, you will end up referencing stale state.
+By default, `sync` is set to `false`. Never read an actor's state from `.getSnapshot()` when `sync` is disabled; otherwise, you will end up referencing stale state.
 :::
 
 ## Sending Updates <Badge text="4.7+" />

@@ -5,8 +5,8 @@
 </template>
 
 <script lang="ts">
-import { useActor, useSpawn } from '../src';
-import { fromReducer } from 'xstate/src/behaviors';
+import { useActor, useSpawn } from '../src/index.ts';
+import { fromTransition } from 'xstate/actors';
 import { defineComponent } from 'vue';
 
 const reducer = (state: number, event: { type: 'INC' }): number => {
@@ -16,11 +16,11 @@ const reducer = (state: number, event: { type: 'INC' }): number => {
   return state;
 };
 
-const behavior = fromReducer(reducer, 0);
+const logic = fromTransition(reducer, 0);
 
 export default defineComponent({
   setup() {
-    const actorRef = useSpawn(behavior);
+    const actorRef = useSpawn(logic);
     const { state: count, send } = useActor(actorRef);
 
     return { count, send };

@@ -1,104 +1,132 @@
 import { createMachine } from 'xstate';
-import { getShortestPlans } from '../src';
+import { getShortestPaths } from '../src/index.ts';
 
 describe('types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
-    const machine = createMachine<unknown, { type: 'FOO' } | { type: 'BAR' }>(
-      {}
-    );
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      }
+    });
 
-    getShortestPlans(machine, {
-      getEvents: () => [
+    getShortestPaths(machine, {
+      events: [
         {
           type: 'FOO'
-        } as const
+        }
       ]
     });
   });
 
   it('`getEvents` should be allowed to return a readonly array', () => {
-    const machine = createMachine<unknown, { type: 'FOO' } | { type: 'BAR' }>(
-      {}
-    );
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      }
+    });
 
-    getShortestPlans(machine, {
-      getEvents: () =>
-        [
-          {
-            type: 'FOO'
-          }
-        ] as const
+    getShortestPaths(machine, {
+      events: [
+        {
+          type: 'FOO'
+        }
+      ]
     });
   });
 
-  it('`eventCases` should allow known event', () => {
-    const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
-
-    getShortestPlans(machine, {
-      eventCases: {
-        FOO: [
-          {
-            value: 100
-          }
-        ]
+  it('`events` should allow known event', () => {
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number };
       }
+    });
+
+    getShortestPaths(machine, {
+      events: [
+        {
+          type: 'FOO',
+          value: 100
+        }
+      ]
     });
   });
 
-  it('`eventCases` should not require all event types', () => {
-    const machine = createMachine<
-      unknown,
-      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
-
-    getShortestPlans(machine, {
-      eventCases: {
-        FOO: [
-          {
-            value: 100
-          }
-        ]
+  it('`events` should not require all event types (array literal expression)', () => {
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
       }
+    });
+
+    getShortestPaths(machine, {
+      events: [{ type: 'FOO', value: 100 }]
     });
   });
 
-  it('`eventCases` should not allow unknown events', () => {
-    const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
-
-    getShortestPlans(machine, {
-      eventCases: {
-        // @ts-expect-error
-        UNKNOWN: [
-          {
-            value: 100
-          }
-        ]
+  it('`events` should not require all event types (tuple)', () => {
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
       }
+    });
+
+    const events = [{ type: 'FOO', value: 100 }] as const;
+
+    getShortestPaths(machine, {
+      events
     });
   });
 
-  it('`eventCases` should only allow props of a specific event', () => {
-    const machine = createMachine<
-      unknown,
-      { type: 'FOO'; value: number } | { type: 'BAR'; other: string }
-    >({});
-
-    getShortestPlans(machine, {
-      eventCases: {
-        FOO: [
-          {
-            // @ts-expect-error
-            other: 'nana nana nananana'
-          }
-        ]
+  it('`events` should not require all event types (function)', () => {
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
       }
+    });
+
+    getShortestPaths(machine, {
+      events: () => [{ type: 'FOO', value: 100 }] as const
+    });
+  });
+
+  it('`events` should not allow unknown events', () => {
+    const machine = createMachine({
+      types: { events: {} as { type: 'FOO'; value: number } }
+    });
+
+    getShortestPaths(machine, {
+      events: [
+        {
+          // @ts-expect-error
+          type: 'UNKNOWN',
+          value: 100
+        }
+      ]
+    });
+  });
+
+  it('`events` should only allow props of a specific event', () => {
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; other: string };
+      }
+    });
+
+    getShortestPaths(machine, {
+      events: [
+        {
+          type: 'FOO',
+          // @ts-expect-error
+          other: 'nana nana nananana'
+        }
+      ]
     });
   });
 
   it('`serializeEvent` should be allowed to return plain string', () => {
     const machine = createMachine({});
 
-    getShortestPlans(machine, {
+    getShortestPaths(machine, {
       serializeEvent: () => ''
     });
   });
@@ -106,7 +134,7 @@ describe('types', () => {
   it('`serializeState` should be allowed to return plain string', () => {
     const machine = createMachine({});
 
-    getShortestPlans(machine, {
+    getShortestPaths(machine, {
       serializeState: () => ''
     });
   });

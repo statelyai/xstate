@@ -1,5 +1,9 @@
 # Introduction to state machines and statecharts
 
+:::tip Check out our new docs!
+🆕 Find an updated [introduction to state machines and statecharts](https://stately.ai/docs/state-machines-and-statecharts) in our new docs.
+:::
+
 Statecharts are a visual language used to describe the states in a process.
 
 You may have used similar diagrams in the past to design user flows, plan databases or map app architecture. Statecharts are another way of using boxes and arrows to represent flows, but with XState these flows are also executable code that can be used to control the logic in your applications.

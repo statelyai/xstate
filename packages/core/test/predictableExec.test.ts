@@ -1,11 +1,13 @@
 import {
-  createMachine,
-  interpret,
+  AnyActor,
   assign,
-  spawn,
-  AnyInterpreter
-} from '../src';
-import { raise, stop, send, sendParent } from '../src/actions';
+  createMachine,
+  createActor,
+  sendTo
+} from '../src/index.ts';
+import { raise, sendParent, stop } from '../src/actions.ts';
+import { fromCallback } from '../src/actors/index.ts';
+import { fromPromise } from '../src/actors/index.ts';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
@@ -14,7 +16,6 @@ describe('predictableExec', () => {
     const machine = createMachine({
       initial: 'a',
       context: {},
-      predictableActionArguments: true,
       states: {
         a: {
           on: { NEXT: 'b' }
@@ -33,7 +34,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(actual).toEqual(['custom', 'assign']);
@@ -42,7 +43,6 @@ describe('predictableExec', () => {
   it('should call initial custom actions when starting a service', () => {
     let called = false;
     const machine = createMachine({
-      predictableActionArguments: true,
       entry: () => {
         called = true;
       }
@@ -50,14 +50,13 @@ describe('predictableExec', () => {
 
     expect(called).toBe(false);
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(called).toBe(true);
   });
 
   it('should resolve initial assign actions before starting a service', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {
         called: false
       },
@@ -68,13 +67,12 @@ describe('predictableExec', () => {
       ]
     });
 
-    expect(interpret(machine).initialState.context.called).toBe(true);
+    expect(createActor(machine).getSnapshot().context.called).toBe(true);
   });
 
   it('should call raised transition custom actions with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'a',
       states: {
         a: {
@@ -86,16 +84,16 @@ describe('predictableExec', () => {
           on: {
             RAISED: {
               target: 'c',
-              actions: (_ctx, ev) => (eventArg = ev)
+              actions: ({ event }) => (eventArg = event)
             }
           },
-          entry: raise('RAISED')
+          entry: raise({ type: 'RAISED' })
         },
         c: {}
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(eventArg.type).toBe('RAISED');
@@ -104,7 +102,6 @@ describe('predictableExec', () => {
   it('should call raised transition builtin actions with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {},
       initial: 'a',
       states: {
@@ -117,19 +114,19 @@ describe('predictableExec', () => {
           on: {
             RAISED: {
               target: 'c',
-              actions: assign((_ctx, ev) => {
-                eventArg = ev;
+              actions: assign(({ event }) => {
+                eventArg = event;
                 return {};
               })
             }
           },
-          entry: raise('RAISED')
+          entry: raise({ type: 'RAISED' })
         },
         c: {}
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(eventArg.type).toBe('RAISED');
@@ -138,7 +135,6 @@ describe('predictableExec', () => {
   it('should call invoke creator with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {},
       initial: 'a',
       states: {
@@ -151,20 +147,20 @@ describe('predictableExec', () => {
           on: {
             RAISED: 'c'
           },
-          entry: raise('RAISED')
+          entry: raise({ type: 'RAISED' })
         },
         c: {
           invoke: {
-            src: (_ctx, ev) => {
-              eventArg = ev;
-              return () => {};
-            }
+            src: fromCallback(({ input }) => {
+              eventArg = input.event;
+            }),
+            input: ({ event }: any) => ({ event })
           }
         }
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(eventArg.type).toBe('RAISED');
@@ -172,7 +168,6 @@ describe('predictableExec', () => {
 
   it('invoked child should be available on the new state', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {},
       initial: 'a',
       states: {
@@ -184,21 +179,20 @@ describe('predictableExec', () => {
         b: {
           invoke: {
             id: 'myChild',
-            src: () => () => {}
+            src: fromCallback(() => {})
           }
         }
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
-    expect(service.state.children.myChild).toBeDefined();
+    expect(service.getSnapshot().children.myChild).toBeDefined();
   });
 
   it('invoked child should not be available on the state after leaving invoking state', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {},
       initial: 'a',
       states: {
@@ -210,7 +204,7 @@ describe('predictableExec', () => {
         b: {
           invoke: {
             id: 'myChild',
-            src: () => () => {}
+            src: fromCallback(() => {})
           },
           on: {
             NEXT: 'c'
@@ -220,17 +214,16 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
     service.send({ type: 'NEXT' });
 
-    expect(service.state.children.myChild).not.toBeDefined();
+    expect(service.getSnapshot().children.myChild).not.toBeDefined();
   });
 
-  it('should automatically enable preserveActionOrder', () => {
+  it('should correctly provide intermediate context value to a custom action executed in between assign actions', () => {
     let calledWith = 0;
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {
         counter: 0
       },
@@ -244,14 +237,14 @@ describe('predictableExec', () => {
         b: {
           entry: [
             assign({ counter: 1 }),
-            (context) => (calledWith = context.counter),
+            ({ context }) => (calledWith = context.counter),
             assign({ counter: 2 })
           ]
         }
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
     service.send({ type: 'NEXT' });
 
     expect(calledWith).toBe(1);
@@ -261,19 +254,21 @@ describe('predictableExec', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine<any, any>({
-      predictableActionArguments: true,
+    const machine = createMachine({
       initial: 'active',
-      context: () => {
+      context: ({ spawn }) => {
         const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
 
         return {
-          actorRef: spawn(() => {
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          })
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'callback-1' }
+          )
         };
       },
       states: {
@@ -281,17 +276,22 @@ describe('predictableExec', () => {
           on: {
             update: {
               actions: [
-                stop((ctx: any) => ctx.actorRef),
+                stop(({ context }) => {
+                  return context.actorRef;
+                }),
                 assign({
-                  actorRef: () => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
-                    return spawn(() => {
-                      return () => {
-                        actual.push(`stop ${localId}`);
-                      };
-                    });
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'callback-2' }
+                    );
                   }
                 })
               ]
@@ -301,7 +301,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
@@ -316,19 +316,21 @@ describe('predictableExec', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine<any, any>({
-      predictableActionArguments: true,
+    const machine = createMachine({
       initial: 'active',
-      context: () => {
+      context: ({ spawn }) => {
         const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
 
         return {
-          actorRef: spawn(() => {
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          }, 'my_name')
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
         };
       },
       states: {
@@ -336,17 +338,20 @@ describe('predictableExec', () => {
           on: {
             update: {
               actions: [
-                stop((ctx: any) => ctx.actorRef),
+                stop(({ context }) => context.actorRef),
                 assign({
-                  actorRef: () => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
-                    return spawn(() => {
-                      return () => {
-                        actual.push(`stop ${localId}`);
-                      };
-                    }, 'my_name');
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
                   }
                 })
               ]
@@ -356,7 +361,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
@@ -371,19 +376,21 @@ describe('predictableExec', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine<any, any>({
-      predictableActionArguments: true,
+    const machine = createMachine({
       initial: 'active',
-      context: () => {
+      context: ({ spawn }) => {
         const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
 
         return {
-          actorRef: spawn(() => {
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          }, 'my_name')
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
         };
       },
       states: {
@@ -393,15 +400,18 @@ describe('predictableExec', () => {
               actions: [
                 stop('my_name'),
                 assign({
-                  actorRef: () => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
-                    return spawn(() => {
-                      return () => {
-                        actual.push(`stop ${localId}`);
-                      };
-                    }, 'my_name');
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
                   }
                 })
               ]
@@ -411,7 +421,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
@@ -426,19 +436,21 @@ describe('predictableExec', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine<any, any>({
-      predictableActionArguments: true,
+    const machine = createMachine({
       initial: 'active',
-      context: () => {
+      context: ({ spawn }) => {
         const localId = ++invokeCounter;
         actual.push(`start ${localId}`);
 
         return {
-          actorRef: spawn(() => {
-            return () => {
-              actual.push(`stop ${localId}`);
-            };
-          }, 'my_name')
+          actorRef: spawn(
+            fromCallback(() => {
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
         };
       },
       states: {
@@ -448,15 +460,18 @@ describe('predictableExec', () => {
               actions: [
                 stop(() => 'my_name'),
                 assign({
-                  actorRef: () => {
+                  actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
-                    return spawn(() => {
-                      return () => {
-                        actual.push(`stop ${localId}`);
-                      };
-                    }, 'my_name');
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
                   }
                 })
               ]
@@ -466,7 +481,7 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
@@ -482,7 +497,6 @@ describe('predictableExec', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'inactive',
       states: {
         inactive: {
@@ -490,29 +504,25 @@ describe('predictableExec', () => {
         },
         active: {
           invoke: {
-            src: () => {
+            src: fromCallback(() => {
               const localId = ++invokeCounter;
-
               actual.push(`start ${localId}`);
-
               return () => {
-                return () => {
-                  actual.push(`stop ${localId}`);
-                };
+                actual.push(`stop ${localId}`);
               };
-            }
+            })
           },
           on: {
             REENTER: {
               target: 'active',
-              internal: false
+              reenter: true
             }
           }
         }
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({
       type: 'ACTIVATE'
@@ -527,113 +537,27 @@ describe('predictableExec', () => {
     expect(actual).toEqual(['stop 1', 'start 2']);
   });
 
-  // TODO: this might be tricky in v5 because this currently relies on `.exec` property being mutated to capture the context values in a closure
   it('initial actions should receive context updated only by preceeding assign actions', () => {
     const actual: number[] = [];
 
     const machine = createMachine({
-      predictableActionArguments: true,
       context: { count: 0 },
       entry: [
-        (ctx) => actual.push(ctx.count),
+        ({ context }) => actual.push(context.count),
         assign({ count: 1 }),
-        (ctx) => actual.push(ctx.count),
+        ({ context }) => actual.push(context.count),
         assign({ count: 2 }),
-        (ctx) => actual.push(ctx.count)
+        ({ context }) => actual.push(context.count)
       ]
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     expect(actual).toEqual([0, 1, 2]);
   });
 
-  it('`.nextState()` should not execute actions `predictableActionArguments`', () => {
-    let spy = jest.fn();
-
-    const machine = createMachine({
-      predictableActionArguments: true,
-      on: {
-        TICK: {
-          actions: spy
-        }
-      }
-    });
-
-    const service = interpret(machine).start();
-    service.nextState({ type: 'TICK' });
-
-    expect(spy).not.toBeCalled();
-  });
-
-  it('should create invoke based on context updated by entry actions of the same state', () => {
-    const machine = createMachine({
-      predictableActionArguments: true,
-      context: {
-        updated: false
-      },
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: 'b'
-          }
-        },
-        b: {
-          entry: assign({ updated: true }),
-          invoke: {
-            src: (ctx) => {
-              expect(ctx.updated).toBe(true);
-              return Promise.resolve();
-            }
-          }
-        }
-      }
-    });
-
-    const service = interpret(machine).start();
-    service.send({ type: 'NEXT' });
-  });
-
-  it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
-    let received: any;
-
-    const machine = createMachine({
-      predictableActionArguments: true,
-      context: {
-        updated: false
-      },
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: 'b'
-          }
-        },
-        b: {
-          entry: send({ type: 'KNOCK_KNOCK' }, { to: 'myChild' }),
-          invoke: {
-            id: 'myChild',
-            src: () => (_sendBack, onReceive) => {
-              onReceive((event) => {
-                received = event;
-              });
-              return () => {};
-            }
-          }
-        }
-      }
-    });
-
-    const service = interpret(machine).start();
-    service.send({ type: 'NEXT' });
-
-    expect(received).toEqual({ type: 'KNOCK_KNOCK' });
-  });
-
   it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
     const child = createMachine({
-      predictableActionArguments: true,
       initial: 'a',
       states: {
         a: {
@@ -648,10 +572,9 @@ describe('predictableExec', () => {
       }
     });
 
-    let service: AnyInterpreter;
+    let service: AnyActor;
 
     const machine = createMachine({
-      predictableActionArguments: true,
       invoke: {
         id: 'myChild',
         src: child
@@ -662,8 +585,12 @@ describe('predictableExec', () => {
           on: {
             CHILD_UPDATED: [
               {
-                cond: () =>
-                  service.state.children.myChild.getSnapshot().value === 'b',
+                guard: () => {
+                  return (
+                    service.getSnapshot().children.myChild.getSnapshot()
+                      .value === 'b'
+                  );
+                },
                 target: 'success'
               },
               {
@@ -681,17 +608,18 @@ describe('predictableExec', () => {
       }
     });
 
-    service = interpret(machine)
-      .onDone(() => {
-        expect(service.state.value).toBe('success');
+    service = createActor(machine);
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('success');
         done();
-      })
-      .start();
+      }
+    });
+    service.start();
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
     const child = createMachine({
-      predictableActionArguments: true,
       on: {
         PING: {
           actions: sendParent({ type: 'PONG' })
@@ -700,7 +628,6 @@ describe('predictableExec', () => {
     });
 
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'waiting',
       states: {
         waiting: {
@@ -708,7 +635,7 @@ describe('predictableExec', () => {
             id: 'ponger',
             src: child
           },
-          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          entry: sendTo('ponger', { type: 'PING' }),
           on: {
             PONG: 'done'
           }
@@ -719,16 +646,27 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     expect(service.getSnapshot().value).toBe('done');
   });
 
-  it('should execute actions when sending batched events', () => {
-    let executed = false;
-
+  // TODO: if we allow this by flipping [...invokes, ...entry] to [...entry, ...invokes]
+  // then we end up with a different problem, we no longer have the ability to target the invoked actor with entry send:
+  //
+  // invoke: { id: 'a', src: actor },
+  // entry: send('EVENT', { to: 'a' })
+  //
+  // this seems to be even a worse problem. It's likely that we will have to remove this test case and document it as a breaking change.
+  // in v4 we are actually deferring sends till the end of the entry block:
+  // https://github.com/statelyai/xstate/blob/aad4991b4eb04faf979a0c8a027a5bcf861f34b3/packages/core/src/actions.ts#L703-L704
+  //
+  // should this be implemented in v5 as well?
+  it.skip('should create invoke based on context updated by entry actions of the same state', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
+      context: {
+        updated: false
+      },
       initial: 'a',
       states: {
         a: {
@@ -737,42 +675,178 @@ describe('predictableExec', () => {
           }
         },
         b: {
-          entry: () => (executed = true)
+          entry: assign({ updated: true }),
+          invoke: {
+            src: fromPromise(({ input }) => {
+              expect(input.updated).toBe(true);
+              return Promise.resolve();
+            }),
+            input: ({ context }: any) => ({
+              updated: context.updated
+            })
+          }
         }
       }
     });
 
-    const service = interpret(machine).start();
-
-    service.send([{ type: 'NEXT' }]);
-
-    expect(executed).toBe(true);
+    const service = createActor(machine).start();
+    service.send({ type: 'NEXT' });
   });
 
-  it('should deliver events sent to other actors when using batched events', () => {
-    let gotEvent = false;
+  it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
+    let received: any;
 
     const machine = createMachine({
-      predictableActionArguments: true,
-      invoke: {
-        id: 'myChild',
-        src: () => (_sendBack, onReceive) => {
-          onReceive(() => {
-            gotEvent = true;
-          });
-        }
+      context: {
+        updated: false
       },
-      on: {
-        PING_CHILD: {
-          actions: send({ type: 'PING' }, { to: 'myChild' })
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: sendTo('myChild', { type: 'KNOCK_KNOCK' }),
+          invoke: {
+            id: 'myChild',
+            src: fromCallback(({ receive }) => {
+              receive((event) => {
+                received = event;
+              });
+              return () => {};
+            })
+          }
         }
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
+    service.send({ type: 'NEXT' });
 
-    service.send([{ type: 'PING_CHILD' }]);
+    expect(received).toEqual({ type: 'KNOCK_KNOCK' });
+  });
 
-    expect(gotEvent).toBe(true);
+  it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+    const child = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          // we need to clear the call stack before we send the event to the parent
+          after: {
+            1: 'b'
+          }
+        },
+        b: {
+          entry: sendParent({ type: 'CHILD_UPDATED' })
+        }
+      }
+    });
+
+    let service: AnyActor;
+
+    const machine = createMachine({
+      invoke: {
+        id: 'myChild',
+        src: child
+      },
+      initial: 'initial',
+      states: {
+        initial: {
+          on: {
+            CHILD_UPDATED: [
+              {
+                guard: () =>
+                  service.getSnapshot().children.myChild.getSnapshot().value ===
+                  'b',
+                target: 'success'
+              },
+              {
+                target: 'fail'
+              }
+            ]
+          }
+        },
+        success: {
+          type: 'final'
+        },
+        fail: {
+          type: 'final'
+        }
+      }
+    });
+
+    service = createActor(machine);
+    service.subscribe({
+      complete: () => {
+        expect(service.getSnapshot().value).toBe('success');
+        done();
+      }
+    });
+    service.start();
+  });
+
+  it('should be possible to send immediate events to initially invoked actors', () => {
+    const child = createMachine({
+      on: {
+        PING: {
+          actions: sendParent({ type: 'PONG' })
+        }
+      }
+    });
+
+    const machine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          invoke: {
+            id: 'ponger',
+            src: child
+          },
+          entry: sendTo('ponger', { type: 'PING' }),
+          on: {
+            PONG: 'done'
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    expect(service.getSnapshot().value).toBe('done');
+  });
+
+  // https://github.com/statelyai/xstate/issues/3617
+  it('should deliver events sent from the exit actions to a service invoked in the same state', (done) => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'my-service',
+            src: fromCallback(({ receive }) => {
+              receive((event) => {
+                if (event.type === 'MY_EVENT') {
+                  done();
+                }
+              });
+            })
+          },
+          exit: sendTo('my-service', { type: 'MY_EVENT' }),
+          on: {
+            TOGGLE: 'inactive'
+          }
+        },
+        inactive: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'TOGGLE' });
   });
 });

@@ -2,84 +2,72 @@ import { onBeforeUnmount, onMounted } from 'vue';
 import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  InternalMachineOptions,
-  interpret,
-  InterpreterFrom,
-  InterpreterOptions,
+  InternalMachineImplementations,
+  createActor,
+  Actor,
+  ActorOptions,
   Observer,
-  State,
   StateFrom,
+  TODO,
+  Subscription,
   toObserver
 } from 'xstate';
-import { MaybeLazy, UseMachineOptions } from './types';
+import { MaybeLazy } from './types.ts';
 
-type RestParams<
-  TMachine extends AnyStateMachine
-> = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
-> extends false
-  ? [
-      options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >,
-      observerOrListener?:
-        | Observer<StateFrom<TMachine>>
-        | ((value: StateFrom<TMachine>) => void)
-    ]
-  : [
-      options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >,
-      observerOrListener?:
-        | Observer<StateFrom<TMachine>>
-        | ((value: StateFrom<TMachine>) => void)
-    ];
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: ActorOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TODO,
+            TODO,
+            TODO,
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TMachine>>
+          | ((value: StateFrom<TMachine>) => void)
+      ]
+    : [
+        options?: ActorOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TODO,
+            TODO,
+            TODO,
+            TMachine['__TResolvedTypesMeta']
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TMachine>>
+          | ((value: StateFrom<TMachine>) => void)
+      ];
 
 export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
-): InterpreterFrom<TMachine> {
+): Actor<TMachine> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
-  const {
-    context,
-    guards,
-    actions,
-    activities,
-    services,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+  const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
-    activities,
-    services,
+    actors,
     delays
   };
 
-  const machineWithConfig = machine.withConfig(machineConfig as any, () => ({
-    ...machine.context,
-    ...context
-  }));
+  const machineWithConfig = machine.provide(machineConfig as any);
 
-  const service = interpret(machineWithConfig, interpreterOptions).start(
-    rehydratedState ? (State.create(rehydratedState) as any) : undefined
-  );
+  const service = createActor(machineWithConfig, interpreterOptions).start();
 
-  let sub;
+  let sub: Subscription | undefined;
   onMounted(() => {
     if (observerOrListener) {
       sub = service.subscribe(toObserver(observerOrListener as any));

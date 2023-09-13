@@ -148,7 +148,9 @@ export const SomeComponent = (props) => {
   const globalServices = useContext(GlobalStateContext);
 
   return (
-    <button onClick={() => globalServices.authService.send('LOG_OUT')}>
+    <button
+      onClick={() => globalServices.authService.send({ type: 'LOG_OUT' })}
+    >
       Log Out
     </button>
   );

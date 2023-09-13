@@ -1,7 +1,6 @@
-import * as React from 'react';
 import { render } from '@testing-library/react';
-import { assign, spawn, createMachine, ActorRefFrom } from 'xstate';
-import { useMachine, useActor } from '../src';
+import { ActorRefFrom, assign, createMachine } from 'xstate';
+import { useMachine, useSelector } from '../src/index.ts';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -12,11 +11,8 @@ describe('useMachine', () => {
     type: 'YES';
   }
 
-  type YesNoTypestate =
-    | { value: 'no'; context: { value: undefined } }
-    | { value: 'yes'; context: { value: number } };
-
-  const yesNoMachine = createMachine<YesNoContext, YesNoEvent, YesNoTypestate>({
+  const yesNoMachine = createMachine({
+    types: {} as { context: YesNoContext; events: YesNoEvent },
     context: {
       value: undefined
     },
@@ -31,26 +27,6 @@ describe('useMachine', () => {
         type: 'final'
       }
     }
-  });
-
-  it('should preserve typestate information.', () => {
-    const YesNo = () => {
-      const [state] = useMachine(yesNoMachine);
-
-      if (state.matches('no')) {
-        const undefinedValue: undefined = state.context.value;
-
-        return <span>{undefinedValue ? 'Yes' : 'No'}</span>;
-      } else if (state.matches('yes')) {
-        const numericValue: number = state.context.value;
-
-        return <span>{numericValue ? 'Yes' : 'No'}</span>;
-      }
-
-      return <span>No</span>;
-    };
-
-    render(<YesNo />);
   });
 
   it('state should not become never after checking state with matches', () => {
@@ -69,25 +45,27 @@ describe('useMachine', () => {
 
   // Example from: https://github.com/statelyai/xstate/discussions/1534
   it('spawned actors should be typed correctly', () => {
-    const child = createMachine<{ bar: number }, { type: 'FOO'; data: number }>(
-      {
-        id: 'myActor',
-        context: {
-          bar: 1
-        },
-        initial: 'ready',
-        states: {
-          ready: {}
-        }
+    const child = createMachine({
+      types: {} as {
+        context: { bar: number };
+        events: { type: 'FOO'; data: number };
+      },
+      id: 'myActor',
+      context: {
+        bar: 1
+      },
+      initial: 'ready',
+      states: {
+        ready: {}
       }
-    );
+    });
 
-    const m = createMachine<{ actor: ActorRefFrom<typeof child> | null }>(
+    const m = createMachine(
       {
         initial: 'ready',
         context: {
           actor: null
-        },
+        } as { actor: ActorRefFrom<typeof child> | null },
         states: {
           ready: {
             entry: 'spawnActor'
@@ -97,7 +75,7 @@ describe('useMachine', () => {
       {
         actions: {
           spawnActor: assign({
-            actor: () => spawn(child)
+            actor: ({ spawn }) => spawn(child)
           })
         }
       }
@@ -108,7 +86,7 @@ describe('useMachine', () => {
     }
 
     function Element({ myActor }: Props) {
-      const [current, send] = useActor(myActor);
+      const current = useSelector(myActor, (state) => state);
       const bar: number = current.context.bar;
 
       // @ts-expect-error
@@ -117,7 +95,9 @@ describe('useMachine', () => {
       return (
         <>
           {bar}
-          <div onClick={() => send({ type: 'FOO', data: 1 })}>click</div>
+          <div onClick={() => myActor.send({ type: 'FOO', data: 1 })}>
+            click
+          </div>
         </>
       );
     }

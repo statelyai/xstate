@@ -8,7 +8,7 @@
 </template>
 
 <script lang="ts">
-import { useMachine, useActor } from '../src';
+import { useMachine, useActor } from '../src/index.ts';
 import { createMachine, sendParent } from 'xstate';
 import { defineComponent } from 'vue';
 
@@ -18,7 +18,7 @@ const childMachine = createMachine({
   states: {
     active: {
       on: {
-        FINISH: { actions: sendParent('FINISH') }
+        FINISH: { actions: sendParent({ type: 'FINISH' }) }
       }
     }
   }

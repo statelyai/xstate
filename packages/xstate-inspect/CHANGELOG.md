@@ -1,5 +1,17 @@
 # @xstate/inspect
 
+## 0.8.0
+
+### Minor Changes
+
+- [#3793](https://github.com/statelyai/xstate/pull/3793) [`f943513ca`](https://github.com/statelyai/xstate/commit/f943513cae369cf5356d383fc53a18e1858022ce) Thanks [@mdpratt](https://github.com/mdpratt)! - Add support for a custom `targetWindow`
+
+## 0.7.1
+
+### Patch Changes
+
+- [#3772](https://github.com/statelyai/xstate/pull/3772) [`cea609ce3`](https://github.com/statelyai/xstate/commit/cea609ce39a09f77568a95d8fcaf281020ebce7d) Thanks [@jlarmstrongiv](https://github.com/jlarmstrongiv)! - Fixed an issue with a misleading dev-only warning being printed when inspecting machines because of the internal `createMachine` call.
+
 ## 0.7.0
 
 ### Minor Changes
@@ -18,7 +30,7 @@
 
 - [#3198](https://github.com/statelyai/xstate/pull/3198) [`09e2130df`](https://github.com/statelyai/xstate/commit/09e2130dff80815c10df38496a761fe8ae0d9f6e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that prevented some states from being sent correctly to the inspector when serializable values hold references to objects throwing on `toJSON` property access (like `obj.toJSON`). This property is accessed by the native algorithm before the value gets passed to the custom `serializer`. Because of a bug we couldn't correctly serialize such values even when a custom `serializer` was implemented that was meant to replace it in a custom way from within its parent's level.
 
-* [#3199](https://github.com/statelyai/xstate/pull/3199) [`f3d63147d`](https://github.com/statelyai/xstate/commit/f3d63147d36791344d55fa9c945af32daeefa2fa) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused sending the same event multiple times to the inspector for restarted services.
+- [#3199](https://github.com/statelyai/xstate/pull/3199) [`f3d63147d`](https://github.com/statelyai/xstate/commit/f3d63147d36791344d55fa9c945af32daeefa2fa) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused sending the same event multiple times to the inspector for restarted services.
 
 - [#3076](https://github.com/statelyai/xstate/pull/3076) [`34f3d9be7`](https://github.com/statelyai/xstate/commit/34f3d9be74d2bd9db51b2db06c5a65d980aec9c4) Thanks [@SimeonC](https://github.com/SimeonC)! - Fixed an issue with "maximum call stack size exceeded" errors being thrown when registering a machine with a very deep object in its context despite using a serializer capable of replacing such an object.
 
@@ -28,7 +40,7 @@
 
 - [#3144](https://github.com/statelyai/xstate/pull/3144) [`e08030faf`](https://github.com/statelyai/xstate/commit/e08030faf00e2bcb192040b6ba04178ecf057509) Thanks [@lecepin](https://github.com/lecepin)! - Added UMD build for this package that is available in the `dist` directory in the published package.
 
-* [#3144](https://github.com/statelyai/xstate/pull/3144) [`e08030faf`](https://github.com/statelyai/xstate/commit/e08030faf00e2bcb192040b6ba04178ecf057509) Thanks [@lecepin](https://github.com/lecepin)! - Added proper `peerDependency` on XState. It was incorrectly omitted from the `package.json` of this package.
+- [#3144](https://github.com/statelyai/xstate/pull/3144) [`e08030faf`](https://github.com/statelyai/xstate/commit/e08030faf00e2bcb192040b6ba04178ecf057509) Thanks [@lecepin](https://github.com/lecepin)! - Added proper `peerDependency` on XState. It was incorrectly omitted from the `package.json` of this package.
 
 ## 0.6.3
 
@@ -81,7 +93,7 @@
   });
   ```
 
-* [#2894](https://github.com/statelyai/xstate/pull/2894) [`8435c5b84`](https://github.com/statelyai/xstate/commit/8435c5b841e318c5d35dfea65242246dfb4b34f8) Thanks [@Andarist](https://github.com/Andarist)! - The package has been upgraded to be compatible with `ws@8.x`. The WS server created server-side has to be of a compatible version now.
+- [#2894](https://github.com/statelyai/xstate/pull/2894) [`8435c5b84`](https://github.com/statelyai/xstate/commit/8435c5b841e318c5d35dfea65242246dfb4b34f8) Thanks [@Andarist](https://github.com/Andarist)! - The package has been upgraded to be compatible with `ws@8.x`. The WS server created server-side has to be of a compatible version now.
 
 ## 0.5.2
 
@@ -143,7 +155,7 @@
 
   const windowReceiver = createWindowReceiver(/* options? */);
 
-  windowReceiver.subscribe(event => {
+  windowReceiver.subscribe((event) => {
     // here, you will receive events like:
     // { type: "service.register", machine: ..., state: ..., sessionId: ... }
     console.log(event);

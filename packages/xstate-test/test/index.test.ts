@@ -1,5 +1,5 @@
 import { assign, createMachine } from 'xstate';
-import { createTestModel } from '../src';
+import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
 
@@ -13,7 +13,7 @@ describe('events', () => {
       | { type: 'SUBMIT'; value: string };
     const feedbackMachine = createTestMachine({
       id: 'feedback',
-      schema: {
+      types: {
         events: {} as Events
       },
       initial: 'question',
@@ -31,7 +31,7 @@ describe('events', () => {
             SUBMIT: [
               {
                 target: 'thanks',
-                cond: (_, e) => !!e.value.length
+                guard: ({ event }) => !!event.value.length
               },
               {
                 target: '.invalid'
@@ -59,9 +59,10 @@ describe('events', () => {
     });
 
     const testModel = createTestModel(feedbackMachine, {
-      eventCases: {
-        SUBMIT: [{ value: 'something' }, { value: '' }]
-      }
+      events: [
+        { type: 'SUBMIT', value: 'something' },
+        { type: 'SUBMIT', value: '' }
+      ]
     });
 
     await testUtils.testModel(testModel, {});
@@ -87,10 +88,11 @@ describe('events', () => {
 
   it('should allow for dynamic generation of cases based on state', async () => {
     const values = [1, 2, 3];
-    const testMachine = createMachine<
-      { values: number[] },
-      { type: 'EVENT'; value: number }
-    >({
+    const testMachine = createMachine({
+      types: {} as {
+        context: { values: number[] };
+        events: { type: 'EVENT'; value: number };
+      },
       initial: 'a',
       context: {
         values // to be read by generator
@@ -99,9 +101,9 @@ describe('events', () => {
         a: {
           on: {
             EVENT: [
-              { cond: (_, e) => e.value === 1, target: 'b' },
-              { cond: (_, e) => e.value === 2, target: 'c' },
-              { cond: (_, e) => e.value === 3, target: 'd' }
+              { guard: ({ event }) => event.value === 1, target: 'b' },
+              { guard: ({ event }) => event.value === 2, target: 'c' },
+              { guard: ({ event }) => event.value === 3, target: 'd' }
             ]
           }
         },
@@ -114,9 +116,8 @@ describe('events', () => {
     const testedEvents: any[] = [];
 
     const testModel = createTestModel(testMachine, {
-      eventCases: {
-        EVENT: (state) => state.context.values.map((value) => ({ value }))
-      }
+      events: (state) =>
+        state.context.values.map((value) => ({ type: 'EVENT', value } as const))
     });
 
     const paths = testModel.getShortestPaths();
@@ -132,16 +133,16 @@ describe('events', () => {
     });
 
     expect(testedEvents).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "type": "EVENT",
           "value": 1,
         },
-        Object {
+        {
           "type": "EVENT",
           "value": 2,
         },
-        Object {
+        {
           "type": "EVENT",
           "value": 3,
         },
@@ -152,7 +153,8 @@ describe('events', () => {
 
 describe('state limiting', () => {
   it('should limit states with filter option', () => {
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
       initial: 'counting',
       context: { count: 0 },
       states: {
@@ -160,7 +162,7 @@ describe('state limiting', () => {
           on: {
             INC: {
               actions: assign({
-                count: (ctx) => ctx.count + 1
+                count: ({ context }) => context.count + 1
               })
             }
           }
@@ -182,14 +184,15 @@ describe('state limiting', () => {
 
 // https://github.com/statelyai/xstate/issues/1935
 it('prevents infinite recursion based on a provided limit', () => {
-  const machine = createMachine<{ count: number }>({
+  const machine = createMachine({
+    types: {} as { context: { count: number } },
     id: 'machine',
     context: {
       count: 0
     },
     on: {
       TOGGLE: {
-        actions: assign({ count: (ctx) => ctx.count + 1 })
+        actions: assign({ count: ({ context }) => context.count + 1 })
       }
     }
   });
@@ -199,40 +202,6 @@ it('prevents infinite recursion based on a provided limit', () => {
   expect(() => {
     model.getShortestPaths({ traversalLimit: 100 });
   }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
-});
-
-// TODO: have this as an opt-in
-it('executes actions', async () => {
-  let executedActive = false;
-  let executedDone = false;
-  const machine = createTestMachine({
-    initial: 'idle',
-    states: {
-      idle: {
-        on: {
-          TOGGLE: { target: 'active', actions: 'boom' }
-        }
-      },
-      active: {
-        entry: () => {
-          executedActive = true;
-        },
-        on: { TOGGLE: 'done' }
-      },
-      done: {
-        entry: () => {
-          executedDone = true;
-        }
-      }
-    }
-  });
-
-  const model = createTestModel(machine);
-
-  await testUtils.testModel(model, {});
-
-  expect(executedActive).toBe(true);
-  expect(executedDone).toBe(true);
 });
 
 describe('test model options', () => {
@@ -280,7 +249,9 @@ it('tests transitions', async () => {
 
   const model = createTestModel(machine);
 
-  const paths = model.getShortestPathsTo((state) => state.matches('second'));
+  const paths = model.getShortestPaths({
+    toState: (state) => state.matches('second')
+  });
 
   await paths[0].test({
     events: {
@@ -309,12 +280,12 @@ it('Event in event executor should contain payload from case', async () => {
   const nonSerializableData = () => 42;
 
   const model = createTestModel(machine, {
-    eventCases: {
-      NEXT: [{ payload: 10, fn: nonSerializableData }]
-    }
+    events: [{ type: 'NEXT', payload: 10, fn: nonSerializableData }]
   });
 
-  const paths = model.getShortestPathsTo((state) => state.matches('second'));
+  const paths = model.getShortestPaths({
+    toState: (state) => state.matches('second')
+  });
 
   await model.testPath(
     paths[0],
@@ -434,7 +405,7 @@ describe('state tests', () => {
       }
     });
     expect(testedStateValues).toMatchInlineSnapshot(`
-      Array [
+      [
         "a",
         "b",
         "b.b1",

@@ -1,92 +1,39 @@
-import { Machine, sendParent, interpret, assign } from '../src';
-import { respond, send } from '../src/actions';
+import {
+  createMachine,
+  createActor,
+  assign,
+  AnyActorRef
+} from '../src/index.ts';
+import { sendTo } from '../src/actions/send';
 
-describe('SCXML events', () => {
-  it('should have the origin (id) from the sending machine service', (done) => {
-    const childMachine = Machine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: sendParent('EVENT')
-        }
-      }
-    });
-
-    const parentMachine = Machine({
-      initial: 'active',
-      states: {
-        active: {
-          invoke: {
-            id: 'child',
-            src: childMachine
-          },
-          on: {
-            EVENT: {
-              target: 'success',
-              cond: (_: any, __: any, { _event }: any) => {
-                return !!(_event.origin && _event.origin.length > 0);
-              }
-            }
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-
-    interpret(parentMachine)
-      .onDone(() => done())
-      .start();
-  });
-
-  it('should have the origin (id) from the sending callback service', () => {
-    const machine = Machine<{ childOrigin?: string }>({
-      initial: 'active',
-      context: {},
-      states: {
-        active: {
-          invoke: {
-            id: 'callback_child',
-            src: () => (send) => send({ type: 'EVENT' })
-          },
-          on: {
-            EVENT: {
-              target: 'success',
-              actions: assign({
-                childOrigin: (_, __, { _event }) => _event.origin
-              })
-            }
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-
-    const service = interpret(machine).start();
-
-    expect(service.state.context.childOrigin).toBe('callback_child');
-  });
-
-  it('respond() should be able to respond to sender', (done) => {
-    const authServerMachine = Machine({
+describe('events', () => {
+  it('should be able to respond to sender by sending self', (done) => {
+    const authServerMachine = createMachine({
+      types: {
+        events: {} as { type: 'CODE'; sender: AnyActorRef }
+      },
+      id: 'authServer',
       initial: 'waitingForCode',
       states: {
         waitingForCode: {
           on: {
             CODE: {
-              actions: respond('TOKEN', {
-                delay: 10
-              })
+              actions: sendTo(
+                ({ event }) => {
+                  expect(event.sender).toBeDefined();
+                  return event.sender;
+                },
+                { type: 'TOKEN' },
+                { delay: 10 }
+              )
             }
           }
         }
       }
     });
 
-    const authClientMachine = Machine({
+    const authClientMachine = createMachine({
+      id: 'authClient',
       initial: 'idle',
       states: {
         idle: {
@@ -97,9 +44,10 @@ describe('SCXML events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: send('CODE', {
-            to: 'auth-server'
-          }),
+          entry: sendTo('auth-server', ({ self }) => ({
+            type: 'CODE',
+            sender: self
+          })),
           on: {
             TOKEN: 'authorized'
           }
@@ -110,78 +58,77 @@ describe('SCXML events', () => {
       }
     });
 
-    const service = interpret(authClientMachine)
-      .onDone(() => done())
-      .start();
+    const service = createActor(authClientMachine);
+    service.subscribe({ complete: () => done() });
+    service.start();
 
-    service.send('AUTH');
+    service.send({ type: 'AUTH' });
   });
 });
 
-interface SignInContext {
-  email: string;
-  password: string;
-}
-
-interface ChangePassword {
-  type: 'changePassword';
-  password: string;
-}
-
-const authMachine = Machine<SignInContext, ChangePassword>(
-  {
-    context: { email: '', password: '' },
-    initial: 'passwordField',
-    states: {
-      passwordField: {
-        initial: 'hidden',
-        states: {
-          hidden: {
-            on: {
-              // We want to assign the new password but remain in the hidden
-              // state
-              changePassword: {
-                actions: 'assignPassword'
-              }
-            }
-          },
-          valid: {},
-          invalid: {}
-        },
-        on: {
-          changePassword: [
-            {
-              cond: (_, event) => event.password.length >= 10,
-              target: '.invalid',
-              actions: ['assignPassword']
-            },
-            {
-              target: '.valid',
-              actions: ['assignPassword']
-            }
-          ]
-        }
-      }
-    }
-  },
-  {
-    actions: {
-      assignPassword: assign<SignInContext, ChangePassword>({
-        password: (_, event) => event.password
-      })
-    }
-  }
-);
-
 describe('nested transitions', () => {
   it('only take the transition of the most inner matching event', () => {
-    const password = 'xstate123';
-    const state = authMachine.transition(authMachine.initialState, {
-      type: 'changePassword',
-      password
-    });
+    interface SignInContext {
+      email: string;
+      password: string;
+    }
 
-    expect(state.value).toEqual({ passwordField: 'hidden' });
-    expect(state.context).toEqual({ password, email: '' });
+    interface ChangePassword {
+      type: 'changePassword';
+      password: string;
+    }
+
+    const authMachine = createMachine(
+      {
+        types: {} as { context: SignInContext; events: ChangePassword },
+        context: { email: '', password: '' },
+        initial: 'passwordField',
+        states: {
+          passwordField: {
+            initial: 'hidden',
+            states: {
+              hidden: {
+                on: {
+                  // We want to assign the new password but remain in the hidden
+                  // state
+                  changePassword: {
+                    actions: 'assignPassword'
+                  }
+                }
+              },
+              valid: {},
+              invalid: {}
+            },
+            on: {
+              changePassword: [
+                {
+                  guard: ({ event }) => event.password.length >= 10,
+                  target: '.invalid',
+                  actions: ['assignPassword']
+                },
+                {
+                  target: '.valid',
+                  actions: ['assignPassword']
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          assignPassword: assign({
+            password: ({ event }) => event.password
+          })
+        }
+      }
+    );
+    const password = 'xstate123';
+    const actorRef = createActor(authMachine).start();
+    actorRef.send({ type: 'changePassword', password });
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.value).toEqual({ passwordField: 'hidden' });
+    expect(snapshot.context).toEqual({ password, email: '' });
   });
 });

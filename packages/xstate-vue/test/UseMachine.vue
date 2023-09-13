@@ -1,7 +1,9 @@
 <template>
   <div>
     Hallo
-    <button v-if="state.matches('idle')" @click="send('FETCH')">Fetch</button>
+    <button v-if="state.matches('idle')" @click="send({ type: 'FETCH' })">
+      Fetch
+    </button>
     <div v-else-if="state.matches('loading')">Loading...</div>
     <div v-else-if="state.matches('success')">
       Success! Data:
@@ -12,8 +14,9 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
-import { useMachine } from '../src';
-import { createMachine, assign, State, AnyState } from 'xstate';
+import { useMachine } from '../src/index.ts';
+import { createMachine, assign, AnyState } from 'xstate';
+import { fromPromise } from 'xstate/actors';
 
 const context = {
   data: undefined
@@ -28,13 +31,14 @@ const fetchMachine = createMachine<typeof context, any>({
     },
     loading: {
       invoke: {
+        id: 'fetchData',
         src: 'fetchData',
         onDone: {
           target: 'success',
           actions: assign({
-            data: (_, e) => e.data
+            data: ({event}) => event.output
           }),
-          cond: (_, e) => e.data.length
+          guard: ({event}) => event.output.length
         }
       }
     },
@@ -55,10 +59,10 @@ export default defineComponent({
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
     const { state, send, service } = useMachine(fetchMachine, {
-      services: {
-        fetchData: onFetch
+      state: persistedState,
+      actors: {
+        fetchData: fromPromise(onFetch)
       },
-      state: persistedState
     });
     return { state, send, service };
   }
