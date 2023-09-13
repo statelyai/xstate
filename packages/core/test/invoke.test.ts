@@ -1752,8 +1752,6 @@ describe('invoke', () => {
     });
 
     it('should call onError only on the state which has invoked failed service', () => {
-      let errorHandlersCalled = 0;
-
       const errorMachine = createMachine({
         initial: 'start',
         states: {
@@ -1766,44 +1764,49 @@ describe('invoke', () => {
             type: 'parallel',
             states: {
               first: {
-                invoke: {
-                  src: fromCallback(() => {
-                    throw new Error('test');
-                  }),
-                  onError: {
-                    target: 'failed',
-                    guard: () => {
-                      errorHandlersCalled++;
-                      return false;
+                initial: 'waiting',
+                states: {
+                  waiting: {
+                    invoke: {
+                      src: fromCallback(() => {
+                        throw new Error('test');
+                      }),
+                      onError: {
+                        target: 'failed'
+                      }
                     }
-                  }
+                  },
+                  failed: {}
                 }
               },
               second: {
-                invoke: {
-                  src: fromCallback(() => {
-                    // empty
-                  }),
-                  onError: {
-                    target: 'failed',
-                    guard: () => {
-                      errorHandlersCalled++;
-                      return false;
+                initial: 'waiting',
+                states: {
+                  waiting: {
+                    invoke: {
+                      src: fromCallback(() => {
+                        // empty
+                        return () => {};
+                      }),
+                      onError: {
+                        target: 'failed'
+                      }
                     }
-                  }
+                  },
+                  failed: {}
                 }
-              },
-              failed: {
-                type: 'final'
               }
             }
           }
         }
       });
 
-      createActor(errorMachine).start().send({ type: 'FETCH' });
+      const actorRef = createActor(errorMachine).start();
+      actorRef.send({ type: 'FETCH' });
 
-      expect(errorHandlersCalled).toEqual(1);
+      expect(actorRef.getSnapshot().value).toEqual({
+        fetch: { first: 'failed', second: 'waiting' }
+      });
     });
 
     it('should be able to be stringified', () => {
