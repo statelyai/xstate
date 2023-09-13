@@ -7,7 +7,8 @@ import {
   ActorLogic,
   Subscribable,
   Observer,
-  AnyActorRef
+  AnyActorRef,
+  stop
 } from '../src/index.ts';
 import { sendParent, forwardTo } from '../src/actions.ts';
 import { raise } from '../src/actions/raise';
@@ -770,7 +771,7 @@ describe('actors', () => {
     actor.start();
   });
 
-  it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
+  it('should spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
     let spawnCounter = 0;
 
     interface TestContext {
@@ -1316,5 +1317,259 @@ describe('actors', () => {
 
     // Will be 2 if the event observable is resubscribed
     expect(subscriptionCount).toBe(1);
+  });
+
+  it('should be able to restart a spawned actor within a single macrostep', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            })
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop(({ context }) => context.actorRef),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+                    actual.push(`start ${localId}`);
+
+                    return spawn(
+                      fromCallback(() => {
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      })
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actual.length = 0;
+
+    actorRef.send({
+      type: 'update'
+    });
+
+    // TODO: those *likely* should be flipped
+    expect(actual).toEqual(['start 2', 'stop 1']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping a ref', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            {
+              id: 'my_name'
+            }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop((ctx: any) => ctx.actorRef),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+                    actual.push(`start ${localId}`);
+
+                    return spawn(
+                      fromCallback(() => {
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      {
+                        id: 'my_name'
+                      }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actual.length = 0;
+
+    actorRef.send({
+      type: 'update'
+    });
+
+    // TODO: this doesn't stop the actor at all here
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by static id', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            {
+              id: 'my_name'
+            }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop('my_name'),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+                    actual.push(`start ${localId}`);
+
+                    return spawn(
+                      fromCallback(() => {
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      {
+                        id: 'my_name'
+                      }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actual.length = 0;
+
+    actorRef.send({
+      type: 'update'
+    });
+
+    // TODO: those *likely* should be flipped
+    expect(actual).toEqual(['start 2', 'stop 1']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by resolved id', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            {
+              id: 'my_name'
+            }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop(() => 'my_name'),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+                    actual.push(`start ${localId}`);
+
+                    return spawn(
+                      fromCallback(() => {
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      {
+                        id: 'my_name'
+                      }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actual.length = 0;
+
+    actorRef.send({
+      type: 'update'
+    });
+
+    // TODO: those *likely* should be flipped
+    expect(actual).toEqual(['start 2', 'stop 1']);
   });
 });
