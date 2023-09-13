@@ -1441,10 +1441,6 @@ export function resolveActionsAndContext<
         )[typeof action === 'string' ? action : action.type];
 
     if (!resolvedAction) {
-      actorCtx?.system?._sendInspectionEvent({
-        type: '@xstate.action',
-        data: action
-      });
       continue;
     }
 
@@ -1469,18 +1465,9 @@ export function resolveActionsAndContext<
     if (!('resolve' in resolvedAction)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
         resolvedAction(actionArgs);
-        actorCtx?.system?._sendInspectionEvent({
-          type: '@xstate.action',
-          data: action
-        });
       } else {
         actorCtx?.defer(() => {
           resolvedAction(actionArgs);
-
-          actorCtx?.system?._sendInspectionEvent({
-            type: '@xstate.action',
-            data: action
-          });
         });
       }
       continue;
