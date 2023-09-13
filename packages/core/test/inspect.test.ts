@@ -64,10 +64,6 @@ describe('inspect', () => {
       inspect: {
         next(event) {
           events.push(event);
-          // push events to websocket server
-          // server.clients.forEach((client) => {
-          //   client.send(JSON.stringify(event));
-          // });
         }
       }
     });
