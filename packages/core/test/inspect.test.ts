@@ -309,7 +309,6 @@ describe('inspect', () => {
           "targetId": "x:1",
           "type": "@xstate.event",
         },
-        undefined,
         {
           "event": "xstate.done.actor.child",
           "sessionId": "x:1",
