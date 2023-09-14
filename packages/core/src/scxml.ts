@@ -211,10 +211,16 @@ return ${element.attributes!.sendidexpr};
 
       let convertedEvent:
         | EventObject
-        | SendExpr<MachineContext, EventObject, undefined, EventObject>;
+        | SendExpr<
+            MachineContext,
+            EventObject,
+            undefined,
+            EventObject,
+            EventObject
+          >;
       let convertedDelay:
         | number
-        | DelayExpr<MachineContext, EventObject, undefined>
+        | DelayExpr<MachineContext, EventObject, undefined, EventObject>
         | undefined;
 
       const params =

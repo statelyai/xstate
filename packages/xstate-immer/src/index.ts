@@ -13,9 +13,16 @@ export type ImmerAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
   TActor extends ProvidedActor
 > = (
-  args: AssignArgs<Draft<TContext>, TExpressionEvent, TExpressionAction, TActor>
+  args: AssignArgs<
+    Draft<TContext>,
+    TExpressionEvent,
+    TExpressionAction,
+    TEvent,
+    TActor
+  >
 ) => void;
 
 function immerAssign<
@@ -24,22 +31,33 @@ function immerAssign<
   TExpressionAction extends ParameterizedObject | undefined =
     | ParameterizedObject
     | undefined,
+  TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor
 >(
-  recipe: ImmerAssigner<TContext, TExpressionEvent, TExpressionAction, TActor>
+  recipe: ImmerAssigner<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TEvent,
+    TActor
+  >
 ) {
-  return xstateAssign<TContext, TExpressionEvent, TExpressionAction, TActor>(
-    ({ context, ...rest }) => {
-      return produce(
-        context,
-        (draft) =>
-          void recipe({
-            context: draft,
-            ...rest
-          })
-      );
-    }
-  );
+  return xstateAssign<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TEvent,
+    TActor
+  >(({ context, ...rest }) => {
+    return produce(
+      context,
+      (draft) =>
+        void recipe({
+          context: draft,
+          ...rest
+        } as any)
+    );
+  });
 }
 
 export interface ImmerUpdateEvent<
@@ -60,6 +78,7 @@ export function createUpdater<
     TContext,
     TEvent,
     ParameterizedObject | undefined,
+    TEvent,
     TActor
   >
 ) {
@@ -76,6 +95,7 @@ export function createUpdater<
       TContext,
       TEvent,
       ParameterizedObject | undefined, // TODO: not sure if this is correct
+      TEvent,
       TActor
     >(recipe),
     type

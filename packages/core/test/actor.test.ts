@@ -1,28 +1,33 @@
-import {
-  createActor,
-  createMachine,
-  ActorRef,
-  ActorRefFrom,
-  EventObject,
-  ActorLogic,
-  Subscribable,
-  Observer,
-  AnyActorRef,
-  stop
-} from '../src/index.ts';
-import { sendParent, forwardTo } from '../src/actions.ts';
-import { raise } from '../src/actions/raise';
-import { assign } from '../src/actions/assign';
-import { sendTo } from '../src/actions/send';
 import { EMPTY, interval, of } from 'rxjs';
-import { fromTransition } from '../src/actors/transition.ts';
+import { map } from 'rxjs/operators';
+import { forwardTo, sendParent } from '../src/actions.ts';
+import { assign } from '../src/actions/assign';
+import { raise } from '../src/actions/raise';
+import { sendTo } from '../src/actions/send';
+import { fromCallback } from '../src/actors/callback.ts';
 import {
-  fromObservable,
-  fromEventObservable
+  fromEventObservable,
+  fromObservable
 } from '../src/actors/observable.ts';
 import { fromPromise } from '../src/actors/promise.ts';
-import { fromCallback } from '../src/actors/callback.ts';
-import { map } from 'rxjs/operators';
+import { fromTransition } from '../src/actors/transition.ts';
+import {
+  ActorLogic,
+  ActorRef,
+  ActorRefFrom,
+  AnyActorRef,
+  EventObject,
+  Observer,
+  Subscribable,
+  createActor,
+  createMachine,
+  stop,
+  waitFor
+} from '../src/index.ts';
+
+function sleep(ms: number) {
+  return new Promise((res) => setTimeout(res, ms));
+}
 
 describe('spawning machines', () => {
   const context = {
@@ -509,6 +514,118 @@ describe('spawning observables', () => {
     });
 
     observableService.start();
+  });
+
+  it('should notify direct child listeners with final snapshot before it gets stopped', async () => {
+    const intervalActor = fromObservable(() => interval(10));
+
+    const parentMachine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'interval';
+            id: 'childActor';
+            logic: typeof intervalActor;
+          };
+        },
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'childActor',
+              src: 'interval',
+              onSnapshot: {
+                target: 'success',
+                guard: ({ event }) => {
+                  return event.data === 3;
+                }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          interval: intervalActor
+        }
+      }
+    );
+
+    const actorRef = createActor(parentMachine);
+    actorRef.start();
+
+    await waitFor(actorRef, (state) => state.matches('active'));
+
+    const spy = jest.fn();
+
+    actorRef.getSnapshot().children.childActor!.subscribe((data) => {
+      spy(data);
+    });
+
+    await waitFor(actorRef, (state) => !!state.done);
+
+    expect(spy).toHaveBeenCalledWith(3);
+  });
+
+  it('should not notify direct child listeners after it gets stopped', async () => {
+    const intervalActor = fromObservable(() => interval(10));
+
+    const parentMachine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'interval';
+            id: 'childActor';
+            logic: typeof intervalActor;
+          };
+        },
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'childActor',
+              src: 'interval',
+              onSnapshot: {
+                target: 'success',
+                guard: ({ event }) => {
+                  return event.data === 3;
+                }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          interval: intervalActor
+        }
+      }
+    );
+
+    const actorRef = createActor(parentMachine);
+    actorRef.start();
+
+    await waitFor(actorRef, (state) => state.matches('active'));
+
+    const spy = jest.fn();
+
+    actorRef.getSnapshot().children.childActor!.subscribe((data) => {
+      spy(data);
+    });
+
+    await waitFor(actorRef, (state) => !!state.done);
+    spy.mockClear();
+
+    // wait for potential next event from the interval actor
+    await sleep(15);
+
+    expect(spy).not.toHaveBeenCalled();
   });
 });
 
