@@ -148,7 +148,7 @@ export type ActionFunction<
   (
     args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
   ): void;
-  _out_TEvent?: TEvent; // TODO: recheck if we can drop this, it's now observable by `self` so it should be possible to remove it from here
+  _out_TEvent?: TEvent; // TODO: it feels like we should be able to remove this since now `TEvent` is "observable" by `self`
   _out_TActor?: TActor;
   _out_TAction?: TAction;
   _out_TGuard?: TGuard;
