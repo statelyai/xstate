@@ -515,7 +515,7 @@ describe('spawning observables', () => {
     observableService.start();
   });
 
-  it('should notify child listeners of final state before stopping', async () => {
+  it('should notify direct child listeners with final snapshot before it gets stopped', async () => {
     const intervalActor = fromObservable(() => interval(10));
 
     const parentMachine = createMachine(
@@ -569,7 +569,7 @@ describe('spawning observables', () => {
     expect(spy).toHaveBeenCalledWith(3);
   });
 
-  it('should automatically unsubscribe child listeners', async () => {
+  it('should not notify direct child listeners after it gets stopped', async () => {
     const intervalActor = fromObservable(() => interval(10));
 
     const parentMachine = createMachine(
