@@ -22,22 +22,6 @@ import {
   EventFrom
 } from '../src/index.ts';
 
-// const WebSocket = require('ws');
-// const server = new WebSocket.Server({ port: 8080 });
-// Interpreter.defaults.inspect = {
-//   next: (event) => {
-//     console.log('event', event);
-//     server.clients.forEach((client) => {
-//       client.send(JSON.stringify(event));
-//     });
-//   }
-// };
-
-// // after all tests, close websocket server
-// afterAll(() => {
-//   server.close();
-// });
-
 const user = { name: 'David' };
 const fetchMachine = createMachine({
   types: {} as {
@@ -509,7 +493,6 @@ describe('invoke', () => {
       const actor = createActor(mainMachine);
       actor.subscribe({
         complete: () => {
-          actor.system;
           done();
         }
       });
