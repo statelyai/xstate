@@ -7,8 +7,6 @@ import {
   ActorRefFrom,
   TODO
 } from '../types';
-import { isPromiseLike } from '../utils';
-import { createDoneActorEvent, createErrorActorEvent } from '../eventUtils.ts';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
 export interface CallbackInternalState<
@@ -17,7 +15,7 @@ export interface CallbackInternalState<
 > {
   canceled: boolean;
   receivers: Set<(e: TEvent) => void>;
-  dispose: void | (() => void) | Promise<any>;
+  dispose: (() => void) | void;
   input: TInput;
 }
 
@@ -61,7 +59,7 @@ export type InvokeCallback<
   self: CallbackActorRef<TEvent>;
   sendBack: (event: TSentEvent) => void;
   receive: Receiver<TEvent>;
-}) => (() => void) | Promise<any> | void;
+}) => (() => void) | void;
 
 export function fromCallback<TEvent extends EventObject, TInput>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
@@ -71,7 +69,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
     start: (_state, { self, system }) => {
       system.sendTo(self, { type: XSTATE_INIT }, self);
     },
-    transition: (state, event, { self, id, system }) => {
+    transition: (state, event, { self, system }) => {
       if (event.type === XSTATE_INIT) {
         const sendBack = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
@@ -93,26 +91,6 @@ export function fromCallback<TEvent extends EventObject, TInput>(
           receive
         });
 
-        if (isPromiseLike(state.dispose)) {
-          state.dispose.then(
-            (resolved) => {
-              system.sendTo(
-                self._parent,
-                createDoneActorEvent(id, resolved),
-                self
-              );
-              state.canceled = true;
-            },
-            (errorData) => {
-              state.canceled = true;
-              system.sendTo(
-                self._parent,
-                createErrorActorEvent(id, errorData),
-                self
-              );
-            }
-          );
-        }
         return state;
       }
 
