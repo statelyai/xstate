@@ -4,7 +4,6 @@
   "initialVersions": {
     "xstate": "4.7.3",
     "@xstate/analytics": "0.0.1",
-    "@xstate/fsm": "1.1.0",
     "@xstate/graph": "1.0.0",
     "@xstate/immer": "0.0.1",
     "@xstate/react": "1.0.0-rc.0",
@@ -18,9 +17,11 @@
     "@xstate-repo/jest-utils": "0.0.0"
   },
   "changesets": [
+    "beige-pianos-give",
     "beige-schools-smash",
     "bright-hotels-sleep",
     "bright-needles-visit",
+    "calm-experts-design",
     "chatty-monkeys-nail",
     "chatty-parrots-reflect",
     "chatty-ways-perform",
@@ -71,6 +72,7 @@
     "itchy-owls-swim",
     "large-cooks-taste",
     "late-mugs-film",
+    "lazy-panthers-agree",
     "lemon-cycles-cross",
     "lemon-dancers-repeat",
     "lemon-mails-smoke",
@@ -99,6 +101,7 @@
     "pink-pandas-promise",
     "plenty-countries-divide",
     "plenty-dragons-lie",
+    "polite-experts-wash",
     "poor-badgers-explain",
     "poor-bottles-sort",
     "popular-clocks-melt",
@@ -124,7 +127,8 @@
     "shy-cobras-ring",
     "shy-gifts-shake",
     "shy-walls-develop",
-    "six-pans-warn",
+    "silly-chefs-kiss",
+    "silly-chefs-tickle",
     "sixty-hornets-allow",
     "sixty-rules-heal",
     "slow-apples-dance",
@@ -152,7 +156,6 @@
     "twenty-fishes-fix",
     "wise-wombats-invite",
     "witty-hounds-invent",
-    "young-chefs-prove",
     "young-laws-hope"
   ]
 }

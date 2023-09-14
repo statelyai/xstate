@@ -2,18 +2,17 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
+  Actor,
   ActorLogicFrom,
   ActorRef,
   ActorRefFrom,
-  assign,
-  createMachine,
-  DoneEventObject,
-  doneInvoke,
-  createActor,
+  DoneActorEvent,
   PersistedMachineState,
-  raise,
   StateFrom,
-  Actor
+  assign,
+  createActor,
+  createMachine,
+  raise
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
@@ -31,7 +30,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     id: 'fetch',
     types: {} as {
       context: typeof context;
-      events: { type: 'FETCH' } | DoneEventObject;
+      events: { type: 'FETCH' } | DoneActorEvent;
       actors: {
         src: 'fetchData';
         logic: ActorLogicFrom<Promise<string>>;
@@ -67,9 +66,15 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback(({ sendBack }) => {
-          sendBack(doneInvoke('fetchData', 'persisted data'));
-        }) as any // TODO: callback actors don't support output (yet?)
+        fetchData: createMachine({
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final',
+              output: 'persisted data'
+            }
+          }
+        }) as any
       }
     })
   ).start();
@@ -216,7 +221,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
               )
           }),
           on: {
-            [doneInvoke('my-promise')]: 'success'
+            'xstate.done.actor.my-promise': 'success'
           }
         },
         success: {

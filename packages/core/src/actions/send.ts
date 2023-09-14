@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { constantPrefixes, error } from '../actions.ts';
+import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActorRef,
@@ -22,6 +22,7 @@ import {
   ParameterizedObject,
   NoInfer
 } from '../types.ts';
+import { XSTATE_ERROR } from '../constants.ts';
 
 function resolve(
   actorContext: AnyActorContext,
@@ -123,11 +124,8 @@ function execute(
 
   actorContext.defer(() => {
     to.send(
-      event.type === constantPrefixes.error
-        ? {
-            type: `${error(actorContext.self.id)}`,
-            data: (event as any).data
-          }
+      event.type === XSTATE_ERROR
+        ? createErrorActorEvent(actorContext.self.id, (event as any).data)
         : event
     );
   });
@@ -316,7 +314,7 @@ export function escalate<
   return sendParent<TContext, TExpressionEvent, TExpressionAction, EventObject>(
     (arg) => {
       return {
-        type: constantPrefixes.error,
+        type: XSTATE_ERROR,
         data:
           typeof errorData === 'function' ? (errorData as any)(arg) : errorData
       };

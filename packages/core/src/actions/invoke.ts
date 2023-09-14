@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
-import { error } from '../actions.ts';
+import { createErrorActorEvent } from '../eventUtils.ts';
 import { ActorStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
@@ -89,7 +89,7 @@ function execute(
     try {
       actorRef.start?.();
     } catch (err) {
-      (actorContext.self as AnyActor).send(error(id, err));
+      (actorContext.self as AnyActor).send(createErrorActorEvent(id, err));
       return;
     }
   });

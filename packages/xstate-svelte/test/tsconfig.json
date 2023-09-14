@@ -4,6 +4,8 @@
     "strict": true,
     "types": ["jest"],
     "moduleResolution": "node16",
-    "allowImportingTsExtensions": true
+    "module": "node16",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   }
 }

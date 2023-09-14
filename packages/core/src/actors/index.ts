@@ -8,9 +8,13 @@ import type {
 } from '../types.ts';
 import { fromTransition } from './transition.ts';
 export { fromCallback, type CallbackActorLogic } from './callback.ts';
-export { fromEventObservable, fromObservable } from './observable.ts';
+export {
+  fromEventObservable,
+  fromObservable,
+  type ObservableActorLogic
+} from './observable.ts';
 export { fromPromise, type PromiseActorLogic } from './promise.ts';
-export { fromTransition } from './transition.ts';
+export { fromTransition, type TransitionActorLogic } from './transition.ts';
 
 export function isActorRef(item: any): item is ActorRef<any> {
   return !!item && typeof item === 'object' && typeof item.send === 'function';
