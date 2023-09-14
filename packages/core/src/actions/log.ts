@@ -12,17 +12,21 @@ import {
 type ResolvableLogValue<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
-> = string | LogExpr<TContext, TExpressionEvent, TExpressionAction>;
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
+> = string | LogExpr<TContext, TExpressionEvent, TExpressionAction, TEvent>;
 
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   {
     value,
     label
-  }: { value: ResolvableLogValue<any, any, any>; label: string | undefined }
+  }: {
+    value: ResolvableLogValue<any, any, any, any>;
+    label: string | undefined;
+  }
 ) {
   return [
     state,
@@ -47,9 +51,10 @@ function execute(
 export interface LogAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
 }
 
 /**
@@ -63,15 +68,20 @@ export interface LogAction<
 export function log<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 >(
-  value: ResolvableLogValue<TContext, TExpressionEvent, TExpressionAction> = ({
-    context,
-    event
-  }) => ({ context, event }),
+  value: ResolvableLogValue<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TEvent
+  > = ({ context, event }) => ({ context, event }),
   label?: string
-): LogAction<TContext, TExpressionEvent, TExpressionAction> {
-  function log(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
+): LogAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
+  function log(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
