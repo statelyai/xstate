@@ -90,7 +90,7 @@ _Since 0.5.0_
 ```js
 import { useActor } from '@xstate/vue';
 
-const props = defineProps(['someSpawnedActor'])
+const props = defineProps(['someSpawnedActor']);
 
 const { state, send } = useActor(props.someSpawnedActor);
 ```
@@ -247,7 +247,7 @@ const props = defineProps({
     type: Function,
     default: () => {}
   }
-})
+});
 
 const { state, send } = useMachine(fetchMachine, {
   actions: {
