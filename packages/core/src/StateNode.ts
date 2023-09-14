@@ -40,7 +40,7 @@ import {
 
 const EMPTY_OBJECT = {};
 
-const toSerializableActon = (action: UnknownAction) => {
+const toSerializableAction = (action: UnknownAction) => {
   if (typeof action === 'string') {
     return { type: action };
   }
@@ -248,13 +248,13 @@ export class StateNode<
         ? {
             target: this.initial.target,
             source: this,
-            actions: this.initial.actions.map(toSerializableActon),
+            actions: this.initial.actions.map(toSerializableAction),
             eventType: null as any,
             reenter: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
-              actions: this.initial!.actions.map(toSerializableActon),
+              actions: this.initial!.actions.map(toSerializableAction),
               eventType: null as any
             })
           }
@@ -266,10 +266,10 @@ export class StateNode<
       on: this.on,
       transitions: [...this.transitions.values()].flat().map((t) => ({
         ...t,
-        actions: t.actions.map(toSerializableActon)
+        actions: t.actions.map(toSerializableAction)
       })),
-      entry: this.entry.map(toSerializableActon),
-      exit: this.exit.map(toSerializableActon),
+      entry: this.entry.map(toSerializableAction),
+      exit: this.exit.map(toSerializableAction),
       meta: this.meta,
       order: this.order || -1,
       output: this.output,
