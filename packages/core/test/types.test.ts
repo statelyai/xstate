@@ -16,7 +16,9 @@ import {
   not,
   stateIn,
   sendTo,
-  ProvidedActor
+  ProvidedActor,
+  Action,
+  ParameterizedObject
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -4128,6 +4130,103 @@ describe('fromCallback', () => {
           return undefined;
         })
       }
+    });
+  });
+});
+
+describe('self', () => {
+  it('should accept correct event types in an inline entry custom action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      entry: ({ self }) => {
+        self.send({ type: 'FOO' });
+        self.send({ type: 'BAR' });
+        // @ts-expect-error
+        self.send({ type: 'BAZ' });
+      }
+    });
+  });
+
+  it('should accept correct event types in an inline entry builtin action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      entry: assign(({ self }) => {
+        self.send({ type: 'FOO' });
+        self.send({ type: 'BAR' });
+        // @ts-expect-error
+        self.send({ type: 'BAZ' });
+        return {};
+      })
+    });
+  });
+
+  it('should accept correct event types in an inline transition custom action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      on: {
+        FOO: {
+          actions: ({ self }) => {
+            self.send({ type: 'FOO' });
+            self.send({ type: 'BAR' });
+            // @ts-expect-error
+            self.send({ type: 'BAZ' });
+          }
+        }
+      }
+    });
+  });
+
+  it('should accept correct event types in an inline transition builtin action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      on: {
+        FOO: {
+          actions: assign(({ self }) => {
+            self.send({ type: 'FOO' });
+            self.send({ type: 'BAR' });
+            // @ts-expect-error
+            self.send({ type: 'BAZ' });
+            return {};
+          })
+        }
+      }
+    });
+  });
+
+  it('should return correct snapshot in an inline entry custom action', () => {
+    createMachine({
+      types: {} as {
+        context: { count: number };
+      },
+      context: { count: 0 },
+      entry: ({ self }) => {
+        ((_accept: number) => {})(self.getSnapshot().count);
+        // @ts-expect-error
+        ((_accept: string) => {})(self.getSnapshot().count);
+      }
+    });
+  });
+
+  it('should return correct snapshot in an inline entry builtin action', () => {
+    createMachine({
+      types: {} as {
+        context: { count: number };
+      },
+      context: { count: 0 },
+      entry: assign(({ self }) => {
+        ((_accept: number) => {})(self.getSnapshot().count);
+        // @ts-expect-error
+        ((_accept: string) => {})(self.getSnapshot().count);
+        return {};
+      })
     });
   });
 });
