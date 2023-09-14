@@ -3,7 +3,6 @@ import {
   createActor,
   createMachine,
   fromPromise,
-  createActor,
   sendParent,
   sendTo,
   waitFor
