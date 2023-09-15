@@ -2289,5 +2289,3 @@ export type InspectionEvent =
   | ActorRegistrationEvent;
 
 export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
-
-export type InspectorActorRef = ActorRef<InspectionEvent>;
