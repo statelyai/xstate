@@ -209,7 +209,7 @@ export class Actor<
   // array of functions to defer
   private _deferred: Array<() => void> = [];
 
-  private update(state: InternalStateFrom<TLogic>, event: TEvent): void {
+  private update(state: InternalStateFrom<TLogic>, event: EventObject): void {
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
