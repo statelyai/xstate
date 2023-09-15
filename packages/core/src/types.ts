@@ -2282,7 +2282,6 @@ export interface ActorRegistrationEvent {
   actorRef: AnyActorRef;
   sessionId: string;
   parentId?: string;
-  definition?: string; // JSON-stringified definition or URL
 }
 
 export type InspectionEvent =
