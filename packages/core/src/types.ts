@@ -2225,7 +2225,6 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     event: AnyEventObject,
     source: AnyActorRef | undefined
   ) => void;
-  root: AnyActorRef;
 }
 
 export type AnyActorSystem = ActorSystem<any>;

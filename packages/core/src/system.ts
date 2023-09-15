@@ -2,11 +2,9 @@ import {
   ActorSystem,
   ActorSystemInfo,
   AnyActorRef,
-  InspectionEvent,
   Observer,
   ResolvedInspectionEvent
 } from './types.ts';
-import { uniqueId } from './utils.ts';
 
 let systemCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
@@ -18,7 +16,6 @@ export function createSystem<T extends ActorSystemInfo>(
   const observers = new Set<Observer<ResolvedInspectionEvent>>();
 
   const system: ActorSystem<T> = {
-    root: rootActor,
     _bookId: (name: string = 'x') => `${name}:${systemCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
@@ -55,7 +52,7 @@ export function createSystem<T extends ActorSystemInfo>(
         id: Math.random().toString(),
         createdAt: new Date().toString(),
         ...event,
-        actorSystemId: system.root.sessionId
+        actorSystemId: rootActor.sessionId
       };
       observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
     },
