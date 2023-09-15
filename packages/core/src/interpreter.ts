@@ -149,7 +149,7 @@ export class Actor<
 
     this.system = parent?.system ?? createSystem(this);
 
-    if (inspect) {
+    if (inspect && !parent) {
       // Always inspect at the system-level
       this.system.inspect(inspect);
     }
