@@ -19,7 +19,7 @@ export function createSystem<T extends ActorSystemInfo>(
 
   const system: ActorSystem<T> = {
     root: rootActor,
-    _bookId: (name: string = 'x') => `${name}:${systemCounter++}`,
+    _bookId: () => `x:${systemCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
       return sessionId;
