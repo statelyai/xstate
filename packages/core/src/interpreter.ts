@@ -64,7 +64,6 @@ export enum ActorStatus {
 export const InterpreterStatus = ActorStatus;
 
 const defaultOptions = {
-  deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
       return setTimeout(fn, ms);
@@ -496,17 +495,6 @@ export class Actor<
         );
       }
       return;
-    }
-
-    if (this.status !== ActorStatus.Running && !this.options.deferEvents) {
-      throw new Error(
-        `Event "${event.type}" was sent to uninitialized actor "${
-          this.id
-          // tslint:disable-next-line:max-line-length
-        }". Make sure .start() is called for this actor, or set { deferEvents: true } in the actor options.\nEvent: ${JSON.stringify(
-          event
-        )}`
-      );
     }
 
     this.mailbox.enqueue(event);
