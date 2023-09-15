@@ -669,44 +669,10 @@ describe('interpreter', () => {
     });
   });
 
-  it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock(),
-      deferEvents: false
-    });
+  it('should not throw an error if an event is sent to an uninitialized interpreter', () => {
+    const actorRef = createActor(lightMachine);
 
-    expect(() => service.send({ type: 'SOME_EVENT' })).toThrowError(
-      /uninitialized/
-    );
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-  });
-
-  it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock(),
-      deferEvents: true
-    });
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-  });
-
-  it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock()
-    });
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
+    expect(() => actorRef.send({ type: 'SOME_EVENT' })).not.toThrow();
   });
 
   it('should defer events sent to an uninitialized service', (done) => {

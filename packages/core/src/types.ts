@@ -1734,14 +1734,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   logger?: (...args: any[]) => void;
   parent?: ActorRef<any>;
   /**
-   * If `true`, defers processing of sent events until the service
-   * is initialized (`.start()`). Otherwise, an error will be thrown
-   * for events sent to an uninitialized service.
-   *
-   * Default: `true`
-   */
-  deferEvents?: boolean;
-  /**
    * The custom `id` for referencing this service.
    */
   id?: string;
