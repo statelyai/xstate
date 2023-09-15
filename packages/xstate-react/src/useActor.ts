@@ -9,13 +9,17 @@ import {
   SnapshotFrom
 } from 'xstate';
 import { useIdleInterpreter } from './useActorRef.ts';
-import { isActorRef } from 'xstate/actors';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options: ActorOptions<TLogic> = {}
 ): [SnapshotFrom<TLogic>, ActorRefFrom<TLogic>['send'], ActorRefFrom<TLogic>] {
-  if (isDevelopment && isActorRef(logic)) {
+  if (
+    isDevelopment &&
+    !!logic &&
+    'send' in logic &&
+    typeof logic.send === 'function'
+  ) {
     throw new Error(
       `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
     );
