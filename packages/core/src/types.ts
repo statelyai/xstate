@@ -1833,6 +1833,8 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
    */
   id: string;
   sessionId: string;
+  /** @internal */
+  _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
   // TODO: should this be optional?
   start?: () => void;
