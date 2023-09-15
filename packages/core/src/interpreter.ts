@@ -193,7 +193,6 @@ export class Actor<
       type: '@xstate.actor',
       actorRef: this,
       sessionId: this.sessionId,
-      // definition: JSON.stringify(this.logic.config),
       parentId: this._parent?.sessionId
     });
     this._initState();
