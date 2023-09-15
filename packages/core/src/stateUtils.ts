@@ -298,7 +298,12 @@ export function getDelayedTransitions(
     delay:
       | string
       | number
-      | DelayExpr<MachineContext, EventObject, ParameterizedObject | undefined>,
+      | DelayExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject | undefined,
+          EventObject
+        >,
     i: number
   ) => {
     const delayRef =
@@ -1395,7 +1400,7 @@ interface BuiltinAction {
   resolve: (
     actorContext: AnyActorContext,
     state: AnyState,
-    actionArgs: ActionArgs<any, any, any>,
+    actionArgs: ActionArgs<any, any, any, any>,
     action: unknown
   ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
   execute: (actorContext: AnyActorContext, params: unknown) => void;
