@@ -465,26 +465,8 @@ export class Actor<
     return this;
   }
 
-  /**
-   * Sends an event to the running Actor to trigger a transition.
-   *
-   * @param event The event to send
-   */
-  public send(event: TEvent) {
-    if (typeof event === 'string') {
-      throw new Error(
-        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
-      );
-    }
-    if (!('__id' in event)) {
-      this.system._sendInspectionEvent({
-        type: '@xstate.event',
-        event,
-        sourceId: undefined,
-        targetId: this.sessionId
-      });
-    }
-
+  /** @internal */
+  public _send(event: TEvent) {
     if (this.status === ActorStatus.Stopped) {
       // do nothing
       if (isDevelopment) {
@@ -498,6 +480,26 @@ export class Actor<
     }
 
     this.mailbox.enqueue(event);
+  }
+
+  /**
+   * Sends an event to the running Actor to trigger a transition.
+   *
+   * @param event The event to send
+   */
+  public send(event: TEvent) {
+    if (typeof event === 'string') {
+      throw new Error(
+        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
+      );
+    }
+    this.system._sendInspectionEvent({
+      type: '@xstate.event',
+      event,
+      sourceId: undefined,
+      targetId: this.sessionId
+    });
+    this._send(event);
   }
 
   // TODO: make private (and figure out a way to do this within the machine)

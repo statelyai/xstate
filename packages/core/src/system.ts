@@ -60,8 +60,6 @@ export function createSystem<T extends ActorSystemInfo>(
       observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
     },
     sendTo: (target, event, source) => {
-      const sourceId = source?.sessionId;
-      const id = `${sourceId ?? 'anon'}--${Math.random().toString()}`;
       system._sendInspectionEvent({
         type: '@xstate.event',
         event,
@@ -69,13 +67,7 @@ export function createSystem<T extends ActorSystemInfo>(
         sourceId: source?.sessionId
       });
 
-      Object.defineProperty(event, '__id', {
-        value: id,
-        enumerable: false,
-        writable: true
-      });
-
-      target?.send(event);
+      target?._send(event);
     }
   };
 
