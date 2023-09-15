@@ -493,13 +493,7 @@ export class Actor<
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
     }
-    this.system._sendInspectionEvent({
-      type: '@xstate.event',
-      event,
-      sourceId: undefined,
-      targetId: this.sessionId
-    });
-    this._send(event);
+    this.system.sendTo(this, event, undefined);
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
