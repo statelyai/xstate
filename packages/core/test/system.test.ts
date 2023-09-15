@@ -126,7 +126,7 @@ describe('system', () => {
     expect(actor.system.get('test')).toBe(actor);
   });
 
-  it('should remove invoked actor from receptionist if stopped', () => {
+  it('should NOT remove invoked actor from receptionist if stopped', () => {
     const machine = createMachine({
       initial: 'active',
       states: {
@@ -149,10 +149,10 @@ describe('system', () => {
 
     actor.send({ type: 'toggle' });
 
-    expect(actor.system.get('test')).toBeUndefined();
+    expect(actor.system.get('test')).toBeDefined();
   });
 
-  it('should remove spawned actor from receptionist if stopped', () => {
+  it('should NOT remove spawned actor from receptionist if stopped', () => {
     const machine = createMachine({
       context: ({ spawn }) => ({
         ref: spawn(createMachine({}), {
@@ -172,7 +172,7 @@ describe('system', () => {
 
     actor.send({ type: 'toggle' });
 
-    expect(actor.system.get('test')).toBeUndefined();
+    expect(actor.system.get('test')).toBeDefined();
   });
 
   it('should throw an error if an actor with the system ID already exists', () => {
@@ -398,5 +398,74 @@ describe('system', () => {
     const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
+  });
+
+  it('system actor should be immediately available', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          return 42;
+        }),
+        systemId: 'test'
+      }
+    });
+
+    const actor = createActor(machine);
+    expect(actor.system.get('test')).toBeDefined();
+  });
+
+  it('system actor should observe newly registered actors', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            10: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: fromPromise(async () => {
+              return 42;
+            }),
+            systemId: 'test'
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+
+    const sub = actor.system.subscribe(() => {
+      if (actor.system.get('test') !== undefined) {
+        sub.unsubscribe();
+        done();
+      }
+    });
+
+    actor.start();
+  });
+
+  it('system actor should observe initially started actors', (done) => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(async () => {
+          return 42;
+        }),
+        systemId: 'test'
+      }
+    });
+
+    const actor = createActor(machine);
+
+    const sub = actor.system.subscribe(() => {
+      if (actor.system.get('test') !== undefined) {
+        sub.unsubscribe();
+        done();
+      }
+    });
+
+    actor.start();
   });
 });

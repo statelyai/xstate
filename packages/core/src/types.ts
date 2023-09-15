@@ -1733,6 +1733,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   clock?: Clock;
   logger?: (...args: any[]) => void;
   parent?: ActorRef<any>;
+  system?: AnyActorSystem | null; // null means the actor itself is the system actor
   /**
    * The custom `id` for referencing this service.
    */
@@ -2190,11 +2191,14 @@ export interface ActorSystemInfo {
   actors: Record<string, AnyActorRef>;
 }
 
-export interface ActorSystem<T extends ActorSystemInfo> {
+export interface ActorSystem<T extends ActorSystemInfo>
+  extends ActorRef<any, any> {
+  id: string;
   _bookId: () => string;
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  _stop: () => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
 }
 
