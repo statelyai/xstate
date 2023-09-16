@@ -2196,19 +2196,19 @@ export interface ActorSystemInfo {
 
 export interface ActorSystem<T extends ActorSystemInfo> {
   /**
-   * @private
+   * @internal
    */
   _bookId: () => string;
   /**
-   * @private
+   * @internal
    */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
   /**
-   * @private
+   * @internal
    */
   _unregister: (actorRef: AnyActorRef) => void;
   /**
-   * @private
+   * @internal
    */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
