@@ -2214,10 +2214,10 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   inspect: (observer: Observer<InspectionEvent>) => void;
   _sendInspectionEvent: (event: InspectionEvent) => void;
-  sendTo: (
-    target: AnyActorRef | undefined,
+  relay: (
     event: AnyEventObject,
-    source: AnyActorRef | undefined
+    source: AnyActorRef | undefined,
+    target: AnyActorRef | undefined
   ) => void;
   root: AnyActorRef;
 }

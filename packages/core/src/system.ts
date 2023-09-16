@@ -59,7 +59,7 @@ export function createSystem<T extends ActorSystemInfo>(
       };
       observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
     },
-    sendTo: (target, event, source) => {
+    relay: (event, source, target) => {
       system._sendInspectionEvent({
         type: '@xstate.event',
         event,

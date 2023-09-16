@@ -234,16 +234,16 @@ export class Actor<
         this._stopProcedure();
         this._complete();
         this._doneEvent = createDoneActorEvent(this.id, status.data);
-        this.system.sendTo(this._parent, this._doneEvent, this);
+        this.system.relay(this._doneEvent, this, this._parent);
 
         break;
       case 'error':
         this._stopProcedure();
         this._error(status.data);
-        this.system.sendTo(
-          this._parent,
+        this.system.relay(
           createErrorActorEvent(this.id, status.data),
-          this
+          this,
+          this._parent
         );
         break;
     }
@@ -491,7 +491,7 @@ export class Actor<
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
     }
-    this.system.sendTo(this, event, undefined);
+    this.system.relay(event, undefined, this);
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
@@ -507,7 +507,7 @@ export class Actor<
     to?: AnyActorRef;
   }): void {
     const timerId = this.clock.setTimeout(() => {
-      this.system.sendTo(to ?? this, event as TEvent, this);
+      this.system.relay(event as TEvent, this, to ?? this);
     }, delay);
 
     // TODO: consider the rehydration story here
