@@ -13,6 +13,7 @@ import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
+import { InspectionEvent } from './system.js';
 
 /**
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
@@ -2235,39 +2236,3 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
     };
   };
 };
-
-export interface BaseInspectionEvent {
-  rootId: string; // the session ID of the root
-  createdAt: string; // Timestamp
-  id: string; // unique string for this actor update
-}
-
-export interface InspectedSnapshotEvent {
-  type: '@xstate.snapshot';
-  snapshot: any;
-  event: AnyEventObject; // { type: string, ... }
-  status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped
-  sessionId: string;
-  actorRef: AnyActorRef; // Only available locally
-}
-
-export interface InspectedEventEvent {
-  type: '@xstate.event';
-  event: AnyEventObject; // { type: string, ... }
-  sourceId: string | undefined; // Session ID
-  targetId: string; // Session ID, required
-}
-
-export interface InspectedActorEvent {
-  type: '@xstate.actor';
-  actorRef: AnyActorRef;
-  sessionId: string;
-  parentId?: string;
-}
-
-export type InspectionEvent =
-  | InspectedSnapshotEvent
-  | InspectedEventEvent
-  | InspectedActorEvent;
-
-export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
