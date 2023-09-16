@@ -86,8 +86,6 @@ export class Actor<
   TEvent extends EventObject = EventFromLogic<TLogic>
 > implements ActorRef<TEvent, SnapshotFrom<TLogic>>
 {
-  public static defaults = defaultOptions as Partial<ActorOptions<any>> &
-    typeof defaultOptions;
   /**
    * The current internal state of the actor.
    */
@@ -140,9 +138,9 @@ export class Actor<
    */
   constructor(public logic: TLogic, options?: ActorOptions<TLogic>) {
     const resolvedOptions = {
-      ...Actor.defaults,
+      ...defaultOptions,
       ...options
-    } as ActorOptions<TLogic> & typeof Actor.defaults;
+    } as ActorOptions<TLogic> & typeof defaultOptions;
 
     const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
 
