@@ -25,22 +25,22 @@ templates.forEach(function (template) {
   cp.execSync('pnpm update', { cwd: templateDir, stdio: 'inherit' });
 });
 
-// examples.forEach(function (example) {
-//   console.log('Updating example: ' + example);
-//   const dirPath = path.join(examplesDir, example);
+examples.forEach(function (example) {
+  console.log('Updating example: ' + example);
+  const dirPath = path.join(examplesDir, example);
 
-//   if (!fs.existsSync(path.join(dirPath, 'package.json'))) {
-//     console.log('Skipping ' + example + ' (no package.json)');
-//     return;
-//   }
+  if (!fs.existsSync(path.join(dirPath, 'package.json'))) {
+    console.log('Skipping ' + example + ' (no package.json)');
+    return;
+  }
 
-//   const exampleDir = path.join(
-//     path.resolve(__dirname, '..', 'examples', example)
-//   );
+  const exampleDir = path.join(
+    path.resolve(__dirname, '..', 'examples', example)
+  );
 
-//   try {
-//     cp.execSync('pnpm update', { cwd: exampleDir, stdio: 'inherit' });
-//   } catch (err) {
-//     console.error(err);
-//   }
-// });
+  try {
+    cp.execSync('pnpm update', { cwd: exampleDir, stdio: 'inherit' });
+  } catch (err) {
+    console.error(err);
+  }
+});
