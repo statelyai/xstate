@@ -159,7 +159,8 @@ export class StateNode<
       TODO, // output
       TODO, // guards
       TODO, // delays
-      TODO // tags
+      TODO, // tags
+      string // TStringLiteral
     >,
     options: StateNodeOptions<TContext, TEvent>
   ) {
@@ -293,6 +294,7 @@ export class StateNode<
       ProvidedActor,
       ParameterizedObject,
       ParameterizedObject,
+      string,
       string
     >
   > {
@@ -337,6 +339,7 @@ export class StateNode<
           ProvidedActor,
           ParameterizedObject,
           ParameterizedObject,
+          string,
           string
         >;
       })

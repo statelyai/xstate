@@ -55,7 +55,8 @@ export interface TestStateNodeConfig<
       ParameterizedObject,
       TODO,
       TODO,
-      TODO
+      TODO,
+      string
     >,
     | 'type'
     | 'history'
@@ -169,7 +170,16 @@ export interface TestTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
-> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, string> {
+> extends TransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    string,
+    string
+  > {
   test?: (
     state: State<TContext, TEvent, any, any, any, any>,
     testContext: TTestContext

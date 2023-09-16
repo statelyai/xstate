@@ -59,8 +59,10 @@ export function createMachine<
     TDelay,
     TTag,
     TInput,
-    TOutput
-  >
+    TOutput,
+    TStringLiteral
+  >,
+  TStringLiteral extends string
 >(
   config: InferenceSource<
     TContext,
