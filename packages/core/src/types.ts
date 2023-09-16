@@ -2237,7 +2237,7 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
 };
 
 export interface BaseInspectionEvent {
-  actorSystemId: string; // the session ID of the root
+  rootId: string; // the session ID of the root
   createdAt: string; // Timestamp
   id: string; // unique string for this actor update
 }

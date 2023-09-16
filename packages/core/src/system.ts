@@ -55,7 +55,7 @@ export function createSystem<T extends ActorSystemInfo>(
         id: Math.random().toString(),
         createdAt: new Date().toString(),
         ...event,
-        actorSystemId: system.root.sessionId
+        rootId: system.root.sessionId
       };
       observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
     },
