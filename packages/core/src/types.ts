@@ -161,7 +161,7 @@ export interface ChooseBranch<
   TDelay extends string = string,
   TStringLiteral extends string = string
 > {
-  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard, TStringLiteral>;
   actions: Actions<
     TContext,
     TExpressionEvent,
@@ -188,24 +188,29 @@ type ConditionalRequired<T, Condition extends boolean> = Condition extends true
 export type WithDynamicParams<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  T extends ParameterizedObject
-> = T extends any
-  ? ConditionalRequired<
-      {
-        type: T['type'];
-        params?:
-          | T['params']
-          | (({
-              context,
-              event
-            }: {
-              context: TContext;
-              event: TExpressionEvent;
-            }) => T['params']);
-      },
-      undefined extends T['params'] ? false : true
-    >
-  : never;
+  T extends ParameterizedObject,
+  TStringLiteral extends string
+> = T['type'] extends any
+  ? T extends any
+    ? ConditionalRequired<
+        {
+          type: T['type'];
+          params?:
+            | T['params']
+            | (({
+                context,
+                event
+              }: {
+                context: TContext;
+                event: TExpressionEvent;
+              }) => T['params']);
+        },
+        undefined extends T['params'] ? false : true
+      >
+    : never
+  : {
+      type: TStringLiteral;
+    };
 
 export type Action<
   TContext extends MachineContext,
@@ -221,7 +226,7 @@ export type Action<
   // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
   // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice
   | NoRequiredParams<TAction>
-  | WithDynamicParams<TContext, TExpressionEvent, TAction>
+  | WithDynamicParams<TContext, TExpressionEvent, TAction, TStringLiteral>
   | ActionFunction<
       TContext,
       TExpressionEvent,
@@ -295,7 +300,7 @@ export interface TransitionConfig<
   TDelay extends string,
   TStringLiteral extends string
 > {
-  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard, TStringLiteral>;
   actions?: Actions<
     TContext,
     TExpressionEvent,
@@ -1262,7 +1267,8 @@ type MachineImplementationsGuards<
     TContext,
     MaybeNarrowedEvent<TIndexedEvents, TEventsCausingGuards, K>,
     Cast<TIndexedGuards[K], ParameterizedObject>,
-    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>
+    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>,
+    string
   >;
 };
 
