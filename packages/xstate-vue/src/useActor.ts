@@ -1,47 +1,39 @@
-import { ActorRef, EventObject, SnapshotFrom } from 'xstate';
-import { shallowRef, isRef, watch, Ref } from 'vue';
+import { Ref, shallowRef } from 'vue';
+import {
+  ActorLogic,
+  ActorRefFrom,
+  AnyActorLogic,
+  EventFrom,
+  SnapshotFrom
+} from 'xstate';
+import { UseActorRefRestParams, useActorRef } from './useActorRef.ts';
 
-const noop = () => {
-  /* ... */
-};
-
-export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: TActor | Ref<TActor>
+export function useActor<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  ...[options = {}]: UseActorRefRestParams<TLogic>
 ): {
-  state: Ref<SnapshotFrom<TActor>>;
-  send: TActor['send'];
-};
-export function useActor<TEvent extends EventObject, TSnapshot>(
-  actorRef: ActorRef<TEvent, TSnapshot> | Ref<ActorRef<TEvent, TSnapshot>>
-): { state: Ref<TSnapshot>; send: (event: TEvent) => void };
-export function useActor(
-  actorRef: ActorRef<EventObject, unknown> | Ref<ActorRef<EventObject, unknown>>
-): {
-  state: Ref<unknown>;
-  send: (event: EventObject) => void;
+  snapshot: Ref<SnapshotFrom<TLogic>>;
+  send: (event: EventFrom<TLogic>) => void;
+  actorRef: ActorRefFrom<TLogic>;
 } {
-  const actorRefRef = isRef(actorRef) ? actorRef : shallowRef(actorRef);
-  const state = shallowRef(actorRefRef.value.getSnapshot());
-
-  const send: typeof actorRefRef.value.send = (event) => {
-    actorRefRef.value.send(event);
-  };
-
-  watch(
-    actorRefRef,
-    (newActor, _, onCleanup) => {
-      state.value = newActor.getSnapshot();
-      const { unsubscribe } = newActor.subscribe({
-        next: (emitted) => (state.value = emitted),
-        error: noop,
-        complete: noop
-      });
-      onCleanup(() => unsubscribe());
-    },
-    {
-      immediate: true
+  if (process.env.NODE_ENV !== 'production') {
+    if ('send' in actorLogic && typeof actorLogic.send === 'function') {
+      throw new Error(
+        `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
+      );
     }
-  );
+  }
 
-  return { state, send };
+  function listener(nextState: SnapshotFrom<TLogic>) {
+    snapshot.value = nextState;
+  }
+
+  const actorRef = useActorRef(actorLogic, options, listener as any);
+  const snapshot = shallowRef(actorRef.getSnapshot());
+
+  return {
+    snapshot,
+    send: actorRef.send,
+    actorRef: actorRef as ActorRefFrom<TLogic>
+  };
 }

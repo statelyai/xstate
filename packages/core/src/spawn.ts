@@ -52,7 +52,9 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
         systemId?: string;
         input?: unknown;
       }
-    ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
+    ) => TLogic extends string
+      ? AnyActorRef
+      : ActorRefFrom<Exclude<TLogic, string>>;
 
 export function createSpawner(
   actorContext: AnyActorContext,

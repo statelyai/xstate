@@ -20,7 +20,7 @@ import {
   fromObservable,
   fromEventObservable
 } from '../src/actors/observable.ts';
-import { fromPromise } from '../src/actors/promise.ts';
+import { PromiseActorLogic, fromPromise } from '../src/actors/promise.ts';
 import { fromCallback } from '../src/actors/callback.ts';
 import { map } from 'rxjs/operators';
 
@@ -891,7 +891,7 @@ describe('actors', () => {
     let spawnCounter = 0;
 
     interface TestContext {
-      promise?: ActorRefFrom<Promise<string>>;
+      promise?: ActorRefFrom<PromiseActorLogic<string>>;
     }
 
     const child = createMachine({
@@ -1080,7 +1080,9 @@ describe('actors', () => {
     it('should work with a promise logic (fulfill)', (done) => {
       const countMachine = createMachine({
         types: {} as {
-          context: { count: ActorRefFrom<Promise<number>> | undefined };
+          context: {
+            count: ActorRefFrom<PromiseActorLogic<number>> | undefined;
+          };
         },
         context: {
           count: undefined
@@ -1125,7 +1127,9 @@ describe('actors', () => {
     it('should work with a promise logic (reject)', (done) => {
       const errorMessage = 'An error occurred';
       const countMachine = createMachine({
-        types: {} as { context: { count: ActorRefFrom<Promise<number>> } },
+        types: {} as {
+          context: { count: ActorRefFrom<PromiseActorLogic<number>> };
+        },
         context: ({ spawn }) => ({
           count: spawn(
             fromPromise(

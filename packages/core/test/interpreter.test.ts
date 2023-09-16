@@ -1674,7 +1674,7 @@ describe('interpreter', () => {
         initial: 'present',
         context: {} as {
           machineRef: ActorRefFrom<typeof childMachine>;
-          promiseRef: ActorRefFrom<typeof fromPromise>;
+          promiseRef: ActorRefFrom<PromiseActorLogic<any>>;
           observableRef: ActorRef<any, any>;
         },
         entry: assign({

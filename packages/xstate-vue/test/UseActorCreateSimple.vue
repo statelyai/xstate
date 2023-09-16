@@ -1,10 +1,7 @@
 <template>
   <div>
     <div data-testid="state">{{ state }}</div>
-    <button
-      data-testid="button"
-      @click="actor = createSimpleActor(100)"
-    ></button>
+    <button data-testid="button" @click="actor = createSimpleActor(100)"></button>
   </div>
 </template>
 
@@ -12,7 +9,7 @@
 import { ActorRef } from 'xstate';
 import { defineComponent, shallowRef } from 'vue';
 
-import { useActor } from '../src/index.ts';
+import { useSelector } from '../src/index.ts';
 import { createActor } from 'xstate';
 
 const createSimpleActor = (value: number): ActorRef<any, number> =>
@@ -32,7 +29,7 @@ const createSimpleActor = (value: number): ActorRef<any, number> =>
 export default defineComponent({
   setup() {
     const actor = shallowRef(createSimpleActor(42));
-    const { state } = useActor(actor);
+    const state = useSelector(actor, s => s)
 
     return { actor, state, createSimpleActor };
   }

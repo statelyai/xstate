@@ -21,7 +21,7 @@ const simpleActor: ActorRef<any, number> = createActor({
 
 export default defineComponent({
   setup() {
-    const state = useSelector(simpleActor, s => s);
+    const state = useSelector(simpleActor, s => s)
     return { state };
   }
 });

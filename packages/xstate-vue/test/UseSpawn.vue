@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts">
-import { useActor, useSpawn } from '../src/index.ts';
+import { useSelector, useActorRef } from '../src/index.ts';
 import { fromTransition } from 'xstate/actors';
 import { defineComponent } from 'vue';
 
@@ -20,10 +20,10 @@ const logic = fromTransition(reducer, 0);
 
 export default defineComponent({
   setup() {
-    const actorRef = useSpawn(logic);
-    const { state: count, send } = useActor(actorRef);
+    const actorRef = useActorRef(logic);
+    const count = useSelector(actorRef, (s) => s);
 
-    return { count, send };
+    return { count, send: actorRef.send };
   }
 });
 </script>

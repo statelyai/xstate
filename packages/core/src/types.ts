@@ -1856,7 +1856,12 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
+export type ActorRefFrom<T extends AnyActorLogic> = ActorRef<
+  EventFromLogic<T>,
+  SnapshotFrom<T>
+>;
+
+export type ActorRefFrom2<T> = T extends infer R
   ? R extends StateMachine<
       infer TContext,
       infer TEvent,
