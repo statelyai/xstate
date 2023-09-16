@@ -2236,25 +2236,13 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
   };
 };
 
-export interface InspectedActorObject {
-  actorRef: AnyActorRef; // local-only
-  sessionId: string;
-  parentId?: string; // Session ID
-  systemId?: string; // Session ID
-  events: ActorCommunicationEvent[]; // events where targetId === sessionId
-  definition?: string; // JSON-stringified machine definition or URL
-  createdAt: number; // Timestamp
-  updatedAt: number; // Timestamp, derived from latest update createdAt
-  status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped, derived from latest update status
-}
-
 export interface BaseInspectionEvent {
   actorSystemId: string; // the session ID of the root
   createdAt: string; // Timestamp
   id: string; // unique string for this actor update
 }
 
-export interface ActorTransitionEvent {
+export interface InspectedSnapshotEvent {
   type: '@xstate.snapshot';
   snapshot: any;
   event: AnyEventObject; // { type: string, ... }
@@ -2263,14 +2251,14 @@ export interface ActorTransitionEvent {
   actorRef: AnyActorRef; // Only available locally
 }
 
-export interface ActorCommunicationEvent {
+export interface InspectedEventEvent {
   type: '@xstate.event';
   event: AnyEventObject; // { type: string, ... }
   sourceId: string | undefined; // Session ID
   targetId: string; // Session ID, required
 }
 
-export interface ActorRegistrationEvent {
+export interface InspectedActorEvent {
   type: '@xstate.actor';
   actorRef: AnyActorRef;
   sessionId: string;
@@ -2278,8 +2266,8 @@ export interface ActorRegistrationEvent {
 }
 
 export type InspectionEvent =
-  | ActorTransitionEvent
-  | ActorCommunicationEvent
-  | ActorRegistrationEvent;
+  | InspectedSnapshotEvent
+  | InspectedEventEvent
+  | InspectedActorEvent;
 
 export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
