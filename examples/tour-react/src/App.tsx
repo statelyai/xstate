@@ -3,6 +3,9 @@ import { StatePath, getShortestPaths } from '@xstate/graph';
 import { useActor } from '@xstate/react';
 import { createMachine } from 'xstate';
 import { Checklist } from './Checklist';
+import { Button } from './components/ui/button';
+import { Popover } from './components/ui/popover';
+import { PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 
 const tourMachine = createMachine({
   id: 'tour',
@@ -11,24 +14,24 @@ const tourMachine = createMachine({
     intro: {
       description: 'The first step in the tour',
       on: {
-        next: { target: 'second', meta: { title: 'Next' } }
+        next: { target: 'second' }
       }
     },
 
     second: {
       description: 'The second step in the tour',
       on: {
-        next: { target: 'third', meta: { title: 'Keep going' } },
-        back: { target: 'intro', meta: { title: 'Go back' } }
+        next: { target: 'third' },
+        back: { target: 'intro' }
       }
     },
 
     third: {
       description: 'The third step in the tour',
       on: {
-        restart: { target: 'intro', meta: { title: 'Start over' } },
-        back: { target: 'second', meta: { title: 'Go back' } },
-        finish: { target: 'done', meta: { title: 'Finish' } }
+        restart: { target: 'intro' },
+        back: { target: 'second' },
+        finish: { target: 'done' }
       }
     },
     done: {
@@ -97,47 +100,59 @@ function App() {
 
   return (
     <div>
-      <Checklist />
-      <div
-        style={{
-          padding: '1rem',
-          background: 'white',
-          borderRadius: '.5rem',
-          color: '#111',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch',
-          gap: '1rem'
-        }}
-      >
-        <h2>{description}</h2>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: '1rem',
-            justifyContent: 'center'
-          }}
-        >
-          {nextTransitions.map((t) => {
-            return (
-              <button
-                onClick={() => send({ type: t.eventType })}
-                key={t.eventType}
-              >
-                {t.meta?.title ?? t.eventType}
-              </button>
-            );
-          })}
-        </div>
-        <TourProgress
-          path={shortestPath}
-          state={state}
-          style={{
-            alignSelf: 'center'
-          }}
-        />
-      </div>
+      <Popover open={state.matches('intro')}>
+        <PopoverTrigger>
+          <Button>Something</Button>
+        </PopoverTrigger>
+        {/* add tailwind border */}
+        <PopoverContent className="w-80 flex flex-col gap-2 border-2 p-4">
+          <p>
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam
+            reprehenderit eaque recusandae sed consectetur? Doloribus, est eum
+            minima eius explicabo debitis eveniet culpa, temporibus ratione
+            provident enim at odit quibusdam.
+          </p>
+          <div className="flex flex-row gap-2 justify-center">
+            <Button
+              onClick={() => send({ type: 'back' })}
+              disabled={!state.can({ type: 'back' })}
+            >
+              Back
+            </Button>
+            <Button onClick={() => send({ type: 'next' })}>Next</Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Popover open={state.matches('second')}>
+        <PopoverTrigger>
+          <Button>Something</Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <p>
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam
+            reprehenderit eaque recusandae sed consectetur? Doloribus, est eum
+            minima eius explicabo debitis eveniet culpa, temporibus ratione
+            provident enim at odit quibusdam.
+          </p>
+          <Button onClick={() => send({ type: 'back' })}>Back</Button>
+          <Button onClick={() => send({ type: 'next' })}>Next</Button>
+        </PopoverContent>
+      </Popover>
+      <Popover open={state.matches('third')}>
+        <PopoverTrigger>
+          <Button>Something</Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <p>
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam
+            reprehenderit eaque recusandae sed consectetur? Doloribus, est eum
+            minima eius explicabo debitis eveniet culpa, temporibus ratione
+            provident enim at odit quibusdam.
+          </p>
+          <Button onClick={() => send({ type: 'back' })}>Back</Button>
+          <Button onClick={() => send({ type: 'next' })}>Next</Button>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
