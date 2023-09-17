@@ -2,6 +2,7 @@ import './App.css';
 import { StatePath, getShortestPaths } from '@xstate/graph';
 import { useActor } from '@xstate/react';
 import { createMachine } from 'xstate';
+import { Checklist } from './Checklist';
 
 const tourMachine = createMachine({
   id: 'tour',
@@ -96,6 +97,7 @@ function App() {
 
   return (
     <div>
+      <Checklist />
       <div
         style={{
           padding: '1rem',
