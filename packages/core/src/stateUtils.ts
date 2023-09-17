@@ -685,7 +685,13 @@ export function getStateNodes<
   const stateValue = state instanceof State ? state.value : toStateValue(state);
 
   if (typeof stateValue === 'string') {
-    return [stateNode, stateNode.states[stateValue]];
+    const childStateNode = stateNode.states[stateValue];
+    if (!childStateNode) {
+      throw new Error(
+        `State '${stateValue}' does not exist on '${stateNode.id}'`
+      );
+    }
+    return [stateNode, childStateNode];
   }
 
   const childStateKeys = Object.keys(stateValue);
@@ -1656,7 +1662,8 @@ export function resolveStateValue(
   rootNode: AnyStateNode,
   stateValue: StateValue
 ): StateValue {
-  const configuration = getConfiguration(getStateNodes(rootNode, stateValue));
+  const stateNodes = getStateNodes(rootNode, stateValue);
+  const configuration = getConfiguration(stateNodes);
   return getStateValue(rootNode, [...configuration]);
 }
 
