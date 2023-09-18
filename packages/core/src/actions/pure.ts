@@ -65,8 +65,7 @@ export function pure<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TStringLiteral extends string = string
+  TDelay extends string = string
 >(
   getActions: ({
     context,
@@ -83,8 +82,7 @@ export function pure<
         TActor,
         NoInfer<TAction>,
         NoInfer<TGuard>,
-        TDelay,
-        TStringLiteral
+        TDelay
       >
     | undefined
 ): PureAction<

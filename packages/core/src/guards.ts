@@ -35,11 +35,10 @@ export type Guard<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionGuard extends ParameterizedObject | undefined,
-  TGuard extends ParameterizedObject,
-  TStringLiteral extends string
+  TGuard extends ParameterizedObject
 > =
   | NoRequiredParams<TGuard>
-  | WithDynamicParams<TContext, TExpressionEvent, TGuard, TStringLiteral>
+  | WithDynamicParams<TContext, TExpressionEvent, TGuard>
   | GuardPredicate<TContext, TExpressionEvent, TExpressionGuard, TGuard>;
 
 export type UnknownGuard = UnknownReferencedGuard | UnknownInlineGuard;
@@ -48,16 +47,14 @@ type UnknownReferencedGuard = Guard<
   MachineContext,
   EventObject,
   ParameterizedObject,
-  ParameterizedObject,
-  string
+  ParameterizedObject
 >;
 
 type UnknownInlineGuard = Guard<
   MachineContext,
   EventObject,
   undefined,
-  ParameterizedObject,
-  string
+  ParameterizedObject
 >;
 
 interface BuiltinGuard {
@@ -117,15 +114,7 @@ export function not<
   TExpressionEvent extends EventObject,
   TExpressionGuard extends ParameterizedObject | undefined,
   TGuard extends ParameterizedObject
->(
-  guard: Guard<
-    TContext,
-    TExpressionEvent,
-    TExpressionGuard,
-    NoInfer<TGuard>,
-    string
-  >
-) {
+>(guard: Guard<TContext, TExpressionEvent, TExpressionGuard, NoInfer<TGuard>>) {
   function not(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -159,7 +148,7 @@ export function and<
   TGuard extends ParameterizedObject
 >(
   guards: ReadonlyArray<
-    Guard<TContext, TExpressionEvent, TExpressionGuard, NoInfer<TGuard>, string>
+    Guard<TContext, TExpressionEvent, TExpressionGuard, NoInfer<TGuard>>
   >
 ) {
   function and(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {
@@ -195,7 +184,7 @@ export function or<
   TGuard extends ParameterizedObject
 >(
   guards: ReadonlyArray<
-    Guard<TContext, TExpressionEvent, TExpressionGuard, NoInfer<TGuard>, string>
+    Guard<TContext, TExpressionEvent, TExpressionGuard, NoInfer<TGuard>>
   >
 ) {
   function or(_: GuardArgs<TContext, TExpressionEvent, TExpressionGuard>) {

@@ -158,10 +158,9 @@ export interface ChooseBranch<
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TStringLiteral extends string = string
+  TDelay extends string = string
 > {
-  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard, TStringLiteral>;
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
   actions: Actions<
     TContext,
     TExpressionEvent,
@@ -170,8 +169,7 @@ export interface ChooseBranch<
     TActor,
     TAction,
     TGuard,
-    TDelay,
-    TStringLiteral
+    TDelay
   >;
 }
 
@@ -188,29 +186,24 @@ type ConditionalRequired<T, Condition extends boolean> = Condition extends true
 export type WithDynamicParams<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  T extends ParameterizedObject,
-  TStringLiteral extends string
-> = T['type'] extends any
-  ? T extends any
-    ? ConditionalRequired<
-        {
-          type: T['type'];
-          params?:
-            | T['params']
-            | (({
-                context,
-                event
-              }: {
-                context: TContext;
-                event: TExpressionEvent;
-              }) => T['params']);
-        },
-        undefined extends T['params'] ? false : true
-      >
-    : never
-  : {
-      type: TStringLiteral;
-    };
+  T extends ParameterizedObject
+> = T extends any
+  ? ConditionalRequired<
+      {
+        type: T['type'];
+        params?:
+          | T['params']
+          | (({
+              context,
+              event
+            }: {
+              context: TContext;
+              event: TExpressionEvent;
+            }) => T['params']);
+      },
+      undefined extends T['params'] ? false : true
+    >
+  : never;
 
 export type Action<
   TContext extends MachineContext,
@@ -220,13 +213,12 @@ export type Action<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > =
   // TODO: consider merging `NoRequiredParams` and `WithDynamicParams` into one
   // this way we could iterate over `TAction` (and `TGuard` in the `Guard` type) once and not twice
   | NoRequiredParams<TAction>
-  | WithDynamicParams<TContext, TExpressionEvent, TAction, TStringLiteral>
+  | WithDynamicParams<TContext, TExpressionEvent, TAction>
   | ActionFunction<
       TContext,
       TExpressionEvent,
@@ -246,7 +238,6 @@ export type UnknownAction = Action<
   ProvidedActor,
   ParameterizedObject,
   ParameterizedObject,
-  string,
   string
 >;
 
@@ -258,8 +249,7 @@ export type Actions<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > = SingleOrArray<
   Action<
     TContext,
@@ -269,8 +259,7 @@ export type Actions<
     TActor,
     TAction,
     TGuard,
-    TDelay,
-    TStringLiteral
+    TDelay
   >
 >;
 
@@ -297,10 +286,9 @@ export interface TransitionConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > {
-  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard, TStringLiteral>;
+  guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
   actions?: Actions<
     TContext,
     TExpressionEvent,
@@ -309,8 +297,7 @@ export interface TransitionConfig<
     TActor,
     TAction,
     TGuard,
-    TDelay,
-    TStringLiteral
+    TDelay
   >;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
@@ -324,8 +311,7 @@ export interface InitialTransitionConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > extends TransitionConfig<
     TContext,
     TEvent,
@@ -333,8 +319,7 @@ export interface InitialTransitionConfig<
     TActor,
     TAction,
     TGuard,
-    TDelay,
-    TStringLiteral
+    TDelay
   > {
   target: TransitionTarget;
 }
@@ -346,8 +331,7 @@ export type AnyTransitionConfig = TransitionConfig<
   any,
   any,
   any,
-  any,
-  string
+  any
 >;
 
 export interface InvokeDefinition<
@@ -356,8 +340,7 @@ export interface InvokeDefinition<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > {
   id: string;
 
@@ -381,8 +364,7 @@ export interface InvokeDefinition<
           TActor,
           TAction,
           TGuard,
-          TDelay,
-          TStringLiteral
+          TDelay
         >
       >;
   /**
@@ -398,8 +380,7 @@ export interface InvokeDefinition<
           TActor,
           TAction,
           TGuard,
-          TDelay,
-          TStringLiteral
+          TDelay
         >
       >;
 
@@ -413,13 +394,12 @@ export interface InvokeDefinition<
           TActor,
           TAction,
           TGuard,
-          TDelay,
-          TStringLiteral
+          TDelay
         >
       >;
 
   toJSON: () => Omit<
-    InvokeDefinition<TContext, TEvent, TActor, TAction, TGuard, TDelay, string>,
+    InvokeDefinition<TContext, TEvent, TActor, TAction, TGuard, TDelay>,
     'onDone' | 'onError' | 'toJSON'
   >;
 }
@@ -432,8 +412,7 @@ export type DelayedTransitions<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > =
   | {
       [K in Delay<TDelay>]?:
@@ -446,8 +425,7 @@ export type DelayedTransitions<
               TActor,
               TAction,
               TGuard,
-              TDelay,
-              TStringLiteral
+              TDelay
             >
           >;
     }
@@ -459,8 +437,7 @@ export type DelayedTransitions<
         TActor,
         TAction,
         TGuard,
-        TDelay,
-        TStringLiteral
+        TDelay
       > & {
         delay:
           | Delay<TDelay>
@@ -493,8 +470,7 @@ export type StatesConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TOutput,
-  TStringLiteral extends string
+  TOutput
 > = {
   [K in string]: StateNodeConfig<
     TContext,
@@ -504,8 +480,7 @@ export type StatesConfig<
     TGuard,
     TDelay,
     TTag,
-    TOutput,
-    TStringLiteral
+    TOutput
   >;
 };
 
@@ -525,8 +500,7 @@ export type TransitionConfigOrTarget<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > = SingleOrArray<
   | TransitionConfigTarget
   | TransitionConfig<
@@ -536,8 +510,7 @@ export type TransitionConfigOrTarget<
       TActor,
       TAction,
       TGuard,
-      TDelay,
-      TStringLiteral
+      TDelay
     >
 >;
 
@@ -547,8 +520,7 @@ export type TransitionsConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > =
   | {
       [K in EventDescriptor<TEvent>]?: TransitionConfigOrTarget<
@@ -558,8 +530,7 @@ export type TransitionsConfig<
         TActor,
         TAction,
         TGuard,
-        TDelay,
-        TStringLiteral
+        TDelay
       >;
     };
 
@@ -588,8 +559,7 @@ type DistributeActors<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
-  TSpecificActor extends ProvidedActor,
-  TStringLiteral extends string
+  TSpecificActor extends ProvidedActor
 > = TSpecificActor extends { src: infer TSrc }
   ? Compute<
       {
@@ -618,8 +588,7 @@ type DistributeActors<
                 TActor,
                 TAction,
                 TGuard,
-                TDelay,
-                TStringLiteral
+                TDelay
               >
             >;
         /**
@@ -635,8 +604,7 @@ type DistributeActors<
                 TActor,
                 TAction,
                 TGuard,
-                TDelay,
-                TStringLiteral
+                TDelay
               >
             >;
 
@@ -650,8 +618,7 @@ type DistributeActors<
                 TActor,
                 TAction,
                 TGuard,
-                TDelay,
-                TStringLiteral
+                TDelay
               >
             >;
       } & (TSpecificActor['id'] extends string
@@ -678,31 +645,21 @@ export type InvokeConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TStringLiteral extends string
+  TDelay extends string
 > = IsLiteralString<TActor['src']> extends true
-  ? DistributeActors<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TActor,
-      TStringLiteral
-    >
+  ? DistributeActors<TContext, TEvent, TActor, TAction, TGuard, TDelay, TActor>
   : {
       /**
        * The unique identifier for the invoked machine. If not specified, this
        * will be the machine's own `id`, or the URL (from `src`).
        */
-      id?: TStringLiteral;
+      id?: string;
 
       systemId?: string;
       /**
        * The source of the machine to be invoked, or the machine itself.
        */
-      src: AnyActorLogic | TStringLiteral; // TODO: fix types
+      src: AnyActorLogic | string; // TODO: fix types
 
       input?:
         | Mapper<TContext, TEvent, NonReducibleUnknown>
@@ -720,8 +677,7 @@ export type InvokeConfig<
               TActor,
               TAction,
               TGuard,
-              TDelay,
-              TStringLiteral
+              TDelay
             >
           >;
       /**
@@ -737,8 +693,7 @@ export type InvokeConfig<
               TActor,
               TAction,
               TGuard,
-              TDelay,
-              TStringLiteral
+              TDelay
             >
           >;
 
@@ -752,21 +707,12 @@ export type InvokeConfig<
               TActor,
               TAction,
               TGuard,
-              TDelay,
-              TStringLiteral
+              TDelay
             >
           >;
     };
 
-export type AnyInvokeConfig = InvokeConfig<
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  string
->;
+export type AnyInvokeConfig = InvokeConfig<any, any, any, any, any, any>;
 
 export interface StateNodeConfig<
   TContext extends MachineContext,
@@ -776,22 +722,13 @@ export interface StateNodeConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TOutput,
-  TStringLiteral extends string
+  TOutput
 > {
   /**
    * The initial state transition.
    */
   initial?:
-    | InitialTransitionConfig<
-        TContext,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TStringLiteral
-      >
+    | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
     | SingleOrArray<string>
     | undefined;
   /**
@@ -822,36 +759,19 @@ export interface StateNodeConfig<
         TGuard,
         TDelay,
         TTag,
-        NonReducibleUnknown,
-        TStringLiteral
+        NonReducibleUnknown
       >
     | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    InvokeConfig<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TStringLiteral
-    >
+    InvokeConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
   >;
   /**
    * The mapping of event types to their potential transition(s).
    */
-  on?: TransitionsConfig<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TStringLiteral
-  >;
+  on?: TransitionsConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>;
   /**
    * The action(s) to be executed upon entering the state node.
    */
@@ -863,8 +783,7 @@ export interface StateNodeConfig<
     TActor,
     TAction,
     TGuard,
-    TDelay,
-    TStringLiteral
+    TDelay
   >;
   /**
    * The action(s) to be executed upon exiting the state node.
@@ -877,8 +796,7 @@ export interface StateNodeConfig<
     TActor,
     TAction,
     TGuard,
-    TDelay,
-    TStringLiteral
+    TDelay
   >;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
@@ -895,8 +813,7 @@ export interface StateNodeConfig<
           TActor,
           TAction,
           TGuard,
-          TDelay,
-          TStringLiteral
+          TDelay
         >
       >
     | undefined;
@@ -904,15 +821,7 @@ export interface StateNodeConfig<
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
    */
-  after?: DelayedTransitions<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TStringLiteral
-  >;
+  after?: DelayedTransitions<TContext, TEvent, TActor, TAction, TGuard, TDelay>;
 
   /**
    * An eventless transition that is always taken when this state node is active.
@@ -924,8 +833,7 @@ export interface StateNodeConfig<
     TActor,
     TAction,
     TGuard,
-    TDelay,
-    TStringLiteral
+    TDelay
   >;
   /**
    * @private
@@ -975,8 +883,7 @@ export type AnyStateNodeConfig = StateNodeConfig<
   any,
   any,
   any,
-  any,
-  string
+  any
 >;
 
 export interface StateNodeDefinition<
@@ -998,9 +905,7 @@ export interface StateNodeDefinition<
   meta: any;
   order: number;
   output?: FinalStateNodeConfig<TContext, TEvent>['output'];
-  invoke: Array<
-    InvokeDefinition<TContext, TEvent, TODO, TODO, TODO, TODO, string>
-  >;
+  invoke: Array<InvokeDefinition<TContext, TEvent, TODO, TODO, TODO, TODO>>;
   description?: string;
   tags: string[];
 }
@@ -1049,8 +954,7 @@ export interface AtomicStateNodeConfig<
     TODO,
     TODO,
     TODO,
-    TODO,
-    string
+    TODO
   > {
   initial?: undefined;
   parallel?: false | undefined;
@@ -1083,17 +987,7 @@ export type SimpleOrStateNodeConfig<
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<
-      TContext,
-      TEvent,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      string
-    >;
+  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO, TODO, TODO>;
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
@@ -1267,8 +1161,7 @@ type MachineImplementationsGuards<
     TContext,
     MaybeNarrowedEvent<TIndexedEvents, TEventsCausingGuards, K>,
     Cast<TIndexedGuards[K], ParameterizedObject>,
-    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>,
-    string
+    Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>
   >;
 };
 
@@ -1427,8 +1320,7 @@ type RootStateNodeConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TTag extends string,
-  TOutput,
-  TStringLiteral extends string
+  TOutput
 > = Omit<
   StateNodeConfig<
     TContext,
@@ -1438,8 +1330,7 @@ type RootStateNodeConfig<
     TGuard,
     TDelay,
     TTag,
-    TOutput,
-    TStringLiteral
+    TOutput
   >,
   'states'
 > & {
@@ -1452,8 +1343,7 @@ type RootStateNodeConfig<
         TGuard,
         TDelay,
         TTag,
-        TOutput,
-        TStringLiteral
+        TOutput
       >
     | undefined;
 };
@@ -1468,7 +1358,7 @@ export type MachineConfig<
   TTag extends string = string,
   TInput = any,
   TOutput = unknown,
-  TStringLiteral extends string = string
+  TTypesMeta = TypegenDisabled
 > = RootStateNodeConfig<
   TContext,
   TEvent,
@@ -1477,8 +1367,7 @@ export type MachineConfig<
   TGuard,
   TDelay,
   TTag,
-  TOutput,
-  TStringLiteral
+  TOutput
 > & {
   /**
    * The initial context (extended state)
@@ -1488,9 +1377,18 @@ export type MachineConfig<
    */
   version?: string;
   context?: InitialContext<TContext, TActor, TInput>;
-  // we need to avoid failing the common property check for empty machine configs or ones that only contain `types` property
-  // without it whe inferred config type (like `{}` or `{ types: {} }`) fails the assignability check to its constraint
-  types?: unknown;
+  types?: MachineTypes<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TTypesMeta
+  >;
 } & ConditionalRequired<
     { context?: unknown },
     MachineContext extends TContext ? false : true
@@ -1710,7 +1608,7 @@ export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Omit<
-    TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, TODO, string>,
+    TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, TODO>,
     | 'target'
     // `guard` is correctly rejected by `extends` here and `actions` should be too
     // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
