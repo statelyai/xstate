@@ -417,8 +417,6 @@ Special thanks to the sponsors who support this open-source project:
     <source media="(prefers-color-scheme: light)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg">
     <img src="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg" alt="Transloadit Logo">
   </picture>
-  <br />
-  Transloadit
 </a>
 
 ## SemVer Policy
