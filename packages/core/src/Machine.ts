@@ -21,7 +21,8 @@ export function createMachine<
   TTag extends string,
   TInput,
   TOutput extends NonReducibleUnknown,
-  TTypesMeta extends TypegenConstraint
+  TTypesMeta extends TypegenConstraint,
+  TConfig extends Readonly<{ states?: { [stateName: string]: {} } }>
 >(
   config: MachineConfig<
     TContext,
@@ -34,7 +35,8 @@ export function createMachine<
     TInput,
     TOutput,
     TTypesMeta
-  >,
+  > &
+    TConfig,
   implementations?: InternalMachineImplementations<
     TContext,
     TEvent,
@@ -74,7 +76,7 @@ export function createMachine<
   TInput,
   TOutput,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
-> {
+> & { _config: TConfig } {
   return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
     config as any,
     implementations as any
