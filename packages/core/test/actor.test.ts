@@ -1444,15 +1444,80 @@ describe('actors', () => {
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
 
         return {
           actorRef: spawn(
             fromCallback(() => {
+              actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
               };
-            })
+            }),
+            { id: 'callback-1' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop(({ context }) => {
+                  return context.actorRef;
+                }),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'callback-2' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping a ref', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            {
+              id: 'my_name'
+            }
           )
         };
       },
@@ -1465,72 +1530,9 @@ describe('actors', () => {
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
-
                     return spawn(
                       fromCallback(() => {
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      })
-                    );
-                  }
-                })
-              ]
-            }
-          }
-        }
-      }
-    });
-
-    const actorRef = createActor(machine).start();
-
-    actual.length = 0;
-
-    actorRef.send({
-      type: 'update'
-    });
-
-    // TODO: those *likely* should be flipped
-    expect(actual).toEqual(['start 2', 'stop 1']);
-  });
-
-  it('should be able to restart a named spawned actor within a single macrostep when stopping a ref', () => {
-    const actual: string[] = [];
-    let invokeCounter = 0;
-
-    const machine = createMachine({
-      initial: 'active',
-      context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
-
-        return {
-          actorRef: spawn(
-            fromCallback(() => {
-              return () => {
-                actual.push(`stop ${localId}`);
-              };
-            }),
-            {
-              id: 'my_name'
-            }
-          )
-        };
-      },
-      states: {
-        active: {
-          on: {
-            update: {
-              actions: [
-                stop((ctx: any) => ctx.actorRef),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
-
-                    return spawn(
-                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
                         return () => {
                           actual.push(`stop ${localId}`);
                         };
@@ -1556,11 +1558,10 @@ describe('actors', () => {
       type: 'update'
     });
 
-    // TODO: this doesn't stop the actor at all here
     expect(actual).toEqual(['stop 1', 'start 2']);
   });
 
-  it('should be able to restart a named spawned actor within a single macrostep when stopping by static id', () => {
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by static name', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
@@ -1568,18 +1569,16 @@ describe('actors', () => {
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
 
         return {
           actorRef: spawn(
             fromCallback(() => {
+              actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            {
-              id: 'my_name'
-            }
+            { id: 'my_name' }
           )
         };
       },
@@ -1592,17 +1591,15 @@ describe('actors', () => {
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
                     return spawn(
                       fromCallback(() => {
+                        actual.push(`start ${localId}`);
                         return () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      {
-                        id: 'my_name'
-                      }
+                      { id: 'my_name' }
                     );
                   }
                 })
@@ -1613,19 +1610,18 @@ describe('actors', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
-    actorRef.send({
+    service.send({
       type: 'update'
     });
 
-    // TODO: those *likely* should be flipped
-    expect(actual).toEqual(['start 2', 'stop 1']);
+    expect(actual).toEqual(['stop 1', 'start 2']);
   });
 
-  it('should be able to restart a named spawned actor within a single macrostep when stopping by resolved id', () => {
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by resolved name', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
@@ -1642,9 +1638,7 @@ describe('actors', () => {
                 actual.push(`stop ${localId}`);
               };
             }),
-            {
-              id: 'my_name'
-            }
+            { id: 'my_name' }
           )
         };
       },
@@ -1657,17 +1651,15 @@ describe('actors', () => {
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
                     return spawn(
                       fromCallback(() => {
+                        actual.push(`start ${localId}`);
                         return () => {
                           actual.push(`stop ${localId}`);
                         };
                       }),
-                      {
-                        id: 'my_name'
-                      }
+                      { id: 'my_name' }
                     );
                   }
                 })
@@ -1678,15 +1670,14 @@ describe('actors', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const service = createActor(machine).start();
 
     actual.length = 0;
 
-    actorRef.send({
+    service.send({
       type: 'update'
     });
 
-    // TODO: those *likely* should be flipped
-    expect(actual).toEqual(['start 2', 'stop 1']);
+    expect(actual).toEqual(['stop 1', 'start 2']);
   });
 });
