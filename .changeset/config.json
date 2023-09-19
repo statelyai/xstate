@@ -1,15 +1,19 @@
 {
-  "$schema": "https://unpkg.com/@changesets/config@1.3.0/schema.json",
-  "changelog": [
-    "@changesets/changelog-github",
-    { "repo": "davidkpiano/xstate" }
-  ],
+  "$schema": "https://unpkg.com/@changesets/config@1.6.3/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "statelyai/xstate" }],
   "commit": false,
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "ignore": ["@xstate/analytics", "@xstate/scxml"],
+  "ignore": [
+    "@xstate/analytics",
+    "@xstate/immer",
+    "@xstate/inspect",
+    "@xstate/solid",
+    "@xstate/svelte"
+  ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
-    "onlyUpdatePeerDependentsWhenOutOfRange": true
+    "onlyUpdatePeerDependentsWhenOutOfRange": true,
+    "useCalculatedVersionForSnapshots": true
   }
 }

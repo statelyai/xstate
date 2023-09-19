@@ -245,9 +245,9 @@ const dynamicDelayMachine = createMachine({
   }
 });
 
-const dynamicDelayService = interpret(dynamicDelayMachine)
-  .onDone(() => console.log('done!'))
-  .start();
+const dynamicDelayService = interpret(dynamicDelayMachine);
+dynamicDelayService.subscribe({ complete: () => console.log('done!') });
+dynamicDelayService.start();
 
 dynamicDelayService.send({
   type: 'ACTIVATE',
@@ -279,6 +279,7 @@ service.start();
 ```
 
 为了测试，XState 解释提供了一个 `SimulatedClock`：
+
 ```js
 import { interpret } from 'xstate';
 // import { SimulatedClock } from 'xstate/lib/interpreter'; // < 4.6.0
@@ -310,8 +311,8 @@ service.clock.increment(1000);
 states: {
   green: {
     entry: [
-      send(after(1000, 'light.green'), { delay: 1000 }),
-      send(after(2000, 'light.green'), { delay: 2000 })
+      send({ type: after(1000, 'light.green') }, { delay: 1000 }),
+      send({ type: after(2000, 'light.green') }, { delay: 2000 })
     ],
     onExit: [
       cancel(after(1000, 'light.green')),
@@ -331,4 +332,4 @@ states: {
 // ...
 ```
 
-解释后的状态图将在 `delay` 之后 `send(...)` `after(...)` 事件，退出状态节点，则将 `cancel(...)`  那些延迟的 `send(...)` 事件。
+解释后的状态图将在 `delay` 之后 `send(...)` `after(...)` 事件，退出状态节点，则将 `cancel(...)` 那些延迟的 `send(...)` 事件。

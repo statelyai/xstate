@@ -1,15 +1,51 @@
-import { xml2js, Element as XMLElement } from 'xml-js';
+import { Element as XMLElement, xml2js } from 'xml-js';
+import { assign } from './actions/assign.ts';
+import { cancel } from './actions/cancel.ts';
+import { choose } from './actions/choose.ts';
+import { log } from './actions/log.ts';
+import { raise } from './actions/raise.ts';
+import { sendTo } from './actions/send.ts';
+import { NULL_EVENT } from './constants.ts';
+import { not, stateIn } from './guards.ts';
 import {
-  EventObject,
-  ActionObject,
-  SCXMLEventMeta,
-  SendExpr,
+  ActionFunction,
+  MachineContext,
+  SpecialTargets,
+  createMachine
+} from './index.ts';
+import {
+  AnyStateMachine,
+  AnyStateNode,
+  AnyStateNodeConfig,
+  ChooseBranch,
   DelayExpr,
-  ChooseCondition
-} from './types';
-import { StateNode, Machine } from './index';
-import { mapValues, keys, isString } from './utils';
-import * as actions from './actions';
+  EventObject,
+  SendExpr,
+  StateNodeConfig
+} from './types.ts';
+import { mapValues } from './utils.ts';
+
+export function sanitizeStateId(id: string) {
+  return id.replace(/\./g, '$');
+}
+
+function appendWildcards(state: AnyStateNode) {
+  const newTransitions: typeof state.transitions = new Map();
+
+  for (const [descriptor, transitions] of state.transitions) {
+    if (descriptor !== '*' && !descriptor.endsWith('.*')) {
+      newTransitions.set(`${descriptor}.*`, transitions);
+    } else {
+      newTransitions.set(descriptor, transitions);
+    }
+  }
+
+  state.transitions = newTransitions;
+
+  for (const key of Object.keys(state.states)) {
+    appendWildcards(state.states[key]);
+  }
+}
 
 function getAttribute(
   element: XMLElement,
@@ -20,13 +56,9 @@ function getAttribute(
 
 function indexedRecord<T extends {}>(
   items: T[],
-  identifier: string | ((item: T) => string)
+  identifierFn: (item: T) => string
 ): Record<string, T> {
   const record: Record<string, T> = {};
-
-  const identifierFn = isString(identifier)
-    ? (item) => item[identifier]
-    : identifier;
 
   items.forEach((item) => {
     const key = identifierFn(item);
@@ -48,7 +80,9 @@ function executableContent(elements: XMLElement[]) {
 function getTargets(targetAttr?: string | number): string[] | undefined {
   // return targetAttr ? [`#${targetAttr}`] : undefined;
   return targetAttr
-    ? `${targetAttr}`.split(/\s+/).map((target) => `#${target}`)
+    ? `${targetAttr}`
+        .split(/\s+/)
+        .map((target) => `#${sanitizeStateId(target)}`)
     : undefined;
 }
 
@@ -97,66 +131,97 @@ const evaluateExecutableContent = <
   TEvent extends EventObject
 >(
   context: TContext,
-  _ev: TEvent,
-  meta: SCXMLEventMeta<TEvent>,
+  event: TEvent,
+  _meta: any,
   body: string
 ) => {
-  const datamodel = context
-    ? keys(context)
-        .map((key) => `const ${key} = context['${key}'];`)
-        .join('\n')
-    : '';
-
-  const scope = ['const _sessionid = "NOT_IMPLEMENTED";', datamodel]
+  const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
     .filter(Boolean)
     .join('\n');
 
   const args = ['context', '_event'];
 
   const fnBody = `
-    ${scope}
-    ${body}
+${scope}
+with (context) {
+  ${body}
+}
   `;
 
   const fn = new Function(...args, fnBody);
-  return fn(context, meta._event);
+
+  return fn(context, { name: event.type, data: event });
 };
 
-function createCond<
+function createGuard<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(cond: string) {
-  return (context: TContext, _event: TEvent, meta) => {
-    return evaluateExecutableContent(context, _event, meta, `return ${cond};`);
+>(guard: string) {
+  return ({
+    context,
+    event,
+    ...meta
+  }: {
+    context: TContext;
+    event: TEvent;
+  }) => {
+    return evaluateExecutableContent(
+      context,
+      event,
+      meta as any,
+      `return ${guard};`
+    );
   };
 }
 
-function mapAction<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(element: XMLElement): ActionObject<TContext, TEvent> {
+function mapAction(
+  element: XMLElement
+): ActionFunction<any, any, any, any, any, any, any, any> {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TContext, TEvent>(
-        element.attributes!.event! as string
-      );
-    }
-    case 'assign': {
-      return actions.assign<TContext, TEvent>((context, e, meta) => {
-        const fnBody = `
-            return {'${element.attributes!.location}': ${
-          element.attributes!.expr
-        }};
-          `;
-
-        return evaluateExecutableContent(context, e, meta, fnBody);
+      return raise({
+        type: element.attributes!.event as string
       });
     }
-    case 'send': {
-      const { event, eventexpr, target } = element.attributes!;
+    case 'assign': {
+      return assign(({ context, event, ...meta }) => {
+        const fnBody = `
 
-      let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
-      let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
+${element.attributes!.location};
+
+return {'${element.attributes!.location}': ${element.attributes!.expr}};
+          `;
+
+        return evaluateExecutableContent(context, event, meta, fnBody);
+      });
+    }
+    case 'cancel':
+      if ('sendid' in element.attributes!) {
+        return cancel(element.attributes!.sendid! as string);
+      }
+      return cancel(({ context, event, ...meta }) => {
+        const fnBody = `
+return ${element.attributes!.sendidexpr};
+          `;
+
+        return evaluateExecutableContent(context, event, meta, fnBody);
+      });
+    case 'send': {
+      const { event, eventexpr, target, id } = element.attributes!;
+
+      let convertedEvent:
+        | EventObject
+        | SendExpr<
+            MachineContext,
+            EventObject,
+            undefined,
+            EventObject,
+            EventObject
+          >;
+      let convertedDelay:
+        | number
+        | DelayExpr<MachineContext, EventObject, undefined, EventObject>
+        | undefined;
 
       const params =
         element.elements &&
@@ -170,13 +235,11 @@ function mapAction<
         }, '');
 
       if (event && !params) {
-        convertedEvent = event as TEvent['type'];
+        convertedEvent = { type: event as string };
       } else {
-        convertedEvent = (context, _ev, meta) => {
+        convertedEvent = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
-              return { type: ${event ? `"${event}"` : eventexpr}, ${
-            params ? params : ''
-          } }
+return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
             `;
 
           return evaluateExecutableContent(context, _ev, meta, fnBody);
@@ -186,39 +249,47 @@ function mapAction<
       if ('delay' in element.attributes!) {
         convertedDelay = delayToMs(element.attributes!.delay);
       } else if (element.attributes!.delayexpr) {
-        convertedDelay = (context, _ev, meta) => {
+        convertedDelay = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
-              return (${delayToMs})(${element.attributes!.delayexpr});
+return (${delayToMs})(${element.attributes!.delayexpr});
             `;
 
           return evaluateExecutableContent(context, _ev, meta, fnBody);
         };
       }
 
-      return actions.send<TContext, TEvent>(convertedEvent, {
-        delay: convertedDelay,
-        to: target as string | undefined
-      });
+      if (target === SpecialTargets.Internal) {
+        return raise(convertedEvent);
+      }
+
+      return sendTo(
+        typeof target === 'string' ? target : ({ self }) => self,
+        convertedEvent,
+        {
+          delay: convertedDelay,
+          id: id as string | undefined
+        }
+      );
     }
     case 'log': {
       const label = element.attributes!.label;
 
-      return actions.log<TContext, TEvent>(
-        (context, e, meta) => {
+      return log(
+        ({ context, event, ...meta }) => {
           const fnBody = `
-              return ${element.attributes!.expr};
+return ${element.attributes!.expr};
             `;
 
-          return evaluateExecutableContent(context, e, meta, fnBody);
+          return evaluateExecutableContent(context, event, meta, fnBody);
         },
         label !== undefined ? String(label) : undefined
       );
     }
     case 'if': {
-      const conds: ChooseCondition<TContext, TEvent>[] = [];
+      const branches: Array<ChooseBranch<MachineContext, EventObject>> = [];
 
-      let current: ChooseCondition<TContext, TEvent> = {
-        cond: createCond(element.attributes!.cond as string),
+      let current: ChooseBranch<MachineContext, EventObject> = {
+        guard: createGuard(element.attributes!.cond as string),
         actions: []
       };
 
@@ -229,24 +300,24 @@ function mapAction<
 
         switch (el.name) {
           case 'elseif':
-            conds.push(current);
+            branches.push(current);
             current = {
-              cond: createCond(el.attributes!.cond as string),
+              guard: createGuard(el.attributes!.cond as string),
               actions: []
             };
             break;
           case 'else':
-            conds.push(current);
+            branches.push(current);
             current = { actions: [] };
             break;
           default:
-            (current.actions as any[]).push(mapAction<TContext, TEvent>(el));
+            (current.actions as any[]).push(mapAction(el));
             break;
         }
       }
 
-      conds.push(current);
-      return actions.choose(conds);
+      branches.push(current);
+      return choose(branches);
     }
     default:
       throw new Error(
@@ -255,11 +326,10 @@ function mapAction<
   }
 }
 
-function mapActions<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(elements: XMLElement[]): Array<ActionObject<TContext, TEvent>> {
-  const mapped: Array<ActionObject<TContext, TEvent>> = [];
+function mapActions(
+  elements: XMLElement[]
+): ActionFunction<any, any, any, any, any, any, any, any>[] {
+  const mapped: ActionFunction<any, any, any, any, any, any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {
@@ -272,21 +342,21 @@ function mapActions<
   return mapped;
 }
 
-function toConfig(
-  nodeJson: XMLElement,
-  id: string,
-  options: ScxmlToMachineOptions
-) {
+type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
+
+function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   const { elements } = nodeJson;
 
   switch (nodeJson.name) {
     case 'history': {
+      const history =
+        (getAttribute(nodeJson, 'type') as HistoryAttributeValue) || 'shallow';
       if (!elements) {
         return {
           id,
-          history: nodeJson.attributes!.type || 'shallow'
+          history
         };
       }
 
@@ -295,18 +365,11 @@ function toConfig(
       );
 
       const target = getAttribute(transitionElement, 'target');
-      const history = getAttribute(nodeJson, 'type') || 'shallow';
 
       return {
         id,
         history,
-        target: target ? `#${target}` : undefined
-      };
-    }
-    case 'final': {
-      return {
-        ...nodeJson.attributes,
-        type: 'final'
+        target: target ? `#${sanitizeStateId(target as string)}` : undefined
       };
     }
     default:
@@ -330,17 +393,16 @@ function toConfig(
       (element) => element.name === 'invoke'
     );
 
-    const onEntryElement = nodeJson.elements.find(
+    const onEntryElements = nodeJson.elements.filter(
       (element) => element.name === 'onentry'
     );
 
-    const onExitElement = nodeJson.elements.find(
+    const onExitElements = nodeJson.elements.filter(
       (element) => element.name === 'onexit'
     );
 
-    const states: Record<string, any> = indexedRecord(
-      stateElements,
-      (item) => `${item.attributes!.id}`
+    const states: Record<string, any> = indexedRecord(stateElements, (item) =>
+      sanitizeStateId(`${item.attributes!.id}`)
     );
 
     const initialElement = !initial
@@ -350,35 +412,85 @@ function toConfig(
     if (initialElement && initialElement.elements!.length) {
       initial = initialElement.elements!.find(
         (element) => element.name === 'transition'
-      )!.attributes!.target;
-    } else if (!initialElement && stateElements.length) {
+      )!.attributes!.target as string;
+    } else if (!initial && !initialElement && stateElements.length) {
       initial = stateElements[0].attributes!.id;
     }
 
-    const on = transitionElements.map((value) => {
-      const event = getAttribute(value, 'event') || '';
-      const targets = getAttribute(value, 'target');
-      const internal = getAttribute(value, 'type') === 'internal';
+    const always: any[] = [];
+    const on: Record<string, any> = [];
 
-      return {
-        event,
-        target: getTargets(targets),
-        ...(value.elements ? executableContent(value.elements) : undefined),
-        ...(value.attributes && value.attributes.cond
-          ? {
-              cond: createCond(value.attributes!.cond as string)
+    transitionElements.forEach((value) => {
+      const events = ((getAttribute(value, 'event') as string) || '').split(
+        /\s+/
+      );
+
+      return events.map((eventType) => {
+        const targets = getAttribute(value, 'target');
+        const internal = getAttribute(value, 'type') === 'internal';
+
+        let guardObject = {};
+
+        if (value.attributes?.cond) {
+          const guard = value.attributes!.cond;
+          if ((guard as string).startsWith('In')) {
+            const inMatch = (guard as string).trim().match(/^In\('(.*)'\)/);
+
+            if (inMatch) {
+              guardObject = {
+                guard: stateIn(`#${inMatch[1]}`)
+              };
             }
-          : undefined),
-        internal
-      };
+          } else if ((guard as string).startsWith('!In')) {
+            const notInMatch = (guard as string).trim().match(/^!In\('(.*)'\)/);
+
+            if (notInMatch) {
+              guardObject = {
+                guard: not(stateIn(`#${notInMatch[1]}`))
+              };
+            }
+          } else {
+            guardObject = {
+              guard: createGuard(value.attributes!.cond as string)
+            };
+          }
+        }
+
+        const transitionConfig = {
+          target: getTargets(targets),
+          ...(value.elements ? executableContent(value.elements) : undefined),
+          ...guardObject,
+          ...(!internal && { reenter: true })
+        };
+
+        if (eventType === NULL_EVENT) {
+          always.push(transitionConfig);
+        } else {
+          if (/^done\.state(\.|$)/.test(eventType)) {
+            eventType = `xstate.${eventType}`;
+          } else if (/^done\.invoke(\.|$)/.test(eventType)) {
+            eventType = eventType.replace(/^done\.invoke/, 'xstate.done.actor');
+          }
+          let existing = on[eventType];
+          if (!existing) {
+            existing = [];
+            on[eventType] = existing;
+          }
+          existing.push(transitionConfig);
+        }
+      });
     });
 
-    const onEntry = onEntryElement
-      ? mapActions(onEntryElement.elements!)
+    const onEntry = onEntryElements
+      ? onEntryElements.flatMap((onEntryElement) =>
+          mapActions(onEntryElement.elements!)
+        )
       : undefined;
 
-    const onExit = onExitElement
-      ? mapActions(onExitElement.elements!)
+    const onExit = onExitElements
+      ? onExitElements.flatMap((onExitElement) =>
+          mapActions(onExitElement.elements!)
+        )
       : undefined;
 
     const invoke = invokeElements.map((element) => {
@@ -395,38 +507,40 @@ function toConfig(
         (el) => el.name === 'content'
       ) as XMLElement;
 
-      return scxmlToMachine(content, options);
+      return {
+        ...(element.attributes!.id && { id: element.attributes!.id as string }),
+        src: scxmlToMachine(content)
+      };
     });
 
     return {
-      id,
-      ...(initial ? { initial } : undefined),
-      ...(parallel ? { type: 'parallel' } : undefined),
-      ...(stateElements.length
+      id: sanitizeStateId(id),
+      ...(initial
         ? {
-            states: mapValues(states, (state, key) =>
-              toConfig(state, key, options)
-            )
+            initial: String(initial)
+              .split(' ')
+              .map((id) => `#${sanitizeStateId(id)}`)
           }
         : undefined),
-      ...(transitionElements.length ? { on } : undefined),
-      ...(onEntry ? { onEntry } : undefined),
-      ...(onExit ? { onExit } : undefined),
+      ...(parallel ? { type: 'parallel' } : undefined),
+      ...(nodeJson.name === 'final' ? { type: 'final' } : undefined),
+      ...(stateElements.length
+        ? {
+            states: mapValues(states, (state, key) => toConfig(state, key))
+          }
+        : undefined),
+      on,
+      ...(always.length ? { always } : undefined),
+      ...(onEntry ? { entry: onEntry } : undefined),
+      ...(onExit ? { exit: onExit } : undefined),
       ...(invoke.length ? { invoke } : undefined)
     };
   }
 
-  return { id };
+  return { id, ...(nodeJson.name === 'final' ? { type: 'final' } : undefined) };
 }
 
-export interface ScxmlToMachineOptions {
-  delimiter?: string;
-}
-
-function scxmlToMachine(
-  scxmlJson: XMLElement,
-  options: ScxmlToMachineOptions
-): StateNode {
+function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -435,34 +549,38 @@ function scxmlToMachine(
     (element) => element.name === 'datamodel'
   )[0];
 
-  const extState = dataModelEl
+  const context = dataModelEl
     ? dataModelEl
         .elements!.filter((element) => element.name === 'data')
         .reduce((acc, element) => {
-          if (element.attributes!.src) {
+          const { src, expr, id } = element.attributes!;
+          if (src) {
             throw new Error(
               "Conversion of `src` attribute on datamodel's <data> elements is not supported."
             );
           }
-          acc[element.attributes!.id!] = element.attributes!.expr
-            ? // tslint:disable-next-line:no-eval
-              eval(`(${element.attributes!.expr})`)
-            : undefined;
+
+          if (expr === '_sessionid') {
+            acc[id!] = undefined;
+          } else {
+            acc[id!] = eval(`(${expr})`);
+          }
+
           return acc;
-        }, {})
+        }, {} as Record<string, unknown>)
     : undefined;
 
-  return Machine({
-    ...toConfig(machineElement, '(machine)', options),
-    context: extState,
-    delimiter: options.delimiter
+  const machine = createMachine({
+    ...toConfig(machineElement, '(machine)'),
+    context
   });
+
+  appendWildcards(machine.root);
+
+  return machine;
 }
 
-export function toMachine(
-  xml: string,
-  options: ScxmlToMachineOptions
-): StateNode {
+export function toMachine(xml: string): AnyStateMachine {
   const json = xml2js(xml) as XMLElement;
-  return scxmlToMachine(json, options);
+  return scxmlToMachine(json);
 }

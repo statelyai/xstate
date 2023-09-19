@@ -1,57 +1,70 @@
-import { shallowRef, Ref } from 'vue';
+import { Ref, shallowRef } from 'vue';
 import {
-  EventObject,
-  StateMachine,
-  State,
-  Interpreter,
-  InterpreterOptions,
-  MachineOptions,
-  Typestate
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineImplementations,
+  Actor,
+  ActorOptions,
+  StateFrom,
+  TODO,
+  SnapshotFrom
 } from 'xstate';
+import { MaybeLazy, Prop } from './types.ts';
+import { useInterpret } from './useInterpret.ts';
 
-import { UseMachineOptions, MaybeLazy } from './types';
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: ActorOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TODO,
+            TODO,
+            TODO,
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >
+      ]
+    : [
+        options?: ActorOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TODO,
+            TODO,
+            TODO,
+            TMachine['__TResolvedTypesMeta']
+          >
+      ];
 
-import { useInterpret } from './useInterpret';
+type UseMachineReturn<
+  TMachine extends AnyStateMachine,
+  TInterpreter = Actor<TMachine>
+> = {
+  state: Ref<StateFrom<TMachine>>;
+  send: Prop<TInterpreter, 'send'>;
+  service: TInterpreter;
+};
 
-export function useMachine<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
-): {
-  state: Ref<State<TContext, TEvent, any, TTypestate>>;
-  send: Interpreter<TContext, any, TEvent, TTypestate>['send'];
-  service: Interpreter<TContext, any, TEvent, TTypestate>;
-} {
-  const service = useInterpret(getMachine, options, listener);
-
-  const { initialState } = service.machine;
-  const state = shallowRef(
-    (options.state ? State.create(options.state) : initialState) as State<
-      TContext,
-      TEvent,
-      any,
-      TTypestate
-    >
-  );
-
-  function listener(nextState: State<TContext, TEvent, any, TTypestate>) {
-    // Only change the current state if:
-    // - the incoming state is the "live" initial state (since it might have new actors)
-    // - OR the incoming state actually changed.
-    //
-    // The "live" initial state will have .changed === undefined.
-    const initialStateChanged =
-      nextState.changed === undefined && Object.keys(nextState.children).length;
-
-    if (nextState.changed || initialStateChanged) {
-      state.value = nextState;
+export function useMachine<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}]: RestParams<TMachine>
+): UseMachineReturn<TMachine> {
+  function listener(nextSnapshot: SnapshotFrom<TMachine>) {
+    if (nextSnapshot !== snapshot) {
+      snapshot = nextSnapshot;
+      state.value = snapshot;
     }
   }
 
-  return { state, send: service.send, service };
+  // @ts-ignore
+  const service = useInterpret(getMachine, options, listener);
+
+  let snapshot = service.getSnapshot();
+  const state = shallowRef(snapshot);
+
+  return { state, send: service.send, service } as any;
 }

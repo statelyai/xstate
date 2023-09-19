@@ -1,85 +1,76 @@
-import {
-  interpret,
-  EventObject,
-  StateMachine,
-  State,
-  Interpreter,
-  InterpreterOptions,
-  MachineOptions,
-  Typestate,
-  Observer
-} from 'xstate';
-import { UseMachineOptions, MaybeLazy } from './types';
 import { onBeforeUnmount, onMounted } from 'vue';
+import {
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineImplementations,
+  createActor,
+  Actor,
+  ActorOptions,
+  Observer,
+  StateFrom,
+  TODO,
+  Subscription,
+  toObserver
+} from 'xstate';
+import { MaybeLazy } from './types.ts';
 
-// copied from core/src/utils.ts
-// it avoids a breaking change between this package and XState which is its peer dep
-function toObserver<T>(
-  nextHandler: Observer<T> | ((value: T) => void),
-  errorHandler?: (error: any) => void,
-  completionHandler?: () => void
-): Observer<T> {
-  if (typeof nextHandler === 'object') {
-    return nextHandler;
-  }
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: ActorOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TODO,
+            TODO,
+            TODO,
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TMachine>>
+          | ((value: StateFrom<TMachine>) => void)
+      ]
+    : [
+        options?: ActorOptions<TMachine> &
+          InternalMachineImplementations<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TODO,
+            TODO,
+            TODO,
+            TMachine['__TResolvedTypesMeta']
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TMachine>>
+          | ((value: StateFrom<TMachine>) => void)
+      ];
 
-  const noop = () => void 0;
-
-  return {
-    next: nextHandler,
-    error: errorHandler || noop,
-    complete: completionHandler || noop
-  };
-}
-
-export function useInterpret<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {},
-  observerOrListener?:
-    | Observer<State<TContext, TEvent, any, TTypestate>>
-    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
-): Interpreter<TContext, any, TEvent, TTypestate> {
+export function useInterpret<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}, observerOrListener]: RestParams<TMachine>
+): Actor<TMachine> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
-  const {
-    context,
-    guards,
-    actions,
-    activities,
-    services,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+  const { guards, actions, actors, delays, ...interpreterOptions } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
-    activities,
-    services,
+    actors,
     delays
   };
 
-  const machineWithConfig = machine.withConfig(machineConfig, () => ({
-    ...machine.context,
-    ...context
-  }));
+  const machineWithConfig = machine.provide(machineConfig as any);
 
-  const service = interpret(machineWithConfig, interpreterOptions).start(
-    rehydratedState ? (State.create(rehydratedState) as any) : undefined
-  );
+  const service = createActor(machineWithConfig, interpreterOptions).start();
 
-  let sub;
+  let sub: Subscription | undefined;
   onMounted(() => {
     if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener));
+      sub = service.subscribe(toObserver(observerOrListener as any));
     }
   });
 
@@ -88,5 +79,5 @@ export function useInterpret<
     sub?.unsubscribe();
   });
 
-  return service;
+  return service as any;
 }

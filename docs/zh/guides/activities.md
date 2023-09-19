@@ -222,7 +222,7 @@ const toggleMachine = createMachine(
 );
 ```
 
-使用XState的[解释（interpret）](./interpretation.md)，每次发生动作启动一个活动时，都会调用那个活动的创建者来启动该活动，并使用返回的“stopper”（如果返回）来停止 活动：
+使用 XState 的[解释（interpret）](./interpretation.md)，每次发生动作启动一个活动时，都会调用那个活动的创建者来启动该活动，并使用返回的“stopper”（如果返回）来停止 活动：
 
 ```js
 import { interpret } from 'xstate';

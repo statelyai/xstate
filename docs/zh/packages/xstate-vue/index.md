@@ -24,14 +24,6 @@ npm i xstate @xstate/vue
 
 By using the global variable `XStateVue`
 
-or
-
-```html
-<script src="https://unpkg.com/@xstate/vue/dist/xstate-vue.fsm.min.js"></script>
-```
-
-By using the global variable `XStateVueFSM`
-
 2. Import the `useMachine` composition function:
 
 ```vue
@@ -91,19 +83,6 @@ A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduc
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
-### `useService(service)`
-
-A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that subscribes to state changes from an existing [service](https://xstate.js.org/docs/guides/interpretation.html).
-
-**Arguments**
-
-- `service` - An [XState service](https://xstate.js.org/docs/guides/communication.html).
-
-**Returns** `{state, send}`:
-
-- `state` - Represents the current state of the service as an XState `State` object.
-- `send` - A function that sends events to the running service.
-
 ### `useActor(actor, getSnapshot)`
 
 A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
@@ -114,7 +93,7 @@ _Since 0.5.0_
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist.
 
 ```js
 import { useActor } from '@xstate/vue';
@@ -189,7 +168,7 @@ _Since 0.6.0_
 - `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
 - `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
 - `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
 
 ```js
 import { useSelector } from '@xstate/vue';
@@ -242,24 +221,6 @@ export default {
 };
 ```
 
-### `useMachine(machine)` with `@xstate/fsm`
-
-A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
-
-This special `useMachine` hook is imported from `@xstate/vue/lib/fsm`
-
-**Arguments**
-
-- `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
-
-**Returns** an object `{state, send, service}`:
-
-- `state` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
-- `send` - A function that sends events to the running service.
-- `service` - The created `@xstate/fsm` service.
-
-**Example** (TODO)
-
 ## Configuring Machines
 
 Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
@@ -269,7 +230,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 ```vue
 <template>
   <template v-if="state.value === 'idle'">
-    <button @click="send('FETCH', { query: 'something' })">
+    <button @click="send({ type: 'FETCH', query: 'something' })">
       Search for something
     </button>
   </template>

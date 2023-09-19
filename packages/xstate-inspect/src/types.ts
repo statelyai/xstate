@@ -1,10 +1,16 @@
-import type { ActorRef, Interpreter, SCXML, State, StateMachine } from 'xstate';
-import { XStateDevInterface } from 'xstate/lib/devTools';
-import { InspectMachineEvent } from './inspectMachine';
+import type {
+  ActorRef,
+  AnyActor,
+  AnyStateMachine,
+  SnapshotFrom,
+  StateConfig
+} from 'xstate';
+import { XStateDevInterface } from 'xstate/dev';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
 
 export type MaybeLazy<T> = T | (() => T);
 
-export type ServiceListener = (service: Interpreter<any>) => void;
+export type ServiceListener = (service: AnyActor) => void;
 
 export type Replacer = (key: string, value: any) => any;
 
@@ -13,10 +19,21 @@ export interface InspectorOptions {
   iframe?: MaybeLazy<HTMLIFrameElement | null | false>;
   devTools?: MaybeLazy<XStateDevInterface>;
   serialize?: Replacer | undefined;
+  targetWindow?: Window | undefined | null;
 }
 
-export interface Inspector
-  extends ActorRef<InspectMachineEvent, State<any, any, any>> {
+export interface Inspector {
+  name: '@@xstate/inspector';
+  send: (event: InspectMachineEvent) => void;
+  subscribe: (
+    next: (
+      snapshot: SnapshotFrom<ReturnType<typeof createInspectMachine>>
+    ) => void,
+    error?: (err: any) => void,
+    complete?: () => void
+  ) => {
+    unsubscribe: () => void;
+  };
   /**
    * Disconnects the inspector.
    */
@@ -54,8 +71,8 @@ export type ReceiverEvent =
 export type ParsedReceiverEvent =
   | {
       type: 'service.register';
-      machine: StateMachine<any, any, any>;
-      state: State<any, any>;
+      machine: AnyStateMachine;
+      state: StateConfig<any, any>;
       id: string;
       sessionId: string;
       parent?: string;
@@ -64,10 +81,10 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: State<any, any>;
+      state: StateConfig<any, any>;
       sessionId: string;
     }
-  | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };
+  | { type: 'service.event'; event: string; sessionId: string };
 
 export type InspectReceiver = ActorRef<ReceiverCommand, ParsedReceiverEvent>;
 

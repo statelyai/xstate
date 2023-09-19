@@ -62,7 +62,7 @@ const fanMachine = createMachine({
 });
 ```
 
-在上面的状态机中，从事件 `'POWER'` 上的 `'fanOff'` 转换到 `'fanOn.hist'`  状态，该状态被定义为浅历史状态。 这意味着状态机应该转换到 `'fanOn'` 态以及 `'fanOn'` 的前一个子状态。 默认情况下，如果没有历史状态，`'fanOn'` 将进入它的初始状态，`'first'`。
+在上面的状态机中，从事件 `'POWER'` 上的 `'fanOff'` 转换到 `'fanOn.hist'` 状态，该状态被定义为浅历史状态。 这意味着状态机应该转换到 `'fanOn'` 态以及 `'fanOn'` 的前一个子状态。 默认情况下，如果没有历史状态，`'fanOn'` 将进入它的初始状态，`'first'`。
 
 ```js
 const firstState = fanMachine.transition(fanMachine.initialState, {

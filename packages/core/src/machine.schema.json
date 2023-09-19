@@ -1,13 +1,13 @@
 {
   "type": "object",
   "$schema": "http://json-schema.org/draft-07/schema",
-  "definitions": {
+  "$defs": {
     "actionObject": {
       "type": "object",
       "properties": {
         "type": {
           "type": "string",
-          "definition": "The action type"
+          "description": "The action type"
         }
       },
       "additionalProperties": true,
@@ -27,7 +27,7 @@
           "enum": ["atomic", "compound", "parallel", "final", "history"]
         },
         "order": {
-          "$ref": "#/definitions/order"
+          "$ref": "#/$defs/order"
         },
         "description": {
           "type": "string",
@@ -38,7 +38,7 @@
     },
     "compoundStateNode": {
       "allOf": [
-        { "$ref": "#/definitions/baseStateNode" },
+        { "$ref": "#/$defs/baseStateNode" },
         {
           "type": "object",
           "properties": {
@@ -49,26 +49,26 @@
             "entry": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/actionObject"
+                "$ref": "#/$defs/actionObject"
               }
             },
             "exit": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/actionObject"
+                "$ref": "#/$defs/actionObject"
               }
             },
             "initial": {
-              "type": "string"
+              "$ref": "#/$defs/initialTransitionObject"
             },
             "invoke": {
-              "$ref": "#/definitions/invokeArray"
+              "$ref": "#/$defs/invokeArray"
             },
             "on": {
-              "$ref": "#/definitions/transitionsObject"
+              "$ref": "#/$defs/transitionsObject"
             },
             "states": {
-              "$ref": "#/definitions/statesObject"
+              "$ref": "#/$defs/statesObject"
             }
           },
           "required": ["states"]
@@ -77,7 +77,7 @@
     },
     "parallelStateNode": {
       "allOf": [
-        { "$ref": "#/definitions/baseStateNode" },
+        { "$ref": "#/$defs/baseStateNode" },
         {
           "type": "object",
           "properties": {
@@ -88,23 +88,23 @@
             "entry": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/actionObject"
+                "$ref": "#/$defs/actionObject"
               }
             },
             "exit": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/actionObject"
+                "$ref": "#/$defs/actionObject"
               }
             },
             "invoke": {
-              "$ref": "#/definitions/invokeArray"
+              "$ref": "#/$defs/invokeArray"
             },
             "on": {
-              "$ref": "#/definitions/transitionsObject"
+              "$ref": "#/$defs/transitionsObject"
             },
             "states": {
-              "$ref": "#/definitions/statesObject"
+              "$ref": "#/$defs/statesObject"
             }
           },
           "required": ["states"]
@@ -113,7 +113,7 @@
     },
     "atomicStateNode": {
       "allOf": [
-        { "$ref": "#/definitions/baseStateNode" },
+        { "$ref": "#/$defs/baseStateNode" },
         {
           "type": "object",
           "properties": {
@@ -124,20 +124,20 @@
             "entry": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/actionObject"
+                "$ref": "#/$defs/actionObject"
               }
             },
             "exit": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/actionObject"
+                "$ref": "#/$defs/actionObject"
               }
             },
             "invoke": {
-              "$ref": "#/definitions/invokeArray"
+              "$ref": "#/$defs/invokeArray"
             },
             "on": {
-              "$ref": "#/definitions/transitionsObject"
+              "$ref": "#/$defs/transitionsObject"
             }
           },
           "required": ["on"]
@@ -146,7 +146,7 @@
     },
     "historyStateNode": {
       "allOf": [
-        { "$ref": "#/definitions/baseStateNode" },
+        { "$ref": "#/$defs/baseStateNode" },
         {
           "type": "object",
           "properties": {
@@ -165,7 +165,7 @@
     },
     "finalStateNode": {
       "allOf": [
-        { "$ref": "#/definitions/baseStateNode" },
+        { "$ref": "#/$defs/baseStateNode" },
         {
           "type": "object",
           "properties": {
@@ -185,14 +185,36 @@
       "patternProperties": {
         "^.*$": {
           "oneOf": [
-            { "$ref": "#/definitions/atomicStateNode" },
-            { "$ref": "#/definitions/compoundStateNode" },
-            { "$ref": "#/definitions/parallelStateNode" },
-            { "$ref": "#/definitions/historyStateNode" },
-            { "$ref": "#/definitions/finalStateNode" }
+            { "$ref": "#/$defs/atomicStateNode" },
+            { "$ref": "#/$defs/compoundStateNode" },
+            { "$ref": "#/$defs/parallelStateNode" },
+            { "$ref": "#/$defs/historyStateNode" },
+            { "$ref": "#/$defs/finalStateNode" }
           ]
         }
       }
+    },
+    "initialTransitionObject": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/actionObject"
+          }
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["actions", "eventType", "source", "target"]
     },
     "transitionsObject": {
       "type": "object",
@@ -200,7 +222,7 @@
         "^.*$": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/transitionObject"
+            "$ref": "#/$defs/transitionObject"
           }
         }
       }
@@ -211,7 +233,7 @@
         "actions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/actionObject"
+            "$ref": "#/$defs/actionObject"
           }
         },
         "cond": {
@@ -242,14 +264,7 @@
           "type": "string"
         },
         "src": {
-          "type": "object",
-          "properties": {
-            "type": { "type": "string" }
-          }
-        },
-        "autoForward": {
-          "type": "boolean",
-          "default": false
+          "type": "string"
         }
       },
       "required": ["type", "id", "src"],
@@ -258,7 +273,7 @@
     "invokeArray": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/invokeObject"
+        "$ref": "#/$defs/invokeObject"
       }
     },
     "functionObject": {
@@ -279,7 +294,7 @@
       "type": "string"
     },
     "initial": {
-      "type": "string"
+      "$ref": "#/$defs/initialTransitionObject"
     },
     "key": {
       "type": "string"
@@ -292,15 +307,15 @@
       "type": "object"
     },
     "states": {
-      "$ref": "#/definitions/statesObject"
+      "$ref": "#/$defs/statesObject"
     },
     "on": {
-      "$ref": "#/definitions/transitionsObject"
+      "$ref": "#/$defs/transitionsObject"
     },
     "transitions": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/transitionObject"
+        "$ref": "#/$defs/transitionObject"
       }
     },
     "entry": {
@@ -310,10 +325,10 @@
       "type": "array"
     },
     "order": {
-      "$ref": "#/definitions/order"
+      "$ref": "#/$defs/order"
     },
     "invoke": {
-      "$ref": "#/definitions/invokeArray"
+      "$ref": "#/$defs/invokeArray"
     },
     "version": {
       "type": "string"

@@ -7,8 +7,6 @@
 - [XState + Vue](https://codesandbox.io/s/xstate-vue-viz-template-r5wd7)
 - [XState + React](https://codesandbox.io/s/xstate-react-viz-template-5wq3q)
 
-![Inspector running from CodeSandbox](https://buttondown.s3.us-west-2.amazonaws.com/images/4c8c0db4-b4d5-408f-8684-57e94ff46c86.png)
-
 [请参阅此处的 CodeSandbox 示例](https://codesandbox.io/s/xstate-vue-minute-timer-viz-1txmk)
 
 ## 安装
@@ -27,7 +25,7 @@ import { inspect } from '@xstate/inspect';
 
 inspect({
   // options
-  // url: 'https://statecharts.io/inspect', // (default)
+  // url: 'https://stately.ai/viz?inspect', // (default)
   iframe: false // 打开新窗口
 });
 ```
@@ -48,7 +46,7 @@ const service = interpret(someMachine, { devTools: true });
 // 默认
 inspect({
   iframe: () => document.querySelector('iframe[data-xstate]'),
-  url: 'https://statecharts.io/inspect'
+  url: 'https://stately.ai/viz?inspect'
 });
 
 // 同上
@@ -77,7 +75,7 @@ inspect();
   });
   ```
 
-- `url` (string) - 要连接到的检查器的 URL。 默认情况下，检查器在 `http://statecharts.io/inspect` 上运行。
+- `url` (string) - 要连接到的检查器的 URL。 默认情况下，检查器在 `https://stately.ai/viz?inspect` 上运行。
 
 **返回:** 具有以下属性的检查器对象：
 
@@ -92,8 +90,8 @@ inspect();
   ```ts
   {
     type: 'service.register';
-    machine: StateMachine<any, any, any>;
-    state: State<any, any>;
+    machine: AnyStateMachine;
+    state: AnyState;
     id: string;
     sessionId: string;
     parent?: string;
@@ -115,7 +113,7 @@ inspect();
   ```ts
   {
     type: 'service.state';
-    state: State<any, any>;
+    state: AnyState;
     sessionId: string;
   }
   ```
@@ -126,8 +124,8 @@ inspect();
   {
     type: 'service.event';
     event: SCXML.Event<any>;
-    sessionId: string
-  };
+    sessionId: string;
+  }
   ```
 
 要监听来自受检查源的事件，请使用适当的 `create*Receiver(...)` 函数创建一个接收器； 例如：

@@ -1,9 +1,9 @@
-import { Machine, StateNode } from '../src';
+import { createMachine, StateNode } from '../src/index.ts';
 import { flatten } from '../src/utils';
 
 describe('document order', () => {
   it('should specify the correct document order for each state node', () => {
-    const machine = Machine({
+    const machine = createMachine({
       id: 'order',
       initial: 'one',
       states: {
@@ -53,14 +53,17 @@ describe('document order', () => {
       }
     });
 
-    function dfs(node: StateNode): StateNode[] {
+    function dfs(node: StateNode<any, any>): StateNode<any, any>[] {
       return flatten([
-        node,
-        ...Object.keys(node.states).map((key) => dfs(node.states[key]))
+        node as any,
+        ...Object.keys(node.states).map((key) => dfs(node.states[key] as any))
       ]);
     }
 
-    const allStateNodeOrders = dfs(machine).map((sn) => [sn.key, sn.order]);
+    const allStateNodeOrders = dfs(machine.root).map((sn) => [
+      sn.key,
+      sn.order
+    ]);
 
     expect(allStateNodeOrders).toEqual([
       ['order', 0],

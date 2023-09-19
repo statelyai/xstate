@@ -11,7 +11,7 @@
   </a>
 </p>
 
-The [@xstate/immer package](https://github.com/statelyai/xstate/tree/main/packages/xstate-immer) contains utilities for using [Immer](https://immerjs.github.io/immer/docs/introduction) with [XState](https://github.com/statelyai/xstate).
+The [@xstate/immer package](https://github.com/statelyai/xstate/tree/main/packages/xstate-immer) contains utilities for using [Immer](https://immerjs.github.io/immer) with [XState](https://github.com/statelyai/xstate).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -87,13 +87,13 @@ const toggleService = interpret(toggleMachine)
   })
   .start();
 
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
 // { count: 1, level: 0 }
 
 toggleService.send(levelUpdater.update(9));
 // { count: 1, level: 9 }
 
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
 // { count: 2, level: 9 }
 
 toggleService.send(levelUpdater.update(-100));
@@ -324,7 +324,11 @@ type FormEvent =
       type: 'SUBMIT';
     };
 
-const formMachine = createMachine<FormContext, FormEvent>({
+const formMachine = createMachine({
+  schema: {
+    context: {} as FormContext,
+    events: {} as FormEvent
+  },
   initial: 'editing',
   context: {
     name: '',

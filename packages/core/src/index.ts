@@ -1,79 +1,43 @@
-import { matchesState } from './utils';
-import { mapState } from './mapState';
-import { StateNode } from './StateNode';
-import { State } from './State';
-import { Machine, createMachine } from './Machine';
-import { Actor } from './Actor';
+export * from './actions.ts';
+export * from './actors/index.ts';
+export { SimulatedClock } from './SimulatedClock.ts';
+export { type Spawner } from './spawn.ts';
+export { StateMachine } from './StateMachine.ts';
+export { getStateNodes } from './stateUtils.ts';
+export * from './typegenTypes.ts';
+export * from './types.ts';
+export { waitFor } from './waitFor.ts';
 import {
-  raise,
-  send,
-  sendParent,
-  sendTo,
-  sendUpdate,
-  log,
-  cancel,
-  start,
-  stop,
-  assign,
-  after,
-  done,
-  respond,
-  doneInvoke,
-  forwardTo,
-  escalate,
-  choose,
-  pure
-} from './actions';
-import {
+  Actor,
+  ActorStatus,
+  createActor,
   interpret,
   Interpreter,
-  spawn,
   InterpreterStatus
-} from './interpreter';
-import { matchState } from './match';
-import { createSchema } from './schema';
-
-const actions = {
-  raise,
-  send,
-  sendParent,
-  sendTo,
-  sendUpdate,
-  log,
-  cancel,
-  start,
-  stop,
-  assign,
-  after,
-  done,
-  respond,
-  forwardTo,
-  escalate,
-  choose,
-  pure
-};
-
+} from './interpreter.ts';
+import { createMachine } from './Machine.ts';
+import { mapState } from './mapState.ts';
+import { State } from './State.ts';
+import { StateNode } from './StateNode.ts';
+// TODO: decide from where those should be exported
+export { matchesState, pathToStateValue, toObserver } from './utils.ts';
 export {
   Actor,
-  Machine,
-  StateNode,
-  State,
-  matchesState,
-  mapState,
-  actions,
-  assign,
-  send,
-  sendParent,
-  sendUpdate,
-  forwardTo,
-  interpret,
-  Interpreter,
-  InterpreterStatus,
-  matchState,
-  spawn,
-  doneInvoke,
+  ActorStatus,
+  createActor,
   createMachine,
-  createSchema
+  interpret,
+  InterpreterStatus,
+  mapState,
+  State,
+  StateNode,
+  type Interpreter
 };
 
-export * from './types';
+export { and, not, or, stateIn } from './guards.ts';
+
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}

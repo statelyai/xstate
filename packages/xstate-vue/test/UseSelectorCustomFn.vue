@@ -13,7 +13,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { assign, createMachine } from 'xstate';
-import { useInterpret, useSelector } from '../src';
+import { useInterpret, useSelector } from '../src/index.ts';
 
 const machine = createMachine<{ name: string }>({
   initial: 'active',
@@ -25,7 +25,7 @@ const machine = createMachine<{ name: string }>({
   },
   on: {
     CHANGE: {
-      actions: assign({ name: (_, e) => e.value })
+      actions: assign({ name: ({event}) => event.value })
     }
   }
 });

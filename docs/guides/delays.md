@@ -2,6 +2,10 @@
 
 Delays and timeouts can be handled declaratively with statecharts. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#delayed-transitions).
 
+:::tip Check out our new docs!
+🆕 Find more about [delayed (after) transitions in XState](https://stately.ai/docs/xstate/transitions-and-choices/after) as well as a [no-code introduction to delayed transitions](https://stately.ai/docs/transitions-and-events/delayed-transitions) in our new docs.
+:::
+
 ## Delayed transitions
 
 Transitions can be taken automatically after a delay. This is represented in a state definition in the `after` property, which maps millisecond delays to their transitions:
@@ -245,9 +249,9 @@ const dynamicDelayMachine = createMachine({
   }
 });
 
-const dynamicDelayService = interpret(dynamicDelayMachine)
-  .onDone(() => console.log('done!'))
-  .start();
+const dynamicDelayService = interpret(dynamicDelayMachine);
+dynamicDelayService.subscribe({ complete: () => console.log('done!') });
+dynamicDelayService.start();
 
 dynamicDelayService.send({
   type: 'ACTIVATE',
@@ -285,15 +289,16 @@ import { interpret } from 'xstate';
 // import { SimulatedClock } from 'xstate/lib/interpreter'; // < 4.6.0
 import { SimulatedClock } from 'xstate/lib/SimulatedClock'; // >= 4.6.0
 
+const simulatedClock = new SimulatedClock();
 const service = interpret(lightDelayMachine, {
-  clock: new SimulatedClock()
+  clock: simulatedClock
 }).onTransition((state) => console.log(state.value));
 
 service.start();
 // => 'green'
 
 // move the SimulatedClock forward by 1 second
-service.clock.increment(1000);
+simulatedClock.increment(1000);
 // => 'yellow'
 ```
 
@@ -311,8 +316,8 @@ The `after: ...` property does not introduce anything new to statechart semantic
 states: {
   green: {
     entry: [
-      send(after(1000, 'light.green'), { delay: 1000 }),
-      send(after(2000, 'light.green'), { delay: 2000 })
+      send({ type: after(1000, 'light.green') }, { delay: 1000 }),
+      send({ type: after(2000, 'light.green') }, { delay: 2000 })
     ],
     onExit: [
       cancel(after(1000, 'light.green')),

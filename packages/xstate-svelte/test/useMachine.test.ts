@@ -1,12 +1,27 @@
-import { render, fireEvent } from '@testing-library/svelte';
+import { fireEvent, render } from '@testing-library/svelte';
+import { createActor, createMachine } from 'xstate';
 import UseMachine from './UseMachine.svelte';
-import { fetchMachine } from './fetchMachine';
-import { doneInvoke } from 'xstate';
+import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcription.svelte';
+import { fetchMachine } from './fetchMachine.ts';
 
-const persistedFetchState = fetchMachine.transition(
-  'loading',
-  doneInvoke('fetchData', 'persisted data')
-);
+const actorRef = createActor(
+  fetchMachine.provide({
+    actors: {
+      fetchData: createMachine({
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final',
+            output: 'persisted data'
+          }
+        }
+      }) as any
+    }
+  })
+).start();
+actorRef.send({ type: 'FETCH' });
+
+const persistedFetchState = actorRef.getPersistedState();
 
 const persistedFetchStateConfig = JSON.parse(
   JSON.stringify(persistedFetchState)
@@ -39,5 +54,29 @@ describe('useMachine function', () => {
     await findByText(/Success/);
     const dataEl = getByTestId('data');
     expect(dataEl.textContent).toBe('persisted data');
+  });
+
+  it("should not stop the interpreter even if subscribers' count go temporarily to zero", async () => {
+    const { findByText, getByTestId } = render(
+      UseMachineNonPersistentSubcription
+    );
+    let incButton = await findByText(/Increment/);
+
+    await fireEvent.click(incButton);
+    await fireEvent.click(incButton);
+    await fireEvent.click(incButton);
+
+    expect(getByTestId('count').textContent).toBe('3');
+
+    const toggleButton = await findByText(/Toggle/);
+
+    await fireEvent.click(toggleButton);
+    await fireEvent.click(toggleButton);
+
+    incButton = await findByText(/Increment/);
+
+    await fireEvent.click(incButton);
+
+    expect(getByTestId('count').textContent).toBe('4');
   });
 });

@@ -1,0 +1,10 @@
+{
+  "packages": [
+    "packages/core",
+    "packages/xstate-graph",
+    "packages/xstate-react",
+    "packages/xstate-test"
+  ],
+  "sandboxes": ["xstate-example-template-m4ckv", "xstate-react-template-3t2tg"],
+  "node": "16"
+}

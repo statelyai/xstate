@@ -4,13 +4,12 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { ActorRef } from 'xstate';
-import { useActor } from '../src';
-const simpleActor: ActorRef<any, number> & { latestValue: number } = {
-  send: () => {
-    /* ... */
-  },
-  latestValue: 42,
+import { createActor, ActorRef } from 'xstate';
+import { useActor } from '../src/index.ts';
+const simpleActor: ActorRef<any, number> = createActor({
+  transition: (s) => s,
+  getSnapshot: () => 42,
+  getInitialState: () => 42,
   subscribe: () => {
     return {
       unsubscribe: () => {
@@ -18,11 +17,11 @@ const simpleActor: ActorRef<any, number> & { latestValue: number } = {
       }
     };
   }
-};
+});
 
 export default defineComponent({
   setup() {
-    const { state } = useActor(simpleActor, (a) => a.latestValue);
+    const { state } = useActor(simpleActor);
     return { state };
   }
 });

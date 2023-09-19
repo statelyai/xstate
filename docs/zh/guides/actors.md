@@ -4,14 +4,13 @@
 
 [[toc]]
 
-[演员（Actor）模型](https://en.wikipedia.org/wiki/Actor_model) 是一种基于消息的计算的数学模型，它简化了多个“实体”（或“演员”）相互通信的方式。 演员通过相互发送消息（事件）来进行通信。  演员 的本地状态是私有的，除非它希望通过将其作为事件发送来与另一个 演员 共享。
+[演员（Actor）模型](https://en.wikipedia.org/wiki/Actor_model) 是一种基于消息的计算的数学模型，它简化了多个“实体”（或“演员”）相互通信的方式。 演员通过相互发送消息（事件）来进行通信。 演员 的本地状态是私有的，除非它希望通过将其作为事件发送来与另一个 演员 共享。
 
 当一个 演员 收到一个事件时，会发生三件事：
 
 - 有限数量的消息可以 **sent** 给其他 演员
 - 可以创建（或 **spawned**）有限数量的新演员
 - 演员 的本地状态可能会改变（由其 **behavior** 决定）
-
 
 状态机和状态图与 演员 模型配合得很好，因为它们是基于事件的行为和逻辑模型。 请记住：当状态机因事件而转换时，下一个状态包含：
 
@@ -31,7 +30,6 @@
 - 一个 `.send(...)` 方法，用于向这个 演员 发送事件
 - 一个`.getSnapshot()`方法，同步返回演员的最后 _触发值_。
 
-
 他们可能有可选的方法：
 
 - 一个 `.stop()` 方法，它停止 演员 并执行任何必要的清理
@@ -41,7 +39,7 @@
 
 - [调用 promises](./communication.md#invoking-promises) 是忽略任何接收到的事件并最多将一个事件发送回父级的演员
 - [调用 callbacks](./communication.md#invoking-callbacks) 是可以向父级发送事件的演员
-(第一个 `callback` 参数), 接收事件（第二个 `onReceive` 参数），并对它们采取动作
+  (第一个 `callback` 参数), 接收事件（第二个 `onReceive` 参数），并对它们采取动作
 - [调用 machines](./communication.md#invoking-machines) 是可以将事件发送到父级（`sendParent(...)` 动作）或它引用的其他演员（`send(...)` 动作）、接收事件、对它们采取行动（状态转换和动作）的 演员 )，产生新的 演员（`spawn(...)` 函数），并停止 演员。
 - [调用 observables](./communication.md#invoking-observables) 是其发出的值表示要发送回父级的事件的 演员。
 
@@ -63,10 +61,9 @@
 1. 从`'xstate'`导入`spawn`函数
 2. 在`assign(...)` 动作中，使用`spawn(...)` 创建一个新的 演员 引用
 
-
 `spawn(...)` 函数通过提供 1 或 2 个参数来创建 **演员 引用**：
 
-- `entity` - 代表 演员 东走的（反应）值或状态机。 `entity` 的可能类型：
+- `entity` - 代表 演员 动作（反应）的值或状态机。 `entity` 的可能类型：
   - [Machine](./communication.md#invoking-machines)
   - [Promise](./communication.md#invoking-promises)
   - [Callback](./communication.md#invoking-callbacks)
@@ -103,7 +100,7 @@ const todosMachine = createMachine({
 });
 ```
 
-如果你没有为 `spawn(...)` 提供 `name` 参数，将会自动生成一个唯一的名称。 此名称将是不确定的⚠️。
+如果你没有为 `spawn(...)` 提供 `name` 参数，将会自动生成一个唯一的名称。 此名称将是不确定的 ⚠️。
 
 ::: tip
 将 `const actorRef = spawn(someMachine)` 视为 `context` 中的一个普通值。 你可以根据你的逻辑要求将此 `actorRef` 放置在 `context` 内的任何位置。 只要它在`assign(...)` 中的赋值函数内，它就会被限定在它产生的服务范围内。
@@ -205,7 +202,7 @@ const someMachine = createMachine({
 
 ## 创建 Promises
 
-就像 [invoking promises](./communication.md#invoking-promises) 一样，promise 可以作为 演员 生成。 发送回状态机的事件将是一个 `'done.invoke.<ID>'` 操作，promise 响应作为有效负载中的 `data` 属性：
+就像 [invoking promises](./communication.md#invoking-promises) 一样，promise 可以作为 演员 生成。 发送回状态机的事件将是一个 `'xstate.done.actor.<ID>'` 操作，promise 响应作为有效负载中的 `data` 属性：
 
 ```js {11}
 // Returns a promise
@@ -225,7 +222,7 @@ const fetchData = (query) => {
 ```
 
 ::: warning
-不建议生成promise 演员，因为 [调用 promises](./communication.md#invoking-promises) 是一种更好的模式，因为它们依赖于状态（自我取消）并且具有更可预测的行为。
+不建议生成 promise 演员，因为 [调用 promises](./communication.md#invoking-promises) 是一种更好的模式，因为它们依赖于状态（自我取消）并且具有更可预测的行为。
 :::
 
 ## 创建 Callbacks
@@ -318,7 +315,7 @@ const remoteMachine = createMachine({
     online: {
       after: {
         1000: {
-          actions: sendParent('REMOTE.ONLINE')
+          actions: sendParent({ type: 'REMOTE.ONLINE' })
         }
       }
     }
@@ -376,25 +373,11 @@ parentService.send({ type: 'LOCAL.WAKE' });
 
 这将自动为状态机订阅生成的子状态机的状态，该状态会保持更新并可通过 `getSnapshot()` 访问：
 
-
 ```js
 someService.onTransition((state) => {
   const { someRef } = state.context;
 
   console.log(someRef.getSnapshot());
-  // => State {
-  //   value: ...,
-  //   context: ...
-  // }
-});
-```
-
-
-```js
-someService.onTransition((state) => {
-  const { someRef } = state.context;
-
-  console.log(someRef.state);
   // => State {
   //   value: ...,
   //   context: ...

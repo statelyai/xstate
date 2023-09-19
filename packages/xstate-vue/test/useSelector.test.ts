@@ -21,7 +21,7 @@ describe('useSelector', () => {
     await fireEvent.click(incrementEl);
     expect(countButton.textContent).toBe('2');
 
-    expect(emitted()['rerender'].length).toBe(3);
+    expect((emitted() as any).rerender.length).toBe(3);
   });
 
   it('should work with a custom comparison function', async () => {

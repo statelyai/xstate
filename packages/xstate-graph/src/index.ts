@@ -1,21 +1,14 @@
-import {
-  getStateNodes,
-  getPathFromEvents,
-  getSimplePaths,
-  getShortestPaths,
-  serializeEvent,
-  serializeState,
-  toDirectedGraph
-} from './graph';
-
+export type { AdjacencyMap, AdjacencyValue } from './graph.ts';
 export {
   getStateNodes,
-  getPathFromEvents,
-  getSimplePaths,
-  getShortestPaths,
   serializeEvent,
-  serializeState,
-  toDirectedGraph
-};
+  serializeMachineState as serializeState,
+  toDirectedGraph,
+  joinPaths
+} from './graph.ts';
+export { getSimplePaths } from './simplePaths.ts';
+export { getShortestPaths } from './shortestPaths.ts';
+export { getPathsFromEvents } from './pathFromEvents.ts';
+export { getAdjacencyMap } from './adjacency.ts';
 
-export * from './types';
+export * from './types.ts';

@@ -1,6 +1,6 @@
 import safeStringify from 'fast-safe-stringify';
-import { State, createMachine } from 'xstate';
-import { ParsedReceiverEvent, ReceiverEvent } from './types';
+import { createMachine, StateConfig } from 'xstate';
+import { ParsedReceiverEvent, ReceiverEvent } from './types.ts';
 
 export function getLazy<T>(value: T): T extends () => infer R ? R : T {
   return typeof value === 'function' ? value() : value;
@@ -37,10 +37,8 @@ export function isReceiverEvent(event: any): event is ReceiverEvent {
   return false;
 }
 
-export function parseState(stateJSON: string): State<any, any> {
-  const state = State.create(JSON.parse(stateJSON));
-
-  delete state.history;
+export function parseState(stateJSON: string): StateConfig<any, any> {
+  const state = JSON.parse(stateJSON);
 
   return state;
 }

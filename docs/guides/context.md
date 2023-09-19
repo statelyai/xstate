@@ -2,6 +2,10 @@
 
 [:rocket: Quick Reference](#quick-reference)
 
+:::tip Check out our new docs!
+🆕 Find more about [context in XState](https://stately.ai/docs/xstate/actions/context) in our new docs.
+:::
+
 While _finite_ states are well-defined in finite state machines and statecharts, state that represents _quantitative data_ (e.g., arbitrary strings, numbers, objects, etc.) that can be potentially infinite is represented as [extended state](https://en.wikipedia.org/wiki/UML_state_machine#Extended_states) instead. This makes statecharts much more useful for real-life applications.
 
 In XState, extended state is known as **context**. Below is an example of how `context` is used to simulate filling a glass of water:
@@ -87,6 +91,27 @@ const counterMachine = createMachine({
     allowedToIncrement: true
     // ... etc.
   },
+  states: {
+    // ...
+  }
+});
+```
+
+The `context` property of the machine can also be initialized lazily; i.e., the context will not be created until the machine is actually created/used:
+
+```js
+const counterMachine = createMachine({
+  id: 'counter',
+  // initial context
+  context: () => ({
+    count: 0,
+    message: 'Currently empty',
+    user: {
+      name: 'David'
+    },
+    allowedToIncrement: true
+    // ... etc.
+  }),
   states: {
     // ...
   }
@@ -189,10 +214,58 @@ The `meta` object contains:
 - `action` - the assign action
 
 ::: warning
+Assigners **must be pure**; they should not contain any side-effects. This is because the `assign(...)` action is involved in determining the next state, and side-effects in the assigner could introduce nondeterminism.
+
+```js
+actions: assign({
+  count: (context) => {
+    doSomeSideEffect(); // ❌ No side-effects in assignment functions
+
+    return context.count + 1;
+  }
+});
+```
+
+:::
+
+::: warning
 The `assign(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively make assignments to the context.
 :::
 
 ## Action Order
+
+::: warning
+In XState version 5, this behavior will change and `assign(...)` actions will be called **in order** instead of being prioritized, which is incorrect behavior according to SCXML.
+
+To get this behavior in version 4, add `preserveActionOrder: true` to the machine config:
+
+```js
+const counterMachine = createMachine({
+  preserveActionOrder: true, // Ensures that assign actions are called in order
+  // ...
+  context: { count: 0 },
+  states: {
+    active: {
+      on: {
+        INC_TWICE: {
+          actions: [
+            (context) => console.log(`Before: ${context.count}`), // "Before: 0"
+            assign({ count: (context) => context.count + 1 }), // count === 1
+            assign({ count: (context) => context.count + 1 }), // count === 2
+            (context) => console.log(`After: ${context.count}`) // "After: 2"
+          ]
+        }
+      }
+    }
+  }
+});
+
+interpret(counterMachine).start().send({ type: 'INC_TWICE' });
+// => "Before: 0"
+// => "After: 2"
+```
+
+:::
 
 Custom actions are always executed with regard to the _next state_ in the transition. When a state transition has `assign(...)` actions, those actions are always batched and computed _first_, to determine the next state. This is because a state is a combination of the finite state and the extended state (context).
 
@@ -208,10 +281,10 @@ const counterMachine = createMachine({
       on: {
         INC_TWICE: {
           actions: [
-            (context) => console.log(`Before: ${context.count}`),
+            (context) => console.log(`Before: ${context.count}`), // "Before: 2"
             assign({ count: (context) => context.count + 1 }), // count === 1
             assign({ count: (context) => context.count + 1 }), // count === 2
-            (context) => console.log(`After: ${context.count}`)
+            (context) => console.log(`After: ${context.count}`) // "After: 2"
           ]
         }
       }
@@ -323,9 +396,11 @@ const countMachine = createMachine({
 
 ## TypeScript
 
-For proper type inference, add the context type as the first type parameter to `createMachine<TContext, ...>`:
+For proper type inference, add the context type to the schema property of the machine:
 
 ```ts
+import { createMachine } from 'xstate';
+
 interface CounterContext {
   count: number;
   user?: {
@@ -333,7 +408,10 @@ interface CounterContext {
   };
 }
 
-const machine = createMachine<CounterContext>({
+const machine = createMachine({
+  schema: {
+    context: {} as CounterContext
+  },
   // ...
   context: {
     count: 0,
@@ -351,21 +429,27 @@ const context = {
   user: { name: '' }
 };
 
-const machine = createMachine<typeof context>({
+const machine = createMachine({
+  schema: {
+    context: {} as typeof context
+  },
   // ...
   context
   // ...
 });
 ```
 
-In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `createMachine<TContext, TEvent>`:
+In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `schema`:
 
 ```ts
 interface CounterContext {
   count: number;
 }
 
-const machine = createMachine<CounterContext>({
+const machine = createMachine({
+  schema: {
+    context: {} as CounterContext
+  },
   // ...
   context: {
     count: 0

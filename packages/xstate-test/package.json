@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.5.0",
+  "version": "1.0.0-beta.3",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -14,48 +14,45 @@
     "testing"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-test#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-test#readme",
   "license": "MIT",
-  "main": "lib/index.js",
-  "module": "es/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/xstate-test.cjs.js",
+  "module": "dist/xstate-test.esm.js",
   "browser": {
-    "./lib/slimChalk.js": "./lib/slimChalk.browser.js",
-    "./es/slimChalk.js": "./es/slimChalk.browser.js"
+    "./dist/xstate-test.esm.js": "./dist/xstate-test.browser.esm.js"
+  },
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-test.cjs.mjs",
+        "default": "./dist/xstate-test.cjs.js"
+      },
+      "module": "./dist/xstate-test.esm.js",
+      "import": "./dist/xstate-test.cjs.mjs",
+      "default": "./dist/xstate-test.cjs.js"
+    },
+    "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts",
-    "es/**/*.js",
-    "es/**/*.d.ts"
+    "dist"
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
-    "test": "jest --runInBand",
-    "build": "tsc && tsc --outDir es --module es2015",
-    "prepublish": "npm run build"
-  },
+  "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.9.0"
+    "xstate": "^5.0.0-beta.29"
   },
   "devDependencies": {
-    "jest": "^26.6.3",
-    "lerna-alias": "3.0.3-0",
     "strip-ansi": "^5.2.0",
-    "ts-jest": "^26.5.6",
-    "typescript": "^4.5.2",
-    "xstate": "*"
+    "xstate": "5.0.0-beta.29"
   },
   "dependencies": {
-    "@xstate/graph": "^1.4.0",
-    "chalk": "^2.4.2"
+    "@xstate/graph": "2.0.0-beta.4"
   }
 }

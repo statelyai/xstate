@@ -9,7 +9,7 @@ Below is an incomplete collection of many resources for learning and applying XS
 :::tip Official Course
 Watch the official [State Machines in JavaScript with XState](https://frontendmasters.com/courses/xstate/) course by [@davidkpiano](https://twitter.com/davidkpiano) on Frontend Masters! In this course, you’ll learn the fundamentals of state machines and statecharts, from building your own without any libraries in pure JavaScript, up to using XState to take advantage of a wide variety of other features.
 
-The workshop code examples are [open-sourced and available on GitHub](https://github.com/davidkpiano/frontend-masters-xstate-workshop).
+The workshop code examples are [open-sourced and available on GitHub](https://github.com/statelyai/frontend-masters-xstate-workshop).
 
 There is also a follow-up course: [State Modeling with React and XState](https://frontendmasters.com/workshops/xstate-react/). Once you've gone through the first course, be sure to take this one too so you can learn how to apply state machines and statecharts to real-world apps and master advanced concepts such as spawning/invoking actors and model-based testing.
 :::
@@ -43,13 +43,14 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 ## Articles
 
+- [Building iOS Stopwatch functionality using XState](https://blog.lakbychance.com/building-ios-stopwatch-functionality-using-xstate) by [Lakshya Thakur](https://hashnode.com/@lakbychance) 2022-07-31
 - [Using State Machines in Front-End Development](https://blog.picnic.nl/using-state-machines-in-front-end-development-c875ea1d5322) by [Danielle Richter](https://medium.com/@danielle.richter) 2021-10-27
 - [Quick post: Modeling a video player with XState](https://dev.to/matiasfha/quick-post-modeling-a-video-player-with-xstate-eko) by [Matías Hernández Arellano](https://twitter.com/cafe_contech) on 2021-10-25
 - [Getting Started with XState, React and Typescript (Part 2)](https://moduscreate.com/blog/getting-started-with-xstate-react-and-typescript-part-2/) by [Santiago Kent](https://twitter.com/moduscreate) on 2021-10-18
 - [Getting Started with XState, React and Typescript (Part 1)](https://moduscreate.com/blog/getting-started-with-xstate-react-and-typescript-part-2/) by [Santiago Kent](https://twitter.com/moduscreate) on 2021-01-05
 - [Untangling your Logic using State Machines](https://blog.robruizr.dev/untangling-your-logic-using-state-machines) by [Roberto Ruiz](https://twitter.com/robruizrdevs) on 2021-10-07
 - [The power of XState](https://dev.to/manoryanir/the-power-of-x-state-1npg) by [Yanir Manor](https://dev.to/manoryanir) on 2021-10-04
-- [Building an acquisition Funnel in React with Xstate - Part 1](https://dev.indooroutdoor.io/building-an-acquisition-funnel-in-react-with-xstate) by [Jb Rocher](https://hashnode.com/@Araelath)
+- [Building an acquisition Funnel in React with Xstate - Part 1](https://dev.indooroutdoor.io/building-an-acquisition-funnel-in-react-with-xstate) by [Jb Rocher](https://hashnode.com/@jibrocher)
 - [XState - Expero Night](https://slides.com/ivanbtrujillo/deck) by Iván Trujillo
 - [Orchestrating Serverless from Serverless](https://medium.com/@kjartanmuller/orchestrating-serverless-from-serverless-bcdb751ddd6c) by [Kjartan Rekdal Müller](https://medium.com/@kjartanmuller) on 2021-09-20
 - [How to model application flows in React with finite state machines and XState](https://engineering.kablamo.com.au/posts/2021/finite-state-machines-and-xstate) by [Andrew McDowell](https://twitter.com/madole) on 2021-07-23
@@ -143,7 +144,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [Hyperapp demo with XState](https://github.com/johnkazer/hyperapp-xstate-demo) by [@johnkazer](https://github.com/johnkazer) on 2019-07-23
 - [My love letter to XState and statecharts ♥](https://dev.to/timdeschryver/my-love-letter-to-xstate-and-statecharts-287b) by Tim Deschryver on 2019-07-08
 - [Creating a Complex IVR System with Ease with XState](https://www.nexmo.com/blog/2019/06/20/creating-a-complex-ivr-system-with-ease-with-xstate-dr) by Yonatan Mevorach on 2019-06-20
-- [StackOverflow: What is an actual difference between redux and a state machine (e.g. xstate)?](https://stackoverflow.com/questions/54482695/what-is-an-actual-difference-between-redux-and-a-state-machine-e-g-xstate/54521035#54521035) by [David Khourshid](https://github.com/davidkpiano) on 2019-02-04 ![Stately member](/docs/stately.png)
+- [StackOverflow: What is an actual difference between redux and a state machine (e.g. xstate)?](https://stackoverflow.com/questions/54482695/what-is-an-actual-difference-between-redux-and-a-state-machine-e-g-xstate/54521035#54521035) by [David Khourshid](https://github.com/statelyai) on 2019-02-04 ![Stately member](/docs/stately.png)
 - [XState - a TypeScript state machine with a lot of features](http://realfiction.net/2019/01/30/xstate-a-typescript-state-machine-with-a-lot-of-features) by Frank Quednau on 2019-01-30
 - [Vuex + XState](https://medium.com/@brockreece/vuex-xstate-4f9ea23bb24e) by [Brock Reece](https://medium.com/@brockreece) on 2017-09-17
 
@@ -151,11 +152,11 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 - [▶️ Design a polling state machine with XState](https://www.youtube.com/watch?v=DMXAv8iTrcY) by [Josh Branchaud](https://twitter.com/jbrancha)
 - [▶️ You're a Wizard Form, Harry (Infobip Shift)](https://www.youtube.com/watch?v=0bY9_DasGEg) by [Erik Rasmussen](https://github.com/erikras) on 2021-09-08
-- [▶️ Making Application Logic Visually Collaborative (Infobip Shift)](https://www.youtube.com/watch?v=ubFj_QfNCL8) by [David Khourshid](https://github.com/davidkpiano) on 2021-09-07 ![Stately member](/docs/stately.png)
+- [▶️ Making Application Logic Visually Collaborative (Infobip Shift)](https://www.youtube.com/watch?v=ubFj_QfNCL8) by [David Khourshid](https://github.com/statelyai) on 2021-09-07 ![Stately member](/docs/stately.png)
 - [▶️ The Actor Model: a new mental model for React (React Finland)](https://www.youtube.com/watch?v=9k1ZHHJWt7k) by [Farzad Yousefzadeh](https://github.com/farskid) on 2021-09-01 ![Stately member](/docs/stately.png)
 - [▶️ Make legacy code delightful with statecharts (React Finland)](https://www.youtube.com/watch?v=zll9uDQOOq0) by [Matt Pocock](https://twitter.com/mpocock1) on 2021-09-01 ![Stately member](/docs/stately.png)
 - [▶️ Introducing state machines and statecharts (React Finland)](https://www.youtube.com/watch?v=Y_lOg-rsqBM) by [Laura Kalbag](https://github.com/LauraKalbag) on 2021-09-01 ![Stately member](/docs/stately.png)
-- [▶️ The State of XState (React Finland)](https://www.youtube.com/watch?v=Q05jcu9N98g) on 2021-08-30 by [David Khourshid](https://github.com/davidkpiano) ![Stately member](/docs/stately.png)
+- [▶️ The State of XState (React Finland)](https://www.youtube.com/watch?v=Q05jcu9N98g) on 2021-08-30 by [David Khourshid](https://github.com/statelyai) ![Stately member](/docs/stately.png)
 - [▶️ Splitting the view and the brains in JS — state machines with XState (in French)](https://www.youtube.com/watch?v=yRB57CDvQuY) by [Aurelien Meunier](https://www.linkedin.com/in/aumeunier) on 2021-06-22
 - [▶️ Front-end state management with XState](https://www.youtube.com/watch?v=Slb6M_rIn0M) by [Amy Pellegrini](https://twitter.com/amyvpellegrini) on 2021-06-09
 - [▶️ Maquinas de estado finito y gráficas de estado en React ](https://www.youtube.com/watch?v=Rm6AMY6-Wqw) by José L Narajo on 2021-03-19
@@ -216,7 +217,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [▶️ XState and State Machines in Vue](https://tallpad.com/series/xstate-misc/episode/1)
 - [▶️ Standing on the Shoulders of Giants. Development with XState](https://www.youtube.com/watch?v=GuzcWkVrqLg) by Brad Woods on 2019-09-11
   - [Slides and more](https://www.atlassian.com/atlascamp/watch-sessions/2019/advanced-app-development/standing-on-the-shoulders-of-giants-development-with-xstate)
-- [▶️ Infinitely Better UIs with Finite Automata (React Rally)](https://www.youtube.com/watch?v=VU1NKX6Qkxc) by [David Khourshid](https://github.com/davidkpiano) on 2017-08-25 ![Stately member](/docs/stately.png)
+- [▶️ Infinitely Better UIs with Finite Automata (React Rally)](https://www.youtube.com/watch?v=VU1NKX6Qkxc) by [David Khourshid](https://github.com/statelyai) on 2017-08-25 ![Stately member](/docs/stately.png)
 
 ## Repositories
 

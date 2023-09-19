@@ -1,0 +1,19 @@
+name: 'CI checks'
+runs:
+  using: 'composite'
+  steps:
+    - name: Build
+      run: yarn build
+      shell: bash
+
+    - name: Typecheck
+      run: yarn typecheck
+      shell: bash
+
+    - name: Test
+      run: yarn test --silent
+      shell: bash
+
+    - name: Svelte Check
+      run: yarn --cwd packages/xstate-svelte svelte-check
+      shell: bash

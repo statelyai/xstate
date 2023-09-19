@@ -1,72 +1,82 @@
-import { Model } from './model.types';
-import { StateNode } from './StateNode';
 import {
-  AnyEventObject,
-  DefaultContext,
-  EventObject,
   MachineConfig,
-  MachineOptions,
-  StateMachine,
-  StateSchema,
-  Typestate
-} from './types';
-
-/**
- * @deprecated Use `createMachine(...)` instead.
- */
-export function Machine<
-  TContext = any,
-  TEvent extends EventObject = AnyEventObject
->(
-  config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
-  initialContext?: TContext
-): StateMachine<TContext, any, TEvent>;
-export function Machine<
-  TContext = DefaultContext,
-  TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = AnyEventObject
->(
-  config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
-  initialContext?: TContext
-): StateMachine<TContext, TStateSchema, TEvent>;
-export function Machine<
-  TContext = DefaultContext,
-  TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = AnyEventObject
->(
-  config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
-  initialContext: TContext | (() => TContext) | undefined = config.context
-): StateMachine<TContext, TStateSchema, TEvent> {
-  return new StateNode<TContext, TStateSchema, TEvent>(
-    config,
-    options,
-    initialContext
-  ) as StateMachine<TContext, TStateSchema, TEvent>;
-}
+  MachineContext,
+  InternalMachineImplementations,
+  ParameterizedObject,
+  ProvidedActor,
+  NonReducibleUnknown,
+  Prop,
+  AnyEventObject
+} from './types.ts';
+import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
+import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
-  TContext,
-  TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TContext extends MachineContext,
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TTypesMeta extends TypegenConstraint
 >(
-  config: TContext extends Model<any, any, any, any>
-    ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
-    : MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate>;
-export function createMachine<
+  config: MachineConfig<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TTypesMeta
+  >,
+  implementations?: InternalMachineImplementations<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TDelay,
+    ResolveTypegenMeta<
+      TTypesMeta,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag
+    >
+  >
+): StateMachine<
   TContext,
-  TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate> {
-  return new StateNode<TContext, any, TEvent, TTypestate>(
-    config,
-    options
-  ) as StateMachine<TContext, any, TEvent, TTypestate>;
+  TEvent,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay,
+  Prop<
+    ResolveTypegenMeta<
+      TTypesMeta,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag
+    >['resolved'],
+    'tags'
+  > &
+    string,
+  TInput,
+  TOutput,
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
+> {
+  return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
+    config as any,
+    implementations as any
+  );
 }

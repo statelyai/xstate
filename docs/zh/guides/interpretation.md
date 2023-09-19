@@ -48,25 +48,11 @@ service.stop();
 ```js {5,8,12}
 service.start();
 
-// 作为对象（首选）：
 service.send({ type: 'CLICK', x: 40, y: 21 });
-
-// 作为字符串：
-// (与 service.send({ type: 'CLICK' }) 一样)
-service.send('CLICK');
-
-// 作为带有对象负载的字符串：
-// (同 service.send({ type: 'CLICK', x: 40, y: 21 }))
-service.send('CLICK', { x: 40, y: 21 });
 ```
 
 - 作为事件对象（例如，`.send({ type: 'CLICK', x: 40, y: 21 })`）
   - 事件对象必须有一个 `type: ...` 字符串属性。
-- 作为字符串（例如，`.send('CLICK')`，它解析为发送 `{ type: 'CLICK' }`）
-  - 该字符串表示事件类型。
-- 作为后跟对象有效负载的字符串（例如，`.send('CLICK', { x: 40, y: 21 })`）<Badge text="4.5+"/>
-  - 第一个字符串参数表示事件类型。
-  - 第二个参数必须是一个没有 `type: ...` 属性的对象。
 
 ::: warning
 如果服务未初始化（即，如果尚未调用`service.start()`），则事件将**延迟**，直到服务启动。 这意味着在调用 `service.start()` 之前不会处理事件，然后它们将被顺序处理。
@@ -138,7 +124,6 @@ service.onTransition((state) => {
 `.onTransition()` 回调不会在无事件（“always”）转换或其他微任务之间运行。 它只在宏任务上运行。
 微任务是宏任务之间的中间转换。
 :::
-
 
 ## 开始和停止
 

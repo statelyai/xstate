@@ -144,17 +144,17 @@ console.log(activeState.actions);
 
 `exec` 函数有 3 个参数：
 
-| 参数          | 类型         | 描述                                |
-| ------------ | ------------ | ---------------------------------- |
-| `context`    | TContext     | 当前状态机的上下文                    |
-| `event`      | event object | 导致转换的事件                        |
+| 参数         | 类型         | 描述                                   |
+| ------------ | ------------ | -------------------------------------- |
+| `context`    | TContext     | 当前状态机的上下文                     |
+| `event`      | event object | 导致转换的事件                         |
 | `actionMeta` | meta object  | 包含有关 动作 的元数据的对象（见下文） |
 
 `actionMeta` 对象包括以下属性：
 
-| 参数      | 类型          | 描述                                  |
-| -------- | ------------- | -------------------------------------------- |
-| `action` | action object | 原始 动作 对象                  |
+| 参数     | 类型          | 描述                       |
+| -------- | ------------- | -------------------------- |
+| `action` | action object | 原始 动作 对象             |
 | `state`  | State         | 转换后的已解析的状态机状态 |
 
 解释（interpret）将调用带有 `currentState.context`、`event` 和状态机转换到的 `state` 的 `exec` 函数。 你可以自定义此 动作。 阅读 [执行 动作](./interpretation.md#executing-actions) 了解更多详情。
@@ -193,20 +193,40 @@ entry: send({ type: 'SOME_EVENT' });
 
 ## 发送动作（send action）
 
+::: warning
+
+The `send(...)` action creator is deprecated in favor of the `sendTo(...)` action creator:
+
+```diff
+-send({ type: 'EVENT' }, { to: 'someActor' });
++sendTo('someActor', { type: 'EVENT' });
+```
+
+For sending events to self, `raise(...)` should be used:
+
+```diff
+-send({ type: 'EVENT' });
++raise({ type: 'EVENT' });
+```
+
+The `send(...)` action creator will be removed in XState v5.0.
+
+:::
+
 `send(event)` 动作 创建者创建了一个特殊的“发送” 动作 对象，它告诉服务（即，[解释（interpret） 状态机](./interpretation.md)）将该事件发送给它自己。 它在外部事件队列中，将一个事件排入正在运行的服务中，这意味着该事件将在 解释（interpret） 的下一步“步骤”上发送。
 
-| 参数   | 类型                                            | 描述                                |
-| ---------- | ------------------------------------------ | ---------------------------------- |
-| `event`    | string or event object or event expression | 发送到指定`options.to`（或self）的事件 |
-| `options?` | send options (见下文)                       | 发送事件的选项。                      |
+| 参数       | 类型                                       | 描述                                    |
+| ---------- | ------------------------------------------ | --------------------------------------- |
+| `event`    | string or event object or event expression | 发送到指定`options.to`（或 self）的事件 |
+| `options?` | send options (见下文)                      | 发送事件的选项。                        |
 
 send `options` 参数是一个包含以下内容的对象：
 
-| 参数 | 类型   | 描述                                                 |
-| -------- | ------ | --------------------------------------------- |
-| `id?`    | string | send ID (用于取消)                              |
-| `to?`    | string | 事件的目标（默认为self）                          |
-| `delay?` | number | 发送事件前的超时时间（毫秒），如果在超时前没有取消事件  |
+| 参数     | 类型   | 描述                                                   |
+| -------- | ------ | ------------------------------------------------------ |
+| `id?`    | string | send ID (用于取消)                                     |
+| `to?`    | string | 事件的目标（默认为 self）                              |
+| `delay?` | number | 发送事件前的超时时间（毫秒），如果在超时前没有取消事件 |
 
 ::: warning
 `send(...)` 函数是一个 **动作 创建者**； 它是一个纯函数，它只返回一个 动作 对象，并 _不会_ 命令式地发送一个事件。
@@ -334,13 +354,12 @@ console.log(send({ type: 'SOME_EVENT' }, { to: 'child' }));
 
 `raise()` 动作 创建者在内部事件队列中，将一个事件排入状态图。 这意味着事件会在 解释（interpret） 的当前“步骤”上立即发送。
 
-| 参数      | 类型                   | 描述         |
-| -------- | ---------------------- | ----------- |
-| `event`  | string or event object | 要提升的事件  |
+| 参数    | 类型                   | 描述         |
+| ------- | ---------------------- | ------------ |
+| `event` | string or event object | 要提升的事件 |
 
 ```js
-import { createMachine, actions } from 'xstate';
-const { raise } = actions;
+import { createMachine, raise } from 'xstate';
 
 const raiseActionDemo = createMachine({
   id: 'raisedmo',
@@ -354,7 +373,7 @@ const raiseActionDemo = createMachine({
         RAISE: {
           target: 'middle',
           // 立即为“middle”调用 NEXT 事件
-          actions: raise('NEXT')
+          actions: raise({ type: 'NEXT' })
         }
       }
     },
@@ -378,11 +397,10 @@ const raiseActionDemo = createMachine({
 
 `respond()` 动作 创建者创建一个 [`send()` 动作](#send-action)，该 动作 被发送到，触发响应的事件的服务。
 
-
 这在内部使用 [SCXML 事件](./scxml.md#events) ，从事件中获取 `origin`，并将 `send()` 动作 的 `to` 设置为 `origin`。
 
-| 参数   | 类型                                          | 描述                   |
-| ---------- | ---------------------------------------- | ---------------------- |
+| 参数       | 类型                                     | 描述                       |
+| ---------- | ---------------------------------------- | -------------------------- |
 | `event`    | string, event object, or send expression | 发送回发件人的事件         |
 | `options?` | send options object                      | 传递到 `send()` 事件的选项 |
 
@@ -435,8 +453,8 @@ const authClientMachine = createMachine({
 
 `forwardTo()` 动作 创建者，创建一个 [`send()` 动作](#send-action)，通过其 ID 将最近的事件转发到指定的服务。
 
-| 参数      | 类型                                    | 描述                                          |
-| -------- | --------------------------------------- | ---------------------------------------------------- |
+| 参数     | 类型                                    | 描述                           |
+| -------- | --------------------------------------- | ------------------------------ |
 | `target` | string or function that returns service | 要将最近事件发送到的目标服务。 |
 
 ### 使用 forwardTo 动作 的示例
@@ -473,8 +491,8 @@ parentService.send({ type: 'ALERT', message: 'hello world' });
 
 `escalate()` 动作 创建者，通过将错误发送到父状态机来升级错误。 这是作为状态机识别的特殊错误事件发送的。
 
-| 参数         | 类型 | 描述                                      |
-| ----------- | ---- | ------------------------------------------------ |
+| 参数        | 类型 | 描述                             |
+| ----------- | ---- | -------------------------------- |
 | `errorData` | any  | 要升高（send）到父级的错误数据。 |
 
 ### 使用 escalate 动作 的示例
@@ -510,13 +528,12 @@ const parentMachine = createMachine({
 
 ## 日志动作（log action）
 
-
 `log()` 动作 创建器是一种记录与当前状态 `context` 和/或 `event` 相关的任何内容的声明方式。 它需要两个可选参数：
 
-| 参数      | 类型               | 描述                                                                     |
-| -------- | ------------------ | ------------------------------------------------------------------------ |
+| 参数     | 类型               | 描述                                                                               |
+| -------- | ------------------ | ---------------------------------------------------------------------------------- |
 | `expr?`  | string or function | 一个简单的字符串或一个函数，它以 `context` 和 `event` 作为参数并返回一个要记录的值 |
-| `label?` | string             | 用于标记已记录消息的字符串                                                   |
+| `label?` | string             | 用于标记已记录消息的字符串                                                         |
 
 ```js {9,14-17,28-34}
 import { createMachine, actions } from 'xstate';
@@ -543,7 +560,7 @@ const loggingMachine = createMachine({
   }
 });
 
-const endState = loggingMachine.transition('start', 'FINISH');
+const endState = loggingMachine.transition('start', { type: 'FINISH' });
 
 endState.actions;
 // [
@@ -563,9 +580,9 @@ endState.actions;
 
 `choose()` 动作 创建者创建一个 动作，该 动作 指定应根据某些条件执行哪些 动作。
 
-| 参数     |  类型  | 描述                                                         |
-| -------- | ----- | ----------------------------------------------------------- |
-| `conds`  | array | 当给定的 `cond` 为真时，包含要执行的 `actions` 的对象数组（见下文） |
+| 参数    | 类型  | 描述                                                                |
+| ------- | ----- | ------------------------------------------------------------------- |
+| `conds` | array | 当给定的 `cond` 为真时，包含要执行的 `actions` 的对象数组（见下文） |
 
 **返回:**
 
@@ -630,20 +647,19 @@ const maybeDoThese = choose([
 
 `pure()` 动作 创建器是一个纯函数（因此得名），它根据触发 动作 的当前状态“上下文”和“事件”返回要执行的 动作 对象。 这允许你动态定义应执行哪些 动作
 
-| 参数     | 类型     | 描述                                                                                 |
-| ------------ | -------- | ------------------------------------------------------------------------------ |
+| 参数         | 类型     | 描述                                                                 |
+| ------------ | -------- | -------------------------------------------------------------------- |
 | `getActions` | function | 根据给定的 `context` 和 `event` 返回要执行的动作对象的函数（见下文） |
 
 **返回:**
-
 
 一个特殊的 `"xstate.pure"` 动作 对象，它将在内部判断 `get` 属性以确定应该执行的 动作 对象。
 
 `getActions(context, event)` 参数:
 
-| 参数  | 类型         | 描述                      |
-| --------- | ------------ | ------------------- |
-| `context` | object       | 当前状态的 `context`  |
+| 参数      | 类型         | 描述                 |
+| --------- | ------------ | -------------------- |
+| `context` | object       | 当前状态的 `context` |
 | `event`   | event object | 触发 动作 的事件对象 |
 
 **返回:**

@@ -1,3 +1,11 @@
+const { slugify } = require('@vuepress/shared-utils');
+
+// TODO: remove once https://github.com/vuejs/vuepress/issues/1985 will be fixed
+function slugifyWithBadges(str) {
+  // remove badges and use original slugify function
+  return slugify(str.replace(/<Badge[^>]*\/>/, ''));
+}
+
 module.exports = {
   title: 'XState Docs',
   base: '/docs/',
@@ -5,16 +13,22 @@ module.exports = {
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
   locales: {
     '/': {
-      lang: 'en-US',
+      lang: 'en-US'
     },
     '/zh/': {
       lang: 'zh-CN',
       title: 'XState 文档',
       description: 'XState 文档：现代 Web 的状态机和状态图'
+    },
+    '/fr/': {
+      lang: 'fr-FR',
+      title: 'Documentation XState',
+      description:
+        "Documentation XState : Machines d'état et diagrammes d'état pour le Web moderne"
     }
   },
   markdown: {
-    toc: { includeLevel: [2, 3] }
+    toc: { includeLevel: [2, 3], slugify: slugifyWithBadges }
   },
   head: [
     ['script', { src: 'https://plausible.io/js/plausible.js', defer: 'defer' }]
@@ -32,10 +46,10 @@ module.exports = {
     },
     locales: {
       '/': {
-        label: 'English',
+        label: 'English'
       },
       '/zh/': {
-        selectText: '选择语言',      
+        selectText: '选择语言',
         label: '简体中文',
         editLinkText: '在 GitHub 上编辑此页',
         lastUpdated: '上次更新',
@@ -127,11 +141,11 @@ module.exports = {
               '/packages/xstate-react/',
               '/packages/xstate-vue/',
               '/packages/xstate-graph/',
-              '/packages/xstate-fsm/',
               '/packages/xstate-test/',
               '/packages/xstate-immer/',
               '/packages/xstate-inspect/',
-              '/packages/xstate-svelte/'
+              '/packages/xstate-svelte/',
+              '/packages/xstate-cli/'
             ]
           },
           {
@@ -150,12 +164,140 @@ module.exports = {
           {
             title: '新闻和有用地址',
             children: [
+              ['https://statelyai.canny.io', 'Roadmap'],
               '/updates/',
               [
                 'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
                 '行为守则'
               ],
               ['https://stately.ai/privacy', '隐私政策']
+            ]
+          }
+        ]
+      },
+      '/fr/': {
+        selectText: 'Choisissez une langue',
+        label: 'Français',
+        editLinkText: 'Modifier cette page sur GitHub',
+        lastUpdated: 'Dernière mise à jour',
+        nav: [
+          { text: 'API', link: 'https://paka.dev/npm/xstate/' },
+          { text: 'Visualiseur', link: 'https://stately.ai/viz' },
+          { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
+          {
+            text: 'Communauté',
+            link: 'https://github.com/statelyai/xstate/discussions'
+          }
+        ],
+        sidebar: [
+          {
+            title: "Qu'est-ce que XState?",
+            children: ['/fr/visualizer/']
+          },
+          {
+            title: 'À propos',
+            children: [
+              '/fr/about/concepts',
+              '/fr/about/goals',
+              '/fr/about/showcase',
+              '/fr/about/resources',
+              '/fr/about/tutorials',
+              '/fr/about/glossary'
+            ]
+          },
+          {
+            title: 'Guides',
+            children: [
+              '/fr/guides/start',
+              '/fr/guides/installation',
+              '/fr/guides/introduction-to-state-machines-and-statecharts/',
+              '/fr/guides/machines',
+              '/fr/guides/states',
+              '/fr/guides/statenodes',
+              '/fr/guides/events',
+              '/fr/guides/transitions',
+              '/fr/guides/hierarchical',
+              '/fr/guides/parallel',
+              '/fr/guides/final',
+              '/fr/guides/effects',
+              '/fr/guides/actions',
+              '/fr/guides/guards',
+              '/fr/guides/context',
+              '/fr/guides/models',
+              '/fr/guides/activities',
+              '/fr/guides/communication',
+              '/fr/guides/actors',
+              '/fr/guides/delays',
+              '/fr/guides/history',
+              '/fr/guides/ids',
+              '/fr/guides/interpretation',
+              '/fr/guides/testing',
+              '/fr/guides/typescript',
+              '/fr/guides/scxml'
+            ]
+          },
+          {
+            title: 'Tutoriels',
+            children: [
+              '/fr/tutorials/reddit',
+              {
+                title: '7GUIs',
+                children: [
+                  '/fr/tutorials/7guis/counter',
+                  '/fr/tutorials/7guis/temperature',
+                  '/fr/tutorials/7guis/flight',
+                  '/fr/tutorials/7guis/timer'
+                ]
+              }
+            ]
+          },
+          {
+            title: 'Recettes',
+            children: [
+              '/fr/recipes/react',
+              '/fr/recipes/vue',
+              '/fr/recipes/rxjs',
+              '/fr/recipes/ember',
+              '/fr/recipes/stencil',
+              '/fr/recipes/svelte'
+            ]
+          },
+          {
+            title: 'Packages',
+            children: [
+              '/fr/packages/xstate-react/',
+              '/fr/packages/xstate-vue/',
+              '/fr/packages/xstate-graph/',
+              '/fr/packages/xstate-test/',
+              '/fr/packages/xstate-immer/',
+              '/fr/packages/xstate-inspect/',
+              '/fr/packages/xstate-svelte/',
+              '/fr/packages/xstate-cli/'
+            ]
+          },
+          {
+            title: 'Motifs',
+            children: ['/fr/patterns/sequence']
+          },
+          {
+            title: 'Exemples',
+            children: [
+              '/fr/examples/counter',
+              '/fr/examples/todomvc',
+              '/fr/examples/calculator',
+              '/fr/examples/covid-tracker'
+            ]
+          },
+          {
+            title: 'Actualités et liens utiles',
+            children: [
+              ['https://statelyai.canny.io', 'Roadmap'],
+              '/fr/updates/',
+              [
+                'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
+                'Code de conduite'
+              ],
+              ['https://stately.ai/privacy', 'Politique de confidentialité']
             ]
           }
         ]
@@ -249,11 +391,11 @@ module.exports = {
           'packages/xstate-react/',
           'packages/xstate-vue/',
           'packages/xstate-graph/',
-          'packages/xstate-fsm/',
           'packages/xstate-test/',
           'packages/xstate-immer/',
           'packages/xstate-inspect/',
-          'packages/xstate-svelte/'
+          'packages/xstate-svelte/',
+          'packages/xstate-cli/'
         ]
       },
       {
@@ -272,6 +414,7 @@ module.exports = {
       {
         title: 'News and Useful Links',
         children: [
+          ['https://statelyai.canny.io', 'Roadmap'],
           '/updates/',
           [
             'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',

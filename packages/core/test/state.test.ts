@@ -1,13 +1,6 @@
-import {
-  Machine,
-  State,
-  StateFrom,
-  interpret,
-  createMachine,
-  spawn
-} from '../src/index';
-import { initEvent, assign } from '../src/actions';
-import { toSCXMLEvent } from '../src/utils';
+import { createMachine, createActor } from '../src/index';
+import { assign } from '../src/actions/assign';
+import { fromCallback } from '../src/actors/callback';
 
 type Events =
   | { type: 'BAR_EVENT' }
@@ -26,7 +19,10 @@ type Events =
   | { type: 'TO_TWO_MAYBE' }
   | { type: 'TO_FINAL' };
 
-const machine = Machine<any, Events>({
+const exampleMachine = createMachine({
+  types: {} as {
+    events: Events;
+  },
   initial: 'one',
   states: {
     one: {
@@ -34,21 +30,16 @@ const machine = Machine<any, Events>({
       on: {
         EXTERNAL: {
           target: 'one',
-          internal: false
+          reenter: true
         },
-        INERT: {
-          target: 'one',
-          internal: true
-        },
+        INERT: {},
         INTERNAL: {
-          target: 'one',
-          internal: true,
           actions: ['doSomething']
         },
         TO_TWO: 'two',
         TO_TWO_MAYBE: {
           target: 'two',
-          cond: function maybe() {
+          guard: function maybe() {
             return true;
           }
         },
@@ -92,7 +83,7 @@ const machine = Machine<any, Events>({
             }
           }
         },
-        second: {
+        guarded: {
           initial: 'p32',
           states: {
             p32: {
@@ -115,181 +106,54 @@ const machine = Machine<any, Events>({
 });
 
 describe('State', () => {
-  describe('.changed', () => {
-    it('should indicate that it is not changed if initial state', () => {
-      expect(machine.initialState.changed).not.toBeDefined();
-    });
-
-    it('states from external transitions with entry actions should be changed', () => {
-      const changedState = machine.transition(machine.initialState, 'EXTERNAL');
-      expect(changedState.changed).toBe(true);
-    });
-
-    it('states from internal transitions with no actions should be unchanged', () => {
-      const changedState = machine.transition(machine.initialState, 'EXTERNAL');
-      const unchangedState = machine.transition(changedState, 'INERT');
-      expect(unchangedState.changed).toBe(false);
-    });
-
-    it('states from internal transitions with actions should be changed', () => {
-      const changedState = machine.transition(machine.initialState, 'INTERNAL');
-      expect(changedState.changed).toBe(true);
-    });
-
-    it('normal state transitions should be changed (initial state)', () => {
-      const changedState = machine.transition(machine.initialState, 'TO_TWO');
-      expect(changedState.changed).toBe(true);
-    });
-
-    it('normal state transitions should be changed', () => {
-      const twoState = machine.transition(machine.initialState, 'TO_TWO');
-      const changedState = machine.transition(twoState, 'FOO_EVENT');
-      expect(changedState.changed).toBe(true);
-    });
-
-    it('normal state transitions with unknown event should be unchanged', () => {
-      const twoState = machine.transition(machine.initialState, 'TO_TWO');
-      const changedState = machine.transition(twoState, 'UNKNOWN_EVENT' as any);
-      expect(changedState.changed).toBe(false);
-    });
-
-    it('should report entering a final state as changed', () => {
-      const finalMachine = Machine({
-        id: 'final',
-        initial: 'one',
-        states: {
-          one: {
-            on: {
-              DONE: 'two'
-            }
-          },
-
-          two: {
-            type: 'final'
-          }
-        }
-      });
-
-      const twoState = finalMachine.transition('one', 'DONE');
-
-      expect(twoState.changed).toBe(true);
-    });
-
-    it('should report any internal transition assignments as changed', () => {
-      const assignMachine = Machine<{ count: number }>({
-        id: 'assign',
-        initial: 'same',
-        context: {
-          count: 0
-        },
-        states: {
-          same: {
-            on: {
-              EVENT: {
-                actions: assign({ count: (ctx) => ctx.count + 1 })
-              }
-            }
-          }
-        }
-      });
-
-      const { initialState } = assignMachine;
-      const changedState = assignMachine.transition(initialState, 'EVENT');
-      expect(changedState.changed).toBe(true);
-      expect(initialState.value).toEqual(changedState.value);
-    });
-
-    it('should not escape targetless child state nodes', () => {
-      interface Ctx {
-        value: string;
-      }
-      type ToggleEvents =
-        | {
-            type: 'CHANGE';
-            value: string;
-          }
-        | {
-            type: 'SAVE';
-          };
-      const toggleMachine = Machine<Ctx, ToggleEvents>({
-        id: 'input',
-        context: {
-          value: ''
-        },
-        type: 'parallel',
-        states: {
-          edit: {
-            on: {
-              CHANGE: {
-                actions: assign({
-                  value: (_, e) => {
-                    return e.value;
-                  }
-                })
-              }
-            }
-          },
-          validity: {
-            initial: 'invalid',
-            states: {
-              invalid: {},
-              valid: {}
-            },
-            on: {
-              CHANGE: [
-                {
-                  target: '.valid',
-                  cond: () => true
-                },
-                {
-                  target: '.invalid'
-                }
-              ]
-            }
-          }
-        }
-      });
-
-      const nextState = toggleMachine.transition(toggleMachine.initialState, {
-        type: 'CHANGE',
-        value: 'whatever'
-      });
-
-      expect(nextState.changed).toBe(true);
-      expect(nextState.value).toEqual({
-        edit: {},
-        validity: 'valid'
-      });
-    });
-  });
-
   describe('.nextEvents', () => {
     it('returns the next possible events for the current state', () => {
-      expect(machine.initialState.nextEvents.sort()).toEqual([
-        'EXTERNAL',
-        'INERT',
-        'INTERNAL',
-        'MACHINE_EVENT',
-        'TO_FINAL',
-        'TO_THREE',
-        'TO_TWO',
-        'TO_TWO_MAYBE'
+      const actorRef = createActor(exampleMachine);
+
+      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual(
+        [
+          'EXTERNAL',
+          'INTERNAL',
+          'MACHINE_EVENT',
+          'TO_FINAL',
+          'TO_THREE',
+          'TO_TWO',
+          'TO_TWO_MAYBE'
+        ].sort()
+      );
+
+      actorRef.start();
+      actorRef.send({
+        type: 'TO_TWO',
+        foo: 'test'
+      });
+
+      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual([
+        'DEEP_EVENT',
+        'FOO_EVENT',
+        'MACHINE_EVENT'
       ]);
 
-      expect(
-        machine.transition(machine.initialState, 'TO_TWO').nextEvents.sort()
-      ).toEqual(['DEEP_EVENT', 'FOO_EVENT', 'MACHINE_EVENT']);
+      const actorRef2 = createActor(exampleMachine).start();
+      actorRef2.send({ type: 'TO_THREE' });
 
-      expect(
-        machine.transition(machine.initialState, 'TO_THREE').nextEvents.sort()
-      ).toEqual(['MACHINE_EVENT', 'P31', 'P32', 'THREE_EVENT']);
+      expect(actorRef2.getSnapshot().nextEvents.sort()).toEqual([
+        'MACHINE_EVENT',
+        'P31',
+        'P32',
+        'THREE_EVENT'
+      ]);
     });
 
     it('returns events when transitioned from StateValue', () => {
-      const A = machine.transition(machine.initialState, 'TO_THREE');
-      const B = machine.transition(A.value, 'TO_THREE');
+      const actorRef = createActor(exampleMachine).start();
 
-      expect(B.nextEvents.sort()).toEqual([
+      actorRef.send({
+        type: 'TO_THREE'
+      });
+      actorRef.send({ type: 'TO_THREE' });
+
+      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual([
         'MACHINE_EVENT',
         'P31',
         'P32',
@@ -298,7 +162,7 @@ describe('State', () => {
     });
 
     it('returns no next events if there are none', () => {
-      const noEventsMachine = Machine({
+      const noEventsMachine = createMachine({
         id: 'no-events',
         initial: 'idle',
         states: {
@@ -308,240 +172,48 @@ describe('State', () => {
         }
       });
 
-      expect(noEventsMachine.initialState.nextEvents).toEqual([]);
+      expect(createActor(noEventsMachine).getSnapshot().nextEvents).toEqual([]);
     });
   });
 
-  describe('State.create()', () => {
+  describe('machine.createState()', () => {
     it('should be able to create a state from a JSON config', () => {
-      const { initialState } = machine;
+      const initialState = createActor(exampleMachine).getSnapshot();
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = State.create(jsonInitialState) as StateFrom<
-        typeof machine
-      >;
+      const stateFromConfig = exampleMachine.createState(jsonInitialState);
 
-      expect(machine.transition(stateFromConfig, 'TO_TWO').value).toEqual({
+      const actorRef = createActor(exampleMachine, {
+        state: stateFromConfig
+      }).start();
+
+      actorRef.send({
+        type: 'TO_TWO',
+        foo: 'test'
+      });
+
+      expect(actorRef.getSnapshot().value).toEqual({
         two: { deep: 'foo' }
       });
     });
 
     it('should preserve state.nextEvents using machine.resolveState', () => {
-      const { initialState } = machine;
+      const actorRef = createActor(exampleMachine);
+      const initialState = actorRef.getSnapshot();
       const { nextEvents } = initialState;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = State.create(jsonInitialState) as StateFrom<
-        typeof machine
-      >;
+      const stateFromConfig = exampleMachine.createState(jsonInitialState);
 
-      expect(machine.resolveState(stateFromConfig).nextEvents.sort()).toEqual(
-        nextEvents.sort()
-      );
-    });
-  });
-
-  describe('State.inert()', () => {
-    it('should create an inert instance of the given State', () => {
-      const { initialState } = machine;
-
-      expect(State.inert(initialState, undefined).actions).toEqual([]);
-    });
-
-    it('should create an inert instance of the given stateValue and context', () => {
-      const { initialState } = machine;
-      const inertState = State.inert(initialState.value, { foo: 'bar' });
-
-      expect(inertState.actions).toEqual([]);
-      expect(inertState.context).toEqual({ foo: 'bar' });
-    });
-
-    it('should preserve the given State if there are no actions', () => {
-      const naturallyInertState = State.from('foo');
-
-      expect(State.inert(naturallyInertState, undefined)).toEqual(
-        naturallyInertState
-      );
-    });
-  });
-
-  describe('.event', () => {
-    it('the .event prop should be the event (string) that caused the transition', () => {
-      const { initialState } = machine;
-
-      const nextState = machine.transition(initialState, 'TO_TWO');
-
-      expect(nextState.event).toEqual({ type: 'TO_TWO' });
-    });
-
-    it('the .event prop should be the event (object) that caused the transition', () => {
-      const { initialState } = machine;
-
-      const nextState = machine.transition(initialState, {
-        type: 'TO_TWO',
-        foo: 'bar'
-      });
-
-      expect(nextState.event).toEqual({ type: 'TO_TWO', foo: 'bar' });
-    });
-
-    it('the ._event prop should be the initial event for the initial state', () => {
-      const { initialState } = machine;
-
-      expect(initialState._event).toEqual(initEvent);
-    });
-  });
-
-  describe('._event', () => {
-    it('the ._event prop should be the SCXML event (string) that caused the transition', () => {
-      const { initialState } = machine;
-
-      const nextState = machine.transition(initialState, 'TO_TWO');
-
-      expect(nextState._event).toEqual(toSCXMLEvent('TO_TWO'));
-    });
-
-    it('the ._event prop should be the SCXML event (object) that caused the transition', () => {
-      const { initialState } = machine;
-
-      const nextState = machine.transition(initialState, {
-        type: 'TO_TWO',
-        foo: 'bar'
-      });
-
-      expect(nextState._event).toEqual(
-        toSCXMLEvent({ type: 'TO_TWO', foo: 'bar' })
-      );
-    });
-
-    it('the ._event prop should be the initial SCXML event for the initial state', () => {
-      const { initialState } = machine;
-
-      expect(initialState._event).toEqual(toSCXMLEvent(initEvent));
-    });
-
-    it('the ._event prop should be the SCXML event (SCXML metadata) that caused the transition', () => {
-      const { initialState } = machine;
-
-      const nextState = machine.transition(
-        initialState,
-        toSCXMLEvent(
-          {
-            type: 'TO_TWO',
-            foo: 'bar'
-          },
-          {
-            sendid: 'test'
-          }
-        )
-      );
-
-      expect(nextState._event).toEqual(
-        toSCXMLEvent(
-          { type: 'TO_TWO', foo: 'bar' },
-          {
-            sendid: 'test'
-          }
-        )
-      );
-    });
-
-    describe('_sessionid', () => {
-      it('_sessionid should be null for non-invoked machines', () => {
-        const testMachine = Machine({
-          initial: 'active',
-          states: {
-            active: {}
-          }
-        });
-
-        expect(testMachine.initialState._sessionid).toBeNull();
-      });
-
-      it('_sessionid should be the service sessionId for invoked machines', (done) => {
-        const testMachine = Machine({
-          initial: 'active',
-          states: {
-            active: {
-              on: {
-                TOGGLE: 'inactive'
-              }
-            },
-            inactive: {
-              type: 'final'
-            }
-          }
-        });
-
-        const service = interpret(testMachine);
-
-        service
-          .onTransition((state) => {
-            expect(state._sessionid).toEqual(service.sessionId);
-          })
-          .onDone(() => {
-            done();
-          })
-          .start();
-
-        service.send('TOGGLE');
-      });
-
-      it('_sessionid should persist through states (manual)', () => {
-        const testMachine = Machine({
-          initial: 'active',
-          states: {
-            active: {
-              on: {
-                TOGGLE: 'inactive'
-              }
-            },
-            inactive: {
-              type: 'final'
-            }
-          }
-        });
-
-        const { initialState } = testMachine;
-
-        initialState._sessionid = 'somesessionid';
-
-        const nextState = testMachine.transition(initialState, 'TOGGLE');
-
-        expect(nextState._sessionid).toEqual('somesessionid');
-      });
-    });
-  });
-
-  describe('.transitions', () => {
-    const { initialState } = machine;
-
-    it('should have no transitions for the initial state', () => {
-      expect(initialState.transitions).toHaveLength(0);
-    });
-
-    it('should have transitions for the sent event', () => {
       expect(
-        machine.transition(initialState, 'TO_TWO').transitions
-      ).toContainEqual(expect.objectContaining({ eventType: 'TO_TWO' }));
-    });
-
-    it('should have condition in the transition', () => {
-      expect(
-        machine.transition(initialState, 'TO_TWO_MAYBE').transitions
-      ).toContainEqual(
-        expect.objectContaining({
-          eventType: 'TO_TWO_MAYBE',
-          cond: expect.objectContaining({ name: 'maybe' })
-        })
-      );
+        exampleMachine.resolveState(stateFromConfig).nextEvents.sort()
+      ).toEqual(nextEvents.sort());
     });
   });
 
   describe('State.prototype.matches', () => {
     it('should keep reference to state instance after destructuring', () => {
-      const { initialState } = machine;
-      const { matches } = initialState;
+      const { matches } = createActor(exampleMachine).getSnapshot();
 
       expect(matches('one')).toBe(true);
     });
@@ -549,36 +221,35 @@ describe('State', () => {
 
   describe('State.prototype.toStrings', () => {
     it('should return all state paths as strings', () => {
-      const twoState = machine.transition('one', 'TO_TWO');
+      const actorRef = createActor(exampleMachine).start();
+      actorRef.send({
+        type: 'TO_TWO',
+        foo: 'test'
+      });
 
-      expect(twoState.toStrings()).toEqual(['two', 'two.deep', 'two.deep.foo']);
-    });
-
-    it('should respect `delimiter` option for deeply nested states', () => {
-      const twoState = machine.transition('one', 'TO_TWO');
-
-      expect(twoState.toStrings(undefined, ':')).toEqual([
+      expect(actorRef.getSnapshot().toStrings()).toEqual([
         'two',
-        'two:deep',
-        'two:deep:foo'
+        'two.deep',
+        'two.deep.foo'
       ]);
     });
 
     it('should keep reference to state instance after destructuring', () => {
-      const { initialState } = machine;
-      const { toStrings } = initialState;
-
-      expect(toStrings()).toEqual(['one']);
+      expect(createActor(exampleMachine).getSnapshot().toStrings()).toEqual([
+        'one'
+      ]);
     });
   });
 
   describe('.done', () => {
     it('should show that a machine has not reached its final state', () => {
-      expect(machine.initialState.done).toBeFalsy();
+      expect(createActor(exampleMachine).getSnapshot().done).toBe(false);
     });
 
     it('should show that a machine has reached its final state', () => {
-      expect(machine.transition(undefined, 'TO_FINAL').done).toBeTruthy();
+      const actorRef = createActor(exampleMachine).start();
+      actorRef.send({ type: 'TO_FINAL' });
+      expect(actorRef.getSnapshot().done).toBe(true);
     });
   });
 
@@ -596,7 +267,9 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can('NEXT')).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'NEXT' })).toBe(
+        true
+      );
     });
 
     it('should return true for an event object that results in a transition to a different state', () => {
@@ -612,7 +285,9 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'NEXT' })).toBe(
+        true
+      );
     });
 
     it('should return true for an event object that results in a new action', () => {
@@ -629,7 +304,9 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'NEXT' })).toBe(
+        true
+      );
     });
 
     it('should return true for an event object that results in a context change', () => {
@@ -647,10 +324,12 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'NEXT' })).toBe(
+        true
+      );
     });
 
-    it('should return true for an external self-transition without actions', () => {
+    it('should return true for a reentering self-transition without actions', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -662,10 +341,10 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
     });
 
-    it('should return true for an external self-transition with reentry action', () => {
+    it('should return true for a reentering self-transition with reentry action', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -678,10 +357,10 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
     });
 
-    it('should return true for an external self-transition with transition action', () => {
+    it('should return true for a reentering self-transition with transition action', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -696,7 +375,7 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
     });
 
     it('should return true for a targetless transition with actions', () => {
@@ -713,7 +392,7 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(true);
     });
 
     it('should return false for a forbidden transition', () => {
@@ -728,7 +407,9 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'EV' })).toBe(false);
+      expect(createActor(machine).getSnapshot().can({ type: 'EV' })).toBe(
+        false
+      );
     });
 
     it('should return false for an unknown event', () => {
@@ -744,7 +425,9 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'UNKNOWN' })).toBe(false);
+      expect(createActor(machine).getSnapshot().can({ type: 'UNKNOWN' })).toBe(
+        false
+      );
     });
 
     it('should return true when a guarded transition allows the transition', () => {
@@ -755,7 +438,7 @@ describe('State', () => {
             on: {
               CHECK: {
                 target: 'b',
-                cond: () => true
+                guard: () => true
               }
             }
           },
@@ -764,7 +447,7 @@ describe('State', () => {
       });
 
       expect(
-        machine.initialState.can({
+        createActor(machine).getSnapshot().can({
           type: 'CHECK'
         })
       ).toBe(true);
@@ -778,7 +461,7 @@ describe('State', () => {
             on: {
               CHECK: {
                 target: 'b',
-                cond: () => false
+                guard: () => false
               }
             }
           },
@@ -787,7 +470,7 @@ describe('State', () => {
       });
 
       expect(
-        machine.initialState.can({
+        createActor(machine).getSnapshot().can({
           type: 'CHECK'
         })
       ).toBe(false);
@@ -802,10 +485,12 @@ describe('State', () => {
           a: {
             on: {
               SPAWN: {
-                actions: assign(() => ({
-                  ref: spawn(() => {
-                    spawned = true;
-                  })
+                actions: assign(({ spawn }) => ({
+                  ref: spawn(
+                    fromCallback(() => {
+                      spawned = true;
+                    })
+                  )
                 }))
               }
             }
@@ -814,18 +499,12 @@ describe('State', () => {
         }
       });
 
-      const service = interpret(machine).start();
-      service.state.can('SPAWN');
+      const service = createActor(machine).start();
+      service.getSnapshot().can({ type: 'SPAWN' });
       expect(spawned).toBe(false);
     });
 
-    it('should return false for states created without a machine', () => {
-      const state = State.from('test');
-
-      expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
-    });
-
-    it('should not execute assignments', () => {
+    it('should not execute assignments when used with non-started actor', () => {
       let executed = false;
       const machine = createMachine({
         context: {},
@@ -840,9 +519,31 @@ describe('State', () => {
         }
       });
 
-      const { initialState } = machine;
+      const actorRef = createActor(machine);
 
-      expect(initialState.can('EVENT')).toBeTruthy();
+      expect(actorRef.getSnapshot().can({ type: 'EVENT' })).toBeTruthy();
+
+      expect(executed).toBeFalsy();
+    });
+
+    it('should not execute assignments when used with started actor', () => {
+      let executed = false;
+      const machine = createMachine({
+        context: {},
+        on: {
+          EVENT: {
+            actions: assign((ctx) => {
+              // Side-effect just for testing
+              executed = true;
+              return ctx;
+            })
+          }
+        }
+      });
+
+      const actorRef = createActor(machine).start();
+
+      expect(actorRef.getSnapshot().can({ type: 'EVENT' })).toBeTruthy();
 
       expect(executed).toBeFalsy();
     });
@@ -875,7 +576,9 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can('EVENT')).toBeTruthy();
+      expect(
+        createActor(machine).getSnapshot().can({ type: 'EVENT' })
+      ).toBeTruthy();
     });
 
     it('should return true when transition targets a state that is already part of the current configuration but the final state value changes', () => {
@@ -901,9 +604,10 @@ describe('State', () => {
         }
       });
 
-      const nextState = machine.transition(undefined, { type: 'NEXT' });
+      const actorRef = createActor(machine).start();
+      actorRef.send({ type: 'NEXT' });
 
-      expect(nextState.can({ type: 'NEXT' })).toBeTruthy();
+      expect(actorRef.getSnapshot().can({ type: 'NEXT' })).toBeTruthy();
     });
   });
 
@@ -918,8 +622,10 @@ describe('State', () => {
         }
       });
 
-      const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const actorRef = createActor(machine).start();
+      const persistedState = JSON.stringify(actorRef.getPersistedState());
+      actorRef.stop();
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
       expect(restoredState.hasTag('foo')).toBe(true);
     });

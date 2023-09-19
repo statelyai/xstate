@@ -11,7 +11,13 @@
     "uuid-v4": "0.1.0",
     "xstate": "latest"
   },
-  "keywords": ["hooks", "statechart", "state machine", "xstate", "react"],
+  "keywords": [
+    "hooks",
+    "statechart",
+    "state machine",
+    "xstate",
+    "react"
+  ],
   "name": "xstate-todomvc",
   "description": "The TodoMVC app implemented with React (using hooks) and XState version 4."
 }

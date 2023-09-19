@@ -1,6 +1,16 @@
 name: Node CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - next
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
 
 jobs:
   build:
@@ -8,23 +18,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [14.x]
-
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Build
-        run: yarn build
-
-      - name: Test
-        run: yarn test --silent
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/ci-setup
+      - uses: ./.github/actions/ci-checks

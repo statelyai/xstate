@@ -1,144 +1,194 @@
-import { EventObject, State, StateNode } from 'xstate';
-export interface TestMeta<T, TContext> {
-  test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
-  description?: string | ((state: State<TContext, any>) => string);
-  skip?: boolean;
+import { StatePath, Step, TraversalOptions } from '@xstate/graph';
+import {
+  EventObject,
+  MachineConfig,
+  MachineTypes,
+  State,
+  StateNodeConfig,
+  TransitionConfig,
+  TypegenConstraint,
+  TypegenDisabled,
+  ExtractEvent,
+  MachineImplementations,
+  MachineContext,
+  ActorLogic,
+  ParameterizedObject
+} from 'xstate';
+
+type TODO = any;
+
+export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
+  TraversalOptions<TState, TEvent> & {
+    pathGenerator?: PathGenerator<TState, TEvent>;
+  }
+>;
+
+export interface TestMachineConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+> extends TestStateNodeConfig<TContext, TEvent> {
+  context?: MachineConfig<TContext, TEvent>['context'];
+  types?: MachineTypes<
+    TContext,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO, // delays
+    TODO, // tags
+    TTypesMeta
+  >;
 }
-interface TestSegment<T> {
-  state: State<any, any>;
-  event: EventObject;
-  description: string;
-  test: (testContext: T) => Promise<void>;
-  exec: (testContext: T) => Promise<void>;
+
+export interface TestStateNodeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> extends Pick<
+    StateNodeConfig<
+      TContext,
+      TEvent,
+      TODO,
+      TODO,
+      ParameterizedObject,
+      TODO,
+      TODO,
+      TODO
+    >,
+    | 'type'
+    | 'history'
+    | 'on'
+    | 'onDone'
+    | 'entry'
+    | 'exit'
+    | 'meta'
+    | 'always'
+    | 'output'
+    | 'id'
+    | 'tags'
+    | 'description'
+  > {
+  initial?: string;
+  states?: Record<string, TestStateNodeConfig<TContext, TEvent>>;
+}
+
+export type TestMachineOptions<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+> = Partial<
+  Pick<
+    MachineImplementations<
+      TContext,
+      TEvent,
+      any,
+      ParameterizedObject,
+      ParameterizedObject,
+      string,
+      string,
+      TTypesMeta
+    >,
+    'actions' | 'guards'
+  >
+>;
+
+export interface TestMeta<T, TContext extends MachineContext> {
+  test?: (
+    testContext: T,
+    state: State<TContext, any, any, any, any, any>
+  ) => Promise<void> | void;
+  description?:
+    | string
+    | ((state: State<TContext, any, any, any, any, any>) => string);
+  skip?: boolean;
 }
 interface TestStateResult {
   error: null | Error;
 }
-export interface TestSegmentResult {
-  segment: TestSegment<any>;
+export interface TestStepResult {
+  step: Step<any, any>;
   state: TestStateResult;
   event: {
     error: null | Error;
   };
 }
-export interface TestPath<T> {
-  weight: number;
-  segments: Array<TestSegment<T>>;
+
+export interface TestParam<TState, TEvent extends EventObject> {
+  states?: {
+    [key: string]: (state: TState) => void | Promise<void>;
+  };
+  events?: {
+    [TEventType in TEvent['type']]?: EventExecutor<
+      TState,
+      { type: ExtractEvent<TEvent, TEventType>['type'] }
+    >;
+  };
+}
+
+export interface TestPath<TState, TEvent extends EventObject>
+  extends StatePath<TState, TEvent> {
   description: string;
   /**
-   * Tests and executes each segment in `segments` sequentially, and then
+   * Tests and executes each step in `steps` sequentially, and then
    * tests the postcondition that the `state` is reached.
    */
-  test: (testContext: T) => Promise<TestPathResult>;
+  test: (params: TestParam<TState, TEvent>) => Promise<TestPathResult>;
+  testSync: (params: TestParam<TState, TEvent>) => TestPathResult;
 }
 export interface TestPathResult {
-  segments: TestSegmentResult[];
+  steps: TestStepResult[];
   state: TestStateResult;
 }
 
-/**
- * A collection of `paths` used to verify that the SUT reaches
- * the target `state`.
- */
-export interface TestPlan<TTestContext, TContext> {
-  /**
-   * The target state.
-   */
-  state: State<TContext, any>;
-  /**
-   * The paths that reach the target `state`.
-   */
-  paths: Array<TestPath<TTestContext>>;
-  /**
-   * The description of the target `state` to be reached.
-   */
-  description: string;
-  /**
-   * Tests the postcondition that the `state` is reached.
-   *
-   * This should be tested after navigating any path in `paths`.
-   */
-  test: (
-    /**
-     * The test context used for verifying the SUT.
-     */
-    testContext: TTestContext
-  ) => Promise<void> | void;
-}
-
-/**
- * A sample event object payload (_without_ the `type` property).
- *
- * @example
- *
- * ```js
- * {
- *   value: 'testValue',
- *   other: 'something',
- *   id: 42
- * }
- * ```
- */
-interface EventCase {
-  type?: never;
-  [prop: string]: any;
-}
-
-export type StatePredicate<TContext> = (state: State<TContext, any>) => boolean;
+export type StatePredicate<TState> = (state: TState) => boolean;
 /**
  * Executes an effect using the `testContext` and `event`
  * that triggers the represented `event`.
  */
-export type EventExecutor<T> = (
-  /**
-   * The testing context used to execute the effect
-   */
-  testContext: T,
-  /**
-   * The represented event that will be triggered when executed
-   */
-  event: EventObject
+export type EventExecutor<TState, TEvent extends EventObject> = (
+  step: Step<TState, TEvent>
 ) => Promise<any> | void;
 
-export interface TestEventConfig<TTestContext> {
-  /**
-   * Executes an effect that triggers the represented event.
-   *
-   * @example
-   *
-   * ```js
-   * exec: async (page, event) => {
-   *   await page.type('.foo', event.value);
-   * }
-   * ```
-   */
-  exec?: EventExecutor<TTestContext>;
-  /**
-   * Sample event object payloads _without_ the `type` property.
-   *
-   * @example
-   *
-   * ```js
-   * cases: [
-   *   { value: 'foo' },
-   *   { value: '' }
-   * ]
-   * ```
-   */
-  cases?: EventCase[];
+export interface TestModelOptions<TState, TEvent extends EventObject>
+  extends TraversalOptions<TState, TEvent> {
+  stateMatcher: (state: TState, stateKey: string) => boolean;
+  logger: {
+    log: (msg: string) => void;
+    error: (msg: string) => void;
+  };
+  serializeTransition: (
+    state: TState,
+    event: TEvent | undefined,
+    prevState?: TState
+  ) => string;
 }
 
-export interface TestEventsConfig<T> {
-  [eventType: string]: EventExecutor<T> | TestEventConfig<T>;
-}
-export interface TestModelOptions<T> {
-  events: TestEventsConfig<T>;
-}
-export interface TestModelCoverage {
-  stateNodes: Map<string, number>;
-  transitions: Map<string, Map<EventObject, number>>;
+export interface TestTransitionConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TTestContext
+> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, string> {
+  test?: (
+    state: State<TContext, TEvent, any, any, any, any>,
+    testContext: TTestContext
+  ) => void;
 }
 
-export interface CoverageOptions<TContext> {
-  filter?: (stateNode: StateNode<TContext, any, any>) => boolean;
-}
+export type TestTransitionsConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TTestContext
+> = {
+  [K in TEvent['type'] | '' | '*']?: K extends '' | '*'
+    ? TestTransitionConfig<TContext, TEvent, TTestContext> | string
+    :
+        | TestTransitionConfig<TContext, ExtractEvent<TEvent, K>, TTestContext>
+        | string;
+};
+
+export type PathGenerator<TState, TEvent extends EventObject> = (
+  behavior: ActorLogic<TEvent, TState>,
+  options: TraversalOptions<TState, TEvent>
+) => Array<StatePath<TState, TEvent>>;

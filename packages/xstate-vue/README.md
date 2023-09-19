@@ -25,14 +25,6 @@ npm i xstate @xstate/vue
 
 By using the global variable `XStateVue`
 
-or
-
-```html
-<script src="https://unpkg.com/@xstate/vue/dist/xstate-vue.fsm.min.js"></script>
-```
-
-By using the global variable `XStateVueFSM`
-
 2. Import the `useMachine` composition function:
 
 ```vue

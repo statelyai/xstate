@@ -1,7 +1,7 @@
-import WebSocket from 'ws';
-import { createMachine, interpret, send } from 'xstate';
-import { toSCXMLEvent } from 'xstate/lib/utils';
-import { inspect } from '@xstate/inspect/lib/server';
+import { inspect } from '@xstate/inspect/server';
+import WebSocket = require('ws');
+import { createMachine, createActor, sendTo } from 'xstate';
+import { fromCallback } from 'xstate/actors';
 
 inspect({
   server: new WebSocket.Server({
@@ -13,21 +13,16 @@ const machine = createMachine({
   initial: 'inactive',
   invoke: {
     id: 'ponger',
-    src: () => (cb, receive) => {
+    src: fromCallback(({ sendBack, receive }) => {
       receive((event) => {
         if (event.type === 'PING') {
-          cb(
-            toSCXMLEvent(
-              {
-                type: 'PONG',
-                arr: [1, 2, 3]
-              },
-              { origin: 'ponger' }
-            )
-          );
+          sendBack({
+            type: 'PONG',
+            arr: [1, 2, 3]
+          });
         }
       });
-    }
+    })
   },
   states: {
     inactive: {
@@ -36,7 +31,7 @@ const machine = createMachine({
       }
     },
     active: {
-      entry: send('PING', { to: 'ponger', delay: 1000 }),
+      entry: sendTo('ponger', { type: 'PING' }, { delay: 1000 }),
       on: {
         PONG: 'inactive'
       }
@@ -44,6 +39,6 @@ const machine = createMachine({
   }
 });
 
-interpret(machine, { devTools: true })
-  .onTransition((s) => console.log(s.value))
-  .start();
+const actor = createActor(machine, { devTools: true });
+actor.subscribe((s) => console.log(s.value));
+actor.start();

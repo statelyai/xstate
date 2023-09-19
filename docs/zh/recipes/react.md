@@ -148,7 +148,9 @@ export const SomeComponent = (props) => {
   const globalServices = useContext(GlobalStateContext);
 
   return (
-    <button onClick={() => globalServices.authService.send('LOG_OUT')}>
+    <button
+      onClick={() => globalServices.authService.send({ type: 'LOG_OUT' })}
+    >
       Log Out
     </button>
   );
@@ -239,7 +241,7 @@ This will send a `DATA_CHANGED` event whenever the result from `useSWR` changes,
 ## Class 组件
 
 - 如果你使用的是类组件，这里有一个不依赖于 hooks 的示例实现。
-`machine` 被 [interpreted](../guides/interpretation.md)，并且它的 `service` 实例被放置在组件实例上。
+  `machine` 被 [interpreted](../guides/interpretation.md)，并且它的 `service` 实例被放置在组件实例上。
 - 对于本地状态， `this.state.current` 将保存当前状态机状态。 你可以使用 `.current` 以外的属性名称。
 - 当组件被挂载时，`service` 通过 `this.service.start()` 启动。
 - 当组件卸载时，`service` 通过 `this.service.stop()` 停止。

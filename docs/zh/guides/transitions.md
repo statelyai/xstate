@@ -319,7 +319,7 @@ const gameService = interpret(gameMachine)
 
 // 当发送“AWARD_POINTS”时，会发生自我转换到“PLAYING”。
 // 由于满足“didPlayerWin”条件，因此会进行到“win”的瞬间转换。
-gameService.send('AWARD_POINTS');
+gameService.send({ type: 'AWARD_POINTS' });
 // => 'win'
 ```
 

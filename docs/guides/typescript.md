@@ -1,75 +1,255 @@
 ## Using TypeScript
 
-As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged. Consider this light machine example:
+As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged.
 
 ```typescript
-// The events that the machine handles
-type LightEvent =
-  | { type: 'TIMER' }
-  | { type: 'POWER_OUTAGE' }
-  | { type: 'PED_COUNTDOWN'; duration: number };
+import { createMachine } from 'xstate';
 
-// The context (extended state) of the machine
-interface LightContext {
-  elapsed: number;
-}
+const lightMachine = createMachine({
+  schema: {
+    // The context (extended state) of the machine
+    context: {} as { elapsed: number },
+    // The events this machine handles
+    events: {} as
+      | { type: 'TIMER' }
+      | { type: 'POWER_OUTAGE' }
+      | { type: 'PED_COUNTDOWN'; duration: number }
+  }
+  /* Other config... */
+});
+```
 
-const lightMachine = createMachine<LightContext, LightEvent>({
-  key: 'light',
-  initial: 'green',
-  context: { elapsed: 0 },
+Providing the context and events to the `schema` attribute gives many advantages:
+
+- The context type/interface (`TContext`) is passed on to actions, guards, services and more. It is also passed to deeply nested states.
+- The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to actions, guards, and services.
+- Events which you send to the machine will be strongly typed, offering you much more confidence in the payload shapes you'll be receiving.
+
+## Typegen <Badge text="4.29+" />
+
+::: warning Experimental Feature
+
+This feature is in beta! See the section on known limitations below to see what we're actively looking to improve.
+
+:::
+
+Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) or our [CLI](../packages/xstate-cli/index.md), you can automatically generate intelligent typings for XState.
+
+Here's how you can get started:
+
+1. Download and install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) OR install the [CLI](../packages/xstate-cli/index.md) and run the `xstate typegen` command with the `--watch` flag.
+2. Open a new file and create a new machine, passing the schema attributes:
+
+```ts
+import { createMachine } from 'xstate';
+
+const machine = createMachine({
+  schema: {
+    context: {} as { value: string },
+    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
+  },
+  initial: 'a',
+  context: {
+    value: ''
+  },
   states: {
-    green: {
+    a: {
       on: {
-        TIMER: { target: 'yellow' },
-        POWER_OUTAGE: { target: 'red' }
-      }
-    },
-    yellow: {
-      on: {
-        TIMER: { target: 'red' },
-        POWER_OUTAGE: { target: 'red' }
-      }
-    },
-    red: {
-      on: {
-        TIMER: { target: 'green' },
-        POWER_OUTAGE: { target: 'red' }
-      },
-      initial: 'walk',
-      states: {
-        walk: {
-          on: {
-            PED_COUNTDOWN: { target: 'wait' }
-          }
-        },
-        wait: {
-          on: {
-            PED_COUNTDOWN: {
-              target: 'stop',
-              cond: (context, event) => {
-                return event.duration === 0 && context.elapsed > 0;
-              }
-            }
-          }
-        },
-        stop: {
-          // Transient transition
-          always: {
-            target: '#light.green'
-          }
+        FOO: {
+          actions: 'consoleLogValue',
+          target: 'b'
         }
       }
+    },
+    b: {
+      entry: 'consoleLogValueAgain'
     }
   }
 });
 ```
 
-Providing the context and events as generic parameters for the `createMachine()` function gives many advantages:
+3. Add `tsTypes: {}` to the machine and save the file:
 
-- The context type/interface (`TContext`) is passed on to actions, guards, services and more. It is also passed to deeply nested states.
-- The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to actions, guards, and services.
-- Events which you send to the machine will be strongly typed, offering you much more confidence in the payload shapes you'll be receiving.
+```ts
+const machine = createMachine({
+  tsTypes: {},
+  schema: {
+    context: {} as { value: string },
+    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
+  },
+  context: {
+    value: ''
+  },
+  initial: 'a',
+  states: {
+    /* ... */
+  }
+});
+```
+
+4. The extension should automatically add a generic to the machine:
+
+```ts
+const machine = createMachine({
+  tsTypes: {} as import('./filename.typegen').Typegen0
+  /* ... */
+});
+```
+
+5. Add a second parameter into the `createMachine` call - this is where you implement the actions, services, guards and delays for the machine.
+
+```ts
+const machine = createMachine(
+  {
+    /* ... */
+  },
+  {
+    actions: {
+      consoleLogValue: (context, event) => {
+        // Wow! event is typed to { type: 'FOO' }
+        console.log(event.value);
+      },
+      consoleLogValueAgain: (context, event) => {
+        // Wow! event is typed to { type: 'FOO' }
+        console.log(event.value);
+      }
+    }
+  }
+);
+```
+
+You'll notice that the events in the options are _strongly typed to the events that cause the action to be triggered_. This is true for actions, guards, services and delays.
+
+You'll also notice that `state.matches`, `tags` and other parts of the machine are now type-safe.
+
+### Typing promise services
+
+You can use the generated types to specify the return type of promise-based services, by using the `services` schema property:
+
+```ts
+import { createMachine } from 'xstate';
+
+createMachine(
+  {
+    schema: {
+      services: {} as {
+        myService: {
+          // The data that gets returned from the service
+          data: { id: string };
+        };
+      }
+    },
+    invoke: {
+      src: 'myService',
+      onDone: {
+        actions: 'consoleLogId'
+      }
+    }
+  },
+  {
+    services: {
+      myService: async () => {
+        // This return type is now type-safe
+        return {
+          id: '1'
+        };
+      }
+    },
+    actions: {
+      consoleLogId: (context, event) => {
+        // This event type is now type-safe
+        console.log(event.data.id);
+      }
+    }
+  }
+);
+```
+
+### How to get the most out of the VS Code extension
+
+#### Use named actions/guards/services
+
+Our recommendation with this approach is to mostly use named actions/guards/services, not inline ones.
+
+This is optimal:
+
+```ts
+createMachine(
+  {
+    entry: ['sayHello']
+  },
+  {
+    actions: {
+      sayHello: () => {
+        console.log('Hello!');
+      }
+    }
+  }
+);
+```
+
+This is useful, but less optimal:
+
+```ts
+createMachine({
+  entry: [
+    () => {
+      console.log('Hello!');
+    }
+  ]
+});
+```
+
+Named actions/services/guards allow for:
+
+- Better visualisation, because the names appear in the statechart
+- Easier-to-understand code
+- Overrides in `useMachine`, or `machine.withConfig`
+
+#### The generated files
+
+We recommend you gitignore the generated files (`*filename*.typegen.ts`) from the repository.
+
+You can use the [CLI](../packages/xstate-cli/index.md) to regenerate them on CI, for instance via a postinstall script:
+
+```json
+{
+  "scripts": {
+    "postinstall": "xstate typegen \"./src/**/*.ts?(x)\""
+  }
+}
+```
+
+#### Don't use enums
+
+Enums were a common pattern used with XState TypeScript. They were often used to declare state names. like this:
+
+```ts
+enum States {
+  A,
+  B
+}
+
+createMachine({
+  initial: States.A,
+  states: {
+    [States.A]: {},
+    [States.B]: {}
+  }
+});
+```
+
+You can then check `state.matches(States.A)` on the resulting machine. This allows for type-safe checks of state names.
+
+With typegen, using enums is no longer necessary - all `state.matches` types are type-safe. Enums are currently not supported by our static analysis tool. It's also unlikely that we'll ever support them with typegen due to the complexity they add for comparatively little gain.
+
+Instead of enums, use typegen and rely on the strength of the type-safety it provides.
+
+### Known limitations
+
+#### Always transitions/raised events
+
+Actions/services/guards/delays might currently get incorrectly annotated if they are called "in response" to always transitions or raised events. We are working on fixing this, both in XState and in the typegen.
 
 ## Config Objects
 
@@ -215,6 +395,8 @@ Here are some known issues, all of which can be worked around:
 When you use `createMachine`, you can pass in implementations to named actions/services/guards in your config. For instance:
 
 ```ts
+import { createMachine } from 'xstate';
+
 interface Context {}
 
 type Event =
@@ -223,8 +405,12 @@ type Event =
       type: 'EVENT_WITHOUT_FLAG';
     };
 
-createMachine<Context, Event>(
+createMachine(
   {
+    schema: {
+      context: {} as Context,
+      events: {} as Event
+    },
     on: {
       EVENT_WITH_FLAG: {
         actions: 'consoleLogData'
@@ -245,7 +431,7 @@ createMachine<Context, Event>(
 The reason this errors is because inside the `consoleLogData` function, we don't know which event caused it to fire. The cleanest way to manage this is to assert the event type yourself.
 
 ```ts
-createMachine<Context, Event>(machine, {
+createMachine(config, {
   actions: {
     consoleLogData: (context, event) => {
       if (event.type !== 'EVENT_WITH_FLAG') return
@@ -259,7 +445,13 @@ createMachine<Context, Event>(machine, {
 It's also sometimes possible to move the implementation inline.
 
 ```ts
-createMachine<Context, Event>({
+import { createMachine } from 'xstate';
+
+createMachine({
+  schema: {
+    context: {} as Context,
+    events: {} as Event
+  },
   on: {
     EVENT_WITH_FLAG: {
       actions: (context, event) => {
@@ -279,6 +471,8 @@ This approach doesn't work for all cases. The action loses its name, so it becom
 Event types in inline entry actions are not currently typed to the event that led to them. Consider this example:
 
 ```ts
+import { createMachine } from 'xstate';
+
 interface Context {}
 
 type Event =
@@ -287,7 +481,11 @@ type Event =
       type: 'EVENT_WITHOUT_FLAG';
     };
 
-createMachine<Context, Event>({
+createMachine({
+  schema: {
+    context: {} as Context,
+    events: {} as Event
+  },
   initial: 'state1',
   states: {
     state1: {
@@ -321,72 +519,6 @@ entry: [
 ];
 ```
 
-### `onDone`/`onError` events in machine options
-
-The result of promise-based services is quite hard to type safely in XState. For instance, a machine like this:
-
-```ts
-interface Data {
-  flag: boolean;
-}
-
-interface Context {}
-
-type Event = {
-  // Added here in order to bring out the TS errors
-  type: 'UNUSED_EVENT';
-};
-
-createMachine<Context, Event>(
-  {
-    invoke: {
-      src: async () => {
-        const data: Data = {
-          flag: true
-        };
-        return data;
-      },
-      onDone: {
-        actions: 'consoleLogData'
-      },
-      onError: {
-        actions: 'consoleLogError'
-      }
-    }
-  },
-  {
-    actions: {
-      consoleLogData: (context, event) => {
-        // Error on this line - data does not exist!
-        console.log(event.data.flag);
-      },
-      consoleLogError: (context, event) => {
-        // Error on this line - data does not exist!
-        console.log(event.data);
-      }
-    }
-  }
-);
-```
-
-Frustratingly, the best way to fix this is to cast the `event` to `any` and reassign it based on what we know it to be:
-
-```ts
-import { DoneInvokeEvent, ErrorPlatformEvent } from 'xstate'
-
-actions: {
-  consoleLogData: (context, _event: any) => {
-    const event: DoneInvokeEvent<Data> = _event;
-    console.log(event.data.flag);
-  },
-  consoleLogError: (context, _event: any) => {
-    const event: ErrorPlatformEvent = _event;
-    // Event.data is usually of type `Error`
-    console.log(event.data.message);
-  }
-}
-```
-
 ### Assign action behaving strangely
 
 When run in `strict: true` mode, assign actions can sometimes behave very strangely.
@@ -396,7 +528,10 @@ interface Context {
   something: boolean;
 }
 
-createMachine<Context>({
+createMachine({
+  schema: {
+    context: {} as Context
+  },
   context: {
     something: true
   },
