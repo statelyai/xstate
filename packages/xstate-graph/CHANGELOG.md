@@ -1,5 +1,16 @@
 # @xstate/graph
 
+## 2.0.0-beta.4
+
+### Major Changes
+
+- [#4238](https://github.com/statelyai/xstate/pull/4238) [`b4f12a517`](https://github.com/statelyai/xstate/commit/b4f12a517dcb2a70200de4fb33d0a5958ff22333) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The steps in the paths returned from functions like `getShortestPaths(...)` and `getSimplePaths(...)` have the following changes:
+
+  - The `step.event` property now represents the `event` object that resulted in the transition to the `step.state`, _not_ the event that comes before the next step.
+  - The `path.steps` array now includes the target `path.state` as the last step.
+    - Note: this means that `path.steps` always has at least one step.
+  - The first `step` now has the `{ type: 'xstate.init' }` event
+
 ## 2.0.0-beta.3
 
 ### Major Changes

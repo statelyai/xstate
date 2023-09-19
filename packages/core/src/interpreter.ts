@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
-import { doneInvoke, error } from './actions.ts';
-import { stopSignalType } from './actors/index.ts';
+import { createDoneActorEvent, createErrorActorEvent } from './eventUtils.ts';
+import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
@@ -20,11 +20,11 @@ import type {
   PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef,
-  OutputFrom
+  OutputFrom,
+  DoneActorEvent
 } from './types.ts';
 import {
   ActorRef,
-  DoneEvent,
   EventObject,
   InteropSubscribable,
   ActorOptions,
@@ -61,7 +61,6 @@ export enum ActorStatus {
 export const InterpreterStatus = ActorStatus;
 
 const defaultOptions = {
-  deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
       return setTimeout(fn, ms);
@@ -124,7 +123,7 @@ export class Actor<
   public sessionId: string;
 
   public system: ActorSystem<any>;
-  private _doneEvent?: DoneEvent;
+  private _doneEvent?: DoneActorEvent;
 
   public src?: string;
 
@@ -221,13 +220,13 @@ export class Actor<
       case 'done':
         this._stopProcedure();
         this._complete();
-        this._doneEvent = doneInvoke(this.id, status.output);
+        this._doneEvent = createDoneActorEvent(this.id, status.output);
         this._parent?.send(this._doneEvent as any);
         break;
       case 'error':
         this._stopProcedure();
         this._error(status.error);
-        this._parent?.send(error(this.id, status.error));
+        this._parent?.send(createErrorActorEvent(this.id, status.error));
         break;
     }
   }
@@ -302,7 +301,7 @@ export class Actor<
       } catch (err) {
         this._stopProcedure();
         this._error(err);
-        this._parent?.send(error(this.id, err));
+        this._parent?.send(createErrorActorEvent(this.id, err));
         return this;
       }
     }
@@ -341,12 +340,12 @@ export class Actor<
 
       this._stopProcedure();
       this._error(err);
-      this._parent?.send(error(this.id, err));
+      this._parent?.send(createErrorActorEvent(this.id, err));
       return;
     }
 
     this.update(nextState);
-    if (event.type === stopSignalType) {
+    if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();
     }
@@ -361,7 +360,7 @@ export class Actor<
       this.status = ActorStatus.Stopped;
       return this;
     }
-    this.mailbox.enqueue({ type: stopSignalType } as any);
+    this.mailbox.enqueue({ type: XSTATE_STOP } as any);
 
     return this;
   }
@@ -451,25 +450,10 @@ export class Actor<
         const eventString = JSON.stringify(event);
 
         console.warn(
-          `Event "${event.type.toString()}" was sent to stopped actor "${
-            this.id
-          } (${
-            this.sessionId
-          })". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
         );
       }
       return;
-    }
-
-    if (this.status !== ActorStatus.Running && !this.options.deferEvents) {
-      throw new Error(
-        `Event "${event.type}" was sent to uninitialized actor "${
-          this.id
-          // tslint:disable-next-line:max-line-length
-        }". Make sure .start() is called for this actor, or set { deferEvents: true } in the actor options.\nEvent: ${JSON.stringify(
-          event
-        )}`
-      );
     }
 
     this.mailbox.enqueue(event);

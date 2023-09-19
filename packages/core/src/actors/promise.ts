@@ -5,7 +5,7 @@ import {
   AnyActorSystem,
   TODO
 } from '../types';
-import { stopSignalType } from '../actors';
+import { XSTATE_STOP } from '../constants';
 
 export interface PromiseInternalState<T, TInput = unknown> {
   status: 'active' | 'error' | 'done' | 'stopped';
@@ -26,7 +26,7 @@ export type PromiseActorEvents<T> =
       data: any;
     }
   | {
-      type: 'xstate.stop';
+      type: typeof XSTATE_STOP;
     };
 
 export type PromiseActorLogic<T, TInput = unknown> = ActorLogic<
@@ -75,7 +75,7 @@ export function fromPromise<T, TInput>(
             error: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
             input: undefined
           };
-        case stopSignalType:
+        case XSTATE_STOP:
           return {
             ...state,
             status: 'stopped',

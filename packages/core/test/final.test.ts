@@ -6,7 +6,7 @@ import {
 } from '../src/index.ts';
 
 describe('final states', () => {
-  it('should emit the "done.state.*" event when all nested states are in their final states', () => {
+  it('should emit the "xstate.done.state.*" event when all nested states are in their final states', () => {
     const onDoneSpy = jest.fn();
 
     const machine = createMachine({
@@ -60,7 +60,7 @@ describe('final states', () => {
     });
 
     expect(actor.getSnapshot().value).toBe('bar');
-    expect(onDoneSpy).toHaveBeenCalledWith('done.state.m.foo');
+    expect(onDoneSpy).toHaveBeenCalledWith('xstate.done.state.m.foo');
   });
 
   it('should execute final child state actions first', () => {
@@ -101,7 +101,8 @@ describe('final states', () => {
       revealedSecret?: string;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       initial: 'secret',
       context: {
         revealedSecret: undefined
@@ -126,7 +127,7 @@ describe('final states', () => {
             target: 'success',
             actions: assign({
               revealedSecret: ({ event }) => {
-                return event.output.secret;
+                return (event.output as any).secret;
               }
             })
           }

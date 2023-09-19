@@ -1,5 +1,12 @@
 # @xstate/test
 
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [[`b4f12a517`](https://github.com/statelyai/xstate/commit/b4f12a517dcb2a70200de4fb33d0a5958ff22333)]:
+  - @xstate/graph@2.0.0-beta.4
+
 ## 1.0.0-beta.2
 
 ### Patch Changes

@@ -17,6 +17,7 @@ import {
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
+import { alterPath } from './alterPath';
 
 export function getShortestPaths<
   TLogic extends AnyActorLogic,
@@ -104,14 +105,16 @@ export function getShortestPaths<
   weightMap.forEach(
     ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
       const state = stateMap.get(stateSerial)!;
+      const steps = !fromState
+        ? []
+        : statePlanMap[fromState].paths[0].steps.concat({
+            state: stateMap.get(fromState)!,
+            event: fromEvent!
+          });
+
       paths.push({
         state,
-        steps: !fromState
-          ? []
-          : statePlanMap[fromState].paths[0].steps.concat({
-              state: stateMap.get(fromState)!,
-              event: fromEvent!
-            }),
+        steps,
         weight
       });
       statePlanMap[stateSerial] = {
@@ -119,12 +122,7 @@ export function getShortestPaths<
         paths: [
           {
             state,
-            steps: !fromState
-              ? []
-              : statePlanMap[fromState].paths[0].steps.concat({
-                  state: stateMap.get(fromState)!,
-                  event: fromEvent!
-                }),
+            steps,
             weight
           }
         ]
@@ -133,8 +131,10 @@ export function getShortestPaths<
   );
 
   if (resolvedOptions.toState) {
-    return paths.filter((path) => resolvedOptions.toState!(path.state));
+    return paths
+      .filter((path) => resolvedOptions.toState!(path.state))
+      .map(alterPath);
   }
 
-  return paths;
+  return paths.map(alterPath);
 }

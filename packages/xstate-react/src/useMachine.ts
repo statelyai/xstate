@@ -9,8 +9,7 @@ import {
 import { useActor } from './useActor.ts';
 
 /**
- *
- * @deprecated Use `useActor(...)` instead.
+ * @alias useActor
  */
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<

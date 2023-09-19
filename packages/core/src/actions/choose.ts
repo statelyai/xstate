@@ -7,7 +7,8 @@ import {
   AnyState,
   ActionArgs,
   ParameterizedObject,
-  NoInfer
+  NoInfer,
+  ProvidedActor
 } from '../types.ts';
 import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
@@ -15,7 +16,7 @@ import { toArray } from '../utils.ts';
 function resolve(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   {
     branches
   }: {
@@ -24,6 +25,7 @@ function resolve(
         MachineContext,
         EventObject,
         EventObject,
+        ProvidedActor,
         ParameterizedObject,
         ParameterizedObject,
         string
@@ -41,11 +43,29 @@ function resolve(
   return [state, undefined, toArray(matchedActions)];
 }
 
+export interface ChooseAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  _out_TActor?: TActor;
+  _out_TAction?: TAction;
+  _out_TGuard?: TGuard;
+  _out_TDelay?: TDelay;
+}
+
 export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
@@ -55,14 +75,24 @@ export function choose<
       TContext,
       TExpressionEvent,
       TEvent,
+      TActor,
       NoInfer<TAction>,
       NoInfer<TGuard>,
       TDelay
     >
   >
-) {
+): ChooseAction<
+  TContext,
+  TExpressionEvent,
+  TExpressionAction,
+  TEvent,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay
+> {
   function choose(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -74,10 +104,5 @@ export function choose<
 
   choose.resolve = resolve;
 
-  return choose as {
-    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
-    _out_TAction?: TAction;
-    _out_TGuard?: TGuard;
-    _out_TDelay?: TDelay;
-  };
+  return choose;
 }

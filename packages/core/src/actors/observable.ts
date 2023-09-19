@@ -1,3 +1,4 @@
+import { XSTATE_STOP } from '../constants';
 import {
   Subscribable,
   ActorLogic,
@@ -8,7 +9,6 @@ import {
   ActorStatusObject,
   TODO
 } from '../types';
-import { stopSignalType } from '../actors';
 
 export type ObservableInternalState<
   T,
@@ -85,7 +85,7 @@ export function fromObservable<T, TInput>(
             input: undefined,
             subscription: undefined
           };
-        case stopSignalType:
+        case XSTATE_STOP:
           state.subscription!.unsubscribe();
           return {
             ...state,
@@ -183,7 +183,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
             input: undefined,
             subscription: undefined
           };
-        case stopSignalType:
+        case XSTATE_STOP:
           state.subscription!.unsubscribe();
           return {
             ...state,

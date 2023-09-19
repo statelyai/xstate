@@ -4,7 +4,8 @@ import { getShortestPaths } from '../src/shortestPaths';
 
 describe('getShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
-    const m = createMachine<{ count: number }>({
+    const m = createMachine({
+      types: {} as { context: { count: number } },
       initial: 'a',
       context: { count: 0 },
       states: {
@@ -91,6 +92,7 @@ describe('getShortestPaths', () => {
     expect(paths).toHaveLength(1);
     expect(paths[0].steps.map((s) => s.event.type)).toMatchInlineSnapshot(`
       [
+        "xstate.init",
         "TO_B",
         "NEXT_B_TO_X",
         "NEXT_X_TO_Y",
