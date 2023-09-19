@@ -129,12 +129,12 @@ function execute(
   const { to, event } = params;
 
   actorContext.defer(() => {
-    actorContext?.system.sendTo(
-      to,
+    actorContext?.system.relay(
       event.type === XSTATE_ERROR
         ? createErrorActorEvent(actorContext.self.id, (event as any).data)
         : event,
-      actorContext.self
+      actorContext.self,
+      to
     );
   });
 }

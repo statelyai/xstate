@@ -1,5 +1,4 @@
 import {
-  InspectionEvent,
   createActor,
   createMachine,
   fromPromise,
@@ -7,6 +6,7 @@ import {
   sendTo,
   waitFor
 } from '../src';
+import { InspectionEvent } from '../src/system';
 
 function simplifyEvent(inspectionEvent: InspectionEvent) {
   if (inspectionEvent.type === '@xstate.event') {

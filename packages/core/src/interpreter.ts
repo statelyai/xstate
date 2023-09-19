@@ -64,7 +64,6 @@ export enum ActorStatus {
 export const InterpreterStatus = ActorStatus;
 
 const defaultOptions = {
-  deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
       return setTimeout(fn, ms);
@@ -87,8 +86,6 @@ export class Actor<
   TEvent extends EventObject = EventFromLogic<TLogic>
 > implements ActorRef<TEvent, SnapshotFrom<TLogic>>
 {
-  public static defaults = defaultOptions as Partial<ActorOptions<any>> &
-    typeof defaultOptions;
   /**
    * The current internal state of the actor.
    */
@@ -141,9 +138,9 @@ export class Actor<
    */
   constructor(public logic: TLogic, options?: ActorOptions<TLogic>) {
     const resolvedOptions = {
-      ...Actor.defaults,
+      ...defaultOptions,
       ...options
-    } as ActorOptions<TLogic> & typeof Actor.defaults;
+    } as ActorOptions<TLogic> & typeof defaultOptions;
 
     const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
 
@@ -193,7 +190,6 @@ export class Actor<
       type: '@xstate.actor',
       actorRef: this,
       sessionId: this.sessionId,
-      // definition: JSON.stringify(this.logic.config),
       parentId: this._parent?.sessionId
     });
     this._initState();
@@ -210,7 +206,7 @@ export class Actor<
   // array of functions to defer
   private _deferred: Array<() => void> = [];
 
-  private update(state: InternalStateFrom<TLogic>, event: TEvent): void {
+  private update(state: InternalStateFrom<TLogic>, event: EventObject): void {
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
@@ -238,16 +234,16 @@ export class Actor<
         this._stopProcedure();
         this._complete();
         this._doneEvent = createDoneActorEvent(this.id, status.data);
-        this.system.sendTo(this._parent, this._doneEvent, this);
+        this.system.relay(this._doneEvent, this, this._parent);
 
         break;
       case 'error':
         this._stopProcedure();
         this._error(status.data);
-        this.system.sendTo(
-          this._parent,
+        this.system.relay(
           createErrorActorEvent(this.id, status.data),
-          this
+          this,
+          this._parent
         );
         break;
     }
@@ -467,26 +463,8 @@ export class Actor<
     return this;
   }
 
-  /**
-   * Sends an event to the running Actor to trigger a transition.
-   *
-   * @param event The event to send
-   */
-  public send(event: TEvent) {
-    if (typeof event === 'string') {
-      throw new Error(
-        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
-      );
-    }
-    if (!('__id' in event)) {
-      this.system._sendInspectionEvent({
-        type: '@xstate.event',
-        event,
-        sourceId: undefined,
-        targetId: this.sessionId
-      });
-    }
-
+  /** @internal */
+  public _send(event: TEvent) {
     if (this.status === ActorStatus.Stopped) {
       // do nothing
       if (isDevelopment) {
@@ -499,18 +477,21 @@ export class Actor<
       return;
     }
 
-    if (this.status !== ActorStatus.Running && !this.options.deferEvents) {
+    this.mailbox.enqueue(event);
+  }
+
+  /**
+   * Sends an event to the running Actor to trigger a transition.
+   *
+   * @param event The event to send
+   */
+  public send(event: TEvent) {
+    if (typeof event === 'string') {
       throw new Error(
-        `Event "${event.type}" was sent to uninitialized actor "${
-          this.id
-          // tslint:disable-next-line:max-line-length
-        }". Make sure .start() is called for this actor, or set { deferEvents: true } in the actor options.\nEvent: ${JSON.stringify(
-          event
-        )}`
+        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
     }
-
-    this.mailbox.enqueue(event);
+    this.system.relay(event, undefined, this);
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
@@ -526,7 +507,7 @@ export class Actor<
     to?: AnyActorRef;
   }): void {
     const timerId = this.clock.setTimeout(() => {
-      this.system.sendTo(to ?? this, event as TEvent, this);
+      this.system.relay(event as TEvent, this, to ?? this);
     }, delay);
 
     // TODO: consider the rehydration story here

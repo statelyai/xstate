@@ -13,6 +13,7 @@ import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
+import { InspectionEvent } from './system.js';
 
 /**
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
@@ -1734,14 +1735,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   logger?: (...args: any[]) => void;
   parent?: ActorRef<any>;
   /**
-   * If `true`, defers processing of sent events until the service
-   * is initialized (`.start()`). Otherwise, an error will be thrown
-   * for events sent to an uninitialized service.
-   *
-   * Default: `true`
-   */
-  deferEvents?: boolean;
-  /**
    * The custom `id` for referencing this service.
    */
   id?: string;
@@ -1841,6 +1834,8 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
    */
   id: string;
   sessionId: string;
+  /** @internal */
+  _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
   // TODO: should this be optional?
   start?: () => void;
@@ -2202,28 +2197,28 @@ export interface ActorSystemInfo {
 
 export interface ActorSystem<T extends ActorSystemInfo> {
   /**
-   * @private
+   * @internal
    */
   _bookId: () => string;
   /**
-   * @private
+   * @internal
    */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
   /**
-   * @private
+   * @internal
    */
   _unregister: (actorRef: AnyActorRef) => void;
   /**
-   * @private
+   * @internal
    */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   inspect: (observer: Observer<InspectionEvent>) => void;
   _sendInspectionEvent: (event: InspectionEvent) => void;
-  sendTo: (
-    target: AnyActorRef | undefined,
+  relay: (
     event: AnyEventObject,
-    source: AnyActorRef | undefined
+    source: AnyActorRef | undefined,
+    target: AnyActorRef | undefined
   ) => void;
 }
 
@@ -2240,55 +2235,3 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
     };
   };
 };
-
-export interface InspectedActorObject {
-  actorRef: AnyActorRef; // local-only
-  sessionId: string;
-  parentId?: string; // Session ID
-  systemId?: string; // Session ID
-  events: ActorCommunicationEvent[]; // events where targetId === sessionId
-  definition?: string; // JSON-stringified machine definition or URL
-  createdAt: number; // Timestamp
-  updatedAt: number; // Timestamp, derived from latest update createdAt
-  status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped, derived from latest update status
-}
-
-export interface BaseInspectionEvent {
-  // the session ID of the root
-  actorSystemId: string;
-  createdAt: string; // Timestamp
-  id: string; // unique string for this actor update
-}
-
-export interface ActorTransitionEvent {
-  type: '@xstate.snapshot';
-  snapshot: any;
-  event: AnyEventObject; // { type: string, ... }
-  status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped
-  sessionId: string;
-  actorRef: AnyActorRef; // Only available locally
-}
-
-export interface ActorCommunicationEvent {
-  type: '@xstate.event';
-  event: AnyEventObject; // { type: string, ... }
-  sourceId: string | undefined; // Session ID
-  targetId: string; // Session ID, required
-}
-
-export interface ActorRegistrationEvent {
-  type: '@xstate.actor';
-  actorRef: AnyActorRef;
-  sessionId: string;
-  parentId?: string;
-  definition?: string; // JSON-stringified definition or URL
-}
-
-export type InspectionEvent =
-  | ActorTransitionEvent
-  | ActorCommunicationEvent
-  | ActorRegistrationEvent;
-
-export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
-
-export type InspectorActorRef = ActorRef<InspectionEvent>;

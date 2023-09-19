@@ -58,13 +58,13 @@ export function fromObservable<T, TInput>(
           // match the exact timing of events sent by machines
           // send actions are not executed immediately
           defer(() => {
-            system.sendTo(
-              self._parent,
+            system.relay(
               {
                 type: `xstate.snapshot.${id}`,
                 data: event.data
               },
-              self
+              self,
+              self._parent
             );
           });
           return {
@@ -117,13 +117,13 @@ export function fromObservable<T, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          system.sendTo(self, { type: nextEventType, data: value }, self);
+          system.relay({ type: nextEventType, data: value }, self, self);
         },
         error: (err) => {
-          system.sendTo(self, { type: errorEventType, data: err }, self);
+          system.relay({ type: errorEventType, data: err }, self, self);
         },
         complete: () => {
-          system.sendTo(self, { type: completeEventType }, self);
+          system.relay({ type: completeEventType }, self, self);
         }
       });
     },
@@ -221,13 +221,13 @@ export function fromEventObservable<T extends EventObject, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          system.sendTo(self._parent, value, self);
+          system.relay(value, self, self._parent);
         },
         error: (err) => {
-          system.sendTo(self, { type: errorEventType, data: err }, self);
+          system.relay({ type: errorEventType, data: err }, self, self);
         },
         complete: () => {
-          system.sendTo(self, { type: completeEventType }, self);
+          system.relay({ type: completeEventType }, self, self);
         }
       });
     },

@@ -101,14 +101,14 @@ export function fromPromise<T, TInput>(
           if ((self as any)._state.status !== 'active') {
             return;
           }
-          system.sendTo(self, { type: resolveEventType, data: response }, self);
+          system.relay({ type: resolveEventType, data: response }, self, self);
         },
         (errorData) => {
           // TODO: remove this condition once dead letter queue lands
           if ((self as any)._state.status !== 'active') {
             return;
           }
-          system.sendTo(self, { type: rejectEventType, data: errorData }, self);
+          system.relay({ type: rejectEventType, data: errorData }, self, self);
         }
       );
     },

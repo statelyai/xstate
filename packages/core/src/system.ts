@@ -1,9 +1,9 @@
 import {
+  AnyEventObject,
   ActorSystem,
   ActorSystemInfo,
   AnyActorRef,
-  Observer,
-  ResolvedInspectionEvent
+  Observer
 } from './types.ts';
 
 let systemCounter = 0;
@@ -16,7 +16,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const observers = new Set<Observer<ResolvedInspectionEvent>>();
 
   const system: ActorSystem<T> = {
-    _bookId: (name: string = 'x') => `${name}:${systemCounter++}`,
+    _bookId: () => `x:${systemCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
       return sessionId;
@@ -52,13 +52,11 @@ export function createSystem<T extends ActorSystemInfo>(
         id: Math.random().toString(),
         createdAt: new Date().toString(),
         ...event,
-        actorSystemId: rootActor.sessionId
+        rootId: rootActor.sessionId
       };
       observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
     },
-    sendTo: (target, event, source) => {
-      const sourceId = source?.sessionId;
-      const id = `${sourceId ?? 'anon'}--${Math.random().toString()}`;
+    relay: (event, source, target) => {
       system._sendInspectionEvent({
         type: '@xstate.event',
         event,
@@ -66,15 +64,44 @@ export function createSystem<T extends ActorSystemInfo>(
         sourceId: source?.sessionId
       });
 
-      Object.defineProperty(event, '__id', {
-        value: id,
-        enumerable: false,
-        writable: true
-      });
-
-      target?.send(event);
+      target?._send(event);
     }
   };
 
   return system;
 }
+export interface BaseInspectionEvent {
+  rootId: string; // the session ID of the root
+  createdAt: string; // Timestamp
+  id: string; // unique string for this actor update
+}
+
+export interface InspectedSnapshotEvent {
+  type: '@xstate.snapshot';
+  snapshot: any;
+  event: AnyEventObject; // { type: string, ... }
+  status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped
+  sessionId: string;
+  actorRef: AnyActorRef; // Only available locally
+}
+
+export interface InspectedEventEvent {
+  type: '@xstate.event';
+  event: AnyEventObject; // { type: string, ... }
+  sourceId: string | undefined; // Session ID
+  targetId: string; // Session ID, required
+}
+
+export interface InspectedActorEvent {
+  type: '@xstate.actor';
+  actorRef: AnyActorRef;
+  sessionId: string;
+  parentId?: string;
+}
+
+export type InspectionEvent =
+  | InspectedSnapshotEvent
+  | InspectedEventEvent
+  | InspectedActorEvent;
+
+export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
