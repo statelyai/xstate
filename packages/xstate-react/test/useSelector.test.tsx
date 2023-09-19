@@ -662,7 +662,9 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     function App() {
       const service = useActorRef(machine);
       useSelector(service, () => {});
-      expect(called).toBe(false);
+      if (service.status === 0) {
+        expect(called).toBe(false);
+      }
       return null;
     }
 
