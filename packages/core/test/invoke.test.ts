@@ -586,7 +586,7 @@ describe('invoke', () => {
       actor.start();
     });
 
-    it('should not reinvoke root-level invocations', (done) => {
+    it('should not reinvoke root-level invocations on root non-reentering transitions', () => {
       // https://github.com/statelyai/xstate/issues/2147
 
       let invokeCount = 0;
@@ -631,7 +631,6 @@ describe('invoke', () => {
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
-      done();
     });
 
     it('should stop a child actor when reaching a final state', () => {
@@ -3222,6 +3221,51 @@ describe('invoke', () => {
     service.send({ type: 'EVENT' });
 
     expect(count).toEqual(2);
+  });
+
+  it('should be able to restart an invoke when reentering the invoking state', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { ACTIVATE: 'active' }
+        },
+        active: {
+          invoke: {
+            src: fromCallback(() => {
+              const localId = ++invokeCounter;
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            })
+          },
+          on: {
+            REENTER: {
+              target: 'active',
+              reenter: true
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    service.send({
+      type: 'ACTIVATE'
+    });
+
+    actual.length = 0;
+
+    service.send({
+      type: 'REENTER'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
   });
 });
 

@@ -1,28 +1,29 @@
-import {
-  createActor,
-  createMachine,
-  ActorRef,
-  ActorRefFrom,
-  EventObject,
-  ActorLogic,
-  Subscribable,
-  Observer,
-  AnyActorRef,
-  waitFor
-} from '../src/index.ts';
-import { sendParent, forwardTo } from '../src/actions.ts';
-import { raise } from '../src/actions/raise';
-import { assign } from '../src/actions/assign';
-import { sendTo } from '../src/actions/send';
 import { EMPTY, interval, of } from 'rxjs';
-import { fromTransition } from '../src/actors/transition.ts';
+import { map } from 'rxjs/operators';
+import { forwardTo, sendParent } from '../src/actions.ts';
+import { assign } from '../src/actions/assign';
+import { raise } from '../src/actions/raise';
+import { sendTo } from '../src/actions/send';
+import { fromCallback } from '../src/actors/callback.ts';
 import {
-  fromObservable,
-  fromEventObservable
+  fromEventObservable,
+  fromObservable
 } from '../src/actors/observable.ts';
 import { fromPromise } from '../src/actors/promise.ts';
-import { fromCallback } from '../src/actors/callback.ts';
-import { map } from 'rxjs/operators';
+import { fromTransition } from '../src/actors/transition.ts';
+import {
+  ActorLogic,
+  ActorRef,
+  ActorRefFrom,
+  AnyActorRef,
+  EventObject,
+  Observer,
+  Subscribable,
+  createActor,
+  createMachine,
+  stop,
+  waitFor
+} from '../src/index.ts';
 
 function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
@@ -887,7 +888,7 @@ describe('actors', () => {
     actor.start();
   });
 
-  it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
+  it('should spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
     let spawnCounter = 0;
 
     interface TestContext {
@@ -1433,5 +1434,247 @@ describe('actors', () => {
 
     // Will be 2 if the event observable is resubscribed
     expect(subscriptionCount).toBe(1);
+  });
+
+  it('should be able to restart a spawned actor within a single macrostep', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'callback-1' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop(({ context }) => {
+                  return context.actorRef;
+                }),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'callback-2' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by a ref', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop(({ context }) => context.actorRef),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by static name', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop('my_name'),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by resolved name', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop(() => 'my_name'),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
   });
 });
