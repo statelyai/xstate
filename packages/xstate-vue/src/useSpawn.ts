@@ -9,7 +9,7 @@ import { onBeforeUnmount } from 'vue';
  * @returns An ActorRef with the specified `logic`
  */
 export function useSpawn<TState, TEvent extends EventObject>(
-  logic: ActorLogic<TEvent, TState>
+  logic: ActorLogic<TState, TEvent>
 ): ActorRef<TEvent, TState> {
   const actorRef = createActor(logic);
 

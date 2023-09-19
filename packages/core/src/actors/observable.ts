@@ -24,12 +24,13 @@ export type ObservablePersistedState<T, TInput = unknown> = Omit<
 >;
 
 export type ObservableActorLogic<T, TInput> = ActorLogic<
-  { type: string; [k: string]: unknown },
   T | undefined,
+  { type: string; [k: string]: unknown },
+  TInput,
+  unknown,
   ObservableInternalState<T, TInput>,
   ObservablePersistedState<T, TInput>,
-  AnyActorSystem,
-  TInput
+  AnyActorSystem
 >;
 
 export type ObservableActorRef<T> = ActorRefFrom<ObservableActorLogic<T, any>>;

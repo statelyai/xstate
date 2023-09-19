@@ -8,10 +8,18 @@ import {
 } from '../types';
 
 export type TransitionActorLogic<
-  TState,
+  TSnapshot,
   TEvent extends EventObject,
   TInput
-> = ActorLogic<TEvent, TState, TState, TState, AnyActorSystem, TInput>;
+> = ActorLogic<
+  TSnapshot,
+  TEvent,
+  TInput,
+  unknown,
+  TSnapshot,
+  TSnapshot,
+  AnyActorSystem
+>;
 
 export type TransitionActorRef<
   TState,

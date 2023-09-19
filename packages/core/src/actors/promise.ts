@@ -30,13 +30,13 @@ export type PromiseActorEvents<T> =
     };
 
 export type PromiseActorLogic<T, TInput = unknown> = ActorLogic<
-  { type: string; [k: string]: unknown },
   T | undefined,
+  { type: string; [k: string]: unknown },
+  TInput, // input
+  T, // output
   PromiseInternalState<T, TInput>, // internal state
   PromiseInternalState<T, TInput>, // persisted state
-  ActorSystem<any>,
-  TInput, // input
-  T // output
+  ActorSystem<any>
 >;
 
 export type PromiseActorRef<T> = ActorRefFrom<PromiseActorLogic<T>>;

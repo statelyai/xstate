@@ -64,7 +64,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   constructor(
-    public logic: ActorLogic<TEvent, TState>,
+    public logic: ActorLogic<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
     this.options = {

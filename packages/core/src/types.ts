@@ -113,24 +113,25 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
 >
   ? TInput
   : T extends ActorLogic<
-      infer _TEvent,
       infer _TSnapshot,
+      infer _TEvent,
+      infer TInput,
+      infer _TOutput,
       infer _TInternalState,
       infer _TPersisted,
-      infer _TSystem,
-      infer TInput
+      infer _TSystem
     >
   ? TInput
   : never;
 
 export type OutputFrom<T extends AnyActorLogic> = T extends ActorLogic<
-  infer _TEvent,
   infer _TSnapshot,
+  infer _TEvent,
+  infer _TInput,
+  infer TOutput,
   infer _TInternalState,
   infer _TPersisted,
-  infer _TSystem,
-  infer _TInput,
-  infer TOutput
+  infer _TSystem
 >
   ? TOutput
   : never;
@@ -1889,8 +1890,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
     : R extends Promise<infer U>
     ? ActorRefFrom<PromiseActorLogic<U>>
     : R extends ActorLogic<
-        infer TEvent,
         infer TSnapshot,
+        infer TEvent,
         infer _,
         infer __,
         infer ___,
@@ -1922,14 +1923,15 @@ export type InterpreterFrom<
 >
   ? Actor<
       ActorLogic<
-        TEvent,
         State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+        TEvent,
+        TInput,
+        TOutput,
         State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
         PersistedMachineState<
           State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
         >,
-        ActorSystem<any>,
-        TInput
+        ActorSystem<any>
       >
     >
   : never;
@@ -2014,17 +2016,25 @@ export type ActorStatusObject<TOutput> =
       error: undefined;
     };
 
+interface ActorInternalState<TSnapshot, TOutput> {
+  status: ActorStatusObject<TOutput>;
+  snapshot: TSnapshot;
+}
+
 export interface ActorLogic<
+  TSnapshot,
   TEvent extends EventObject,
-  TSnapshot = any,
-  TInternalState = TSnapshot,
+  TInput = unknown,
+  TOutput = unknown,
+  TInternalState extends ActorInternalState<
+    TSnapshot,
+    TOutput
+  > = ActorInternalState<TSnapshot, TOutput>,
   /**
    * Serialized internal state used for persistence & restoration
    */
   TPersisted = TInternalState,
-  TSystem extends ActorSystem<any> = ActorSystem<any>,
-  TInput = any,
-  TOutput = unknown
+  TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   config?: unknown;
   transition: (
@@ -2054,13 +2064,13 @@ export interface ActorLogic<
 }
 
 export type AnyActorLogic = ActorLogic<
-  any, // event
   any, // snapshot
+  any, // event
+  any, // input
+  any, // output
   any, // internal state
   any, // persisted state
-  any, // system
-  any, // input
-  any // output
+  any // system
 >;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
@@ -2082,11 +2092,13 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     ? StateFrom<R>
     : R extends ActorLogic<
-        infer _,
         infer TSnapshot,
+        infer _,
         infer __,
         infer ___,
-        infer ____
+        infer ____,
+        infer _____,
+        infer ______
       >
     ? TSnapshot
     : R extends ActorContext<infer _, infer TSnapshot, infer __>
@@ -2096,8 +2108,8 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
 
 export type EventFromLogic<TLogic extends ActorLogic<any, any>> =
   TLogic extends ActorLogic<
-    infer TEvent,
     infer _,
+    infer TEvent,
     infer __,
     infer ___,
     infer ____
@@ -2107,8 +2119,10 @@ export type EventFromLogic<TLogic extends ActorLogic<any, any>> =
 
 export type PersistedStateFrom<TLogic extends ActorLogic<any, any>> =
   TLogic extends ActorLogic<
-    infer _TEvent,
     infer _TSnapshot,
+    infer _TEvent,
+    infer _TInput,
+    infer _TOutput,
     infer _TInternalState,
     infer TPersisted
   >
@@ -2117,8 +2131,10 @@ export type PersistedStateFrom<TLogic extends ActorLogic<any, any>> =
 
 export type InternalStateFrom<TLogic extends ActorLogic<any, any>> =
   TLogic extends ActorLogic<
-    infer _TEvent,
     infer _TSnapshot,
+    infer _TEvent,
+    infer _TInput,
+    infer _TOutput,
     infer TInternalState,
     infer _TPersisted
   >

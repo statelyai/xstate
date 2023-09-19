@@ -23,13 +23,13 @@ export type CallbackActorLogic<
   TEvent extends EventObject,
   TInput = unknown
 > = ActorLogic<
-  TEvent,
   undefined,
+  TEvent,
+  TInput,
+  unknown,
   CallbackInternalState<TEvent, TInput>,
   Pick<CallbackInternalState<TEvent, TInput>, 'input' | 'canceled'>,
-  ActorSystem<any>,
-  TInput,
-  any
+  ActorSystem<any>
 >;
 
 export type CallbackActorRef<

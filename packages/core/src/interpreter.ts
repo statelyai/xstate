@@ -12,6 +12,7 @@ import {
 } from './typegenTypes.ts';
 import type {
   ActorLogic,
+  InternalStateFrom,
   ActorContext,
   ActorSystem,
   AnyActorLogic,
@@ -72,11 +73,6 @@ const defaultOptions = {
   logger: console.log.bind(console),
   devTools: false
 };
-
-type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
-  TLogic extends ActorLogic<infer _, infer __, infer TInternalState>
-    ? TInternalState
-    : never;
 
 export class Actor<
   TLogic extends AnyActorLogic,

@@ -25,7 +25,15 @@ export function getPathsFromEvents<
   TPersisted = TInternalState,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<TEvent, TSnapshot, TInternalState, TPersisted, TSystem>,
+  logic: ActorLogic<
+    TSnapshot,
+    TEvent,
+    unknown,
+    unknown,
+    TInternalState,
+    TPersisted,
+    TSystem
+  >,
   events: TEvent[],
   options?: TraversalOptions<TInternalState, TEvent>
 ): Array<StatePath<TInternalState, TEvent>> {

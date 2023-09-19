@@ -73,15 +73,15 @@ export class StateMachine<
   >
 > implements
     ActorLogic<
-      TEvent,
       State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+      TEvent,
+      TInput,
+      TOutput,
       State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
       PersistedMachineState<
         State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
       >,
-      TODO,
-      TInput,
-      TOutput
+      TODO
     >
 {
   /**

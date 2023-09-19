@@ -2203,7 +2203,7 @@ describe('invoke', () => {
 
   describe('with logic', () => {
     it('should work with actor logic', (done) => {
-      const countLogic: ActorLogic<EventObject, number> = {
+      const countLogic: ActorLogic<number, EventObject> = {
         transition: (count, event) => {
           if (event.type === 'INC') {
             return count + 1;
@@ -2240,7 +2240,7 @@ describe('invoke', () => {
     });
 
     it('logic should have reference to the parent', (done) => {
-      const pongLogic: ActorLogic<EventObject, undefined> = {
+      const pongLogic: ActorLogic<undefined, EventObject> = {
         transition: (_, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });

@@ -1166,7 +1166,7 @@ describe('actors', () => {
     });
 
     it('actor logic should have reference to the parent', (done) => {
-      const pongLogic: ActorLogic<EventObject, undefined> = {
+      const pongLogic: ActorLogic<undefined, EventObject> = {
         transition: (_state, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
