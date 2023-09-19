@@ -16,7 +16,6 @@ export function createSystem<T extends ActorSystemInfo>(
   const observers = new Set<Observer<ResolvedInspectionEvent>>();
 
   const system: ActorSystem<T> = {
-    root: rootActor,
     _bookId: () => `x:${systemCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
@@ -53,7 +52,7 @@ export function createSystem<T extends ActorSystemInfo>(
         id: Math.random().toString(),
         createdAt: new Date().toString(),
         ...event,
-        rootId: system.root.sessionId
+        rootId: rootActor.sessionId
       };
       observers.forEach((observer) => observer.next?.(resolvedInspectionEvent));
     },

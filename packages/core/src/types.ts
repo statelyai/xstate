@@ -2220,7 +2220,6 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     source: AnyActorRef | undefined,
     target: AnyActorRef | undefined
   ) => void;
-  root: AnyActorRef;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
