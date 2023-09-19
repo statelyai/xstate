@@ -3237,9 +3237,7 @@ describe('invoke', () => {
           invoke: {
             src: fromCallback(() => {
               const localId = ++invokeCounter;
-
               actual.push(`start ${localId}`);
-
               return () => {
                 actual.push(`stop ${localId}`);
               };
@@ -3255,15 +3253,15 @@ describe('invoke', () => {
       }
     });
 
-    const actorRef = createActor(machine).start();
+    const service = createActor(machine).start();
 
-    actorRef.send({
+    service.send({
       type: 'ACTIVATE'
     });
 
     actual.length = 0;
 
-    actorRef.send({
+    service.send({
       type: 'REENTER'
     });
 
