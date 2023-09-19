@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://xstate.js.org">
+  <a href="https://stately.ai/docs">
   <br />
 
   <picture>
@@ -27,7 +27,7 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 ---
 
-📖 [Read the documentation](https://stately.ai/docs/xstate)
+📖 [Read the documentation](https://stately.ai/docs/xstate-v5)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
@@ -40,13 +40,13 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 ## Packages
 
 - 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
-- [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
-- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
-- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
-- [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid) - Solid hooks and utilities for using XState in Solid applications
-- [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
-- [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - Inspection utilities for XState
+- [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/next/packages/xstate-graph) - Graph traversal utilities for XState
+- [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/next/packages/xstate-react) - React hooks and utilities for using XState in React applications
+- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/next/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
+- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/next/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
+- [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/next/packages/xstate-solid) - Solid hooks and utilities for using XState in Solid applications
+- [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/next/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
+- [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/next/packages/xstate-inspect) - Inspection utilities for XState
 
 ## Templates
 
