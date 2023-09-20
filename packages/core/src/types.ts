@@ -1357,8 +1357,7 @@ export type MachineConfig<
   TDelay extends string = string,
   TTag extends string = string,
   TInput = any,
-  TOutput = unknown,
-  TTypesMeta = TypegenDisabled
+  TOutput = unknown
 > = RootStateNodeConfig<
   TContext,
   TEvent,
@@ -1377,18 +1376,9 @@ export type MachineConfig<
    */
   version?: string;
   context?: InitialContext<TContext, TActor, TInput>;
-  types?: MachineTypes<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TTypesMeta
-  >;
+  // we need to avoid failing the common property check for empty machine configs or ones that only contain `types` property
+  // without it whe inferred config type (like `{}` or `{ types: {} }`) fails the assignability check to its constraint
+  types?: unknown;
 } & ConditionalRequired<
     { context?: unknown },
     MachineContext extends TContext ? false : true

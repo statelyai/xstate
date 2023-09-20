@@ -128,8 +128,7 @@ export class StateMachine<
       any,
       any,
       any,
-      TOutput,
-      any
+      TOutput
     >,
     implementations?: MachineImplementationsSimplified<TContext, TEvent>
   ) {

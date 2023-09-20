@@ -2,16 +2,54 @@ import { StateMachine } from './StateMachine.ts';
 import { ResolveTypegenMeta, TypegenConstraint } from './typegenTypes.ts';
 import {
   AnyEventObject,
+  EventObject,
   InternalMachineImplementations,
   MachineConfig,
   MachineContext,
+  MachineTypes,
   NonReducibleUnknown,
   ParameterizedObject,
   Prop,
   ProvidedActor
 } from './types.ts';
 
+interface InferenceSource<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TTypesMeta extends TypegenConstraint
+> {
+  types?: MachineTypes<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TTypesMeta
+  >;
+}
+
 export function createMachine<
+  TContext extends MachineContext,
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TTypesMeta extends TypegenConstraint,
   const TConfig extends MachineConfig<
     TContext,
     TEvent,
@@ -22,19 +60,20 @@ export function createMachine<
     TTag,
     TInput,
     TOutput
-  >,
-  TContext extends MachineContext = TConfig extends { types: { context: MachineContext} } ? TConfig["types"]["context"] : MachineContext,
-  TEvent extends AnyEventObject = TConfig extends { types: { events: AnyEventObject} } ? TConfig["types"]["events"] : AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActor extends ProvidedActor  = TConfig extends { types: { actors: ProvidedActor} } ? TConfig["types"]["actors"] : ProvidedActor,
-  TAction extends ParameterizedObject  = TConfig extends { types: { actions: ParameterizedObject} } ? TConfig["types"]["actions"] : ParameterizedObject,
-  TGuard extends ParameterizedObject= TConfig extends { types: { guards: ParameterizedObject} } ? TConfig["types"]["guards"] : ParameterizedObject,
-  TDelay extends string= TConfig extends { types: { delays: string} } ? TConfig["types"]["delays"] : string,
-  TTag extends string= TConfig extends { types: { tags: string} } ? TConfig["types"]["tags"] : string,
-  TInput = TConfig extends { types: { input: unknown} } ? TConfig["types"]["input"] : unknown,
-  TOutput extends NonReducibleUnknown = TConfig extends { types: { output: NonReducibleUnknown} } ? TConfig["types"]["output"] : NonReducibleUnknown,
-  TTypesMeta extends TypegenConstraint = TConfig extends { types: { typegen: TypegenConstraint} } ? TConfig["types"]["typegen"] : TypegenConstraint,
+  >
 >(
-  config:
+  config: InferenceSource<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TTag,
+    TInput,
+    TOutput,
+    TTypesMeta
+  > &
     TConfig,
   implementations?: InternalMachineImplementations<
     TContext,
