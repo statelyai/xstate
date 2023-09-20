@@ -76,7 +76,7 @@
     "lint-staged": "^8.2.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
     "patch-package": "^6.5.1",
-    "prettier": "^2.8.3",
+    "prettier": "^3.0.3",
     "spawn-command": "0.0.2-1",
     "tslib": "^2.3.1",
     "tslint": "^5.11.0",
