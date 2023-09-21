@@ -38,10 +38,11 @@ describe('rehydration', () => {
       const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
-      const restoredState = machine.createState(JSON.parse(persistedState));
 
       actual.length = 0;
-      createActor(machine, { state: restoredState }).start().stop();
+      createActor(machine, { state: JSON.parse(persistedState) })
+        .start()
+        .stop();
 
       expect(actual).toEqual(['a', 'root']);
     });
@@ -112,9 +113,14 @@ describe('rehydration', () => {
         }
       });
 
-      const activeState = machine.resolveStateValue('active');
-
-      createActor(machine, { state: activeState }).start().stop();
+      createActor(machine, {
+        state: {
+          status: { status: 'active' },
+          snapshot: machine.resolveStateValue('active')
+        }
+      })
+        .start()
+        .stop();
 
       expect(actual).toEqual(['active', 'root']);
     });
