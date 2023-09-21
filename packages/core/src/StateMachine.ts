@@ -267,6 +267,10 @@ export class StateMachine<
 
     const { state: nextState } = macrostep(state.snapshot, event, actorCtx);
 
+    if (state.snapshot === nextState) {
+      return state;
+    }
+
     return {
       status: nextState.done
         ? { status: 'done', output: nextState.output }
@@ -373,7 +377,7 @@ export class StateMachine<
 
     return {
       status: macroState.done
-        ? { status: 'done', output: nextState.output }
+        ? { status: 'done', output: macroState.output }
         : { status: 'active' },
       snapshot: macroState
     };
