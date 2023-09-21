@@ -108,14 +108,14 @@ export function fromPromise<T, TInput>(
       resolvedPromise.then(
         (response) => {
           // TODO: remove this condition once dead letter queue lands
-          if ((self as any)._state.status !== 'active') {
+          if ((self as any)._state.status.status !== 'active') {
             return;
           }
           self.send({ type: resolveEventType, data: response });
         },
         (errorData) => {
           // TODO: remove this condition once dead letter queue lands
-          if ((self as any)._state.status !== 'active') {
+          if ((self as any)._state.status.status !== 'active') {
             return;
           }
           self.send({ type: rejectEventType, data: errorData });

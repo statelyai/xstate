@@ -267,7 +267,9 @@ export class StateMachine<
     const { state: nextState } = macrostep(state.snapshot, event, actorCtx);
 
     return {
-      status: state.status, // TODO: handle done state
+      status: nextState.done
+        ? { status: 'done', output: nextState.output }
+        : state.status,
       snapshot: nextState
     };
   }

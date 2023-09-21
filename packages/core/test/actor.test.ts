@@ -1074,6 +1074,7 @@ describe('actors', () => {
       });
       countService.start();
 
+      debugger;
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
     });

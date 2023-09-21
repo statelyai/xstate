@@ -33,30 +33,30 @@ export type TransitionActorRef<
  * A transition function is a function that takes the current state and an event and returns the next state.
  *
  * @param transition The transition function that returns the next state given the current state and event.
- * @param initialState The initial state of the transition function.
+ * @param initialSnapshot The initial state of the transition function.
  * @returns Actor logic
  */
 export function fromTransition<
-  TState,
+  TSnapshot,
   TEvent extends EventObject,
   TSystem extends ActorSystem<any>,
   TInput
 >(
   transition: (
-    state: TState,
+    state: TSnapshot,
     event: TEvent,
-    actorContext: ActorContext<TEvent, TState, TSystem>
-  ) => TState,
-  initialState:
-    | TState
+    actorContext: ActorContext<TEvent, TSnapshot, TSystem>
+  ) => TSnapshot,
+  initialSnapshot:
+    | TSnapshot
     | (({
         input,
         self
       }: {
         input: TInput;
-        self: TransitionActorRef<TState, TEvent>;
-      }) => TState) // TODO: type
-): TransitionActorLogic<TState, TEvent, TInput> {
+        self: TransitionActorRef<TSnapshot, TEvent>;
+      }) => TSnapshot) // TODO: type
+): TransitionActorLogic<TSnapshot, TEvent, TInput> {
   return {
     config: transition,
     transition: (state, event, actorContext) => {
@@ -70,9 +70,13 @@ export function fromTransition<
       };
     },
     getInitialState: (_, input) => {
-      return typeof initialState === 'function'
-        ? (initialState as any)({ input })
-        : initialState;
+      return {
+        status: { status: 'active' },
+        snapshot:
+          typeof initialSnapshot === 'function'
+            ? (initialSnapshot as any)({ input })
+            : initialSnapshot
+      };
     },
     getPersistedState: (state) => state.snapshot,
     restoreState: (snapshot) => {

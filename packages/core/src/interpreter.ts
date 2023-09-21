@@ -192,7 +192,7 @@ export class Actor<
   private update(state: InternalStateFrom<TLogic>): void {
     // Update state
     this._state = state;
-    const snapshot = this.getSnapshot();
+    const snapshot = state.snapshot;
 
     // Execute deferred effects
     let deferredFn: (typeof this._deferred)[number] | undefined;
