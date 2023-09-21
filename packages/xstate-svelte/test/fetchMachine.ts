@@ -1,4 +1,4 @@
-import { createMachine, assign, ActorLogicFrom } from 'xstate';
+import { createMachine, assign, type ActorLogicFrom } from 'xstate';
 
 const context = {
   data: undefined as string | undefined

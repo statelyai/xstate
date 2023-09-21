@@ -24,14 +24,6 @@ npm i xstate @xstate/vue
 
 By using the global variable `XStateVue`
 
-or
-
-```html
-<script src="https://unpkg.com/@xstate/vue/dist/xstate-vue.fsm.min.js"></script>
-```
-
-By using the global variable `XStateVueFSM`
-
 2. Import the `useMachine` composition function:
 
 ```vue
@@ -228,24 +220,6 @@ export default {
   }
 };
 ```
-
-### `useMachine(machine)` with `@xstate/fsm`
-
-A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
-
-This special `useMachine` hook is imported from `@xstate/vue/lib/fsm`
-
-**Arguments**
-
-- `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
-
-**Returns** an object `{state, send, service}`:
-
-- `state` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
-- `send` - A function that sends events to the running service.
-- `service` - The created `@xstate/fsm` service.
-
-**Example** (TODO)
 
 ## Configuring Machines
 

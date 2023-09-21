@@ -1,22 +1,66 @@
-import { error } from './actions.ts';
+import { createErrorActorEvent } from './eventUtils.ts';
 import { ActorStatus, createActor } from './interpreter.ts';
 import {
+  ActorRefFrom,
   AnyActorContext,
+  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   AnyState,
-  Spawner,
+  InputFrom,
+  IsLiteralString,
+  ProvidedActor,
   TODO
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
+
+type SpawnOptions<
+  TActor extends ProvidedActor,
+  TSrc extends TActor['src']
+> = TActor extends {
+  src: TSrc;
+}
+  ? 'id' extends keyof TActor
+    ? [
+        options: {
+          id: TActor['id'];
+          systemId?: string;
+          input?: InputFrom<TActor['logic']>;
+        }
+      ]
+    : [
+        options?: {
+          id?: string;
+          systemId?: string;
+          input?: InputFrom<TActor['logic']>;
+        }
+      ]
+  : never;
+
+export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
+  TActor['src']
+> extends true
+  ? <TSrc extends TActor['src']>(
+      logic: TSrc,
+      ...[options = {} as any]: SpawnOptions<TActor, TSrc>
+    ) => ActorRefFrom<(TActor & { src: TSrc })['logic']>
+  : // TODO: do not accept machines without all implementations
+    <TLogic extends AnyActorLogic | string>(
+      src: TLogic,
+      options?: {
+        id?: string;
+        systemId?: string;
+        input?: unknown;
+      }
+    ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
 export function createSpawner(
   actorContext: AnyActorContext,
   { machine, context }: AnyState,
   event: AnyEventObject,
   spawnedChildren: Record<string, AnyActorRef>
-): Spawner {
-  const spawn: Spawner = (src, options = {}) => {
+): Spawner<any> {
+  const spawn: Spawner<any> = (src, options = {}) => {
     const { systemId } = options;
     if (typeof src === 'string') {
       const referenced = resolveReferencedActor(
@@ -102,7 +146,7 @@ export function createSpawner(
       try {
         actorRef.start?.();
       } catch (err) {
-        actorContext.self.send(error(actorRef.id, err));
+        actorContext.self.send(createErrorActorEvent(actorRef.id, err));
         return;
       }
     });

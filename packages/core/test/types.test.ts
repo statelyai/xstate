@@ -2,7 +2,7 @@ import { from } from 'rxjs';
 import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
-import { fromPromise } from '../src/actors';
+import { fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
   assign,
@@ -14,7 +14,11 @@ import {
   pure,
   choose,
   not,
-  stateIn
+  stateIn,
+  sendTo,
+  ProvidedActor,
+  Action,
+  ParameterizedObject
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -379,7 +383,7 @@ it('should not use actions as possible inference sites', () => {
 it('should work with generic context', () => {
   function createMachineWithExtras<TContext extends MachineContext>(
     context: TContext
-  ): StateMachine<TContext, any, any, any, any, any, any, any> {
+  ): StateMachine<TContext, any, any, any, any, any, any, any, any> {
     return createMachine({ context });
   }
 
@@ -397,6 +401,60 @@ it('should not widen literal types defined in `schema.context` based on `config.
       // @ts-expect-error
       literalTest: 'anything'
     }
+  });
+});
+
+describe('states', () => {
+  it('should accept a state handling subset of events as part of the whole config handling superset of those events', () => {
+    const italicState = {
+      on: {
+        TOGGLE_BOLD: {
+          actions: () => {}
+        }
+      }
+    };
+
+    const boldState = {
+      on: {
+        TOGGLE_BOLD: {
+          actions: () => {}
+        }
+      }
+    };
+
+    createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
+      },
+      type: 'parallel',
+      states: {
+        italic: italicState,
+        bold: boldState
+      }
+    });
+  });
+
+  // technically it wouldn't be a big problem accepting this, such transitions would just never be selected
+  // it's not worth complicating our types to support this though unless a strong argument is made in favor for this
+  it('should not accept a state handling an event type outside of the events accepted by the machine', () => {
+    const underlineState = {
+      on: {
+        TOGGLE_UNDERLINE: {
+          actions: () => {}
+        }
+      }
+    };
+
+    createMachine({
+      types: {} as {
+        events: { type: 'TOGGLE_ITALIC' } | { type: 'TOGGLE_BOLD' };
+      },
+      type: 'parallel',
+      states: {
+        // @ts-expect-error
+        underline: underlineState
+      }
+    });
   });
 });
 
@@ -453,7 +511,20 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, TEvent, any, any, any, any, any, any>) {}
+    >(
+      _machine: StateMachine<
+        TContext,
+        TEvent,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      >
+    ) {}
 
     acceptMachine(toggleMachine);
   });
@@ -511,6 +582,128 @@ describe('events', () => {
             ((_accept: 'is not any') => {})(event);
           }
         }
+      }
+    });
+  });
+
+  it('should infer inline function parameter with a partial transition descriptor matching multiple events with the matching count of segments', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        'mouse.click.*': {
+          actions: ({ event }) => {
+            ((_accept: 'mouse.click.up' | 'mouse.click.down') => {})(
+              event.type
+            );
+            ((_accept: 'up' | 'down') => {})(event.direction);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should infer inline function parameter with a partial transition descriptor matching multiple events with the same count of segments or more', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        'mouse.*': {
+          actions: ({ event }) => {
+            ((
+              _accept: 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+            ) => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'mouse.doubleClick': {}
+      }
+    });
+  });
+
+  it('should not allow a transition using an event type matching the possible prefix but one that is outside of the defines ones', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'mouse.doubleClick': {}
+      }
+    });
+  });
+
+  it(`should infer inline function parameter only using a direct match when the transition descriptor doesn't has a trailing wildcard`, () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        mouse: {
+          actions: ({ event }) => {
+            ((_accept: 'mouse') => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+
+  it('should not allow a transition using a partial descriptor related to an event type that is only defined exxactly', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | { type: 'mouse.click.up'; direction: 'up' }
+          | { type: 'mouse.click.down'; direction: 'down' }
+          | { type: 'mouse.move' }
+          | { type: 'mouse' }
+          | { type: 'keypress' };
+      },
+      on: {
+        // @ts-expect-error
+        'keypress.*': {}
       }
     });
   });
@@ -589,16 +782,347 @@ describe('spawn', () => {
     const createChild = () => createMachine({});
 
     function createParent(_deps: {
-      spawnChild: (spawn: Spawner) => ActorRefFrom<typeof createChild>;
+      spawnChild: (
+        spawn: Spawner<ProvidedActor>
+      ) => ActorRefFrom<typeof createChild>;
     }) {}
 
     createParent({
-      spawnChild: (spawn: Spawner) => spawn(createChild())
+      spawnChild: (spawn) => spawn(createChild())
+    });
+  });
+
+  it('should reject actor outside of the defined ones at usage site', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        // @ts-expect-error
+        spawn('other');
+        return {};
+      })
+    });
+  });
+
+  it('should accept a defined actor at usage site', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child');
+        return {};
+      })
+    });
+  });
+
+  it('should allow valid configured actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', { id: 'ok1' });
+        return {};
+      })
+    });
+  });
+
+  it('should disallow invalid actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          // @ts-expect-error
+          id: 'child'
+        });
+        return {};
+      })
+    });
+  });
+
+  it('should require id to be specified when it was configured', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        // @ts-expect-error
+        spawn('child');
+        return {};
+      })
+    });
+  });
+
+  it(`shouldn't require id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child');
+        return {};
+      })
+    });
+  });
+
+  it(`should allow id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', { id: 'someId' });
+        return {};
+      })
+    });
+  });
+
+  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        // @ts-expect-error
+        spawn(child2);
+        return {};
+      })
+    });
+  });
+
+  it(`should reject static wrong input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          // @ts-expect-error
+          input: 'hello'
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should allow static correct input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          input: 42
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should allow static input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          input: 42
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should reject static input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          // @ts-expect-error
+          input: Math.random() > 0.5 ? 'string' : 42
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should reject an attempt to provide dynamic input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child', {
+          // @ts-expect-error
+          input: () => 42
+        });
+        return {};
+      })
+    });
+  });
+
+  it(`should return a concrete actor ref type based on actor logic argument, one that is assignable to a location expecting that concrete actor ref type`, () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          counter: number;
+        };
+      },
+      context: {
+        counter: 100
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        context: {
+          myChild?: ActorRefFrom<typeof child>;
+        };
+      },
+      context: {},
+      entry: assign({
+        myChild: ({ spawn }) => {
+          return spawn(child);
+        }
+      })
+    });
+  });
+
+  it(`should return a concrete actor ref type based on actor logic argument, one that isn't assignable to a location expecting a different concrete actor ref type`, () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          counter: number;
+        };
+      },
+      context: {
+        counter: 100
+      }
+    });
+
+    const otherChild = createMachine({
+      types: {} as {
+        context: {
+          title: string;
+        };
+      },
+      context: {
+        title: 'The Answer'
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        context: {
+          myChild?: ActorRefFrom<typeof child>;
+        };
+      },
+      context: {},
+      entry: assign({
+        // @ts-expect-error
+        myChild: ({ spawn }) => {
+          return spawn(otherChild);
+        }
+      })
     });
   });
 });
 
-describe('actor types', () => {
+describe('invoke', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
@@ -632,6 +1156,327 @@ describe('actor types', () => {
     });
   });
 
+  it('should allow valid configured actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        id: 'ok1',
+        src: 'child'
+      }
+    });
+  });
+
+  it('should disallow invalid actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        id: 'child',
+        src: 'child'
+      }
+    });
+  });
+
+  it('should require id to be specified when it was configured', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it(`shouldn't require id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it(`should allow id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        id: 'someId',
+        src: 'child'
+      }
+    });
+  });
+
+  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: child2
+      }
+    });
+  });
+
+  it(`should reject static wrong input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        input: 'hello'
+      }
+    });
+  });
+
+  it(`should allow static correct input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child',
+        input: 42
+      }
+    });
+  });
+
+  it(`should allow static input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child',
+        input: 42
+      }
+    });
+  });
+
+  it(`should reject static input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        input: Math.random() > 0.5 ? 'string' : 42
+      }
+    });
+  });
+
+  it(`should reject dynamic wrong input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        input: () => 'hello'
+      }
+    });
+  });
+
+  it(`should allow dynamic correct input in the provided implementations`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child',
+        input: () => 42
+      }
+    });
+  });
+
+  it(`should reject dynamic input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        input: () => (Math.random() > 0.5 ? 42 : 'hello')
+      }
+    });
+  });
+
+  it(`should allow dynamic input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child',
+        input: () => 'hello'
+      }
+    });
+  });
+
+  it('onDone should work with a service that uses strings for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: ['.a', '.b']
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('onDone should work with a service that uses transition objects for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: [{ target: '.a' }, { target: '.b' }]
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('onDone should work with a service that uses a string for one target and a transition object for another', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: [{ target: '.a' }, '.b']
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+});
+
+describe('actor implementations', () => {
   it('should reject actor outside of the defined ones in provided implementations', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
@@ -1226,7 +2071,9 @@ describe('actor types', () => {
       }
     );
   });
+});
 
+describe('state.children', () => {
   it('should return the correct child type on the available snapshot when the ID for the actor was configured', () => {
     const child = createMachine({
       types: {} as {
@@ -1274,121 +2121,6 @@ describe('actor types', () => {
       // @ts-expect-error
       childSnapshot.context.foo
     );
-  });
-
-  it('should allow valid configured actor id', () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      invoke: {
-        id: 'ok1',
-        src: 'child'
-      }
-    });
-  });
-
-  it('should disallow invalid actor id', () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      // @ts-expect-error
-      invoke: {
-        id: 'child',
-        src: 'child'
-      }
-    });
-  });
-
-  it('should require id to be specified when it was configured', () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          id: 'ok1' | 'ok2';
-          logic: typeof child;
-        };
-      },
-      // @ts-expect-error
-      invoke: {
-        src: 'child'
-      }
-    });
-  });
-
-  it(`shouldn't require id to be specified when it was not configured`, () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      invoke: {
-        src: 'child'
-      }
-    });
-  });
-
-  it(`should allow id to be specified when it was not configured`, () => {
-    const child = createMachine({});
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child;
-        };
-      },
-      invoke: {
-        id: 'someId',
-        src: 'child'
-      }
-    });
-  });
-
-  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
-    const child1 = createMachine({
-      context: {
-        counter: 0
-      }
-    });
-
-    const child2 = createMachine({
-      context: {
-        answer: ''
-      }
-    });
-
-    createMachine({
-      types: {} as {
-        actors: {
-          src: 'child';
-          logic: typeof child1;
-        };
-      },
-      // @ts-expect-error
-      invoke: {
-        src: child2
-      }
-    });
   });
 
   it('specific children with id should be optional on the snapshot', () => {
@@ -1513,56 +2245,6 @@ describe('actor types', () => {
         | ActorRefFrom<typeof child2>
         | undefined
     ) => {})(someActor);
-  });
-});
-
-describe('invoke onDone targets', () => {
-  it('should work with a service that uses strings for both targets', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: ['.a', '.b']
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
-  });
-
-  it('should work with a service that uses TransitionConfigs for both targets', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: '.a' }, { target: '.b' }]
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
-  });
-
-  it('should work with a service that uses a string for one target and a TransitionConfig for another', () => {
-    const machine = createMachine({
-      invoke: {
-        src: fromPromise(() => new Promise((resolve) => resolve(1))),
-        onDone: [{ target: '.a' }, '.b']
-      },
-      initial: 'a',
-      states: {
-        a: {},
-        b: {}
-      }
-    });
-    noop(machine);
-    expect(true).toBeTruthy();
   });
 });
 
@@ -1852,9 +2534,9 @@ describe('actions', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // @ts-expect-error
       entry: {
         type: 'greet',
+        // @ts-expect-error
         params: {}
       }
     });
@@ -2003,10 +2685,88 @@ describe('actions', () => {
       }
     );
   });
+
+  it('should allow dynamic params that return correct params type', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: {
+        type: 'greet',
+        params: () => ({
+          name: 'Anders'
+        })
+      }
+    });
+  });
+
+  it('should disallow dynamic params that return invalid params type', () => {
+    createMachine({
+      types: {} as {
+        actions:
+          | { type: 'greet'; params: { surname: string } }
+          | { type: 'poke' };
+      },
+      entry: {
+        type: 'greet',
+        // @ts-expect-error
+        params: () => ({
+          surname: 100
+        })
+      }
+    });
+  });
+
+  it('should provide context type to dynamic params', () => {
+    createMachine({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      context: { count: 1 },
+      entry: {
+        type: 'greet',
+        params: ({ context }) => {
+          ((_accept: number) => {})(context.count);
+          // @ts-expect-error
+          ((_accept: 'not any') => {})(context.count);
+          return {
+            name: 'Anders'
+          };
+        }
+      }
+    });
+  });
+
+  it('should provide narrowed down event type to dynamic params', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      on: {
+        FOO: {
+          actions: {
+            type: 'greet',
+            params: ({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: 'not any') => {})(event.type);
+              return {
+                name: 'Anders'
+              };
+            }
+          }
+        }
+      }
+    });
+  });
 });
 
 describe('choose', () => {
-  it('should be able to use a defined parametrized action', () => {
+  it('should be able to use a defined parametrized action with required params', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
@@ -2016,10 +2776,30 @@ describe('choose', () => {
           guard: () => true,
           actions: [
             {
-              type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
+              type: 'greet',
               params: {
                 name: 'Anders'
               }
+            }
+          ]
+        }
+      ])
+    });
+  });
+
+  it('should not allow to use a defined parametrized action without all of its required params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet',
+              // @ts-expect-error
+              params: {}
             }
           ]
         }
@@ -2044,6 +2824,36 @@ describe('choose', () => {
     });
   });
 
+  it('should be possible to use a parametrized action with no required params using a string', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: 'poke'
+        }
+      ])
+    });
+  });
+
+  it('should be possible to use a parametrized action with no required params using an object', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: {
+            type: 'poke'
+          }
+        }
+      ])
+    });
+  });
+
   it('should be possible to use multiple different defined parametrized actions', () => {
     createMachine({
       types: {} as {
@@ -2054,13 +2864,13 @@ describe('choose', () => {
           guard: () => true,
           actions: [
             {
-              type: 'greet' as const,
+              type: 'greet',
               params: {
                 name: 'Anders'
               }
             },
             {
-              type: 'poke' as const
+              type: 'poke'
             }
           ]
         }
@@ -2096,6 +2906,119 @@ describe('choose', () => {
           foo: choose([
             {
               actions: () => {}
+            }
+          ])
+        }
+      }
+    );
+  });
+
+  it('should allow a defined parametrized guard to be used as its guard', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: choose([
+            {
+              actions: () => {},
+              guard: 'plainGuard'
+            }
+          ])
+        }
+      }
+    );
+  });
+
+  it('should not allow a guard outside of the defined ones', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: choose([
+            {
+              actions: () => {},
+              // @ts-expect-error
+              guard: 'other' as const
+            }
+          ])
+        }
+      }
+    );
+  });
+
+  it('should type guard param as undefined in inline custom guard when choose is used in the config', () => {
+    createMachine({
+      types: {
+        guards: {} as
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' }
+      },
+      entry: choose([
+        {
+          actions: 'someAction',
+          guard: ({ guard }) => {
+            ((_accept: undefined) => {})(guard);
+            // @ts-expect-error
+            ((_accept: 'not any') => {})(guard);
+            return true;
+          }
+        }
+      ])
+    });
+  });
+
+  it('should type guard param as undefined in inline custom guard when choose is used in the implementations', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          someGuard: choose([
+            {
+              actions: 'someAction',
+              guard: ({ guard }) => {
+                ((_accept: undefined) => {})(guard);
+                // @ts-expect-error
+                ((_accept: 'not any') => {})(guard);
+                return true;
+              }
             }
           ])
         }
@@ -2180,6 +3103,28 @@ describe('pure', () => {
       },
       entry: pure(() => {
         return [() => {}];
+      })
+    });
+  });
+
+  it('should be able to directly return a defined action without required params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return 'poke' as const;
+      })
+    });
+  });
+
+  it('should be able to return a defined action without required params in an array using a string', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: pure(() => {
+        return ['poke' as const];
       })
     });
   });
@@ -2721,5 +3666,567 @@ describe('guards', () => {
         }
       }
     );
+  });
+
+  it('should allow dynamic params that return correct params type', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        FOO: {
+          guard: {
+            type: 'isGreaterThan',
+            params: () => ({ count: 100 })
+          }
+        }
+      }
+    });
+  });
+
+  it('should disallow dynamic params that return invalid params type', () => {
+    createMachine({
+      types: {} as {
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        // @ts-expect-error
+        FOO: {
+          guard: {
+            type: 'isGreaterThan',
+            params: () => ({ count: 'bazinga' })
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide context type to dynamic params', () => {
+    createMachine({
+      types: {} as {
+        context: {
+          count: number;
+        };
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      context: { count: 1 },
+      on: {
+        FOO: {
+          guard: {
+            type: 'isGreaterThan',
+            params: ({ context }) => {
+              ((_accept: number) => {})(context.count);
+              // @ts-expect-error
+              ((_accept: 'not any') => {})(context.count);
+              return {
+                count: context.count
+              };
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide narrowed down event type to dynamic params', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+        guards:
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' };
+      },
+      on: {
+        FOO: {
+          guard: {
+            type: 'isGreaterThan',
+            params: ({ event }) => {
+              ((_accept: 'FOO') => {})(event.type);
+              // @ts-expect-error
+              ((_accept: 'not any') => {})(event.type);
+              return {
+                count: 100
+              };
+            }
+          }
+        }
+      }
+    });
+  });
+});
+
+describe('delays', () => {
+  it('should accept a plain number as key of an after transitions object when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      after: {
+        100: {}
+      }
+    });
+  });
+
+  it('should accept a defined delay type as key of an after transitions object when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      after: {
+        'one second': {}
+      }
+    });
+  });
+
+  it(`should reject delay as key of an after transitions object if it's outside of the defined ones`, () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      after: {
+        // @ts-expect-error
+        'unknown delay': {}
+      }
+    });
+  });
+
+  it('should accept a plain number as delay in `raise` when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: raise({ type: 'FOO' }, { delay: 100 })
+    });
+  });
+
+  it('should accept a defined delay in `raise`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: raise({ type: 'FOO' }, { delay: 'one minute' })
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `raise`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+
+      entry: raise(
+        { type: 'FOO' },
+        {
+          // @ts-expect-error
+          delay: 'unknown delay'
+        }
+      )
+    });
+  });
+
+  it('should accept a plain number as delay in `sendTo` when delays are declared', () => {
+    const otherActor = createActor(createMachine({}));
+
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: sendTo(otherActor, { type: 'FOO' }, { delay: 100 })
+    });
+  });
+
+  it('should accept a defined delay in `sendTo`', () => {
+    const otherActor = createActor(createMachine({}));
+
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: sendTo(otherActor, { type: 'FOO' }, { delay: 'one minute' })
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `sendTo`', () => {
+    const otherActor = createActor(createMachine({}));
+
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+
+      entry: sendTo(
+        otherActor,
+        { type: 'FOO' },
+        {
+          // @ts-expect-error
+          delay: 'unknown delay'
+        }
+      )
+    });
+  });
+
+  it('should accept a plain number as delay in `raise` in `choose` when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise({ type: 'FOO' }, { delay: 100 })
+        }
+      ])
+    });
+  });
+
+  it('should accept a defined delay in `raise` in `choose`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise({ type: 'FOO' }, { delay: 'one minute' })
+        }
+      ])
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `raise` in `choose`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise(
+            { type: 'FOO' },
+            {
+              // @ts-expect-error
+              delay: 'unknown delay'
+            }
+          )
+        }
+      ])
+    });
+  });
+
+  it('should accept a plain number as delay in `raise` in `pure` when delays are declared', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: pure(() => {
+        return raise({ type: 'FOO' }, { delay: 100 });
+      })
+    });
+  });
+
+  it('should accept a defined delay in `raise` in `pure`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: pure(() => {
+        return raise({ type: 'FOO' }, { delay: 'one minute' });
+      })
+    });
+  });
+
+  it('should reject a delay outside of the defined ones in `raise` in `pure`', () => {
+    createMachine({
+      types: {} as {
+        delays: 'one second' | 'one minute';
+      },
+      entry: pure(() => {
+        return raise(
+          { type: 'FOO' },
+          {
+            // @ts-expect-error
+            delay: 'unknown delay'
+          }
+        );
+      })
+    });
+  });
+
+  it('should accept any delay string when no explicit delays are defined', () => {
+    createMachine({
+      after: {
+        just_any_delay: {}
+      }
+    });
+  });
+});
+
+describe('tags', () => {
+  it(`should allow a defined tag when it's set using a string`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      tags: 'pending'
+    });
+  });
+
+  it(`should allow a defined tag when it's set using an array`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      tags: ['pending']
+    });
+  });
+
+  it(`should not allow a tag outside of the defined ones when it's set using a string`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      // @ts-expect-error
+      tags: 'other'
+    });
+  });
+
+  it(`should not allow a tag outside of the defined ones when it's set using an array`, () => {
+    createMachine({
+      types: {} as {
+        tags: 'pending' | 'success' | 'error';
+      },
+      tags: [
+        // @ts-expect-error
+        'other'
+      ]
+    });
+  });
+
+  it('`hasTag` should allow checking a defined tag', () => {
+    const machine = createMachine({
+      types: {} as {
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.getSnapshot().hasTag('a');
+  });
+
+  it('`hasTag` should not allow checking a tag ouside of the defined ones', () => {
+    const machine = createMachine({
+      types: {} as {
+        tags: 'a' | 'b' | 'c';
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // @ts-expect-error
+    actor.getSnapshot().hasTag('other');
+  });
+});
+
+describe('fromCallback', () => {
+  it('should reject a start callback that returns an explicit promise', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(
+          // @ts-ignore
+          () => {
+            return new Promise(() => {});
+          }
+        )
+      }
+    });
+  });
+
+  it('should reject a start callback that is an async function', () => {
+    // it's important to not give a false impression that we support returning promises from this setup as we supported that in the past
+    // the problem is that people could accidentally~ use an async function for convenience purposes
+    // then we'd listen for the promise to resolve and cleanup that actor, closing the communication channel between parent and the child
+    //
+    // fromCallback(async ({ sendBack }) => {
+    //   const api = await getSomeWebApi(); // async function was used to conveniently use `await` here
+    //
+    //   // this didn't work as expected because this promise was completing almost asap
+    //   // so the parent was never able to receive those events sent to it
+    //   api.addEventListener('some_event', () => sendBack({ type: 'EV' }))
+    //
+    //   // implicit completion
+    // })
+    createMachine({
+      invoke: {
+        src: fromCallback(
+          // @ts-ignore
+          async () => {}
+        )
+      }
+    });
+  });
+
+  it('should reject a start callback that returns a non-function and non-undefined value', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(
+          // @ts-ignore
+          () => {
+            return 42;
+          }
+        )
+      }
+    });
+  });
+
+  it('should allow returning an implicit undefined from the start callback', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(() => {})
+      }
+    });
+  });
+
+  it('should allow returning an explicit undefined from the start callback', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(() => {
+          return undefined;
+        })
+      }
+    });
+  });
+
+  it('should allow returning a cleanup function the start callback', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(() => {
+          return undefined;
+        })
+      }
+    });
+  });
+});
+
+describe('self', () => {
+  it('should accept correct event types in an inline entry custom action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      entry: ({ self }) => {
+        self.send({ type: 'FOO' });
+        self.send({ type: 'BAR' });
+        // @ts-expect-error
+        self.send({ type: 'BAZ' });
+      }
+    });
+  });
+
+  it('should accept correct event types in an inline entry builtin action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      entry: assign(({ self }) => {
+        self.send({ type: 'FOO' });
+        self.send({ type: 'BAR' });
+        // @ts-expect-error
+        self.send({ type: 'BAZ' });
+        return {};
+      })
+    });
+  });
+
+  it('should accept correct event types in an inline transition custom action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      on: {
+        FOO: {
+          actions: ({ self }) => {
+            self.send({ type: 'FOO' });
+            self.send({ type: 'BAR' });
+            // @ts-expect-error
+            self.send({ type: 'BAZ' });
+          }
+        }
+      }
+    });
+  });
+
+  it('should accept correct event types in an inline transition builtin action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      on: {
+        FOO: {
+          actions: assign(({ self }) => {
+            self.send({ type: 'FOO' });
+            self.send({ type: 'BAR' });
+            // @ts-expect-error
+            self.send({ type: 'BAZ' });
+            return {};
+          })
+        }
+      }
+    });
+  });
+
+  it('should return correct snapshot in an inline entry custom action', () => {
+    createMachine({
+      types: {} as {
+        context: { count: number };
+      },
+      context: { count: 0 },
+      entry: ({ self }) => {
+        ((_accept: number) => {})(self.getSnapshot().count);
+        // @ts-expect-error
+        ((_accept: string) => {})(self.getSnapshot().count);
+      }
+    });
+  });
+
+  it('should return correct snapshot in an inline entry builtin action', () => {
+    createMachine({
+      types: {} as {
+        context: { count: number };
+      },
+      context: { count: 0 },
+      entry: assign(({ self }) => {
+        ((_accept: number) => {})(self.getSnapshot().count);
+        // @ts-expect-error
+        ((_accept: string) => {})(self.getSnapshot().count);
+        return {};
+      })
+    });
   });
 });

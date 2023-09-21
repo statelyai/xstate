@@ -1,36 +1,36 @@
 import {
   MachineConfig,
-  EventObject,
   MachineContext,
   InternalMachineImplementations,
   ParameterizedObject,
   ProvidedActor,
-  AnyEventObject,
-  NonReducibleUnknown
+  NonReducibleUnknown,
+  Prop,
+  AnyEventObject
 } from './types.ts';
-import {
-  TypegenConstraint,
-  TypegenDisabled,
-  ResolveTypegenMeta
-} from './typegenTypes.ts';
+import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TInput = any,
-  TOutput = NonReducibleUnknown,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  TTypesMeta extends TypegenConstraint
 >(
   config: MachineConfig<
     TContext,
     TEvent,
+    TActor,
     TAction,
     TGuard,
-    TActor,
+    TDelay,
+    TTag,
     TInput,
     TOutput,
     TTypesMeta
@@ -40,7 +40,16 @@ export function createMachine<
     TEvent,
     TActor,
     TAction,
-    ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
+    TDelay,
+    ResolveTypegenMeta<
+      TTypesMeta,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag
+    >
   >
 ): StateMachine<
   TContext,
@@ -48,11 +57,25 @@ export function createMachine<
   TActor,
   TAction,
   TGuard,
+  TDelay,
+  Prop<
+    ResolveTypegenMeta<
+      TTypesMeta,
+      TEvent,
+      TActor,
+      TAction,
+      TGuard,
+      TDelay,
+      TTag
+    >['resolved'],
+    'tags'
+  > &
+    string,
   TInput,
   TOutput,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
-  return new StateMachine<any, any, any, any, any, any, any, any>(
+  return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
     config as any,
     implementations as any
   );

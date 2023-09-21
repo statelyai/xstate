@@ -19,6 +19,8 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
     infer TActor,
     infer TAction,
     infer TGuard,
+    infer TDelay,
+    infer TTag,
     infer TInput,
     infer TOutput,
     infer TResolvedTypesMeta
@@ -29,6 +31,8 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
         TActor,
         TAction,
         TGuard,
+        TDelay,
+        TTag,
         TInput,
         TOutput,
         AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false

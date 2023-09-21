@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { useMachine } from '../src/index.ts';
+  import { useMachine } from '@xstate/svelte';
   import UseMachineNonPersistentSubcriptionChild from './UseMachineNonPersistentSubcriptionChild.svelte';
-  import type { AnyState } from 'xstate';
   import { assign, createMachine } from 'xstate';
 
   let visible = true;

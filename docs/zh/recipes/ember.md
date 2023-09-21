@@ -135,12 +135,9 @@ export default class extends Component {
 ```
 
 ```hbs
-<this.MyLocalMachine as |state send|>
-</this.MyLocalMachine>
+<this.MyLocalMachine as |state send| />
 
-<this.CustomMachine as |state send|>
-
-</this.CustomMachine>
+<this.CustomMachine as |state send| />
 ```
 
 It is recommended to also have [ember-could-get-used-to-this](https://github.com/pzuraq/ember-could-get-used-to-this/)
@@ -164,8 +161,8 @@ This example is based on Ember Octane features (Ember 3.13+)
 :::
 
 ```handlebars
-<button type="button" {{on "click" (fn this.transition "TOGGLE")}}>
-  {{if this.isInactive "Off" "On"}}
+<button type='button' {{on 'click' (fn this.transition 'TOGGLE')}}>
+  {{if this.isInactive 'Off' 'On'}}
 </button>
 ```
 

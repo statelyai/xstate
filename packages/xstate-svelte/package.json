@@ -18,15 +18,6 @@
   "main": "dist/xstate-svelte.cjs.js",
   "module": "dist/xstate-svelte.esm.js",
   "exports": {
-    "./fsm": {
-      "types": {
-        "import": "./fsm/dist/xstate-svelte-fsm.cjs.mjs",
-        "default": "./fsm/dist/xstate-svelte-fsm.cjs.js"
-      },
-      "module": "./fsm/dist/xstate-svelte-fsm.esm.js",
-      "import": "./fsm/dist/xstate-svelte-fsm.cjs.mjs",
-      "default": "./fsm/dist/xstate-svelte-fsm.cjs.js"
-    },
     ".": {
       "types": {
         "import": "./dist/xstate-svelte.cjs.mjs",
@@ -40,8 +31,7 @@
   },
   "sideEffects": false,
   "files": [
-    "dist",
-    "fsm"
+    "dist"
   ],
   "repository": {
     "type": "git",
@@ -54,33 +44,22 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^3.0.0-beta.3",
     "svelte": "^3.24.1 || ^4",
-    "xstate": "^5.0.0-beta.24"
+    "xstate": "^5.0.0-beta.29"
   },
   "peerDependenciesMeta": {
-    "@xstate/fsm": {
-      "optional": true
-    },
     "xstate": {
       "optional": true
     }
   },
   "devDependencies": {
     "@testing-library/svelte": "^3.2.2",
-    "@tsconfig/svelte": "^1.0.8",
+    "@tsconfig/svelte": "^5.0.2",
     "@types/jest": "^29.5.1",
-    "@xstate/fsm": "3.0.0-beta.3",
     "svelte": "^3.55.1",
     "svelte-check": "^3.2.0",
     "svelte-jester": "^2.3.2",
     "svelte-preprocess": "^5.0.0",
-    "xstate": "5.0.0-beta.24"
-  },
-  "preconstruct": {
-    "entrypoints": [
-      "./index.ts",
-      "./fsm.ts"
-    ]
+    "xstate": "5.0.0-beta.29"
   }
 }

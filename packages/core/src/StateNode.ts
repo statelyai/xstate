@@ -11,11 +11,9 @@ import {
   getDelayedTransitions
 } from './stateUtils.ts';
 import type {
-  AnyActorLogic,
   DelayedTransitionDefinition,
   EventObject,
   FinalStateNodeConfig,
-  HistoryStateNodeConfig,
   InitialTransitionDefinition,
   InvokeDefinition,
   MachineContext,
@@ -30,20 +28,19 @@ import type {
   UnknownAction,
   ParameterizedObject,
   AnyStateMachine,
-  AnyStateNodeConfig
+  AnyStateNodeConfig,
+  ProvidedActor
 } from './types.ts';
 import {
   createInvokeId,
-  flatten,
   mapValues,
   toArray,
-  toInvokeConfig,
   toTransitionConfigArray
 } from './utils.ts';
 
 const EMPTY_OBJECT = {};
 
-const toSerializableActon = (action: UnknownAction) => {
+const toSerializableAction = (action: UnknownAction) => {
   if (typeof action === 'string') {
     return { type: action };
   }
@@ -122,19 +119,20 @@ export class StateNode<
   public machine: StateMachine<
     TContext,
     TEvent,
-    any,
-    any,
-    TODO,
-    TODO,
-    TODO,
-    TODO
+    any, // actors
+    any, // input
+    TODO, // output
+    TODO, // guards
+    TODO, // delays
+    TODO, // tags
+    TODO // types meta
   >;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
   public meta?: any;
   /**
-   * The output data sent with the "done.state._id_" event if this is a final state node.
+   * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
    */
   public output?: Mapper<TContext, TEvent, any>;
 
@@ -153,7 +151,16 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent, TODO, TODO, TODO, TODO>,
+    public config: StateNodeConfig<
+      TContext,
+      TEvent,
+      TODO, // actions
+      TODO, // actors
+      TODO, // output
+      TODO, // guards
+      TODO, // delays
+      TODO // tags
+    >,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
@@ -241,13 +248,13 @@ export class StateNode<
         ? {
             target: this.initial.target,
             source: this,
-            actions: this.initial.actions.map(toSerializableActon),
+            actions: this.initial.actions.map(toSerializableAction),
             eventType: null as any,
             reenter: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
-              actions: this.initial!.actions.map(toSerializableActon),
+              actions: this.initial!.actions.map(toSerializableAction),
               eventType: null as any
             })
           }
@@ -259,10 +266,10 @@ export class StateNode<
       on: this.on,
       transitions: [...this.transitions.values()].flat().map((t) => ({
         ...t,
-        actions: t.actions.map(toSerializableActon)
+        actions: t.actions.map(toSerializableAction)
       })),
-      entry: this.entry.map(toSerializableActon),
-      exit: this.exit.map(toSerializableActon),
+      entry: this.entry.map(toSerializableAction),
+      exit: this.exit.map(toSerializableAction),
       meta: this.meta,
       order: this.order || -1,
       output: this.output,
@@ -280,16 +287,20 @@ export class StateNode<
    * The logic invoked as actors by this state node.
    */
   public get invoke(): Array<
-    InvokeDefinition<TContext, TEvent, ParameterizedObject, ParameterizedObject>
+    InvokeDefinition<
+      TContext,
+      TEvent,
+      ProvidedActor,
+      ParameterizedObject,
+      ParameterizedObject,
+      string
+    >
   > {
     return memo(this, 'invoke', () =>
-      toArray(this.config.invoke).map((invocable, i) => {
-        const generatedId = createInvokeId(this.id, i);
-        const invokeConfig = toInvokeConfig(invocable, generatedId);
-        const resolvedId = invokeConfig.id || generatedId;
-        const src = invokeConfig.src as string | AnyActorLogic;
-        const { systemId } = invokeConfig;
+      toArray(this.config.invoke).map((invokeConfig, i) => {
+        const { src, systemId } = invokeConfig;
 
+        const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
         // TODO: resolving should not happen here
         const resolvedSrc =
           typeof src === 'string' ? src : !('type' in src) ? resolvedId : src;
@@ -323,8 +334,10 @@ export class StateNode<
         } as InvokeDefinition<
           TContext,
           TEvent,
+          ProvidedActor,
           ParameterizedObject,
-          ParameterizedObject
+          ParameterizedObject,
+          string
         >;
       })
     );
@@ -362,7 +375,7 @@ export class StateNode<
   }
 
   public next(
-    state: State<TContext, TEvent, TODO, TODO>,
+    state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
@@ -410,34 +423,6 @@ export class StateNode<
     }
 
     return selectedTransition ? [selectedTransition] : undefined;
-  }
-
-  /**
-   * The target state value of the history state node, if it exists. This represents the
-   * default state value to transition to if no history value exists yet.
-   */
-  public get target(): string | undefined {
-    if (this.type === 'history') {
-      const historyConfig = this.config as HistoryStateNodeConfig<
-        TContext,
-        TEvent
-      >;
-      return historyConfig.target;
-    }
-
-    return undefined;
-  }
-
-  /**
-   * All the state node IDs of this state node and its descendant state nodes.
-   */
-  public get stateIds(): string[] {
-    const childStateIds = flatten(
-      Object.keys(this.states).map((stateKey) => {
-        return this.states[stateKey].stateIds;
-      })
-    );
-    return [this.id].concat(childStateIds);
   }
 
   /**

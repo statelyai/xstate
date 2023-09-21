@@ -12,7 +12,8 @@ describe('json', () => {
       [key: string]: any;
     }
 
-    const machine = createMachine<Context>({
+    const machine = createMachine({
+      types: {} as { context: Context },
       initial: 'foo',
       version: '1.0.0',
       context: {
@@ -155,7 +156,7 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "eventType": "done.invoke.active:invocation[0]",
+          "eventType": "xstate.done.actor.active:invocation[0]",
           "guard": undefined,
           "reenter": false,
           "source": "#active",
@@ -166,7 +167,7 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "eventType": "error.platform.active:invocation[0]",
+          "eventType": "xstate.error.actor.active:invocation[0]",
           "guard": undefined,
           "reenter": false,
           "source": "#active",

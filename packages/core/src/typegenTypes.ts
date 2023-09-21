@@ -41,9 +41,9 @@ export interface TypegenMeta extends TypegenEnabled {
   /**
    * A map for the internal events of the machine.
    *
-   * key: 'done.invoke.myActor'
+   * key: 'xstate.done.actor.myActor'
    * value: {
-   *   type: 'done.invoke.myActor';
+   *   type: 'xstate.done.actor.myActor';
    *   data: unknown;
    *   __tip: 'Declare the type in event types!';
    * }
@@ -53,7 +53,7 @@ export interface TypegenMeta extends TypegenEnabled {
    * Maps the src of the invoked actor to the event type that includes its known id
    *
    * key: 'invokeSrc'
-   * value: 'done.invoke.invokeName'
+   * value: 'xstate.done.actor.invokeName'
    */
   invokeSrcNameMap: Record<string, string>;
   /**
@@ -96,6 +96,7 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
     indexedActions: Record<string, ParameterizedObject>;
     indexedEvents: Record<string, EventObject>;
     indexedGuards: Record<string, ParameterizedObject>;
+    indexedDelays: Record<string, ParameterizedObject>;
   };
 }
 
@@ -161,14 +162,14 @@ type GenerateActorEvents<
   ? {
       type: // 1. if the actor has an id, use that
       TActor['id'] extends string
-        ? `done.invoke.${TActor['id']}`
+        ? `xstate.done.actor.${TActor['id']}`
         : // 2. if the ids were inferred by typegen then use those
         // this doesn't contain *all* possible event types since we can't track spawned actors today
-        // however, those done.invoke events shouldn't exactly be usable by/surface to the user anyway
+        // however, those xstate.done.actor events shouldn't exactly be usable by/surface to the user anyway
         TActor['src'] extends keyof TInvokeSrcNameMap
-        ? `done.invoke.${TInvokeSrcNameMap[TActor['src']] & string}`
+        ? `xstate.done.actor.${TInvokeSrcNameMap[TActor['src']] & string}`
         : // 3. finally use the fallback type
-          `done.invoke.${string}`;
+          `xstate.done.actor.${string}`;
       output: OutputFrom<TActor['logic']>;
     }
   : never;
@@ -187,10 +188,10 @@ type AllowAllEvents = {
   eventsCausingGuards: Record<string, string>;
 };
 
-type IndexParametrizedImplementation<
-  TParametrizedImplementation extends ParameterizedObject,
+type IndexParameterizedImplementation<
+  TParameterizedImplementation extends ParameterizedObject,
   TCausingLookup
-> = string extends TParametrizedImplementation['type']
+> = string extends TParameterizedImplementation['type']
   ? // this ensures that we can error on provided implementations when no implementations could be inferred by typegen
     // technically, it's not even a type issue to accept them since we just won't try to execute them
     // that is - if our typegen would be 100% correct and if it could actually handle all scenarios that we consider valid
@@ -202,19 +203,25 @@ type IndexParametrizedImplementation<
     IsNever<TCausingLookup> extends true
     ? never
     : Record<keyof TCausingLookup, ParameterizedObject>
-  : IndexByType<TParametrizedImplementation>;
+  : IndexByType<TParameterizedImplementation>;
+
+type WrapIntoParameterizedObject<T extends string> = T extends any
+  ? { type: T }
+  : never;
 
 export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {
     enabled: TTypesMeta & {
-      indexedActions: IndexParametrizedImplementation<
+      indexedActions: IndexParameterizedImplementation<
         TAction,
         Prop<TTypesMeta, 'eventsCausingActions'>
       >;
@@ -233,10 +240,17 @@ export interface ResolveTypegenMeta<
         >,
         Prop<TTypesMeta, 'internalEvents'>
       >;
-      indexedGuards: IndexParametrizedImplementation<
+      indexedGuards: IndexParameterizedImplementation<
         TGuard,
         Prop<TTypesMeta, 'eventsCausingGuards'>
       >;
+      // delays are not parameterized but we can reuse this helper and the style of helpers depending on this if we convert delays to paremeterized objects here
+      // if we ever decide to allow parameterized delays then we'll only have to adjust this place which is nice
+      indexedDelays: IndexParameterizedImplementation<
+        WrapIntoParameterizedObject<TDelay>,
+        Prop<TTypesMeta, 'eventsCausingDelays'>
+      >;
+      tags: string extends TTag ? Prop<TTypesMeta, 'tags'> : TTag;
     };
     disabled: TypegenDisabled &
       AllImplementationsProvided &
@@ -246,11 +260,13 @@ export interface ResolveTypegenMeta<
         // we don't have to iterate through this since we'll never index a concrete event type on this without the typegen meta
         indexedEvents: Record<string, TEvent>;
         indexedGuards: IndexByType<TGuard>;
+        indexedDelays: IndexByType<WrapIntoParameterizedObject<TDelay>>;
         invokeSrcNameMap: Record<string, string>;
+        tags: TTag;
       };
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'
-    : TTypesMeta extends TypegenEnabled
+    : TTypesMeta['@@xstate/typegen'] extends true
     ? 'enabled'
     : 'disabled'];
 }

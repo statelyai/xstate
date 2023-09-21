@@ -19,15 +19,6 @@
   "main": "dist/xstate-solid.cjs.js",
   "module": "dist/xstate-solid.esm.js",
   "exports": {
-    "./fsm": {
-      "types": {
-        "import": "./fsm/dist/xstate-solid-fsm.cjs.mjs",
-        "default": "./fsm/dist/xstate-solid-fsm.cjs.js"
-      },
-      "module": "./fsm/dist/xstate-solid-fsm.esm.js",
-      "import": "./fsm/dist/xstate-solid-fsm.cjs.mjs",
-      "default": "./fsm/dist/xstate-solid-fsm.cjs.js"
-    },
     ".": {
       "types": {
         "import": "./dist/xstate-solid.cjs.mjs",
@@ -41,8 +32,7 @@
   },
   "types": "lib/index.d.ts",
   "files": [
-    "dist",
-    "fsm"
+    "dist"
   ],
   "repository": {
     "type": "git",
@@ -58,28 +48,17 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^3.0.0-beta.3",
     "solid-js": "^1.6.0",
-    "xstate": "^5.0.0-beta.24"
+    "xstate": "^5.0.0-beta.29"
   },
   "peerDependenciesMeta": {
-    "@xstate/fsm": {
-      "optional": true
-    },
     "xstate": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@xstate/fsm": "3.0.0-beta.3",
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
-    "xstate": "5.0.0-beta.24"
-  },
-  "preconstruct": {
-    "entrypoints": [
-      "./index.ts",
-      "./fsm.ts"
-    ]
+    "xstate": "5.0.0-beta.29"
   }
 }
