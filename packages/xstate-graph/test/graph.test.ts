@@ -487,9 +487,7 @@ describe('@xstate/graph', () => {
 
       expect(path).toBeDefined();
 
-      // TODO: types work fine in test file, but not when running test!
-      // @ts-ignore No idea why this isn't working... it's definitely a State
-      expect(path.state.matches('red')).toBeTruthy();
+      expect(path.state.snapshot.matches('red')).toBeTruthy();
     });
   });
 
