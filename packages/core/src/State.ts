@@ -288,10 +288,12 @@ export function cloneState<TState extends AnyState>(
 
 export function getPersistedState<TState extends AnyState>(
   state: TState
-): PersistedMachineState<TState> {
+): PersistedMachineState<TState, unknown>['snapshot'] {
   const { configuration, tags, machine, children, ...jsonValues } = state;
 
-  const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
+  const childrenJson: Partial<
+    PersistedMachineState<any, unknown>['snapshot']['children']
+  > = {};
 
   for (const id in children) {
     childrenJson[id] = {
@@ -303,5 +305,5 @@ export function getPersistedState<TState extends AnyState>(
   return {
     ...jsonValues,
     children: childrenJson
-  } as PersistedMachineState<TState>;
+  } as PersistedMachineState<TState, unknown>['snapshot'];
 }

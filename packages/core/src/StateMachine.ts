@@ -83,7 +83,8 @@ export class StateMachine<
         TOutput
       >,
       PersistedMachineState<
-        State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+        State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+        TOutput
       >,
       TODO
     >
@@ -371,7 +372,9 @@ export class StateMachine<
     );
 
     return {
-      status: { status: 'active' }, // TODO: this might need to handle immediate done state
+      status: macroState.done
+        ? { status: 'done', output: nextState.output }
+        : { status: 'active' },
       snapshot: macroState
     };
   }
@@ -419,9 +422,13 @@ export class StateMachine<
       TOutput
     >
   ): PersistedMachineState<
-    State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+    State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+    TOutput
   > {
-    return getPersistedState(state.snapshot);
+    return {
+      status: state.status,
+      snapshot: getPersistedState(state.snapshot)
+    };
   }
 
   public createState(
@@ -436,7 +443,8 @@ export class StateMachine<
 
   public restoreState(
     state: PersistedMachineState<
-      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+      TOutput
     >,
     _actorCtx: ActorContext<
       TEvent,
@@ -447,9 +455,11 @@ export class StateMachine<
     TOutput
   > {
     const children: Record<string, AnyActorRef> = {};
+    const { snapshot, status } = state;
 
-    Object.keys(state.children).forEach((actorId) => {
-      const actorData = state.children[actorId as keyof typeof state.children];
+    Object.keys(snapshot.children).forEach((actorId) => {
+      const actorData =
+        snapshot.children[actorId as keyof typeof snapshot.children];
       const childState = actorData.state;
       const src = actorData.src;
 
@@ -471,17 +481,17 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
-    const restoredState: State<
+    const restoredSnapshot: State<
       TContext,
       TEvent,
       TActor,
       TTag,
       TOutput,
       TResolvedTypesMeta
-    > = this.createState(new State({ ...state, children }, this));
+    > = this.createState(new State({ ...snapshot, children }, this));
 
     // TODO: DRY this up
-    restoredState.configuration.forEach((stateNode) => {
+    restoredSnapshot.configuration.forEach((stateNode) => {
       if (stateNode.invoke) {
         stateNode.invoke.forEach((invokeConfig) => {
           const { id, src } = invokeConfig;
@@ -509,8 +519,8 @@ export class StateMachine<
     });
 
     return {
-      status: { status: 'active' }, // TODO: handle other statuses here
-      snapshot: restoredState
+      status,
+      snapshot: restoredSnapshot
     };
   }
 

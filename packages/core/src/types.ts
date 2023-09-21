@@ -1932,7 +1932,8 @@ export type InterpreterFrom<
           TOutput
         >,
         PersistedMachineState<
-          State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+          State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+          TOutput
         >,
         ActorSystem<any>
       >
@@ -2232,14 +2233,17 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 
 export type AnyActorSystem = ActorSystem<any>;
 
-export type PersistedMachineState<TState extends AnyState> = Pick<
-  TState,
-  'value' | 'output' | 'error' | 'context' | 'done' | 'historyValue'
-> & {
-  children: {
-    [K in keyof TState['children']]: {
-      state: any; // TODO: fix (should be state from actorref)
-      src?: string;
+export type PersistedMachineState<TState extends AnyState, TOutput> = {
+  status: ActorStatusObject<TOutput>;
+  snapshot: Pick<
+    TState,
+    'value' | 'output' | 'error' | 'context' | 'done' | 'historyValue'
+  > & {
+    children: {
+      [K in keyof TState['children']]: {
+        state: any; // TODO: fix (should be state from actorref)
+        src?: string;
+      };
     };
   };
 };

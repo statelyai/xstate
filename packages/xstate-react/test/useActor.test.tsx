@@ -84,7 +84,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any>;
+    persistedState?: PersistedMachineState<any, unknown>;
   }> = ({
     onFetch = () => {
       return new Promise((res) => res('some data'));

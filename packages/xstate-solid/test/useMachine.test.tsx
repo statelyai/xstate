@@ -89,7 +89,7 @@ describe('useMachine hook', () => {
 
   const Fetcher = (props: {
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any>;
+    persistedState?: PersistedMachineState<any, unknown>;
   }) => {
     const mergedProps = mergeProps(
       {
