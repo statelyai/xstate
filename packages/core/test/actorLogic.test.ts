@@ -126,11 +126,16 @@ describe('promise logic (fromPromise)', () => {
     setTimeout(() => {
       const resolvedPersistedState = actor.getPersistedState();
 
-      expect(resolvedPersistedState).toEqual(
-        expect.objectContaining({
-          output: 42
-        })
-      );
+      expect(resolvedPersistedState).toMatchInlineSnapshot(`
+        {
+          "input": undefined,
+          "snapshot": 42,
+          "status": {
+            "output": 42,
+            "status": "done",
+          },
+        }
+      `);
 
       const restoredActor = createActor(promiseLogic, {
         state: resolvedPersistedState
@@ -152,11 +157,16 @@ describe('promise logic (fromPromise)', () => {
     await new Promise((res) => setTimeout(res, 5));
 
     const resolvedPersistedState = actor.getPersistedState();
-    expect(resolvedPersistedState).toEqual(
-      expect.objectContaining({
-        output: 1
-      })
-    );
+    expect(resolvedPersistedState).toMatchInlineSnapshot(`
+      {
+        "input": undefined,
+        "snapshot": 1,
+        "status": {
+          "output": 1,
+          "status": "done",
+        },
+      }
+    `);
     expect(createdPromises).toBe(1);
 
     const restoredActor = createActor(promiseLogic, {
@@ -180,11 +190,16 @@ describe('promise logic (fromPromise)', () => {
     await new Promise((res) => setTimeout(res, 5));
 
     const rejectedPersistedState = actor.getPersistedState();
-    expect(rejectedPersistedState).toEqual(
-      expect.objectContaining({
-        error: 1
-      })
-    );
+    expect(rejectedPersistedState).toMatchInlineSnapshot(`
+      {
+        "input": undefined,
+        "snapshot": undefined,
+        "status": {
+          "error": 1,
+          "status": "error",
+        },
+      }
+    `);
     expect(createdPromises).toBe(1);
 
     createActor(promiseLogic, {
@@ -528,14 +543,18 @@ describe('machine logic', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.children.a.state).toEqual(
-      expect.objectContaining({
-        status: 'done',
-        output: 42
-      })
-    );
+    expect(persistedState.snapshot.children.a.state).toMatchInlineSnapshot(`
+      {
+        "input": undefined,
+        "snapshot": 42,
+        "status": {
+          "output": 42,
+          "status": "done",
+        },
+      }
+    `);
 
-    expect(persistedState.children.b.state).toEqual(
+    expect(persistedState.snapshot.children.b.state.snapshot).toEqual(
       expect.objectContaining({
         context: {
           count: 55
@@ -632,7 +651,7 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(actor.getPersistedState()).toEqual(
+    expect(actor.getPersistedState()?.snapshot).toEqual(
       expect.objectContaining({
         value: 'idle'
       })
@@ -652,7 +671,9 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(actor.getPersistedState()?.children['child'].state).toEqual(
+    expect(
+      actor.getPersistedState()?.snapshot.children['child'].state.snapshot
+    ).toEqual(
       expect.objectContaining({
         value: 'inner'
       })
@@ -674,7 +695,7 @@ describe('machine logic', () => {
 
     const persisted = actor.getPersistedState();
 
-    delete persisted?.children['child'];
+    delete persisted?.snapshot.children['child'];
 
     const actor2 = createActor(machine, { state: persisted }).start();
 
