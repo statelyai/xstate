@@ -24,11 +24,11 @@ export function testMultiTransition(
       state = resolveSerializedStateValue(machine, state);
     }
     const nextState = machine.transition(
-      state,
+      { status: { status: 'active' }, snapshot: state },
       { type: eventType },
       {} as any // TODO: figure out the simulation API
     );
-    return nextState;
+    return nextState.snapshot;
   };
 
   const [firstEventType, ...restEvents] = eventTypes.split(/,\s?/);

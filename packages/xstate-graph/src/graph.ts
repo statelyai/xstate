@@ -55,7 +55,9 @@ export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   return children;
 }
 
-export function serializeMachineState(state: AnyState): SerializedState {
+export function serializeMachineState({
+  snapshot: state
+}: ReturnType<AnyStateMachine['transition']>): SerializedState {
   const { value, context } = state;
   return JSON.stringify({
     value,
@@ -71,11 +73,14 @@ export function serializeEvent<TEvent extends EventObject>(
 
 export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>> {
+  options?: TraversalOptions<
+    ReturnType<TMachine['transition']>,
+    EventFrom<TMachine>
+  >
+): TraversalOptions<ReturnType<TMachine['transition']>, EventFrom<TMachine>> {
   const { events: getEvents, ...otherOptions } = options ?? {};
   const traversalOptions: TraversalOptions<
-    StateFrom<TMachine>,
+    ReturnType<TMachine['transition']>,
     EventFrom<TMachine>
   > = {
     serializeState: serializeMachineState,
@@ -97,7 +102,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
     },
     fromState: machine.getInitialState(
       {} as any // TODO: figure out the simulation API
-    ) as StateFrom<TMachine>,
+    ) as ReturnType<TMachine['transition']>,
     ...otherOptions
   };
 
@@ -175,28 +180,36 @@ function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {
   return 'getStateNodeById' in logic;
 }
 
-export function resolveTraversalOptions<
-  TLogic extends AnyActorLogic,
-  TState extends SnapshotFrom<TLogic>,
-  TEvent extends EventFromLogic<TLogic>
->(
-  logic: AnyActorLogic,
-  traversalOptions?: TraversalOptions<TState, TEvent>,
-  defaultOptions?: TraversalOptions<TState, TEvent>
-): TraversalConfig<TState, TEvent> {
+export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  traversalOptions?: TraversalOptions<
+    ReturnType<TLogic['transition']>,
+    EventFromLogic<TLogic>
+  >,
+  defaultOptions?: TraversalOptions<
+    ReturnType<TLogic['transition']>,
+    EventFromLogic<TLogic>
+  >
+): TraversalConfig<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>> {
   const resolvedDefaultOptions =
     defaultOptions ??
     (isMachineLogic(logic)
       ? (createDefaultMachineOptions(
           logic,
           traversalOptions as any
-        ) as TraversalOptions<TState, TEvent>)
+        ) as TraversalOptions<
+          ReturnType<TLogic['transition']>,
+          EventFromLogic<TLogic>
+        >)
       : undefined);
   const serializeState =
     traversalOptions?.serializeState ??
     resolvedDefaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
-  const traversalConfig: TraversalConfig<TState, TEvent> = {
+  const traversalConfig: TraversalConfig<
+    ReturnType<TLogic['transition']>,
+    EventFromLogic<TLogic>
+  > = {
     serializeState,
     serializeEvent,
     filter: () => true,

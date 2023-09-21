@@ -112,10 +112,10 @@ describe('die hard example', () => {
 
     const options = {
       states: {
-        pending: (state: StateFrom<typeof dieHardMachine>) => {
+        pending: (state: ReturnType<(typeof dieHardMachine)['transition']>) => {
           expect(jugs.five).not.toEqual(4);
-          expect(jugs.three).toEqual(state.context.three);
-          expect(jugs.five).toEqual(state.context.five);
+          expect(jugs.three).toEqual(state.snapshot.context.three);
+          expect(jugs.five).toEqual(state.snapshot.context.five);
         },
         success: () => {
           expect(jugs.five).toEqual(4);
@@ -166,8 +166,8 @@ describe('die hard example', () => {
     });
 
     paths.forEach((path) => {
-      describe(`path ${getDescription(path.state)}`, () => {
-        it(`path ${getDescription(path.state)}`, async () => {
+      describe(`path ${getDescription(path.state.snapshot)}`, () => {
+        it(`path ${getDescription(path.state.snapshot)}`, async () => {
           await dieHardModel.model.testPath(path, dieHardModel.options);
         });
       });
@@ -186,9 +186,9 @@ describe('die hard example', () => {
 
     paths.forEach((path) => {
       describe(`reaches state ${JSON.stringify(
-        path.state.value
-      )} (${JSON.stringify(path.state.context)})`, () => {
-        it(`path ${getDescription(path.state)}`, async () => {
+        path.state.snapshot.value
+      )} (${JSON.stringify(path.state.snapshot.context)})`, () => {
+        it(`path ${getDescription(path.state.snapshot)}`, async () => {
           await dieHardModel.model.testPath(path, dieHardModel.options);
         });
       });
@@ -211,9 +211,9 @@ describe('die hard example', () => {
     )[0];
 
     describe(`reaches state ${JSON.stringify(
-      path.state.value
-    )} (${JSON.stringify(path.state.context)})`, () => {
-      it(`path ${getDescription(path.state)}`, async () => {
+      path.state.snapshot.value
+    )} (${JSON.stringify(path.state.snapshot.context)})`, () => {
+      it(`path ${getDescription(path.state.snapshot)}`, async () => {
         await dieHardModel.model.testPath(path, dieHardModel.options);
       });
     });
@@ -244,9 +244,9 @@ describe('die hard example', () => {
 
     paths.forEach((path) => {
       describe(`reaches state ${JSON.stringify(
-        path.state.value
-      )} (${JSON.stringify(path.state.context)})`, () => {
-        describe(`path ${getDescription(path.state)}`, () => {
+        path.state.snapshot.value
+      )} (${JSON.stringify(path.state.snapshot.context)})`, () => {
+        describe(`path ${getDescription(path.state.snapshot)}`, () => {
           it(`reaches the target state`, async () => {
             await dieHardModel.model.testPath(path, dieHardModel.options);
           });

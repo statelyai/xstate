@@ -1,5 +1,5 @@
 import { WebSocketServer } from 'ws';
-import { Actor, EventObject, createActor } from 'xstate';
+import { Actor, EventFromLogic, EventObject, createActor } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { InspectMachineEvent, createInspectMachine } from './inspectMachine.ts';
 import { Inspector, Replacer } from './types.ts';

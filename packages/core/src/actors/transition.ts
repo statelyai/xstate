@@ -4,7 +4,8 @@ import {
   ActorSystem,
   EventObject,
   ActorRefFrom,
-  AnyActorSystem
+  AnyActorSystem,
+  ActorInternalState
 } from '../types';
 
 export type TransitionActorLogic<
@@ -16,7 +17,7 @@ export type TransitionActorLogic<
   TEvent,
   TInput,
   unknown,
-  TSnapshot,
+  ActorInternalState<TSnapshot, unknown>,
   TSnapshot,
   AnyActorSystem
 >;
@@ -59,15 +60,26 @@ export function fromTransition<
   return {
     config: transition,
     transition: (state, event, actorContext) => {
-      return transition(state, event as TEvent, actorContext as any);
+      return {
+        status: state.status,
+        snapshot: transition(
+          state.snapshot,
+          event as TEvent,
+          actorContext as any
+        )
+      };
     },
     getInitialState: (_, input) => {
       return typeof initialState === 'function'
         ? (initialState as any)({ input })
         : initialState;
     },
-    getSnapshot: (state) => state,
-    getPersistedState: (state) => state,
-    restoreState: (state) => state
+    getPersistedState: (state) => state.snapshot,
+    restoreState: (snapshot) => {
+      return {
+        status: { status: 'active' },
+        snapshot
+      };
+    }
   };
 }

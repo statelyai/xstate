@@ -204,13 +204,13 @@ describe('output', () => {
       }
     });
 
-    const state = machine.getInitialState(null as any);
+    const { snapshot } = machine.getInitialState(null as any);
 
-    ((_accept: number | undefined) => {})(state.output);
+    ((_accept: number | undefined) => {})(snapshot.output);
     // @ts-expect-error
-    ((_accept: number) => {})(state.output);
+    ((_accept: number) => {})(snapshot.output);
     // @ts-expect-error
-    ((_accept: string) => {})(state.output);
+    ((_accept: string) => {})(snapshot.output);
   });
 
   it('should accept valid static output', () => {

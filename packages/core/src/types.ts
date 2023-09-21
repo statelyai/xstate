@@ -1446,9 +1446,9 @@ export type AnyHistoryValue = HistoryValue<any, any>;
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends AnyStateMachine
-  ? ReturnType<T['transition']>
+  ? ReturnType<T['transition']>['snapshot']
   : T extends (...args: any[]) => AnyStateMachine
-  ? ReturnType<ReturnType<T>['transition']>
+  ? ReturnType<ReturnType<T>['transition']>['snapshot']
   : never;
 
 export type Transitions<
@@ -1927,7 +1927,10 @@ export type InterpreterFrom<
         TEvent,
         TInput,
         TOutput,
-        State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+        ActorInternalState<
+          State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+          TOutput
+        >,
         PersistedMachineState<
           State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
         >,
@@ -1998,34 +2001,27 @@ export type ActorStatusObject<TOutput> =
   | {
       status: 'done';
       output: TOutput;
-      error: undefined;
     }
   | {
       status: 'error';
-      output: undefined;
       error: unknown;
     }
   | {
       status: 'stopped';
-      output: TOutput | undefined;
-      error: unknown | undefined;
     }
   | {
       status: 'active';
-      output: undefined;
-      error: undefined;
     };
 
-interface ActorInternalState<TSnapshot, TOutput> {
+export interface ActorInternalState<TSnapshot, TOutput> {
   status: ActorStatusObject<TOutput>;
   snapshot: TSnapshot;
 }
-
 export interface ActorLogic<
   TSnapshot,
   TEvent extends EventObject,
   TInput = unknown,
-  TOutput = unknown,
+  TOutput = unknown, // TODO: this is **only** part of the status object, so it could be removed from here
   TInternalState extends ActorInternalState<
     TSnapshot,
     TOutput
@@ -2050,8 +2046,6 @@ export interface ActorLogic<
     persistedState: TPersisted,
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
-  getSnapshot?: (state: TInternalState) => TSnapshot;
-  getStatus?: (state: TInternalState) => ActorStatusObject<TOutput>;
   start?: (
     state: TInternalState,
     actorCtx: ActorContext<TEvent, TSnapshot>
@@ -2091,43 +2085,39 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TResolvedTypesMeta
       >
     ? StateFrom<R>
-    : R extends ActorLogic<
-        infer TSnapshot,
-        infer _,
-        infer __,
-        infer ___,
-        infer ____,
-        infer _____,
-        infer ______
-      >
-    ? TSnapshot
+    : R extends ActorLogic<any, any, any, any, any, any, any>
+    ? ReturnType<R['transition']>['snapshot']
     : R extends ActorContext<infer _, infer TSnapshot, infer __>
     ? TSnapshot
     : never
   : never;
 
-export type EventFromLogic<TLogic extends ActorLogic<any, any>> =
-  TLogic extends ActorLogic<
-    infer _,
-    infer TEvent,
-    infer __,
-    infer ___,
-    infer ____
-  >
-    ? TEvent
-    : never;
+export type EventFromLogic<
+  TLogic extends ActorLogic<any, any, any, any, any, any, any>
+> = TLogic extends ActorLogic<
+  infer _,
+  infer TEvent,
+  infer __,
+  infer ___,
+  infer ____,
+  infer _____,
+  infer ______
+>
+  ? TEvent
+  : never;
 
-export type PersistedStateFrom<TLogic extends ActorLogic<any, any>> =
-  TLogic extends ActorLogic<
-    infer _TSnapshot,
-    infer _TEvent,
-    infer _TInput,
-    infer _TOutput,
-    infer _TInternalState,
-    infer TPersisted
-  >
-    ? TPersisted
-    : never;
+export type PersistedStateFrom<
+  TLogic extends ActorLogic<any, any, any, any, any, any, any>
+> = TLogic extends ActorLogic<
+  infer _TSnapshot,
+  infer _TEvent,
+  infer _TInput,
+  infer _TOutput,
+  infer _TInternalState,
+  infer TPersisted
+>
+  ? TPersisted
+  : never;
 
 export type InternalStateFrom<TLogic extends ActorLogic<any, any>> =
   TLogic extends ActorLogic<

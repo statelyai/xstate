@@ -1,4 +1,5 @@
 import {
+  ActorInternalState,
   ActorLogic,
   ActorRefFrom,
   ActorSystem,
@@ -7,9 +8,8 @@ import {
 } from '../types';
 import { XSTATE_STOP } from '../constants';
 
-export interface PromiseInternalState<T, TInput = unknown> {
-  status: 'active' | 'error' | 'done' | 'stopped';
-  output: T | undefined;
+export interface PromiseInternalState<TSnapshot, TInput = unknown>
+  extends ActorInternalState<TSnapshot | undefined, TSnapshot> {
   input: TInput | undefined;
 }
 
@@ -56,29 +56,38 @@ export function fromPromise<T, TInput>(
   const logic: PromiseActorLogic<T, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {
-      if (state.status !== 'active') {
+      if (state.status.status !== 'active') {
         return state;
       }
 
       switch (event.type) {
-        case resolveEventType:
+        case resolveEventType: {
+          const resolvedValue = (event as any).data;
           return {
             ...state,
-            status: 'done',
-            output: (event as any).data,
+            status: {
+              status: 'done',
+              output: resolvedValue
+            },
+            snapshot: resolvedValue,
             input: undefined
           };
+        }
         case rejectEventType:
           return {
             ...state,
-            status: 'error',
-            error: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
+            status: {
+              status: 'error',
+              error: (event as any).data
+            },
             input: undefined
           };
         case XSTATE_STOP:
           return {
             ...state,
-            status: 'stopped',
+            status: {
+              status: 'stopped'
+            },
             input: undefined
           };
         default:
@@ -88,7 +97,7 @@ export function fromPromise<T, TInput>(
     start: (state, { self, system }) => {
       // TODO: determine how to allow customizing this so that promises
       // can be restarted if necessary
-      if (state.status !== 'active') {
+      if (state.status.status !== 'active') {
         return;
       }
 
@@ -115,13 +124,13 @@ export function fromPromise<T, TInput>(
     },
     getInitialState: (_, input) => {
       return {
-        status: 'active',
-        output: undefined,
+        status: {
+          status: 'active'
+        },
+        snapshot: undefined,
         input
       };
     },
-    getSnapshot: (state) => state.output,
-    getStatus: (state) => state as TODO,
     getPersistedState: (state) => state,
     restoreState: (state) => state
   };

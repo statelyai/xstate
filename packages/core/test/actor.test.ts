@@ -1167,14 +1167,17 @@ describe('actors', () => {
 
     it('actor logic should have reference to the parent', (done) => {
       const pongLogic: ActorLogic<undefined, EventObject> = {
-        transition: (_state, event, { self }) => {
+        transition: (state, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
 
-          return undefined;
+          return state;
         },
-        getInitialState: () => undefined
+        getInitialState: () => ({
+          status: { status: 'active' },
+          snapshot: undefined
+        })
       };
 
       const pingMachine = createMachine({

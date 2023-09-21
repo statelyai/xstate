@@ -2204,15 +2204,18 @@ describe('invoke', () => {
   describe('with logic', () => {
     it('should work with actor logic', (done) => {
       const countLogic: ActorLogic<number, EventObject> = {
-        transition: (count, event) => {
+        transition: (state, event) => {
           if (event.type === 'INC') {
-            return count + 1;
+            return {
+              status: state.status,
+              snapshot: state.snapshot + 1
+            };
           } else if (event.type === 'DEC') {
-            return count - 1;
+            return { status: state.status, snapshot: state.snapshot - 1 };
           }
-          return count;
+          return state;
         },
-        getInitialState: () => 0
+        getInitialState: () => ({ status: { status: 'active' }, snapshot: 0 })
       };
 
       const countMachine = createMachine({
@@ -2241,14 +2244,17 @@ describe('invoke', () => {
 
     it('logic should have reference to the parent', (done) => {
       const pongLogic: ActorLogic<undefined, EventObject> = {
-        transition: (_, event, { self }) => {
+        transition: (state, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
 
-          return undefined;
+          return state;
         },
-        getInitialState: () => undefined
+        getInitialState: () => ({
+          status: { status: 'active' },
+          snapshot: undefined
+        })
       };
 
       const pingMachine = createMachine({

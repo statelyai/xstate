@@ -1,9 +1,8 @@
 import { assign } from './actions.ts';
 import { createInitEvent } from './eventUtils.ts';
 import { STATE_DELIMITER } from './constants.ts';
-import { cloneState, getPersistedState, State } from './State.ts';
+import { getPersistedState, State } from './State.ts';
 import { StateNode } from './StateNode.ts';
-import { createActor } from './interpreter.ts';
 import {
   getConfiguration,
   getStateNodeByPath,
@@ -45,9 +44,11 @@ import type {
   ProvidedActor,
   AnyActorRef,
   Equals,
-  TODO
+  TODO,
+  ActorInternalState
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
+import { createActor } from './interpreter.ts';
 
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
@@ -77,7 +78,10 @@ export class StateMachine<
       TEvent,
       TInput,
       TOutput,
-      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+      ActorInternalState<
+        State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+        TOutput
+      >,
       PersistedMachineState<
         State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
       >,
@@ -239,23 +243,33 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state: State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+    state: ActorInternalState<
+      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+      TOutput
+    >,
     event: TEvent,
-    actorCtx: ActorContext<TEvent, typeof state>
-  ): State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta> {
+    actorCtx: ActorContext<TEvent, (typeof state)['snapshot']>
+  ): ActorInternalState<
+    State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+    TOutput
+  > {
     // TODO: handle error events in a better way
     if (
       isErrorActorEvent(event) &&
-      !state.nextEvents.some((nextEvent) => nextEvent === event.type)
+      !state.snapshot.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
-      return cloneState(state, {
-        error: event.data
-      });
+      return {
+        status: { status: 'error', error: event.data },
+        snapshot: state.snapshot
+      };
     }
 
-    const { state: nextState } = macrostep(state, event, actorCtx);
+    const { state: nextState } = macrostep(state.snapshot, event, actorCtx);
 
-    return nextState;
+    return {
+      status: state.status, // TODO: handle done state
+      snapshot: nextState
+    };
   }
 
   /**
@@ -324,7 +338,10 @@ export class StateMachine<
       State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
     >,
     input?: TInput
-  ): State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta> {
+  ): ActorInternalState<
+    State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+    TOutput
+  > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
 
     const preInitialState = this.getPreInitialState(actorCtx, initEvent);
@@ -351,13 +368,19 @@ export class StateMachine<
       actorCtx
     );
 
-    return macroState;
+    return {
+      status: { status: 'active' }, // TODO: this might need to handle immediate done state
+      snapshot: macroState
+    };
   }
 
   public start(
-    state: State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+    state: ActorInternalState<
+      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+      TOutput
+    >
   ): void {
-    Object.values(state.children).forEach((child: any) => {
+    Object.values(state.snapshot.children).forEach((child: any) => {
       if (child.status === 0) {
         child.start?.();
       }
@@ -389,11 +412,14 @@ export class StateMachine<
   }
 
   public getPersistedState(
-    state: State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+    state: ActorInternalState<
+      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+      TOutput
+    >
   ): PersistedMachineState<
     State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
   > {
-    return getPersistedState(state);
+    return getPersistedState(state.snapshot);
   }
 
   public createState(
@@ -406,16 +432,6 @@ export class StateMachine<
       : new State(stateConfig, this);
   }
 
-  public getStatus(
-    state: State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
-  ) {
-    return state.error
-      ? { status: 'error' as const, error: state.error }
-      : state.done
-      ? { status: 'done' as const, output: state.output! }
-      : { status: 'active' as const };
-  }
-
   public restoreState(
     state: PersistedMachineState<
       State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
@@ -424,7 +440,10 @@ export class StateMachine<
       TEvent,
       State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
     >
-  ): State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta> {
+  ): ActorInternalState<
+    State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+    TOutput
+  > {
     const children: Record<string, AnyActorRef> = {};
 
     Object.keys(state.children).forEach((actorId) => {
@@ -487,7 +506,10 @@ export class StateMachine<
       }
     });
 
-    return restoredState;
+    return {
+      status: { status: 'active' }, // TODO: handle other statuses here
+      snapshot: restoredState
+    };
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

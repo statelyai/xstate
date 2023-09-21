@@ -2,7 +2,8 @@ import {
   EventObject,
   StateValue,
   StateNode,
-  TransitionDefinition
+  TransitionDefinition,
+  ActorInternalState
 } from 'xstate';
 
 export type AnyStateNode = StateNode<any, any>;
@@ -77,15 +78,15 @@ export interface StatePlan<TState, TEvent extends EventObject> {
   paths: Array<StatePath<TState, TEvent>>;
 }
 
-export interface StatePath<TState, TEvent extends EventObject> {
+export interface StatePath<TInternalState, TEvent extends EventObject> {
   /**
    * The ending state of the path.
    */
-  state: TState;
+  state: TInternalState;
   /**
    * The ordered array of state-event pairs (steps) which reach the ending `state`.
    */
-  steps: Steps<TState, TEvent>;
+  steps: Steps<TInternalState, TEvent>;
   /**
    * The combined weight of all steps in the path.
    */
@@ -133,26 +134,35 @@ export interface VisitedContext<TState, TEvent> {
   a?: TState | TEvent; // TODO: remove
 }
 
-export interface SerializationConfig<TState, TEvent extends EventObject> {
+export interface SerializationConfig<
+  TInternalState extends ActorInternalState<any, any>,
+  TEvent extends EventObject
+> {
   serializeState: (
-    state: TState,
+    state: TInternalState,
     event: TEvent | undefined,
-    prevState?: TState
+    prevState?: TInternalState
   ) => string;
   serializeEvent: (event: TEvent) => string;
 }
 
-export type SerializationOptions<TState, TEvent extends EventObject> = Partial<
-  Pick<SerializationConfig<TState, TEvent>, 'serializeState' | 'serializeEvent'>
+export type SerializationOptions<
+  TInternalState extends ActorInternalState<any, any>,
+  TEvent extends EventObject
+> = Partial<
+  Pick<
+    SerializationConfig<TInternalState, TEvent>,
+    'serializeState' | 'serializeEvent'
+  >
 >;
 
 export type TraversalOptions<
-  TState,
+  TInternalState extends ActorInternalState<any, any>,
   TEvent extends EventObject
-> = SerializationOptions<TState, TEvent> &
+> = SerializationOptions<TInternalState, TEvent> &
   Partial<
     Pick<
-      TraversalConfig<TState, TEvent>,
+      TraversalConfig<TInternalState, TEvent>,
       | 'filter'
       | 'events'
       | 'traversalLimit'
@@ -162,14 +172,18 @@ export type TraversalOptions<
     >
   >;
 
-export interface TraversalConfig<TState, TEvent extends EventObject>
-  extends SerializationConfig<TState, TEvent> {
+export interface TraversalConfig<
+  TInternalState extends ActorInternalState<any, any>,
+  TEvent extends EventObject
+> extends SerializationConfig<TInternalState, TEvent> {
   /**
    * Determines whether to traverse a transition from `state` on
    * `event` when building the adjacency map.
    */
-  filter: (state: TState, event: TEvent) => boolean;
-  events: readonly TEvent[] | ((state: TState) => readonly TEvent[]);
+  filter: (state: TInternalState['snapshot'], event: TEvent) => boolean;
+  events:
+    | readonly TEvent[]
+    | ((state: TInternalState['snapshot']) => readonly TEvent[]);
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.
@@ -177,13 +191,13 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * @default `Infinity`
    */
   traversalLimit: number;
-  fromState: TState | undefined;
+  fromState: TInternalState | undefined;
   /**
    * When true, traversal of the adjacency map will stop
    * for that current state.
    */
-  stopCondition: ((state: TState) => boolean) | undefined;
-  toState: ((state: TState) => boolean) | undefined;
+  stopCondition: ((state: TInternalState['snapshot']) => boolean) | undefined;
+  toState: ((state: TInternalState['snapshot']) => boolean) | undefined;
 }
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };

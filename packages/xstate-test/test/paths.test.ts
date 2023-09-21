@@ -47,7 +47,7 @@ describe('testModel.testPaths(...)', () => {
       const initialState = logic.getInitialState(actorContext, undefined);
       const events =
         typeof options.events === 'function'
-          ? options.events(initialState)
+          ? options.events(initialState.snapshot)
           : options.events ?? [];
 
       const nextState = logic.transition(initialState, events[0], actorContext);

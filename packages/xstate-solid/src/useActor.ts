@@ -12,7 +12,7 @@ const noop = () => {
 
 type Sender<TEvent> = (event: TEvent) => void;
 
-export function useActor<TActor extends ActorRef<any, any>>(
+export function useActor<TActor extends ActorRef<any, any, any>>(
   actorRef: Accessor<TActor> | TActor
 ): [Accessor<CheckSnapshot<SnapshotFrom<TActor>>>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(

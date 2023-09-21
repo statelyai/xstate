@@ -11,7 +11,7 @@ import type {
   Step,
   TraversalOptions
 } from '@xstate/graph';
-import { EventObject, AnyState, ActorLogic } from 'xstate';
+import { EventObject, AnyState, ActorLogic, ActorInternalState } from 'xstate';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createShortestPathsGen,
@@ -43,17 +43,25 @@ function isStateLike(state: any): state is AnyState {
  * The test model is used to generate test paths, which are used to
  * verify that states in the model are reachable in the SUT.
  */
-export class TestModel<TState, TEvent extends EventObject> {
-  public options: TestModelOptions<TState, TEvent>;
-  public defaultTraversalOptions?: TraversalOptions<TState, TEvent>;
-  public getDefaultOptions(): TestModelOptions<TState, TEvent> {
+export class TestModel<
+  TSnapshot,
+  TEvent extends EventObject,
+  TInput,
+  TOutput,
+  TInternalState extends ActorInternalState<TSnapshot, TOutput>,
+  TPersisted
+> {
+  public options: TestModelOptions<TInternalState, TEvent>;
+  public defaultTraversalOptions?: TraversalOptions<TInternalState, TEvent>;
+  public getDefaultOptions(): TestModelOptions<TInternalState, TEvent> {
     return {
-      serializeState: (state) => simpleStringify(state) as SerializedState,
+      serializeState: (state) =>
+        simpleStringify(state.snapshot) as SerializedState,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       // For non-state-machine test models, we cannot identify
       // separate transitions, so just use event type
       serializeTransition: (state, event) =>
-        `${simpleStringify(state)}|${event?.type ?? ''}`,
+        `${simpleStringify(state.snapshot)}|${event?.type ?? ''}`,
       events: [],
       stateMatcher: (_, stateKey) => stateKey === '*',
       logger: {
@@ -64,8 +72,15 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   constructor(
-    public logic: ActorLogic<TState, TEvent>,
-    options?: Partial<TestModelOptions<TState, TEvent>>
+    public logic: ActorLogic<
+      TSnapshot,
+      TEvent,
+      TInput,
+      TOutput,
+      TInternalState,
+      TPersisted
+    >,
+    options?: Partial<TestModelOptions<TInternalState, TEvent>>
   ) {
     this.options = {
       ...this.getDefaultOptions(),
@@ -74,24 +89,31 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getPaths(
-    pathGenerator: PathGenerator<TState, TEvent>,
-    options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
+    pathGenerator: PathGenerator<
+      TSnapshot,
+      TEvent,
+      TInput,
+      TOutput,
+      TInternalState,
+      TPersisted
+    >,
+    options?: Partial<TraversalOptions<TInternalState, TEvent>>
+  ): Array<TestPath<TInternalState, TEvent>> {
     const paths = pathGenerator(this.logic, this.resolveOptions(options));
     return deduplicatePaths(paths).map(this.toTestPath);
   }
 
   public getShortestPaths(
-    options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
+    options?: Partial<TraversalOptions<TInternalState, TEvent>>
+  ): Array<TestPath<TInternalState, TEvent>> {
     return this.getPaths(createShortestPathsGen(), options);
   }
 
   public getShortestPathsFrom(
-    paths: Array<TestPath<TState, TEvent>>,
-    options?: Partial<TraversalOptions<TState, any>>
-  ): Array<TestPath<TState, TEvent>> {
-    const resultPaths: TestPath<TState, TEvent>[] = [];
+    paths: Array<TestPath<TInternalState, TEvent>>,
+    options?: Partial<TraversalOptions<TInternalState, any>>
+  ): Array<TestPath<TInternalState, TEvent>> {
+    const resultPaths: TestPath<TInternalState, TEvent>[] = [];
 
     for (const path of paths) {
       const shortestPaths = this.getShortestPaths({
@@ -107,16 +129,16 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getSimplePaths(
-    options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
+    options?: Partial<TraversalOptions<TInternalState, TEvent>>
+  ): Array<TestPath<TInternalState, TEvent>> {
     return this.getPaths(createSimplePathsGen(), options);
   }
 
   public getSimplePathsFrom(
-    paths: Array<TestPath<TState, TEvent>>,
-    options?: Partial<TraversalOptions<TState, any>>
-  ): Array<TestPath<TState, TEvent>> {
-    const resultPaths: TestPath<TState, TEvent>[] = [];
+    paths: Array<TestPath<TInternalState, TEvent>>,
+    options?: Partial<TraversalOptions<TInternalState, any>>
+  ): Array<TestPath<TInternalState, TEvent>> {
+    const resultPaths: TestPath<TInternalState, TEvent>[] = [];
 
     for (const path of paths) {
       const shortestPaths = this.getSimplePaths({
@@ -132,8 +154,8 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   private toTestPath = (
-    statePath: StatePath<TState, TEvent>
-  ): TestPath<TState, TEvent> => {
+    statePath: StatePath<TInternalState, TEvent>
+  ): TestPath<TInternalState, TEvent> => {
     function formatEvent(event: EventObject): string {
       const { type, ...other } = event;
 
@@ -149,9 +171,9 @@ export class TestModel<TState, TEvent extends EventObject> {
       .join(' → ');
     return {
       ...statePath,
-      test: (params: TestParam<TState, TEvent>) =>
+      test: (params: TestParam<TInternalState, TEvent>) =>
         this.testPath(statePath, params),
-      testSync: (params: TestParam<TState, TEvent>) =>
+      testSync: (params: TestParam<TInternalState, TEvent>) =>
         this.testPathSync(statePath, params),
       description: isStateLike(statePath.state)
         ? `Reaches ${getDescription(
@@ -163,14 +185,14 @@ export class TestModel<TState, TEvent extends EventObject> {
 
   public getPathsFromEvents(
     events: TEvent[],
-    options?: TraversalOptions<TState, TEvent>
-  ): Array<TestPath<TState, TEvent>> {
+    options?: TraversalOptions<TInternalState, TEvent>
+  ): Array<TestPath<TInternalState, TEvent>> {
     const paths = getPathsFromEvents(this.logic, events, options);
 
     return paths.map(this.toTestPath);
   }
 
-  public getAllStates(): TState[] {
+  public getAllStates(): TSnapshot[] {
     const adj = getAdjacencyMap(this.logic, this.options);
     return Object.values(adj).map((x) => x.state);
   }
@@ -180,23 +202,23 @@ export class TestModel<TState, TEvent extends EventObject> {
    * given the `event`.
    */
   public getAdjacencyList(): Array<{
-    state: TState;
+    state: TSnapshot;
     event: TEvent;
-    nextState: TState;
+    nextState: TSnapshot;
   }> {
     const adjMap = getAdjacencyMap(this.logic, this.options);
     const adjList: Array<{
-      state: TState;
+      state: TSnapshot;
       event: TEvent;
-      nextState: TState;
+      nextState: TSnapshot;
     }> = [];
 
     for (const adjValue of Object.values(adjMap)) {
       for (const transition of Object.values(
-        (adjValue as AdjacencyValue<TState, TEvent>).transitions
+        (adjValue as AdjacencyValue<TSnapshot, TEvent>).transitions
       )) {
         adjList.push({
-          state: (adjValue as AdjacencyValue<TState, TEvent>).state,
+          state: (adjValue as AdjacencyValue<TSnapshot, TEvent>).state,
           event: transition.event,
           nextState: transition.state
         });
@@ -207,9 +229,9 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public testPathSync(
-    path: StatePath<TState, TEvent>,
-    params: TestParam<TState, TEvent>,
-    options?: Partial<TestModelOptions<TState, TEvent>>
+    path: StatePath<TInternalState, TEvent>,
+    params: TestParam<TInternalState, TEvent>,
+    options?: Partial<TestModelOptions<TInternalState, TEvent>>
   ): TestPathResult {
     const testPathResult: TestPathResult = {
       steps: [],
@@ -254,9 +276,9 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public async testPath(
-    path: StatePath<TState, TEvent>,
-    params: TestParam<TState, TEvent>,
-    options?: Partial<TestModelOptions<TState, TEvent>>
+    path: StatePath<TInternalState, TEvent>,
+    params: TestParam<TInternalState, TEvent>,
+    options?: Partial<TestModelOptions<TInternalState, TEvent>>
   ): Promise<TestPathResult> {
     const testPathResult: TestPathResult = {
       steps: [],
@@ -301,9 +323,9 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public async testState(
-    params: TestParam<TState, TEvent>,
-    state: TState,
-    options?: Partial<TestModelOptions<TState, TEvent>>
+    params: TestParam<TInternalState, TEvent>,
+    state: TInternalState,
+    options?: Partial<TestModelOptions<TInternalState, TEvent>>
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
 
@@ -315,9 +337,9 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   private getStateTestKeys(
-    params: TestParam<TState, TEvent>,
-    state: TState,
-    resolvedOptions: TestModelOptions<TState, TEvent>
+    params: TestParam<TInternalState, TEvent>,
+    state: TInternalState,
+    resolvedOptions: TestModelOptions<TInternalState, TEvent>
   ) {
     const states = params.states || {};
     const stateTestKeys = Object.keys(states).filter((stateKey) => {
@@ -333,9 +355,9 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public testStateSync(
-    params: TestParam<TState, TEvent>,
-    state: TState,
-    options?: Partial<TestModelOptions<TState, TEvent>>
+    params: TestParam<TInternalState, TEvent>,
+    state: TInternalState,
+    options?: Partial<TestModelOptions<TInternalState, TEvent>>
   ): void {
     const resolvedOptions = this.resolveOptions(options);
 
@@ -350,8 +372,8 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   private getEventExec(
-    params: TestParam<TState, TEvent>,
-    step: Step<TState, TEvent>
+    params: TestParam<TInternalState, TEvent>,
+    step: Step<TInternalState, TEvent>
   ) {
     const eventExec =
       params.events?.[(step.event as any).type as TEvent['type']];
@@ -360,28 +382,28 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public async testTransition(
-    params: TestParam<TState, TEvent>,
-    step: Step<TState, TEvent>
+    params: TestParam<TInternalState, TEvent>,
+    step: Step<TInternalState, TEvent>
   ): Promise<void> {
     const eventExec = this.getEventExec(params, step);
-    await (eventExec as EventExecutor<TState, TEvent>)?.(step);
+    await (eventExec as EventExecutor<TInternalState, TEvent>)?.(step);
   }
 
   public testTransitionSync(
-    params: TestParam<TState, TEvent>,
-    step: Step<TState, TEvent>
+    params: TestParam<TInternalState, TEvent>,
+    step: Step<TInternalState, TEvent>
   ): void {
     const eventExec = this.getEventExec(params, step);
 
     errorIfPromise(
-      (eventExec as EventExecutor<TState, TEvent>)?.(step),
+      (eventExec as EventExecutor<TInternalState, TEvent>)?.(step),
       `The event '${step.event.type}' returned a promise - did you mean to use the sync method?`
     );
   }
 
   public resolveOptions(
-    options?: Partial<TestModelOptions<TState, TEvent>>
-  ): TestModelOptions<TState, TEvent> {
+    options?: Partial<TestModelOptions<TInternalState, TEvent>>
+  ): TestModelOptions<TInternalState, TEvent> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
 }

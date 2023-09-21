@@ -1,19 +1,29 @@
-import { ActorLogic, ActorSystem, EventObject } from 'xstate';
+import {
+  ActorInternalState,
+  ActorLogic,
+  ActorSystem,
+  EventObject
+} from 'xstate';
 import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
 
 export function getAdjacencyMap<
-  TEvent extends EventObject,
   TSnapshot,
-  TInternalState = TSnapshot,
+  TEvent extends EventObject,
+  TInput,
+  TOutput,
+  TInternalState extends ActorInternalState<
+    TSnapshot,
+    TOutput
+  > = ActorInternalState<TSnapshot, TOutput>,
   TPersisted = TInternalState,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
   logic: ActorLogic<
     TSnapshot,
     TEvent,
-    unknown,
-    unknown,
+    TInput,
+    TOutput,
     TInternalState,
     TPersisted,
     TSystem
@@ -31,7 +41,12 @@ export function getAdjacencyMap<
   } = resolveTraversalOptions(logic, options);
   const actorContext = { self: {} } as any; // TODO: figure out the simulation API
   const fromState =
-    customFromState ?? logic.getInitialState(actorContext, undefined);
+    customFromState ??
+    logic.getInitialState(
+      actorContext,
+      // TODO: fix this
+      undefined as TInput
+    );
   const adj: AdjacencyMap<TInternalState, TEvent> = {};
 
   let iterations = 0;
@@ -64,17 +79,17 @@ export function getAdjacencyMap<
       transitions: {}
     };
 
-    if (stopCondition && stopCondition(state)) {
+    if (stopCondition && stopCondition(state.snapshot)) {
       continue;
     }
 
     const events =
-      typeof getEvents === 'function' ? getEvents(state) : getEvents;
+      typeof getEvents === 'function' ? getEvents(state.snapshot) : getEvents;
 
     for (const nextEvent of events) {
       const nextState = transition(state, nextEvent, actorContext);
 
-      if (!options.filter || options.filter(nextState, nextEvent)) {
+      if (!options.filter || options.filter(nextState.snapshot, nextEvent)) {
         adj[serializedState].transitions[
           serializeEvent(nextEvent) as SerializedEvent
         ] = {

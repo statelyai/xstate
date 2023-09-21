@@ -6,7 +6,8 @@ import {
   assign,
   ActorRef,
   ActorRefFrom,
-  createActor
+  createActor,
+  ActorInternalState
 } from 'xstate';
 import { fireEvent, screen, render, waitFor } from 'solid-testing-library';
 import {
@@ -23,10 +24,8 @@ import { createStore, reconcile } from 'solid-js/store';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
   createActor({
-    transition: (s) => s,
-    getSnapshot: () => value,
-    getInitialState: () => value,
-    getOutput: () => undefined
+    transition: (s: ActorInternalState<T, unknown>) => s,
+    getInitialState: () => ({ status: { status: 'active' }, snapshot: value })
   });
 
 describe('useActor', () => {
@@ -650,10 +649,10 @@ describe('useActor', () => {
 
   it('should provide value from `actor.getSnapshot()` immediately', () => {
     const simpleActor = createActor({
-      transition: (s) => s,
-      getSnapshot: () => 42,
-      getInitialState: () => 42,
-      getOutput: () => undefined
+      transition: (s: ActorInternalState<number, unknown>) => s,
+      getInitialState: () => {
+        return { status: { status: 'active' }, snapshot: 42 };
+      }
     });
 
     const Test = () => {

@@ -1,6 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/vue';
-import { assign, createActor, createMachine } from 'xstate';
-import { CallbackActorLogic } from 'xstate/actors';
+import { PromiseActorLogic, assign, createActor, createMachine } from 'xstate';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
 import UseMachine from './UseMachine.vue';
 
@@ -13,7 +12,7 @@ describe('useMachine composition function', () => {
     types: {} as {
       actors: {
         src: 'fetchData';
-        logic: CallbackActorLogic<any>;
+        logic: PromiseActorLogic<string, unknown>;
       };
     },
     initial: 'idle',

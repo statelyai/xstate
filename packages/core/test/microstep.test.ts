@@ -32,7 +32,7 @@ describe('machine.microstep()', () => {
 
     const actorContext = null as any; // TODO: figure out the simulation API
     const states = machine.microstep(
-      machine.getInitialState(actorContext),
+      machine.getInitialState(actorContext).snapshot,
       { type: 'GO' },
       actorContext
     );
@@ -112,7 +112,7 @@ describe('machine.microstep()', () => {
 
     const actorContext = null as any; // TODO: figure out the simulation API
     const states = machine.microstep(
-      machine.getInitialState(actorContext),
+      machine.getInitialState(actorContext).snapshot,
       { type: 'TRIGGER' },
       actorContext
     );
@@ -155,7 +155,7 @@ describe('machine.microstep()', () => {
 
     const actorContext = null as any; // TODO: figure out the simulation API
     const states = machine.microstep(
-      machine.getInitialState(actorContext),
+      machine.getInitialState(actorContext).snapshot,
       { type: 'TRIGGER' },
       actorContext
     );

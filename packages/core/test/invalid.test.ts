@@ -23,10 +23,13 @@ describe('invalid or resolved states', () => {
     });
     expect(
       machine.transition(
-        machine.resolveStateValue('A'),
+        {
+          status: { status: 'active' },
+          snapshot: machine.resolveStateValue('A')
+        },
         { type: 'E' },
         {} as any // TODO: figure out the simulation API
-      ).value
+      ).snapshot.value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -55,10 +58,13 @@ describe('invalid or resolved states', () => {
     });
     expect(
       machine.transition(
-        machine.resolveStateValue({ A: {}, B: {} }),
+        {
+          status: { status: 'active' },
+          snapshot: machine.resolveStateValue({ A: {}, B: {} })
+        },
         { type: 'E' },
         {} as any // TODO: figure out the simulation API
-      ).value
+      ).snapshot.value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -86,7 +92,10 @@ describe('invalid or resolved states', () => {
       }
     });
     machine.transition(
-      machine.resolveStateValue({ A: 'A1', B: 'B1' }),
+      {
+        status: { status: 'active' },
+        snapshot: machine.resolveStateValue({ A: 'A1', B: 'B1' })
+      },
       { type: 'E' },
       {} as any // TODO: figure out the simulation API
     );
@@ -114,7 +123,10 @@ describe('invalid or resolved states', () => {
     });
     expect(() =>
       machine.transition(
-        machine.resolveStateValue({ A: 'A3', B: 'B3' }),
+        {
+          status: { status: 'active' },
+          snapshot: machine.resolveStateValue({ A: 'A3', B: 'B3' })
+        },
         { type: 'E' },
         {} as any // TODO: figure out the simulation API
       )
@@ -143,10 +155,13 @@ describe('invalid or resolved states', () => {
     });
     expect(
       machine.transition(
-        machine.resolveStateValue({ A: 'A1', B: {} }),
+        {
+          status: { status: 'active' },
+          snapshot: machine.resolveStateValue({ A: 'A1', B: {} })
+        },
         { type: 'E' },
         {} as any // TODO: figure out the simulation API
-      ).value
+      ).snapshot.value
     ).toEqual({
       A: 'A1',
       B: 'B1'

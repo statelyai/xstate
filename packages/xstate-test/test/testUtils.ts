@@ -2,7 +2,7 @@ import { TestModel } from '../src/TestModel';
 import { TestParam, TestPath } from '../src/types';
 
 const testModel = async (
-  model: TestModel<any, any>,
+  model: TestModel<any, any, any, any, any, any>,
   params: TestParam<any, any>
 ) => {
   for (const path of model.getShortestPaths()) {

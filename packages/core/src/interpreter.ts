@@ -210,7 +210,7 @@ export class Actor<
       }
     }
 
-    const status = this.logic.getStatus?.(state);
+    const status = this._state.status;
 
     switch (status?.status) {
       case 'done':
@@ -278,9 +278,9 @@ export class Actor<
     }
     this.status = ActorStatus.Running;
 
-    const status = this.logic.getStatus?.(this._state);
+    const status = this._state.status;
 
-    switch (status?.status) {
+    switch (status.status) {
       case 'done':
         // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
@@ -317,7 +317,7 @@ export class Actor<
   }
 
   public getStatus() {
-    return this.logic.getStatus!(this._state);
+    return this._state.status;
   }
 
   private _process(event: TEvent) {
@@ -511,9 +511,7 @@ export class Actor<
   }
 
   public getSnapshot(): SnapshotFrom<TLogic> {
-    return this.logic.getSnapshot
-      ? this.logic.getSnapshot(this._state)
-      : this._state;
+    return this._state.snapshot;
   }
 }
 

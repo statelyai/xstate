@@ -1,4 +1,10 @@
-import { ActorLogic, ActorSystem, AnyStateMachine, EventObject } from 'xstate';
+import {
+  ActorInternalState,
+  ActorLogic,
+  ActorSystem,
+  AnyStateMachine,
+  EventObject
+} from 'xstate';
 import { getAdjacencyMap } from './adjacency';
 import {
   SerializedEvent,
@@ -21,15 +27,20 @@ function isMachine(value: any): value is AnyStateMachine {
 export function getPathsFromEvents<
   TEvent extends EventObject,
   TSnapshot,
-  TInternalState = TSnapshot,
+  TInput,
+  TOutput,
+  TInternalState extends ActorInternalState<
+    TSnapshot,
+    TOutput
+  > = ActorInternalState<TSnapshot, TOutput>,
   TPersisted = TInternalState,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
   logic: ActorLogic<
     TSnapshot,
     TEvent,
-    unknown,
-    unknown,
+    TInput,
+    TOutput,
     TInternalState,
     TPersisted,
     TSystem
@@ -49,7 +60,12 @@ export function getPathsFromEvents<
   );
   const actorContext = { self: {} } as any; // TODO: figure out the simulation API
   const fromState =
-    resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
+    resolvedOptions.fromState ??
+    logic.getInitialState(
+      actorContext,
+      // TODO: fix this
+      undefined as TInput
+    );
 
   const { serializeState, serializeEvent } = resolvedOptions;
 
@@ -96,7 +112,7 @@ export function getPathsFromEvents<
 
   // If it is expected to reach a specific state (`toState`) and that state
   // isn't reached, there are no paths
-  if (resolvedOptions.toState && !resolvedOptions.toState(state)) {
+  if (resolvedOptions.toState && !resolvedOptions.toState(state.snapshot)) {
     return [];
   }
 

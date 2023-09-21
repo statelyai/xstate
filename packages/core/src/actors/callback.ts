@@ -5,15 +5,15 @@ import {
   AnyEventObject,
   ActorSystem,
   ActorRefFrom,
-  TODO
+  TODO,
+  ActorInternalState
 } from '../types';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
 export interface CallbackInternalState<
   TEvent extends EventObject,
   TInput = unknown
-> {
-  canceled: boolean;
+> extends ActorInternalState<undefined, TEvent> {
   receivers: Set<(e: TEvent) => void>;
   dispose: (() => void) | void;
   input: TInput;
@@ -28,7 +28,7 @@ export type CallbackActorLogic<
   TInput,
   unknown,
   CallbackInternalState<TEvent, TInput>,
-  Pick<CallbackInternalState<TEvent, TInput>, 'input' | 'canceled'>,
+  Pick<CallbackInternalState<TEvent, TInput>, 'input'>,
   ActorSystem<any>
 >;
 
@@ -72,7 +72,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
     transition: (state, event, { self, id, system }) => {
       if (event.type === XSTATE_INIT) {
         const sendBack = (eventForParent: AnyEventObject) => {
-          if (state.canceled) {
+          if (state.status.status === 'stopped') {
             return;
           }
 
@@ -95,7 +95,12 @@ export function fromCallback<TEvent extends EventObject, TInput>(
       }
 
       if (event.type === XSTATE_STOP) {
-        state.canceled = true;
+        state = {
+          ...state,
+          status: {
+            status: 'stopped'
+          }
+        };
 
         if (typeof state.dispose === 'function') {
           state.dispose();
@@ -109,13 +114,13 @@ export function fromCallback<TEvent extends EventObject, TInput>(
     },
     getInitialState: (_, input) => {
       return {
-        canceled: false,
+        status: { status: 'active' },
+        snapshot: undefined,
         receivers: new Set(),
         dispose: undefined,
         input
       };
-    },
-    getSnapshot: () => undefined,
-    getPersistedState: ({ input, canceled }) => ({ input, canceled })
+    }
+    // getPersistedState: ({ input }) => ({ input, canceled })
   };
 }

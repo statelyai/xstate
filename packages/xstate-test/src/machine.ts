@@ -10,7 +10,8 @@ import {
   TypegenConstraint,
   TypegenDisabled,
   MachineContext,
-  StateValue
+  StateValue,
+  ActorInternalState
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -67,19 +68,23 @@ function stateValuesEqual(
 }
 
 function serializeMachineTransition(
-  state: AnyState,
+  state: ActorInternalState<AnyState, unknown>,
   event: AnyEventObject | undefined,
-  prevState: AnyState | undefined,
+  prevState: ActorInternalState<AnyState, unknown> | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
   // TODO: the stateValuesEqual check here is very likely not exactly correct
   // but I'm not sure what the correct check is and what this is trying to do
-  if (!event || (prevState && stateValuesEqual(prevState.value, state.value))) {
+  if (
+    !event ||
+    (prevState &&
+      stateValuesEqual(prevState.snapshot.value, state.snapshot.value))
+  ) {
     return '';
   }
 
   const prevStateString = prevState
-    ? ` from ${simpleStringify(prevState.value)}`
+    ? ` from ${simpleStringify(prevState.snapshot.value)}`
     : '';
 
   return ` via ${serializeEvent(event)}${prevStateString}`;
@@ -111,8 +116,20 @@ function serializeMachineTransition(
  */
 export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: Partial<TestModelOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
-): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
+  options?: Partial<
+    TestModelOptions<
+      ActorInternalState<StateFrom<TMachine>, unknown>,
+      EventFrom<TMachine>
+    >
+  >
+): TestModel<
+  StateFrom<TMachine>,
+  EventFrom<TMachine>,
+  unknown,
+  unknown,
+  ActorInternalState<StateFrom<TMachine>, unknown>,
+  unknown
+> {
   validateMachine(machine);
 
   const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
@@ -122,44 +139,48 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     options?.serializeTransition ?? serializeMachineTransition;
   const { events: getEvents, ...otherOptions } = options ?? {};
 
-  const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
-    machine as any,
-    {
-      serializeState: (state, event, prevState) => {
-        // Only consider the `state` if `serializeTransition()` is opted out (empty string)
-        return `${serializeState(state)}${serializeTransition(
-          state,
-          event,
-          prevState,
-          {
-            serializeEvent
-          }
-        )}` as SerializedState;
-      },
-      stateMatcher: (state, key) => {
-        return key.startsWith('#')
-          ? state.configuration.includes(machine.getStateNodeById(key))
-          : state.matches(key);
-      },
-      events: (state) => {
-        const events =
-          typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+  const testModel = new TestModel<
+    StateFrom<TMachine>,
+    EventFrom<TMachine>,
+    unknown,
+    unknown,
+    ActorInternalState<StateFrom<TMachine>, unknown>,
+    any
+  >(machine as any, {
+    serializeState: (state, event, prevState) => {
+      // Only consider the `state` if `serializeTransition()` is opted out (empty string)
+      return `${serializeState(state)}${serializeTransition(
+        state,
+        event,
+        prevState,
+        {
+          serializeEvent
+        }
+      )}` as SerializedState;
+    },
+    stateMatcher: (state, key) => {
+      return key.startsWith('#')
+        ? state.snapshot.configuration.includes(machine.getStateNodeById(key))
+        : state.snapshot.matches(key);
+    },
+    events: (state) => {
+      const events =
+        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
-        return flatten(
-          state.nextEvents.map((eventType) => {
+      return flatten(
+        state.nextEvents.map((eventType) => {
+          // @ts-ignore
+          if (events.some((e) => e.type === eventType)) {
             // @ts-ignore
-            if (events.some((e) => e.type === eventType)) {
-              // @ts-ignore
-              return events.filter((e) => e.type === eventType);
-            }
+            return events.filter((e) => e.type === eventType);
+          }
 
-            return [{ type: eventType } as any]; // TODO: fix types
-          })
-        );
-      },
-      ...otherOptions
-    }
-  );
+          return [{ type: eventType } as any]; // TODO: fix types
+        })
+      );
+    },
+    ...otherOptions
+  });
 
   return testModel;
 }

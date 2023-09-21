@@ -66,12 +66,15 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('green'),
+          {
+            status: { status: 'active' },
+            snapshot: lightMachine.resolveStateValue('green')
+          },
           {
             type: 'TIMER'
           },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual('yellow');
     });
 
@@ -102,7 +105,10 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(() =>
         lightMachine.transition(
-          testMachine.resolveStateValue('red'),
+          {
+            status: { status: 'active' },
+            snapshot: testMachine.resolveStateValue('red')
+          },
           undefined as any,
           actorContext
         )
@@ -113,10 +119,13 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(
         testMachine.transition(
-          testMachine.resolveStateValue('a'),
+          {
+            status: { status: 'active' },
+            snapshot: testMachine.resolveStateValue('a')
+          },
           { type: 'T' },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual({
         b: 'b1'
       });
@@ -126,7 +135,10 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(() =>
         testMachine.transition(
-          testMachine.resolveStateValue('fake'),
+          {
+            status: { status: 'active' },
+            snapshot: testMachine.resolveStateValue('fake')
+          },
           { type: 'T' },
           actorContext
         )
@@ -137,7 +149,10 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(() =>
         testMachine.transition(
-          testMachine.resolveStateValue('a.fake'),
+          {
+            status: { status: 'active' },
+            snapshot: testMachine.resolveStateValue('a.fake')
+          },
           {
             type: 'T'
           },
@@ -153,7 +168,7 @@ describe('deterministic machine', () => {
           lightMachine.getInitialState(actorContext),
           { type: 'TIMER' },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual('yellow');
     });
 
@@ -164,7 +179,7 @@ describe('deterministic machine', () => {
           lightMachine.getInitialState(actorContext),
           { type: 'TIMER' },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual('yellow');
     });
   });
@@ -175,10 +190,13 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue({ red: 'walk' }),
+          {
+            status: { status: 'active' },
+            snapshot: lightMachine.resolveStateValue({ red: 'walk' })
+          },
           { type: 'PED_COUNTDOWN' },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual({ red: 'wait' });
     });
 
@@ -186,12 +204,15 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('red'),
+          {
+            status: { status: 'active' },
+            snapshot: lightMachine.resolveStateValue('red')
+          },
           {
             type: 'PED_COUNTDOWN'
           },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual({
         red: 'wait'
       });
@@ -201,12 +222,15 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('red'),
+          {
+            status: { status: 'active' },
+            snapshot: lightMachine.resolveStateValue('red')
+          },
           {
             type: 'PED_COUNTDOWN'
           },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual({
         red: 'wait'
       });
@@ -216,10 +240,13 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue({ red: 'stop' }),
+          {
+            status: { status: 'active' },
+            snapshot: lightMachine.resolveStateValue({ red: 'stop' })
+          },
           { type: 'TIMER' },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual('green');
     });
 
@@ -255,12 +282,15 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('yellow'),
+          {
+            status: { status: 'active' },
+            snapshot: lightMachine.resolveStateValue('yellow')
+          },
           {
             type: 'TIMER'
           },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual({
         red: 'walk'
       });
@@ -283,7 +313,7 @@ describe('deterministic machine', () => {
         actorContext
       );
 
-      expect(initialState.value).toEqual(nextState.value);
+      expect(initialState.snapshot.value).toEqual(nextState.snapshot.value);
       expect(nextState).toBe(initialState);
     });
   });
@@ -317,7 +347,7 @@ describe('deterministic machine', () => {
           machine.getInitialState(actorContext),
           { type: 'NEXT' },
           actorContext
-        ).value
+        ).snapshot.value
       ).toEqual('test');
     });
   });
@@ -327,12 +357,15 @@ describe('deterministic machine', () => {
       const actorContext = null as any; // TODO: figure out the simulation API
 
       const walkState = lightMachine.transition(
-        lightMachine.resolveStateValue({ red: 'walk' }),
+        {
+          status: { status: 'active' },
+          snapshot: lightMachine.resolveStateValue({ red: 'walk' })
+        },
         { type: 'TIMER' },
         actorContext
       );
 
-      expect(walkState.value).toEqual({ red: 'walk' });
+      expect(walkState.snapshot.value).toEqual({ red: 'walk' });
     });
   });
 });
