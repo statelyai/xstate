@@ -594,7 +594,7 @@ describe('filtering', () => {
 
     const sp = getShortestPaths(machine, {
       events: [{ type: 'INC' }],
-      filter: (s) => s.context.count < 5
+      filter: (s) => s.snapshot.context.count < 5
     });
 
     expect(sp.map((p) => p.state.snapshot.context)).toMatchInlineSnapshot(`

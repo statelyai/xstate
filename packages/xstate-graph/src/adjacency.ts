@@ -79,17 +79,17 @@ export function getAdjacencyMap<
       transitions: {}
     };
 
-    if (stopCondition && stopCondition(state.snapshot)) {
+    if (stopCondition && stopCondition(state)) {
       continue;
     }
 
     const events =
-      typeof getEvents === 'function' ? getEvents(state.snapshot) : getEvents;
+      typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
       const nextState = transition(state, nextEvent, actorContext);
 
-      if (!options.filter || options.filter(nextState.snapshot, nextEvent)) {
+      if (!options.filter || options.filter(nextState, nextEvent)) {
         adj[serializedState].transitions[
           serializeEvent(nextEvent) as SerializedEvent
         ] = {

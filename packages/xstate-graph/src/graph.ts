@@ -89,7 +89,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
       const events =
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
       return flatten(
-        state.nextEvents.map((type) => {
+        state.snapshot.nextEvents.map((type) => {
           const matchingEvents = events.filter(
             (ev) => (ev as any).type === type
           );

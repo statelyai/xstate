@@ -158,7 +158,7 @@ describe('die hard example', () => {
     const dieHardModel = createDieHardModel();
 
     const paths = dieHardModel.model.getShortestPaths({
-      toState: (state) => state.matches('success')
+      toState: (state) => state.snapshot.matches('success')
     });
 
     it('should generate the right number of paths', () => {
@@ -177,7 +177,7 @@ describe('die hard example', () => {
   describe('testing a model (simplePathsTo)', () => {
     const dieHardModel = createDieHardModel();
     const paths = dieHardModel.model.getSimplePaths({
-      toState: (state) => state.matches('success')
+      toState: (state) => state.snapshot.matches('success')
     });
 
     it('should generate the right number of paths', () => {
@@ -207,7 +207,7 @@ describe('die hard example', () => {
         { type: 'FILL_5' },
         { type: 'POUR_5_TO_3' }
       ],
-      { toState: (state) => state.matches('success') }
+      { toState: (state) => state.snapshot.matches('success') }
     )[0];
 
     describe(`reaches state ${JSON.stringify(
@@ -222,7 +222,7 @@ describe('die hard example', () => {
       const paths = dieHardModel.model.getPathsFromEvents(
         [{ type: 'FILL_5' }],
         {
-          toState: (state) => state.matches('success')
+          toState: (state) => state.snapshot.matches('success')
         }
       );
 
@@ -234,7 +234,10 @@ describe('die hard example', () => {
     const dieHardModel = createDieHardModel();
     const paths = dieHardModel.model.getSimplePaths({
       toState: (state) => {
-        return state.matches('success') && state.context.three === 0;
+        return (
+          state.snapshot.matches('success') &&
+          state.snapshot.context.three === 0
+        );
       }
     });
 
@@ -275,14 +278,14 @@ describe('error path trace', () => {
     it('should generate the right number of paths', () => {
       expect(
         testModel.getShortestPaths({
-          toState: (state) => state.matches('third')
+          toState: (state) => state.snapshot.matches('third')
         }).length
       ).toEqual(1);
     });
 
     it('should show an error path trace', async () => {
       const path = testModel.getShortestPaths({
-        toState: (state) => state.matches('third')
+        toState: (state) => state.snapshot.matches('third')
       })[0];
       try {
         await testModel.testPath(path, {

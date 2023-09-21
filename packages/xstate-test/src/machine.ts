@@ -168,7 +168,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
       return flatten(
-        state.nextEvents.map((eventType) => {
+        state.snapshot.nextEvents.map((eventType) => {
           // @ts-ignore
           if (events.some((e) => e.type === eventType)) {
             // @ts-ignore

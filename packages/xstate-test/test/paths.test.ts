@@ -47,7 +47,7 @@ describe('testModel.testPaths(...)', () => {
       const initialState = logic.getInitialState(actorContext, undefined);
       const events =
         typeof options.events === 'function'
-          ? options.events(initialState.snapshot)
+          ? options.events(initialState)
           : options.events ?? [];
 
       const nextState = logic.transition(initialState, events[0], actorContext);
@@ -246,7 +246,7 @@ describe('getShortestPathsTo', () => {
   });
   it('Should find a path to a non-initial target state', () => {
     const closedPaths = createTestModel(machine).getShortestPaths({
-      toState: (state) => state.matches('closed')
+      toState: (state) => state.snapshot.matches('closed')
     });
 
     expect(closedPaths).toHaveLength(1);
@@ -254,7 +254,7 @@ describe('getShortestPathsTo', () => {
 
   it('Should find a path to an initial target state', () => {
     const openPaths = createTestModel(machine).getShortestPaths({
-      toState: (state) => state.matches('open')
+      toState: (state) => state.snapshot.matches('open')
     });
 
     expect(openPaths).toHaveLength(1);
@@ -282,7 +282,7 @@ describe('getShortestPathsFrom', () => {
     });
     const model = createTestModel(machine);
     const pathsToB = model.getShortestPaths({
-      toState: (state) => state.matches('b')
+      toState: (state) => state.snapshot.matches('b')
     });
 
     // a (NEXT) -> b
@@ -321,7 +321,7 @@ describe('getShortestPathsFrom', () => {
       });
       const model = createTestModel(machine);
       const pathsToB = model.getSimplePaths({
-        toState: (state) => state.matches('b')
+        toState: (state) => state.snapshot.matches('b')
       });
 
       // a (NEXT) -> b

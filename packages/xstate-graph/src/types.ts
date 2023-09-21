@@ -180,10 +180,8 @@ export interface TraversalConfig<
    * Determines whether to traverse a transition from `state` on
    * `event` when building the adjacency map.
    */
-  filter: (state: TInternalState['snapshot'], event: TEvent) => boolean;
-  events:
-    | readonly TEvent[]
-    | ((state: TInternalState['snapshot']) => readonly TEvent[]);
+  filter: (state: TInternalState, event: TEvent) => boolean;
+  events: readonly TEvent[] | ((state: TInternalState) => readonly TEvent[]);
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.
@@ -196,8 +194,8 @@ export interface TraversalConfig<
    * When true, traversal of the adjacency map will stop
    * for that current state.
    */
-  stopCondition: ((state: TInternalState['snapshot']) => boolean) | undefined;
-  toState: ((state: TInternalState['snapshot']) => boolean) | undefined;
+  stopCondition: ((state: TInternalState) => boolean) | undefined;
+  toState: ((state: TInternalState) => boolean) | undefined;
 }
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };

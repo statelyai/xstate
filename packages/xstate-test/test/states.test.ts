@@ -29,16 +29,16 @@ describe('states', () => {
     await testUtils.testModel(testModel, {
       states: {
         a: (state) => {
-          testedStateValues.push(state.value);
+          testedStateValues.push(state.snapshot.value);
         },
         b: (state) => {
-          testedStateValues.push(state.value);
+          testedStateValues.push(state.snapshot.value);
         },
         'b.b1': (state) => {
-          testedStateValues.push(state.value);
+          testedStateValues.push(state.snapshot.value);
         },
         'b.b2': (state) => {
-          testedStateValues.push(state.value);
+          testedStateValues.push(state.snapshot.value);
         }
       }
     });
@@ -93,16 +93,16 @@ describe('states', () => {
     await testUtils.testModel(testModel, {
       states: {
         '#state_a': (state) => {
-          testedStateValues.push(state.value);
+          testedStateValues.push(state.snapshot.value);
         },
         '#state_b': (state) => {
-          testedStateValues.push(state.value);
+          testedStateValues.push(state.snapshot.value);
         },
         '#state_b1': (state) => {
-          testedStateValues.push(state.value);
+          testedStateValues.push(state.snapshot.value);
         },
         '#state_b2': (state) => {
-          testedStateValues.push(state.value);
+          testedStateValues.push(state.snapshot.value);
         }
       }
     });
