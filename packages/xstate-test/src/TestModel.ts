@@ -175,11 +175,11 @@ export class TestModel<
         this.testPath(statePath, params),
       testSync: (params: TestParam<TInternalState, TEvent>) =>
         this.testPathSync(statePath, params),
-      description: isStateLike(statePath.state)
+      description: isStateLike(statePath.state.snapshot)
         ? `Reaches ${getDescription(
-            statePath.state as any
+            statePath.state.snapshot as any
           ).trim()}: ${eventsString}`
-        : JSON.stringify(statePath.state)
+        : JSON.stringify(statePath.state.snapshot)
     };
   };
 

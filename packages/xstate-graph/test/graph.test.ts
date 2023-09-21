@@ -1,11 +1,12 @@
 import {
   StateNode,
   createMachine,
-  State,
   EventObject,
   StateValue,
   AnyState,
-  assign
+  assign,
+  ActorInternalState,
+  State
 } from 'xstate';
 import {
   getStateNodes,
@@ -18,19 +19,27 @@ import {
 import { joinPaths } from '../src/graph';
 
 function getPathsSnapshot(
-  paths: Array<StatePath<any, EventObject>>
-): Array<ReturnType<typeof getPathSnapshot>> {
+  paths: Array<StatePath<ActorInternalState<any, unknown>, EventObject>>
+) {
   return paths.map((path) => getPathSnapshot(path));
 }
 
-function getPathSnapshot(path: StatePath<any, any>): {
+function getPathSnapshot(
+  path: StatePath<ActorInternalState<any, unknown>, any>
+): {
   state: StateValue;
   steps: Array<{ state: StateValue; eventType: string }>;
 } {
   return {
-    state: path.state instanceof State ? path.state.value : path.state,
+    state:
+      path.state.snapshot instanceof State
+        ? path.state.snapshot.value
+        : path.state.snapshot,
     steps: path.steps.map((step) => ({
-      state: step.state instanceof State ? step.state.value : step.state,
+      state:
+        step.state.snapshot instanceof State
+          ? step.state.snapshot.value
+          : step.state.snapshot,
       eventType: step.event.type
     }))
   };
