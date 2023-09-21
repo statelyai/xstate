@@ -125,7 +125,10 @@ describe('state meta data', () => {
     });
 
     const actor = createActor(machine, {
-      state: machine.resolveStateValue('second')
+      state: {
+        status: { status: 'active' },
+        snapshot: machine.resolveStateValue('second')
+      }
     });
     actor.start();
 

@@ -6,7 +6,8 @@ import {
   AnyState,
   assign,
   ActorInternalState,
-  State
+  State,
+  fromTransition
 } from 'xstate';
 import {
   getStateNodes,
@@ -529,53 +530,43 @@ describe('@xstate/graph', () => {
 });
 
 it('simple paths for transition functions', () => {
-  const a = getShortestPaths(
-    {
-      transition: (s, e) => {
-        if (e.type === 'a') {
-          return 1;
-        }
-        if (e.type === 'b' && s === 1) {
-          return 2;
-        }
-        if (e.type === 'reset') {
-          return 0;
-        }
-        return s;
-      },
-      getInitialState: () => 0
-    },
-    {
-      events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
-      serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
+  const transition = fromTransition((s, e) => {
+    if (e.type === 'a') {
+      return 1;
     }
-  );
+    if (e.type === 'b' && s === 1) {
+      return 2;
+    }
+    if (e.type === 'reset') {
+      return 0;
+    }
+    return s;
+  }, 0);
+  const a = getShortestPaths(transition, {
+    events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
+    serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
+  });
 
   expect(getPathsSnapshot(a)).toMatchSnapshot();
 });
 
 it('shortest paths for transition functions', () => {
-  const a = getSimplePaths(
-    {
-      transition: (s, e) => {
-        if (e.type === 'a') {
-          return 1;
-        }
-        if (e.type === 'b' && s === 1) {
-          return 2;
-        }
-        if (e.type === 'reset') {
-          return 0;
-        }
-        return s;
-      },
-      getInitialState: () => 0
-    },
-    {
-      events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
-      serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
+  const transition = fromTransition((s, e) => {
+    if (e.type === 'a') {
+      return 1;
     }
-  );
+    if (e.type === 'b' && s === 1) {
+      return 2;
+    }
+    if (e.type === 'reset') {
+      return 0;
+    }
+    return s;
+  }, 0);
+  const a = getSimplePaths(transition, {
+    events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
+    serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
+  });
 
   expect(getPathsSnapshot(a)).toMatchSnapshot();
 });

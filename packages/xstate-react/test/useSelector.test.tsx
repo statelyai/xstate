@@ -556,7 +556,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         return { unsubscribe: () => {} };
       },
       getSnapshot: () => undefined,
-      getInitialState: () => undefined,
+      getInitialState: () => {
+        return {
+          status: { status: 'active' },
+          snapshot: undefined
+        };
+      },
       getOutput: () => undefined
     });
 

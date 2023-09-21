@@ -15,9 +15,10 @@ describe('rehydration', () => {
       const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
-      const restoredState = machine.createState(JSON.parse(persistedState));
 
-      const service = createActor(machine, { state: restoredState }).start();
+      const service = createActor(machine, {
+        state: JSON.parse(persistedState)
+      }).start();
 
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
@@ -58,7 +59,12 @@ describe('rehydration', () => {
         createActor(machine).start().getSnapshot()
       );
       const restoredState = JSON.parse(persistedState);
-      const service = createActor(machine, { state: restoredState }).start();
+      const service = createActor(machine, {
+        state: {
+          status: { status: 'active' },
+          snapshot: restoredState
+        }
+      }).start();
 
       expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
@@ -79,7 +85,12 @@ describe('rehydration', () => {
       });
 
       const activeState = machine.resolveStateValue('active');
-      const service = createActor(machine, { state: activeState });
+      const service = createActor(machine, {
+        state: {
+          status: { status: 'active' },
+          snapshot: activeState
+        }
+      });
 
       service.start();
 
