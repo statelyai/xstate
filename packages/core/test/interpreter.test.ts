@@ -1062,7 +1062,10 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: State.from('bar', undefined, machine)
+        state: {
+          status: { status: 'active' },
+          snapshot: State.from('bar', undefined, machine)
+        }
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1079,7 +1082,10 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveStateValue('bar')
+        state: {
+          status: { status: 'active' },
+          snapshot: machine.resolveStateValue('bar')
+        }
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1102,7 +1108,10 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveStateValue('foo')
+        state: {
+          status: { status: 'active' },
+          snapshot: machine.resolveStateValue('foo')
+        }
       });
 
       expect(actor.getSnapshot().matches({ foo: 'one' })).toBeTruthy();
