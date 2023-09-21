@@ -628,9 +628,11 @@ describe('State', () => {
       const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
-      const restoredState = machine.createState(JSON.parse(persistedState));
+      const restoredSnapshot = machine.createState(
+        JSON.parse(persistedState).snapshot
+      );
 
-      expect(restoredState.hasTag('foo')).toBe(true);
+      expect(restoredSnapshot.hasTag('foo')).toBe(true);
     });
   });
 });

@@ -9,7 +9,12 @@ import { useActor } from '../src/index.ts';
 const simpleActor: ActorRef<any, number> = createActor({
   transition: (s) => s,
   getSnapshot: () => 42,
-  getInitialState: () => 42,
+  getInitialState: () => {
+    return {
+      status: { status: 'active' },
+      snapshot: 42
+    };
+  },
   subscribe: () => {
     return {
       unsubscribe: () => {

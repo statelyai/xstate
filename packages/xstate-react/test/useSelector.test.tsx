@@ -342,9 +342,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue,
-        getOutput: () => undefined
+        getInitialState: () => ({
+          status: { status: 'active' },
+          snapshot: latestValue
+        })
       });
 
     const parentMachine = createMachine({
@@ -485,9 +486,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue,
-        getOutput: () => undefined
+        getInitialState: () => ({
+          status: { status: 'active' },
+          snapshot: latestValue
+        })
       });
 
     const parentMachine = createMachine({
@@ -523,9 +525,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue,
-        getOutput: () => undefined
+        getInitialState: () => ({
+          status: { status: 'active' },
+          snapshot: latestValue
+        })
       });
 
     const actor1 = createCustomActor('foo');
@@ -555,14 +558,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       subscribe: () => {
         return { unsubscribe: () => {} };
       },
-      getSnapshot: () => undefined,
       getInitialState: () => {
         return {
           status: { status: 'active' },
           snapshot: undefined
         };
-      },
-      getOutput: () => undefined
+      }
     });
 
     const App = ({ selector }: { selector: any }) => {

@@ -18,8 +18,10 @@ import { createActor } from 'xstate';
 const createSimpleActor = (value: number): ActorRef<any, number> =>
   createActor({
     transition: (s) => s,
-    getSnapshot: () => value,
-    getInitialState: () => value,
+    getInitialState: () => ({
+      status: { status: 'active' },
+      snapshot: value
+    }),
     subscribe: () => {
       return {
         unsubscribe: () => {
