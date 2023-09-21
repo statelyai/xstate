@@ -202,23 +202,23 @@ export class TestModel<
    * given the `event`.
    */
   public getAdjacencyList(): Array<{
-    state: TSnapshot;
+    state: TInternalState;
     event: TEvent;
-    nextState: TSnapshot;
+    nextState: TInternalState;
   }> {
     const adjMap = getAdjacencyMap(this.logic, this.options);
     const adjList: Array<{
-      state: TSnapshot;
+      state: TInternalState;
       event: TEvent;
-      nextState: TSnapshot;
+      nextState: TInternalState;
     }> = [];
 
     for (const adjValue of Object.values(adjMap)) {
       for (const transition of Object.values(
-        (adjValue as AdjacencyValue<TSnapshot, TEvent>).transitions
+        (adjValue as AdjacencyValue<TInternalState, TEvent>).transitions
       )) {
         adjList.push({
-          state: (adjValue as AdjacencyValue<TSnapshot, TEvent>).state,
+          state: (adjValue as AdjacencyValue<TInternalState, TEvent>).state,
           event: transition.event,
           nextState: transition.state
         });

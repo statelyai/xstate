@@ -39,7 +39,7 @@ describe('model.getAdjacencyList()', () => {
         .getAdjacencyList()
         .map(
           ({ state, event, nextState }) =>
-            `Given Mario is ${state.value}, when ${event.type}, then ${nextState.value}`
+            `Given Mario is ${state.snapshot.value}, when ${event.type}, then ${nextState.snapshot.value}`
         )
     ).toMatchInlineSnapshot(`
       [
