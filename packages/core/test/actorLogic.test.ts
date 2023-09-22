@@ -24,7 +24,7 @@ describe('promise logic (fromPromise)', () => {
 
     const snapshot = await waitFor(actor, (s) => s.output === 'hello');
 
-    expect(snapshot).toBe('hello');
+    expect(snapshot.output).toBe('hello');
   });
   it('should resolve', (done) => {
     const actor = createActor(fromPromise(() => Promise.resolve(42)));
@@ -71,7 +71,7 @@ describe('promise logic (fromPromise)', () => {
 
     const snapshot = await waitFor(actor, (s) => s.output === 42);
 
-    expect(snapshot).toBe(42);
+    expect(snapshot.output).toBe(42);
   });
 
   it('should not execute when reading initial state', async () => {
@@ -107,7 +107,7 @@ describe('promise logic (fromPromise)', () => {
     }).start();
 
     setTimeout(() => {
-      expect(restoredActor.getSnapshot()).toBe(42);
+      expect(restoredActor.getSnapshot().output).toBe(42);
       done();
     }, 20);
   });
@@ -138,7 +138,7 @@ describe('promise logic (fromPromise)', () => {
       const restoredActor = createActor(promiseLogic, {
         state: resolvedPersistedState
       }).start();
-      expect(restoredActor.getSnapshot()).toBe(42);
+      expect(restoredActor.getSnapshot().output).toBe(42);
       done();
     }, 5);
   });
@@ -169,7 +169,7 @@ describe('promise logic (fromPromise)', () => {
       state: resolvedPersistedState
     }).start();
 
-    expect(restoredActor.getSnapshot()).toBe(1);
+    expect(restoredActor.getSnapshot().output).toBe(1);
     expect(createdPromises).toBe(1);
   });
 
@@ -232,37 +232,34 @@ describe('transition function logic (fromTransition)', () => {
         if (event.type === 'toggle') {
           return {
             ...state,
-            status:
-              state.status === 'active'
-                ? ('inactive' as const)
-                : ('active' as const)
+            enabled: state.enabled === 'on' ? ('off' as const) : ('on' as const)
           };
         }
 
         return state;
       },
-      { status: 'active' as 'inactive' | 'active' }
+      { enabled: 'on' as 'off' | 'on' }
     );
 
     const actor = createActor(transitionLogic).start();
 
-    expect(actor.getSnapshot().status).toBe('active');
+    expect(actor.getSnapshot().context.enabled).toBe('on');
 
     actor.send({ type: 'toggle' });
 
-    expect(actor.getSnapshot().status).toBe('inactive');
+    expect(actor.getSnapshot().context.enabled).toBe('off');
   });
 
   it('should persist a transition function', () => {
     const logic = fromTransition(
       (state, event) => {
         if (event.type === 'activate') {
-          return { status: 'active' as const };
+          return { enabled: 'on' as const };
         }
         return state;
       },
       {
-        status: 'inactive' as 'inactive' | 'active'
+        enabled: 'off' as 'off' | 'on'
       }
     );
     const actor = createActor(logic).start();
@@ -270,14 +267,19 @@ describe('transition function logic (fromTransition)', () => {
     const persistedState = actor.getPersistedState();
 
     expect(persistedState).toEqual({
-      status: 'active'
+      status: 'active',
+      output: undefined,
+      error: undefined,
+      context: {
+        enabled: 'on'
+      }
     });
 
     const restoredActor = createActor(logic, { state: persistedState });
 
     restoredActor.start();
 
-    expect(restoredActor.getSnapshot().status).toBe('active');
+    expect(restoredActor.getSnapshot().context.enabled).toBe('on');
   });
 
   it('should have access to the system', () => {
@@ -311,16 +313,16 @@ describe('observable logic (fromObservable)', () => {
 
     const actor = createActor(observableLogic).start();
 
-    const snapshot = await waitFor(actor, (s) => s.output === 3);
+    const snapshot = await waitFor(actor, (s) => s.status === 'done');
 
-    expect(snapshot).toEqual(3);
+    expect(snapshot.context).toEqual(3);
   });
 
   it('should resolve', () => {
     const actor = createActor(fromObservable(() => of(42)));
     const spy = jest.fn();
 
-    actor.subscribe(spy);
+    actor.subscribe((snapshot) => spy(snapshot.context));
 
     actor.start();
 
@@ -332,7 +334,7 @@ describe('observable logic (fromObservable)', () => {
     const spy = jest.fn();
 
     actor.subscribe({
-      next: spy
+      next: (snapshot) => spy(snapshot.context)
     });
 
     actor.start();
@@ -344,7 +346,7 @@ describe('observable logic (fromObservable)', () => {
     const spy = jest.fn();
 
     actor.subscribe({
-      error: spy
+      next: (snapshot) => spy(snapshot.error)
     });
 
     actor.start();
@@ -500,7 +502,7 @@ describe('machine logic', () => {
         start: {
           invoke: {
             id: 'reducer',
-            src: fromTransition((s) => s, { status: 'active' })
+            src: fromTransition((s) => s, undefined)
           }
         }
       }
@@ -546,7 +548,7 @@ describe('machine logic', () => {
       }
     `);
 
-    expect(persistedState.children.b.state.snapshot).toEqual(
+    expect(persistedState.children.b.state).toEqual(
       expect.objectContaining({
         context: {
           count: 55
@@ -663,7 +665,7 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(actor.getPersistedState()?.children['child'].state.snapshot).toEqual(
+    expect(actor.getPersistedState()?.children['child'].state).toEqual(
       expect.objectContaining({
         value: 'inner'
       })

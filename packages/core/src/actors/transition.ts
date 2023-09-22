@@ -79,6 +79,8 @@ export function fromTransition<
             ? (initialContext as any)({ input })
             : initialContext
       };
-    }
+    },
+    getPersistedState: (state) => state,
+    restoreState: (state) => state
   };
 }
