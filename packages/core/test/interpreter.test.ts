@@ -68,7 +68,7 @@ describe('interpreter', () => {
       const machine = createMachine({
         initial: 'idle',
         context: {
-          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown, unknown>>
+          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown>>
         },
         states: {
           idle: {
@@ -1531,7 +1531,7 @@ describe('interpreter', () => {
           types: {} as {
             actors: {
               src: 'num';
-              logic: PromiseActorLogic<unknown, number>;
+              logic: PromiseActorLogic<number>;
             };
           },
           states: {

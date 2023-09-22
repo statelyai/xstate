@@ -1860,7 +1860,7 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<any, any, any, any, any, any, any, any, any>
     ? R
     : R extends Promise<infer U>
-    ? PromiseActorLogic<unknown, U>
+    ? PromiseActorLogic<U>
     : never
   : never;
 
@@ -1891,7 +1891,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         >
       >
     : R extends Promise<infer U>
-    ? ActorRefFrom<PromiseActorLogic<unknown, U>>
+    ? ActorRefFrom<PromiseActorLogic<U>>
     : R extends ActorLogic<
         infer TSnapshot,
         infer TEvent,

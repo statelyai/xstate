@@ -1221,7 +1221,7 @@ describe('invoke', () => {
               };
               actors: {
                 src: 'getRandomNumber';
-                logic: PromiseActorLogic<unknown, { result: number }>;
+                logic: PromiseActorLogic<{ result: number }>;
               };
             },
             context: {
@@ -2831,10 +2831,10 @@ describe('invoke', () => {
           actors: {
             src: 'search';
             logic: PromiseActorLogic<
+              number,
               {
                 endpoint: string;
-              },
-              number
+              }
             >;
           };
         },
@@ -2877,10 +2877,10 @@ describe('invoke', () => {
           actors: {
             src: 'search';
             logic: PromiseActorLogic<
+              number,
               {
                 endpoint: string;
-              },
-              number
+              }
             >;
           };
         },
@@ -3297,11 +3297,11 @@ describe('invoke input', () => {
           actors: {
             src: 'stringService';
             logic: PromiseActorLogic<
+              boolean,
               {
                 staticVal: string;
                 newCount: number;
-              },
-              boolean
+              }
             >;
           };
         },
