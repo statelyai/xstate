@@ -3,7 +3,7 @@ lockfileVersion: '6.0'
 dependencies:
   '@xstate/react':
     specifier: 4.0.0-beta.5
-    version: 4.0.0-beta.5(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.13)
+    version: 4.0.0-beta.5(@types/react@17.0.65)(react@17.0.2)(xstate@5.0.0-beta.13)
   react:
     specifier: ^17.0.2
     version: 17.0.2
@@ -16,8 +16,8 @@ dependencies:
 
 devDependencies:
   '@types/react':
-    specifier: ^17.0.59
-    version: 17.0.59
+    specifier: ^17.0.65
+    version: 17.0.65
   '@types/react-dom':
     specifier: ^17.0.20
     version: 17.0.20
@@ -25,8 +25,8 @@ devDependencies:
     specifier: ^4.9.5
     version: 4.9.5
   vite:
-    specifier: ^2.9.15
-    version: 2.9.15
+    specifier: ^2.9.16
+    version: 2.9.16
 
 packages:
 
@@ -39,26 +39,26 @@ packages:
     dev: true
     optional: true
 
-  /@types/prop-types@15.7.5:
-    resolution: {integrity: sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==}
+  /@types/prop-types@15.7.6:
+    resolution: {integrity: sha512-RK/kBbYOQQHLYj9Z95eh7S6t7gq4Ojt/NT8HTk8bWVhA5DaF+5SMnxHKkP4gPNN3wAZkKP+VjAf0ebtYzf+fxg==}
 
   /@types/react-dom@17.0.20:
     resolution: {integrity: sha512-4pzIjSxDueZZ90F52mU3aPoogkHIoSIDG+oQ+wQK7Cy2B9S+MvOqY0uEA/qawKz381qrEDkvpwyt8Bm31I8sbA==}
     dependencies:
-      '@types/react': 17.0.59
+      '@types/react': 17.0.65
     dev: true
 
-  /@types/react@17.0.59:
-    resolution: {integrity: sha512-gSON5zWYIGyoBcycCE75E9+r6dCC2dHdsrVkOEiIYNU5+Q28HcBAuqvDuxHcCbMfHBHdeT5Tva/AFn3rnMKE4g==}
+  /@types/react@17.0.65:
+    resolution: {integrity: sha512-oxur785xZYHvnI7TRS61dXbkIhDPnGfsXKv0cNXR/0ml4SipRIFpSMzA7HMEfOywFwJ5AOnPrXYTEiTRUQeGlQ==}
     dependencies:
-      '@types/prop-types': 15.7.5
+      '@types/prop-types': 15.7.6
       '@types/scheduler': 0.16.3
       csstype: 3.1.2
 
   /@types/scheduler@0.16.3:
     resolution: {integrity: sha512-5cJ8CB4yAx7BH1oMvdU0Jh9lrEXyPkar6F9G/ERswkCuvP4KQZfZkSjcMbAICCpQTN4OuZn8tz0HiKv9TGZgrQ==}
 
-  /@xstate/react@4.0.0-beta.5(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.13):
+  /@xstate/react@4.0.0-beta.5(@types/react@17.0.65)(react@17.0.2)(xstate@5.0.0-beta.13):
     resolution: {integrity: sha512-E/icGXFNnTJFk3aoA8VOKQ988+R2a9j/o4g6bFhBlitQuoFgtFYWUX/d1R+rc/xaYKIxtE/lPodzqCa5s39VHQ==}
     peerDependencies:
       '@xstate/fsm': ^3.0.0-beta.2
@@ -71,7 +71,7 @@ packages:
         optional: true
     dependencies:
       react: 17.0.2
-      use-isomorphic-layout-effect: 1.1.2(@types/react@17.0.59)(react@17.0.2)
+      use-isomorphic-layout-effect: 1.1.2(@types/react@17.0.65)(react@17.0.2)
       use-sync-external-store: 1.2.0(react@17.0.2)
       xstate: 5.0.0-beta.13
     transitivePeerDependencies:
@@ -290,8 +290,8 @@ packages:
       esbuild-windows-arm64: 0.14.54
     dev: true
 
-  /fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+  /fsevents@2.3.3:
+    resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
     requiresBuild: true
@@ -309,8 +309,8 @@ packages:
       function-bind: 1.1.1
     dev: true
 
-  /is-core-module@2.12.1:
-    resolution: {integrity: sha512-Q4ZuBAe2FUsKtyQJoQHlvP8OvBERxO3jEmy1I7hcRXcJBGGHFh/aJBswbXuS9sgrDH2QUO8ilkwNPHvHMd8clg==}
+  /is-core-module@2.13.0:
+    resolution: {integrity: sha512-Z7dk6Qo8pOCp3l4tsX2C5ZVas4V+UxwQodwZhLopL91TX8UyyHEXafPcyoeeWuLrwzHcr3igO78wNLwHJHsMCQ==}
     dependencies:
       has: 1.0.3
     dev: true
@@ -345,8 +345,8 @@ packages:
     resolution: {integrity: sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==}
     dev: true
 
-  /postcss@8.4.23:
-    resolution: {integrity: sha512-bQ3qMcpF6A/YjR55xtoTr0jGOlnPOKAIMdOWiv0EIT6HVPEaJiJB4NLljSbiHoC2RX7DN5Uvjtpbg1NPdwv1oA==}
+  /postcss@8.4.30:
+    resolution: {integrity: sha512-7ZEao1g4kd68l97aWG/etQKPKq07us0ieSZ2TnFDk11i0ZfDW2AwKHYU8qv4MZKqN2fdBfg+7q0ES06UA73C1g==}
     engines: {node: ^10 || ^12 || >=14}
     dependencies:
       nanoid: 3.3.6
@@ -373,11 +373,11 @@ packages:
       object-assign: 4.1.1
     dev: false
 
-  /resolve@1.22.2:
-    resolution: {integrity: sha512-Sb+mjNHOULsBv818T40qSPeRiuWLyaGMa5ewydRLFimneixmVy2zdivRl+AF6jaYPC8ERxGDmFSiqui6SfPd+g==}
+  /resolve@1.22.6:
+    resolution: {integrity: sha512-njhxM7mV12JfufShqGy3Rz8j11RPdLy4xi15UurGJeoHLfJpVXKdh3ueuOqbYUcDZnffr6X739JBo5LzyahEsw==}
     hasBin: true
     dependencies:
-      is-core-module: 2.12.1
+      is-core-module: 2.13.0
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
     dev: true
@@ -387,7 +387,7 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
   /scheduler@0.20.2:
@@ -413,7 +413,7 @@ packages:
     hasBin: true
     dev: true
 
-  /use-isomorphic-layout-effect@1.1.2(@types/react@17.0.59)(react@17.0.2):
+  /use-isomorphic-layout-effect@1.1.2(@types/react@17.0.65)(react@17.0.2):
     resolution: {integrity: sha512-49L8yCO3iGT/ZF9QttjwLF/ZD9Iwto5LnH5LmEdk/6cFmXddqi2ulF0edxTwjj+7mqvpVVGQWvbXZdn32wRSHA==}
     peerDependencies:
       '@types/react': '*'
@@ -422,7 +422,7 @@ packages:
       '@types/react':
         optional: true
     dependencies:
-      '@types/react': 17.0.59
+      '@types/react': 17.0.65
       react: 17.0.2
     dev: false
 
@@ -434,8 +434,8 @@ packages:
       react: 17.0.2
     dev: false
 
-  /vite@2.9.15:
-    resolution: {integrity: sha512-fzMt2jK4vQ3yK56te3Kqpkaeq9DkcZfBbzHwYpobasvgYmP2SoAr6Aic05CsB4CzCZbsDv4sujX3pkEGhLabVQ==}
+  /vite@2.9.16:
+    resolution: {integrity: sha512-X+6q8KPyeuBvTQV8AVSnKDvXoBMnTx8zxh54sOwmmuOdxkjMmEJXH2UEchA+vTMps1xw9vL64uwJOWryULg7nA==}
     engines: {node: '>=12.2.0'}
     hasBin: true
     peerDependencies:
@@ -451,11 +451,11 @@ packages:
         optional: true
     dependencies:
       esbuild: 0.14.54
-      postcss: 8.4.23
-      resolve: 1.22.2
+      postcss: 8.4.30
+      resolve: 1.22.6
       rollup: 2.77.3
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
   /xstate@5.0.0-beta.13:
