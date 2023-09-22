@@ -180,7 +180,7 @@ describe('invoke', () => {
     const childMachine = createMachine({
       id: 'fetch',
       types: {} as {
-        context: { userId: string | undefined };
+        context: { userId: string | undefined; user?: typeof user | undefined };
         events: {
           type: 'RESOLVE';
           user: typeof user;
@@ -205,12 +205,15 @@ describe('invoke', () => {
         },
         success: {
           type: 'final',
-          output: ({ event }) => ({ user: event.user })
+          entry: assign({
+            user: ({ event }) => event.user
+          })
         },
         failure: {
           entry: sendParent({ type: 'REJECT' })
         }
-      }
+      },
+      output: ({ context }) => ({ user: context.user })
     });
 
     const machine = createMachine({
@@ -547,10 +550,10 @@ describe('invoke', () => {
         initial: 'active',
         states: {
           active: {
-            type: 'final',
-            output: { secret: 'pingpong' }
+            type: 'final'
           }
-        }
+        },
+        output: { secret: 'pingpong' }
       });
 
       const pingMachine = createMachine({

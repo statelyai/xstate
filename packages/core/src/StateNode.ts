@@ -217,7 +217,8 @@ export class StateNode<
     this.exit = toArray(this.config.exit).slice();
 
     this.meta = this.config.meta;
-    this.output = this.type === 'final' ? this.config.output : undefined;
+    this.output =
+      this.type === 'final' || !this.parent ? this.config.output : undefined;
     this.tags = toArray(config.tags).slice();
   }
 
