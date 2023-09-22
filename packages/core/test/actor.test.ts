@@ -1456,7 +1456,7 @@ describe('actors', () => {
     const machine = createMachine({
       types: {} as {
         context: {
-          actorRef: CallbackActorRef<never>;
+          actorRef: CallbackActorRef<any>; // TODO: fix this
         };
       },
       initial: 'active',
@@ -1523,7 +1523,7 @@ describe('actors', () => {
     const machine = createMachine({
       types: {} as {
         context: {
-          actorRef: CallbackActorRef<never>;
+          actorRef: CallbackActorRef<any>; // TODO: fix this
         };
       },
       initial: 'active',
