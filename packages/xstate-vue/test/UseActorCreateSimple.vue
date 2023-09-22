@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div data-testid="state">{{ state }}</div>
+    <div data-testid="state">{{ state.context }}</div>
     <button
       data-testid="button"
       @click="actor = createSimpleActor(100)"

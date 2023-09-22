@@ -372,7 +372,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       const value = useSelector(actor, identitySelector);
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container } = render(<App />);
@@ -518,7 +518,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       const value = useSelector(actor, identitySelector);
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container } = render(<App />);
@@ -551,7 +551,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         identitySelector
       );
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container, rerender } = render(<App prop="first" />);

@@ -625,9 +625,7 @@ describe('State', () => {
       const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
-      const restoredSnapshot = machine.createState(
-        JSON.parse(persistedState).snapshot
-      );
+      const restoredSnapshot = machine.createState(JSON.parse(persistedState));
 
       expect(restoredSnapshot.hasTag('foo')).toBe(true);
     });

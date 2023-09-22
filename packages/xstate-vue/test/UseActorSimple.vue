@@ -1,5 +1,5 @@
 <template>
-  <div data-testid="state">{{ state }}</div>
+  <div data-testid="state">{{ state.context }}</div>
 </template>
 
 <script lang="ts">
