@@ -19,7 +19,8 @@ import {
   createMachine,
   createActor,
   sendParent,
-  EventFrom
+  EventFrom,
+  Snapshot
 } from '../src/index.ts';
 
 const user = { name: 'David' };
@@ -870,7 +871,7 @@ describe('invoke', () => {
         const service = createActor(promiseMachine);
         service.subscribe({
           error(err) {
-            expect(err.message).toEqual(expect.stringMatching(/test/));
+            expect((err as any).message).toEqual(expect.stringMatching(/test/));
             done();
           }
         });
@@ -906,7 +907,7 @@ describe('invoke', () => {
         actor.subscribe({
           error: (err) => {
             expect(err).toBeInstanceOf(Error);
-            expect(err.message).toBe('test');
+            expect((err as any).message).toBe('test');
             expect(completeSpy).not.toHaveBeenCalled();
             done();
           },
@@ -1879,7 +1880,7 @@ describe('invoke', () => {
             invoke: {
               src: fromObservable(() => interval(10)),
               onSnapshot: {
-                actions: assign({ count: ({ event }) => event.data })
+                actions: assign({ count: ({ event }) => event.data.context })
               }
             },
             always: {
@@ -1923,7 +1924,7 @@ describe('invoke', () => {
               src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
-                  count: ({ event }) => event.data
+                  count: ({ event }) => event.data.context
                 })
               },
               onDone: {
@@ -1975,7 +1976,7 @@ describe('invoke', () => {
                 )
               ),
               onSnapshot: {
-                actions: assign({ count: ({ event }) => event.data })
+                actions: assign({ count: ({ event }) => event.data.context })
               },
               onError: {
                 target: 'success',
@@ -2011,7 +2012,7 @@ describe('invoke', () => {
           input: 42,
           onSnapshot: {
             actions: ({ event }) => {
-              expect(event.data).toEqual(42);
+              expect(event.data.context).toEqual(42);
               done();
             }
           }
@@ -2203,16 +2204,30 @@ describe('invoke', () => {
 
   describe('with logic', () => {
     it('should work with actor logic', (done) => {
-      const countLogic: ActorLogic<EventObject, number> = {
-        transition: (count, event) => {
+      const countLogic: ActorLogic<
+        Snapshot<undefined> & { context: number },
+        EventObject
+      > = {
+        transition: (state, event) => {
           if (event.type === 'INC') {
-            return count + 1;
+            return {
+              ...state,
+              context: state.context + 1
+            };
           } else if (event.type === 'DEC') {
-            return count - 1;
+            return {
+              ...state,
+              context: state.context - 1
+            };
           }
-          return count;
+          return state;
         },
-        getInitialState: () => 0
+        getInitialState: () => ({
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: 0
+        })
       };
 
       const countMachine = createMachine({
@@ -2229,7 +2244,7 @@ describe('invoke', () => {
 
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
-        if (state.children['count']?.getSnapshot() === 2) {
+        if (state.children['count']?.getSnapshot().context === 2) {
           done();
         }
       });
@@ -2240,15 +2255,19 @@ describe('invoke', () => {
     });
 
     it('logic should have reference to the parent', (done) => {
-      const pongLogic: ActorLogic<EventObject, undefined> = {
-        transition: (_, event, { self }) => {
+      const pongLogic: ActorLogic<Snapshot<undefined>, EventObject> = {
+        transition: (state, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
 
-          return undefined;
+          return state;
         },
-        getInitialState: () => undefined
+        getInitialState: () => ({
+          status: 'active',
+          output: undefined,
+          error: undefined
+        })
       };
 
       const pingMachine = createMachine({
@@ -2308,7 +2327,7 @@ describe('invoke', () => {
 
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
-        if (state.children['count']?.getSnapshot() === 2) {
+        if (state.children['count']?.getSnapshot().context === 2) {
           done();
         }
       });
@@ -2324,7 +2343,7 @@ describe('invoke', () => {
       const countReducer = (
         count: number,
         event: CountEvents,
-        { self }: ActorContext<CountEvents, any>
+        { self }: ActorContext<any, CountEvents>
       ): number => {
         if (event.type === 'INC') {
           self.send({ type: 'DOUBLE' });
@@ -2351,7 +2370,7 @@ describe('invoke', () => {
 
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
-        if (state.children['count']?.getSnapshot() === 2) {
+        if (state.children['count']?.getSnapshot().context === 2) {
           done();
         }
       });
