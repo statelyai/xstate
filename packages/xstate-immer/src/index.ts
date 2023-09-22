@@ -70,30 +70,31 @@ export interface ImmerUpdateEvent<
 
 export function createUpdater<
   TContext extends MachineContext,
-  TEvent extends ImmerUpdateEvent,
+  TExpressionEvent extends ImmerUpdateEvent,
+  TEvent extends EventObject,
   TActor extends ProvidedActor = ProvidedActor
 >(
-  type: TEvent['type'],
+  type: TExpressionEvent['type'],
   recipe: ImmerAssigner<
     TContext,
-    TEvent,
+    TExpressionEvent,
     ParameterizedObject | undefined,
     TEvent,
     TActor
   >
 ) {
-  const update = (input: TEvent['input']): TEvent => {
+  const update = (input: TExpressionEvent['input']): TExpressionEvent => {
     return {
       type,
       input
-    } as TEvent;
+    } as TExpressionEvent;
   };
 
   return {
     update,
     action: immerAssign<
       TContext,
-      TEvent,
+      TExpressionEvent,
       ParameterizedObject | undefined, // TODO: not sure if this is correct
       TEvent,
       TActor
