@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { fromCallback } from '../src/actors/callback.ts';
+import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
   ActorSystem,
@@ -12,7 +12,9 @@ import {
   createActor,
   sendTo,
   stop,
-  Snapshot
+  Snapshot,
+  EventObject,
+  ActorRefFrom
 } from '../src/index.ts';
 
 describe('system', () => {
@@ -66,6 +68,12 @@ describe('system', () => {
     }>;
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: CallbackActorRef<EventObject, unknown>;
+          machineRef?: ActorRefFrom<ReturnType<typeof createMachine>>;
+        };
+      },
       id: 'parent',
       context: ({ spawn }) => ({
         ref: spawn(
@@ -154,9 +162,15 @@ describe('system', () => {
   });
 
   it('should remove spawned actor from receptionist if stopped', () => {
+    const childMachine = createMachine({});
     const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: ActorRefFrom<typeof childMachine>;
+        };
+      },
       context: ({ spawn }) => ({
-        ref: spawn(createMachine({}), {
+        ref: spawn(childMachine, {
           systemId: 'test'
         })
       }),

@@ -4,7 +4,7 @@ import { forwardTo, sendParent } from '../src/actions.ts';
 import { assign } from '../src/actions/assign';
 import { raise } from '../src/actions/raise';
 import { sendTo } from '../src/actions/send';
-import { fromCallback } from '../src/actors/callback.ts';
+import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   fromEventObservable,
   fromObservable
@@ -1448,6 +1448,11 @@ describe('actors', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef: CallbackActorRef<EventObject, unknown>;
+        };
+      },
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -1510,6 +1515,11 @@ describe('actors', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef: CallbackActorRef<EventObject, unknown>;
+        };
+      },
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -1570,6 +1580,11 @@ describe('actors', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef: CallbackActorRef<EventObject, unknown>;
+        };
+      },
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -1630,6 +1645,11 @@ describe('actors', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef: CallbackActorRef<EventObject, unknown>;
+        };
+      },
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
