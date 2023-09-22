@@ -1091,7 +1091,9 @@ describe('actors', () => {
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
 
-      expect(countService.getSnapshot().context.count?.getSnapshot()).toBe(2);
+      expect(
+        countService.getSnapshot().context.count?.getSnapshot().context
+      ).toBe(2);
     });
 
     it('should work with a promise logic (fulfill)', (done) => {

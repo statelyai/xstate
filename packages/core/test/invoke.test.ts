@@ -2452,7 +2452,7 @@ describe('invoke', () => {
           ),
           onSnapshot: {
             actions: ({ event }) => {
-              if (event.snapshot === 42) {
+              if (event.snapshot.context === 42) {
                 done();
               }
             }
