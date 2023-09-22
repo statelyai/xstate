@@ -26,6 +26,7 @@ type SpawnOptions<
           id: TActor['id'];
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
+          syncSnapshot?: boolean;
         }
       ]
     : [
@@ -33,6 +34,7 @@ type SpawnOptions<
           id?: string;
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
+          syncSnapshot?: boolean;
         }
       ]
   : never;
@@ -51,6 +53,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
         id?: string;
         systemId?: string;
         input?: unknown;
+        syncSnapshot?: boolean;
       }
     ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
