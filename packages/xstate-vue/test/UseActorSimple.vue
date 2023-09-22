@@ -9,7 +9,6 @@ import { useActor } from '../src/index.ts';
 const simpleActor: ActorRef<any, Snapshot<undefined> & { context: number }> =
   createActor({
     transition: (s) => s,
-    getSnapshot: () => 42,
     getInitialState: () => {
       return {
         status: 'active',
