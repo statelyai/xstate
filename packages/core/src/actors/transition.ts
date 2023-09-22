@@ -8,7 +8,9 @@ import {
   Snapshot
 } from '../types';
 
-type TransitionSnapshot<TContext> = Snapshot<undefined> & { context: TContext };
+export type TransitionSnapshot<TContext> = Snapshot<undefined> & {
+  context: TContext;
+};
 
 export type TransitionActorLogic<
   TContext,

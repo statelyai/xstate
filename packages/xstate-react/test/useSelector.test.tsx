@@ -9,7 +9,9 @@ import {
   fromTransition,
   createActor,
   StateFrom,
-  Snapshot
+  Snapshot,
+  TransitionSnapshot,
+  AnyEventObject
 } from 'xstate';
 import {
   shallowEqual,
@@ -756,22 +758,28 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should work with a null actor', () => {
     const Child = (props: {
-      actor: ActorRef<any, Snapshot<{ count: number }>> | undefined;
+      actor: ActorRef<any, TransitionSnapshot<{ count: number }>> | undefined;
     }) => {
-      const state = useSelector(props.actor ?? createEmptyActor(), (s) => s);
+      const state = useSelector<
+        ActorRef<
+          AnyEventObject,
+          Snapshot<undefined> & { context?: { count: number } }
+        >,
+        Snapshot<undefined> & { context?: { count: number } }
+      >(props.actor ?? createEmptyActor(), (s) => s);
 
       // @ts-expect-error
-      ((_accept: { count: number }) => {})(state.output);
-      ((_accept: { count: number } | undefined) => {})(state.output);
+      ((_accept: { count: number }) => {})(state.context);
+      ((_accept: { count: number } | undefined) => {})(state.context);
 
       return (
-        <div data-testid="state">{state.output?.count ?? 'undefined'}</div>
+        <div data-testid="state">{state.context?.count ?? 'undefined'}</div>
       );
     };
 
     const App = () => {
       const [actor, setActor] =
-        React.useState<ActorRef<any, Snapshot<{ count: number }>>>();
+        React.useState<ActorRef<any, TransitionSnapshot<{ count: number }>>>();
 
       return (
         <>
