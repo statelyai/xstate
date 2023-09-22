@@ -15,9 +15,10 @@ describe('rehydration', () => {
       const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
-      const restoredState = machine.createState(JSON.parse(persistedState));
 
-      const service = createActor(machine, { state: restoredState }).start();
+      const service = createActor(machine, {
+        state: JSON.parse(persistedState)
+      }).start();
 
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
@@ -37,10 +38,11 @@ describe('rehydration', () => {
       const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
-      const restoredState = machine.createState(JSON.parse(persistedState));
 
       actual.length = 0;
-      createActor(machine, { state: restoredState }).start().stop();
+      createActor(machine, { state: JSON.parse(persistedState) })
+        .start()
+        .stop();
 
       expect(actual).toEqual(['a', 'root']);
     });
@@ -58,7 +60,9 @@ describe('rehydration', () => {
         createActor(machine).start().getSnapshot()
       );
       const restoredState = JSON.parse(persistedState);
-      const service = createActor(machine, { state: restoredState }).start();
+      const service = createActor(machine, {
+        state: restoredState
+      }).start();
 
       expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
@@ -79,7 +83,9 @@ describe('rehydration', () => {
       });
 
       const activeState = machine.resolveStateValue('active');
-      const service = createActor(machine, { state: activeState });
+      const service = createActor(machine, {
+        state: activeState
+      });
 
       service.start();
 
@@ -101,9 +107,11 @@ describe('rehydration', () => {
         }
       });
 
-      const activeState = machine.resolveStateValue('active');
-
-      createActor(machine, { state: activeState }).start().stop();
+      createActor(machine, {
+        state: machine.resolveStateValue('active')
+      })
+        .start()
+        .stop();
 
       expect(actual).toEqual(['active', 'root']);
     });

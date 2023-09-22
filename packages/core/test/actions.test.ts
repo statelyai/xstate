@@ -1,4 +1,4 @@
-import { ActorRef } from '../src/index.ts';
+import { ActorRef, EventObject } from '../src/index.ts';
 import {
   cancel,
   choose,
@@ -16,7 +16,7 @@ import {
   forwardTo,
   createActor
 } from '../src/index.ts';
-import { fromCallback } from '../src/actors/callback.ts';
+import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import { trackEntries } from './utils.ts';
 
 const originalConsoleLog = console.log;
@@ -1685,6 +1685,11 @@ describe('entry/exit actions', () => {
       });
 
       const parent = createMachine({
+        types: {} as {
+          context: {
+            child: ActorRefFrom<typeof child>;
+          };
+        },
         id: 'parent',
         context: ({ spawn }) => ({
           child: spawn(child)
@@ -1725,6 +1730,11 @@ describe('entry/exit actions', () => {
       });
 
       const parent = createMachine({
+        types: {} as {
+          context: {
+            child: ActorRefFrom<typeof child>;
+          };
+        },
         id: 'parent',
         context: ({ spawn }) => ({
           child: spawn(child)
@@ -2639,7 +2649,7 @@ describe('forwardTo()', () => {
 
     const parent = createMachine({
       types: {} as {
-        context: { child?: ActorRef<any> };
+        context: { child?: ActorRef<any, any> };
         events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
       },
       id: 'parent',
@@ -3077,10 +3087,14 @@ describe('sendTo', () => {
     });
 
     const parentMachine = createMachine({
-      context: ({ spawn }) =>
-        ({
-          child: spawn(childMachine)
-        } as { child: ActorRefFrom<typeof childMachine> }),
+      types: {} as {
+        context: {
+          child: ActorRefFrom<typeof childMachine>;
+        };
+      },
+      context: ({ spawn }) => ({
+        child: spawn(childMachine)
+      }),
       entry: sendTo(({ context }) => context.child, { type: 'EVENT' })
     });
 
@@ -3105,6 +3119,12 @@ describe('sendTo', () => {
     });
 
     const parentMachine = createMachine({
+      types: {} as {
+        context: {
+          child: ActorRefFrom<typeof childMachine>;
+          count: number;
+        };
+      },
       context: ({ spawn }) => {
         return {
           child: spawn(childMachine, { id: 'child' }),
@@ -3214,6 +3234,7 @@ describe('sendTo', () => {
     expect.assertions(1);
     const machine = createMachine({
       types: {} as {
+        context: Record<string, CallbackActorRef<EventObject>>;
         events: { type: 'EVENT'; value: string };
       },
       initial: 'a',

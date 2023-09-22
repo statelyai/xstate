@@ -1,4 +1,4 @@
-import type { ActorRef, SnapshotFrom, EventObject } from 'xstate';
+import type { ActorRef, SnapshotFrom, EventObject, Snapshot } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState.ts';
@@ -15,13 +15,16 @@ type Sender<TEvent> = (event: TEvent) => void;
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: Accessor<TActor> | TActor
 ): [Accessor<CheckSnapshot<SnapshotFrom<TActor>>>, TActor['send']];
-export function useActor<TEvent extends EventObject, TEmitted>(
-  actorRef: Accessor<ActorRef<TEvent, TEmitted>> | ActorRef<TEvent, TEmitted>
-): [Accessor<CheckSnapshot<TEmitted>>, Sender<TEvent>];
+export function useActor<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(
+  actorRef: Accessor<ActorRef<TEvent, TSnapshot>> | ActorRef<TEvent, TSnapshot>
+): [Accessor<CheckSnapshot<TSnapshot>>, Sender<TEvent>];
 export function useActor(
   actorRef:
-    | Accessor<ActorRef<EventObject, unknown>>
-    | ActorRef<EventObject, unknown>
+    | Accessor<ActorRef<EventObject, Snapshot<unknown>>>
+    | ActorRef<EventObject, Snapshot<unknown>>
 ): [Accessor<unknown>, Sender<EventObject>] {
   const actorMemo = createMemo(() =>
     typeof actorRef === 'function' ? actorRef() : actorRef
