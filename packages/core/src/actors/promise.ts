@@ -7,7 +7,7 @@ import {
 } from '../types';
 import { XSTATE_STOP } from '../constants';
 
-export type PromiseSnapshot<TInput, TOutput> = Snapshot<TOutput> & {
+export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
 };
 
@@ -27,19 +27,19 @@ export type PromiseActorEvents<T> =
       type: typeof XSTATE_STOP;
     };
 
-export type PromiseActorLogic<TInput, TOutput> = ActorLogic<
-  PromiseSnapshot<TInput, TOutput>,
+export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
+  PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
   TInput, // input
-  PromiseSnapshot<TInput, TOutput>, // persisted state
+  PromiseSnapshot<TOutput, TInput>, // persisted state
   ActorSystem<any>
 >;
 
 export type PromiseActorRef<TOutput> = ActorRefFrom<
-  PromiseActorLogic<unknown, TOutput>
+  PromiseActorLogic<TOutput, unknown>
 >;
 
-export function fromPromise<TInput, TOutput>(
+export function fromPromise<TOutput, TInput = unknown>(
   // TODO: add types
   promiseCreator: ({
     input,
@@ -49,9 +49,9 @@ export function fromPromise<TInput, TOutput>(
     system: AnyActorSystem;
     self: PromiseActorRef<TOutput>;
   }) => PromiseLike<TOutput>
-): PromiseActorLogic<TInput, TOutput> {
+): PromiseActorLogic<TOutput, TInput> {
   // TODO: add event types
-  const logic: PromiseActorLogic<TInput, TOutput> = {
+  const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {
       if (state.status !== 'active') {
