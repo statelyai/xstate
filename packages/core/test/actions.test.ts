@@ -2639,7 +2639,7 @@ describe('forwardTo()', () => {
 
     const parent = createMachine({
       types: {} as {
-        context: { child?: ActorRef<any> };
+        context: { child?: ActorRef<any, any> };
         events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
       },
       id: 'parent',

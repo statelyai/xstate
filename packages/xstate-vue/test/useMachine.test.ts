@@ -12,7 +12,7 @@ describe('useMachine composition function', () => {
     types: {} as {
       actors: {
         src: 'fetchData';
-        logic: PromiseActorLogic<string, unknown>;
+        logic: PromiseActorLogic<unknown, string>;
       };
     },
     initial: 'idle',

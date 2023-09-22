@@ -13,28 +13,19 @@ import {
   MachineContext,
   ActorLogic,
   ParameterizedObject,
-  ActorInternalState
+  Snapshot
 } from 'xstate';
 
 type TODO = any;
 
 export type GetPathsOptions<
-  TSnapshot,
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TOutput,
-  TInternalState extends ActorInternalState<TSnapshot, TOutput>,
   TPersisted
 > = Partial<
-  TraversalOptions<TInternalState, TEvent> & {
-    pathGenerator?: PathGenerator<
-      TSnapshot,
-      TEvent,
-      TInput,
-      TOutput,
-      TInternalState,
-      TPersisted
-    >;
+  TraversalOptions<TSnapshot, TEvent> & {
+    pathGenerator?: PathGenerator<TSnapshot, TEvent, TInput, TPersisted>;
   }
 >;
 
@@ -112,11 +103,11 @@ export type TestMachineOptions<
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
     testContext: T,
-    state: State<TContext, any, any, any, any, any>
+    state: State<TContext, any, any, any, any>
   ) => Promise<void> | void;
   description?:
     | string
-    | ((state: State<TContext, any, any, any, any, any>) => string);
+    | ((state: State<TContext, any, any, any, any>) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -130,27 +121,32 @@ export interface TestStepResult {
   };
 }
 
-export interface TestParam<TState, TEvent extends EventObject> {
+export interface TestParam<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
   states?: {
-    [key: string]: (state: TState) => void | Promise<void>;
+    [key: string]: (state: TSnapshot) => void | Promise<void>;
   };
   events?: {
     [TEventType in TEvent['type']]?: EventExecutor<
-      TState,
+      TSnapshot,
       { type: ExtractEvent<TEvent, TEventType>['type'] }
     >;
   };
 }
 
-export interface TestPath<TState, TEvent extends EventObject>
-  extends StatePath<TState, TEvent> {
+export interface TestPath<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> extends StatePath<TSnapshot, TEvent> {
   description: string;
   /**
    * Tests and executes each step in `steps` sequentially, and then
    * tests the postcondition that the `state` is reached.
    */
-  test: (params: TestParam<TState, TEvent>) => Promise<TestPathResult>;
-  testSync: (params: TestParam<TState, TEvent>) => TestPathResult;
+  test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
+  testSync: (params: TestParam<TSnapshot, TEvent>) => TestPathResult;
 }
 export interface TestPathResult {
   steps: TestStepResult[];
@@ -162,23 +158,24 @@ export type StatePredicate<TState> = (state: TState) => boolean;
  * Executes an effect using the `testContext` and `event`
  * that triggers the represented `event`.
  */
-export type EventExecutor<TInternalState, TEvent extends EventObject> = (
-  step: Step<TInternalState, TEvent>
-) => Promise<any> | void;
+export type EventExecutor<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> = (step: Step<TSnapshot, TEvent>) => Promise<any> | void;
 
 export interface TestModelOptions<
-  TInternalState extends ActorInternalState<any, any>,
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> extends TraversalOptions<TInternalState, TEvent> {
-  stateMatcher: (state: TInternalState, stateKey: string) => boolean;
+> extends TraversalOptions<TSnapshot, TEvent> {
+  stateMatcher: (state: TSnapshot, stateKey: string) => boolean;
   logger: {
     log: (msg: string) => void;
     error: (msg: string) => void;
   };
   serializeTransition: (
-    state: TInternalState,
+    state: TSnapshot,
     event: TEvent | undefined,
-    prevState?: TInternalState
+    prevState?: TSnapshot
   ) => string;
 }
 
@@ -188,7 +185,7 @@ export interface TestTransitionConfig<
   TTestContext
 > extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, string> {
   test?: (
-    state: State<TContext, TEvent, any, any, any, any>,
+    state: State<TContext, TEvent, any, any, any>,
     testContext: TTestContext
   ) => void;
 }
@@ -206,20 +203,11 @@ export type TestTransitionsConfig<
 };
 
 export type PathGenerator<
-  TSnapshot,
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TOutput,
-  TInternalState extends ActorInternalState<TSnapshot, TOutput>,
   TPersisted
 > = (
-  behavior: ActorLogic<
-    TSnapshot,
-    TEvent,
-    TInput,
-    TOutput,
-    TInternalState,
-    TPersisted
-  >,
-  options: TraversalOptions<TInternalState, TEvent>
-) => Array<StatePath<TInternalState, TEvent>>;
+  behavior: ActorLogic<TSnapshot, TEvent, TInput, TPersisted>,
+  options: TraversalOptions<TSnapshot, TEvent>
+) => Array<StatePath<TSnapshot, TEvent>>;

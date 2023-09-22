@@ -113,7 +113,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     listeners.forEach((listener) => listener.next?.(state));
   });
 
-  let client: Pick<ActorRef<any>, 'send'>;
+  let client: Pick<ActorRef<any, any>, 'send'>;
 
   const messageHandler = (event: MessageEvent<unknown>) => {
     if (

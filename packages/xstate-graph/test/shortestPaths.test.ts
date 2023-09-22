@@ -40,11 +40,11 @@ describe('getShortestPaths', () => {
     });
 
     const p = getShortestPaths(m, {
-      toState: (state) => state.snapshot.matches('c')
+      toState: (state) => state.matches('c')
     });
 
     expect(p).toHaveLength(1);
-    expect(p[0].state.snapshot.matches('c')).toBeTruthy();
+    expect(p[0].state.matches('c')).toBeTruthy();
   });
 
   it('finds the shortest paths from a state to another state', () => {
@@ -76,12 +76,12 @@ describe('getShortestPaths', () => {
     });
 
     const pathsToB = getShortestPaths(m, {
-      toState: (state) => state.snapshot.matches('b')
+      toState: (state) => state.matches('b')
     });
     const paths = pathsToB.flatMap((path) => {
       const pathsToY = getShortestPaths(m, {
         fromState: path.state,
-        toState: (state) => state.snapshot.matches('y')
+        toState: (state) => state.matches('y')
       });
 
       return pathsToY.map((pathToY) => {
@@ -131,13 +131,13 @@ describe('getShortestPaths', () => {
           todo: 'two'
         } as const
       ],
-      filter: (state) => state.snapshot.context.todos.length < 3
+      filter: (state) => state.context.todos.length < 3
     });
 
     const pathWithTwoTodos = shortestPaths.filter(
       (path) =>
-        path.state.snapshot.context.todos.includes('one') &&
-        path.state.snapshot.context.todos.includes('two')
+        path.state.context.todos.includes('one') &&
+        path.state.context.todos.includes('two')
     );
 
     expect(pathWithTwoTodos).toBeDefined();

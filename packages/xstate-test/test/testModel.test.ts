@@ -14,7 +14,7 @@ describe('custom test models', () => {
 
     const model = new TestModel(transition, {
       events: (state) => {
-        if (state.snapshot % 2 === 0) {
+        if (state.context % 2 === 0) {
           return [{ type: 'even' }];
         }
         return [{ type: 'odd' }];
@@ -22,7 +22,7 @@ describe('custom test models', () => {
     });
 
     const paths = model.getShortestPaths({
-      toState: (state) => state.snapshot === 1
+      toState: (state) => state.context === 1
     });
 
     expect(paths.length).toBeGreaterThan(0);
@@ -41,35 +41,35 @@ describe('custom test models', () => {
 
     const model = new TestModel(transition, {
       events: (state) => {
-        if (state.snapshot % 2 === 0) {
+        if (state.context % 2 === 0) {
           return [{ type: 'even' }];
         }
         return [{ type: 'odd' }];
       },
       stateMatcher: (state, key) => {
         if (key === 'even') {
-          return state.snapshot % 2 === 0;
+          return state.context % 2 === 0;
         }
         if (key === 'odd') {
-          return state.snapshot % 2 === 1;
+          return state.context % 2 === 1;
         }
         return false;
       }
     });
 
     const paths = model.getShortestPaths({
-      toState: (state) => state.snapshot === 1
+      toState: (state) => state.context === 1
     });
 
     await testUtils.testPaths(paths, {
       states: {
         even: (state) => {
           testedStateKeys.push('even');
-          expect(state.snapshot % 2).toBe(0);
+          expect(state.context % 2).toBe(0);
         },
         odd: (state) => {
           testedStateKeys.push('odd');
-          expect(state.snapshot % 2).toBe(1);
+          expect(state.context % 2).toBe(1);
         }
       }
     });

@@ -2,12 +2,10 @@ import {
   StateNode,
   createMachine,
   EventObject,
-  StateValue,
-  AnyState,
   assign,
-  ActorInternalState,
   State,
-  fromTransition
+  fromTransition,
+  Snapshot
 } from 'xstate';
 import {
   getStateNodes,
@@ -20,27 +18,19 @@ import {
 import { joinPaths } from '../src/graph';
 
 function getPathsSnapshot(
-  paths: Array<StatePath<ActorInternalState<any, unknown>, EventObject>>
+  paths: Array<StatePath<Snapshot<unknown>, EventObject>>
 ) {
   return paths.map((path) => getPathSnapshot(path));
 }
 
-function getPathSnapshot(
-  path: StatePath<ActorInternalState<any, unknown>, any>
-): {
-  state: StateValue;
-  steps: Array<{ state: StateValue; eventType: string }>;
+function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
+  state: unknown;
+  steps: Array<{ state: unknown; eventType: string }>;
 } {
   return {
-    state:
-      path.state.snapshot instanceof State
-        ? path.state.snapshot.value
-        : path.state.snapshot,
+    state: path.state instanceof State ? path.state.value : path.state,
     steps: path.steps.map((step) => ({
-      state:
-        step.state.snapshot instanceof State
-          ? step.state.snapshot.value
-          : step.state.snapshot,
+      state: step.state instanceof State ? step.state.value : step.state,
       eventType: step.event.type
     }))
   };
@@ -215,10 +205,10 @@ describe('@xstate/graph', () => {
 
       expect(
         shortestPaths.find((path) =>
-          path.state.snapshot.matches(
+          path.state.matches(
             lightMachine.getInitialState(
               {} as any // TODO: figure out the simulation API
-            ).snapshot.value
+            ).value
           )
         )!.steps
       ).toHaveLength(1);
@@ -282,8 +272,7 @@ describe('@xstate/graph', () => {
       const paths = getSimplePaths(lightMachine);
 
       // Multiple different ways to get to flashing (from any other state)
-      expect(paths.map((path) => path.state.snapshot.value))
-        .toMatchInlineSnapshot(`
+      expect(paths.map((path) => path.state.value)).toMatchInlineSnapshot(`
         [
           "green",
           "yellow",
@@ -328,7 +317,7 @@ describe('@xstate/graph', () => {
     it('should return a mapping of simple paths to all states (parallel)', () => {
       const paths = getSimplePaths(parallelMachine);
 
-      expect(paths.map((p) => p.state.snapshot.value)).toMatchInlineSnapshot(`
+      expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
         [
           {
             "a": "a1",
@@ -362,7 +351,7 @@ describe('@xstate/graph', () => {
 
       const paths = getSimplePaths(machine);
 
-      expect(paths.map((p) => p.state.snapshot.value)).toMatchInlineSnapshot(`
+      expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
         [
           "a",
           "b",
@@ -377,37 +366,37 @@ describe('@xstate/graph', () => {
     it('should return a single-length path for the initial state', () => {
       expect(
         getSimplePaths(lightMachine).find((p) =>
-          p.state.snapshot.matches(
+          p.state.matches(
             lightMachine.getInitialState(
               {} as any // TODO: figure out the simulation API
-            ).snapshot.value
+            ).value
           )
         )
       ).toBeDefined();
       expect(
         getSimplePaths(lightMachine).find((p) =>
-          p.state.snapshot.matches(
+          p.state.matches(
             lightMachine.getInitialState(
               {} as any // TODO: figure out the simulation API
-            ).snapshot.value
+            ).value
           )
         )!.steps
       ).toHaveLength(1);
       expect(
         getSimplePaths(equivMachine).find((p) =>
-          p.state.snapshot.matches(
+          p.state.matches(
             equivMachine.getInitialState(
               {} as any // TODO: figure out the simulation API
-            ).snapshot.value
+            ).value
           )
         )!
       ).toBeDefined();
       expect(
         getSimplePaths(equivMachine).find((p) =>
-          p.state.snapshot.matches(
+          p.state.matches(
             equivMachine.getInitialState(
               {} as any // TODO: figure out the simulation API
-            ).snapshot.value
+            ).value
           )
         )!.steps
       ).toHaveLength(1);
@@ -450,7 +439,7 @@ describe('@xstate/graph', () => {
         events: [{ type: 'INC', value: 1 } as const]
       });
 
-      expect(paths.map((p) => p.state.snapshot.value)).toMatchInlineSnapshot(`
+      expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
         [
           "start",
           "start",
@@ -487,17 +476,14 @@ describe('@xstate/graph', () => {
 
     it('should return a path from a specified from-state', () => {
       const path = getPathsFromEvents(lightMachine, [{ type: 'TIMER' }], {
-        fromState: {
-          status: { status: 'active' },
-          snapshot: lightMachine.resolveState(
-            lightMachine.resolveStateValue('yellow')
-          )
-        }
+        fromState: lightMachine.resolveState(
+          lightMachine.resolveStateValue('yellow')
+        )
       })[0];
 
       expect(path).toBeDefined();
 
-      expect(path.state.snapshot.matches('red')).toBeTruthy();
+      expect(path.state.matches('red')).toBeTruthy();
     });
   });
 
@@ -592,10 +578,10 @@ describe('filtering', () => {
 
     const sp = getShortestPaths(machine, {
       events: [{ type: 'INC' }],
-      filter: (s) => s.snapshot.context.count < 5
+      filter: (s) => s.context.count < 5
     });
 
-    expect(sp.map((p) => p.state.snapshot.context)).toMatchInlineSnapshot(`
+    expect(sp.map((p) => p.state.context)).toMatchInlineSnapshot(`
       [
         {
           "count": 0,
@@ -635,8 +621,8 @@ it('should provide previous state for serializeState()', () => {
 
   const shortestPaths = getShortestPaths(machine, {
     serializeState: (state, event, prevState) => {
-      return `${JSON.stringify(state.snapshot.value)} via ${event?.type}${
-        prevState ? ` via ${JSON.stringify(prevState.snapshot.value)}` : ''
+      return `${JSON.stringify(state.value)} via ${event?.type}${
+        prevState ? ` via ${JSON.stringify(prevState.value)}` : ''
       }`;
     }
   });
@@ -646,7 +632,7 @@ it('should provide previous state for serializeState()', () => {
   // 4 (a -> b -> c -> a)
   expect(
     shortestPaths
-      .filter((path) => path.state.snapshot.matches('a'))
+      .filter((path) => path.state.matches('a'))
       .map((path) => path.steps.length)
   ).toEqual([1, 4]);
 });
@@ -670,25 +656,18 @@ it.each([getShortestPaths, getSimplePaths])(
     });
 
     const paths = pathGetter(machine, {
-      fromState: {
-        status: { status: 'active' },
-        snapshot: machine.resolveState(machine.resolveStateValue('b'))
-      }
+      fromState: machine.resolveState(machine.resolveStateValue('b'))
     });
 
     // Instead of taking 2 steps to reach state 'b' (A, B),
     // there should exist a path that takes 1 step
     expect(
-      paths.find(
-        (path) => path.state.snapshot.matches('b') && path.steps.length === 1
-      )
+      paths.find((path) => path.state.matches('b') && path.steps.length === 1)
     ).toBeTruthy();
 
     // Instead of starting at state 'a', it should take > 0 steps to reach 'a'
     expect(
-      paths.find(
-        (path) => path.state.snapshot.matches('a') && path.steps.length > 0
-      )
+      paths.find((path) => path.state.matches('a') && path.steps.length > 0)
     ).toBeTruthy();
   }
 );
@@ -729,8 +708,7 @@ describe('joinPaths()', () => {
       ]
     `);
 
-    // TODO: figure out why TS is complaining only in the test
-    expect((pathToBAndC.state.snapshot as AnyState)!.matches('c')).toBeTruthy();
+    expect(pathToBAndC.state.matches('c')).toBeTruthy();
   });
 
   it('should not join two paths with mismatched source/target states', () => {

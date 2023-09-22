@@ -21,7 +21,7 @@ type ResolvableActorRef<
   | ActorRef<any, any>
   | ((
       args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-    ) => ActorRef<any> | string);
+    ) => ActorRef<any, any> | string);
 
 function resolve(
   _: AnyActorContext,

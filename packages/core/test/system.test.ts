@@ -11,14 +11,15 @@ import {
   fromTransition,
   createActor,
   sendTo,
-  stop
+  stop,
+  Snapshot
 } from '../src/index.ts';
 
 describe('system', () => {
   it('should register an invoked actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }>;
+        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
       };
     }>;
 
@@ -60,7 +61,7 @@ describe('system', () => {
   it('should register a spawned actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }>;
+        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
       };
     }>;
 

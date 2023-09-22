@@ -22,7 +22,7 @@ describe('promise logic (fromPromise)', () => {
 
     const actor = createActor(promiseLogic).start();
 
-    const snapshot = await waitFor(actor, (s) => s === 'hello');
+    const snapshot = await waitFor(actor, (s) => s.output === 'hello');
 
     expect(snapshot).toBe('hello');
   });
@@ -30,7 +30,7 @@ describe('promise logic (fromPromise)', () => {
     const actor = createActor(fromPromise(() => Promise.resolve(42)));
 
     actor.subscribe((state) => {
-      if (state === 42) {
+      if (state.output === 42) {
         done();
       }
     });
@@ -43,7 +43,7 @@ describe('promise logic (fromPromise)', () => {
 
     actor.subscribe({
       next: (state) => {
-        if (state === 42) {
+        if (state.output === 42) {
           done();
         }
       }
@@ -69,7 +69,7 @@ describe('promise logic (fromPromise)', () => {
     const actor = createActor(fromPromise(() => Promise.resolve(42)));
     actor.start();
 
-    const snapshot = await waitFor(actor, (s) => s === 42);
+    const snapshot = await waitFor(actor, (s) => s.output === 42);
 
     expect(snapshot).toBe(42);
   });
@@ -317,7 +317,7 @@ describe('observable logic (fromObservable)', () => {
 
     const actor = createActor(observableLogic).start();
 
-    const snapshot = await waitFor(actor, (s) => s === 3);
+    const snapshot = await waitFor(actor, (s) => s.output === 3);
 
     expect(snapshot).toEqual(3);
   });
@@ -543,7 +543,7 @@ describe('machine logic', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.snapshot.children.a.state).toMatchInlineSnapshot(`
+    expect(persistedState.children.a.state).toMatchInlineSnapshot(`
       {
         "input": undefined,
         "snapshot": 42,
@@ -554,7 +554,7 @@ describe('machine logic', () => {
       }
     `);
 
-    expect(persistedState.snapshot.children.b.state.snapshot).toEqual(
+    expect(persistedState.children.b.state.snapshot).toEqual(
       expect.objectContaining({
         context: {
           count: 55
@@ -651,7 +651,7 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(actor.getPersistedState()?.snapshot).toEqual(
+    expect(actor.getPersistedState()).toEqual(
       expect.objectContaining({
         value: 'idle'
       })
@@ -671,9 +671,7 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(
-      actor.getPersistedState()?.snapshot.children['child'].state.snapshot
-    ).toEqual(
+    expect(actor.getPersistedState()?.children['child'].state.snapshot).toEqual(
       expect.objectContaining({
         value: 'inner'
       })
@@ -695,7 +693,7 @@ describe('machine logic', () => {
 
     const persisted = actor.getPersistedState();
 
-    delete persisted?.snapshot.children['child'];
+    delete persisted?.children['child'];
 
     const actor2 = createActor(machine, { state: persisted }).start();
 

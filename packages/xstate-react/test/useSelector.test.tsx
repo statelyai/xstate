@@ -8,7 +8,8 @@ import {
   createMachine,
   fromTransition,
   createActor,
-  StateFrom
+  StateFrom,
+  Snapshot
 } from 'xstate';
 import {
   shallowEqual,
@@ -755,20 +756,22 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should work with a null actor', () => {
     const Child = (props: {
-      actor: ActorRef<any, { count: number }> | undefined;
+      actor: ActorRef<any, Snapshot<{ count: number }>> | undefined;
     }) => {
       const state = useSelector(props.actor ?? createEmptyActor(), (s) => s);
 
       // @ts-expect-error
-      ((_accept: { count: number }) => {})(state);
-      ((_accept: { count: number } | undefined) => {})(state);
+      ((_accept: { count: number }) => {})(state.output);
+      ((_accept: { count: number } | undefined) => {})(state.output);
 
-      return <div data-testid="state">{state?.count ?? 'undefined'}</div>;
+      return (
+        <div data-testid="state">{state.output?.count ?? 'undefined'}</div>
+      );
     };
 
     const App = () => {
       const [actor, setActor] =
-        React.useState<ActorRef<any, { count: number }>>();
+        React.useState<ActorRef<any, Snapshot<{ count: number }>>>();
 
       return (
         <>

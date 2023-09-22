@@ -18,6 +18,7 @@ import {
   AnyActorRef,
   EventObject,
   Observer,
+  Snapshot,
   Subscribable,
   createActor,
   createMachine,
@@ -31,7 +32,7 @@ function sleep(ms: number) {
 
 describe('spawning machines', () => {
   const context = {
-    todoRefs: {} as Record<string, ActorRef<any>>
+    todoRefs: {} as Record<string, ActorRef<any, any>>
   };
 
   type TodoEvent =
@@ -75,7 +76,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ActorRef<PingPongEvent>;
+    server?: ActorRef<PingPongEvent, Snapshot<unknown>>;
   }
 
   const clientMachine = createMachine({
@@ -236,7 +237,7 @@ describe('spawning promises', () => {
   it('should be able to spawn a promise', (done) => {
     const promiseMachine = createMachine({
       types: {} as {
-        context: { promiseRef?: ActorRef<any> };
+        context: { promiseRef?: ActorRef<any, any> };
       },
       id: 'promise',
       initial: 'idle',
@@ -287,7 +288,7 @@ describe('spawning promises', () => {
     const promiseMachine = createMachine(
       {
         types: {} as {
-          context: { promiseRef?: ActorRef<any> };
+          context: { promiseRef?: ActorRef<any, any> };
         },
         id: 'promise',
         initial: 'idle',
@@ -339,7 +340,7 @@ describe('spawning callbacks', () => {
   it('should be able to spawn an actor from a callback', (done) => {
     const callbackMachine = createMachine({
       types: {} as {
-        context: { callbackRef?: ActorRef<any> };
+        context: { callbackRef?: ActorRef<any, any> };
       },
       id: 'callback',
       initial: 'idle',
@@ -494,7 +495,8 @@ describe('spawning observables', () => {
               target: 'success',
               guard: ({ context, event }) => {
                 return (
-                  event.data === 1 && context.observableRef.getSnapshot() === 1
+                  event.data === 1 &&
+                  context.observableRef.getSnapshot().context === 1
                 );
               }
             }
@@ -537,7 +539,7 @@ describe('spawning observables', () => {
               onSnapshot: {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data === 3;
+                  return event.data.context === 3;
                 }
               }
             }
@@ -565,7 +567,7 @@ describe('spawning observables', () => {
       spy(data);
     });
 
-    await waitFor(actorRef, (state) => !!state.done);
+    await waitFor(actorRef, (state) => state.status !== 'active');
 
     expect(spy).toHaveBeenCalledWith(3);
   });
@@ -591,7 +593,7 @@ describe('spawning observables', () => {
               onSnapshot: {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data === 3;
+                  return event.data.context === 3;
                 }
               }
             }
@@ -619,7 +621,7 @@ describe('spawning observables', () => {
       spy(data);
     });
 
-    await waitFor(actorRef, (state) => !!state.done);
+    await waitFor(actorRef, (state) => state.status !== 'active');
     spy.mockClear();
 
     // wait for potential next event from the interval actor
@@ -741,7 +743,7 @@ describe('communicating with spawned actors', () => {
 
     const parentMachine = createMachine({
       types: {} as {
-        context: { existingRef?: ActorRef<any> };
+        context: { existingRef?: ActorRef<any, any> };
       },
       initial: 'pending',
       context: {
@@ -806,7 +808,7 @@ describe('communicating with spawned actors', () => {
     const existingService = createActor(existingMachine).start();
 
     const parentMachine = createMachine({
-      types: {} as { context: { existingRef: ActorRef<any> | undefined } },
+      types: {} as { context: { existingRef: ActorRef<any, any> | undefined } },
       initial: 'pending',
       context: {
         existingRef: undefined
@@ -944,7 +946,7 @@ describe('actors', () => {
     });
 
     const testMachine = createMachine({
-      types: {} as { context: { ref?: ActorRef<any> } },
+      types: {} as { context: { ref?: ActorRef<any, any> } },
       initial: 'testing',
       context: ({ spawn }) => {
         spawnCalled++;
@@ -972,7 +974,7 @@ describe('actors', () => {
 
   it('should spawn null actors if not used within a service', () => {
     const nullActorMachine = createMachine({
-      types: {} as { context: { ref?: ActorRef<any> } },
+      types: {} as { context: { ref?: ActorRef<any, any> } },
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -1068,7 +1070,7 @@ describe('actors', () => {
 
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
-        if (state.context.count?.getSnapshot() === 2) {
+        if (state.context.count?.getSnapshot().context === 2) {
           done();
         }
       });
@@ -1167,7 +1169,7 @@ describe('actors', () => {
     });
 
     it('actor logic should have reference to the parent', (done) => {
-      const pongLogic: ActorLogic<undefined, EventObject> = {
+      const pongLogic: ActorLogic<Snapshot<undefined>, EventObject> = {
         transition: (state, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
@@ -1176,8 +1178,9 @@ describe('actors', () => {
           return state;
         },
         getInitialState: () => ({
-          status: { status: 'active' },
-          snapshot: undefined
+          status: 'active',
+          output: undefined,
+          error: undefined
         })
       };
 
@@ -1221,7 +1224,7 @@ describe('actors', () => {
 
   it('should be able to spawn callback actors in (lazy) initial context', (done) => {
     const machine = createMachine({
-      types: {} as { context: { ref: ActorRef<any> } },
+      types: {} as { context: { ref: ActorRef<any, any> } },
       context: ({ spawn }) => ({
         ref: spawn(
           fromCallback(({ sendBack }) => {
@@ -1255,7 +1258,7 @@ describe('actors', () => {
     });
 
     const machine = createMachine({
-      types: {} as { context: { ref: ActorRef<any> } },
+      types: {} as { context: { ref: ActorRef<any, any> } },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),

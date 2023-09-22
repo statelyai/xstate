@@ -678,7 +678,7 @@ describe('typegen types', () => {
           events: {} as { type: 'FOO' } | { type: 'BAR' },
           actors: {} as {
             src: 'callThing';
-            logic: PromiseActorLogic<string>;
+            logic: PromiseActorLogic<unknown, string>;
             id: 'myActor';
           }
         }
@@ -760,7 +760,7 @@ describe('typegen types', () => {
           events: {} as { type: 'FOO' },
           actors: {} as {
             src: 'myActor';
-            logic: PromiseActorLogic<string>;
+            logic: PromiseActorLogic<unknown, string>;
           }
         }
       },

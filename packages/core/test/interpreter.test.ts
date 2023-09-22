@@ -68,7 +68,7 @@ describe('interpreter', () => {
       const machine = createMachine({
         initial: 'idle',
         context: {
-          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown>>
+          actor: undefined! as ActorRefFrom<PromiseActorLogic<unknown, unknown>>
         },
         states: {
           idle: {
@@ -1062,10 +1062,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: {
-          status: { status: 'active' },
-          snapshot: State.from('bar', undefined, machine)
-        }
+        state: State.from('bar', undefined, machine)
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1082,10 +1079,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: {
-          status: { status: 'active' },
-          snapshot: machine.resolveStateValue('bar')
-        }
+        state: machine.resolveStateValue('bar')
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1108,10 +1102,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: {
-          status: { status: 'active' },
-          snapshot: machine.resolveStateValue('foo')
-        }
+        state: machine.resolveStateValue('foo')
       });
 
       expect(actor.getSnapshot().matches({ foo: 'one' })).toBeTruthy();
@@ -1540,7 +1531,7 @@ describe('interpreter', () => {
           types: {} as {
             actors: {
               src: 'num';
-              logic: PromiseActorLogic<number>;
+              logic: PromiseActorLogic<unknown, number>;
             };
           },
           states: {

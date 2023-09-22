@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { STATE_DELIMITER } from './constants.ts';
 import { memo } from './memo.ts';
+import { MachineSnapshot } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   getConfiguration,
@@ -80,7 +81,7 @@ export class State<
   /**
    * Indicates whether the state is a final state.
    */
-  public done: boolean;
+  public status: 'active' | 'done' | 'error' | 'stopped';
   /**
    * The output data of the top-level finite state.
    */
@@ -132,7 +133,8 @@ export class State<
             context,
             meta: {},
             configuration: [], // TODO: fix,
-            children: {}
+            children: {},
+            status: 'active'
           },
           machine
         );
@@ -151,7 +153,8 @@ export class State<
         context,
         meta: undefined,
         configuration: Array.from(configuration),
-        children: {}
+        children: {},
+        status: 'active'
       },
       machine
     );
@@ -178,7 +181,7 @@ export class State<
 
     this.value = getStateValue(machine.root, this.configuration);
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
-    this.done = config.done ?? false; // TODO: refactor to status
+    this.status = config.status;
     (this as any).output = config.output;
     (this as any).error = config.error;
   }
@@ -242,7 +245,7 @@ export class State<
       );
     }
 
-    const transitionData = this.machine.getTransitionData(this, event);
+    const transitionData = this.machine.getTransitionData(this as any, event);
 
     return (
       !!transitionData?.length &&
@@ -282,24 +285,60 @@ export function cloneState<TState extends AnyState>(
   ) as TState;
 }
 
-export function getPersistedState<TState extends AnyState>(
-  state: TState
-): PersistedMachineState<TState, unknown>['snapshot'] {
+export function getPersistedState<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
+  TResolvedTypesMeta = TypegenDisabled
+>(
+  state: MachineSnapshot<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  >
+): PersistedMachineState<
+  TContext,
+  TEvent,
+  TActor,
+  TTag,
+  TOutput,
+  TResolvedTypesMeta
+> {
   const { configuration, tags, machine, children, ...jsonValues } = state;
 
   const childrenJson: Partial<
-    PersistedMachineState<any, unknown>['snapshot']['children']
+    PersistedMachineState<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >['children']
   > = {};
 
   for (const id in children) {
-    childrenJson[id] = {
-      state: children[id].getPersistedState?.(),
-      src: children[id].src
+    const child = children[id] as any;
+    childrenJson[id as keyof typeof childrenJson] = {
+      state: child.getPersistedState?.(),
+      src: child.src
     };
   }
 
   return {
     ...jsonValues,
     children: childrenJson
-  } as PersistedMachineState<TState, unknown>['snapshot'];
+  } as PersistedMachineState<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  >;
 }

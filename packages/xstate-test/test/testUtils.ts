@@ -1,34 +1,25 @@
-import { ActorInternalState, EventObject } from 'xstate';
+import { EventObject, Snapshot } from 'xstate';
 import { TestModel } from '../src/TestModel';
 import { TestParam, TestPath } from '../src/types';
 
 async function testModel<
-  TSnapshot,
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TOutput,
-  TInternalState extends ActorInternalState<TSnapshot, TOutput>,
   TPersisted
 >(
-  model: TestModel<
-    TSnapshot,
-    TEvent,
-    TInput,
-    TOutput,
-    TInternalState,
-    TPersisted
-  >,
-  params: TestParam<TInternalState, TEvent>
+  model: TestModel<TSnapshot, TEvent, TInput, TPersisted>,
+  params: TestParam<TSnapshot, TEvent>
 ) {
   for (const path of model.getShortestPaths()) {
     await path.test(params);
   }
 }
 
-async function testPaths<TInternalState, TEvent extends EventObject>(
-  paths: TestPath<TInternalState, TEvent>[],
-  params: TestParam<TInternalState, TEvent>
-) {
+async function testPaths<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(paths: TestPath<TSnapshot, TEvent>[], params: TestParam<TSnapshot, TEvent>) {
   for (const path of paths) {
     await path.test(params);
   }

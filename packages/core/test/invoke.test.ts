@@ -19,7 +19,8 @@ import {
   createMachine,
   createActor,
   sendParent,
-  EventFrom
+  EventFrom,
+  Snapshot
 } from '../src/index.ts';
 
 const user = { name: 'David' };
@@ -870,7 +871,7 @@ describe('invoke', () => {
         const service = createActor(promiseMachine);
         service.subscribe({
           error(err) {
-            expect(err.message).toEqual(expect.stringMatching(/test/));
+            expect((err as any).message).toEqual(expect.stringMatching(/test/));
             done();
           }
         });
@@ -906,7 +907,7 @@ describe('invoke', () => {
         actor.subscribe({
           error: (err) => {
             expect(err).toBeInstanceOf(Error);
-            expect(err.message).toBe('test');
+            expect((err as any).message).toBe('test');
             expect(completeSpy).not.toHaveBeenCalled();
             done();
           },
@@ -1220,7 +1221,7 @@ describe('invoke', () => {
               };
               actors: {
                 src: 'getRandomNumber';
-                logic: PromiseActorLogic<{ result: number }>;
+                logic: PromiseActorLogic<unknown, { result: number }>;
               };
             },
             context: {
@@ -2203,19 +2204,30 @@ describe('invoke', () => {
 
   describe('with logic', () => {
     it('should work with actor logic', (done) => {
-      const countLogic: ActorLogic<number, EventObject> = {
+      const countLogic: ActorLogic<
+        Snapshot<undefined> & { context: number },
+        EventObject
+      > = {
         transition: (state, event) => {
           if (event.type === 'INC') {
             return {
-              status: state.status,
-              snapshot: state.snapshot + 1
+              ...state,
+              context: state.context + 1
             };
           } else if (event.type === 'DEC') {
-            return { status: state.status, snapshot: state.snapshot - 1 };
+            return {
+              ...state,
+              context: state.context - 1
+            };
           }
           return state;
         },
-        getInitialState: () => ({ status: { status: 'active' }, snapshot: 0 })
+        getInitialState: () => ({
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: 0
+        })
       };
 
       const countMachine = createMachine({
@@ -2243,7 +2255,7 @@ describe('invoke', () => {
     });
 
     it('logic should have reference to the parent', (done) => {
-      const pongLogic: ActorLogic<undefined, EventObject> = {
+      const pongLogic: ActorLogic<Snapshot<undefined>, EventObject> = {
         transition: (state, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
@@ -2252,8 +2264,9 @@ describe('invoke', () => {
           return state;
         },
         getInitialState: () => ({
-          status: { status: 'active' },
-          snapshot: undefined
+          status: 'active',
+          output: undefined,
+          error: undefined
         })
       };
 
@@ -2330,7 +2343,7 @@ describe('invoke', () => {
       const countReducer = (
         count: number,
         event: CountEvents,
-        { self }: ActorContext<CountEvents, any>
+        { self }: ActorContext<any, CountEvents>
       ): number => {
         if (event.type === 'INC') {
           self.send({ type: 'DOUBLE' });
@@ -2818,10 +2831,10 @@ describe('invoke', () => {
           actors: {
             src: 'search';
             logic: PromiseActorLogic<
-              number,
               {
                 endpoint: string;
-              }
+              },
+              number
             >;
           };
         },
@@ -2864,10 +2877,10 @@ describe('invoke', () => {
           actors: {
             src: 'search';
             logic: PromiseActorLogic<
-              number,
               {
                 endpoint: string;
-              }
+              },
+              number
             >;
           };
         },
@@ -3284,11 +3297,11 @@ describe('invoke input', () => {
           actors: {
             src: 'stringService';
             logic: PromiseActorLogic<
-              boolean,
               {
                 staticVal: string;
                 newCount: number;
-              }
+              },
+              boolean
             >;
           };
         },

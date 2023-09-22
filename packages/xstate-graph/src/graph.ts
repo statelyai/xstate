@@ -7,7 +7,8 @@ import {
   StateMachine,
   AnyActorLogic,
   SnapshotFrom,
-  EventFromLogic
+  EventFromLogic,
+  Snapshot
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -55,9 +56,9 @@ export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   return children;
 }
 
-export function serializeMachineState({
-  snapshot: state
-}: ReturnType<AnyStateMachine['transition']>): SerializedState {
+export function serializeMachineState(
+  state: ReturnType<AnyStateMachine['transition']>
+): SerializedState {
   const { value, context } = state;
   return JSON.stringify({
     value,
@@ -89,7 +90,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
       const events =
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
       return flatten(
-        state.snapshot.nextEvents.map((type) => {
+        state.nextEvents.map((type) => {
           const matchingEvents = events.filter(
             (ev) => (ev as any).type === type
           );
@@ -227,10 +228,13 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   return traversalConfig;
 }
 
-export function joinPaths<TState, TEvent extends EventObject>(
-  headPath: StatePath<TState, TEvent>,
-  tailPath: StatePath<TState, TEvent>
-): StatePath<TState, TEvent> {
+export function joinPaths<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(
+  headPath: StatePath<TSnapshot, TEvent>,
+  tailPath: StatePath<TSnapshot, TEvent>
+): StatePath<TSnapshot, TEvent> {
   const secondPathSource = tailPath.steps[0].state;
 
   if (secondPathSource !== headPath.state) {

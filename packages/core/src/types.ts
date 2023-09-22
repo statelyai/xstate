@@ -14,6 +14,9 @@ import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
 
+export type HomomorphicPick<T, K extends keyof any> = {
+  [P in keyof T as P & K]: T[P];
+};
 export type HomomorphicOmit<T, K extends keyof any> = {
   [P in keyof T as Exclude<P, K>]: T[P];
 };
@@ -88,7 +91,10 @@ export interface UnifiedArg<
 > {
   context: TContext;
   event: TExpressionEvent;
-  self: ActorRef<TEvent, TContext>;
+  self: ActorRef<
+    TEvent,
+    MachineSnapshot<TContext, TEvent, ProvidedActor, string, unknown>
+  >;
   system: ActorSystem<any>;
 }
 
@@ -120,8 +126,6 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
       infer _TSnapshot,
       infer _TEvent,
       infer TInput,
-      infer _TOutput,
-      infer _TInternalState,
       infer _TPersisted,
       infer _TSystem
     >
@@ -129,15 +133,13 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
   : never;
 
 export type OutputFrom<T extends AnyActorLogic> = T extends ActorLogic<
-  infer _TSnapshot,
+  infer TSnapshot,
   infer _TEvent,
   infer _TInput,
-  infer TOutput,
-  infer _TInternalState,
   infer _TPersisted,
   infer _TSystem
 >
-  ? TOutput
+  ? (TSnapshot & { status: 'done' })['output']
   : never;
 
 export type ActionFunction<
@@ -929,12 +931,11 @@ export type AnyStateNode = StateNode<any, any>;
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyState = State<
-  any,
-  any,
-  any,
-  any,
-  any, // delays
-  any // tags
+  any, // context
+  any, // event
+  any, // actor
+  any, // tags
+  any // typegen
 >;
 
 export type AnyStateMachine = StateMachine<
@@ -1450,9 +1451,9 @@ export type AnyHistoryValue = HistoryValue<any, any>;
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends AnyStateMachine
-  ? ReturnType<T['transition']>['snapshot']
+  ? ReturnType<T['transition']>
   : T extends (...args: any[]) => AnyStateMachine
-  ? ReturnType<ReturnType<T>['transition']>['snapshot']
+  ? ReturnType<ReturnType<T>['transition']>
   : never;
 
 export type Transitions<
@@ -1642,7 +1643,7 @@ export type Mapper<
 > = (args: {
   context: TContext;
   event: TEvent;
-  self: ActorRef<TEvent>;
+  self: ActorRef<TEvent, any>;
 }) => TResult;
 
 export type PropertyMapper<
@@ -1721,8 +1722,8 @@ export interface StateConfig<
   historyValue?: HistoryValue<TContext, TEvent>;
   meta?: any;
   configuration?: Array<StateNode<TContext, TEvent>>;
-  children: Record<string, ActorRef<any>>;
-  done?: boolean;
+  children: Record<string, ActorRef<any, any>>;
+  status: 'active' | 'done' | 'error' | 'stopped';
   output?: any;
   error?: unknown;
   tags?: Set<string>;
@@ -1737,7 +1738,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   execute?: boolean;
   clock?: Clock;
   logger?: (...args: any[]) => void;
-  parent?: ActorRef<any>;
+  parent?: ActorRef<any, any>;
   /**
    * The custom `id` for referencing this service.
    */
@@ -1771,7 +1772,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   src?: string;
 }
 
-export type AnyActor = Actor<any, any>;
+export type AnyActor = Actor<any>;
 
 /**
  * @deprecated Use `AnyActor` instead.
@@ -1781,7 +1782,7 @@ export type AnyInterpreter = AnyActor;
 // Based on RxJS types
 export type Observer<T> = {
   next?: (value: T) => void;
-  error?: (err: any) => void;
+  error?: (err: unknown) => void;
   complete?: () => void;
 };
 
@@ -1934,8 +1935,12 @@ export type InterpreterFrom<
         TEvent,
         TInput,
         PersistedMachineState<
-          State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
-          TOutput
+          TContext,
+          TEvent,
+          TActor,
+          TTag,
+          TOutput,
+          TResolvedTypesMeta
         >,
         ActorSystem<any>
       >
@@ -1985,8 +1990,8 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   : never;
 
 export interface ActorContext<
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TSnapshot,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   self: ActorRef<TEvent, TSnapshot>;
@@ -2015,11 +2020,6 @@ export type ActorStatusObject<TOutput> =
   | {
       status: 'active';
     };
-
-export interface ActorInternalState<TSnapshot, TOutput> {
-  status: ActorStatusObject<TOutput>;
-  snapshot: TSnapshot;
-}
 
 export type Snapshot<TOutput> =
   | {
@@ -2057,17 +2057,17 @@ export interface ActorLogic<
   transition: (
     state: TSnapshot,
     message: TEvent,
-    ctx: ActorContext<TEvent, TSnapshot, TSystem>
+    ctx: ActorContext<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot, TSystem>,
+    actorCtx: ActorContext<TSnapshot, TEvent, TSystem>,
     input: TInput
   ) => TSnapshot;
   restoreState?: (
     persistedState: TPersisted,
-    actorCtx: ActorContext<TEvent, TSnapshot>
+    actorCtx: ActorContext<TSnapshot, TEvent>
   ) => TSnapshot;
-  start?: (state: TSnapshot, actorCtx: ActorContext<TEvent, TSnapshot>) => void;
+  start?: (state: TSnapshot, actorCtx: ActorContext<TSnapshot, TEvent>) => void;
   /**
    * @returns Persisted state
    */
@@ -2102,7 +2102,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? StateFrom<R>
     : R extends ActorLogic<any, any, any, any, any>
     ? ReturnType<R['transition']>
-    : R extends ActorContext<infer _, infer TSnapshot, infer __>
+    : R extends ActorContext<infer TSnapshot, infer _, infer __>
     ? TSnapshot
     : never
   : never;
@@ -2231,17 +2231,28 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 
 export type AnyActorSystem = ActorSystem<any>;
 
-export type PersistedMachineState<TState extends AnyState, TOutput> = {
-  status: ActorStatusObject<TOutput>;
-  snapshot: Pick<
-    TState,
-    'value' | 'output' | 'error' | 'context' | 'done' | 'historyValue'
-  > & {
-    children: {
-      [K in keyof TState['children']]: {
-        state: any; // TODO: fix (should be state from actorref)
-        src?: string;
-      };
+export type PersistedMachineState<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
+  TResolvedTypesMeta = TypegenDisabled
+> = HomomorphicPick<
+  MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+  'value' | 'output' | 'error' | 'context' | 'status' | 'historyValue'
+> & {
+  children: {
+    [K in keyof MachineSnapshot<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >['children']]: {
+      state: any; // TODO: fix (should be state from actorref)
+      src?: string;
     };
   };
 };

@@ -45,7 +45,7 @@ import type {
   AnyActorRef,
   Equals,
   TODO,
-  ActorInternalState
+  SnapshotFrom
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
 import { createActor } from './interpreter.ts';
@@ -114,8 +114,12 @@ export class StateMachine<
       TEvent,
       TInput,
       PersistedMachineState<
-        State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
-        TOutput
+        TContext,
+        TEvent,
+        TActor,
+        TTag,
+        TOutput,
+        TResolvedTypesMeta
       >,
       TODO
     >
@@ -242,8 +246,15 @@ export class StateMachine<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
-  ): typeof state {
+    state: State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta>
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  > {
     const configurationSet = getConfiguration(
       getStateNodes(this.root, state.value)
     );
@@ -252,7 +263,7 @@ export class StateMachine<
       ...(state as any),
       value: resolveStateValue(this.root, state.value),
       configuration,
-      done: isInFinalState(configuration)
+      status: isInFinalState(configuration) ? 'done' : state.status
     });
   }
 
@@ -261,10 +272,19 @@ export class StateMachine<
     ...[context]: Equals<TContext, MachineContext> extends true
       ? []
       : [TContext]
-  ): State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  > {
     const resolvedStateValue = resolveStateValue(this.root, stateValue);
 
-    return this.resolveState(State.from(resolvedStateValue, context, this));
+    return this.resolveState(
+      State.from(resolvedStateValue, context, this) as any
+    );
   }
 
   /**
@@ -284,7 +304,7 @@ export class StateMachine<
       TResolvedTypesMeta
     >,
     event: TEvent,
-    actorCtx: ActorContext<TEvent, (typeof state)['snapshot']>
+    actorCtx: ActorContext<typeof state, TEvent>
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -306,7 +326,7 @@ export class StateMachine<
 
     const { state: nextState } = macrostep(state, event, actorCtx);
 
-    return nextState;
+    return nextState as typeof state;
   }
 
   /**
@@ -330,7 +350,7 @@ export class StateMachine<
   ): Array<
     MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
   > {
-    return macrostep(state, event, actorCtx).microstates;
+    return macrostep(state, event, actorCtx).microstates as (typeof state)[];
   }
 
   public getTransitionData(
@@ -371,7 +391,8 @@ export class StateMachine<
           typeof context !== 'function' && context ? context : ({} as TContext),
         meta: undefined,
         configuration: getInitialConfiguration(this.root),
-        children: {}
+        children: {},
+        status: 'active'
       })
     );
 
@@ -383,7 +404,7 @@ export class StateMachine<
         initEvent as TEvent,
         preInitial,
         actorCtx
-      );
+      ) as SnapshotFrom<this>;
     }
 
     return preInitial;
@@ -394,8 +415,15 @@ export class StateMachine<
    */
   public getInitialState(
     actorCtx: ActorContext<
-      TEvent,
-      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TActor,
+        TTag,
+        TOutput,
+        TResolvedTypesMeta
+      >,
+      TEvent
     >,
     input?: TInput
   ): MachineSnapshot<
@@ -432,12 +460,7 @@ export class StateMachine<
       actorCtx
     );
 
-    return {
-      status: macroState.done
-        ? { status: 'done', output: macroState.output }
-        : { status: 'active' },
-      snapshot: macroState
-    };
+    return macroState as SnapshotFrom<this>;
   }
 
   public start(
@@ -450,7 +473,7 @@ export class StateMachine<
       TResolvedTypesMeta
     >
   ): void {
-    Object.values(state.snapshot.children).forEach((child: any) => {
+    Object.values(state.children).forEach((child: any) => {
       if (child.status === 0) {
         child.start?.();
       }
@@ -491,13 +514,14 @@ export class StateMachine<
       TResolvedTypesMeta
     >
   ): PersistedMachineState<
-    State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
-    TOutput
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
   > {
-    return {
-      status: state.status,
-      snapshot: getPersistedState(state.snapshot)
-    };
+    return getPersistedState(state);
   }
 
   public createState(
@@ -520,18 +544,29 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     return stateConfig instanceof State
-      ? stateConfig
+      ? (stateConfig as any)
       : new State(stateConfig, this);
   }
 
   public restoreState(
-    state: PersistedMachineState<
-      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
-      TOutput
+    snapshot: PersistedMachineState<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
     >,
     _actorCtx: ActorContext<
-      TEvent,
-      State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TActor,
+        TTag,
+        TOutput,
+        TResolvedTypesMeta
+      >,
+      TEvent
     >
   ): MachineSnapshot<
     TContext,
@@ -542,7 +577,6 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     const children: Record<string, AnyActorRef> = {};
-    const { snapshot, status } = state;
 
     Object.keys(snapshot.children).forEach((actorId) => {
       const actorData =
@@ -568,14 +602,9 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
-    const restoredSnapshot: State<
-      TContext,
-      TEvent,
-      TActor,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    > = this.createState(new State({ ...snapshot, children }, this));
+    const restoredSnapshot = this.createState(
+      new State({ ...snapshot, children }, this) as any
+    );
 
     // TODO: DRY this up
     restoredSnapshot.configuration.forEach((stateNode) => {
@@ -605,10 +634,7 @@ export class StateMachine<
       }
     });
 
-    return {
-      status,
-      snapshot: restoredSnapshot
-    };
+    return restoredSnapshot;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

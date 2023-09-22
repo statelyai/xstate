@@ -214,10 +214,7 @@ describe('delayed transitions', () => {
     const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
 
     service = createActor(createMyMachine(), {
-      state: {
-        status: { status: 'active' },
-        snapshot: persistedState
-      }
+      state: persistedState
     }).start();
 
     service.send({ type: 'NEXT' });

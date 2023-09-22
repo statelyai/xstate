@@ -117,9 +117,7 @@ describe('events', () => {
 
     const testModel = createTestModel(testMachine, {
       events: (state) =>
-        state.snapshot.context.values.map(
-          (value) => ({ type: 'EVENT', value } as const)
-        )
+        state.context.values.map((value) => ({ type: 'EVENT', value } as const))
     });
 
     const paths = testModel.getShortestPaths();
@@ -176,7 +174,7 @@ describe('state limiting', () => {
 
     const testPaths = testModel.getShortestPaths({
       filter: (state) => {
-        return state.snapshot.context.count < 5;
+        return state.context.count < 5;
       }
     });
 
@@ -227,7 +225,7 @@ describe('test model options', () => {
     await testUtils.testModel(model, {
       states: {
         '*': (state) => {
-          testedStates.push(state.snapshot.value);
+          testedStates.push(state.value);
         }
       }
     });
@@ -252,7 +250,7 @@ it('tests transitions', async () => {
   const model = createTestModel(machine);
 
   const paths = model.getShortestPaths({
-    toState: (state) => state.snapshot.matches('second')
+    toState: (state) => state.matches('second')
   });
 
   await paths[0].test({
@@ -286,7 +284,7 @@ it('Event in event executor should contain payload from case', async () => {
   });
 
   const paths = model.getShortestPaths({
-    toState: (state) => state.snapshot.matches('second')
+    toState: (state) => state.matches('second')
   });
 
   await model.testPath(
@@ -327,10 +325,10 @@ describe('state tests', () => {
     await testUtils.testModel(model, {
       states: {
         a: (state) => {
-          expect(state.snapshot.value).toEqual('a');
+          expect(state.value).toEqual('a');
         },
         b: (state) => {
-          expect(state.snapshot.value).toEqual('b');
+          expect(state.value).toEqual('b');
         }
       }
     });
@@ -358,13 +356,13 @@ describe('state tests', () => {
     await testUtils.testModel(model, {
       states: {
         a: (state) => {
-          expect(state.snapshot.value).toEqual('a');
+          expect(state.value).toEqual('a');
         },
         b: (state) => {
-          expect(state.snapshot.value).toEqual('b');
+          expect(state.value).toEqual('b');
         },
         '*': (state) => {
-          expect(state.snapshot.value).toEqual('c');
+          expect(state.value).toEqual('c');
         }
       }
     });
@@ -394,15 +392,15 @@ describe('state tests', () => {
       states: {
         a: (state) => {
           testedStateValues.push('a');
-          expect(state.snapshot.value).toEqual('a');
+          expect(state.value).toEqual('a');
         },
         b: (state) => {
           testedStateValues.push('b');
-          expect(state.snapshot.matches('b')).toBe(true);
+          expect(state.matches('b')).toBe(true);
         },
         'b.b1': (state) => {
           testedStateValues.push('b.b1');
-          expect(state.snapshot.value).toEqual({ b: 'b1' });
+          expect(state.value).toEqual({ b: 'b1' });
         }
       }
     });

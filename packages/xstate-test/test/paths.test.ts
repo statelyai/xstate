@@ -246,7 +246,7 @@ describe('getShortestPathsTo', () => {
   });
   it('Should find a path to a non-initial target state', () => {
     const closedPaths = createTestModel(machine).getShortestPaths({
-      toState: (state) => state.snapshot.matches('closed')
+      toState: (state) => state.matches('closed')
     });
 
     expect(closedPaths).toHaveLength(1);
@@ -254,7 +254,7 @@ describe('getShortestPathsTo', () => {
 
   it('Should find a path to an initial target state', () => {
     const openPaths = createTestModel(machine).getShortestPaths({
-      toState: (state) => state.snapshot.matches('open')
+      toState: (state) => state.matches('open')
     });
 
     expect(openPaths).toHaveLength(1);
@@ -282,7 +282,7 @@ describe('getShortestPathsFrom', () => {
     });
     const model = createTestModel(machine);
     const pathsToB = model.getShortestPaths({
-      toState: (state) => state.snapshot.matches('b')
+      toState: (state) => state.matches('b')
     });
 
     // a (NEXT) -> b
@@ -321,7 +321,7 @@ describe('getShortestPathsFrom', () => {
       });
       const model = createTestModel(machine);
       const pathsToB = model.getSimplePaths({
-        toState: (state) => state.snapshot.matches('b')
+        toState: (state) => state.matches('b')
       });
 
       // a (NEXT) -> b

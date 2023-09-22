@@ -6,12 +6,13 @@ import {
   createMachine,
   EventFrom,
   EventObject,
-  StateFrom,
   TypegenConstraint,
   TypegenDisabled,
   MachineContext,
   StateValue,
-  ActorInternalState
+  SnapshotFrom,
+  MachineSnapshot,
+  ProvidedActor
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -68,23 +69,33 @@ function stateValuesEqual(
 }
 
 function serializeMachineTransition(
-  state: ActorInternalState<AnyState, unknown>,
+  state: MachineSnapshot<
+    MachineContext,
+    EventObject,
+    ProvidedActor,
+    string,
+    unknown
+  >,
   event: AnyEventObject | undefined,
-  prevState: ActorInternalState<AnyState, unknown> | undefined,
+  prevState:
+    | MachineSnapshot<
+        MachineContext,
+        EventObject,
+        ProvidedActor,
+        string,
+        unknown
+      >
+    | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
   // TODO: the stateValuesEqual check here is very likely not exactly correct
   // but I'm not sure what the correct check is and what this is trying to do
-  if (
-    !event ||
-    (prevState &&
-      stateValuesEqual(prevState.snapshot.value, state.snapshot.value))
-  ) {
+  if (!event || (prevState && stateValuesEqual(prevState.value, state.value))) {
     return '';
   }
 
   const prevStateString = prevState
-    ? ` from ${simpleStringify(prevState.snapshot.value)}`
+    ? ` from ${simpleStringify(prevState.value)}`
     : '';
 
   return ` via ${serializeEvent(event)}${prevStateString}`;
@@ -117,19 +128,9 @@ function serializeMachineTransition(
 export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: Partial<
-    TestModelOptions<
-      ActorInternalState<StateFrom<TMachine>, unknown>,
-      EventFrom<TMachine>
-    >
+    TestModelOptions<SnapshotFrom<TMachine>, EventFrom<TMachine>>
   >
-): TestModel<
-  StateFrom<TMachine>,
-  EventFrom<TMachine>,
-  unknown,
-  unknown,
-  ActorInternalState<StateFrom<TMachine>, unknown>,
-  unknown
-> {
+): TestModel<SnapshotFrom<TMachine>, EventFrom<TMachine>, unknown, unknown> {
   validateMachine(machine);
 
   const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
@@ -140,11 +141,9 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   const { events: getEvents, ...otherOptions } = options ?? {};
 
   const testModel = new TestModel<
-    StateFrom<TMachine>,
+    SnapshotFrom<TMachine>,
     EventFrom<TMachine>,
     unknown,
-    unknown,
-    ActorInternalState<StateFrom<TMachine>, unknown>,
     any
   >(machine as any, {
     serializeState: (state, event, prevState) => {
@@ -160,15 +159,15 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     },
     stateMatcher: (state, key) => {
       return key.startsWith('#')
-        ? state.snapshot.configuration.includes(machine.getStateNodeById(key))
-        : state.snapshot.matches(key);
+        ? (state as any).configuration.includes(machine.getStateNodeById(key))
+        : (state as any).matches(key);
     },
     events: (state) => {
       const events =
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
       return flatten(
-        state.snapshot.nextEvents.map((eventType) => {
+        (state as any).nextEvents.map((eventType: string) => {
           // @ts-ignore
           if (events.some((e) => e.type === eventType)) {
             // @ts-ignore

@@ -5,27 +5,29 @@ import {
   EventObject,
   ActorRefFrom,
   AnyActorSystem,
-  ActorInternalState
+  Snapshot
 } from '../types';
 
+type TransitionSnapshot<TContext> = Snapshot<undefined> & { context: TContext };
+
 export type TransitionActorLogic<
-  TSnapshot,
+  TContext,
   TEvent extends EventObject,
   TInput
 > = ActorLogic<
-  TSnapshot,
+  TransitionSnapshot<TContext>,
   TEvent,
   TInput,
-  unknown,
-  ActorInternalState<TSnapshot, unknown>,
-  TSnapshot,
+  TransitionSnapshot<TContext>,
   AnyActorSystem
 >;
 
 export type TransitionActorRef<
-  TState,
+  TContext,
   TEvent extends EventObject
-> = ActorRefFrom<TransitionActorLogic<TState, TEvent, unknown>>;
+> = ActorRefFrom<
+  TransitionActorLogic<TransitionSnapshot<TContext>, TEvent, unknown>
+>;
 
 /**
  * Returns actor logic from a transition function and its initial state.
@@ -33,56 +35,47 @@ export type TransitionActorRef<
  * A transition function is a function that takes the current state and an event and returns the next state.
  *
  * @param transition The transition function that returns the next state given the current state and event.
- * @param initialSnapshot The initial state of the transition function.
+ * @param initialContext The initial state of the transition function.
  * @returns Actor logic
  */
 export function fromTransition<
-  TSnapshot,
+  TContext,
   TEvent extends EventObject,
   TSystem extends ActorSystem<any>,
   TInput
 >(
   transition: (
-    state: TSnapshot,
+    state: TContext,
     event: TEvent,
-    actorContext: ActorContext<TEvent, TSnapshot, TSystem>
-  ) => TSnapshot,
-  initialSnapshot:
-    | TSnapshot
+    actorContext: ActorContext<TransitionSnapshot<TContext>, TEvent, TSystem>
+  ) => TContext,
+  initialContext:
+    | TContext
     | (({
         input,
         self
       }: {
         input: TInput;
-        self: TransitionActorRef<TSnapshot, TEvent>;
-      }) => TSnapshot) // TODO: type
-): TransitionActorLogic<TSnapshot, TEvent, TInput> {
+        self: TransitionActorRef<TContext, TEvent>;
+      }) => TContext) // TODO: type
+): TransitionActorLogic<TContext, TEvent, TInput> {
   return {
     config: transition,
     transition: (state, event, actorContext) => {
       return {
-        status: state.status,
-        snapshot: transition(
-          state.snapshot,
-          event as TEvent,
-          actorContext as any
-        )
+        ...state,
+        context: transition(state.context, event as TEvent, actorContext as any)
       };
     },
     getInitialState: (_, input) => {
       return {
-        status: { status: 'active' },
-        snapshot:
-          typeof initialSnapshot === 'function'
-            ? (initialSnapshot as any)({ input })
-            : initialSnapshot
-      };
-    },
-    getPersistedState: (state) => state.snapshot,
-    restoreState: (snapshot) => {
-      return {
-        status: { status: 'active' },
-        snapshot
+        status: 'active',
+        output: undefined,
+        error: undefined,
+        context:
+          typeof initialContext === 'function'
+            ? (initialContext as any)({ input })
+            : initialContext
       };
     }
   };

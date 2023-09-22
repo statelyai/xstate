@@ -1,35 +1,17 @@
-import {
-  ActorInternalState,
-  ActorLogic,
-  ActorSystem,
-  EventObject
-} from 'xstate';
+import { ActorLogic, ActorSystem, EventObject, Snapshot } from 'xstate';
 import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
 
 export function getAdjacencyMap<
-  TSnapshot,
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TOutput,
-  TInternalState extends ActorInternalState<
-    TSnapshot,
-    TOutput
-  > = ActorInternalState<TSnapshot, TOutput>,
-  TPersisted = TInternalState,
+  TPersisted = TSnapshot,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<
-    TSnapshot,
-    TEvent,
-    TInput,
-    TOutput,
-    TInternalState,
-    TPersisted,
-    TSystem
-  >,
-  options: TraversalOptions<TInternalState, TEvent>
-): AdjacencyMap<TInternalState, TEvent> {
+  logic: ActorLogic<TSnapshot, TEvent, TInput, TPersisted, TSystem>,
+  options: TraversalOptions<TSnapshot, TEvent>
+): AdjacencyMap<TSnapshot, TEvent> {
   const { transition } = logic;
   const {
     serializeEvent,
@@ -47,15 +29,15 @@ export function getAdjacencyMap<
       // TODO: fix this
       undefined as TInput
     );
-  const adj: AdjacencyMap<TInternalState, TEvent> = {};
+  const adj: AdjacencyMap<TSnapshot, TEvent> = {};
 
   let iterations = 0;
   const queue: Array<{
-    nextState: TInternalState;
+    nextState: TSnapshot;
     event: TEvent | undefined;
-    prevState: TInternalState | undefined;
+    prevState: TSnapshot | undefined;
   }> = [{ nextState: fromState, event: undefined, prevState: undefined }];
-  const stateMap = new Map<SerializedState, TInternalState>();
+  const stateMap = new Map<SerializedState, TSnapshot>();
 
   while (queue.length) {
     const { nextState: state, event, prevState } = queue.shift()!;

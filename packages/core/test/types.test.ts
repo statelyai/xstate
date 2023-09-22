@@ -5,20 +5,18 @@ import { stop } from '../src/actions/stop';
 import { fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
-  assign,
-  createMachine,
-  createActor,
   MachineContext,
+  ProvidedActor,
   Spawner,
   StateMachine,
-  pure,
+  assign,
   choose,
+  createActor,
+  createMachine,
   not,
-  stateIn,
+  pure,
   sendTo,
-  ProvidedActor,
-  Action,
-  ParameterizedObject
+  stateIn
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -204,13 +202,13 @@ describe('output', () => {
       }
     });
 
-    const { snapshot } = machine.getInitialState(null as any);
+    const state = machine.getInitialState(null as any);
 
-    ((_accept: number | undefined) => {})(snapshot.output);
+    ((_accept: number | undefined) => {})(state.output);
     // @ts-expect-error
-    ((_accept: number) => {})(snapshot.output);
+    ((_accept: number) => {})(state.output);
     // @ts-expect-error
-    ((_accept: string) => {})(snapshot.output);
+    ((_accept: string) => {})(state.output);
   });
 
   it('should accept valid static output', () => {
@@ -4208,9 +4206,9 @@ describe('self', () => {
       },
       context: { count: 0 },
       entry: ({ self }) => {
-        ((_accept: number) => {})(self.getSnapshot().count);
+        ((_accept: number) => {})(self.getSnapshot().context.count);
         // @ts-expect-error
-        ((_accept: string) => {})(self.getSnapshot().count);
+        ((_accept: string) => {})(self.getSnapshot().context.count);
       }
     });
   });
@@ -4222,9 +4220,9 @@ describe('self', () => {
       },
       context: { count: 0 },
       entry: assign(({ self }) => {
-        ((_accept: number) => {})(self.getSnapshot().count);
+        ((_accept: number) => {})(self.getSnapshot().context.count);
         // @ts-expect-error
-        ((_accept: string) => {})(self.getSnapshot().count);
+        ((_accept: string) => {})(self.getSnapshot().context.count);
         return {};
       })
     });

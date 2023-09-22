@@ -5,25 +5,17 @@ import {
   ActorLogic,
   EventObject,
   createActor,
-  ActorInternalState
+  Snapshot
 } from 'xstate';
 
 export function createSpawn<
-  TState,
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TOutput,
   TPersisted
 >(
-  logic: ActorLogic<
-    TState,
-    TEvent,
-    TInput,
-    TOutput,
-    ActorInternalState<TState, TOutput>,
-    TPersisted
-  >
-): ActorRef<TEvent, TState> {
+  logic: ActorLogic<TSnapshot, TEvent, TInput, TPersisted>
+): ActorRef<TEvent, TSnapshot> {
   const actorRef = createActor(logic);
 
   if (!isServer) {
