@@ -9,7 +9,7 @@ import {
   fromEventObservable,
   fromObservable
 } from '../src/actors/observable.ts';
-import { fromPromise } from '../src/actors/promise.ts';
+import { PromiseActorRef, fromPromise } from '../src/actors/promise.ts';
 import { fromTransition } from '../src/actors/transition.ts';
 import {
   ActorLogic,
@@ -237,7 +237,7 @@ describe('spawning promises', () => {
   it('should be able to spawn a promise', (done) => {
     const promiseMachine = createMachine({
       types: {} as {
-        context: { promiseRef?: ActorRef<any, any> };
+        context: { promiseRef?: PromiseActorRef<string> };
       },
       id: 'promise',
       initial: 'idle',
@@ -288,7 +288,7 @@ describe('spawning promises', () => {
     const promiseMachine = createMachine(
       {
         types: {} as {
-          context: { promiseRef?: ActorRef<any, any> };
+          context: { promiseRef?: PromiseActorRef<string> };
         },
         id: 'promise',
         initial: 'idle',
@@ -299,6 +299,7 @@ describe('spawning promises', () => {
           idle: {
             entry: assign({
               promiseRef: ({ spawn }) =>
+                // TODO: this is typed as AnyActorRef instead of PromiseActorRef<string>
                 spawn('somePromise', { id: 'my-promise' })
             }),
             on: {
@@ -340,7 +341,7 @@ describe('spawning callbacks', () => {
   it('should be able to spawn an actor from a callback', (done) => {
     const callbackMachine = createMachine({
       types: {} as {
-        context: { callbackRef?: ActorRef<any, any> };
+        context: { callbackRef?: CallbackActorRef<{ type: 'START' }> };
       },
       id: 'callback',
       initial: 'idle',
@@ -351,6 +352,7 @@ describe('spawning callbacks', () => {
         idle: {
           entry: assign({
             callbackRef: ({ spawn }) =>
+              // TODO: this is typed as AnyActorRef instead of CallbackActorRef<{ type: 'START' }>
               spawn(
                 fromCallback(({ sendBack, receive }) => {
                   receive((event) => {
@@ -743,7 +745,7 @@ describe('communicating with spawned actors', () => {
 
     const parentMachine = createMachine({
       types: {} as {
-        context: { existingRef?: ActorRef<any, any> };
+        context: { existingRef?: typeof existingService };
       },
       initial: 'pending',
       context: {
@@ -808,7 +810,9 @@ describe('communicating with spawned actors', () => {
     const existingService = createActor(existingMachine).start();
 
     const parentMachine = createMachine({
-      types: {} as { context: { existingRef: ActorRef<any, any> | undefined } },
+      types: {} as {
+        context: { existingRef: typeof existingService | undefined };
+      },
       initial: 'pending',
       context: {
         existingRef: undefined
@@ -817,6 +821,7 @@ describe('communicating with spawned actors', () => {
         pending: {
           entry: assign({
             // TODO: fix (spawn existing service)
+            // @ts-expect-error
             existingRef: ({ spawn }) =>
               // @ts-expect-error
               spawn(existingService, {
@@ -946,7 +951,7 @@ describe('actors', () => {
     });
 
     const testMachine = createMachine({
-      types: {} as { context: { ref?: ActorRef<any, any> } },
+      types: {} as { context: { ref?: ActorRefFrom<typeof anotherMachine> } },
       initial: 'testing',
       context: ({ spawn }) => {
         spawnCalled++;
@@ -974,7 +979,7 @@ describe('actors', () => {
 
   it('should spawn null actors if not used within a service', () => {
     const nullActorMachine = createMachine({
-      types: {} as { context: { ref?: ActorRef<any, any> } },
+      types: {} as { context: { ref?: PromiseActorRef<number> } },
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -1224,9 +1229,10 @@ describe('actors', () => {
 
   it('should be able to spawn callback actors in (lazy) initial context', (done) => {
     const machine = createMachine({
-      types: {} as { context: { ref: ActorRef<any, any> } },
+      types: {} as { context: { ref: CallbackActorRef<{ type: 'TEST' }> } },
       context: ({ spawn }) => ({
         ref: spawn(
+          // TODO: this is typed as CallbackActorRef<EventObject> instead of CallbackActorRef<{ type: 'TEST' }>
           fromCallback(({ sendBack }) => {
             sendBack({ type: 'TEST' });
           })
@@ -1258,7 +1264,7 @@ describe('actors', () => {
     });
 
     const machine = createMachine({
-      types: {} as { context: { ref: ActorRef<any, any> } },
+      types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -1450,7 +1456,7 @@ describe('actors', () => {
     const machine = createMachine({
       types: {} as {
         context: {
-          actorRef: CallbackActorRef<EventObject, unknown>;
+          actorRef: CallbackActorRef<never>;
         };
       },
       initial: 'active',
@@ -1517,7 +1523,7 @@ describe('actors', () => {
     const machine = createMachine({
       types: {} as {
         context: {
-          actorRef: CallbackActorRef<EventObject, unknown>;
+          actorRef: CallbackActorRef<never>;
         };
       },
       initial: 'active',
@@ -1582,7 +1588,7 @@ describe('actors', () => {
     const machine = createMachine({
       types: {} as {
         context: {
-          actorRef: CallbackActorRef<EventObject, unknown>;
+          actorRef: CallbackActorRef<never>;
         };
       },
       initial: 'active',
@@ -1647,7 +1653,7 @@ describe('actors', () => {
     const machine = createMachine({
       types: {} as {
         context: {
-          actorRef: CallbackActorRef<EventObject, unknown>;
+          actorRef: CallbackActorRef<never>;
         };
       },
       initial: 'active',

@@ -3234,7 +3234,7 @@ describe('sendTo', () => {
     expect.assertions(1);
     const machine = createMachine({
       types: {} as {
-        context: Record<string, CallbackActorRef<EventObject, unknown>>;
+        context: Record<string, CallbackActorRef<EventObject>>;
         events: { type: 'EVENT'; value: string };
       },
       initial: 'a',
