@@ -6,29 +6,25 @@ import {
   ActorSystem,
   ActorRefFrom,
   TODO,
-  ActorInternalState
+  Snapshot,
+  HomomorphicOmit
 } from '../types';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
-export interface CallbackInternalState<
-  TEvent extends EventObject,
-  TInput = unknown
-> extends ActorInternalState<undefined, TEvent> {
-  receivers: Set<(e: TEvent) => void>;
-  dispose: (() => void) | void;
+type CallbackSnapshot<TInput, TEvent> = Snapshot<undefined> & {
   input: TInput;
-}
+  _receivers: Set<(e: TEvent) => void>;
+  _dispose: (() => void) | void;
+};
 
 export type CallbackActorLogic<
   TEvent extends EventObject,
   TInput = unknown
 > = ActorLogic<
-  undefined,
+  CallbackSnapshot<TInput, TEvent>,
   TEvent,
   TInput,
-  unknown,
-  CallbackInternalState<TEvent, TInput>,
-  Pick<CallbackInternalState<TEvent, TInput>, 'input'>,
+  HomomorphicOmit<CallbackSnapshot<TInput, TEvent>, '_receivers' | '_dispose'>,
   ActorSystem<any>
 >;
 
@@ -72,7 +68,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
     transition: (state, event, { self, id, system }) => {
       if (event.type === XSTATE_INIT) {
         const sendBack = (eventForParent: AnyEventObject) => {
-          if (state.status.status === 'stopped') {
+          if (state.status === 'stopped') {
             return;
           }
 
@@ -80,10 +76,10 @@ export function fromCallback<TEvent extends EventObject, TInput>(
         };
 
         const receive: Receiver<TEvent> = (newListener) => {
-          state.receivers.add(newListener);
+          state._receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback({
+        state._dispose = invokeCallback({
           input: state.input,
           system,
           self: self as TODO,
@@ -97,30 +93,30 @@ export function fromCallback<TEvent extends EventObject, TInput>(
       if (event.type === XSTATE_STOP) {
         state = {
           ...state,
-          status: {
-            status: 'stopped'
-          }
+          status: 'stopped',
+          error: undefined
         };
 
-        if (typeof state.dispose === 'function') {
-          state.dispose();
+        if (typeof state._dispose === 'function') {
+          state._dispose();
         }
         return state;
       }
 
-      state.receivers.forEach((receiver) => receiver(event));
+      state._receivers.forEach((receiver) => receiver(event));
 
       return state;
     },
     getInitialState: (_, input) => {
       return {
-        status: { status: 'active' },
-        snapshot: undefined,
-        receivers: new Set(),
-        dispose: undefined,
-        input
+        status: 'active',
+        output: undefined,
+        error: undefined,
+        input,
+        _receivers: new Set(),
+        _dispose: undefined
       };
-    }
-    // getPersistedState: ({ input }) => ({ input, canceled })
+    },
+    getPersistedState: ({ _dispose, _receivers, ...rest }) => rest
   };
 }

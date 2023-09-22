@@ -12,7 +12,6 @@ import {
 } from './typegenTypes.ts';
 import type {
   ActorLogic,
-  InternalStateFrom,
   ActorContext,
   ActorSystem,
   AnyActorLogic,
@@ -82,7 +81,7 @@ export class Actor<
   /**
    * The current internal state of the actor.
    */
-  private _state!: InternalStateFrom<TLogic>;
+  private _state!: SnapshotFrom<TLogic>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */

@@ -72,7 +72,6 @@ export class State<
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TTag extends string,
-  TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -85,7 +84,6 @@ export class State<
   /**
    * The output data of the top-level finite state.
    */
-  public output: TOutput | undefined;
   public error: unknown;
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
@@ -114,7 +112,6 @@ export class State<
           TEvent,
           TODO,
           any, // tags
-          any, // output
           any // typegen
         >
       | StateValue,
@@ -125,12 +122,11 @@ export class State<
     TEvent,
     TODO,
     any, // tags
-    any, // output
     any // typegen
   > {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TContext, TEvent, TODO, any, any, any>(
+        return new State<TContext, TEvent, TODO, any, any>(
           {
             value: stateValue.value,
             context,
@@ -149,7 +145,7 @@ export class State<
       getStateNodes(machine.root, stateValue)
     );
 
-    return new State<TContext, TEvent, TODO, any, any, any>(
+    return new State<TContext, TEvent, TODO, any, any>(
       {
         value: stateValue,
         context,
@@ -182,9 +178,9 @@ export class State<
 
     this.value = getStateValue(machine.root, this.configuration);
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
-    this.done = config.done ?? false;
-    this.output = config.output;
-    this.error = config.error;
+    this.done = config.done ?? false; // TODO: refactor to status
+    (this as any).output = config.output;
+    (this as any).error = config.error;
   }
 
   /**

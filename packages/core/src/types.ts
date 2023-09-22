@@ -1,7 +1,7 @@
 import type { StateNode } from './StateNode.ts';
 import type { State } from './State.ts';
 import type { ActorStatus, Clock, Actor } from './interpreter.ts';
-import type { StateMachine } from './StateMachine.ts';
+import type { MachineSnapshot, StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
@@ -13,6 +13,10 @@ import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
+
+export type HomomorphicOmit<T, K extends keyof any> = {
+  [P in keyof T as Exclude<P, K>]: T[P];
+};
 
 /**
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
@@ -1826,8 +1830,7 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 
 export interface ActorRef<
   TEvent extends EventObject,
-  TSnapshot = any,
-  TOutput = unknown
+  TSnapshot extends Snapshot<unknown>
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
   /**
@@ -1841,7 +1844,6 @@ export interface ActorRef<
   getSnapshot: () => TSnapshot;
   // TODO: this should return some sort of TPersistedState, not any
   getPersistedState?: () => any;
-  getStatus: () => ActorStatusObject<TOutput>;
   stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
@@ -1857,7 +1859,7 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<any, any, any, any, any, any, any, any, any>
     ? R
     : R extends Promise<infer U>
-    ? PromiseActorLogic<U>
+    ? PromiseActorLogic<unknown, U>
     : never
   : never;
 
@@ -1876,7 +1878,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
     >
     ? ActorRef<
         TEvent,
-        State<
+        MachineSnapshot<
           TContext,
           TEvent,
           TActor,
@@ -1888,15 +1890,13 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         >
       >
     : R extends Promise<infer U>
-    ? ActorRefFrom<PromiseActorLogic<U>>
+    ? ActorRefFrom<PromiseActorLogic<unknown, U>>
     : R extends ActorLogic<
         infer TSnapshot,
         infer TEvent,
-        infer _,
-        infer __,
-        infer ___,
-        infer ____,
-        infer _____
+        infer _TInput,
+        infer _TPersisted,
+        infer _TSystem
       >
     ? ActorRef<TEvent, TSnapshot>
     : never
@@ -1923,14 +1923,16 @@ export type InterpreterFrom<
 >
   ? Actor<
       ActorLogic<
-        State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+        MachineSnapshot<
+          TContext,
+          TEvent,
+          TActor,
+          TTag,
+          TOutput,
+          TResolvedTypesMeta
+        >,
         TEvent,
         TInput,
-        TOutput,
-        ActorInternalState<
-          State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
-          TOutput
-        >,
         PersistedMachineState<
           State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
           TOutput
@@ -2018,52 +2020,64 @@ export interface ActorInternalState<TSnapshot, TOutput> {
   status: ActorStatusObject<TOutput>;
   snapshot: TSnapshot;
 }
+
+export type Snapshot<TOutput> =
+  | {
+      status: 'active';
+      output: undefined;
+      error: undefined;
+    }
+  | {
+      status: 'done';
+      output: TOutput;
+      error: undefined;
+    }
+  | {
+      status: 'error';
+      output: undefined;
+      error: unknown;
+    }
+  | {
+      status: 'stopped';
+      output: undefined;
+      error: undefined;
+    };
+
 export interface ActorLogic<
-  TSnapshot,
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput = unknown,
-  TOutput = unknown, // TODO: this is **only** part of the status object, so it could be removed from here
-  TInternalState extends ActorInternalState<
-    TSnapshot,
-    TOutput
-  > = ActorInternalState<TSnapshot, TOutput>,
   /**
    * Serialized internal state used for persistence & restoration
    */
-  TPersisted = TInternalState,
+  TPersisted = TSnapshot,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   config?: unknown;
   transition: (
-    state: TInternalState,
+    state: TSnapshot,
     message: TEvent,
     ctx: ActorContext<TEvent, TSnapshot, TSystem>
-  ) => TInternalState;
+  ) => TSnapshot;
   getInitialState: (
     actorCtx: ActorContext<TEvent, TSnapshot, TSystem>,
     input: TInput
-  ) => TInternalState;
+  ) => TSnapshot;
   restoreState?: (
     persistedState: TPersisted,
     actorCtx: ActorContext<TEvent, TSnapshot>
-  ) => TInternalState;
-  start?: (
-    state: TInternalState,
-    actorCtx: ActorContext<TEvent, TSnapshot>
-  ) => void;
+  ) => TSnapshot;
+  start?: (state: TSnapshot, actorCtx: ActorContext<TEvent, TSnapshot>) => void;
   /**
    * @returns Persisted state
    */
-  getPersistedState?: (state: TInternalState) => TPersisted;
-  _out_TOutput?: TOutput; // temp hack to use this type param so we can error properly, ideally this should appear somewhere in the type, perhaps in the `getStatus`?
+  getPersistedState?: (state: TSnapshot) => TPersisted;
 }
 
 export type AnyActorLogic = ActorLogic<
   any, // snapshot
   any, // event
   any, // input
-  any, // output
-  any, // internal state
   any, // persisted state
   any // system
 >;
@@ -2086,51 +2100,35 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TResolvedTypesMeta
       >
     ? StateFrom<R>
-    : R extends ActorLogic<any, any, any, any, any, any, any>
-    ? ReturnType<R['transition']>['snapshot']
+    : R extends ActorLogic<any, any, any, any, any>
+    ? ReturnType<R['transition']>
     : R extends ActorContext<infer _, infer TSnapshot, infer __>
     ? TSnapshot
     : never
   : never;
 
-export type EventFromLogic<
-  TLogic extends ActorLogic<any, any, any, any, any, any, any>
-> = TLogic extends ActorLogic<
-  infer _,
-  infer TEvent,
-  infer __,
-  infer ___,
-  infer ____,
-  infer _____,
-  infer ______
->
-  ? TEvent
-  : never;
+export type EventFromLogic<TLogic extends ActorLogic<any, any, any, any, any>> =
+  TLogic extends ActorLogic<
+    infer _,
+    infer TEvent,
+    infer __,
+    infer _____,
+    infer ______
+  >
+    ? TEvent
+    : never;
 
 export type PersistedStateFrom<
-  TLogic extends ActorLogic<any, any, any, any, any, any, any>
+  TLogic extends ActorLogic<any, any, any, any, any>
 > = TLogic extends ActorLogic<
   infer _TSnapshot,
   infer _TEvent,
   infer _TInput,
-  infer _TOutput,
-  infer _TInternalState,
-  infer TPersisted
+  infer TPersisted,
+  infer _TSystem
 >
   ? TPersisted
   : never;
-
-export type InternalStateFrom<TLogic extends ActorLogic<any, any>> =
-  TLogic extends ActorLogic<
-    infer _TSnapshot,
-    infer _TEvent,
-    infer _TInput,
-    infer _TOutput,
-    infer TInternalState,
-    infer _TPersisted
-  >
-    ? TInternalState
-    : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
