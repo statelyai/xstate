@@ -9,18 +9,22 @@
 </template>
 
 <script lang="ts">
-import { ActorRef } from 'xstate';
+import { ActorRef, Snapshot } from 'xstate';
 import { defineComponent, shallowRef } from 'vue';
 
 import { useActor } from '../src/index.ts';
 import { createActor } from 'xstate';
 
-const createSimpleActor = (value: number): ActorRef<any, number> =>
+const createSimpleActor = (
+  value: number
+): ActorRef<any, Snapshot<undefined> & { context: number }> =>
   createActor({
     transition: (s) => s,
     getInitialState: () => ({
-      status: { status: 'active' },
-      snapshot: value
+      status: 'active',
+      output: undefined,
+      error: undefined,
+      context: value
     }),
     subscribe: () => {
       return {

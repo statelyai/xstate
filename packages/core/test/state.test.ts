@@ -184,10 +184,7 @@ describe('State', () => {
       const stateFromConfig = exampleMachine.createState(jsonInitialState);
 
       const actorRef = createActor(exampleMachine, {
-        state: {
-          status: { status: 'active' },
-          snapshot: stateFromConfig
-        }
+        state: stateFromConfig
       }).start();
 
       actorRef.send({

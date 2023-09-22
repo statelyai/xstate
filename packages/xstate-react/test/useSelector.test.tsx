@@ -346,8 +346,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           return { unsubscribe: () => {} };
         },
         getInitialState: () => ({
-          status: { status: 'active' },
-          snapshot: latestValue
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: latestValue
         })
       });
 
@@ -490,8 +492,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           return { unsubscribe: () => {} };
         },
         getInitialState: () => ({
-          status: { status: 'active' },
-          snapshot: latestValue
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: latestValue
         })
       });
 
@@ -529,8 +533,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           return { unsubscribe: () => {} };
         },
         getInitialState: () => ({
-          status: { status: 'active' },
-          snapshot: latestValue
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: latestValue
         })
       });
 
@@ -563,8 +569,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       },
       getInitialState: () => {
         return {
-          status: { status: 'active' },
-          snapshot: undefined
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: undefined
         };
       }
     });

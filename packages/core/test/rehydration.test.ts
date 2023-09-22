@@ -61,10 +61,7 @@ describe('rehydration', () => {
       );
       const restoredState = JSON.parse(persistedState);
       const service = createActor(machine, {
-        state: {
-          status: { status: 'active' },
-          snapshot: restoredState
-        }
+        state: restoredState
       }).start();
 
       expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
@@ -87,10 +84,7 @@ describe('rehydration', () => {
 
       const activeState = machine.resolveStateValue('active');
       const service = createActor(machine, {
-        state: {
-          status: { status: 'active' },
-          snapshot: activeState
-        }
+        state: activeState
       });
 
       service.start();
@@ -114,10 +108,7 @@ describe('rehydration', () => {
       });
 
       createActor(machine, {
-        state: {
-          status: { status: 'active' },
-          snapshot: machine.resolveStateValue('active')
-        }
+        state: machine.resolveStateValue('active')
       })
         .start()
         .stop();

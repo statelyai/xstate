@@ -2244,7 +2244,7 @@ describe('invoke', () => {
 
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
-        if (state.children['count']?.getSnapshot() === 2) {
+        if (state.children['count']?.getSnapshot().context === 2) {
           done();
         }
       });
@@ -2327,7 +2327,7 @@ describe('invoke', () => {
 
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
-        if (state.children['count']?.getSnapshot() === 2) {
+        if (state.children['count']?.getSnapshot().context === 2) {
           done();
         }
       });
@@ -2370,7 +2370,7 @@ describe('invoke', () => {
 
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
-        if (state.children['count']?.getSnapshot() === 2) {
+        if (state.children['count']?.getSnapshot().context === 2) {
           done();
         }
       });
