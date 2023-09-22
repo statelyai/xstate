@@ -55,19 +55,21 @@ export function fromObservable<TContext, TInput>(
       }
 
       switch (event.type) {
-        case nextEventType:
+        case nextEventType: {
+          const newSnapshot = {
+            ...snapshot,
+            context: event.data as TContext
+          };
           // match the exact timing of events sent by machines
           // send actions are not executed immediately
           defer(() => {
             self._parent?.send({
               type: `xstate.snapshot.${id}`,
-              data: event.data
+              data: newSnapshot
             });
           });
-          return {
-            ...snapshot,
-            context: event.data as TContext
-          };
+          return newSnapshot;
+        }
         case errorEventType:
           return {
             ...snapshot,

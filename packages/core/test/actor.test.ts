@@ -411,7 +411,7 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: ({ event }) => event.data === 5
+              guard: ({ event }) => event.data.context === 5
             }
           }
         },
@@ -447,7 +447,7 @@ describe('spawning observables', () => {
             on: {
               'xstate.snapshot.int': {
                 target: 'success',
-                guard: ({ event }) => event.data === 5
+                guard: ({ event }) => event.data.context === 5
               }
             }
           },
@@ -495,7 +495,7 @@ describe('spawning observables', () => {
               target: 'success',
               guard: ({ context, event }) => {
                 return (
-                  event.data === 1 &&
+                  event.data.context === 1 &&
                   context.observableRef.getSnapshot().context === 1
                 );
               }
@@ -564,7 +564,7 @@ describe('spawning observables', () => {
     const spy = jest.fn();
 
     actorRef.getSnapshot().children.childActor!.subscribe((data) => {
-      spy(data);
+      spy(data.context);
     });
 
     await waitFor(actorRef, (state) => state.status !== 'active');
