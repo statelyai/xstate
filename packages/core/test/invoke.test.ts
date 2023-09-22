@@ -2075,8 +2075,12 @@ describe('invoke', () => {
           input: 42,
           onSnapshot: {
             actions: ({ event }) => {
-              expect(event.snapshot.context).toEqual(42);
-              done();
+              if (
+                event.snapshot.status === 'active' &&
+                event.snapshot.context === 42
+              ) {
+                done();
+              }
             }
           }
         }
