@@ -1,6 +1,5 @@
 import isDevelopment from '#is-development';
 import { AnyActorLogic, AnyState } from './index.ts';
-import { errorExecution, errorPlatform } from './constantPrefixes.ts';
 import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
@@ -11,7 +10,7 @@ import type {
   MachineContext,
   Mapper,
   Observer,
-  ErrorEvent,
+  ErrorActorEvent,
   SingleOrArray,
   StateLike,
   StateValue,
@@ -326,11 +325,10 @@ export const uniqueId = (() => {
   };
 })();
 
-export function isErrorEvent(event: AnyEventObject): event is ErrorEvent<any> {
-  return (
-    typeof event.type === 'string' &&
-    (event.type === errorExecution || event.type.startsWith(errorPlatform))
-  );
+export function isErrorActorEvent(
+  event: AnyEventObject
+): event is ErrorActorEvent {
+  return event.type.startsWith('xstate.error.actor');
 }
 
 export function toTransitionConfigArray<

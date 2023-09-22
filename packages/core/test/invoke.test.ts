@@ -79,7 +79,7 @@ const fetcherMachine = createMachine({
           target: 'received',
           guard: ({ event }) => {
             // Should receive { user: { name: 'David' } } as event data
-            return event.output.user.name === 'David';
+            return (event.output as any).user.name === 'David';
           }
         }
       }
@@ -241,7 +241,7 @@ describe('invoke', () => {
               target: 'received',
               guard: ({ event }) => {
                 // Should receive { user: { name: 'David' } } as event data
-                return event.output.user.name === 'David';
+                return (event.output as any).user.name === 'David';
               }
             }
           }
@@ -586,7 +586,7 @@ describe('invoke', () => {
       actor.start();
     });
 
-    it('should not reinvoke root-level invocations', (done) => {
+    it('should not reinvoke root-level invocations on root non-reentering transitions', () => {
       // https://github.com/statelyai/xstate/issues/2147
 
       let invokeCount = 0;
@@ -631,7 +631,6 @@ describe('invoke', () => {
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
-      done();
     });
 
     it('should stop a child actor when reaching a final state', () => {
@@ -1081,7 +1080,7 @@ describe('invoke', () => {
                 onDone: {
                   target: 'success',
                   actions: ({ event }) => {
-                    count = event.output.count;
+                    count = (event.output as any).count;
                   }
                 }
               }
@@ -1683,77 +1682,7 @@ describe('invoke', () => {
       expect(service.getSnapshot().value).toEqual(expectedStateValue);
     });
 
-    it('should call onError upon error (async)', (done) => {
-      const errorMachine = createMachine({
-        id: 'asyncError',
-        initial: 'safe',
-        states: {
-          safe: {
-            invoke: {
-              src: fromCallback(async () => {
-                await true;
-                throw new Error('test');
-              }),
-              onError: {
-                target: 'failed',
-                guard: ({ event }) => {
-                  return (
-                    event.data instanceof Error && event.data.message === 'test'
-                  );
-                }
-              }
-            }
-          },
-          failed: {
-            type: 'final'
-          }
-        }
-      });
-      const actor = createActor(errorMachine);
-      actor.subscribe({ complete: () => done() });
-      actor.start();
-    });
-
-    it('should call onDone when resolved (async)', (done) => {
-      const asyncWithDoneMachine = createMachine({
-        types: {} as { context: { result?: number } },
-        id: 'async',
-        initial: 'fetch',
-        context: { result: undefined },
-        states: {
-          fetch: {
-            invoke: {
-              src: fromCallback(async () => {
-                await true;
-                return 42;
-              }),
-              onDone: {
-                target: 'success',
-                actions: assign(({ event: { output: result } }) => ({
-                  result
-                }))
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actor = createActor(asyncWithDoneMachine);
-      actor.subscribe({
-        complete: () => {
-          expect(actor.getSnapshot().context.result).toEqual(42);
-          done();
-        }
-      });
-      actor.start();
-    });
-
     it('should call onError only on the state which has invoked failed service', () => {
-      let errorHandlersCalled = 0;
-
       const errorMachine = createMachine({
         initial: 'start',
         states: {
@@ -1766,44 +1695,49 @@ describe('invoke', () => {
             type: 'parallel',
             states: {
               first: {
-                invoke: {
-                  src: fromCallback(() => {
-                    throw new Error('test');
-                  }),
-                  onError: {
-                    target: 'failed',
-                    guard: () => {
-                      errorHandlersCalled++;
-                      return false;
+                initial: 'waiting',
+                states: {
+                  waiting: {
+                    invoke: {
+                      src: fromCallback(() => {
+                        throw new Error('test');
+                      }),
+                      onError: {
+                        target: 'failed'
+                      }
                     }
-                  }
+                  },
+                  failed: {}
                 }
               },
               second: {
-                invoke: {
-                  src: fromCallback(() => {
-                    // empty
-                  }),
-                  onError: {
-                    target: 'failed',
-                    guard: () => {
-                      errorHandlersCalled++;
-                      return false;
+                initial: 'waiting',
+                states: {
+                  waiting: {
+                    invoke: {
+                      src: fromCallback(() => {
+                        // empty
+                        return () => {};
+                      }),
+                      onError: {
+                        target: 'failed'
+                      }
                     }
-                  }
+                  },
+                  failed: {}
                 }
-              },
-              failed: {
-                type: 'final'
               }
             }
           }
         }
       });
 
-      createActor(errorMachine).start().send({ type: 'FETCH' });
+      const actorRef = createActor(errorMachine).start();
+      actorRef.send({ type: 'FETCH' });
 
-      expect(errorHandlersCalled).toEqual(1);
+      expect(actorRef.getSnapshot().value).toEqual({
+        fetch: { first: 'failed', second: 'waiting' }
+      });
     });
 
     it('should be able to be stringified', () => {
@@ -2046,9 +1980,10 @@ describe('invoke', () => {
               onError: {
                 target: 'success',
                 guard: ({ context, event }) => {
-                  expect(event.data.message).toEqual('some error');
+                  expect((event.data as any).message).toEqual('some error');
                   return (
-                    context.count === 4 && event.data.message === 'some error'
+                    context.count === 4 &&
+                    (event.data as any).message === 'some error'
                   );
                 }
               }
@@ -2212,9 +2147,10 @@ describe('invoke', () => {
               onError: {
                 target: 'success',
                 guard: ({ context, event }) => {
-                  expect(event.data.message).toEqual('some error');
+                  expect((event.data as any).message).toEqual('some error');
                   return (
-                    context.count === 4 && event.data.message === 'some error'
+                    context.count === 4 &&
+                    (event.data as any).message === 'some error'
                   );
                 }
               }
@@ -2975,7 +2911,8 @@ describe('invoke', () => {
               onDone: {
                 guard: ({ event }) => {
                   // invoke ID should not be 'someSrc'
-                  const expectedType = 'done.invoke.(machine).a:invocation[0]';
+                  const expectedType =
+                    'xstate.done.actor.(machine).a:invocation[0]';
                   expect(event.type).toEqual(expectedType);
                   return event.type === expectedType;
                 },
@@ -3048,7 +2985,7 @@ describe('invoke', () => {
   );
 
   // https://github.com/statelyai/xstate/issues/464
-  it('done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
+  it('xstate.done.actor events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
     let counter = 0;
     let invoked = false;
 
@@ -3104,7 +3041,7 @@ describe('invoke', () => {
     }, 0);
   });
 
-  it('done.invoke events should have unique names when invokee is a machine with an id property', (done) => {
+  it('xstate.done.actor events should have unique names when invokee is a machine with an id property', (done) => {
     const actual: string[] = [];
 
     const childMachine = createMachine({
@@ -3156,8 +3093,8 @@ describe('invoke', () => {
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
     setTimeout(() => {
       expect(actual).toEqual([
-        'done.invoke.(machine).first.fetch:invocation[0]',
-        'done.invoke.(machine).second.fetch:invocation[0]'
+        'xstate.done.actor.(machine).first.fetch:invocation[0]',
+        'xstate.done.actor.(machine).second.fetch:invocation[0]'
       ]);
       done();
     }, 100);
@@ -3284,6 +3221,51 @@ describe('invoke', () => {
     service.send({ type: 'EVENT' });
 
     expect(count).toEqual(2);
+  });
+
+  it('should be able to restart an invoke when reentering the invoking state', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { ACTIVATE: 'active' }
+        },
+        active: {
+          invoke: {
+            src: fromCallback(() => {
+              const localId = ++invokeCounter;
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            })
+          },
+          on: {
+            REENTER: {
+              target: 'active',
+              reenter: true
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    service.send({
+      type: 'ACTIVATE'
+    });
+
+    actual.length = 0;
+
+    service.send({
+      type: 'REENTER'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
   });
 });
 

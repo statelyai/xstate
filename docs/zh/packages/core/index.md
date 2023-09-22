@@ -21,7 +21,6 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 ## Packages
 
 - 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
 - [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
 - [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
 - [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Model-based testing utilities for XState
@@ -116,8 +115,9 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
-  .value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 
 // => 'yellow'
 ```
@@ -261,8 +261,9 @@ const wordMachine = createMachine({
   }
 });
 
-const boldState = wordMachine.transition('bold.off', { type: 'TOGGLE_BOLD' })
-  .value;
+const boldState = wordMachine.transition('bold.off', {
+  type: 'TOGGLE_BOLD'
+}).value;
 
 // {
 //   bold: 'on',

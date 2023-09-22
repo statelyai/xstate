@@ -7,8 +7,6 @@ import {
   ActorRefFrom,
   TODO
 } from '../types';
-import { isPromiseLike } from '../utils';
-import { doneInvoke, error } from '../actions.ts';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
 export interface CallbackInternalState<
@@ -17,7 +15,7 @@ export interface CallbackInternalState<
 > {
   canceled: boolean;
   receivers: Set<(e: TEvent) => void>;
-  dispose: void | (() => void) | Promise<any>;
+  dispose: (() => void) | void;
   input: TInput;
 }
 
@@ -61,7 +59,7 @@ export type InvokeCallback<
   self: CallbackActorRef<TEvent>;
   sendBack: (event: TSentEvent) => void;
   receive: Receiver<TEvent>;
-}) => (() => void) | Promise<any> | void;
+}) => (() => void) | void;
 
 export function fromCallback<TEvent extends EventObject, TInput>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
@@ -93,18 +91,6 @@ export function fromCallback<TEvent extends EventObject, TInput>(
           receive
         });
 
-        if (isPromiseLike(state.dispose)) {
-          state.dispose.then(
-            (resolved) => {
-              self._parent?.send(doneInvoke(id, resolved));
-              state.canceled = true;
-            },
-            (errorData) => {
-              state.canceled = true;
-              self._parent?.send(error(id, errorData));
-            }
-          );
-        }
         return state;
       }
 

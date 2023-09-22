@@ -1,7 +1,8 @@
 import isDevelopment from '#is-development';
 import { State, cloneState } from './State.ts';
 import type { StateNode } from './StateNode.ts';
-import { after, done, raise } from './actions.ts';
+import { raise } from './actions.ts';
+import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { invoke } from './actions/invoke.ts';
 import { stop } from './actions/stop.ts';
@@ -39,7 +40,8 @@ import {
   UnknownAction,
   ParameterizedObject,
   ActionFunction,
-  AnyTransitionConfig
+  AnyTransitionConfig,
+  ProvidedActor
 } from './types.ts';
 import {
   isArray,
@@ -296,14 +298,20 @@ export function getDelayedTransitions(
     delay:
       | string
       | number
-      | DelayExpr<MachineContext, EventObject, ParameterizedObject | undefined>,
+      | DelayExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject | undefined,
+          EventObject
+        >,
     i: number
   ) => {
     const delayRef =
       typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
-    const eventType = after(delayRef, stateNode.id);
+    const afterEvent = createAfterEvent(delayRef, stateNode.id);
+    const eventType = afterEvent.type;
     const id = eventType;
-    stateNode.entry.push(raise({ type: eventType }, { id, delay }));
+    stateNode.entry.push(raise(afterEvent, { id, delay }));
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
@@ -403,7 +411,7 @@ export function formatTransitions<
     }
   }
   if (stateNode.config.onDone) {
-    const descriptor = String(done(stateNode.id));
+    const descriptor = `xstate.done.state.${stateNode.id}`;
     transitions.set(
       descriptor,
       toTransitionConfigArray(stateNode.config.onDone).map((t) =>
@@ -413,7 +421,7 @@ export function formatTransitions<
   }
   for (const invokeDef of stateNode.invoke) {
     if (invokeDef.onDone) {
-      const descriptor = `done.invoke.${invokeDef.id}`;
+      const descriptor = `xstate.done.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
         toTransitionConfigArray(invokeDef.onDone).map((t) =>
@@ -422,7 +430,7 @@ export function formatTransitions<
       );
     }
     if (invokeDef.onError) {
-      const descriptor = `error.platform.${invokeDef.id}`;
+      const descriptor = `xstate.error.actor.${invokeDef.id}`;
       transitions.set(
         descriptor,
         toTransitionConfigArray(invokeDef.onError).map((t) =>
@@ -458,7 +466,7 @@ export function formatInitialTransition<
   stateNode: AnyStateNode,
   _target:
     | SingleOrArray<string>
-    | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO>
+    | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO, TODO>
 ): InitialTransitionDefinition<TContext, TEvent> {
   if (typeof _target === 'string' || isArray(_target)) {
     const targets = toArray(_target).map((t) => {
@@ -1170,7 +1178,7 @@ function enterStates(
       }
 
       internalQueue.push(
-        done(
+        createDoneStateEvent(
           parent!.id,
           stateNodeToEnter.output
             ? mapContext(
@@ -1192,7 +1200,7 @@ function enterStates(
               isInFinalState([...mutConfiguration], parentNode)
             )
           ) {
-            internalQueue.push(done(grandparent.id));
+            internalQueue.push(createDoneStateEvent(grandparent.id));
           }
         }
       }
@@ -1394,7 +1402,7 @@ interface BuiltinAction {
   resolve: (
     actorContext: AnyActorContext,
     state: AnyState,
-    actionArgs: ActionArgs<any, any, any>,
+    actionArgs: ActionArgs<any, any, any, any>,
     action: unknown
   ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
   execute: (actorContext: AnyActorContext, params: unknown) => void;
@@ -1431,6 +1439,7 @@ export function resolveActionsAndContext<
               EventObject,
               EventObject,
               ParameterizedObject | undefined,
+              ProvidedActor,
               ParameterizedObject,
               ParameterizedObject,
               string

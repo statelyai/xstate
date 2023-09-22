@@ -352,7 +352,7 @@ describe('input', () => {
           count: input
         }),
         entry: assign(({ spawn }) => ({
-          childRef: spawn('child') // TODO: type-check for spawn
+          childRef: spawn('child')
         }))
       },
       {

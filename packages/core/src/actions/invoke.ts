@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
-import { error } from '../actions.ts';
+import { createErrorActorEvent } from '../eventUtils.ts';
 import { ActorStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
@@ -17,7 +17,7 @@ import { resolveReferencedActor } from '../utils.ts';
 function resolve(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   {
     id,
     systemId,
@@ -89,7 +89,7 @@ function execute(
     try {
       actorRef.start?.();
     } catch (err) {
-      (actorContext.self as AnyActor).send(error(id, err));
+      (actorContext.self as AnyActor).send(createErrorActorEvent(id, err));
       return;
     }
   });
@@ -99,15 +99,17 @@ function execute(
 interface InvokeAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
 }
 
 export function invoke<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 >({
   id,
   systemId,
@@ -118,9 +120,9 @@ export function invoke<
   systemId: string | undefined;
   src: string;
   input?: unknown;
-}): InvokeAction<TContext, TExpressionEvent, TExpressionAction> {
+}): InvokeAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
   function invoke(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

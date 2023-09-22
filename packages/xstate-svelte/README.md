@@ -21,14 +21,6 @@ npm i xstate @xstate/svelte
 
 By using the global variable `XStateSvelte`
 
-or
-
-```html
-<script src="https://unpkg.com/@xstate/svelte/dist/xstate-svelte.fsm.min.js"></script>
-```
-
-By using the global variable `XStateSvelteFSM`
-
 2. Import `useMachine`
 
 ```svelte
