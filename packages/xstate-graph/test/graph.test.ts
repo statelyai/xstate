@@ -28,9 +28,19 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
   steps: Array<{ state: unknown; eventType: string }>;
 } {
   return {
-    state: path.state instanceof State ? path.state.value : path.state,
+    state:
+      path.state instanceof State
+        ? path.state.value
+        : 'context' in path.state
+        ? path.state.context
+        : path.state,
     steps: path.steps.map((step) => ({
-      state: step.state instanceof State ? step.state.value : step.state,
+      state:
+        step.state instanceof State
+          ? step.state.value
+          : 'context' in step.state
+          ? step.state.context
+          : step.state,
       eventType: step.event.type
     }))
   };

@@ -128,12 +128,10 @@ describe('promise logic (fromPromise)', () => {
 
       expect(resolvedPersistedState).toMatchInlineSnapshot(`
         {
+          "error": undefined,
           "input": undefined,
-          "snapshot": 42,
-          "status": {
-            "output": 42,
-            "status": "done",
-          },
+          "output": 42,
+          "status": "done",
         }
       `);
 
@@ -159,12 +157,10 @@ describe('promise logic (fromPromise)', () => {
     const resolvedPersistedState = actor.getPersistedState();
     expect(resolvedPersistedState).toMatchInlineSnapshot(`
       {
+        "error": undefined,
         "input": undefined,
-        "snapshot": 1,
-        "status": {
-          "output": 1,
-          "status": "done",
-        },
+        "output": 1,
+        "status": "done",
       }
     `);
     expect(createdPromises).toBe(1);
@@ -192,12 +188,10 @@ describe('promise logic (fromPromise)', () => {
     const rejectedPersistedState = actor.getPersistedState();
     expect(rejectedPersistedState).toMatchInlineSnapshot(`
       {
+        "error": 1,
         "input": undefined,
-        "snapshot": undefined,
-        "status": {
-          "error": 1,
-          "status": "error",
-        },
+        "output": undefined,
+        "status": "error",
       }
     `);
     expect(createdPromises).toBe(1);
@@ -545,12 +539,10 @@ describe('machine logic', () => {
 
     expect(persistedState.children.a.state).toMatchInlineSnapshot(`
       {
+        "error": undefined,
         "input": undefined,
-        "snapshot": 42,
-        "status": {
-          "output": 42,
-          "status": "done",
-        },
+        "output": 42,
+        "status": "done",
       }
     `);
 
