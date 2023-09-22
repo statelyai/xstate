@@ -57,7 +57,7 @@ export type InvokeCallback<
   receive: Receiver<TEvent>;
 }) => (() => void) | void;
 
-export function fromCallback<TEvent extends EventObject, TInput>(
+export function fromCallback<TEvent extends EventObject, TInput = unknown>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
   return {
