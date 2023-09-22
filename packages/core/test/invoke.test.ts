@@ -1880,7 +1880,7 @@ describe('invoke', () => {
             invoke: {
               src: fromObservable(() => interval(10)),
               onSnapshot: {
-                actions: assign({ count: ({ event }) => event.data })
+                actions: assign({ count: ({ event }) => event.data.context })
               }
             },
             always: {
@@ -1924,7 +1924,7 @@ describe('invoke', () => {
               src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
-                  count: ({ event }) => event.data
+                  count: ({ event }) => event.data.context
                 })
               },
               onDone: {
@@ -1976,7 +1976,7 @@ describe('invoke', () => {
                 )
               ),
               onSnapshot: {
-                actions: assign({ count: ({ event }) => event.data })
+                actions: assign({ count: ({ event }) => event.data.context })
               },
               onError: {
                 target: 'success',
@@ -2012,7 +2012,7 @@ describe('invoke', () => {
           input: 42,
           onSnapshot: {
             actions: ({ event }) => {
-              expect(event.data).toEqual(42);
+              expect(event.data.context).toEqual(42);
               done();
             }
           }
