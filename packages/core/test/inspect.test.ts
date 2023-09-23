@@ -12,9 +12,9 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
   if (inspectionEvent.type === '@xstate.event') {
     return {
       type: inspectionEvent.type,
-      sourceId: inspectionEvent.sourceId,
+      sessionId: inspectionEvent.sessionId,
       targetId: inspectionEvent.targetId,
-      event: inspectionEvent.event.type
+      event: inspectionEvent.event
     };
   }
   if (inspectionEvent.type === '@xstate.actor') {
@@ -33,7 +33,8 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
         'value' in inspectionEvent.snapshot
           ? { value: inspectionEvent.snapshot.value }
           : inspectionEvent.snapshot,
-      event: inspectionEvent.event.type
+      event: inspectionEvent.event,
+      status: inspectionEvent.snapshot.status
     };
   }
 }
@@ -78,45 +79,62 @@ describe('inspect', () => {
           "type": "@xstate.actor",
         },
         {
-          "event": "xstate.init",
-          "sourceId": undefined,
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "sessionId": undefined,
           "targetId": "x:0",
           "type": "@xstate.event",
         },
         {
-          "event": "xstate.init",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
           "sessionId": "x:0",
           "snapshot": {
             "value": "a",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "NEXT",
-          "sourceId": undefined,
+          "event": {
+            "type": "NEXT",
+          },
+          "sessionId": undefined,
           "targetId": "x:0",
           "type": "@xstate.event",
         },
         {
-          "event": "NEXT",
+          "event": {
+            "type": "NEXT",
+          },
           "sessionId": "x:0",
           "snapshot": {
             "value": "b",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "NEXT",
-          "sourceId": undefined,
+          "event": {
+            "type": "NEXT",
+          },
+          "sessionId": undefined,
           "targetId": "x:0",
           "type": "@xstate.event",
         },
         {
-          "event": "NEXT",
+          "event": {
+            "type": "NEXT",
+          },
           "sessionId": "x:0",
           "snapshot": {
             "value": "c",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
       ]
@@ -176,11 +194,6 @@ describe('inspect', () => {
       inspect: {
         next: (event) => {
           events.push(event);
-
-          // push events to websocket server
-          // server.clients.forEach((client) => {
-          //   client.send(JSON.stringify(event));
-          // });
         }
       }
     });
@@ -201,42 +214,60 @@ describe('inspect', () => {
           "type": "@xstate.actor",
         },
         {
-          "event": "xstate.init",
-          "sourceId": undefined,
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "sessionId": undefined,
           "targetId": "x:1",
           "type": "@xstate.event",
         },
         {
-          "event": "xstate.init",
-          "sourceId": "x:1",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "sessionId": "x:1",
           "targetId": "x:2",
           "type": "@xstate.event",
         },
         {
-          "event": "xstate.init",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
           "sessionId": "x:2",
           "snapshot": {
             "value": "start",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "xstate.init",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
           "sessionId": "x:1",
           "snapshot": {
             "value": "waiting",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "load",
-          "sourceId": undefined,
+          "event": {
+            "type": "load",
+          },
+          "sessionId": undefined,
           "targetId": "x:1",
           "type": "@xstate.event",
         },
         {
-          "event": "loadChild",
-          "sourceId": "x:1",
+          "event": {
+            "type": "loadChild",
+          },
+          "sessionId": "x:1",
           "targetId": "x:2",
           "type": "@xstate.event",
         },
@@ -245,13 +276,19 @@ describe('inspect', () => {
           "type": "@xstate.actor",
         },
         {
-          "event": "xstate.init",
-          "sourceId": "x:2",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
+          "sessionId": "x:2",
           "targetId": "x:3",
           "type": "@xstate.event",
         },
         {
-          "event": "xstate.init",
+          "event": {
+            "input": undefined,
+            "type": "xstate.init",
+          },
           "sessionId": "x:3",
           "snapshot": {
             "error": undefined,
@@ -259,74 +296,106 @@ describe('inspect', () => {
             "output": undefined,
             "status": "active",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "loadChild",
+          "event": {
+            "type": "loadChild",
+          },
           "sessionId": "x:2",
           "snapshot": {
             "value": "loading",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "load",
+          "event": {
+            "type": "load",
+          },
           "sessionId": "x:1",
           "snapshot": {
             "value": "waiting",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "$$xstate.resolve",
-          "sourceId": "x:3",
+          "event": {
+            "data": 42,
+            "type": "$$xstate.resolve",
+          },
+          "sessionId": "x:3",
           "targetId": "x:3",
           "type": "@xstate.event",
         },
         {
-          "event": "xstate.done.actor.(machine).loading:invocation[0]",
-          "sourceId": "x:3",
+          "event": {
+            "output": 42,
+            "type": "xstate.done.actor.(machine).loading:invocation[0]",
+          },
+          "sessionId": "x:3",
           "targetId": "x:2",
           "type": "@xstate.event",
         },
         {
-          "event": "toParent",
-          "sourceId": "x:2",
+          "event": {
+            "type": "toParent",
+          },
+          "sessionId": "x:2",
           "targetId": "x:1",
           "type": "@xstate.event",
         },
         {
-          "event": "toParent",
+          "event": {
+            "type": "toParent",
+          },
           "sessionId": "x:1",
           "snapshot": {
             "value": "waiting",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "xstate.done.actor.child",
-          "sourceId": "x:2",
+          "event": {
+            "output": undefined,
+            "type": "xstate.done.actor.child",
+          },
+          "sessionId": "x:2",
           "targetId": "x:1",
           "type": "@xstate.event",
         },
         {
-          "event": "xstate.done.actor.child",
+          "event": {
+            "output": undefined,
+            "type": "xstate.done.actor.child",
+          },
           "sessionId": "x:1",
           "snapshot": {
             "value": "success",
           },
+          "status": "active",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "xstate.done.actor.(machine).loading:invocation[0]",
+          "event": {
+            "output": 42,
+            "type": "xstate.done.actor.(machine).loading:invocation[0]",
+          },
           "sessionId": "x:2",
           "snapshot": {
             "value": "loaded",
           },
+          "status": "done",
           "type": "@xstate.snapshot",
         },
         {
-          "event": "$$xstate.resolve",
+          "event": {
+            "data": 42,
+            "type": "$$xstate.resolve",
+          },
           "sessionId": "x:3",
           "snapshot": {
             "error": undefined,
@@ -334,6 +403,7 @@ describe('inspect', () => {
             "output": 42,
             "status": "done",
           },
+          "status": "done",
           "type": "@xstate.snapshot",
         },
       ]

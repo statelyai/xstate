@@ -253,8 +253,7 @@ export class Actor<TLogic extends AnyActorLogic>
       actorRef: this,
       event,
       sessionId: this.sessionId,
-      snapshot: this.getSnapshot(),
-      status: this.status
+      snapshot
     });
   }
 
@@ -314,7 +313,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system._sendInspectionEvent({
       type: '@xstate.event',
       event: initEvent,
-      sourceId: this._parent?.sessionId,
+      sessionId: this._parent?.sessionId,
       targetId: this.sessionId
     });
 

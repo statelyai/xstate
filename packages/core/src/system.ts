@@ -3,7 +3,8 @@ import {
   ActorSystem,
   ActorSystemInfo,
   AnyActorRef,
-  Observer
+  Observer,
+  Snapshot
 } from './types.ts';
 
 let systemCounter = 0;
@@ -49,8 +50,6 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     _sendInspectionEvent: (event) => {
       const resolvedInspectionEvent: ResolvedInspectionEvent = {
-        id: Math.random().toString(),
-        createdAt: new Date().toString(),
         ...event,
         rootId: rootActor.sessionId
       };
@@ -61,7 +60,7 @@ export function createSystem<T extends ActorSystemInfo>(
         type: '@xstate.event',
         event,
         targetId: target?.sessionId ?? 'deadletter',
-        sourceId: source?.sessionId
+        sessionId: source?.sessionId
       });
 
       target?._send(event);
@@ -72,31 +71,31 @@ export function createSystem<T extends ActorSystemInfo>(
 }
 export interface BaseInspectionEvent {
   rootId: string; // the session ID of the root
-  createdAt: string; // Timestamp
-  id: string; // unique string for this actor update
 }
 
 export interface InspectedSnapshotEvent {
   type: '@xstate.snapshot';
-  snapshot: any;
-  event: AnyEventObject; // { type: string, ... }
-  status: 0 | 1 | 2; // 0 = not started, 1 = started, 2 = stopped
   sessionId: string;
+  snapshot: Snapshot<unknown>;
+  event: AnyEventObject; // { type: string, ... }
   actorRef: AnyActorRef; // Only available locally
 }
 
 export interface InspectedEventEvent {
   type: '@xstate.event';
+  // The sessionId may be undefined, e.g. for:
+  // - root init events
+  // - events sent from external (non-actor) sources
+  sessionId: string | undefined;
   event: AnyEventObject; // { type: string, ... }
-  sourceId: string | undefined; // Session ID
   targetId: string; // Session ID, required
 }
 
 export interface InspectedActorEvent {
   type: '@xstate.actor';
-  actorRef: AnyActorRef;
   sessionId: string;
   parentId?: string;
+  actorRef: AnyActorRef;
 }
 
 export type InspectionEvent =
