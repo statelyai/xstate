@@ -253,7 +253,12 @@ describe('inspect', () => {
         {
           "event": "xstate.init",
           "sessionId": "x:3",
-          "snapshot": undefined,
+          "snapshot": {
+            "error": undefined,
+            "input": undefined,
+            "output": undefined,
+            "status": "active",
+          },
           "type": "@xstate.snapshot",
         },
         {
@@ -323,7 +328,12 @@ describe('inspect', () => {
         {
           "event": "$$xstate.resolve",
           "sessionId": "x:3",
-          "snapshot": 42,
+          "snapshot": {
+            "error": undefined,
+            "input": undefined,
+            "output": 42,
+            "status": "done",
+          },
           "type": "@xstate.snapshot",
         },
       ]
