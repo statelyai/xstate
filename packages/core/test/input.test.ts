@@ -142,7 +142,7 @@ describe('input', () => {
 
     await new Promise((res) => setTimeout(res, 5));
 
-    expect(promiseActor.getSnapshot()).toEqual({ count: 42 });
+    expect(promiseActor.getSnapshot().output).toEqual({ count: 42 });
   });
 
   it('should create a transition function actor with input', () => {
@@ -155,7 +155,7 @@ describe('input', () => {
       input: { count: 42 }
     }).start();
 
-    expect(transitionActor.getSnapshot()).toEqual({ count: 42 });
+    expect(transitionActor.getSnapshot().context).toEqual({ count: 42 });
   });
 
   it('should create an observable actor with input', (done) => {
@@ -169,8 +169,8 @@ describe('input', () => {
     });
 
     const sub = observableActor.subscribe((state) => {
-      if (state?.count !== 42) return;
-      expect(state).toEqual({ count: 42 });
+      if (state.context?.count !== 42) return;
+      expect(state.context).toEqual({ count: 42 });
       done();
       sub.unsubscribe();
     });

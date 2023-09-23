@@ -6,7 +6,8 @@ import {
   assign,
   ActorRef,
   ActorRefFrom,
-  createActor
+  createActor,
+  Snapshot
 } from 'xstate';
 import { fireEvent, screen, render, waitFor } from 'solid-testing-library';
 import {
@@ -23,9 +24,13 @@ import { createStore, reconcile } from 'solid-js/store';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
   createActor({
-    transition: (s) => s,
-    getSnapshot: () => value,
-    getInitialState: () => value
+    transition: (s: Snapshot<undefined> & { context: T }) => s,
+    getInitialState: () => ({
+      status: 'active',
+      output: undefined,
+      error: undefined,
+      context: value
+    })
   });
 
 describe('useActor', () => {
@@ -649,15 +654,21 @@ describe('useActor', () => {
 
   it('should provide value from `actor.getSnapshot()` immediately', () => {
     const simpleActor = createActor({
-      transition: (s) => s,
-      getSnapshot: () => 42,
-      getInitialState: () => 42
+      transition: (s: Snapshot<undefined> & { context: number }) => s,
+      getInitialState: () => {
+        return {
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: 42
+        };
+      }
     });
 
     const Test = () => {
       const [state] = useActor(simpleActor);
 
-      return <div data-testid="state">{state()}</div>;
+      return <div data-testid="state">{state().context}</div>;
     };
 
     render(() => <Test />);
@@ -674,7 +685,7 @@ describe('useActor', () => {
 
       return (
         <div>
-          <div data-testid="state">{state()}</div>
+          <div data-testid="state">{state().context}</div>
           <button
             data-testid="button"
             onclick={() => setActor(createSimpleActor(100))}
@@ -702,7 +713,7 @@ describe('useActor', () => {
 
       return (
         <div>
-          <div data-testid="state">{state().getFullYear()}</div>
+          <div data-testid="state">{state().context.getFullYear()}</div>
           <button
             data-testid="button"
             onclick={() => setActor(createSimpleActor(new Date('2022-08-21')))}
@@ -728,7 +739,7 @@ describe('useActor', () => {
       const [change, setChange] = createSignal(0);
 
       createEffect(() => {
-        if (state()[0]) {
+        if (state().context[0]) {
           setChange((val) => val + 1);
         }
       });
@@ -736,8 +747,8 @@ describe('useActor', () => {
       return (
         <div>
           <div data-testid="change">{change()}</div>
-          <div data-testid="state">{state()[1]}</div>
-          <div data-testid="state-2">{state()[3]}</div>
+          <div data-testid="state">{state().context[1]}</div>
+          <div data-testid="state-2">{state().context[3]}</div>
           <button
             data-testid="button"
             onclick={() => setActor(createSimpleActor(['1', '3', '5', '8']))}
@@ -770,7 +781,7 @@ describe('useActor', () => {
       const [change, setChange] = createSignal(0);
 
       createEffect(() => {
-        if (state()[0]) {
+        if (state().context[0]) {
           setChange((val) => val + 1);
         }
       });
@@ -778,8 +789,8 @@ describe('useActor', () => {
       return (
         <div>
           <div data-testid="change">{change()}</div>
-          <div data-testid="state">{state()[1]}</div>
-          <div data-testid="state-2">{state()[3]}</div>
+          <div data-testid="state">{state().context[1]}</div>
+          <div data-testid="state-2">{state().context[3]}</div>
           <button
             data-testid="button"
             onclick={() => setActor(createSimpleActor(['1', '2']))}
@@ -1009,7 +1020,7 @@ describe('useActor', () => {
       const [signalChange, setSignalChange] = createSignal(0);
 
       createEffect(() => {
-        if (state().get('prop1')) {
+        if (state().context.get('prop1')) {
           setActorChange((val) => val + 1);
         }
       });
@@ -1025,7 +1036,7 @@ describe('useActor', () => {
           <div data-testid="actor-change">{actorChange()}</div>
           <div data-testid="signal-change">{signalChange()}</div>
           <div data-testid="actor-state">{signal().get('prop2')}</div>
-          <div data-testid="signal-state">{state().get('prop2')}</div>
+          <div data-testid="signal-state">{state().context.get('prop2')}</div>
           <button
             data-testid="button"
             onclick={() => {
@@ -1075,7 +1086,7 @@ describe('useActor', () => {
       const [signalChange, setSignalChange] = createSignal(0);
 
       createEffect(() => {
-        if (state().value.get('prop1')) {
+        if (state().context.value.get('prop1')) {
           setActorChange((val) => val + 1);
         }
       });
@@ -1091,7 +1102,9 @@ describe('useActor', () => {
           <div data-testid="actor-change">{actorChange()}</div>
           <div data-testid="signal-change">{signalChange()}</div>
           <div data-testid="actor-state">{signal.value.get('prop2')}</div>
-          <div data-testid="signal-state">{state().value.get('prop2')}</div>
+          <div data-testid="signal-state">
+            {state().context.value.get('prop2')}
+          </div>
           <button
             data-testid="change-button"
             onclick={() => {
@@ -1614,7 +1627,7 @@ describe('useActor', () => {
     });
 
     const machine = createMachine({
-      types: {} as { context: { ref: ActorRef<any> } },
+      types: {} as { context: { ref: ActorRef<any, any> } },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),

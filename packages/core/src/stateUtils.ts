@@ -680,7 +680,7 @@ export function getStateNodes<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode,
-  state: StateValue | State<TContext, TEvent, TODO, TODO, TODO, TODO>
+  state: StateValue | State<TContext, TEvent, TODO, TODO, TODO>
 ): Array<AnyStateNode> {
   const stateValue = state instanceof State ? state.value : toStateValue(state);
 
@@ -716,7 +716,7 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
+  state: State<TContext, TEvent, TODO, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -735,7 +735,7 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
+  state: State<TContext, TEvent, TODO, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -761,7 +761,7 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
+  state: State<TContext, TEvent, TODO, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -802,7 +802,6 @@ export function transitionNode<
     TEvent,
     TODO,
     TODO,
-    TODO, // output
     TODO // tags
   >,
   event: TEvent
@@ -1113,7 +1112,7 @@ function microstepProcedure(
       historyValue,
       _internalQueue: internalQueue,
       context: nextState.context,
-      done,
+      status: done ? 'done' : currentState.status,
       output,
       children: nextState.children
     });
@@ -1545,7 +1544,7 @@ export function macrostep(
     states.push(nextState);
   }
 
-  while (!nextState.done) {
+  while (nextState.status === 'active') {
     let enabledTransitions = selectEventlessTransitions(nextState, nextEvent);
 
     if (!enabledTransitions.length) {
@@ -1578,7 +1577,7 @@ export function macrostep(
     }
   }
 
-  if (nextState.done) {
+  if (nextState.status !== 'active') {
     // Perform the stop step to ensure that child actors are stopped
     stopStep(nextEvent, nextState, actorCtx);
   }
@@ -1613,7 +1612,7 @@ function selectTransitions(
   event: AnyEventObject,
   nextState: AnyState
 ): AnyTransitionDefinition[] {
-  return nextState.machine.getTransitionData(nextState, event);
+  return nextState.machine.getTransitionData(nextState as any, event);
 }
 
 function selectEventlessTransitions(

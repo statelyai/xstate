@@ -84,7 +84,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any>;
+    persistedState?: PersistedMachineState<any, any, any, any, any, any>;
   }> = ({
     onFetch = () => {
       return new Promise((res) => res('some data'));
@@ -205,7 +205,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   it('should not spawn actors until service is started', async () => {
     const spawnMachine = createMachine({
-      types: {} as { context: { ref?: ActorRef<any> } },
+      types: {} as { context: { ref?: ActorRef<any, any> } },
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined },
