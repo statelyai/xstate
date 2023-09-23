@@ -182,13 +182,7 @@ export class StateMachine<
     };
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
-
-    // I'm sure there's a better way of doing this...
     this.transition = this.transition.bind(this);
-    this.getInitialState = this.getInitialState.bind(this);
-    this.restoreState = this.restoreState.bind(this);
-    this.start = this.start.bind(this);
-    this.getPersistedState = this.getPersistedState.bind(this);
 
     this.root = new StateNode(config, {
       _key: this.id,
