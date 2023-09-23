@@ -117,6 +117,11 @@ export function fromCallback<TEvent extends EventObject, TInput>(
         _dispose: undefined
       };
     },
-    getPersistedState: ({ _dispose, _receivers, ...rest }) => rest
+    getPersistedState: ({ _dispose, _receivers, ...rest }) => rest,
+    restoreState: (state) => ({
+      _receivers: new Set(),
+      _dispose: undefined,
+      ...state
+    })
   };
 }

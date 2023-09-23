@@ -489,6 +489,44 @@ describe('callback logic (fromCallback)', () => {
 
     createActor(machine).start();
   });
+
+  it('should persist the input of a callback', () => {
+    let seenInput = undefined;
+    const machine = createMachine(
+      {
+        context: {
+          data: 42
+        },
+        invoke: {
+          src: 'cb',
+          input: ({ context }) => context.data
+        }
+      },
+      {
+        actors: {
+          cb: fromCallback(({ input }) => {
+            seenInput = input;
+          })
+        }
+      }
+    );
+
+    const actor = createActor(machine);
+
+    actor.start();
+
+    const state = actor.getPersistedState();
+
+    actor.stop();
+
+    seenInput = undefined;
+
+    const restoredActor = createActor(machine, { state });
+
+    restoredActor.start();
+
+    expect(seenInput).toBe(42);
+  });
 });
 
 describe('machine logic', () => {
