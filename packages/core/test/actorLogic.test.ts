@@ -1,6 +1,12 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { AnyActorRef, createMachine, createActor } from '../src/index.ts';
+import {
+  AnyActorRef,
+  createMachine,
+  createActor,
+  AnyActorLogic,
+  Snapshot
+} from '../src/index.ts';
 import {
   fromCallback,
   fromEventObservable,
@@ -705,5 +711,126 @@ describe('machine logic', () => {
     });
 
     createActor(machine).start();
+  });
+});
+
+describe.only('composable actor logic', () => {
+  it('should work with machines', () => {
+    const logs: string[] = [];
+
+    function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
+      return {
+        ...actorLogic,
+        transition: (state, event, actorCtx) => {
+          logs.push(event.type);
+
+          return actorLogic.transition(state, event, actorCtx);
+        }
+      };
+    }
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { to_b: 'b' }
+        },
+        b: {
+          on: { to_c: 'c' }
+        },
+        c: {
+          on: { to_a: 'a' }
+        }
+      }
+    });
+
+    const actor = createActor(withLogs(machine)).start();
+
+    actor.send({ type: 'to_b' });
+    actor.send({ type: 'to_c' });
+    actor.send({ type: 'to_a' });
+
+    expect(logs).toEqual(['to_b', 'to_c', 'to_a']);
+  });
+
+  it('should work with promises', async () => {
+    const logs: any[] = [];
+
+    function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
+      return {
+        ...actorLogic,
+        transition: (state: Snapshot<unknown>, event, actorCtx) => {
+          const s = actorLogic.transition(state, event, actorCtx);
+          logs.push(s.output);
+
+          return s;
+        }
+      };
+    }
+
+    const promiseLogic = fromPromise(() => Promise.resolve(42));
+
+    const actor = createActor(withLogs(promiseLogic)).start();
+
+    await waitFor(actor, (s) => s.status === 'done');
+
+    expect(logs).toEqual([42]);
+  });
+
+  it('should work with functions', () => {
+    const logs: any[] = [];
+
+    function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
+      return {
+        ...actorLogic,
+        transition: (state: Snapshot<unknown>, event, actorCtx) => {
+          const s = actorLogic.transition(state, event, actorCtx);
+          logs.push(s.context);
+
+          return s;
+        }
+      };
+    }
+
+    const transitionLogic = fromTransition(
+      (_, ev: { type: string; value: number }) => ev.value,
+      0
+    );
+
+    const actor = createActor(withLogs(transitionLogic)).start();
+
+    actor.send({ type: 'a', value: 42 });
+
+    expect(logs).toEqual([42]);
+  });
+
+  it('should work with observables', (done) => {
+    const logs: any[] = [];
+
+    function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
+      return {
+        ...actorLogic,
+        transition: (state: Snapshot<unknown>, event, actorCtx) => {
+          const s = actorLogic.transition(state, event, actorCtx);
+
+          if (s.status === 'active') {
+            logs.push(s.context);
+          }
+
+          return s;
+        }
+      };
+    }
+
+    const observableLogic = fromObservable(() => interval(10).pipe(take(4)));
+
+    const actor = createActor(withLogs(observableLogic)).start();
+
+    actor.subscribe({
+      complete: () => {
+        expect(logs).toEqual([0, 1, 2, 3]);
+        done();
+      }
+    });
   });
 });
