@@ -143,7 +143,7 @@ describe('getShortestPaths', () => {
     expect(pathWithTwoTodos).toBeDefined();
   });
 
-  it('should not throw for machines with delays', () => {
+  it('should work for machines with delays', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -156,8 +156,11 @@ describe('getShortestPaths', () => {
       }
     });
 
-    expect(() => {
-      getShortestPaths(machine);
-    }).not.toThrowError();
+    const shortestPaths = getShortestPaths(machine);
+
+    expect(shortestPaths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
+      ['xstate.init'],
+      ['xstate.init', 'xstate.after(1000)#(machine).a']
+    ]);
   });
 });
