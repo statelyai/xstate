@@ -1311,7 +1311,8 @@ describe('invoke', () => {
             src: fromPromise(() => createPromise((res) => res(42))),
             onSnapshot: {
               actions: ({ event }) => {
-                if (event.snapshot === 42) {
+                // TODO: snapshot is typed as `any`, should be a Snapshot type
+                if (event.snapshot.output === 42) {
                   done();
                 }
               }
