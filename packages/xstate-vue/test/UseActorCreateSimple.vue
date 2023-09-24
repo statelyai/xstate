@@ -1,22 +1,28 @@
 <template>
   <div>
-    <div data-testid="state">{{ state }}</div>
+    <div data-testid="state">{{ state.context }}</div>
     <button data-testid="button" @click="actor = createSimpleActor(100)"></button>
   </div>
 </template>
 
 <script lang="ts">
-import { ActorRef } from 'xstate';
+import { ActorRef, Snapshot } from 'xstate';
 import { defineComponent, shallowRef } from 'vue';
 
 import { useSelector } from '../src/index.ts';
 import { createActor } from 'xstate';
 
-const createSimpleActor = (value: number): ActorRef<any, number> =>
+const createSimpleActor = (
+  value: number
+): ActorRef<any, Snapshot<undefined> & { context: number }> =>
   createActor({
     transition: (s) => s,
-    getSnapshot: () => value,
-    getInitialState: () => value,
+    getInitialState: () => ({
+      status: 'active',
+      output: undefined,
+      error: undefined,
+      context: value
+    }),
     subscribe: () => {
       return {
         unsubscribe: () => {

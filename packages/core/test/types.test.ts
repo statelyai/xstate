@@ -5,20 +5,18 @@ import { stop } from '../src/actions/stop';
 import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
-  assign,
-  createMachine,
-  createActor,
   MachineContext,
+  ProvidedActor,
   Spawner,
   StateMachine,
-  pure,
+  assign,
   choose,
+  createActor,
+  createMachine,
   not,
-  stateIn,
+  pure,
   sendTo,
-  ProvidedActor,
-  Action,
-  ParameterizedObject
+  stateIn
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -4208,9 +4206,9 @@ describe('self', () => {
       },
       context: { count: 0 },
       entry: ({ self }) => {
-        ((_accept: number) => {})(self.getSnapshot().count);
+        ((_accept: number) => {})(self.getSnapshot().context.count);
         // @ts-expect-error
-        ((_accept: string) => {})(self.getSnapshot().count);
+        ((_accept: string) => {})(self.getSnapshot().context.count);
       }
     });
   });
@@ -4222,9 +4220,9 @@ describe('self', () => {
       },
       context: { count: 0 },
       entry: assign(({ self }) => {
-        ((_accept: number) => {})(self.getSnapshot().count);
+        ((_accept: number) => {})(self.getSnapshot().context.count);
         // @ts-expect-error
-        ((_accept: string) => {})(self.getSnapshot().count);
+        ((_accept: string) => {})(self.getSnapshot().context.count);
         return {};
       })
     });

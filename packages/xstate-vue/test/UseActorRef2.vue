@@ -1,6 +1,6 @@
 <template>
   <button data-testid="count" @click="send({ type: 'INC' })">
-    {{ count }}
+    {{ count.context }}
   </button>
 </template>
 
