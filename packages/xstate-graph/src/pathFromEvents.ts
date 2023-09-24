@@ -19,6 +19,7 @@ import {
   createDefaultLogicOptions
 } from './graph';
 import { alterPath } from './alterPath';
+import { createMockActorContext } from './actorContext';
 
 function isMachine(value: any): value is AnyStateMachine {
   return !!value && '__xstatenode' in value;
@@ -45,7 +46,7 @@ export function getPathsFromEvents<
       ? createDefaultMachineOptions(logic)
       : createDefaultLogicOptions()) as TraversalOptions<TSnapshot, TEvent>
   );
-  const actorContext = { self: {} } as any; // TODO: figure out the simulation API
+  const actorContext = createMockActorContext();
   const fromState =
     resolvedOptions.fromState ??
     logic.getInitialState(

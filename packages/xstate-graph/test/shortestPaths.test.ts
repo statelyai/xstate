@@ -142,4 +142,22 @@ describe('getShortestPaths', () => {
 
     expect(pathWithTwoTodos).toBeDefined();
   });
+
+  it('should not throw for machines with delays', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            1000: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    expect(() => {
+      getShortestPaths(machine);
+    }).not.toThrowError();
+  });
 });
