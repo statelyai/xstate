@@ -10,6 +10,7 @@ import {
   InputFrom,
   IsLiteralString,
   ProvidedActor,
+  Snapshot,
   TODO
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
@@ -96,8 +97,8 @@ export function createSpawner(
 
       if (options.syncSnapshot) {
         actorRef.subscribe({
-          next: (snapshot: unknown) => {
-            if (actorContext.self.status === ActorStatus.Running) {
+          next: (snapshot: Snapshot<unknown>) => {
+            if (snapshot.status === 'active') {
               actorContext.self.send({
                 type: `xstate.snapshot.${actorRef.id}`,
                 snapshot
@@ -121,8 +122,8 @@ export function createSpawner(
 
       if (options.syncSnapshot) {
         actorRef.subscribe({
-          next: (snapshot) => {
-            if (actorContext.self.status === ActorStatus.Running) {
+          next: (snapshot: Snapshot<unknown>) => {
+            if (snapshot.status === 'active') {
               actorContext.self.send({
                 type: `xstate.snapshot.${actorRef.id}`,
                 snapshot,

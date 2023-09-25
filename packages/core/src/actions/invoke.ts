@@ -10,7 +10,8 @@ import {
   AnyState,
   EventObject,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  Snapshot
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -58,11 +59,13 @@ function resolve(
 
     if (syncSnapshot) {
       actorRef.subscribe({
-        next: (snapshot) => {
-          actorContext.self.send({
-            type: `xstate.snapshot.${id}`,
-            snapshot
-          });
+        next: (snapshot: Snapshot<unknown>) => {
+          if (snapshot.status === 'active') {
+            actorContext.self.send({
+              type: `xstate.snapshot.${id}`,
+              snapshot
+            });
+          }
         },
         error: () => {
           /* TODO */
