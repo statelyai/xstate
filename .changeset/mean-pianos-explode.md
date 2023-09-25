@@ -17,14 +17,6 @@ const machine = createMachine({
       }
     },
     {
-      src: fromPromise(() => { ... }),
-      onSnapshot: {
-        actions: (context, event) => {
-          event.snapshot; // promise value
-        }
-      }
-    },
-    {
       src: fromObservable(() => ...),
       onSnapshot: {
         actions: (context, event) => {
