@@ -23,7 +23,7 @@ type ResolvableActorRef<
       args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
     ) => ActorRef<any, any> | string);
 
-function resolve(
+function resolveStop(
   _: AnyActorContext,
   state: AnyState,
   args: ActionArgs<any, any, any, any>,
@@ -48,7 +48,7 @@ function resolve(
     resolvedActorRef
   ];
 }
-function execute(
+function executeStop(
   actorContext: AnyActorContext,
   actorRef: ActorRef<any, any> | undefined
 ) {
@@ -103,8 +103,8 @@ export function stop<
   stop.type = 'xstate.stop';
   stop.actorRef = actorRef;
 
-  stop.resolve = resolve;
-  stop.execute = execute;
+  stop.resolve = resolveStop;
+  stop.execute = executeStop;
 
   return stop;
 }
