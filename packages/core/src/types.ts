@@ -400,7 +400,7 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          SnapshotEvent<unknown>,
+          SnapshotEvent,
           TEvent,
           TActor,
           TAction,
@@ -713,7 +713,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              SnapshotEvent<any>, // TODO: consider replacing with `unknown`
+              SnapshotEvent,
               TEvent,
               TActor,
               TAction,
@@ -1401,7 +1401,7 @@ export type MachineConfig<
     TTypesMeta
   >;
 }) &
-  (Equals<TContext, MachineContext> extends true
+  (MachineContext extends TContext
     ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput> }
     : { context: InitialContext<LowInfer<TContext>, TActor, TInput> });
 
@@ -1471,9 +1471,11 @@ export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
   data: TErrorData;
 }
 
-export interface SnapshotEvent<TData = unknown> extends EventObject {
+export interface SnapshotEvent<
+  TSnapshot extends Snapshot<unknown> = Snapshot<unknown>
+> extends EventObject {
   type: `xstate.snapshot.${string}`;
-  snapshot: TData;
+  snapshot: TSnapshot;
 }
 
 export interface DoneStateEvent<TOutput = unknown> extends EventObject {
