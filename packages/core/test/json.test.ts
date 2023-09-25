@@ -88,7 +88,8 @@ describe('json', () => {
             }
           }
         }
-      }
+      },
+      output: {}
     });
 
     const json = JSON.parse(JSON.stringify(machine.definition));

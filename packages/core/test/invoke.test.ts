@@ -53,7 +53,8 @@ const fetchMachine = createMachine({
     failure: {
       entry: sendParent({ type: 'REJECT' })
     }
-  }
+  },
+  output: ({ event }) => event.output
 });
 
 const fetcherMachine = createMachine({
