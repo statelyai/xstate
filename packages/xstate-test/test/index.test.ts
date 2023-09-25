@@ -126,7 +126,7 @@ describe('events', () => {
 
     await testUtils.testPaths(paths, {
       events: {
-        EVENT: ({ event }) => {
+        EVENT: (event) => {
           testedEvents.push(event);
         }
       }
@@ -255,9 +255,9 @@ it('tests transitions', async () => {
 
   await paths[0].test({
     events: {
-      NEXT: (step) => {
-        expect(step).toHaveProperty('event');
-        expect(step).toHaveProperty('state');
+      NEXT: (event, state) => {
+        expect(event).toEqual({ type: 'NEXT' });
+        expect(state?.value).toEqual('first');
       }
     }
   });
@@ -291,8 +291,8 @@ it('Event in event executor should contain payload from case', async () => {
     paths[0],
     {
       events: {
-        NEXT: (step) => {
-          expect(step.event).toEqual({
+        NEXT: (event) => {
+          expect(event).toEqual({
             type: 'NEXT',
             payload: 10,
             fn: nonSerializableData
@@ -412,4 +412,34 @@ describe('state tests', () => {
       ]
     `);
   });
+});
+
+it('event cases are called with current state', async () => {
+  const model = createTestModel(
+    createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            INC: 'next'
+          }
+        },
+        next: {}
+      }
+    })
+  );
+
+  const paths = model.getShortestPaths();
+
+  for (const path of paths) {
+    await path.test({
+      events: {
+        INC: (event, state) => {
+          if (!state?.matches('idle')) {
+            throw new Error(`state was "${state?.toStrings()}"`);
+          }
+        }
+      }
+    });
+  }
 });

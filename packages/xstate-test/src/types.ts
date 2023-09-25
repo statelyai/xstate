@@ -146,7 +146,6 @@ export interface TestPath<
    * tests the postcondition that the `state` is reached.
    */
   test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
-  testSync: (params: TestParam<TSnapshot, TEvent>) => TestPathResult;
 }
 export interface TestPathResult {
   steps: TestStepResult[];
@@ -161,7 +160,7 @@ export type StatePredicate<TState> = (state: TState) => boolean;
 export type EventExecutor<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> = (step: Step<TSnapshot, TEvent>) => Promise<any> | void;
+> = (event: TEvent, currentState: TSnapshot | undefined) => Promise<any> | void;
 
 export interface TestModelOptions<
   TSnapshot extends Snapshot<unknown>,

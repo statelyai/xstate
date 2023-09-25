@@ -156,8 +156,6 @@ export class TestModel<
       ...statePath,
       test: (params: TestParam<TSnapshot, TEvent>) =>
         this.testPath(statePath, params),
-      testSync: (params: TestParam<TSnapshot, TEvent>) =>
-        this.testPathSync(statePath, params),
       description: isStateLike(statePath.state)
         ? `Reaches ${getDescription(
             statePath.state as any
@@ -211,53 +209,6 @@ export class TestModel<
     return adjList;
   }
 
-  public testPathSync(
-    path: StatePath<TSnapshot, TEvent>,
-    params: TestParam<TSnapshot, TEvent>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent>>
-  ): TestPathResult {
-    const testPathResult: TestPathResult = {
-      steps: [],
-      state: {
-        error: null
-      }
-    };
-
-    try {
-      for (const step of path.steps) {
-        const testStepResult: TestStepResult = {
-          step,
-          state: { error: null },
-          event: { error: null }
-        };
-
-        testPathResult.steps.push(testStepResult);
-
-        try {
-          this.testTransitionSync(params, step);
-        } catch (err: any) {
-          testStepResult.event.error = err;
-
-          throw err;
-        }
-
-        try {
-          this.testStateSync(params, step.state, options);
-        } catch (err: any) {
-          testStepResult.state.error = err;
-
-          throw err;
-        }
-      }
-    } catch (err: any) {
-      // TODO: make option
-      err.message += formatPathTestResult(path, testPathResult, this.options);
-      throw err;
-    }
-
-    return testPathResult;
-  }
-
   public async testPath(
     path: StatePath<TSnapshot, TEvent>,
     params: TestParam<TSnapshot, TEvent>,
@@ -271,6 +222,7 @@ export class TestModel<
     };
 
     try {
+      let prevStep: Step<TSnapshot, TEvent> | undefined;
       for (const step of path.steps) {
         const testStepResult: TestStepResult = {
           step,
@@ -281,7 +233,7 @@ export class TestModel<
         testPathResult.steps.push(testStepResult);
 
         try {
-          await this.testTransition(params, step);
+          await this.testTransition(params, step, prevStep?.state);
         } catch (err: any) {
           testStepResult.event.error = err;
 
@@ -295,6 +247,8 @@ export class TestModel<
 
           throw err;
         }
+
+        prevStep = step;
       }
     } catch (err: any) {
       // TODO: make option
@@ -366,21 +320,13 @@ export class TestModel<
 
   public async testTransition(
     params: TestParam<TSnapshot, TEvent>,
-    step: Step<TSnapshot, TEvent>
+    step: Step<TSnapshot, TEvent>,
+    prevSnapshot: TSnapshot | undefined
   ): Promise<void> {
     const eventExec = this.getEventExec(params, step);
-    await (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step);
-  }
-
-  public testTransitionSync(
-    params: TestParam<TSnapshot, TEvent>,
-    step: Step<TSnapshot, TEvent>
-  ): void {
-    const eventExec = this.getEventExec(params, step);
-
-    errorIfPromise(
-      (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step),
-      `The event '${step.event.type}' returned a promise - did you mean to use the sync method?`
+    await (eventExec as EventExecutor<TSnapshot, TEvent>)?.(
+      step.event,
+      prevSnapshot
     );
   }
 
