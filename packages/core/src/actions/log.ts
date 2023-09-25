@@ -16,7 +16,7 @@ type ResolvableLogValue<
   TEvent extends EventObject
 > = string | LogExpr<TContext, TExpressionEvent, TExpressionAction, TEvent>;
 
-function resolve(
+function resolveLog(
   _: AnyActorContext,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any, any>,
@@ -37,7 +37,7 @@ function resolve(
   ];
 }
 
-function execute(
+function executeLog(
   { logger }: AnyActorContext,
   { value, label }: { value: unknown; label: string | undefined }
 ) {
@@ -91,8 +91,8 @@ export function log<
   log.value = value;
   log.label = label;
 
-  log.resolve = resolve;
-  log.execute = execute;
+  log.resolve = resolveLog;
+  log.execute = executeLog;
 
   return log;
 }
