@@ -5,7 +5,7 @@
 The `onSnapshot: { ... }` transition object is now supported for invoked machines, observables, promises, and transition functions:
 
 ```ts
-const machine = Machine({
+const machine = createMachine({
   // ...
   invoke: [
     {
