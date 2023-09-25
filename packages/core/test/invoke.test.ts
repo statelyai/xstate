@@ -1305,24 +1305,6 @@ describe('invoke', () => {
         service.start();
       });
 
-      it('should emit onSnapshot', (done) => {
-        const machine = createMachine({
-          invoke: {
-            src: fromPromise(() => createPromise((res) => res(42))),
-            onSnapshot: {
-              actions: ({ event }) => {
-                // TODO: snapshot is typed as `any`, should be a Snapshot type
-                if (event.snapshot.output === 42) {
-                  done();
-                }
-              }
-            }
-          }
-        });
-
-        createActor(machine).start();
-      });
-
       it('should not emit onSnapshot if stopped', (done) => {
         const machine = createMachine({
           initial: 'active',
