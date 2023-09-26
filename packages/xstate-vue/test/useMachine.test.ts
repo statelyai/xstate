@@ -47,10 +47,10 @@ describe('useMachine composition function', () => {
           initial: 'done',
           states: {
             done: {
-              type: 'final',
-              output: 'persisted data'
+              type: 'final'
             }
-          }
+          },
+          output: 'persisted data'
         }) as any
       }
     })

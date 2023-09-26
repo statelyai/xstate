@@ -70,10 +70,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           initial: 'done',
           states: {
             done: {
-              type: 'final',
-              output: 'persisted data'
+              type: 'final'
             }
-          }
+          },
+          output: 'persisted data'
         }) as any
       }
     })
