@@ -489,6 +489,56 @@ describe('callback logic (fromCallback)', () => {
 
     createActor(machine).start();
   });
+
+  it('should persist the input of a callback', () => {
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        types: {} as { events: { type: 'EV'; data: number } },
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'b'
+            }
+          },
+          b: {
+            invoke: {
+              src: 'cb',
+              input: ({ event }) => event.data
+            }
+          }
+        }
+      },
+      {
+        actors: {
+          cb: fromCallback(({ input }) => {
+            spy(input);
+          })
+        }
+      }
+    );
+
+    const actor = createActor(machine);
+    actor.start();
+    actor.send({
+      type: 'EV',
+      data: 13
+    });
+
+    const state = actor.getPersistedState();
+
+    actor.stop();
+
+    spy.mockClear();
+
+    const restoredActor = createActor(machine, { state });
+
+    restoredActor.start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(13);
+  });
 });
 
 describe('machine logic', () => {
