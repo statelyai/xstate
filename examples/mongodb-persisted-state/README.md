@@ -8,7 +8,9 @@ The Actor is bound to a single record in the database, and will only ever update
 If one doesn't already exist, like in the case of a first run, we create the state file in the database.
 This is particularly useful for working through long-running stateful flows, or flows where the underlying compute is not promised to be consistent.
 
-**NOTE**: this example is intended to be used as a starting point. It is not production-ready. For example, when connecting to the MongoDB client, all strings should be uri encoded when authenticating to MongoDB. Check out [MongoDB's Node driver docs](https://www.mongodb.com/docs/drivers/node/current/fundamentals/authentication/mechanisms/) for more details.
+> [!IMPORTANT]
+>
+> This example is intended to be used as a starting point. It is not production-ready. For example, when connecting to the MongoDB client, all strings should be URI-encoded when authenticating to MongoDB. Check out [MongoDB's Node driver docs](https://www.mongodb.com/docs/drivers/node/current/fundamentals/authentication/mechanisms/) for more details.
 
 ## Prerequisites
 
@@ -25,6 +27,7 @@ To get this sample working, you'll need the following:
 
 ```ts
 const uri = '<your mongodb connection string>';
+```
 
 3. Run the following command in the terminal to start the project:
 
