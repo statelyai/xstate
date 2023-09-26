@@ -22,7 +22,7 @@ To get this sample working, you'll need the following:
 
 1. Open a terminal in this folder and run `yarn install`. This will install the beta version of XState v5, the proper Node.JS driver for MongoDB, and `ts-node` for running this sample in your terminal.
 
-2. Replace the following line with your own connection string:
+2. Replace the following line with your own connection string, or load it in as an environment variable:
 
 ```ts
 const uri = '<your mongodb connection string>';
