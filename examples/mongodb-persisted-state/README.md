@@ -24,9 +24,8 @@ To get this sample working, you'll need the following:
 
 2. Replace the following line with your own connection string:
 
-```
-const uri = '<your mongodb connection string>;
-```
+```ts
+const uri = '<your mongodb connection string>';
 
 3. Run the following command in the terminal to start the project:
 
