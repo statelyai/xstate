@@ -491,41 +491,53 @@ describe('callback logic (fromCallback)', () => {
   });
 
   it('should persist the input of a callback', () => {
-    let seenInput = undefined;
+    const spy = jest.fn();
     const machine = createMachine(
       {
-        context: {
-          data: 42
-        },
-        invoke: {
-          src: 'cb',
-          input: ({ context }) => context.data
+        types: {} as { events: { type: 'EV'; data: number } },
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'b'
+            }
+          },
+          b: {
+            invoke: {
+              src: 'cb',
+              input: ({ event }) => event.data
+            }
+          }
         }
       },
       {
         actors: {
           cb: fromCallback(({ input }) => {
-            seenInput = input;
+            spy(input);
           })
         }
       }
     );
 
     const actor = createActor(machine);
-
     actor.start();
+    actor.send({
+      type: 'EV',
+      data: 13
+    });
 
     const state = actor.getPersistedState();
 
     actor.stop();
 
-    seenInput = undefined;
+    spy.mockClear();
 
     const restoredActor = createActor(machine, { state });
 
     restoredActor.start();
 
-    expect(seenInput).toBe(42);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(13);
   });
 });
 
