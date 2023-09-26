@@ -25,79 +25,6 @@ import {
 
 const user = { name: 'David' };
 
-const fetchMachine = createMachine({
-  types: {} as {
-    context: { userId: string | undefined };
-    events: { type: 'RESOLVE'; user: { name: string } };
-    input: { userId: string };
-  },
-  id: 'fetch',
-  context: ({ input }) => ({
-    userId: input.userId
-  }),
-  initial: 'pending',
-  states: {
-    pending: {
-      entry: raise({ type: 'RESOLVE', user }),
-      on: {
-        RESOLVE: {
-          target: 'success',
-          guard: ({ context }) => context.userId !== undefined
-        }
-      }
-    },
-    success: {
-      type: 'final',
-      output: ({ event }) => ({ user: event.user })
-    },
-    failure: {
-      entry: sendParent({ type: 'REJECT' })
-    }
-  }
-});
-
-const fetcherMachine = createMachine({
-  id: 'fetcher',
-  initial: 'idle',
-  context: {
-    selectedUserId: '42',
-    user: undefined
-  },
-  states: {
-    idle: {
-      on: {
-        GO_TO_WAITING: 'waiting',
-        GO_TO_WAITING_MACHINE: 'waitingInvokeMachine'
-      }
-    },
-    waiting: {
-      invoke: {
-        src: fetchMachine,
-        input: ({ context }: any) => ({
-          userId: context.selectedUserId
-        }),
-        onDone: {
-          target: 'received',
-          guard: ({ event }) => {
-            // Should receive { user: { name: 'David' } } as event data
-            return (event.output as any).user.name === 'David';
-          }
-        }
-      }
-    },
-    waitingInvokeMachine: {
-      invoke: {
-        src: fetchMachine,
-        input: { userId: '55' },
-        onDone: 'received'
-      }
-    },
-    received: {
-      type: 'final'
-    }
-  }
-});
-
 describe('invoke', () => {
   it('child can immediately respond to the parent with multiple events', () => {
     const childMachine = createMachine({
@@ -267,14 +194,54 @@ describe('invoke', () => {
   });
 
   it('should start services (explicit machine, invoke = machine)', (done) => {
-    const actor = createActor(fetcherMachine);
+    const childMachine = createMachine({
+      types: {} as {
+        events: { type: 'RESOLVE' };
+        input: { userId: string };
+      },
+      initial: 'pending',
+      states: {
+        pending: {
+          entry: raise({ type: 'RESOLVE' }),
+          on: {
+            RESOLVE: {
+              target: 'success'
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO_TO_WAITING: 'waiting'
+          }
+        },
+        waiting: {
+          invoke: {
+            src: childMachine,
+            onDone: 'received'
+          }
+        },
+        received: {
+          type: 'final'
+        }
+      }
+    });
+    const actor = createActor(machine);
     actor.subscribe({
       complete: () => {
         done();
       }
     });
     actor.start();
-    actor.send({ type: 'GO_TO_WAITING_MACHINE' });
+    actor.send({ type: 'GO_TO_WAITING' });
   });
 
   it('should start services (machine as invoke config)', (done) => {
