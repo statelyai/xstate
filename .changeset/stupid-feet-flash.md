@@ -13,13 +13,15 @@ const machine = createMachine({
     },
     finished: {
       type: 'final'
+      // moved to the top level
+      //
       // output: {
       //   status: 200
       // }
     }
   },
   // This will be the final output of the machine
-  // present on `snapshot.output`
+  // present on `snapshot.output` and in the done events received by the parent
   // when the machine reaches the top-level final state ("finished")
   output: {
     status: 200
