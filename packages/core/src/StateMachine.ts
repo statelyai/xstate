@@ -195,17 +195,16 @@ export class StateMachine<
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
 
-    if (isDevelopment) {
-      if (
-        Object.values(this.states).some(
-          (state) => state.type === 'final' && !!state.output
-        ) &&
-        !this.root.output
-      ) {
-        console.warn(
-          'Missing `machine.output` declaration (top-level final state with output detected)'
-        );
-      }
+    if (
+      isDevelopment &&
+      !this.root.output &&
+      Object.values(this.states).some(
+        (state) => state.type === 'final' && !!state.output
+      )
+    ) {
+      console.warn(
+        'Missing `machine.output` declaration (top-level final state with output detected)'
+      );
     }
   }
 
