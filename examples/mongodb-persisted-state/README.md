@@ -16,7 +16,6 @@ To get this sample working, you'll need the following:
 
 - A live [MongoDB database deployment](https://www.mongodb.com/docs/atlas/create-connect-deployments/). There is no need to explicitly create the collections in the deployment. If they don't exist, the MongoClient will create them on your behalf.
 - A connection string to the running database. This is obtained by selecting the Connect option if you're using MongoDB's Atlas service
-- The [yarn package manager](https://yarnpkg.com/)
 
 ## Running the sample
 
