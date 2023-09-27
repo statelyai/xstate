@@ -225,7 +225,7 @@ const fetchData = (query) => {
 ```
 
 ::: warning
-It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling) and have more predictable behavior.
+It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling upon state change) and have more predictable behavior.
 :::
 
 ## Spawning Callbacks
