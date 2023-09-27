@@ -184,6 +184,7 @@ export class StateMachine<
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
     this.transition = this.transition.bind(this);
+    this.getInitialState = this.getInitialState.bind(this);
 
     this.root = new StateNode(config, {
       _key: this.id,
