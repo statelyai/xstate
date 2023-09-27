@@ -413,7 +413,10 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(observableLogic, { id: 'int' });
+              const ref = spawn(observableLogic, {
+                id: 'int',
+                syncSnapshot: true
+              });
 
               return ref;
             }
@@ -421,7 +424,7 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: ({ event }) => event.data.context === 5
+              guard: ({ event }) => event.snapshot.context === 5
             }
           }
         },
@@ -452,12 +455,13 @@ describe('spawning observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
+              observableRef: ({ spawn }) =>
+                spawn('interval', { id: 'int', syncSnapshot: true })
             }),
             on: {
               'xstate.snapshot.int': {
                 target: 'success',
-                guard: ({ event }) => event.data.context === 5
+                guard: ({ event }) => event.snapshot.context === 5
               }
             }
           },
@@ -495,7 +499,10 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(observableLogic, { id: 'int' });
+              const ref = spawn(observableLogic, {
+                id: 'int',
+                syncSnapshot: true
+              });
 
               return ref;
             }
@@ -505,7 +512,7 @@ describe('spawning observables', () => {
               target: 'success',
               guard: ({ context, event }) => {
                 return (
-                  event.data.context === 1 &&
+                  event.snapshot.context === 1 &&
                   context.observableRef.getSnapshot().context === 1
                 );
               }
@@ -549,7 +556,7 @@ describe('spawning observables', () => {
               onSnapshot: {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data.context === 3;
+                  return event.snapshot.context === 3;
                 }
               }
             }
@@ -603,7 +610,7 @@ describe('spawning observables', () => {
               onSnapshot: {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data.context === 3;
+                  return event.snapshot.context === 3;
                 }
               }
             }
@@ -1018,9 +1025,12 @@ describe('actors', () => {
       });
       countService.start();
 
-      debugger;
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
+
+      expect(
+        countService.getSnapshot().context.count?.getSnapshot().context
+      ).toBe(2);
     });
 
     it('should work with a promise logic (fulfill)', (done) => {

@@ -1274,6 +1274,47 @@ describe('invoke', () => {
         });
         service.start();
       });
+
+      it('should not emit onSnapshot if stopped', (done) => {
+        const machine = createMachine({
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                src: fromPromise(() =>
+                  createPromise((res) => {
+                    setTimeout(() => res(42), 5);
+                  })
+                ),
+                onSnapshot: {}
+              },
+              on: {
+                deactivate: 'inactive'
+              }
+            },
+            inactive: {
+              on: {
+                '*': {
+                  actions: ({ event }) => {
+                    if (event.snapshot) {
+                      throw new Error(
+                        `Received unexpected event: ${event.type}`
+                      );
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        const actor = createActor(machine).start();
+        actor.send({ type: 'deactivate' });
+
+        setTimeout(() => {
+          done();
+        }, 10);
+      });
     });
   });
 
@@ -1850,7 +1891,9 @@ describe('invoke', () => {
             invoke: {
               src: fromObservable(() => interval(10)),
               onSnapshot: {
-                actions: assign({ count: ({ event }) => event.data.context })
+                actions: assign({
+                  count: ({ event }) => event.snapshot.context
+                })
               }
             },
             always: {
@@ -1894,7 +1937,7 @@ describe('invoke', () => {
               src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
-                  count: ({ event }) => event.data.context
+                  count: ({ event }) => event.snapshot.context
                 })
               },
               onDone: {
@@ -1946,7 +1989,9 @@ describe('invoke', () => {
                 )
               ),
               onSnapshot: {
-                actions: assign({ count: ({ event }) => event.data.context })
+                actions: assign({
+                  count: ({ event }) => event.snapshot.context
+                })
               },
               onError: {
                 target: 'success',
@@ -1976,18 +2021,40 @@ describe('invoke', () => {
     });
 
     it('should work with input', (done) => {
-      const machine = createMachine({
-        invoke: {
-          src: fromObservable(({ input }) => of(input)),
-          input: 42,
-          onSnapshot: {
-            actions: ({ event }) => {
-              expect(event.data.context).toEqual(42);
-              done();
+      const childLogic = fromObservable(({ input }: { input: number }) =>
+        of(input)
+      );
+
+      const machine = createMachine(
+        {
+          types: {} as {
+            actors: {
+              src: 'childLogic';
+              logic: typeof childLogic;
+            };
+          },
+          context: { received: undefined },
+          invoke: {
+            src: 'childLogic',
+            input: 42,
+            onSnapshot: {
+              actions: ({ event }) => {
+                if (
+                  event.snapshot.status === 'active' &&
+                  event.snapshot.context === 42
+                ) {
+                  done();
+                }
+              }
             }
           }
+        },
+        {
+          actors: {
+            childLogic
+          }
         }
-      });
+      );
 
       createActor(machine).start();
     });
@@ -2348,6 +2415,39 @@ describe('invoke', () => {
 
       countService.send({ type: 'INC' });
     });
+
+    it('should emit onSnapshot', (done) => {
+      const doublerLogic = fromTransition(
+        (_, event: { type: 'update'; value: number }) => event.value * 2,
+        0
+      );
+      const machine = createMachine(
+        {
+          types: {} as {
+            actors: { src: 'doublerLogic'; logic: typeof doublerLogic };
+          },
+          invoke: {
+            id: 'doubler',
+            src: 'doublerLogic',
+            onSnapshot: {
+              actions: ({ event }) => {
+                if (event.snapshot.context === 42) {
+                  done();
+                }
+              }
+            }
+          },
+          entry: sendTo('doubler', { type: 'update', value: 21 }, { delay: 10 })
+        },
+        {
+          actors: {
+            doublerLogic
+          }
+        }
+      );
+
+      createActor(machine).start();
+    });
   });
 
   describe('with machines', () => {
@@ -2399,6 +2499,44 @@ describe('invoke', () => {
       const actor = createActor(pingMachine);
       actor.subscribe({ complete: () => done() });
       actor.start();
+    });
+
+    it('should emit onSnapshot', (done) => {
+      const childMachine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            after: {
+              10: 'b'
+            }
+          },
+          b: {}
+        }
+      });
+      const machine = createMachine(
+        {
+          types: {} as {
+            actors: { src: 'childMachine'; logic: typeof childMachine };
+          },
+          invoke: {
+            src: 'childMachine',
+            onSnapshot: {
+              actions: ({ event }) => {
+                if (event.snapshot.value === 'b') {
+                  done();
+                }
+              }
+            }
+          }
+        },
+        {
+          actors: {
+            childMachine
+          }
+        }
+      );
+
+      createActor(machine).start();
     });
   });
 

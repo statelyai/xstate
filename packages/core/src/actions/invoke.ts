@@ -10,7 +10,8 @@ import {
   AnyState,
   EventObject,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  Snapshot
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -22,12 +23,14 @@ function resolveInvoke(
     id,
     systemId,
     src,
-    input
+    input,
+    syncSnapshot
   }: {
     id: string;
     systemId: string | undefined;
     src: string;
     input?: unknown;
+    syncSnapshot: boolean;
   }
 ) {
   const referenced = resolveReferencedActor(
@@ -53,6 +56,22 @@ function resolveInvoke(
             })
           : configuredInput
     });
+
+    if (syncSnapshot) {
+      actorRef.subscribe({
+        next: (snapshot: Snapshot<unknown>) => {
+          if (snapshot.status === 'active') {
+            actorContext.self.send({
+              type: `xstate.snapshot.${id}`,
+              snapshot
+            });
+          }
+        },
+        error: () => {
+          /* TODO */
+        }
+      });
+    }
   }
 
   if (isDevelopment && !actorRef) {
@@ -114,12 +133,14 @@ export function invoke<
   id,
   systemId,
   src,
-  input
+  input,
+  onSnapshot
 }: {
   id: string;
   systemId: string | undefined;
   src: string;
   input?: unknown;
+  onSnapshot?: {}; // TODO: transition object
 }): InvokeAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
   function invoke(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
@@ -134,6 +155,7 @@ export function invoke<
   invoke.systemId = systemId;
   invoke.src = src;
   invoke.input = input;
+  invoke.syncSnapshot = !!onSnapshot;
 
   invoke.resolve = resolveInvoke;
   invoke.execute = executeInvoke;
