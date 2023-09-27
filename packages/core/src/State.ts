@@ -10,21 +10,20 @@ import {
 } from './stateUtils.ts';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
-  ProvidedActor,
   ActorRefFrom,
+  AnyActorRef,
   AnyState,
   AnyStateMachine,
+  Compute,
   EventObject,
   HistoryValue,
   MachineContext,
   PersistedMachineState,
   Prop,
+  ProvidedActor,
   StateConfig,
   StateValue,
-  TODO,
-  AnyActorRef,
-  Compute,
-  EventDescriptor
+  TODO
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -257,7 +256,7 @@ export class State<
   /**
    * The next events that will cause a transition from the current state.
    */
-  public get nextEvents(): Array<EventDescriptor<TEvent>> {
+  public get nextEvents(): Array<TEvent['type']> {
     return memo(this, 'nextEvents', () => {
       return [
         ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
