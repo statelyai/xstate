@@ -13,7 +13,7 @@ import {
 import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
 
-function resolve(
+function resolveChoose(
   _: AnyActorContext,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any, any>,
@@ -102,7 +102,7 @@ export function choose<
   choose.type = 'xstate.choose';
   choose.branches = branches;
 
-  choose.resolve = resolve;
+  choose.resolve = resolveChoose;
 
   return choose;
 }

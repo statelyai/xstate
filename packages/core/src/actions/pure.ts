@@ -14,7 +14,7 @@ import {
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
-function resolve(
+function resolvePure(
   _: AnyActorContext,
   state: AnyState,
   args: ActionArgs<any, any, any, any>,
@@ -105,7 +105,8 @@ export function pure<
 
   pure.type = 'xstate.pure';
   pure.get = getActions;
-  pure.resolve = resolve;
+
+  pure.resolve = resolvePure;
 
   return pure;
 }

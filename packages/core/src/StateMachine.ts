@@ -49,6 +49,7 @@ import type {
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
 import { createActor } from './interpreter.ts';
+import isDevelopment from '#is-development';
 
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
@@ -193,6 +194,18 @@ export class StateMachine<
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
+
+    if (
+      isDevelopment &&
+      !this.root.output &&
+      Object.values(this.states).some(
+        (state) => state.type === 'final' && !!state.output
+      )
+    ) {
+      console.warn(
+        'Missing `machine.output` declaration (top-level final state with output detected)'
+      );
+    }
   }
 
   /**

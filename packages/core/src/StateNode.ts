@@ -13,7 +13,6 @@ import {
 import type {
   DelayedTransitionDefinition,
   EventObject,
-  FinalStateNodeConfig,
   InitialTransitionDefinition,
   InvokeDefinition,
   MachineContext,
@@ -29,7 +28,8 @@ import type {
   ParameterizedObject,
   AnyStateMachine,
   AnyStateNodeConfig,
-  ProvidedActor
+  ProvidedActor,
+  NonReducibleUnknown
 } from './types.ts';
 import {
   createInvokeId,
@@ -134,7 +134,9 @@ export class StateNode<
   /**
    * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
    */
-  public output?: Mapper<TContext, TEvent, any>;
+  public output?:
+    | Mapper<MachineContext, EventObject, unknown, EventObject>
+    | NonReducibleUnknown;
 
   /**
    * The order this state node appears. Corresponds to the implicit document order.
@@ -216,9 +218,7 @@ export class StateNode<
 
     this.meta = this.config.meta;
     this.output =
-      this.type === 'final'
-        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).output
-        : undefined;
+      this.type === 'final' || !this.parent ? this.config.output : undefined;
     this.tags = toArray(config.tags).slice();
   }
 

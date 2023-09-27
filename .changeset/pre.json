@@ -17,6 +17,7 @@
     "@xstate-repo/jest-utils": "0.0.0"
   },
   "changesets": [
+    "angry-seals-sin",
     "beige-pianos-give",
     "beige-schools-smash",
     "big-avocados-raise",

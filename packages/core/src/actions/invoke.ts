@@ -15,7 +15,7 @@ import {
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
-function resolve(
+function resolveInvoke(
   actorContext: AnyActorContext,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any, any>,
@@ -93,7 +93,7 @@ function resolve(
   ];
 }
 
-function execute(
+function executeInvoke(
   actorContext: AnyActorContext,
   { id, actorRef }: { id: string; actorRef: AnyActorRef }
 ) {
@@ -157,8 +157,8 @@ export function invoke<
   invoke.input = input;
   invoke.syncSnapshot = !!onSnapshot;
 
-  invoke.resolve = resolve;
-  invoke.execute = execute;
+  invoke.resolve = resolveInvoke;
+  invoke.execute = executeInvoke;
 
   return invoke;
 }
