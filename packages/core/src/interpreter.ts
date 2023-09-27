@@ -142,7 +142,7 @@ export class Actor<TLogic extends AnyActorLogic>
     const { clock, logger, parent, id, systemId } = resolvedOptions;
     const self = this;
 
-    this.system = parent?.system ?? createSystem();
+    this.system = parent?.system ?? createSystem(this);
 
     if (systemId) {
       this._systemId = systemId;
