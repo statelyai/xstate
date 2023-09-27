@@ -85,6 +85,8 @@ function createUnchangedState<
 >(value: string, context: TC): StateMachine.State<TC, TE, TS> {
   return {
     value,
+    exitContext: context,
+    exitActions: [],
     context,
     actions: [],
     changed: false,
@@ -155,11 +157,21 @@ export function createMachine<
     INIT_EVENT as TEvent
   );
 
+  const [initialExitActions, initialExitContext] = handleActions(
+    toArray(fsmConfig.states[fsmConfig.initial].exit).map((action) =>
+      toActionObject(action, implementations.actions)
+    ),
+    fsmConfig.context!,
+    INIT_EVENT as TEvent
+  );
+
   const machine = {
     config: fsmConfig,
     _options: implementations,
     initialState: {
       value: fsmConfig.initial,
+      exitContext: initialExitContext,
+      exitActions: initialExitActions,
       actions: initialActions,
       context: initialContext,
       matches: createMatcher(fsmConfig.initial)
@@ -187,6 +199,14 @@ export function createMachine<
         );
       }
 
+      const [exitActions, exitContext] = handleActions(
+        toArray(stateConfig.exit).map((action) =>
+          toActionObject(action, implementations.actions)
+        ),
+        context,
+        eventObject
+      );
+
       if (stateConfig.on) {
         const transitions: Array<
           StateMachine.Transition<TContext, TEvent, TState['value']>
@@ -198,7 +218,7 @@ export function createMachine<
 
         for (const transition of transitions) {
           if (transition === undefined) {
-            return createUnchangedState(value, context);
+            return createUnchangedState(value, exitContext);
           }
 
           const {
@@ -222,12 +242,12 @@ export function createMachine<
             );
           }
 
-          if (cond(context, eventObject)) {
+          if (cond(exitContext, eventObject)) {
             const allActions = (
               isTargetless
                 ? toArray(actions)
                 : ([] as any[])
-                    .concat(stateConfig.exit, actions, nextStateConfig.entry)
+                    .concat(actions, nextStateConfig.entry)
                     .filter((a) => a)
             ).map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
               toActionObject(action, (machine as any)._options.actions)
@@ -235,7 +255,7 @@ export function createMachine<
 
             const [nonAssignActions, nextContext, assigned] = handleActions(
               allActions,
-              context,
+              exitContext,
               eventObject
             );
 
@@ -243,6 +263,8 @@ export function createMachine<
 
             return {
               value: resolvedTarget,
+              exitContext,
+              exitActions,
               context: nextContext,
               actions: nonAssignActions,
               changed:
@@ -269,6 +291,16 @@ const executeStateActions = <
   event: TEvent | InitEvent
 ) => state.actions.forEach(({ exec }) => exec && exec(state.context, event));
 
+const executeExitActions = <
+  TContext extends object,
+  TEvent extends EventObject = any,
+  TState extends Typestate<TContext> = { value: any; context: TContext }
+>(
+  state: StateMachine.State<TContext, TEvent, TState>,
+  event: TEvent | InitEvent
+) =>
+  state.exitActions.forEach(({ exec }) => exec && exec(state.context, event));
+
 export function interpret<
   TContext extends object,
   TEvent extends EventObject = EventObject,
@@ -286,6 +318,7 @@ export function interpret<
       if (status !== InterpreterStatus.Running) {
         return;
       }
+      executeExitActions(state, toEventObject(event));
       state = machine.transition(state, event);
       executeStateActions(state, toEventObject(event));
       listeners.forEach((listener) => listener(state));
@@ -310,6 +343,8 @@ export function interpret<
             : { context: machine.config.context!, value: initialState };
         state = {
           value: resolved.value,
+          exitContext: resolved.context,
+          exitActions: [],
           actions: [],
           context: resolved.context,
           matches: createMatcher(resolved.value)

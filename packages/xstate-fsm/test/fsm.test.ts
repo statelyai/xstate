@@ -113,8 +113,15 @@ describe('@xstate/fsm', () => {
   it('should transition correctly', () => {
     const nextState = lightFSM.transition('green', 'TIMER');
     expect(nextState.value).toEqual('yellow');
+    expect(nextState.exitActions.map((action) => action.type)).toEqual([
+      'exitGreen'
+    ]);
+    expect(nextState.exitContext).toEqual({
+      count: 2,
+      foo: 'static++',
+      go: true
+    });
     expect(nextState.actions.map((action) => action.type)).toEqual([
-      'exitGreen',
       'g-y 1',
       'g-y 2'
     ]);
@@ -355,6 +362,30 @@ describe('interpreter', () => {
     });
 
     interpret(machine).start();
+    expect(executed).toBe(true);
+  });
+
+  it('should execute exit action', () => {
+    let executed = false;
+    let service;
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          exit: () => {
+            executed = service.state.value === 'foo';
+          },
+          on: {
+            BAR: 'bar'
+          }
+        },
+        bar: {}
+      }
+    });
+
+    service = interpret(machine);
+    service.start();
+    service.send('BAR');
     expect(executed).toBe(true);
   });
 

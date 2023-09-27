@@ -103,6 +103,8 @@ export namespace StateMachine {
     TState extends Typestate<TContext>
   > {
     value: TState['value'];
+    exitContext: TContext;
+    exitActions: Array<ActionObject<TContext, TEvent>>;
     context: TContext;
     actions: Array<ActionObject<TContext, TEvent>>;
     changed?: boolean | undefined;
