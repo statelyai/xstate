@@ -104,6 +104,7 @@ const todosMachine = createMachine({
 ```
 
 If you do not provide a `name` argument to `spawn(...)`, a unique name will be automatically generated. This name will be nondeterministic :warning:.
+A *named actor* is easier to be referenced in other API calls, see [Sending Events to Actors](#sending-events-to-actors).
 
 ::: tip
 Treat `const actorRef = spawn(someMachine)` as just a normal value in `context`. You can place this `actorRef` anywhere within `context`, based on your logic requirements. As long as it's within an assignment function in `assign(...)`, it will be scoped to the service from where it was spawned.
@@ -168,7 +169,7 @@ const machine = createMachine({
 ::: tip
 If you provide an unique `name` argument to `spawn(...)`, you can reference it in the target expression:
 
-```js
+```js {4, 10}
 const loginMachine = createMachine({
   // ...
   entry: assign({
