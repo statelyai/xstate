@@ -1,6 +1,6 @@
 import { createActor, createMachine, fromPromise } from 'xstate';
 
-type Applicant = {
+interface Applicant {
   fname: string;
   lname: string;
   age: number;
