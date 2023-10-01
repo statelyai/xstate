@@ -426,3 +426,54 @@ export function resolveReferencedActor(
       : referenced
     : undefined;
 }
+
+interface MachineStateOnType {
+  [descriptor: string]:
+    | string
+    | {
+      actions: unknown;
+      target: string;
+    }
+}
+interface MachineStateConfigType {
+  states: {
+    [state: string]: {
+      on: MachineStateOnType
+    }
+  },
+  on: MachineStateOnType
+}
+
+function validateOn(on: MachineStateOnType, config: MachineStateConfigType): boolean {
+  Object.keys(on).forEach(descriptor => {
+    if (!(
+      typeof descriptor === "string" ||
+      (<{ actions: unknown }>on[descriptor]).actions ||
+      Object.keys(config.states).includes((<{ target: string }>on[descriptor]).target)
+    )) {
+      return false;
+    }
+  });
+
+  return true;
+}
+
+export function validateConfig(
+  config: MachineStateConfigType
+): boolean {
+  if (config.states) {
+    Object.keys(config.states).forEach(state => {
+      if (!config.states[state].on) {
+        return false;
+      }
+
+      return validateOn(config.states[state].on, config);
+    });
+  }
+
+  if (config.on) {
+    return validateOn(config.on, config);
+  }
+
+  return true;
+}

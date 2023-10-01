@@ -14,6 +14,7 @@ import {
   TypegenDisabled
 } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
+import { validateConfig } from './utils.ts';
 
 export function createMachine<
   TContext extends MachineContext,
@@ -82,6 +83,9 @@ export function createMachine<
   TOutput,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
+  if (!validateConfig(config as any)) {
+    throw new Error("Incomplete data in StateMachine!");
+  }
   return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
     config as any,
     implementations as any
