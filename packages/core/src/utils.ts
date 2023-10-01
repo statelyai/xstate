@@ -448,8 +448,8 @@ function validateOn(on: MachineStateOnType, config: MachineStateConfigType): boo
   Object.keys(on).forEach(descriptor => {
     if (!(
       typeof descriptor === "string" ||
-      (<{ actions: unknown }>on[descriptor]).actions ||
-      Object.keys(config.states).includes((<{ target: string }>on[descriptor]).target)
+      (on[descriptor] as { actions: unknown }).actions ||
+      Object.keys(config.states).includes((on[descriptor] as { target: string }).target)
     )) {
       return false;
     }
