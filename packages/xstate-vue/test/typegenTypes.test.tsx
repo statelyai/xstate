@@ -48,7 +48,7 @@ describe('useMachine', () => {
       setup() {
         // @ts-expect-error
         useMachine(machine);
-        return null;
+        return undefined;
       }
     });
   });
