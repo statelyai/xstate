@@ -1,4 +1,4 @@
-import { createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor, fromPromise } from '../src/index.ts';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -134,5 +134,40 @@ describe('rehydration', () => {
     createActor(machine, { state: persistedState }).start();
 
     expect(entrySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be able to stop a rehydrated child', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: fromPromise(() => Promise.resolve(11)),
+            onDone: 'b'
+          },
+          on: {
+            NEXT: 'c'
+          }
+        },
+        b: {},
+        c: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    const persistedState = actor.getPersistedState();
+    actor.stop();
+
+    const rehydratedActor = createActor(machine, {
+      state: persistedState
+    }).start();
+
+    expect(() =>
+      rehydratedActor.send({
+        type: 'NEXT'
+      })
+    ).not.toThrow();
+
+    expect(rehydratedActor.getSnapshot().value).toBe('c');
   });
 });
