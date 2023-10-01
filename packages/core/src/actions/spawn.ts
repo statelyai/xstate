@@ -6,20 +6,12 @@ import {
   AnyActorRef,
   AnyState,
   EventObject,
-  LogExpr,
   MachineContext,
   ParameterizedObject,
   ProvidedActor
 } from '../types.ts';
 import { SpawnOptions, Spawner, createSpawner } from '../spawn.ts';
 import { cloneState } from '../State';
-
-type ResolvableSpawnValue<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
-  TEvent extends EventObject
-> = string | LogExpr<TContext, TExpressionEvent, TExpressionAction, TEvent>;
 
 function resolveSpawn(
   actorCtx: AnyActorContext,
@@ -28,9 +20,8 @@ function resolveSpawn(
   {
     src,
     options
-  }: { src: string | AnyActorLogic; options?: SpawnOptions<any, any> }
+  }: { src: string | AnyActorLogic; options?: SpawnOptions<any, any>[0] }
 ) {
-  // { value, label }: { value: unknown; label: string | undefined }
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
   const spawner = createSpawner(
