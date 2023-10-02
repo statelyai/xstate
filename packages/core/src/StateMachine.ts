@@ -183,7 +183,6 @@ export class StateMachine<
     this.version = this.config.version;
     this.types = this.config.types ?? ({} as any as this['types']);
 
-    // I'm sure there's a better way of doing this...
     this.transition = this.transition.bind(this);
     this.getInitialState = this.getInitialState.bind(this);
     this.restoreState = this.restoreState.bind(this);
