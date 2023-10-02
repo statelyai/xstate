@@ -347,12 +347,15 @@ describe('observable logic (fromObservable)', () => {
     expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('should reject (observer .error)', () => {
+  it('should reject (observer .error)', (done) => {
     const actor = createActor(fromObservable(() => throwError(() => 'Error')));
     const spy = jest.fn();
 
     actor.subscribe({
-      next: (snapshot) => spy(snapshot.error)
+      next: (snapshot) => spy(snapshot.error),
+      error: () => {
+        done();
+      }
     });
 
     actor.start();
@@ -714,7 +717,7 @@ describe('machine logic', () => {
   });
 });
 
-describe.only('composable actor logic', () => {
+describe('composable actor logic', () => {
   it('should work with machines', () => {
     const logs: string[] = [];
 
