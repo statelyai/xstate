@@ -2199,6 +2199,9 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   inspect: (observer: Observer<InspectionEvent>) => void;
+  /**
+   * @internal
+   */
   _sendInspectionEvent: (event: InspectionEvent) => void;
   relay: (
     event: AnyEventObject,
