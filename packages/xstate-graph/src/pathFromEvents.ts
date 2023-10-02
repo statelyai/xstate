@@ -1,4 +1,5 @@
 import {
+  ActorContext,
   ActorLogic,
   ActorSystem,
   AnyStateMachine,
@@ -46,7 +47,11 @@ export function getPathsFromEvents<
       ? createDefaultMachineOptions(logic)
       : createDefaultLogicOptions()) as TraversalOptions<TSnapshot, TEvent>
   );
-  const actorContext = createMockActorContext();
+  const actorContext = createMockActorContext() as ActorContext<
+    TSnapshot,
+    TEvent,
+    TSystem
+  >;
   const fromState =
     resolvedOptions.fromState ??
     logic.getInitialState(
