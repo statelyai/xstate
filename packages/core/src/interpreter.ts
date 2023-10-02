@@ -235,17 +235,21 @@ export class Actor<TLogic extends AnyActorLogic>
           this.id,
           (this._state as any).output
         );
-        this.system.relay(this._doneEvent, this, this._parent);
+        if (this._parent) {
+          this.system._relay(this, this._parent, this._doneEvent);
+        }
 
         break;
       case 'error':
         this._stopProcedure();
         this._error((this._state as any).error);
-        this.system.relay(
-          createErrorActorEvent(this.id, (this._state as any).error),
-          this,
-          this._parent
-        );
+        if (this._parent) {
+          this.system._relay(
+            this,
+            this._parent,
+            createErrorActorEvent(this.id, (this._state as any).error)
+          );
+        }
         break;
     }
     this.system._sendInspectionEvent({
@@ -502,7 +506,7 @@ export class Actor<TLogic extends AnyActorLogic>
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
     }
-    this.system.relay(event, undefined, this);
+    this.system._relay(undefined, this, event);
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
@@ -518,7 +522,7 @@ export class Actor<TLogic extends AnyActorLogic>
     to?: AnyActorRef;
   }): void {
     const timerId = this.clock.setTimeout(() => {
-      this.system.relay(event as EventFromLogic<TLogic>, this, to ?? this);
+      this.system._relay(this, to ?? this, event as EventFromLogic<TLogic>);
     }, delay);
 
     // TODO: consider the rehydration story here

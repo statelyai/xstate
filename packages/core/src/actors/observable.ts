@@ -111,13 +111,13 @@ export function fromObservable<TContext, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          system.relay({ type: nextEventType, data: value }, self, self);
+          system._relay(self, self, { type: nextEventType, data: value });
         },
         error: (err) => {
-          system.relay({ type: errorEventType, data: err }, self, self);
+          system._relay(self, self, { type: errorEventType, data: err });
         },
         complete: () => {
-          system.relay({ type: completeEventType }, self, self);
+          system._relay(self, self, { type: completeEventType });
         }
       });
     },
@@ -211,13 +211,15 @@ export function fromEventObservable<T extends EventObject, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          system.relay(value, self, self._parent);
+          if (self._parent) {
+            system._relay(self, self._parent, value);
+          }
         },
         error: (err) => {
-          system.relay({ type: errorEventType, data: err }, self, self);
+          system._relay(self, self, { type: errorEventType, data: err });
         },
         complete: () => {
-          system.relay({ type: completeEventType }, self, self);
+          system._relay(self, self, { type: completeEventType });
         }
       });
     },

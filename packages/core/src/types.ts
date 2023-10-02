@@ -2200,10 +2200,13 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   inspect: (observer: Observer<InspectionEvent>) => void;
   _sendInspectionEvent: (event: InspectionEvent) => void;
-  relay: (
-    event: AnyEventObject,
+  /**
+   * @internal
+   */
+  _relay: (
     source: AnyActorRef | undefined,
-    target: AnyActorRef | undefined
+    target: AnyActorRef,
+    event: AnyEventObject
   ) => void;
 }
 

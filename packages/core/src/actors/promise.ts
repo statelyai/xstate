@@ -101,13 +101,13 @@ export function fromPromise<TOutput, TInput = unknown>(
           if (self.getSnapshot().status !== 'active') {
             return;
           }
-          system.relay({ type: resolveEventType, data: response }, self, self);
+          system._relay(self, self, { type: resolveEventType, data: response });
         },
         (errorData) => {
           if (self.getSnapshot().status !== 'active') {
             return;
           }
-          system.relay({ type: rejectEventType, data: errorData }, self, self);
+          system._relay(self, self, { type: rejectEventType, data: errorData });
         }
       );
     },

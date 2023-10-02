@@ -63,7 +63,7 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
   const logic: CallbackActorLogic<TEvent, TInput> = {
     config: invokeCallback,
     start: (_state, { self, system }) => {
-      system.relay({ type: XSTATE_INIT }, self, self);
+      system._relay(self, self, { type: XSTATE_INIT });
     },
     transition: (state, event, { self, system }) => {
       if (event.type === XSTATE_INIT) {
@@ -72,7 +72,9 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
             return;
           }
 
-          system.relay(eventForParent, self, self._parent);
+          if (self._parent) {
+            system._relay(self, self._parent, eventForParent);
+          }
         };
 
         const receive: Receiver<TEvent> = (newListener) => {
