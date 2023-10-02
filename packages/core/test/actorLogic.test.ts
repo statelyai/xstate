@@ -756,10 +756,16 @@ describe('machine logic', () => {
   });
 
   it('should persist a spawned actor with referenced src', () => {
+    const reducer = fromTransition((s) => s, { count: 42 });
     const machine = createMachine({
       types: {
         context: {} as {
           ref: AnyActorRef;
+        },
+        actors: {} as {
+          src: 'reducer';
+          logic: typeof reducer;
+          ids: 'child';
         }
       },
       context: ({ spawn }) => ({
@@ -767,7 +773,7 @@ describe('machine logic', () => {
       })
     }).provide({
       actors: {
-        reducer: fromTransition((s) => s, { count: 42 })
+        reducer
       }
     });
 
@@ -775,7 +781,7 @@ describe('machine logic', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.children.child.state).toEqual({ count: 42 });
+    expect(persistedState.children.child.state.context).toEqual({ count: 42 });
 
     const newActor = createActor(machine, {
       state: persistedState
@@ -785,7 +791,7 @@ describe('machine logic', () => {
 
     expect(snapshot.context.ref).toBe(snapshot.children.child);
 
-    expect(snapshot.context.ref.getSnapshot().count).toBe(42);
+    expect(snapshot.context.ref.getSnapshot().context.count).toBe(42);
   });
 
   it('should not persist a spawned actor with inline src', () => {
@@ -807,7 +813,7 @@ describe('machine logic', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.children.child.state).toEqual({ count: 42 });
+    expect(persistedState.children.child.state.context).toEqual({ count: 42 });
 
     const newActor = createActor(machine, {
       state: persistedState
