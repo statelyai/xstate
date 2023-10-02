@@ -61,18 +61,6 @@ export function fromObservable<TContext, TInput>(
             ...snapshot,
             context: event.data as TContext
           };
-          // match the exact timing of events sent by machines
-          // send actions are not executed immediately
-          defer(() => {
-            system.relay(
-              {
-                type: `xstate.snapshot.${id}`,
-                data: newSnapshot
-              },
-              self,
-              self._parent
-            );
-          });
           return newSnapshot;
         }
         case errorEventType:

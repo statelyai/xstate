@@ -26,7 +26,7 @@ export interface AssignArgs<
   spawn: Spawner<TActor>;
 }
 
-function resolve(
+function resolveAssign(
   actorContext: AnyActorContext,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any, any>,
@@ -138,7 +138,7 @@ export function assign<
   assign.type = 'xstate.assign';
   assign.assignment = assignment;
 
-  assign.resolve = resolve;
+  assign.resolve = resolveAssign;
 
   return assign;
 }

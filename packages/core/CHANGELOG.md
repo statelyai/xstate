@@ -1,5 +1,84 @@
 # xstate
 
+## 5.0.0-beta.32
+
+### Patch Changes
+
+- [#4335](https://github.com/statelyai/xstate/pull/4335) [`ba111c32c`](https://github.com/statelyai/xstate/commit/ba111c32c863ef07aaedc44111d404cef8bff3e4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Composable (e.g. higher-order) logic should now work as expected for state machine logic, as well as all other types of logic.
+
+- [#4330](https://github.com/statelyai/xstate/pull/4330) [`9f69d46a6`](https://github.com/statelyai/xstate/commit/9f69d46a645dfe8060180a34fcfe1a5c2ab08fa2) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with rehydrated actors not having their internal reference to the parent set correctly.
+
+## 5.0.0-beta.31
+
+### Major Changes
+
+- [#4306](https://github.com/statelyai/xstate/pull/4306) [`30e3cb216`](https://github.com/statelyai/xstate/commit/30e3cb21633c0460e3ee4b9e7ea5c538b9ef1264) Thanks [@Andarist](https://github.com/Andarist)! - The final `output` of a state machine is now specified directly in the `output` property of the machine config:
+
+  ```ts
+  const machine = createMachine({
+    initial: 'started',
+    states: {
+      started: {
+        // ...
+      },
+      finished: {
+        type: 'final'
+        // moved to the top level
+        //
+        // output: {
+        //   status: 200
+        // }
+      }
+    },
+    // This will be the final output of the machine
+    // present on `snapshot.output` and in the done events received by the parent
+    // when the machine reaches the top-level final state ("finished")
+    output: {
+      status: 200
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#4172](https://github.com/statelyai/xstate/pull/4172) [`aeef5e2d0`](https://github.com/statelyai/xstate/commit/aeef5e2d0c31aeae702b5cb65e77a07fefb30325) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `onSnapshot: { ... }` transition object is now supported for invoked machines, observables, promises, and transition functions:
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    invoke: [
+      {
+        src: createMachine({ ... }),
+        onSnapshot: {
+          actions: (context, event) => {
+            event.snapshot; // machine state
+          }
+        }
+      },
+      {
+        src: fromObservable(() => ...),
+        onSnapshot: {
+          actions: (context, event) => {
+            event.snapshot; // observable value
+          }
+        }
+      },
+      {
+        src: fromTransition((state, event) => { ... }, /* ... */),
+        onSnapshot: {
+          actions: (context, event) => {
+            event.snapshot; // transition function return value
+          }
+        }
+      }
+    ]
+  });
+  ```
+
+### Patch Changes
+
+- [#4307](https://github.com/statelyai/xstate/pull/4307) [`0c7b3aa3d`](https://github.com/statelyai/xstate/commit/0c7b3aa3d37a5f4930472bb5fcd7b234a66d6416) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `input` of a callback actor created with `fromCallback(...)` will now be properly restored when the actor is persisted.
+
 ## 5.0.0-beta.30
 
 ### Major Changes

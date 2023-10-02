@@ -8,7 +8,11 @@ import {
   Prop,
   AnyEventObject
 } from './types.ts';
-import { TypegenConstraint, ResolveTypegenMeta } from './typegenTypes.ts';
+import {
+  TypegenConstraint,
+  ResolveTypegenMeta,
+  TypegenDisabled
+} from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
@@ -21,7 +25,10 @@ export function createMachine<
   TTag extends string,
   TInput,
   TOutput extends NonReducibleUnknown,
-  TTypesMeta extends TypegenConstraint
+  // it's important to have at least one default type parameter here
+  // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
+  // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<
     TContext,

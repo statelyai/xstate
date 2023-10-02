@@ -57,7 +57,7 @@ export type InvokeCallback<
   receive: Receiver<TEvent>;
 }) => (() => void) | void;
 
-export function fromCallback<TEvent extends EventObject, TInput>(
+export function fromCallback<TEvent extends EventObject, TInput = unknown>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
   const logic: CallbackActorLogic<TEvent, TInput> = {
@@ -117,7 +117,12 @@ export function fromCallback<TEvent extends EventObject, TInput>(
         _dispose: undefined
       };
     },
-    getPersistedState: ({ _dispose, _receivers, ...rest }) => rest
+    getPersistedState: ({ _dispose, _receivers, ...rest }) => rest,
+    restoreState: (state) => ({
+      _receivers: new Set(),
+      _dispose: undefined,
+      ...state
+    })
   };
 
   return logic;

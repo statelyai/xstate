@@ -362,7 +362,9 @@ export interface InvokeDefinition<
    */
   src: string;
 
-  input?: Mapper<TContext, TEvent, NonReducibleUnknown> | NonReducibleUnknown;
+  input?:
+    | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
+    | NonReducibleUnknown;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -401,7 +403,7 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          SnapshotEvent<unknown>,
+          SnapshotEvent,
           TEvent,
           TActor,
           TAction,
@@ -585,7 +587,7 @@ type DistributeActors<
         // in a sense, we shouldn't - they could be provided within the `implementations` object
         // how do we verify if the required input has been provided?
         input?:
-          | Mapper<TContext, TEvent, InputFrom<TSpecificActor['logic']>>
+          | Mapper<TContext, TEvent, InputFrom<TSpecificActor['logic']>, TEvent>
           | InputFrom<TSpecificActor['logic']>;
         /**
          * The transition to take upon the invoked child machine reaching its final top-level state.
@@ -674,7 +676,7 @@ export type InvokeConfig<
       src: AnyActorLogic | string; // TODO: fix types
 
       input?:
-        | Mapper<TContext, TEvent, NonReducibleUnknown>
+        | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
         | NonReducibleUnknown;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
@@ -714,7 +716,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              SnapshotEvent<any>, // TODO: consider replacing with `unknown`
+              SnapshotEvent,
               TEvent,
               TActor,
               TAction,
@@ -861,7 +863,7 @@ export interface StateNodeConfig<
    * The output data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
    */
-  output?: Mapper<TContext, TEvent, TOutput> | TOutput;
+  output?: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.
@@ -916,7 +918,16 @@ export interface StateNodeDefinition<
   exit: UnknownAction[];
   meta: any;
   order: number;
-  output?: FinalStateNodeConfig<TContext, TEvent>['output'];
+  output?: StateNodeConfig<
+    TContext,
+    TEvent,
+    ProvidedActor,
+    ParameterizedObject,
+    ParameterizedObject,
+    string,
+    string,
+    unknown
+  >['output'];
   invoke: Array<InvokeDefinition<TContext, TEvent, TODO, TODO, TODO, TODO>>;
   description?: string;
   tags: string[];
@@ -979,18 +990,6 @@ export interface HistoryStateNodeConfig<
 > extends AtomicStateNodeConfig<TContext, TEvent> {
   history: 'shallow' | 'deep' | true;
   target: string | undefined;
-}
-
-export interface FinalStateNodeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends AtomicStateNodeConfig<TContext, TEvent> {
-  type: 'final';
-  /**
-   * The data to be sent with the "xstate.done.state.<id>" event. The data can be
-   * static or dynamic (based on assigners).
-   */
-  output?: Mapper<TContext, TEvent, any>;
 }
 
 export type SimpleOrStateNodeConfig<
@@ -1059,7 +1058,10 @@ export interface MachineImplementationsSimplified<
   actors: Record<
     string,
     | AnyActorLogic
-    | { src: AnyActorLogic; input: Mapper<TContext, TEvent, any> | any }
+    | {
+        src: AnyActorLogic;
+        input: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
+      }
   >;
   delays: DelayFunctionMap<TContext, TEvent, TAction>;
 }
@@ -1128,7 +1130,8 @@ type MachineImplementationsActors<
           | Mapper<
               TContext,
               MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActors, K>,
-              InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>
+              InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>,
+              Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
             >
           | InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>;
       };
@@ -1325,42 +1328,6 @@ export type ContextFactory<
   TInput
 > = ({ spawn, input }: { spawn: Spawner<TActor>; input: TInput }) => TContext;
 
-type RootStateNodeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
-  TOutput
-> = Omit<
-  StateNodeConfig<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TOutput
-  >,
-  'states'
-> & {
-  states?:
-    | StatesConfig<
-        TContext,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TTag,
-        TOutput
-      >
-    | undefined;
-};
-
 export type MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1372,15 +1339,18 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown,
   TTypesMeta = TypegenDisabled
-> = (RootStateNodeConfig<
-  NoInfer<TContext>,
-  NoInfer<TEvent>,
-  NoInfer<TActor>,
-  NoInfer<TAction>,
-  NoInfer<TGuard>,
-  NoInfer<TDelay>,
-  NoInfer<TTag>,
-  NoInfer<TOutput>
+> = (Omit<
+  StateNodeConfig<
+    NoInfer<TContext>,
+    NoInfer<TEvent>,
+    NoInfer<TActor>,
+    NoInfer<TAction>,
+    NoInfer<TGuard>,
+    NoInfer<TDelay>,
+    NoInfer<TTag>,
+    NoInfer<TOutput>
+  >,
+  'output'
 > & {
   /**
    * The initial context (extended state)
@@ -1401,8 +1371,10 @@ export type MachineConfig<
     TOutput,
     TTypesMeta
   >;
+  // TODO: make it conditionally required
+  output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
 }) &
-  (Equals<TContext, MachineContext> extends true
+  (MachineContext extends TContext
     ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput> }
     : { context: InitialContext<LowInfer<TContext>, TActor, TInput> });
 
@@ -1472,9 +1444,11 @@ export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
   data: TErrorData;
 }
 
-export interface SnapshotEvent<TData = unknown> extends EventObject {
+export interface SnapshotEvent<
+  TSnapshot extends Snapshot<unknown> = Snapshot<unknown>
+> extends EventObject {
   type: `xstate.snapshot.${string}`;
-  data: TData;
+  snapshot: TSnapshot;
 }
 
 export interface DoneStateEvent<TOutput = unknown> extends EventObject {
@@ -1639,21 +1613,17 @@ export type PropertyAssigner<
 
 export type Mapper<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TResult
+  TExpressionEvent extends EventObject,
+  TResult,
+  TEvent extends EventObject
 > = (args: {
   context: TContext;
-  event: TEvent;
-  self: ActorRef<TEvent, any>;
+  event: TExpressionEvent;
+  self: ActorRef<
+    TEvent,
+    MachineSnapshot<TContext, TEvent, ProvidedActor, string, unknown>
+  >;
 }) => TResult;
-
-export type PropertyMapper<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TParams extends {}
-> = {
-  [K in keyof TParams]?: Mapper<TContext, TEvent, TParams[K]> | TParams[K];
-};
 
 export interface TransitionDefinition<
   TContext extends MachineContext,
@@ -2009,22 +1979,6 @@ export interface ActorContext<
 }
 
 export type AnyActorContext = ActorContext<any, any, AnyActorSystem>;
-
-export type ActorStatusObject<TOutput> =
-  | {
-      status: 'done';
-      output: TOutput;
-    }
-  | {
-      status: 'error';
-      error: unknown;
-    }
-  | {
-      status: 'stopped';
-    }
-  | {
-      status: 'active';
-    };
 
 export type Snapshot<TOutput> =
   | {

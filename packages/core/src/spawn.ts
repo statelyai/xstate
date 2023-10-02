@@ -10,6 +10,7 @@ import {
   InputFrom,
   IsLiteralString,
   ProvidedActor,
+  Snapshot,
   TODO
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
@@ -26,6 +27,7 @@ type SpawnOptions<
           id: TActor['id'];
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
+          syncSnapshot?: boolean;
         }
       ]
     : [
@@ -33,6 +35,7 @@ type SpawnOptions<
           id?: string;
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
+          syncSnapshot?: boolean;
         }
       ]
   : never;
@@ -51,6 +54,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
         id?: string;
         systemId?: string;
         input?: unknown;
+        syncSnapshot?: boolean;
       }
     ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
@@ -76,7 +80,7 @@ export function createSpawner(
       const input = 'input' in options ? options.input : referenced.input;
 
       // TODO: this should also receive `src`
-      const actor = createActor(referenced.src, {
+      const actorRef = createActor(referenced.src, {
         id: options.id,
         parent: actorContext.self,
         input:
@@ -89,16 +93,51 @@ export function createSpawner(
             : input,
         systemId
       }) as any;
-      spawnedChildren[actor.id] = actor;
-      return actor;
+      spawnedChildren[actorRef.id] = actorRef;
+
+      if (options.syncSnapshot) {
+        actorRef.subscribe({
+          next: (snapshot: Snapshot<unknown>) => {
+            if (snapshot.status === 'active') {
+              actorContext.self.send({
+                type: `xstate.snapshot.${actorRef.id}`,
+                snapshot
+              });
+            }
+          },
+          error: () => {
+            /* TODO */
+          }
+        });
+      }
+      return actorRef;
     } else {
       // TODO: this should also receive `src`
-      return createActor(src, {
+      const actorRef = createActor(src, {
         id: options.id,
         parent: actorContext.self,
         input: options.input,
         systemId
       });
+
+      if (options.syncSnapshot) {
+        actorRef.subscribe({
+          next: (snapshot: Snapshot<unknown>) => {
+            if (snapshot.status === 'active') {
+              actorContext.self.send({
+                type: `xstate.snapshot.${actorRef.id}`,
+                snapshot,
+                id: actorRef.id
+              });
+            }
+          },
+          error: () => {
+            /* TODO */
+          }
+        });
+      }
+
+      return actorRef;
     }
   };
   return (src, options) => {

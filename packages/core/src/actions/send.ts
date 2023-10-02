@@ -24,7 +24,7 @@ import {
 } from '../types.ts';
 import { XSTATE_ERROR } from '../constants.ts';
 
-function resolve(
+function resolveSendTo(
   actorContext: AnyActorContext,
   state: AnyState,
   args: ActionArgs<any, any, any, any>,
@@ -110,7 +110,7 @@ function resolve(
     { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
   ];
 }
-function execute(
+function executeSendTo(
   actorContext: AnyActorContext,
   params: {
     to: AnyActorRef;
@@ -204,8 +204,8 @@ export function sendTo<
   sendTo.id = options?.id;
   sendTo.delay = options?.delay;
 
-  sendTo.resolve = resolve;
-  sendTo.execute = execute;
+  sendTo.resolve = resolveSendTo;
+  sendTo.execute = executeSendTo;
 
   return sendTo;
 }

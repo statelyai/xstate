@@ -45,7 +45,7 @@ import {
 } from './types.ts';
 import {
   isArray,
-  mapContext,
+  resolveOutput,
   normalizeTarget,
   toArray,
   toStatePath,
@@ -67,15 +67,26 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   event: TEvent,
   self: AnyActorRef
 ) {
-  const machine = configuration[0].machine;
+  const { machine } = configuration[0];
+  const { root } = machine;
+
+  if (!root.output) {
+    return undefined;
+  }
+
   const finalChildStateNode = configuration.find(
     (stateNode) =>
       stateNode.type === 'final' && stateNode.parent === machine.root
+  )!;
+
+  const doneStateEvent = createDoneStateEvent(
+    finalChildStateNode.id,
+    finalChildStateNode.output
+      ? resolveOutput(finalChildStateNode.output, context, event, self)
+      : undefined
   );
 
-  return finalChildStateNode && finalChildStateNode.output
-    ? mapContext(finalChildStateNode.output, context, event, self)
-    : undefined;
+  return resolveOutput(root.output, context, doneStateEvent, self);
 }
 
 export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
@@ -1178,7 +1189,7 @@ function enterStates(
         createDoneStateEvent(
           parent!.id,
           stateNodeToEnter.output
-            ? mapContext(
+            ? resolveOutput(
                 stateNodeToEnter.output,
                 currentState.context,
                 event,
