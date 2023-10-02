@@ -1,5 +1,11 @@
 # @xstate/vue
 
+## 3.0.0-beta.5
+
+### Major Changes
+
+- [#4265](https://github.com/statelyai/xstate/pull/4265) [`1153b3f9a`](https://github.com/statelyai/xstate/commit/1153b3f9a95b4d76ff5408be8bd03a66f884b9cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - FSM-related functions have been removed.
+
 ## 3.0.0-beta.4
 
 ### Patch Changes

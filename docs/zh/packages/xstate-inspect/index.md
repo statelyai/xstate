@@ -124,8 +124,8 @@ inspect();
   {
     type: 'service.event';
     event: SCXML.Event<any>;
-    sessionId: string
-  };
+    sessionId: string;
+  }
   ```
 
 要监听来自受检查源的事件，请使用适当的 `create*Receiver(...)` 函数创建一个接收器； 例如：

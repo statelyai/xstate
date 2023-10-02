@@ -203,9 +203,8 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine<{
-      childRef: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as { context: { childRef: ActorRefFrom<typeof childMachine> } },
       context: ({ spawn }) => ({
         childRef: spawn(childMachine)
       }),
@@ -259,9 +258,12 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine<{
-      childRef: ActorRefFrom<typeof childMachine>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as {
+        context: {
+          childRef: ActorRefFrom<typeof childMachine>;
+        };
+      },
       context: ({ spawn }) => ({
         childRef: spawn(childMachine)
       }),
@@ -340,7 +342,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
       return (
         <div data-testid="count" onClick={() => actorRef.send({ type: 'inc' })}>
-          {count}
+          {count.context}
         </div>
       );
     };
@@ -365,7 +367,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       const actorRef = useActorRef(promiseLogic);
       const count = useSelector(actorRef, (state) => state);
 
-      return <div data-testid="count">{count}</div>;
+      return <div data-testid="count">{count.output}</div>;
     };
 
     render(<App />);

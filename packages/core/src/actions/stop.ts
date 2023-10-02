@@ -14,19 +14,20 @@ import {
 type ResolvableActorRef<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 > =
   | string
-  | ActorRef<any>
+  | ActorRef<any, any>
   | ((
-      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
-    ) => ActorRef<any> | string);
+      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    ) => ActorRef<any, any> | string);
 
-function resolve(
+function resolveStop(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any, any>,
-  { actorRef }: { actorRef: ResolvableActorRef<any, any, any> }
+  args: ActionArgs<any, any, any, any>,
+  { actorRef }: { actorRef: ResolvableActorRef<any, any, any, any> }
 ) {
   const actorRefOrString =
     typeof actorRef === 'function' ? actorRef(args) : actorRef;
@@ -47,7 +48,7 @@ function resolve(
     resolvedActorRef
   ];
 }
-function execute(
+function executeStop(
   actorContext: AnyActorContext,
   actorRef: ActorRef<any, any> | undefined
 ) {
@@ -64,18 +65,36 @@ function execute(
   });
 }
 
+export interface StopAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+}
+
 /**
  * Stops an actor.
  *
  * @param actorRef The actor to stop.
  */
-
 export function stop<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
->(actorRef: ResolvableActorRef<TContext, TExpressionEvent, TExpressionAction>) {
-  function stop(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
+>(
+  actorRef: ResolvableActorRef<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TEvent
+  >
+): StopAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
+  function stop(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -84,8 +103,8 @@ export function stop<
   stop.type = 'xstate.stop';
   stop.actorRef = actorRef;
 
-  stop.resolve = resolve;
-  stop.execute = execute;
+  stop.resolve = resolveStop;
+  stop.execute = executeStop;
 
   return stop;
 }

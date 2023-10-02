@@ -202,7 +202,7 @@ const someMachine = createMachine({
 
 ## 创建 Promises
 
-就像 [invoking promises](./communication.md#invoking-promises) 一样，promise 可以作为 演员 生成。 发送回状态机的事件将是一个 `'done.invoke.<ID>'` 操作，promise 响应作为有效负载中的 `data` 属性：
+就像 [invoking promises](./communication.md#invoking-promises) 一样，promise 可以作为 演员 生成。 发送回状态机的事件将是一个 `'xstate.done.actor.<ID>'` 操作，promise 响应作为有效负载中的 `data` 属性：
 
 ```js {11}
 // Returns a promise
