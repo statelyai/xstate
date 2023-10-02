@@ -621,39 +621,7 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
-    const restoredSnapshot = this.createState(
-      new State({ ...snapshot, children }, this) as any
-    );
-
-    // TODO: DRY this up
-    restoredSnapshot.configuration.forEach((stateNode) => {
-      if (stateNode.invoke) {
-        stateNode.invoke.forEach((invokeConfig) => {
-          const { id, src } = invokeConfig;
-
-          if (children[id]) {
-            return;
-          }
-
-          const referenced = resolveReferencedActor(
-            this.implementations.actors[src]
-          );
-
-          if (referenced) {
-            const actorRef = createActor(referenced.src, {
-              id,
-              parent: _actorCtx?.self,
-              input:
-                'input' in invokeConfig ? invokeConfig.input : referenced.input
-            });
-
-            children[id] = actorRef;
-          }
-        });
-      }
-    });
-
-    return restoredSnapshot;
+    return this.createState(new State({ ...snapshot, children }, this) as any);
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
