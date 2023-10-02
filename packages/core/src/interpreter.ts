@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
-import { doneInvoke, error } from './actions.ts';
+import { createDoneActorEvent, createErrorActorEvent } from './eventUtils.ts';
 import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
@@ -19,11 +19,12 @@ import type {
   EventFromLogic,
   PersistedStateFrom,
   SnapshotFrom,
-  AnyActorRef
+  AnyActorRef,
+  OutputFrom,
+  DoneActorEvent
 } from './types.ts';
 import {
   ActorRef,
-  DoneEvent,
   EventObject,
   InteropSubscribable,
   ActorOptions,
@@ -31,6 +32,7 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+import { TlsOptions } from 'tls';
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -60,7 +62,6 @@ export enum ActorStatus {
 export const InterpreterStatus = ActorStatus;
 
 const defaultOptions = {
-  deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
       return setTimeout(fn, ms);
@@ -73,20 +74,13 @@ const defaultOptions = {
   devTools: false
 };
 
-type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
-  TLogic extends ActorLogic<infer _, infer __, infer TInternalState>
-    ? TInternalState
-    : never;
-
-export class Actor<
-  TLogic extends AnyActorLogic,
-  TEvent extends EventObject = EventFromLogic<TLogic>
-> implements ActorRef<TEvent, SnapshotFrom<TLogic>>
+export class Actor<TLogic extends AnyActorLogic>
+  implements ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
 {
   /**
    * The current internal state of the actor.
    */
-  private _state!: InternalStateFrom<TLogic>;
+  private _state!: SnapshotFrom<TLogic>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -98,7 +92,9 @@ export class Actor<
    */
   public id: string;
 
-  private mailbox: Mailbox<TEvent> = new Mailbox(this._process.bind(this));
+  private mailbox: Mailbox<EventFromLogic<TLogic>> = new Mailbox(
+    this._process.bind(this)
+  );
 
   private delayedEventsMap: Record<string, unknown> = {};
 
@@ -110,10 +106,14 @@ export class Actor<
   public status: ActorStatus = ActorStatus.NotStarted;
 
   // Actor Ref
-  public _parent?: ActorRef<any>;
-  public ref: ActorRef<TEvent>;
+  public _parent?: ActorRef<any, any>;
+  public ref: ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>;
   // TODO: add typings for system
-  private _actorContext: ActorContext<TEvent, SnapshotFrom<TLogic>, any>;
+  private _actorContext: ActorContext<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>,
+    any
+  >;
 
   private _systemId: string | undefined;
 
@@ -123,7 +123,7 @@ export class Actor<
   public sessionId: string;
 
   public system: ActorSystem<any>;
-  private _doneEvent?: DoneEvent;
+  private _doneEvent?: DoneActorEvent;
 
   public src?: string;
 
@@ -193,10 +193,9 @@ export class Actor<
   // array of functions to defer
   private _deferred: Array<() => void> = [];
 
-  private update(state: InternalStateFrom<TLogic>): void {
+  private update(snapshot: SnapshotFrom<TLogic>): void {
     // Update state
-    this._state = state;
-    const snapshot = this.getSnapshot();
+    this._state = snapshot;
 
     // Execute deferred effects
     let deferredFn: (typeof this._deferred)[number] | undefined;
@@ -214,19 +213,22 @@ export class Actor<
       }
     }
 
-    const status = this.logic.getStatus?.(state);
-
-    switch (status?.status) {
+    switch ((this._state as any).status) {
       case 'done':
         this._stopProcedure();
         this._complete();
-        this._doneEvent = doneInvoke(this.id, status.data);
+        this._doneEvent = createDoneActorEvent(
+          this.id,
+          (this._state as any).output
+        );
         this._parent?.send(this._doneEvent as any);
         break;
       case 'error':
         this._stopProcedure();
-        this._error(status.data);
-        this._parent?.send(error(this.id, status.data));
+        this._error((this._state as any).error);
+        this._parent?.send(
+          createErrorActorEvent(this.id, (this._state as any).error)
+        );
         break;
     }
   }
@@ -282,9 +284,9 @@ export class Actor<
     }
     this.status = ActorStatus.Running;
 
-    const status = this.logic.getStatus?.(this._state);
+    const status = (this._state as any).status;
 
-    switch (status?.status) {
+    switch (status) {
       case 'done':
         // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
@@ -301,7 +303,7 @@ export class Actor<
       } catch (err) {
         this._stopProcedure();
         this._error(err);
-        this._parent?.send(error(this.id, err));
+        this._parent?.send(createErrorActorEvent(this.id, err));
         return this;
       }
     }
@@ -320,7 +322,7 @@ export class Actor<
     return this;
   }
 
-  private _process(event: TEvent) {
+  private _process(event: EventFromLogic<TLogic>) {
     // TODO: reexamine what happens when an action (or a guard or smth) throws
     let nextState;
     let caughtError;
@@ -336,7 +338,7 @@ export class Actor<
 
       this._stopProcedure();
       this._error(err);
-      this._parent?.send(error(this.id, err));
+      this._parent?.send(createErrorActorEvent(this.id, err));
       return;
     }
 
@@ -433,7 +435,7 @@ export class Actor<
    *
    * @param event The event to send
    */
-  public send(event: TEvent) {
+  public send(event: EventFromLogic<TLogic>) {
     if (typeof event === 'string') {
       throw new Error(
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
@@ -446,25 +448,10 @@ export class Actor<
         const eventString = JSON.stringify(event);
 
         console.warn(
-          `Event "${event.type.toString()}" was sent to stopped actor "${
-            this.id
-          } (${
-            this.sessionId
-          })". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
         );
       }
       return;
-    }
-
-    if (this.status !== ActorStatus.Running && !this.options.deferEvents) {
-      throw new Error(
-        `Event "${event.type}" was sent to uninitialized actor "${
-          this.id
-          // tslint:disable-next-line:max-line-length
-        }". Make sure .start() is called for this actor, or set { deferEvents: true } in the actor options.\nEvent: ${JSON.stringify(
-          event
-        )}`
-      );
     }
 
     this.mailbox.enqueue(event);
@@ -486,7 +473,7 @@ export class Actor<
       if (to) {
         to.send(event);
       } else {
-        this.send(event as TEvent);
+        this.send(event as EventFromLogic<TLogic>);
       }
     }, delay);
 
@@ -526,9 +513,7 @@ export class Actor<
   }
 
   public getSnapshot(): SnapshotFrom<TLogic> {
-    return this.logic.getSnapshot
-      ? this.logic.getSnapshot(this._state)
-      : this._state;
+    return this._state;
   }
 }
 

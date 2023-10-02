@@ -114,7 +114,8 @@ describe("usage of interpret from core with Solid's from", () => {
     interface Context {
       latestValue: { value: number };
     }
-    const machine = createMachine<Context, { type: 'INC' }>({
+    const machine = createMachine({
+      types: {} as { context: Context; events: { type: 'INC' } },
       initial: 'initial',
       context: {
         latestValue

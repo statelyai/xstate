@@ -1,4 +1,0 @@
-{
-  "main": "dist/xstate-vue-fsm.cjs.js",
-  "module": "dist/xstate-vue-fsm.esm.js"
-}

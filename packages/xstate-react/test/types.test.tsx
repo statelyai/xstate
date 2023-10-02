@@ -11,7 +11,8 @@ describe('useMachine', () => {
     type: 'YES';
   }
 
-  const yesNoMachine = createMachine<YesNoContext, YesNoEvent>({
+  const yesNoMachine = createMachine({
+    types: {} as { context: YesNoContext; events: YesNoEvent },
     context: {
       value: undefined
     },
@@ -44,18 +45,20 @@ describe('useMachine', () => {
 
   // Example from: https://github.com/statelyai/xstate/discussions/1534
   it('spawned actors should be typed correctly', () => {
-    const child = createMachine<{ bar: number }, { type: 'FOO'; data: number }>(
-      {
-        id: 'myActor',
-        context: {
-          bar: 1
-        },
-        initial: 'ready',
-        states: {
-          ready: {}
-        }
+    const child = createMachine({
+      types: {} as {
+        context: { bar: number };
+        events: { type: 'FOO'; data: number };
+      },
+      id: 'myActor',
+      context: {
+        bar: 1
+      },
+      initial: 'ready',
+      states: {
+        ready: {}
       }
-    );
+    });
 
     const m = createMachine(
       {

@@ -6,7 +6,8 @@ describe('@xstate/immer', () => {
     const context = {
       count: 0
     };
-    const countMachine = createMachine<typeof context>({
+    const countMachine = createMachine({
+      types: {} as { context: typeof context },
       id: 'count',
       context,
       initial: 'active',
@@ -14,7 +15,7 @@ describe('@xstate/immer', () => {
         active: {
           on: {
             INC: {
-              actions: assign<typeof context>(({ context }) => context.count++)
+              actions: assign(({ context }) => context.count++)
             }
           }
         }
@@ -35,8 +36,9 @@ describe('@xstate/immer', () => {
     const context = {
       count: 0
     };
-    const countMachine = createMachine<typeof context>(
+    const countMachine = createMachine(
       {
+        types: {} as { context: typeof context },
         id: 'count',
         context,
         initial: 'active',
@@ -52,7 +54,7 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          increment: assign<typeof context>(({ context }) => context.count++)
+          increment: assign(({ context }) => context.count++)
         }
       }
     );
@@ -72,8 +74,9 @@ describe('@xstate/immer', () => {
         }
       }
     };
-    const countMachine = createMachine<typeof context>(
+    const countMachine = createMachine(
       {
+        types: {} as { context: typeof context },
         id: 'count',
         context,
         initial: 'active',
@@ -89,9 +92,7 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          pushBaz: assign<typeof context>(({ context }) =>
-            context.foo.bar.baz.push(0)
-          )
+          pushBaz: assign(({ context }) => context.foo.bar.baz.push(0))
         }
       }
     );
@@ -119,9 +120,14 @@ describe('@xstate/immer', () => {
       }
     };
 
+    type MyEvents =
+      | ImmerUpdateEvent<'UPDATE_BAZ', number>
+      | ImmerUpdateEvent<'OTHER', string>;
+
     const bazUpdater = createUpdater<
       typeof context,
-      ImmerUpdateEvent<'UPDATE_BAZ', number>
+      ImmerUpdateEvent<'UPDATE_BAZ', number>,
+      MyEvents
     >('UPDATE_BAZ', ({ context, event }) => {
       context.foo.bar.baz.push(event.input);
     });
@@ -129,9 +135,7 @@ describe('@xstate/immer', () => {
     const countMachine = createMachine({
       types: {
         context: {} as MyContext,
-        events: {} as
-          | ImmerUpdateEvent<'UPDATE_BAZ', number>
-          | ImmerUpdateEvent<'OTHER', string>
+        events: {} as MyEvents
       },
       id: 'count',
       context,
@@ -163,20 +167,6 @@ describe('@xstate/immer', () => {
     type NameUpdateEvent = ImmerUpdateEvent<'UPDATE_NAME', string>;
     type AgeUpdateEvent = ImmerUpdateEvent<'UPDATE_AGE', number>;
 
-    const nameUpdater = createUpdater<FormContext, NameUpdateEvent>(
-      'UPDATE_NAME',
-      ({ context, event }) => {
-        context.name = event.input;
-      }
-    );
-
-    const ageUpdater = createUpdater<FormContext, AgeUpdateEvent>(
-      'UPDATE_AGE',
-      ({ context, event }) => {
-        context.age = event.input;
-      }
-    );
-
     type FormEvent =
       | NameUpdateEvent
       | AgeUpdateEvent
@@ -184,7 +174,22 @@ describe('@xstate/immer', () => {
           type: 'SUBMIT';
         };
 
-    const formMachine = createMachine<FormContext, FormEvent>({
+    const nameUpdater = createUpdater<FormContext, NameUpdateEvent, FormEvent>(
+      'UPDATE_NAME',
+      ({ context, event }) => {
+        context.name = event.input;
+      }
+    );
+
+    const ageUpdater = createUpdater<FormContext, AgeUpdateEvent, FormEvent>(
+      'UPDATE_AGE',
+      ({ context, event }) => {
+        context.age = event.input;
+      }
+    );
+
+    const formMachine = createMachine({
+      types: {} as { context: FormContext; events: FormEvent },
       initial: 'editing',
       context: {
         name: '',

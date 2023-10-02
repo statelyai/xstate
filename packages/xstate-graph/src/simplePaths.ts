@@ -19,17 +19,20 @@ import {
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
 import { alterPath } from './alterPath';
+import { createMockActorContext } from './actorContext';
 
-export function getSimplePaths<
-  TLogic extends AnyActorLogic,
-  TState extends SnapshotFrom<TLogic>,
-  TEvent extends EventFromLogic<TLogic>
->(
+export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> {
+  options?: TraversalOptions<
+    ReturnType<TLogic['transition']>,
+    EventFromLogic<TLogic>
+  >
+): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
+  type TState = ReturnType<TLogic['transition']>;
+  type TEvent = EventFromLogic<TLogic>;
+
   const resolvedOptions = resolveTraversalOptions(logic, options);
-  const actorContext = { self: {} } as any; // TODO: figure out the simulation API
+  const actorContext = createMockActorContext();
   const fromState =
     resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
   const serializeState = resolvedOptions.serializeState as (

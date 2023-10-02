@@ -4,7 +4,8 @@ import { getShortestPaths } from '../src/shortestPaths';
 
 describe('getShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
-    const m = createMachine<{ count: number }>({
+    const m = createMachine({
+      types: {} as { context: { count: number } },
       initial: 'a',
       context: { count: 0 },
       states: {
@@ -140,5 +141,26 @@ describe('getShortestPaths', () => {
     );
 
     expect(pathWithTwoTodos).toBeDefined();
+  });
+
+  it('should work for machines with delays', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            1000: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const shortestPaths = getShortestPaths(machine);
+
+    expect(shortestPaths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
+      ['xstate.init'],
+      ['xstate.init', 'xstate.after(1000)#(machine).a']
+    ]);
   });
 });

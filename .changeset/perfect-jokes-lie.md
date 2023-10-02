@@ -1,6 +1,5 @@
 ---
 'xstate': patch
-'@xstate/fsm': patch
 '@xstate/react': patch
 '@xstate/vue': patch
 ---

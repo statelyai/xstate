@@ -5,33 +5,27 @@ import {
   AnyEventObject,
   ActorSystem,
   ActorRefFrom,
-  TODO
+  TODO,
+  Snapshot,
+  HomomorphicOmit
 } from '../types';
-import { isPromiseLike } from '../utils';
-import { doneInvoke, error } from '../actions.ts';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 
-export interface CallbackInternalState<
-  TEvent extends EventObject,
-  TInput = unknown
-> {
-  canceled: boolean;
-  receivers: Set<(e: TEvent) => void>;
-  dispose: void | (() => void) | Promise<any>;
+type CallbackSnapshot<TInput, TEvent> = Snapshot<undefined> & {
   input: TInput;
-}
+  _receivers: Set<(e: TEvent) => void>;
+  _dispose: (() => void) | void;
+};
 
 export type CallbackActorLogic<
   TEvent extends EventObject,
   TInput = unknown
 > = ActorLogic<
+  CallbackSnapshot<TInput, TEvent>,
   TEvent,
-  undefined,
-  CallbackInternalState<TEvent, TInput>,
-  Pick<CallbackInternalState<TEvent, TInput>, 'input' | 'canceled'>,
-  ActorSystem<any>,
   TInput,
-  any
+  HomomorphicOmit<CallbackSnapshot<TInput, TEvent>, '_receivers' | '_dispose'>,
+  ActorSystem<any>
 >;
 
 export type CallbackActorRef<
@@ -61,9 +55,9 @@ export type InvokeCallback<
   self: CallbackActorRef<TEvent>;
   sendBack: (event: TSentEvent) => void;
   receive: Receiver<TEvent>;
-}) => (() => void) | Promise<any> | void;
+}) => (() => void) | void;
 
-export function fromCallback<TEvent extends EventObject, TInput>(
+export function fromCallback<TEvent extends EventObject, TInput = unknown>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
   return {
@@ -74,7 +68,7 @@ export function fromCallback<TEvent extends EventObject, TInput>(
     transition: (state, event, { self, id, system }) => {
       if (event.type === XSTATE_INIT) {
         const sendBack = (eventForParent: AnyEventObject) => {
-          if (state.canceled) {
+          if (state.status === 'stopped') {
             return;
           }
 
@@ -82,10 +76,10 @@ export function fromCallback<TEvent extends EventObject, TInput>(
         };
 
         const receive: Receiver<TEvent> = (newListener) => {
-          state.receivers.add(newListener);
+          state._receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback({
+        state._dispose = invokeCallback({
           input: state.input,
           system,
           self: self as TODO,
@@ -93,43 +87,41 @@ export function fromCallback<TEvent extends EventObject, TInput>(
           receive
         });
 
-        if (isPromiseLike(state.dispose)) {
-          state.dispose.then(
-            (resolved) => {
-              self._parent?.send(doneInvoke(id, resolved));
-              state.canceled = true;
-            },
-            (errorData) => {
-              state.canceled = true;
-              self._parent?.send(error(id, errorData));
-            }
-          );
-        }
         return state;
       }
 
       if (event.type === XSTATE_STOP) {
-        state.canceled = true;
+        state = {
+          ...state,
+          status: 'stopped',
+          error: undefined
+        };
 
-        if (typeof state.dispose === 'function') {
-          state.dispose();
+        if (typeof state._dispose === 'function') {
+          state._dispose();
         }
         return state;
       }
 
-      state.receivers.forEach((receiver) => receiver(event));
+      state._receivers.forEach((receiver) => receiver(event));
 
       return state;
     },
     getInitialState: (_, input) => {
       return {
-        canceled: false,
-        receivers: new Set(),
-        dispose: undefined,
-        input
+        status: 'active',
+        output: undefined,
+        error: undefined,
+        input,
+        _receivers: new Set(),
+        _dispose: undefined
       };
     },
-    getSnapshot: () => undefined,
-    getPersistedState: ({ input, canceled }) => ({ input, canceled })
+    getPersistedState: ({ _dispose, _receivers, ...rest }) => rest,
+    restoreState: (state) => ({
+      _receivers: new Set(),
+      _dispose: undefined,
+      ...state
+    })
   };
 }

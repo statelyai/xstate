@@ -197,7 +197,8 @@ describe('machine', () => {
     });
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
-      const machine = createMachine<{ foo: { prop: string } }>({
+      const machine = createMachine({
+        types: {} as { context: { foo: { prop: string } } },
         context: () => ({
           foo: { prop: 'baz' }
         })
@@ -299,7 +300,7 @@ describe('machine', () => {
       expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
     });
 
-    it('should resolve .done', () => {
+    it('should resolve `status: done`', () => {
       const machine = createMachine({
         initial: 'foo',
         states: {
@@ -313,9 +314,9 @@ describe('machine', () => {
       });
       const tempState = State.from('bar', undefined, machine);
 
-      const resolvedState = machine.resolveState(tempState);
+      const resolvedState = machine.resolveState(tempState as any);
 
-      expect(resolvedState.done).toBe(true);
+      expect(resolvedState.status).toBe('done');
     });
 
     it('should resolve from a state config object', () => {
@@ -434,7 +435,8 @@ describe('machine', () => {
 
   describe('combinatorial machines', () => {
     it('should support combinatorial machines (single-state)', () => {
-      const testMachine = createMachine<{ value: number }>({
+      const testMachine = createMachine({
+        types: {} as { context: { value: number } },
         context: { value: 42 },
         on: {
           INC: {

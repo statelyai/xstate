@@ -2,18 +2,17 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
+  Actor,
   ActorLogicFrom,
   ActorRef,
   ActorRefFrom,
-  assign,
-  createMachine,
-  DoneEventObject,
-  doneInvoke,
-  createActor,
+  DoneActorEvent,
   PersistedMachineState,
-  raise,
   StateFrom,
-  Actor
+  assign,
+  createActor,
+  createMachine,
+  raise
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
@@ -31,7 +30,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     id: 'fetch',
     types: {} as {
       context: typeof context;
-      events: { type: 'FETCH' } | DoneEventObject;
+      events: { type: 'FETCH' } | DoneActorEvent;
       actors: {
         src: 'fetchData';
         logic: ActorLogicFrom<Promise<string>>;
@@ -67,9 +66,15 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback(({ sendBack }) => {
-          sendBack(doneInvoke('fetchData', 'persisted data'));
-        }) as any // TODO: callback actors don't support output (yet?)
+        fetchData: createMachine({
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final'
+            }
+          },
+          output: 'persisted data'
+        }) as any
       }
     })
   ).start();
@@ -79,7 +84,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any>;
+    persistedState?: PersistedMachineState<any, any, any, any, any, any>;
   }> = ({
     onFetch = () => {
       return new Promise((res) => res('some data'));
@@ -199,7 +204,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not spawn actors until service is started', async () => {
-    const spawnMachine = createMachine<{ ref?: ActorRef<any> }>({
+    const spawnMachine = createMachine({
+      types: {} as { context: { ref?: ActorRef<any, any> } },
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined },
@@ -215,7 +221,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
               )
           }),
           on: {
-            [doneInvoke('my-promise')]: 'success'
+            'xstate.done.actor.my-promise': 'success'
           }
         },
         success: {
@@ -243,7 +249,11 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('actions should not use stale data in a builtin transition action', (done) => {
-    const toggleMachine = createMachine<any, { type: 'SET_LATEST' }>({
+    const toggleMachine = createMachine({
+      types: {} as {
+        context: { latest: number };
+        events: { type: 'SET_LATEST' };
+      },
       context: {
         latest: 0
       },
@@ -299,7 +309,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('actions should not use stale data in a builtin entry action', (done) => {
-    const toggleMachine = createMachine<any, { type: 'NEXT' }>({
+    const toggleMachine = createMachine({
+      types: {} as { context: { latest: number }; events: { type: 'NEXT' } },
       context: {
         latest: 0
       },
@@ -422,8 +433,9 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should only render once when initial microsteps are involved', () => {
     let rerenders = 0;
 
-    const m = createMachine<{ stuff: number[] }>(
+    const m = createMachine(
       {
+        types: {} as { context: { stuff: number[] } },
         initial: 'init',
         context: { stuff: [1, 2, 3] },
         states: {
@@ -464,8 +476,9 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should maintain the same reference for objects created when resolving initial state', () => {
     let effectsFired = 0;
 
-    const m = createMachine<{ counter: number; stuff: number[] }>(
+    const m = createMachine(
       {
+        types: {} as { context: { counter: number; stuff: number[] } },
         initial: 'init',
         context: { counter: 0, stuff: [1, 2, 3] },
         states: {
@@ -832,7 +845,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         context: {} as { value: number }
       },
       initial: 'intitial',
-      context: ({ input }) => {
+      context: ({ input }: { input: { value: number } }) => {
         return {
           value: input.value
         };
@@ -930,7 +943,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not miss initial synchronous updates', () => {
-    const m = createMachine<{ count: number }>({
+    const m = createMachine({
+      types: {} as { context: { count: number } },
       initial: 'idle',
       context: {
         count: 0
