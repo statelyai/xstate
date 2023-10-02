@@ -16,6 +16,7 @@ import {
   getSimplePaths
 } from '../src';
 import { joinPaths } from '../src/graph';
+import { createMockActorContext } from '../src/actorContext';
 
 function getPathsSnapshot(
   paths: Array<StatePath<Snapshot<unknown>, EventObject>>
@@ -216,9 +217,7 @@ describe('@xstate/graph', () => {
       expect(
         shortestPaths.find((path) =>
           path.state.matches(
-            lightMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            lightMachine.getInitialState(createMockActorContext()).value
           )
         )!.steps
       ).toHaveLength(1);
@@ -377,36 +376,28 @@ describe('@xstate/graph', () => {
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            lightMachine.getInitialState(createMockActorContext()).value
           )
         )
       ).toBeDefined();
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            lightMachine.getInitialState(createMockActorContext()).value
           )
         )!.steps
       ).toHaveLength(1);
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            equivMachine.getInitialState(createMockActorContext()).value
           )
         )!
       ).toBeDefined();
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            equivMachine.getInitialState(createMockActorContext()).value
           )
         )!.steps
       ).toHaveLength(1);

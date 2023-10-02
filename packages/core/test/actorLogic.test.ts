@@ -1,6 +1,12 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { AnyActorRef, createMachine, createActor } from '../src/index.ts';
+import {
+  AnyActorRef,
+  createMachine,
+  createActor,
+  AnyActorLogic,
+  Snapshot
+} from '../src/index.ts';
 import {
   fromCallback,
   fromEventObservable,
@@ -341,12 +347,15 @@ describe('observable logic (fromObservable)', () => {
     expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('should reject (observer .error)', () => {
+  it('should reject (observer .error)', (done) => {
     const actor = createActor(fromObservable(() => throwError(() => 'Error')));
     const spy = jest.fn();
 
     actor.subscribe({
-      next: (snapshot) => spy(snapshot.error)
+      next: (snapshot) => spy(snapshot.error),
+      error: () => {
+        done();
+      }
     });
 
     actor.start();
@@ -488,6 +497,56 @@ describe('callback logic (fromCallback)', () => {
     });
 
     createActor(machine).start();
+  });
+
+  it('should persist the input of a callback', () => {
+    const spy = jest.fn();
+    const machine = createMachine(
+      {
+        types: {} as { events: { type: 'EV'; data: number } },
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'b'
+            }
+          },
+          b: {
+            invoke: {
+              src: 'cb',
+              input: ({ event }) => event.data
+            }
+          }
+        }
+      },
+      {
+        actors: {
+          cb: fromCallback(({ input }) => {
+            spy(input);
+          })
+        }
+      }
+    );
+
+    const actor = createActor(machine);
+    actor.start();
+    actor.send({
+      type: 'EV',
+      data: 13
+    });
+
+    const state = actor.getPersistedState();
+
+    actor.stop();
+
+    spy.mockClear();
+
+    const restoredActor = createActor(machine, { state });
+
+    restoredActor.start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(13);
   });
 });
 
@@ -705,5 +764,126 @@ describe('machine logic', () => {
     });
 
     createActor(machine).start();
+  });
+});
+
+describe('composable actor logic', () => {
+  it('should work with machines', () => {
+    const logs: string[] = [];
+
+    function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
+      return {
+        ...actorLogic,
+        transition: (state, event, actorCtx) => {
+          logs.push(event.type);
+
+          return actorLogic.transition(state, event, actorCtx);
+        }
+      };
+    }
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { to_b: 'b' }
+        },
+        b: {
+          on: { to_c: 'c' }
+        },
+        c: {
+          on: { to_a: 'a' }
+        }
+      }
+    });
+
+    const actor = createActor(withLogs(machine)).start();
+
+    actor.send({ type: 'to_b' });
+    actor.send({ type: 'to_c' });
+    actor.send({ type: 'to_a' });
+
+    expect(logs).toEqual(['to_b', 'to_c', 'to_a']);
+  });
+
+  it('should work with promises', async () => {
+    const logs: any[] = [];
+
+    function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
+      return {
+        ...actorLogic,
+        transition: (state: Snapshot<unknown>, event, actorCtx) => {
+          const s = actorLogic.transition(state, event, actorCtx);
+          logs.push(s.output);
+
+          return s;
+        }
+      };
+    }
+
+    const promiseLogic = fromPromise(() => Promise.resolve(42));
+
+    const actor = createActor(withLogs(promiseLogic)).start();
+
+    await waitFor(actor, (s) => s.status === 'done');
+
+    expect(logs).toEqual([42]);
+  });
+
+  it('should work with functions', () => {
+    const logs: any[] = [];
+
+    function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
+      return {
+        ...actorLogic,
+        transition: (state: Snapshot<unknown>, event, actorCtx) => {
+          const s = actorLogic.transition(state, event, actorCtx);
+          logs.push(s.context);
+
+          return s;
+        }
+      };
+    }
+
+    const transitionLogic = fromTransition(
+      (_, ev: { type: string; value: number }) => ev.value,
+      0
+    );
+
+    const actor = createActor(withLogs(transitionLogic)).start();
+
+    actor.send({ type: 'a', value: 42 });
+
+    expect(logs).toEqual([42]);
+  });
+
+  it('should work with observables', (done) => {
+    const logs: any[] = [];
+
+    function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
+      return {
+        ...actorLogic,
+        transition: (state: Snapshot<unknown>, event, actorCtx) => {
+          const s = actorLogic.transition(state, event, actorCtx);
+
+          if (s.status === 'active') {
+            logs.push(s.context);
+          }
+
+          return s;
+        }
+      };
+    }
+
+    const observableLogic = fromObservable(() => interval(10).pipe(take(4)));
+
+    const actor = createActor(withLogs(observableLogic)).start();
+
+    actor.subscribe({
+      complete: () => {
+        expect(logs).toEqual([0, 1, 2, 3]);
+        done();
+      }
+    });
   });
 });

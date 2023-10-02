@@ -20,7 +20,7 @@ type ResolvableSendId<
       args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
     ) => string);
 
-function resolve(
+function resolveCancel(
   _: AnyActorContext,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any, any>,
@@ -31,7 +31,7 @@ function resolve(
   return [state, resolvedSendId];
 }
 
-function execute(actorContext: AnyActorContext, resolvedSendId: string) {
+function executeCancel(actorContext: AnyActorContext, resolvedSendId: string) {
   (actorContext.self as AnyActor).cancel(resolvedSendId);
 }
 
@@ -75,8 +75,8 @@ export function cancel<
   cancel.type = 'xstate.cancel';
   cancel.sendId = sendId;
 
-  cancel.resolve = resolve;
-  cancel.execute = execute;
+  cancel.resolve = resolveCancel;
+  cancel.execute = executeCancel;
 
   return cancel;
 }

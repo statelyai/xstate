@@ -216,29 +216,17 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: 42
-        }
-      }
+      output: 42
     });
   });
 
   it('should reject invalid static output', () => {
-    const machine = createMachine({
+    createMachine({
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          // @ts-expect-error
-          output: 'a string'
-        }
-      }
+      // @ts-expect-error
+      output: 'a string'
     });
   });
 
@@ -247,29 +235,17 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: () => 42
-        }
-      }
+      output: () => 42
     });
   });
 
   it('should reject invalid dynamic output', () => {
-    const machine = createMachine({
+    createMachine({
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          // @ts-expect-error
-          output: () => 'a string'
-        }
-      }
+      // @ts-expect-error
+      output: () => 'a string'
     });
   });
 
@@ -282,19 +258,13 @@ describe('output', () => {
         };
       },
       context: { password: 'okoń' },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: ({ context }) => {
-            ((_accept: string) => {})(context.password);
-            // @ts-expect-error
-            ((_accept: number) => {})(context.password);
-            return {
-              secret: 'the secret'
-            };
-          }
-        }
+      output: ({ context }) => {
+        ((_accept: string) => {})(context.password);
+        // @ts-expect-error
+        ((_accept: number) => {})(context.password);
+        return {
+          secret: 'the secret'
+        };
       }
     });
   });

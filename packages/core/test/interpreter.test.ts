@@ -1596,27 +1596,41 @@ describe('interpreter', () => {
 
     it('state.children should reference invoked child actors (observable)', (done) => {
       const interval$ = interval(10);
+      const intervalLogic = fromObservable(() => interval$);
 
-      const parentMachine = createMachine({
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: fromObservable(() => interval$),
-              onSnapshot: {
-                target: 'success',
-                guard: ({ event }) => {
-                  return event.data.context === 3;
+      const parentMachine = createMachine(
+        {
+          types: {} as {
+            actors: {
+              src: 'intervalLogic';
+              logic: typeof intervalLogic;
+            };
+          },
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                id: 'childActor',
+                src: 'intervalLogic',
+                onSnapshot: {
+                  target: 'success',
+                  guard: ({ event }) => {
+                    return event.snapshot.context === 3;
+                  }
                 }
               }
+            },
+            success: {
+              type: 'final'
             }
-          },
-          success: {
-            type: 'final'
+          }
+        },
+        {
+          actors: {
+            intervalLogic
           }
         }
-      });
+      );
 
       const service = createActor(parentMachine);
       service.subscribe({
