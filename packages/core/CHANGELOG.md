@@ -1,5 +1,13 @@
 # xstate
 
+## 5.0.0-beta.32
+
+### Patch Changes
+
+- [#4335](https://github.com/statelyai/xstate/pull/4335) [`ba111c32c`](https://github.com/statelyai/xstate/commit/ba111c32c863ef07aaedc44111d404cef8bff3e4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Composable (e.g. higher-order) logic should now work as expected for state machine logic, as well as all other types of logic.
+
+- [#4330](https://github.com/statelyai/xstate/pull/4330) [`9f69d46a6`](https://github.com/statelyai/xstate/commit/9f69d46a645dfe8060180a34fcfe1a5c2ab08fa2) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with rehydrated actors not having their internal reference to the parent set correctly.
+
 ## 5.0.0-beta.31
 
 ### Major Changes
