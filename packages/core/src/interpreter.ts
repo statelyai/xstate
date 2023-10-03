@@ -1,6 +1,10 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
-import { createDoneActorEvent, createErrorActorEvent } from './eventUtils.ts';
+import {
+  createDoneActorEvent,
+  createErrorActorEvent,
+  createInitEvent
+} from './eventUtils.ts';
 import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
@@ -32,7 +36,6 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
-import { TlsOptions } from 'tls';
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -137,12 +140,16 @@ export class Actor<TLogic extends AnyActorLogic>
     const resolvedOptions = {
       ...defaultOptions,
       ...options
-    };
+    } as ActorOptions<TLogic> & typeof defaultOptions;
 
-    const { clock, logger, parent, id, systemId } = resolvedOptions;
-    const self = this;
+    const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
 
-    this.system = parent?.system ?? createSystem();
+    this.system = parent?.system ?? createSystem(this);
+
+    if (inspect && !parent) {
+      // Always inspect at the system-level
+      this.system.inspect(toObserver(inspect));
+    }
 
     if (systemId) {
       this._systemId = systemId;
@@ -158,7 +165,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.src = resolvedOptions.src;
     this.ref = this;
     this._actorContext = {
-      self,
+      self: this,
       id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
@@ -179,6 +186,10 @@ export class Actor<TLogic extends AnyActorLogic>
     // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
+    this.system._sendInspectionEvent({
+      type: '@xstate.actor',
+      actorRef: this
+    });
     this._initState();
   }
 
@@ -193,7 +204,7 @@ export class Actor<TLogic extends AnyActorLogic>
   // array of functions to defer
   private _deferred: Array<() => void> = [];
 
-  private update(snapshot: SnapshotFrom<TLogic>): void {
+  private update(snapshot: SnapshotFrom<TLogic>, event: EventObject): void {
     // Update state
     this._state = snapshot;
 
@@ -221,16 +232,29 @@ export class Actor<TLogic extends AnyActorLogic>
           this.id,
           (this._state as any).output
         );
-        this._parent?.send(this._doneEvent as any);
+        if (this._parent) {
+          this.system._relay(this, this._parent, this._doneEvent);
+        }
+
         break;
       case 'error':
         this._stopProcedure();
         this._error((this._state as any).error);
-        this._parent?.send(
-          createErrorActorEvent(this.id, (this._state as any).error)
-        );
+        if (this._parent) {
+          this.system._relay(
+            this,
+            this._parent,
+            createErrorActorEvent(this.id, (this._state as any).error)
+          );
+        }
         break;
     }
+    this.system._sendInspectionEvent({
+      type: '@xstate.snapshot',
+      actorRef: this,
+      event,
+      snapshot
+    });
   }
 
   public subscribe(observer: Observer<SnapshotFrom<TLogic>>): Subscription;
@@ -284,13 +308,25 @@ export class Actor<TLogic extends AnyActorLogic>
     }
     this.status = ActorStatus.Running;
 
+    const initEvent = createInitEvent(this.options.input);
+
+    this.system._sendInspectionEvent({
+      type: '@xstate.event',
+      sourceRef: this._parent,
+      targetRef: this,
+      event: initEvent
+    });
+
     const status = (this._state as any).status;
 
     switch (status) {
       case 'done':
         // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
-        this.update(this._state);
+        this.update(
+          this._state,
+          initEvent as unknown as EventFromLogic<TLogic>
+        );
       // fallthrough
       case 'error':
         // TODO: rethink cleanup of observers, mailbox, etc
@@ -311,7 +347,7 @@ export class Actor<TLogic extends AnyActorLogic>
     // TODO: this notifies all subscribers but usually this is redundant
     // there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(this._state);
+    this.update(this._state, initEvent as unknown as EventFromLogic<TLogic>);
 
     if (this.options.devTools) {
       this.attachDevTools();
@@ -342,7 +378,7 @@ export class Actor<TLogic extends AnyActorLogic>
       return;
     }
 
-    this.update(nextState);
+    this.update(nextState, event);
     if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();
@@ -431,17 +467,9 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   /**
-   * Sends an event to the running Actor to trigger a transition.
-   *
-   * @param event The event to send
+   * @internal
    */
-  public send(event: EventFromLogic<TLogic>) {
-    if (typeof event === 'string') {
-      throw new Error(
-        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
-      );
-    }
-
+  public _send(event: EventFromLogic<TLogic>) {
     if (this.status === ActorStatus.Stopped) {
       // do nothing
       if (isDevelopment) {
@@ -457,6 +485,20 @@ export class Actor<TLogic extends AnyActorLogic>
     this.mailbox.enqueue(event);
   }
 
+  /**
+   * Sends an event to the running Actor to trigger a transition.
+   *
+   * @param event The event to send
+   */
+  public send(event: EventFromLogic<TLogic>) {
+    if (isDevelopment && typeof event === 'string') {
+      throw new Error(
+        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
+      );
+    }
+    this.system._relay(undefined, this, event);
+  }
+
   // TODO: make private (and figure out a way to do this within the machine)
   public delaySend({
     event,
@@ -470,11 +512,7 @@ export class Actor<TLogic extends AnyActorLogic>
     to?: AnyActorRef;
   }): void {
     const timerId = this.clock.setTimeout(() => {
-      if (to) {
-        to.send(event);
-      } else {
-        this.send(event as EventFromLogic<TLogic>);
-      }
+      this.system._relay(this, to ?? this, event as EventFromLogic<TLogic>);
     }, delay);
 
     // TODO: consider the rehydration story here

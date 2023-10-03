@@ -129,7 +129,9 @@ function executeSendTo(
   const { to, event } = params;
 
   actorContext.defer(() => {
-    to.send(
+    actorContext?.system._relay(
+      actorContext.self,
+      to,
       event.type === XSTATE_ERROR
         ? createErrorActorEvent(actorContext.self.id, (event as any).data)
         : event
