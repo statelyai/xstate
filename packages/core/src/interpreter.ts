@@ -32,7 +32,8 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
-import { TlsOptions } from 'tls';
+
+export const $$ACTOR_TYPE = 1;
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -500,8 +501,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
   public toJSON() {
     return {
-      // TODO: bikeshed
-      $$type: 'ActorRef',
+      xstate$$type: $$ACTOR_TYPE,
       id: this.id
     };
   }

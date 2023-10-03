@@ -48,7 +48,7 @@ import type {
   SnapshotFrom
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
-import { createActor } from './interpreter.ts';
+import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
 import isDevelopment from '#is-development';
 
 export const STATE_IDENTIFIER = '#';
@@ -653,19 +653,30 @@ export class StateMachine<
       }
     });
 
-    const context = JSON.parse(
-      JSON.stringify(restoredSnapshot.context),
-      (_, value) => {
-        // if value is an object with $$type property, it is a reference to an actor
-        if (typeof value === 'object' && value && value.$$type === 'ActorRef') {
-          return children[value.id];
-        }
+    let seen = new Set();
 
-        return value;
+    function reviveContext(
+      contextPart: Record<string, unknown>,
+      children: Record<string, AnyActorRef>
+    ) {
+      if (seen.has(contextPart)) {
+        return;
       }
-    );
+      seen.add(contextPart);
+      for (let key in contextPart) {
+        const value: unknown = contextPart[key];
 
-    restoredSnapshot.context = context;
+        if (value && typeof value === 'object') {
+          if ('xstate$$type' in value && value.xstate$$type === $$ACTOR_TYPE) {
+            contextPart[key] = children[(value as any).id];
+            continue;
+          }
+          reviveContext(value as typeof contextPart, children);
+        }
+      }
+    }
+
+    reviveContext(restoredSnapshot.context, children);
 
     return restoredSnapshot;
   }
