@@ -60,19 +60,21 @@ export type InvokeCallback<
 export function fromCallback<TEvent extends EventObject, TInput = unknown>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
-  return {
+  const logic: CallbackActorLogic<TEvent, TInput> = {
     config: invokeCallback,
-    start: (_state, { self }) => {
-      self.send({ type: XSTATE_INIT } as TEvent);
+    start: (_state, { self, system }) => {
+      system._relay(self, self, { type: XSTATE_INIT });
     },
-    transition: (state, event, { self, id, system }) => {
+    transition: (state, event, { self, system }) => {
       if (event.type === XSTATE_INIT) {
         const sendBack = (eventForParent: AnyEventObject) => {
           if (state.status === 'stopped') {
             return;
           }
 
-          self._parent?.send(eventForParent);
+          if (self._parent) {
+            system._relay(self, self._parent, eventForParent);
+          }
         };
 
         const receive: Receiver<TEvent> = (newListener) => {
@@ -124,4 +126,6 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
       ...state
     })
   };
+
+  return logic;
 }

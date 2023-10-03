@@ -13,6 +13,7 @@ import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
+import { InspectionEvent } from './system.js';
 
 export type HomomorphicPick<T, K extends keyof any> = {
   [P in keyof T as P & K]: T[P];
@@ -1740,6 +1741,10 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * The source definition.
    */
   src?: string;
+
+  inspect?:
+    | Observer<InspectionEvent>
+    | ((inspectionEvent: InspectionEvent) => void);
 }
 
 export type AnyActor = Actor<any>;
@@ -1809,6 +1814,8 @@ export interface ActorRef<
    */
   id: string;
   sessionId: string;
+  /** @internal */
+  _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
   // TODO: should this be optional?
   start?: () => void;
@@ -1973,7 +1980,7 @@ export interface ActorContext<
   stopChild: (child: AnyActorRef) => void;
 }
 
-export type AnyActorContext = ActorContext<any, any, any>;
+export type AnyActorContext = ActorContext<any, any, AnyActorSystem>;
 
 export type Snapshot<TOutput> =
   | {
@@ -2176,11 +2183,38 @@ export interface ActorSystemInfo {
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
+  /**
+   * @internal
+   */
   _bookId: () => string;
+  /**
+   * @internal
+   */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
+  /**
+   * @internal
+   */
   _unregister: (actorRef: AnyActorRef) => void;
+  /**
+   * @internal
+   */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  inspect: (observer: Observer<InspectionEvent>) => void;
+  /**
+   * @internal
+   */
+  _sendInspectionEvent: (
+    event: HomomorphicOmit<InspectionEvent, 'rootId'>
+  ) => void;
+  /**
+   * @internal
+   */
+  _relay: (
+    source: AnyActorRef | undefined,
+    target: AnyActorRef,
+    event: AnyEventObject
+  ) => void;
 }
 
 export type AnyActorSystem = ActorSystem<any>;

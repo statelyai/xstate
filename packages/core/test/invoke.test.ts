@@ -1832,7 +1832,7 @@ describe('invoke', () => {
       createActor(machine).start();
     });
 
-    describe('sub invoke race condition ends on the completed state', () => {
+    it('sub invoke race condition ends on the completed state', () => {
       const anotherChildMachine = createMachine({
         id: 'child',
         initial: 'start',

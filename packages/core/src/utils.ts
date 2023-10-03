@@ -316,15 +316,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   );
 }
 
-export const uniqueId = (() => {
-  let currentId = 0;
-
-  return () => {
-    currentId++;
-    return currentId.toString(16);
-  };
-})();
-
 export function isErrorActorEvent(
   event: AnyEventObject
 ): event is ErrorActorEvent {

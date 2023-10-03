@@ -1434,7 +1434,7 @@ export function resolveActionsAndContext<
 
   for (const action of actions) {
     const isInline = typeof action === 'function';
-    const resolved = isInline
+    const resolvedAction = isInline
       ? action
       : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
         // it's fine to cast this here to get a common type and lack of errors in the rest of the code
@@ -1455,7 +1455,7 @@ export function resolveActionsAndContext<
           >
         )[typeof action === 'string' ? action : action.type];
 
-    if (!resolved) {
+    if (!resolvedAction) {
       continue;
     }
 
@@ -1477,26 +1477,28 @@ export function resolveActionsAndContext<
           (action as { type: string })
     };
 
-    if (!('resolve' in resolved)) {
+    if (!('resolve' in resolvedAction)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolved(actionArgs);
+        resolvedAction(actionArgs);
       } else {
-        actorCtx?.defer(() => resolved(actionArgs));
+        actorCtx?.defer(() => {
+          resolvedAction(actionArgs);
+        });
       }
       continue;
     }
 
-    const builtinAction = resolved as BuiltinAction;
+    const builtinAction = resolvedAction as BuiltinAction;
 
     const [nextState, params, actions] = builtinAction.resolve(
       actorCtx,
       intermediateState,
       actionArgs,
-      resolved // this holds all params
+      resolvedAction // this holds all params
     );
     intermediateState = nextState;
 
-    if ('execute' in resolved) {
+    if ('execute' in resolvedAction) {
       if (actorCtx?.self.status === ActorStatus.Running) {
         builtinAction.execute(actorCtx!, params);
       } else {
