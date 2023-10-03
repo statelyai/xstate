@@ -474,12 +474,6 @@ export class Actor<TLogic extends AnyActorLogic>
    * @internal
    */
   public _send(event: EventFromLogic<TLogic>) {
-    if (typeof event === 'string') {
-      throw new Error(
-        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
-      );
-    }
-
     if (this.status === ActorStatus.Stopped) {
       // do nothing
       if (isDevelopment) {
@@ -501,7 +495,7 @@ export class Actor<TLogic extends AnyActorLogic>
    * @param event The event to send
    */
   public send(event: EventFromLogic<TLogic>) {
-    if (typeof event === 'string') {
+    if (isDevelopment && typeof event === 'string') {
       throw new Error(
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
