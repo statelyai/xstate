@@ -58,9 +58,9 @@ export function createSystem<T extends ActorSystemInfo>(
     _relay: (source, target, event) => {
       system._sendInspectionEvent({
         type: '@xstate.event',
-        event,
-        targetId: target.sessionId,
-        sessionId: source?.sessionId
+        sourceRef: source,
+        targetRef: target,
+        event
       });
 
       target._send(event);
@@ -75,26 +75,23 @@ export interface BaseInspectionEventProperties {
 
 export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   type: '@xstate.snapshot';
-  sessionId: string;
-  snapshot: Snapshot<unknown>;
-  event: AnyEventObject; // { type: string, ... }
   actorRef: AnyActorRef; // Only available locally
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
 }
 
 export interface InspectedEventEvent extends BaseInspectionEventProperties {
   type: '@xstate.event';
-  // The sessionId may be undefined, e.g. for:
+  // The source might not exist, e.g. when:
   // - root init events
   // - events sent from external (non-actor) sources
-  sessionId: string | undefined;
+  sourceRef: AnyActorRef | undefined;
+  targetRef: AnyActorRef; // Session ID, required
   event: AnyEventObject; // { type: string, ... }
-  targetId: string; // Session ID, required
 }
 
 export interface InspectedActorEvent extends BaseInspectionEventProperties {
   type: '@xstate.actor';
-  sessionId: string;
-  parentId?: string;
   actorRef: AnyActorRef;
 }
 

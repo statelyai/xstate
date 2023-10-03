@@ -189,9 +189,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.send = this.send.bind(this);
     this.system._sendInspectionEvent({
       type: '@xstate.actor',
-      actorRef: this,
-      sessionId: this.sessionId,
-      parentId: this._parent?.sessionId
+      actorRef: this
     });
     this._initState();
   }
@@ -256,7 +254,6 @@ export class Actor<TLogic extends AnyActorLogic>
       type: '@xstate.snapshot',
       actorRef: this,
       event,
-      sessionId: this.sessionId,
       snapshot
     });
   }
@@ -316,9 +313,9 @@ export class Actor<TLogic extends AnyActorLogic>
 
     this.system._sendInspectionEvent({
       type: '@xstate.event',
-      event: initEvent,
-      sessionId: this._parent?.sessionId,
-      targetId: this.sessionId
+      sourceRef: this._parent,
+      targetRef: this,
+      event: initEvent
     });
 
     const status = (this._state as any).status;
