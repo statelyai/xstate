@@ -1742,7 +1742,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   src?: string;
 
-  inspect?: Observer<InspectionEvent>;
+  inspect?:
+    | Observer<InspectionEvent>
+    | ((inspectionEvent: InspectionEvent) => void);
 }
 
 export type AnyActor = Actor<any>;

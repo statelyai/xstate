@@ -36,7 +36,6 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
-import { TlsOptions } from 'tls';
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -149,7 +148,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     if (inspect && !parent) {
       // Always inspect at the system-level
-      this.system.inspect(inspect);
+      this.system.inspect(toObserver(inspect));
     }
 
     if (systemId) {

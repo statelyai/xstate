@@ -61,11 +61,7 @@ describe('inspect', () => {
     const events: InspectionEvent[] = [];
 
     const actor = createActor(machine, {
-      inspect: {
-        next(event) {
-          events.push(event);
-        }
-      }
+      inspect: (ev) => events.push(ev)
     });
     actor.start();
 
