@@ -2202,7 +2202,9 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   /**
    * @internal
    */
-  _sendInspectionEvent: (event: InspectionEvent) => void;
+  _sendInspectionEvent: (
+    event: HomomorphicOmit<InspectionEvent, 'rootId'>
+  ) => void;
   /**
    * @internal
    */

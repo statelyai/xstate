@@ -7,17 +7,17 @@ import {
   Snapshot
 } from './types.ts';
 
-let systemCounter = 0;
+let idCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef
 ): ActorSystem<T> {
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
-  const observers = new Set<Observer<ResolvedInspectionEvent>>();
+  const observers = new Set<Observer<InspectionEvent>>();
 
   const system: ActorSystem<T> = {
-    _bookId: () => `x:${systemCounter++}`,
+    _bookId: () => `x:${idCounter++}`,
     _register: (sessionId, actorRef) => {
       children.set(sessionId, actorRef);
       return sessionId;
@@ -49,7 +49,7 @@ export function createSystem<T extends ActorSystemInfo>(
       observers.add(observer);
     },
     _sendInspectionEvent: (event) => {
-      const resolvedInspectionEvent: ResolvedInspectionEvent = {
+      const resolvedInspectionEvent: InspectionEvent = {
         ...event,
         rootId: rootActor.sessionId
       };
@@ -59,21 +59,21 @@ export function createSystem<T extends ActorSystemInfo>(
       system._sendInspectionEvent({
         type: '@xstate.event',
         event,
-        targetId: target?.sessionId ?? 'deadletter',
+        targetId: target.sessionId,
         sessionId: source?.sessionId
       });
 
-      target?._send(event);
+      target._send(event);
     }
   };
 
   return system;
 }
-export interface BaseInspectionEvent {
+export interface BaseInspectionEventProperties {
   rootId: string; // the session ID of the root
 }
 
-export interface InspectedSnapshotEvent {
+export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   type: '@xstate.snapshot';
   sessionId: string;
   snapshot: Snapshot<unknown>;
@@ -81,7 +81,7 @@ export interface InspectedSnapshotEvent {
   actorRef: AnyActorRef; // Only available locally
 }
 
-export interface InspectedEventEvent {
+export interface InspectedEventEvent extends BaseInspectionEventProperties {
   type: '@xstate.event';
   // The sessionId may be undefined, e.g. for:
   // - root init events
@@ -91,7 +91,7 @@ export interface InspectedEventEvent {
   targetId: string; // Session ID, required
 }
 
-export interface InspectedActorEvent {
+export interface InspectedActorEvent extends BaseInspectionEventProperties {
   type: '@xstate.actor';
   sessionId: string;
   parentId?: string;
@@ -102,5 +102,3 @@ export type InspectionEvent =
   | InspectedSnapshotEvent
   | InspectedEventEvent
   | InspectedActorEvent;
-
-export type ResolvedInspectionEvent = InspectionEvent & BaseInspectionEvent;
