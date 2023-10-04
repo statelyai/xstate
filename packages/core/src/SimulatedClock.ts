@@ -1,4 +1,6 @@
+import { ScheduledEvent } from './State.ts';
 import { Clock } from './interpreter.ts';
+import { AnyActorRef, AnyActorSystem } from './types.ts';
 
 export interface SimulatedClock extends Clock {
   start(speed: number): void;
@@ -21,12 +23,18 @@ export class SimulatedClock implements SimulatedClock {
   private getId() {
     return this._id++;
   }
-  public setTimeout(fn: (...args: any[]) => void, timeout: number) {
+  public setTimeout(actorRef: AnyActorRef, scheduledEvent: ScheduledEvent) {
     const id = this.getId();
     this.timeouts.set(id, {
       start: this.now(),
-      timeout,
-      fn
+      timeout: scheduledEvent.delay,
+      fn: () => {
+        actorRef.system?._relay(
+          actorRef,
+          scheduledEvent.target,
+          scheduledEvent.event
+        );
+      }
     });
     return id;
   }

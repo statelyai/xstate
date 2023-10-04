@@ -111,7 +111,8 @@ function resolveSendTo(
       delay: resolvedDelay ?? 0,
       event: resolvedEvent,
       target: targetActorRef,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      id: Math.random().toString()
     })
   });
 

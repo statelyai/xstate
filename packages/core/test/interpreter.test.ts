@@ -613,7 +613,7 @@ describe('interpreter', () => {
     const service = createActor(lightMachine, {
       clock: new SimulatedClock()
     });
-    const clock = service.clock as SimulatedClock;
+    const clock = service.system.scheduler as SimulatedClock;
     service.start();
 
     clock.increment(5);

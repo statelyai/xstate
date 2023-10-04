@@ -28,11 +28,12 @@ import type {
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
-export interface StateTimer {
+export interface ScheduledEvent {
   delay: number;
   startedAt: number; // timestamp
   event: EventObject;
   target: AnyActorRef;
+  id: string;
 }
 
 type ComputeConcreteChildren<TActor extends ProvidedActor> = {
@@ -105,7 +106,7 @@ export class State<
    */
   public children: ComputeChildren<TActor>;
 
-  public timers: StateTimer[] = [];
+  public timers: ScheduledEvent[] = [];
 
   /**
    * Creates a new State instance for the given `stateValue` and `context`.

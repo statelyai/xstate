@@ -15,7 +15,6 @@ import {
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
-  ActorLogic,
   ActorContext,
   ActorSystem,
   AnyActorLogic,
@@ -24,7 +23,6 @@ import type {
   PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef,
-  OutputFrom,
   DoneActorEvent
 } from './types.ts';
 import {
@@ -36,6 +34,7 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+import { ScheduledEvent } from './State.ts';
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -49,7 +48,7 @@ export type Listener = () => void;
 export type ErrorListener = (error: any) => void;
 
 export interface Clock {
-  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
+  setTimeout(actorRef: AnyActorRef, scheduledEvent: ScheduledEvent): any;
   clearTimeout(id: any): void;
 }
 
@@ -64,15 +63,23 @@ export enum ActorStatus {
  */
 export const InterpreterStatus = ActorStatus;
 
+export const defaultClock = {
+  setTimeout: (actorRef, scheduledEvent) => {
+    return setTimeout(() => {
+      actorRef.system?._relay(
+        undefined,
+        scheduledEvent.target,
+        scheduledEvent.event
+      );
+    }, scheduledEvent.delay);
+  },
+  clearTimeout: (id) => {
+    return clearTimeout(id);
+  }
+} as Clock;
+
 const defaultOptions = {
-  clock: {
-    setTimeout: (fn, ms) => {
-      return setTimeout(fn, ms);
-    },
-    clearTimeout: (id) => {
-      return clearTimeout(id);
-    }
-  } as Clock,
+  clock: defaultClock,
   logger: console.log.bind(console),
   devTools: false
 };
@@ -84,10 +91,6 @@ export class Actor<TLogic extends AnyActorLogic>
    * The current internal state of the actor.
    */
   private _state!: SnapshotFrom<TLogic>;
-  /**
-   * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
-   */
-  public clock: Clock;
   public options: Readonly<ActorOptions<TLogic>>;
 
   /**
@@ -144,7 +147,11 @@ export class Actor<TLogic extends AnyActorLogic>
 
     const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
 
-    this.system = parent?.system ?? createSystem(this);
+    this.system =
+      parent?.system ??
+      createSystem(this, {
+        scheduler: clock
+      });
 
     if (inspect && !parent) {
       // Always inspect at the system-level
@@ -159,7 +166,6 @@ export class Actor<TLogic extends AnyActorLogic>
     this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
-    this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
     this.src = resolvedOptions.src;
@@ -449,7 +455,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     // Cancel all delayed events
     for (const key of Object.keys(this.delayedEventsMap)) {
-      this.clock.clearTimeout(this.delayedEventsMap[key]);
+      this.system.scheduler.clearTimeout(this.delayedEventsMap[key]);
     }
 
     // TODO: mailbox.reset
@@ -511,9 +517,13 @@ export class Actor<TLogic extends AnyActorLogic>
     delay: number;
     to?: AnyActorRef;
   }): void {
-    const timerId = this.clock.setTimeout(() => {
-      this.system._relay(this, to ?? this, event as EventFromLogic<TLogic>);
-    }, delay);
+    const timerId = this.system.scheduler.setTimeout(this, {
+      delay,
+      event,
+      id: Math.random().toString(),
+      startedAt: Date.now(),
+      target: to ?? this
+    });
 
     // TODO: consider the rehydration story here
     if (id) {
@@ -523,7 +533,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   // TODO: make private (and figure out a way to do this within the machine)
   public cancel(sendId: string | number): void {
-    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
+    this.system.scheduler.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
 

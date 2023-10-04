@@ -77,7 +77,8 @@ function resolveRaise(
         delay: resolvedDelay,
         event: resolvedEvent,
         target: actorCtx.self,
-        startedAt
+        startedAt,
+        id: Math.random().toString()
       })
     });
   }

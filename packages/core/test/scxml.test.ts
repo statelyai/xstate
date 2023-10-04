@@ -418,7 +418,7 @@ async function runTestToCompletion(
       return;
     }
     if (after) {
-      (service.clock as SimulatedClock).increment(after);
+      (service.system.scheduler as SimulatedClock).increment(after);
     }
     service.send({ type: event.name });
 
@@ -433,7 +433,7 @@ async function runTestToCompletion(
 describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'test175.txml'
+    'test187.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 
