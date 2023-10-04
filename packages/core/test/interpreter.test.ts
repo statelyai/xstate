@@ -273,7 +273,7 @@ describe('interpreter', () => {
       const clock = new SimulatedClock();
 
       const delayExprService = createActor(delayExprMachine, {
-        clock
+        scheduler: clock
       });
       delayExprService.subscribe({
         complete: () => {
@@ -355,7 +355,7 @@ describe('interpreter', () => {
       const clock = new SimulatedClock();
 
       const delayExprService = createActor(delayExprMachine, {
-        clock
+        scheduler: clock
       });
       delayExprService.subscribe({
         complete: () => {
@@ -438,7 +438,7 @@ describe('interpreter', () => {
         }
       );
 
-      const actor = createActor(letterMachine, { clock });
+      const actor = createActor(letterMachine, { scheduler: clock });
       actor.subscribe({
         complete: () => {
           done();
@@ -611,7 +611,7 @@ describe('interpreter', () => {
 
   it('can cancel a delayed event', () => {
     const service = createActor(lightMachine, {
-      clock: new SimulatedClock()
+      scheduler: new SimulatedClock()
     });
     const clock = service.system.scheduler as SimulatedClock;
     service.start();
@@ -740,7 +740,7 @@ describe('interpreter', () => {
 
   it('should not update when stopped', () => {
     const service = createActor(lightMachine, {
-      clock: new SimulatedClock()
+      scheduler: new SimulatedClock()
     });
 
     service.start();

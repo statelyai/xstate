@@ -1,4 +1,4 @@
-import { Clock, defaultClock } from './interpreter.ts';
+import { Scheduler, defaultScheduler } from './interpreter.ts';
 import {
   AnyEventObject,
   ActorSystem,
@@ -12,10 +12,10 @@ let idCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
   settings?: {
-    scheduler?: Clock;
+    scheduler?: Scheduler;
   }
 ): ActorSystem<T> {
-  const scheduler = settings?.scheduler ?? defaultClock;
+  const scheduler = settings?.scheduler ?? defaultScheduler;
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();

@@ -1,19 +1,13 @@
 import { ScheduledEvent } from './State.ts';
-import { Clock } from './interpreter.ts';
+import { Scheduler } from './interpreter.ts';
 import { AnyActorRef, AnyActorSystem } from './types.ts';
-
-export interface SimulatedClock extends Clock {
-  start(speed: number): void;
-  increment(ms: number): void;
-  set(ms: number): void;
-}
 
 interface SimulatedTimeout {
   start: number;
   timeout: number;
   fn: (...args: any[]) => void;
 }
-export class SimulatedClock implements SimulatedClock {
+export class SimulatedClock implements Scheduler {
   private timeouts: Map<number, SimulatedTimeout> = new Map();
   private _now: number = 0;
   private _id: number = 0;

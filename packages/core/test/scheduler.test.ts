@@ -10,7 +10,7 @@ describe('scheduler', () => {
     });
 
     const actor = createActor(machine, {
-      clock: {
+      scheduler: {
         setTimeout: (_system, scheduledEvent) => {
           expect(scheduledEvent).toEqual(
             expect.objectContaining({

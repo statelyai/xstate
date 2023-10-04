@@ -1,6 +1,6 @@
 import type { StateNode } from './StateNode.ts';
 import type { State, ScheduledEvent } from './State.ts';
-import type { ActorStatus, Clock, Actor } from './interpreter.ts';
+import type { ActorStatus, Scheduler, Actor } from './interpreter.ts';
 import type { MachineSnapshot, StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
@@ -1708,7 +1708,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
   execute?: boolean;
-  clock?: Clock;
+  scheduler?: Scheduler;
   logger?: (...args: any[]) => void;
   parent?: ActorRef<any, any>;
   /**
@@ -2216,7 +2216,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     target: AnyActorRef,
     event: AnyEventObject
   ) => void;
-  scheduler: Clock;
+  scheduler: Scheduler;
 }
 
 export type AnyActorSystem = ActorSystem<any>;

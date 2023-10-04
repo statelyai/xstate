@@ -151,7 +151,7 @@ const testGroups: Record<string, string[]> = {
     // 'test183.txml', // idlocation not implemented yet
     'test185.txml',
     'test186.txml',
-    'test187.txml',
+    // 'test187.txml', // we don't automatically cancel delayed send actions - those should immediately execute
     'test189.txml',
     'test190.txml', // note: _sessionid is undefined for expressions
     'test191.txml',
@@ -392,7 +392,7 @@ async function runTestToCompletion(
 
   let done = false;
   const service = createActor(machine, {
-    clock: new SimulatedClock()
+    scheduler: new SimulatedClock()
   });
 
   let nextState: AnyState = service.getSnapshot();

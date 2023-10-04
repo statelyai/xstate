@@ -47,7 +47,7 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 export type Listener = () => void;
 export type ErrorListener = (error: any) => void;
 
-export interface Clock {
+export interface Scheduler {
   setTimeout(actorRef: AnyActorRef, scheduledEvent: ScheduledEvent): any;
   clearTimeout(id: any): void;
 }
@@ -63,7 +63,7 @@ export enum ActorStatus {
  */
 export const InterpreterStatus = ActorStatus;
 
-export const defaultClock = {
+export const defaultScheduler = {
   setTimeout: (actorRef, scheduledEvent) => {
     return setTimeout(() => {
       actorRef.system?._relay(
@@ -76,10 +76,10 @@ export const defaultClock = {
   clearTimeout: (id) => {
     return clearTimeout(id);
   }
-} as Clock;
+} as Scheduler;
 
 const defaultOptions = {
-  clock: defaultClock,
+  scheduler: defaultScheduler,
   logger: console.log.bind(console),
   devTools: false
 };
@@ -145,12 +145,13 @@ export class Actor<TLogic extends AnyActorLogic>
       ...options
     } as ActorOptions<TLogic> & typeof defaultOptions;
 
-    const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
+    const { scheduler, logger, parent, id, systemId, inspect } =
+      resolvedOptions;
 
     this.system =
       parent?.system ??
       createSystem(this, {
-        scheduler: clock
+        scheduler
       });
 
     if (inspect && !parent) {
