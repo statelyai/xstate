@@ -344,7 +344,7 @@ describe('delayed transitions', () => {
     expect(actorRef.getSnapshot().timers[1].delay).toBe(1000);
 
     // TODO: figure out how to do cleanup (tricky)
-    // jest.advanceTimersByTime(1010);
-    // expect(actorRef.getSnapshot().timers).toHaveLength(0);
+    jest.advanceTimersByTime(1010);
+    expect(actorRef.getSnapshot().timers).toHaveLength(0);
   });
 });
