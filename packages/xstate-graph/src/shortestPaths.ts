@@ -1,13 +1,7 @@
-import {
-  EventObject,
-  AnyStateMachine,
-  StateFrom,
-  EventFrom,
-  ActorLogic,
-  AnyActorLogic,
-  SnapshotFrom,
-  EventFromLogic
-} from 'xstate';
+import { AnyActorLogic, EventFromLogic } from 'xstate';
+import { getAdjacencyMap } from './adjacency';
+import { alterPath } from './alterPath';
+import { resolveTraversalOptions } from './graph';
 import {
   SerializedEvent,
   SerializedState,
@@ -15,28 +9,25 @@ import {
   StatePlanMap,
   TraversalOptions
 } from './types';
-import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
-import { getAdjacencyMap } from './adjacency';
-import { alterPath } from './alterPath';
+import { createMockActorContext } from './actorContext';
 
-export function getShortestPaths<
-  TLogic extends AnyActorLogic,
-  TState extends SnapshotFrom<TLogic>,
-  TEvent extends EventFromLogic<TLogic>
->(
+export function getShortestPaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> {
+  options?: TraversalOptions<
+    ReturnType<TLogic['transition']>,
+    EventFromLogic<TLogic>
+  >
+): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
+  type TInternalState = ReturnType<TLogic['transition']>;
+  type TEvent = EventFromLogic<TLogic>;
+
   const resolvedOptions = resolveTraversalOptions(logic, options);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
   const fromState =
     resolvedOptions.fromState ??
-    logic.getInitialState(
-      {} as any, // TODO: figure out the simulation API
-      undefined
-    );
+    logic.getInitialState(createMockActorContext(), undefined);
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event
@@ -48,7 +39,7 @@ export function getShortestPaths<
       event: TEvent | undefined;
     }
   >();
-  const stateMap = new Map<SerializedState, TState>();
+  const stateMap = new Map<SerializedState, TInternalState>();
   const serializedFromState = serializeState(fromState, undefined, undefined);
   stateMap.set(serializedFromState, fromState);
 
@@ -99,8 +90,8 @@ export function getShortestPaths<
     unvisited.delete(serializedState);
   }
 
-  const statePlanMap: StatePlanMap<TState, TEvent> = {};
-  const paths: Array<StatePath<TState, TEvent>> = [];
+  const statePlanMap: StatePlanMap<TInternalState, TEvent> = {};
+  const paths: Array<StatePath<TInternalState, TEvent>> = [];
 
   weightMap.forEach(
     ({ weight, state: fromState, event: fromEvent }, stateSerial) => {

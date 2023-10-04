@@ -1,20 +1,23 @@
 import { StatePath } from '@xstate/graph';
-import { EventObject } from 'xstate';
+import { EventObject, Snapshot } from 'xstate';
 import { simpleStringify } from './utils.ts';
 
 /**
  * Deduplicates your paths so that A -> B
  * is not executed separately to A -> B -> C
  */
-export const deduplicatePaths = <TState, TEvent extends EventObject>(
-  paths: StatePath<TState, TEvent>[],
+export const deduplicatePaths = <
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(
+  paths: StatePath<TSnapshot, TEvent>[],
   serializeEvent: (event: TEvent) => string = simpleStringify
-): StatePath<TState, TEvent>[] => {
+): StatePath<TSnapshot, TEvent>[] => {
   /**
    * Put all paths on the same level so we can dedup them
    */
   const allPathsWithEventSequence: Array<{
-    path: StatePath<TState, TEvent>;
+    path: StatePath<TSnapshot, TEvent>;
     eventSequence: string[];
   }> = [];
 

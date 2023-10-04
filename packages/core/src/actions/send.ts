@@ -25,7 +25,7 @@ import {
 import { XSTATE_ERROR } from '../constants.ts';
 import { cloneState } from '../State.ts';
 
-function resolve(
+function resolveSendTo(
   actorContext: AnyActorContext,
   state: AnyState,
   args: ActionArgs<any, any, any, any>,
@@ -120,7 +120,7 @@ function resolve(
     { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
   ];
 }
-function execute(
+function executeSendTo(
   actorContext: AnyActorContext,
   params: {
     to: AnyActorRef;
@@ -139,7 +139,9 @@ function execute(
   const { to, event } = params;
 
   actorContext.defer(() => {
-    to.send(
+    actorContext?.system._relay(
+      actorContext.self,
+      to,
       event.type === XSTATE_ERROR
         ? createErrorActorEvent(actorContext.self.id, (event as any).data)
         : event
@@ -212,8 +214,8 @@ export function sendTo<
   sendTo.id = options?.id;
   sendTo.delay = options?.delay;
 
-  sendTo.resolve = resolve;
-  sendTo.execute = execute;
+  sendTo.resolve = resolveSendTo;
+  sendTo.execute = executeSendTo;
 
   return sendTo;
 }

@@ -163,10 +163,10 @@ describe('final states', () => {
           }
         },
         end: {
-          type: 'final',
-          output: spy
+          type: 'final'
         }
-      }
+      },
+      output: spy
     });
 
     const service = createActor(machine).start();
@@ -184,10 +184,10 @@ describe('final states', () => {
       initial: 'done',
       states: {
         done: {
-          type: 'final',
-          output: ({ self }) => ({ selfRef: self })
+          type: 'final'
         }
-      }
+      },
+      output: ({ self }) => ({ selfRef: self })
     });
 
     const actor = createActor(machine).start();

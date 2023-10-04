@@ -14,7 +14,7 @@ import {
   ParameterizedObject
 } from '../types.ts';
 
-function resolve(
+function resolveRaise(
   actorCtx: AnyActorContext,
   state: AnyState,
   args: ActionArgs<any, any, any, any>,
@@ -85,7 +85,7 @@ function resolve(
   return [nextState, { event: resolvedEvent, id, delay: resolvedDelay }];
 }
 
-function execute(
+function executeRaise(
   actorContext: AnyActorContext,
   params: {
     event: EventObject;
@@ -158,8 +158,8 @@ export function raise<
   raise.id = options?.id;
   raise.delay = options?.delay;
 
-  raise.resolve = resolve;
-  raise.execute = execute;
+  raise.resolve = resolveRaise;
+  raise.execute = executeRaise;
 
   return raise;
 }

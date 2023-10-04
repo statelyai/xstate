@@ -17,6 +17,7 @@
     "@xstate-repo/jest-utils": "0.0.0"
   },
   "changesets": [
+    "angry-seals-sin",
     "beige-pianos-give",
     "beige-schools-smash",
     "big-avocados-raise",
@@ -42,6 +43,7 @@
     "eighty-coins-tease",
     "eighty-trainers-compare",
     "eleven-forks-sleep",
+    "fast-guests-design",
     "fast-rockets-share",
     "fast-tables-design",
     "few-lamps-yawn",
@@ -86,6 +88,8 @@
     "lucky-bikes-accept",
     "lucky-bulldogs-march",
     "lucky-vans-compare",
+    "mean-pianos-explode",
+    "metal-mugs-learn",
     "metal-ties-prove",
     "modern-ducks-agree",
     "nervous-bananas-cover",
@@ -108,6 +112,7 @@
     "polite-experts-wash",
     "poor-badgers-explain",
     "poor-bottles-sort",
+    "popular-chefs-camp",
     "popular-clocks-melt",
     "popular-guests-kneel",
     "popular-months-confess",
@@ -145,6 +150,7 @@
     "soft-jeans-join",
     "stale-chairs-rush",
     "strange-mirrors-leave",
+    "stupid-feet-flash",
     "swift-stingrays-notice",
     "tall-nails-drive",
     "tame-lemons-rescue",
@@ -158,6 +164,7 @@
     "tricky-spoons-lay",
     "twelve-dingos-fold",
     "twenty-fishes-fix",
+    "wise-eggs-train",
     "wise-wombats-invite",
     "witty-hounds-invent",
     "young-laws-hope"

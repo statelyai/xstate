@@ -16,7 +16,10 @@ import {
   Actor,
   ActorLogicFrom,
   ActorStatus,
+  EventObject,
+  MachineContext,
   PersistedMachineState,
+  ProvidedActor,
   assign,
   createActor,
   createMachine,
@@ -75,10 +78,10 @@ describe('useMachine hook', () => {
           initial: 'done',
           states: {
             done: {
-              type: 'final',
-              output: 'persisted data'
+              type: 'final'
             }
-          }
+          },
+          output: 'persisted data'
         }) as any
       }
     })
@@ -89,7 +92,7 @@ describe('useMachine hook', () => {
 
   const Fetcher = (props: {
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any>;
+    persistedState?: typeof persistedFetchState;
   }) => {
     const mergedProps = mergeProps(
       {

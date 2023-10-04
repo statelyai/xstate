@@ -5,20 +5,18 @@ import { stop } from '../src/actions/stop';
 import { fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
-  assign,
-  createMachine,
-  createActor,
   MachineContext,
+  ProvidedActor,
   Spawner,
   StateMachine,
-  pure,
+  assign,
   choose,
+  createActor,
+  createMachine,
   not,
-  stateIn,
+  pure,
   sendTo,
-  ProvidedActor,
-  Action,
-  ParameterizedObject
+  stateIn
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -218,29 +216,17 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: 42
-        }
-      }
+      output: 42
     });
   });
 
   it('should reject invalid static output', () => {
-    const machine = createMachine({
+    createMachine({
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          // @ts-expect-error
-          output: 'a string'
-        }
-      }
+      // @ts-expect-error
+      output: 'a string'
     });
   });
 
@@ -249,29 +235,17 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: () => 42
-        }
-      }
+      output: () => 42
     });
   });
 
   it('should reject invalid dynamic output', () => {
-    const machine = createMachine({
+    createMachine({
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          // @ts-expect-error
-          output: () => 'a string'
-        }
-      }
+      // @ts-expect-error
+      output: () => 'a string'
     });
   });
 
@@ -284,19 +258,13 @@ describe('output', () => {
         };
       },
       context: { password: 'okoń' },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: ({ context }) => {
-            ((_accept: string) => {})(context.password);
-            // @ts-expect-error
-            ((_accept: number) => {})(context.password);
-            return {
-              secret: 'the secret'
-            };
-          }
-        }
+      output: ({ context }) => {
+        ((_accept: string) => {})(context.password);
+        // @ts-expect-error
+        ((_accept: number) => {})(context.password);
+        return {
+          secret: 'the secret'
+        };
       }
     });
   });
@@ -4208,9 +4176,9 @@ describe('self', () => {
       },
       context: { count: 0 },
       entry: ({ self }) => {
-        ((_accept: number) => {})(self.getSnapshot().count);
+        ((_accept: number) => {})(self.getSnapshot().context.count);
         // @ts-expect-error
-        ((_accept: string) => {})(self.getSnapshot().count);
+        ((_accept: string) => {})(self.getSnapshot().context.count);
       }
     });
   });
@@ -4222,9 +4190,9 @@ describe('self', () => {
       },
       context: { count: 0 },
       entry: assign(({ self }) => {
-        ((_accept: number) => {})(self.getSnapshot().count);
+        ((_accept: number) => {})(self.getSnapshot().context.count);
         // @ts-expect-error
-        ((_accept: string) => {})(self.getSnapshot().count);
+        ((_accept: string) => {})(self.getSnapshot().context.count);
         return {};
       })
     });

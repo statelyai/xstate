@@ -45,7 +45,7 @@ import {
 } from './types.ts';
 import {
   isArray,
-  mapContext,
+  resolveOutput,
   normalizeTarget,
   toArray,
   toStatePath,
@@ -67,15 +67,26 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   event: TEvent,
   self: AnyActorRef
 ) {
-  const machine = configuration[0].machine;
+  const { machine } = configuration[0];
+  const { root } = machine;
+
+  if (!root.output) {
+    return undefined;
+  }
+
   const finalChildStateNode = configuration.find(
     (stateNode) =>
       stateNode.type === 'final' && stateNode.parent === machine.root
+  )!;
+
+  const doneStateEvent = createDoneStateEvent(
+    finalChildStateNode.id,
+    finalChildStateNode.output
+      ? resolveOutput(finalChildStateNode.output, context, event, self)
+      : undefined
   );
 
-  return finalChildStateNode && finalChildStateNode.output
-    ? mapContext(finalChildStateNode.output, context, event, self)
-    : undefined;
+  return resolveOutput(root.output, context, doneStateEvent, self);
 }
 
 export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
@@ -681,7 +692,7 @@ export function getStateNodes<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode,
-  state: StateValue | State<TContext, TEvent, TODO, TODO, TODO, TODO>
+  state: StateValue | State<TContext, TEvent, TODO, TODO, TODO>
 ): Array<AnyStateNode> {
   const stateValue = state instanceof State ? state.value : toStateValue(state);
 
@@ -717,7 +728,7 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
+  state: State<TContext, TEvent, TODO, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -736,7 +747,7 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
+  state: State<TContext, TEvent, TODO, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -762,7 +773,7 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
+  state: State<TContext, TEvent, TODO, TODO, TODO>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -803,7 +814,6 @@ export function transitionNode<
     TEvent,
     TODO,
     TODO,
-    TODO, // output
     TODO // tags
   >,
   event: TEvent
@@ -1114,7 +1124,7 @@ function microstepProcedure(
       historyValue,
       _internalQueue: internalQueue,
       context: nextState.context,
-      done,
+      status: done ? 'done' : currentState.status,
       output,
       children: nextState.children,
       timers: nextState.timers
@@ -1181,7 +1191,7 @@ function enterStates(
         createDoneStateEvent(
           parent!.id,
           stateNodeToEnter.output
-            ? mapContext(
+            ? resolveOutput(
                 stateNodeToEnter.output,
                 currentState.context,
                 event,
@@ -1426,7 +1436,7 @@ export function resolveActionsAndContext<
 
   for (const action of actions) {
     const isInline = typeof action === 'function';
-    const resolved = isInline
+    const resolvedAction = isInline
       ? action
       : // the existing type of `.actions` assumes non-nullable `TExpressionAction`
         // it's fine to cast this here to get a common type and lack of errors in the rest of the code
@@ -1447,7 +1457,7 @@ export function resolveActionsAndContext<
           >
         )[typeof action === 'string' ? action : action.type];
 
-    if (!resolved) {
+    if (!resolvedAction) {
       continue;
     }
 
@@ -1469,26 +1479,28 @@ export function resolveActionsAndContext<
           (action as { type: string })
     };
 
-    if (!('resolve' in resolved)) {
+    if (!('resolve' in resolvedAction)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolved(actionArgs);
+        resolvedAction(actionArgs);
       } else {
-        actorCtx?.defer(() => resolved(actionArgs));
+        actorCtx?.defer(() => {
+          resolvedAction(actionArgs);
+        });
       }
       continue;
     }
 
-    const builtinAction = resolved as BuiltinAction;
+    const builtinAction = resolvedAction as BuiltinAction;
 
     const [nextState, params, actions] = builtinAction.resolve(
       actorCtx,
       intermediateState,
       actionArgs,
-      resolved // this holds all params
+      resolvedAction // this holds all params
     );
     intermediateState = nextState;
 
-    if ('execute' in resolved) {
+    if ('execute' in resolvedAction) {
       if (actorCtx?.self.status === ActorStatus.Running) {
         builtinAction.execute(actorCtx!, params);
       } else {
@@ -1545,7 +1557,7 @@ export function macrostep(
     states.push(nextState);
   }
 
-  while (!nextState.done) {
+  while (nextState.status === 'active') {
     let enabledTransitions = selectEventlessTransitions(nextState, nextEvent);
 
     if (!enabledTransitions.length) {
@@ -1578,7 +1590,7 @@ export function macrostep(
     }
   }
 
-  if (nextState.done) {
+  if (nextState.status !== 'active') {
     // Perform the stop step to ensure that child actors are stopped
     stopStep(nextEvent, nextState, actorCtx);
   }
@@ -1613,7 +1625,7 @@ function selectTransitions(
   event: AnyEventObject,
   nextState: AnyState
 ): AnyTransitionDefinition[] {
-  return nextState.machine.getTransitionData(nextState, event);
+  return nextState.machine.getTransitionData(nextState as any, event);
 }
 
 function selectEventlessTransitions(
