@@ -34,7 +34,6 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
-import { ScheduledEvent } from './State.ts';
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -47,8 +46,15 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 export type Listener = () => void;
 export type ErrorListener = (error: any) => void;
 
+interface ScheduledEvent {
+  timerId: unknown;
+  startedAt: number; // timestamp
+  delay: number;
+  target: AnyActorRef;
+}
+
 export interface Scheduler {
-  setTimeout(actorRef: AnyActorRef, scheduledEvent: ScheduledEvent): any;
+  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
   clearTimeout(id: any): void;
 }
 
@@ -64,19 +70,13 @@ export enum ActorStatus {
 export const InterpreterStatus = ActorStatus;
 
 export const defaultScheduler = {
-  setTimeout: (actorRef, scheduledEvent) => {
-    return setTimeout(() => {
-      actorRef.system?._relay(
-        undefined,
-        scheduledEvent.target,
-        scheduledEvent.event
-      );
-    }, scheduledEvent.delay);
+  setTimeout: (fn, ms) => {
+    return setTimeout(fn, ms);
   },
   clearTimeout: (id) => {
     return clearTimeout(id);
   }
-} as Scheduler;
+} satisfies Scheduler;
 
 const defaultOptions = {
   scheduler: defaultScheduler,
@@ -102,7 +102,8 @@ export class Actor<TLogic extends AnyActorLogic>
     this._process.bind(this)
   );
 
-  private delayedEventsMap: Record<string, unknown> = {};
+  private delayedEventsMap: Record<string, ScheduledEvent> =
+    Object.create(null);
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
   private logger: (...args: any[]) => void;
@@ -455,8 +456,8 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     // Cancel all delayed events
-    for (const key of Object.keys(this.delayedEventsMap)) {
-      this.system.scheduler.clearTimeout(this.delayedEventsMap[key]);
+    for (const key in this.delayedEventsMap) {
+      this.system.scheduler.clearTimeout(this.delayedEventsMap[key].timerId);
     }
 
     // TODO: mailbox.reset
@@ -511,31 +512,38 @@ export class Actor<TLogic extends AnyActorLogic>
     event,
     id,
     delay,
-    to
+    to: target = this
   }: {
     event: EventObject;
     id: string | undefined;
     delay: number;
     to?: AnyActorRef;
   }): void {
-    const timerId = this.system.scheduler.setTimeout(this, {
-      delay,
-      event,
-      id: Math.random().toString(),
-      startedAt: Date.now(),
-      target: to ?? this
-    });
+    const startedAt = Date.now();
+    id ??= `xstate.${Math.random().toString(36).slice(8)}`;
 
-    // TODO: consider the rehydration story here
-    if (id) {
-      this.delayedEventsMap[id] = timerId;
-    }
+    const timerId = this.system.scheduler.setTimeout(
+      () => this.system._relay(this, target, event),
+      delay
+    );
+
+    this.delayedEventsMap[id] = {
+      timerId,
+      startedAt,
+      delay,
+      target
+    };
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
   public cancel(sendId: string | number): void {
-    this.system.scheduler.clearTimeout(this.delayedEventsMap[sendId]);
-    delete this.delayedEventsMap[sendId];
+    for (const id in this.delayedEventsMap) {
+      if (id === sendId) {
+        this.system.scheduler.clearTimeout(this.delayedEventsMap[id].timerId);
+        delete this.delayedEventsMap[id];
+        return;
+      }
+    }
   }
 
   private attachDevTools(): void {
@@ -554,7 +562,15 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   public getPersistedState(): PersistedStateFrom<TLogic> | undefined {
-    return this.logic.getPersistedState?.(this._state);
+    const persistedState = this.logic.getPersistedState?.(this._state);
+    const timerKeys = Object.keys(this.delayedEventsMap);
+    if (!timerKeys.length) {
+      return persistedState;
+    }
+    return {
+      ...persistedState,
+      'xstate.timers': {}
+    };
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {

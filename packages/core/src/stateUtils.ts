@@ -321,8 +321,7 @@ export function getDelayedTransitions(
       typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
     const afterEvent = createAfterEvent(delayRef, stateNode.id);
     const eventType = afterEvent.type;
-    const id = eventType;
-    stateNode.entry.push(raise(afterEvent, { id, delay }));
+    stateNode.entry.push(raise(afterEvent, { id: eventType, delay }));
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
@@ -1126,8 +1125,7 @@ function microstepProcedure(
       context: nextState.context,
       status: done ? 'done' : currentState.status,
       output,
-      children: nextState.children,
-      timers: nextState.timers
+      children: nextState.children
     });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.

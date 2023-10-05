@@ -28,14 +28,6 @@ import type {
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
-export interface ScheduledEvent {
-  delay: number;
-  startedAt: number; // timestamp
-  event: EventObject;
-  target: AnyActorRef;
-  id: string;
-}
-
 type ComputeConcreteChildren<TActor extends ProvidedActor> = {
   [A in TActor as 'id' extends keyof A
     ? A['id'] & string
@@ -105,8 +97,6 @@ export class State<
    * An object mapping actor names to spawned/invoked actors.
    */
   public children: ComputeChildren<TActor>;
-
-  public timers: ScheduledEvent[] = [];
 
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
@@ -194,7 +184,6 @@ export class State<
     this.status = config.status;
     (this as any).output = config.output;
     (this as any).error = config.error;
-    this.timers = config.timers ?? [];
   }
 
   /**

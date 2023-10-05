@@ -106,18 +106,8 @@ function resolveSendTo(
     targetActorRef = resolvedTarget || actorContext?.self;
   }
 
-  const nextState = cloneState(state, {
-    timers: (state.timers ?? []).concat({
-      delay: resolvedDelay ?? 0,
-      event: resolvedEvent,
-      target: targetActorRef,
-      startedAt: Date.now(),
-      id: Math.random().toString()
-    })
-  });
-
   return [
-    nextState,
+    state,
     { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
   ];
 }

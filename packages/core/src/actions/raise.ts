@@ -65,25 +65,14 @@ function resolveRaise(
     resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
   }
 
-  let nextState;
-  if (typeof resolvedDelay !== 'number') {
-    nextState = cloneState(state, {
-      _internalQueue: state._internalQueue.concat(resolvedEvent)
-    });
-  } else {
-    const startedAt = Date.now();
-    nextState = cloneState(state, {
-      timers: (state.timers ?? []).concat({
-        delay: resolvedDelay,
-        event: resolvedEvent,
-        target: actorCtx.self,
-        startedAt,
-        id: Math.random().toString()
-      })
-    });
-  }
-
-  return [nextState, { event: resolvedEvent, id, delay: resolvedDelay }];
+  return [
+    typeof resolvedDelay !== 'number'
+      ? cloneState(state, {
+          _internalQueue: state._internalQueue.concat(resolvedEvent)
+        })
+      : state,
+    { event: resolvedEvent, id, delay: resolvedDelay }
+  ];
 }
 
 function executeRaise(

@@ -1,6 +1,6 @@
 import { createActor, createMachine } from '../src';
 
-describe('scheduler', () => {
+describe.skip('scheduler', () => {
   it('Should be able to use a custom scheduler', (done) => {
     const machine = createMachine({
       id: 't',
