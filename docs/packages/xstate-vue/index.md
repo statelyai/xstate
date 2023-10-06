@@ -371,6 +371,8 @@ You can persist and rehydrate state with `useMachine(...)` via `options.state`:
 
 ```vue
 <script>
+import { State } from 'xstate';
+
 // Get the persisted state config object from somewhere, e.g. localStorage
 const persistedState = JSON.parse(
   localStorage.getItem('some-persisted-state-key')
@@ -378,8 +380,20 @@ const persistedState = JSON.parse(
 
 export default {
   setup() {
-    const { state, send } = useMachine(someMachine, {
-      state: persistedState
+    const { service, state, send } = useMachine(someMachine, {
+      // wrap the parsed state in a State object
+      state: State(persistedState)
+    });
+
+    // save state updates to localStorage
+    service.start().onTransition(state => {
+      // prevent overwrite on init
+      if (state.event.type === 'xstate.init') return;
+
+      // save machine state to local storage
+      if (state.changed) {
+        localStorage.setItem('some-persisted-state-key',JSON.stringify(state))
+      }
     });
 
     // state will initially be that persisted state, not the machine's initialState
