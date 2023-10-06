@@ -1264,7 +1264,7 @@
 
 - [#3559](https://github.com/statelyai/xstate/pull/3559) [`ddbc9bc5c`](https://github.com/statelyai/xstate/commit/ddbc9bc5c5f0e1cc597468c5f8ae32c8931b368d) Thanks [@Andarist](https://github.com/Andarist)! - Fixed minor compatibility issues with TypeScript 4.8 in the codebase. This fixes the typechecking with TypeScript 4.8 in projects that don't use `skipLibCheck: true`.
 
-- [#3563](https://github.com/statelyai/xstate/pull/3563) [`e3c7a9caf`](https://github.com/statelyai/xstate/commit/e3c7a9caf025e37d2e2106abff05628abbc8dd4a) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not executing actions in response to received **batched** events when using `predictableActionArguments`.
+- [#3563](https://github.com/statelyai/xstate/pull/3563) [`e3c7a9calf`](https://github.com/statelyai/xstate/commit/e3c7a9caf025e37d2e2106abff05628abbc8dd4a) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not executing actions in response to received **batched** events when using `predictableActionArguments`.
 
 - [#3520](https://github.com/statelyai/xstate/pull/3520) [`95a6a06d0`](https://github.com/statelyai/xstate/commit/95a6a06d0041d0201cf66ab8962fb8769187584b) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a runtime crash when sending multiple events as an array to a service. It is not recommended to use this feature though as it will be removed in the next major version.
 
@@ -1787,7 +1787,7 @@
 
 - [#3148](https://github.com/statelyai/xstate/pull/3148) [`7a68cbb61`](https://github.com/statelyai/xstate/commit/7a68cbb615afb6556c83868535dae67af366a117) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `onSnapshot` is now available for invoke configs. You can specify a transition there to be taken when a snapshot of an invoked actor gets updated. It works similarly to `onDone`/`onError`.
 
-* [#1041](https://github.com/statelyai/xstate/pull/1041) [`b24e47b9e`](https://github.com/statelyai/xstate/commit/b24e47b9e7a59a5b0527d4386cea3af16c84ca7a) Thanks [@Andarist](https://github.com/Andarist)! - Support for specifying states deep in the hierarchy has been added for the `initial` property. It's also now possible to specify multiple states as initial ones - so you can enter multiple descandants which have to be **parallel** to each other. Keep also in mind that you can only target descendant states with the `initial` property - it's not possible to target states from another regions.
+* [#1041](https://github.com/statelyai/xstate/pull/1041) [`b24e47b9e`](https://github.com/statelyai/xstate/commit/b24e47b9e7a59a5b0527d4386cea3af16c84ca7a) Thanks [@Andarist](https://github.com/Andarist)! - Support for specifying states deep in the hierarchy has been added for the `initial` property. It's also now possible to specify multiple states as initial ones - so you can enter multiple descendants which have to be **parallel** to each other. Keep also in mind that you can only target descendant states with the `initial` property - it's not possible to target states from another regions.
 
   Those are now possible:
 
@@ -3113,7 +3113,7 @@
 
   It is recommended that all `spawn(...)`-ed actors are lazy, to avoid accidentally initializing them e.g., when reading `machine.initialState` or calculating otherwise pure transitions. In V5, this will be enforced.
 
-- [`c1f3d260`](https://github.com/statelyai/xstate/commit/c1f3d26069ee70343f8045a48411e02a68f98cbd) [#1317](https://github.com/statelyai/xstate/pull/1317) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a type returned by a `raise` action - it's now `RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent>` instead of `RaiseAction<TEvent> | SendAction<TContext, TEvent, TEvent>`. This makes it comaptible in a broader range of scenarios.
+- [`c1f3d260`](https://github.com/statelyai/xstate/commit/c1f3d26069ee70343f8045a48411e02a68f98cbd) [#1317](https://github.com/statelyai/xstate/pull/1317) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a type returned by a `raise` action - it's now `RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent>` instead of `RaiseAction<TEvent> | SendAction<TContext, TEvent, TEvent>`. This makes it compatible in a broader range of scenarios.
 
 - [`8270d5a7`](https://github.com/statelyai/xstate/commit/8270d5a76c71add3a5109e069bd85716b230b5d4) [#1372](https://github.com/statelyai/xstate/pull/1372) Thanks [@christianchown](https://github.com/christianchown)! - Narrowed the `ServiceConfig` type definition to use a specific event type to prevent compilation errors on strictly-typed `MachineOptions`.
 

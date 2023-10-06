@@ -23,7 +23,7 @@ Add a `state` property to your component, decorated with `@State` so that it tri
 
 On `componentWillLoad`, interpret the `toggleMachine` and listen for state transitions.
 
-After a transition has occured, the `state` property is set to the machine's new state, triggering a re-render.
+After a transition has occurred, the `state` property is set to the machine's new state, triggering a re-render.
 
 ```js
 import { Component, h, State } from "@stencil/core";
