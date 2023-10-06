@@ -321,7 +321,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     switch (status) {
       case 'done':
-        // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
+        // a state machine can be "done" upon initialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
         this.update(
           this._state,

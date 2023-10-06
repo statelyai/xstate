@@ -844,14 +844,14 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       types: {
         context: {} as { value: number }
       },
-      initial: 'intitial',
+      initial: 'initial',
       context: ({ input }: { input: { value: number } }) => {
         return {
           value: input.value
         };
       },
       states: {
-        intitial: {}
+        initial: {}
       }
     });
 
