@@ -1264,7 +1264,7 @@
 
 - [#3559](https://github.com/statelyai/xstate/pull/3559) [`ddbc9bc5c`](https://github.com/statelyai/xstate/commit/ddbc9bc5c5f0e1cc597468c5f8ae32c8931b368d) Thanks [@Andarist](https://github.com/Andarist)! - Fixed minor compatibility issues with TypeScript 4.8 in the codebase. This fixes the typechecking with TypeScript 4.8 in projects that don't use `skipLibCheck: true`.
 
-- [#3563](https://github.com/statelyai/xstate/pull/3563) [`e3c7a9calf`](https://github.com/statelyai/xstate/commit/e3c7a9caf025e37d2e2106abff05628abbc8dd4a) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not executing actions in response to received **batched** events when using `predictableActionArguments`.
+- [#3563](https://github.com/statelyai/xstate/pull/3563) [`e3c7a9caf`](https://github.com/statelyai/xstate/commit/e3c7a9caf025e37d2e2106abff05628abbc8dd4a) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not executing actions in response to received **batched** events when using `predictableActionArguments`.
 
 - [#3520](https://github.com/statelyai/xstate/pull/3520) [`95a6a06d0`](https://github.com/statelyai/xstate/commit/95a6a06d0041d0201cf66ab8962fb8769187584b) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a runtime crash when sending multiple events as an array to a service. It is not recommended to use this feature though as it will be removed in the next major version.
 
