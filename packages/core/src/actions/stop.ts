@@ -8,8 +8,10 @@ import {
   AnyState,
   EventObject,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  SingleOrArray
 } from '../types.ts';
+import { toArray } from '../utils.ts';
 
 type ResolvableActorRef<
   TContext extends MachineContext,
@@ -17,35 +19,41 @@ type ResolvableActorRef<
   TExpressionAction extends ParameterizedObject | undefined,
   TEvent extends EventObject
 > =
-  | string
-  | ActorRef<any, any>
+  | SingleOrArray<string | ActorRef<any, any>>
   | ((
       args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-    ) => ActorRef<any, any> | string);
+    ) => SingleOrArray<ActorRef<any, any> | string>);
 
 function resolveStop(
   _: AnyActorContext,
   state: AnyState,
   args: ActionArgs<any, any, any, any>,
-  { actorRef }: { actorRef: ResolvableActorRef<any, any, any, any> }
+  { actorRefs }: { actorRefs: ResolvableActorRef<any, any, any, any> }
 ) {
-  const actorRefOrString =
-    typeof actorRef === 'function' ? actorRef(args) : actorRef;
-  const resolvedActorRef: ActorRef<any, any> | undefined =
-    typeof actorRefOrString === 'string'
-      ? state.children[actorRefOrString]
-      : actorRefOrString;
+  const actorRefsOrStrings =
+    typeof actorRefs === 'function'
+      ? toArray(actorRefs(args))
+      : toArray(actorRefs);
+  const resolvedActorRefs: Array<ActorRef<any, any> | undefined> =
+    actorRefsOrStrings.map((actorRefOrString) => {
+      return typeof actorRefOrString === 'string'
+        ? state.children[actorRefOrString]
+        : actorRefOrString;
+    });
 
   let children = state.children;
-  if (resolvedActorRef) {
-    children = { ...children };
-    delete children[resolvedActorRef.id];
+  for (const resolvedActorRef of resolvedActorRefs) {
+    if (resolvedActorRef) {
+      children = { ...children };
+      delete children[resolvedActorRef.id];
+    }
   }
+
   return [
     cloneState(state, {
       children
     }),
-    resolvedActorRef
+    resolvedActorRefs
   ];
 }
 function executeStop(
