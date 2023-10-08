@@ -38,10 +38,8 @@ describe('stop() action creator', () => {
 
     actor.send({ type: 'stopAll' });
 
-    expect(actor.getSnapshot().context.actors.map((a) => a.status)).toEqual([
-      'active',
-      'active',
-      'active'
-    ]);
+    expect(
+      actor.getSnapshot().context.actors.map((a) => a.getSnapshot().status)
+    ).toEqual(['stopped', 'stopped', 'stopped']);
   });
 });

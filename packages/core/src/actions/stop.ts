@@ -13,7 +13,7 @@ import {
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
-type ResolvableActorRef<
+type ResolvableActorRefs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
@@ -28,7 +28,7 @@ function resolveStop(
   _: AnyActorContext,
   state: AnyState,
   args: ActionArgs<any, any, any, any>,
-  { actorRefs }: { actorRefs: ResolvableActorRef<any, any, any, any> }
+  { actorRefs }: { actorRefs: ResolvableActorRefs<any, any, any, any> }
 ) {
   const actorRefsOrStrings =
     typeof actorRefs === 'function'
@@ -58,19 +58,21 @@ function resolveStop(
 }
 function executeStop(
   actorContext: AnyActorContext,
-  actorRef: ActorRef<any, any> | undefined
+  actorRefs: Array<ActorRef<any, any>> | undefined
 ) {
-  if (!actorRef) {
+  if (!actorRefs) {
     return;
   }
-  if (actorRef.status !== ActorStatus.Running) {
-    actorContext.stopChild(actorRef);
-    return;
+  for (const actorRef of actorRefs) {
+    if (actorRef.status !== ActorStatus.Running) {
+      actorContext.stopChild(actorRef);
+      return;
+    }
+    // TODO: recheck why this one has to be deferred
+    actorContext.defer(() => {
+      actorContext.stopChild(actorRef);
+    });
   }
-  // TODO: recheck why this one has to be deferred
-  actorContext.defer(() => {
-    actorContext.stopChild(actorRef);
-  });
 }
 
 export interface StopAction<
@@ -93,7 +95,7 @@ export function stop<
   TExpressionAction extends ParameterizedObject | undefined,
   TEvent extends EventObject
 >(
-  actorRef: ResolvableActorRef<
+  actorRefs: ResolvableActorRefs<
     TContext,
     TExpressionEvent,
     TExpressionAction,
@@ -109,7 +111,7 @@ export function stop<
   }
 
   stop.type = 'xstate.stop';
-  stop.actorRef = actorRef;
+  stop.actorRefs = actorRefs;
 
   stop.resolve = resolveStop;
   stop.execute = executeStop;

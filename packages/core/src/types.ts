@@ -1831,6 +1831,7 @@ export interface ActorRef<
   src?: string;
 }
 
+// TODO: export type AnyActorRef = ActorRef<any, Snapshot<unknown>>;
 export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
