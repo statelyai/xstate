@@ -4,9 +4,9 @@ import {
   fromPromise,
   sendParent,
   sendTo,
-  waitFor
+  waitFor,
+  InspectionEvent
 } from '../src';
-import { InspectionEvent } from '../src/system';
 
 function simplifyEvent(inspectionEvent: InspectionEvent) {
   if (inspectionEvent.type === '@xstate.event') {
