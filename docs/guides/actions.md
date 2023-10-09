@@ -30,7 +30,7 @@ Actions are fire-and-forget [effects](./effects.md). They can be declared in thr
 To learn more, read about [actions in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
 
 :::tip Check out our new docs!
-🆕 Find our [actions in XState explainer](https://stately.ai/docs/xstate/actions/) in our new docs, along with a [no-code introduction to actions in statecharts and the Stately Studio](https://stately.ai/docs/actions-and-actors/entry-and-exit-actions).
+🆕 Find our [actions in XState explainer](https://stately.ai/docs/actions/) in our new docs, along with a [no-code introduction to actions in statecharts and the Stately Studio](https://stately.ai/docs/actions#entry-and-exit-actions).
 :::
 
 ## API

@@ -20,7 +20,7 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 ### ✨ Create state machines visually → [state.new](https://state.new)
 
-📖 [Read the documentation](https://stately.ai/docs/xstate)
+📖 [Read the documentation](https://stately.ai/docs)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
@@ -76,7 +76,7 @@ const toggleMachine = createMachine({
 
 // Machine instance with internal state
 const toggleActor = interpret(toggleMachine);
-toggleActor.subscribe((state) => console.log(state.value))
+toggleActor.subscribe((state) => console.log(state.value));
 toggleActor.start();
 // => logs 'inactive'
 
@@ -157,7 +157,9 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' }).value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 
 // => 'yellow'
 ```
@@ -216,7 +218,9 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' }).value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 // => {
 //   red: 'walk'
 // }
@@ -231,7 +235,10 @@ lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 
 ```js
 // ...
-const waitState = lightMachine.transition({ red: 'walk' }, { type: 'PED_TIMER' }).value;
+const waitState = lightMachine.transition(
+  { red: 'walk' },
+  { type: 'PED_TIMER' }
+).value;
 
 // => { red: 'wait' }
 
@@ -308,7 +315,9 @@ const wordMachine = createMachine({
   }
 });
 
-const boldState = wordMachine.transition('bold.off', { type: 'TOGGLE_BOLD' }).value;
+const boldState = wordMachine.transition('bold.off', {
+  type: 'TOGGLE_BOLD'
+}).value;
 
 // {
 //   bold: 'on',
@@ -364,7 +373,9 @@ const paymentMachine = createMachine({
   }
 });
 
-const checkState = paymentMachine.transition('method.cash', { type: 'SWITCH_CHECK' });
+const checkState = paymentMachine.transition('method.cash', {
+  type: 'SWITCH_CHECK'
+});
 
 // => State {
 //   value: { method: 'check' },
@@ -378,7 +389,9 @@ const reviewState = paymentMachine.transition(checkState, { type: 'NEXT' });
 //   history: State { ... }
 // }
 
-const previousState = paymentMachine.transition(reviewState, { type: 'PREVIOUS' }).value;
+const previousState = paymentMachine.transition(reviewState, {
+  type: 'PREVIOUS'
+}).value;
 
 // => { method: 'check' }
 ```
