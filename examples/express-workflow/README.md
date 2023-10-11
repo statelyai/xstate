@@ -6,6 +6,8 @@ This is a simple workflow engine built with:
 - TypeScript
 - Express
 
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/express-workflow?file=index.ts)
+
 ## Usage
 
 ```bash
