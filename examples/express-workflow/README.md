@@ -20,7 +20,7 @@ pnpm start
 Creates a new workflow instance.
 
 ```bash
-curl -X POST http://localhost:3000/workflows
+curl -X POST http://localhost:4242/workflows
 ```
 
 Example response:
@@ -36,8 +36,9 @@ Example response:
 Sends an event to a workflow instance.
 
 ```bash
-# Replace :id with the workflow ID; e.g. http://localhost:3000/workflows/7ky252
-curl -X POST http://localhost:3000/workflows/:id -d '{"type": "TIMER"}'
+# Replace :id with the workflow ID; e.g. http://localhost:4242/workflows/7ky252
+# the body should be JSON
+curl -X POST http://localhost:4242/workflows/:id -d '{"type": "TIMER"}' -H "Content-Type: application/json"
 ```
 
 ### GET `/workflows/:id`
@@ -45,5 +46,5 @@ curl -X POST http://localhost:3000/workflows/:id -d '{"type": "TIMER"}'
 Gets the current state of a workflow instance.
 
 ```bash
-curl -X GET http://localhost:3000/workflows/:id
+curl -X GET http://localhost:4242/workflows/:id
 ```

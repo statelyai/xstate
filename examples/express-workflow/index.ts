@@ -108,6 +108,28 @@ app.get('/workflows/:workflowId', (req, res) => {
   res.json(persistedState);
 });
 
+app.get('/', (_, res) => {
+  res.send(`
+    <html>
+      <body>
+        <h1>Express Workflow</h1>
+        <p>Start a new workflow instance:</p>
+        <pre>
+          curl -X POST http://localhost:4242/workflows
+        </pre>
+        <p>Send an event to a workflow instance:</p>
+        <pre>
+          curl -X POST http://localhost:4242/workflows/:workflowId -d '{"type":"TIMER"}'
+        </pre>
+        <p>Get the current state of a workflow instance:</p>
+        <pre>
+          curl -X GET http://localhost:4242/workflows/:workflowId
+        </pre>
+      </body>
+    </html>
+  `);
+});
+
 app.listen(4242, () => {
   console.log('Server listening on port 4242');
 });
