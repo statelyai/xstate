@@ -121,7 +121,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     expect(actual).toEqual([42]);
   });
 
-  it('should warn when machine reference is updated during the hook lifecycle', () => {
+  it('should not warn when machine option reference is updated during the hook lifecycle', () => {
     console.warn = jest.fn();
     const machine = createMachine({
       initial: 'foo',
@@ -166,16 +166,81 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
 
     fireEvent.click(screen.getByRole('button'));
 
+    expect(console.warn).toHaveBeenCalledTimes(0);
+  });
+
+  // ------
+
+  it('should warn when machine config reference is updated during the hook lifecycle', () => {
+    console.warn = jest.fn();
+    const machine1 = createMachine({
+      initial: 'foo',
+      context: { id: 1 },
+      states: {
+        foo: {
+          on: {
+            CHECK: {
+              target: 'bar',
+              cond: 'hasOverflown'
+            }
+          }
+        },
+        bar: {}
+      }
+    });
+    const machine2 = createMachine({
+      initial: 'foo',
+      context: { id: 1 },
+      states: {
+        foo: {
+          on: {
+            CHECK: {
+              target: 'bar',
+              cond: 'hasOverflown'
+            }
+          }
+        },
+        bar: {}
+      }
+    });
+    const App = () => {
+      const [id, setId] = React.useState(1);
+      const [, send] = useMachine(
+        (id === 1 ? machine1 : machine2).withConfig({
+          guards: {
+            hasOverflown: () => id > 1
+          }
+        })
+      );
+
+      return (
+        <>
+          <button
+            onClick={() => {
+              setId(2);
+              send('CHECK');
+            }}
+          >
+            update id
+          </button>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button'));
+
     expect(console.warn).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
     expect((console.warn as jest.Mock).mock.calls[0][0]).toMatchInlineSnapshot(`
       "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
-      Please make sure that you pass the same Machine as argument each time."
+      Please make sure that you pass the same instance of the config argument to createMachine(...) each time. The options argument can change between renders"
     `);
     if (suiteKey === 'strict') {
       expect((console.warn as jest.Mock).mock.calls[1][0])
         .toMatchInlineSnapshot(`
         "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
-        Please make sure that you pass the same Machine as argument each time."
+        Please make sure that you pass the same instance of the config argument to createMachine(...) each time. The options argument can change between renders"
       `);
     }
   });

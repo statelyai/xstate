@@ -43,10 +43,10 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(stateMachine);
 
-    if (stateMachine !== initialMachine) {
+    if (stateMachine.config !== initialMachine.config) {
       console.warn(
         'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
-          'Please make sure that you pass the same Machine as argument each time.'
+          'Please make sure that you pass the same instance of the config argument to createMachine(...) each time. The options argument can change between renders'
       );
     }
   }
