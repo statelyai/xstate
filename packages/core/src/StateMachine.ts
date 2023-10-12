@@ -625,34 +625,6 @@ export class StateMachine<
       new State({ ...snapshot, children }, this) as any
     );
 
-    // TODO: DRY this up
-    restoredSnapshot.configuration.forEach((stateNode) => {
-      if (stateNode.invoke) {
-        stateNode.invoke.forEach((invokeConfig) => {
-          const { id, src } = invokeConfig;
-
-          if (children[id]) {
-            return;
-          }
-
-          const referenced = resolveReferencedActor(
-            this.implementations.actors[src]
-          );
-
-          if (referenced) {
-            const actorRef = createActor(referenced.src, {
-              id,
-              parent: _actorCtx?.self,
-              input:
-                'input' in invokeConfig ? invokeConfig.input : referenced.input
-            });
-
-            children[id] = actorRef;
-          }
-        });
-      }
-    });
-
     let seen = new Set();
 
     function reviveContext(

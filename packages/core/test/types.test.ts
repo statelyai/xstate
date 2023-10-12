@@ -461,7 +461,7 @@ describe('events', () => {
     service.send({ type: 'UNKNOWN' });
   });
 
-  it('event type should be inferrable from a simple state machine type', () => {
+  it('event type should be inferable from a simple state machine type', () => {
     const toggleMachine = createMachine({
       types: {} as {
         context: {
@@ -724,7 +724,7 @@ describe('events', () => {
 });
 
 describe('interpreter', () => {
-  it('should be convertable to Rx observable', () => {
+  it('should be convertible to Rx observable', () => {
     const s = createActor(
       createMachine({
         types: {
@@ -4008,7 +4008,7 @@ describe('tags', () => {
     actor.getSnapshot().hasTag('a');
   });
 
-  it('`hasTag` should not allow checking a tag ouside of the defined ones', () => {
+  it('`hasTag` should not allow checking a tag outside of the defined ones', () => {
     const machine = createMachine({
       types: {} as {
         tags: 'a' | 'b' | 'c';

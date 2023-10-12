@@ -731,28 +731,54 @@ describe('machine logic', () => {
     );
   });
 
-  it('should invoke an actor even if missing in persisted state', () => {
+  it('should not invoke an actor if it is missing in persisted state', () => {
     const machine = createMachine({
-      invoke: {
-        id: 'child',
-        src: createMachine({
-          initial: 'inner',
-          states: { inner: {} }
-        })
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            id: 'child',
+            src: createMachine({
+              context: ({ input }) => ({
+                // this is only meant to showcase why we can't invoke this actor when it's missing in the persisted state
+                // because we don't have access to the right input as it depends on the event that was used to enter state `b`
+                value: input.deep.prop
+              })
+            }),
+            input: ({ event }) => event.data
+          }
+        }
       }
     });
 
     const actor = createActor(machine).start();
 
+    actor.send({
+      type: 'NEXT',
+      data: {
+        deep: {
+          prop: 'value'
+        }
+      }
+    });
+
+    expect(actor.getSnapshot().children.child).not.toBe(undefined);
+    expect(actor.getSnapshot().children.child.getSnapshot().context).toEqual({
+      value: 'value'
+    });
+
     const persisted = actor.getPersistedState();
 
     delete persisted?.children['child'];
 
-    const actor2 = createActor(machine, { state: persisted }).start();
+    const rehydratedActor = createActor(machine, { state: persisted }).start();
 
-    expect(actor2.getSnapshot().children.child.getSnapshot().value).toBe(
-      'inner'
-    );
+    expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
 
   it('should persist a spawned actor with referenced src', () => {

@@ -1,5 +1,47 @@
 # xstate
 
+## 5.0.0-beta.33
+
+### Minor Changes
+
+- [#4082](https://github.com/statelyai/xstate/pull/4082) [`13480c3a9`](https://github.com/statelyai/xstate/commit/13480c3a9183231ddf1c9c195f310a6d38c68c5b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now inspect actor system updates using the `inspect` option in `createActor(logic, { inspect })`. The types of **inspection events** you can observe include:
+
+  - `@xstate.actor` - An actor ref has been created in the system
+  - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
+  - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
+
+  ```ts
+  import { createMachine } from 'xstate';
+
+  const machine = createMachine({
+    // ...
+  });
+
+  const actor = createActor(machine, {
+    inspect: (inspectionEvent) => {
+      if (inspectionEvent.type === '@xstate.actor') {
+        console.log(inspectionEvent.actorRef);
+      }
+
+      if (inspectionEvent.type === '@xstate.event') {
+        console.log(inspectionEvent.sourceRef);
+        console.log(inspectionEvent.targetRef);
+        console.log(inspectionEvent.event);
+      }
+
+      if (inspectionEvent.type === '@xstate.snapshot') {
+        console.log(inspectionEvent.actorRef);
+        console.log(inspectionEvent.event);
+        console.log(inspectionEvent.snapshot);
+      }
+    }
+  });
+  ```
+
+### Patch Changes
+
+- [#4336](https://github.com/statelyai/xstate/pull/4336) [`17da18692`](https://github.com/statelyai/xstate/commit/17da18692ce33a1c7ab9e2dee8022ebc6c7899fc) Thanks [@Andarist](https://github.com/Andarist)! - Invoked actors will no longer be automatically started (added to `.children`) when those children are missing in the persisted state.
+
 ## 5.0.0-beta.32
 
 ### Patch Changes
@@ -1745,7 +1787,7 @@
 
 - [#3148](https://github.com/statelyai/xstate/pull/3148) [`7a68cbb61`](https://github.com/statelyai/xstate/commit/7a68cbb615afb6556c83868535dae67af366a117) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `onSnapshot` is now available for invoke configs. You can specify a transition there to be taken when a snapshot of an invoked actor gets updated. It works similarly to `onDone`/`onError`.
 
-* [#1041](https://github.com/statelyai/xstate/pull/1041) [`b24e47b9e`](https://github.com/statelyai/xstate/commit/b24e47b9e7a59a5b0527d4386cea3af16c84ca7a) Thanks [@Andarist](https://github.com/Andarist)! - Support for specifying states deep in the hierarchy has been added for the `initial` property. It's also now possible to specify multiple states as initial ones - so you can enter multiple descandants which have to be **parallel** to each other. Keep also in mind that you can only target descendant states with the `initial` property - it's not possible to target states from another regions.
+* [#1041](https://github.com/statelyai/xstate/pull/1041) [`b24e47b9e`](https://github.com/statelyai/xstate/commit/b24e47b9e7a59a5b0527d4386cea3af16c84ca7a) Thanks [@Andarist](https://github.com/Andarist)! - Support for specifying states deep in the hierarchy has been added for the `initial` property. It's also now possible to specify multiple states as initial ones - so you can enter multiple descendants which have to be **parallel** to each other. Keep also in mind that you can only target descendant states with the `initial` property - it's not possible to target states from another regions.
 
   Those are now possible:
 
@@ -3071,7 +3113,7 @@
 
   It is recommended that all `spawn(...)`-ed actors are lazy, to avoid accidentally initializing them e.g., when reading `machine.initialState` or calculating otherwise pure transitions. In V5, this will be enforced.
 
-- [`c1f3d260`](https://github.com/statelyai/xstate/commit/c1f3d26069ee70343f8045a48411e02a68f98cbd) [#1317](https://github.com/statelyai/xstate/pull/1317) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a type returned by a `raise` action - it's now `RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent>` instead of `RaiseAction<TEvent> | SendAction<TContext, TEvent, TEvent>`. This makes it comaptible in a broader range of scenarios.
+- [`c1f3d260`](https://github.com/statelyai/xstate/commit/c1f3d26069ee70343f8045a48411e02a68f98cbd) [#1317](https://github.com/statelyai/xstate/pull/1317) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a type returned by a `raise` action - it's now `RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent>` instead of `RaiseAction<TEvent> | SendAction<TContext, TEvent, TEvent>`. This makes it compatible in a broader range of scenarios.
 
 - [`8270d5a7`](https://github.com/statelyai/xstate/commit/8270d5a76c71add3a5109e069bd85716b230b5d4) [#1372](https://github.com/statelyai/xstate/pull/1372) Thanks [@christianchown](https://github.com/christianchown)! - Narrowed the `ServiceConfig` type definition to use a specific event type to prevent compilation errors on strictly-typed `MachineOptions`.
 

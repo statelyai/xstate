@@ -125,7 +125,7 @@ const testGroups: Record<string, string[]> = {
     // 'test0',
     // 'test1'
   ],
-  // 'send-data': ['send1'], // <content> conversion not implementd
+  // 'send-data': ['send1'], // <content> conversion not implemented
   // 'send-idlocation': ['test0'],
   // 'send-internal': ['test0'],
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],

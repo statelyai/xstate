@@ -250,7 +250,7 @@ describe('predictableExec', () => {
     expect(calledWith).toBe(1);
   });
 
-  it('initial actions should receive context updated only by preceeding assign actions', () => {
+  it('initial actions should receive context updated only by preceding assign actions', () => {
     const actual: number[] = [];
 
     const machine = createMachine({

@@ -27,7 +27,7 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 ---
 
-📖 [Read the documentation](https://stately.ai/docs/xstate-v5)
+📖 [Read the documentation](https://stately.ai/docs)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
