@@ -1178,12 +1178,12 @@ function enterStates(
     mutConfiguration.add(stateNodeToEnter);
     const actions: UnknownAction[] = [];
 
+    // Add entry actions
+    actions.push(...stateNodeToEnter.entry);
+
     for (const invokeDef of stateNodeToEnter.invoke) {
       actions.push(invoke(invokeDef));
     }
-
-    // Add entry actions
-    actions.push(...stateNodeToEnter.entry);
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
       for (const stateNode of statesForDefaultEntry) {
@@ -1192,7 +1192,13 @@ function enterStates(
       }
     }
 
-    nextState = resolveActionsAndContext(nextState, event, actorCtx, actions);
+    nextState = resolveActionsAndContext(
+      nextState,
+      event,
+      actorCtx,
+      actions,
+      stateNodeToEnter.invoke.map((invokeDef) => invokeDef.id)
+    );
 
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent!;
@@ -1436,16 +1442,24 @@ interface BuiltinAction {
     actorContext: AnyActorContext,
     state: AnyState,
     actionArgs: ActionArgs<any, any, any, any>,
-    action: unknown
+    action: unknown,
+    extra: unknown
   ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
+  retryResolve: (
+    actorContext: AnyActorContext,
+    state: AnyState,
+    params: unknown
+  ) => void;
   execute: (actorContext: AnyActorContext, params: unknown) => void;
 }
 
-export function resolveActionsAndContext(
+function resolveActionsAndContextWorker(
   currentState: AnyState,
   event: AnyEventObject,
   actorCtx: AnyActorContext,
-  actions: UnknownAction[]
+  actions: UnknownAction[],
+  extra: { deferredActorIds: string[] } | undefined,
+  retries: (readonly [BuiltinAction, unknown])[] | undefined
 ): AnyState {
   const { machine } = currentState;
   let intermediateState = currentState;
@@ -1512,11 +1526,16 @@ export function resolveActionsAndContext(
       actorCtx,
       intermediateState,
       actionArgs,
-      resolvedAction // this holds all params
+      resolvedAction, // this holds all params
+      extra
     );
     intermediateState = nextState;
 
-    if ('execute' in resolvedAction) {
+    if ('retryResolve' in builtinAction) {
+      retries?.push([builtinAction, params]);
+    }
+
+    if ('execute' in builtinAction) {
       if (actorCtx?.self.status === ActorStatus.Running) {
         builtinAction.execute(actorCtx!, params);
       } else {
@@ -1525,16 +1544,41 @@ export function resolveActionsAndContext(
     }
 
     if (actions) {
-      intermediateState = resolveActionsAndContext(
+      intermediateState = resolveActionsAndContextWorker(
         intermediateState,
         event,
         actorCtx,
-        actions
+        actions,
+        extra,
+        retries
       );
     }
   }
 
   return intermediateState;
+}
+
+export function resolveActionsAndContext(
+  currentState: AnyState,
+  event: AnyEventObject,
+  actorCtx: AnyActorContext,
+  actions: UnknownAction[],
+  deferredActorIds?: string[]
+): AnyState {
+  const retries: (readonly [BuiltinAction, unknown])[] | undefined =
+    deferredActorIds ? [] : undefined;
+  const nextState = resolveActionsAndContextWorker(
+    currentState,
+    event,
+    actorCtx,
+    actions,
+    deferredActorIds && { deferredActorIds },
+    retries
+  );
+  retries?.forEach(([builtinAction, params]) => {
+    builtinAction.retryResolve(actorCtx, nextState, params);
+  });
+  return nextState;
 }
 
 export function macrostep(

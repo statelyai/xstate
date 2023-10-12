@@ -15,7 +15,6 @@ import {
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
-  ActorLogic,
   ActorContext,
   ActorSystem,
   AnyActorLogic,
@@ -24,7 +23,6 @@ import type {
   PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef,
-  OutputFrom,
   DoneActorEvent
 } from './types.ts';
 import {
@@ -500,19 +498,19 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
-  public delaySend({
-    event,
-    id,
-    delay,
-    to
-  }: {
+  public delaySend(params: {
     event: EventObject;
     id: string | undefined;
     delay: number;
     to?: AnyActorRef;
   }): void {
+    const { event, id, delay } = params;
     const timerId = this.clock.setTimeout(() => {
-      this.system._relay(this, to ?? this, event as EventFromLogic<TLogic>);
+      this.system._relay(
+        this,
+        params.to ?? this,
+        event as EventFromLogic<TLogic>
+      );
     }, delay);
 
     // TODO: consider the rehydration story here

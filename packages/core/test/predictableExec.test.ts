@@ -415,11 +415,14 @@ describe('predictableExec', () => {
           entry: sendTo('myChild', { type: 'KNOCK_KNOCK' }),
           invoke: {
             id: 'myChild',
-            src: fromCallback(({ receive }) => {
-              receive((event) => {
-                received = event;
-              });
-              return () => {};
+            src: createMachine({
+              on: {
+                '*': {
+                  actions: ({ event }) => {
+                    received = event;
+                  }
+                }
+              }
             })
           }
         }
