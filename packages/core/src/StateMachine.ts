@@ -417,12 +417,9 @@ export class StateMachine<
     if (typeof context === 'function') {
       const assignment = ({ spawn, event }: any) =>
         context({ spawn, input: event.input });
-      return resolveActionsAndContext(
-        [assign(assignment)],
-        initEvent as TEvent,
-        preInitial,
-        actorCtx
-      ) as SnapshotFrom<this>;
+      return resolveActionsAndContext(preInitial, initEvent, actorCtx, [
+        assign(assignment)
+      ]) as SnapshotFrom<this>;
     }
 
     return preInitial;
