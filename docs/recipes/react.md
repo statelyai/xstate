@@ -280,3 +280,64 @@ class Toggle extends React.Component {
   }
 }
 ```
+
+## Reference hooks safely
+
+When working with React hook we might want to pass a reference to a hook callback that is changing between renders. When done incorrectly you might notice this warning in the console log `Machine given to 'useMachine' has changed between renders.`. This can be addressed in the following ways:
+
+```jsx
+const config = {
+  id: 'machine',
+  /* ... */
+  entry: 'someHookAction', // actions have to be referenced by name
+} as const;
+
+const machine = createMachine(config);
+
+const Component = () => {
+  const doStuff = useSomeHook();
+  const [state, send] = useMachine(machine, React.useMemo(() => {
+    actions: {
+      someHookAction: (ctx) => doStuff(ctx);
+    }
+  }, [doStuff]));
+  return <></>
+}
+```
+
+The above approach won't work if you invoke nested machine. Although a bit more verbose the example below addresses the issue where the config is preserved while the reference to `doStuff` can chance between renders
+
+```jsx
+const configA = {
+  id: 'machineA',
+  /* ... */
+  entry: 'someHookAction', // actions have to be referenced by name
+} as const;
+
+const createMachineA = ({ doStuff }) => createMachine(configA, {
+
+});
+
+const configB = {
+  id: 'machineB',
+  /* ... */
+  invoke: {
+      src: 'machineA'
+      id: 'machineA'
+  }
+} as const;
+
+const createMachineB = ({ doStuff }) => createMachine(configB, {
+  services: {
+    machineA: () => createMachineA({ doStuff })
+  }
+});
+
+const machine = createMachine(config);
+
+const Component = () => {
+  const doStuff = useSomeHook();
+  const [state, send] = useMachine(React.useMemo(() => createMachineB({ doStuff }), [doStuff]));
+  return <></>
+}
+```
