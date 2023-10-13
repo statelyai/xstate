@@ -1213,7 +1213,7 @@ function enterStates(
           stateNodeToEnter.output
             ? resolveOutput(
                 stateNodeToEnter.output,
-                nextState.context, // TODO: this was likely buggy, write a test case that proved it
+                nextState.context,
                 event,
                 actorCtx.self
               )

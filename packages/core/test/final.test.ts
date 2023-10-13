@@ -193,4 +193,42 @@ describe('final states', () => {
     const actor = createActor(machine).start();
     expect(actor.getSnapshot().output!.selfRef.send).toBeDefined();
   });
+
+  it('state output should be able to use context updated by the entry action of the reached final state', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      context: {
+        count: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          initial: 'a1',
+          states: {
+            a1: {
+              on: {
+                NEXT: 'a2'
+              }
+            },
+            a2: {
+              type: 'final',
+              entry: assign({
+                count: 1
+              }),
+              output: ({ context }) => context.count
+            }
+          },
+          onDone: {
+            actions: ({ event }) => {
+              spy(event.output);
+            }
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledWith(1);
+  });
 });
