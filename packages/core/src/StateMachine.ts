@@ -490,7 +490,7 @@ export class StateMachine<
   ): void {
     Object.values(state.children).forEach((child: any) => {
       if (child.status === 0) {
-        child.start?.();
+        child.start();
       }
     });
   }
