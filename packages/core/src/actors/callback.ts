@@ -9,7 +9,7 @@ import {
   Snapshot,
   HomomorphicOmit
 } from '../types';
-import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
+import { XSTATE_STOP } from '../constants.ts';
 
 type CallbackSnapshot<TInput, TEvent> = Snapshot<undefined> & {
   input: TInput;
@@ -63,10 +63,10 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
   const logic: CallbackActorLogic<TEvent, TInput> = {
     config: invokeCallback,
     start: (_state, { self, system }) => {
-      system._relay(self, self, { type: XSTATE_INIT });
+      system._relay(self, self, { type: 'xstate.create' });
     },
     transition: (state, event, { self, system }) => {
-      if (event.type === XSTATE_INIT) {
+      if (event.type === 'xstate.create') {
         const sendBack = (eventForParent: AnyEventObject) => {
           if (state.status === 'stopped') {
             return;

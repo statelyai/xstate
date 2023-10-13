@@ -20,8 +20,13 @@ import {
   createActor,
   sendParent,
   EventFrom,
-  Snapshot
+  Snapshot,
+  ActorRef
 } from '../src/index.ts';
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const user = { name: 'David' };
 
@@ -3393,6 +3398,52 @@ describe('invoke', () => {
     });
 
     expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to receive a delayed event sent by the entry action of the invoking state', async () => {
+    const child = createMachine({
+      types: {} as {
+        events: {
+          type: 'PING';
+          origin: ActorRef<{ type: 'PONG' }, Snapshot<unknown>>;
+        };
+      },
+      on: {
+        PING: {
+          actions: sendTo(({ event }) => event.origin, { type: 'PONG' })
+        }
+      }
+    });
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            id: 'foo',
+            src: child
+          },
+          entry: sendTo('foo', ({ self }) => ({ type: 'PING', origin: self }), {
+            delay: 1
+          }),
+          on: {
+            PONG: 'c'
+          }
+        },
+        c: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+    await sleep(3);
+    expect(actorRef.getSnapshot().status).toBe('done');
   });
 });
 

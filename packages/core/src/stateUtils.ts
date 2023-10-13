@@ -1059,7 +1059,6 @@ function microstepProcedure(
   actorCtx: AnyActorContext,
   isInitial: boolean
 ): typeof currentState {
-  const actions: UnknownAction[] = [];
   const historyValue = {
     ...currentState.historyValue
   };
@@ -1071,26 +1070,42 @@ function microstepProcedure(
   );
 
   const internalQueue = [...currentState._internalQueue];
+  // TODO: this `cloneState` is really just a hack to prevent infinite loops
+  // we need to take another look at how internal queue is managed
+  let nextState = cloneState(currentState, {
+    _internalQueue: []
+  });
 
   // Exit states
   if (!isInitial) {
-    exitStates(filteredTransitions, mutConfiguration, historyValue, actions);
+    nextState = exitStates(
+      nextState,
+      event,
+      actorCtx,
+      filteredTransitions,
+      mutConfiguration,
+      historyValue
+    );
   }
 
   // Execute transition content
-  actions.push(...filteredTransitions.flatMap((t) => t.actions));
+  nextState = resolveActionsAndContext(
+    nextState,
+    event,
+    actorCtx,
+    filteredTransitions.flatMap((t) => t.actions)
+  );
 
   // Enter states
-  enterStates(
+  nextState = enterStates(
+    nextState,
     event,
+    actorCtx,
     filteredTransitions,
     mutConfiguration,
-    actions,
     internalQueue,
-    currentState,
     historyValue,
-    isInitial,
-    actorCtx
+    isInitial
   );
 
   const nextConfiguration = [...mutConfiguration];
@@ -1098,20 +1113,17 @@ function microstepProcedure(
   const done = isInFinalState(nextConfiguration);
 
   if (done) {
-    const finalActions = nextConfiguration
-      .sort((a, b) => b.order - a.order)
-      .flatMap((state) => state.exit);
-    actions.push(...finalActions);
+    nextState = resolveActionsAndContext(
+      nextState,
+      event,
+      actorCtx,
+      nextConfiguration
+        .sort((a, b) => b.order - a.order)
+        .flatMap((state) => state.exit)
+    );
   }
 
   try {
-    const nextState = resolveActionsAndContext(
-      actions,
-      event,
-      currentState,
-      actorCtx
-    );
-
     const output = done
       ? getOutput(nextConfiguration, nextState.context, event, actorCtx.self)
       : undefined;
@@ -1135,16 +1147,16 @@ function microstepProcedure(
 }
 
 function enterStates(
+  currentState: AnyState,
   event: AnyEventObject,
+  actorCtx: AnyActorContext,
   filteredTransitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  actions: UnknownAction[],
   internalQueue: AnyEventObject[],
-  currentState: AnyState,
   historyValue: HistoryValue<any, any>,
-  isInitial: boolean,
-  actorContext: AnyActorContext
-): void {
+  isInitial: boolean
+) {
+  let nextState = currentState;
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
 
@@ -1164,13 +1176,14 @@ function enterStates(
     (a, b) => a.order - b.order
   )) {
     mutConfiguration.add(stateNodeToEnter);
+    const actions: UnknownAction[] = [];
+
+    // Add entry actions
+    actions.push(...stateNodeToEnter.entry);
 
     for (const invokeDef of stateNodeToEnter.invoke) {
       actions.push(invoke(invokeDef));
     }
-
-    // Add entry actions
-    actions.push(...stateNodeToEnter.entry);
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
       for (const stateNode of statesForDefaultEntry) {
@@ -1178,6 +1191,15 @@ function enterStates(
         actions.push(...initialActions);
       }
     }
+
+    nextState = resolveActionsAndContext(
+      nextState,
+      event,
+      actorCtx,
+      actions,
+      stateNodeToEnter.invoke.map((invokeDef) => invokeDef.id)
+    );
+
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent!;
 
@@ -1191,9 +1213,9 @@ function enterStates(
           stateNodeToEnter.output
             ? resolveOutput(
                 stateNodeToEnter.output,
-                currentState.context,
+                nextState.context,
                 event,
-                actorContext.self
+                actorCtx.self
               )
             : undefined
         )
@@ -1214,6 +1236,8 @@ function enterStates(
       }
     }
   }
+
+  return nextState;
 }
 
 function computeEntrySet(
@@ -1369,11 +1393,14 @@ function addAncestorStatesToEnter(
 }
 
 function exitStates(
+  currentState: AnyState,
+  event: AnyEventObject,
+  actorCtx: AnyActorContext,
   transitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  historyValue: HistoryValue<any, any>,
-  actions: UnknownAction[]
+  historyValue: HistoryValue<any, any>
 ) {
+  let nextState = currentState;
   const statesToExit = computeExitSet(
     transitions,
     mutConfiguration,
@@ -1400,9 +1427,13 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    actions.push(...s.exit, ...s.invoke.map((def) => stop(def.id)));
+    nextState = resolveActionsAndContext(nextState, event, actorCtx, [
+      ...s.exit,
+      ...s.invoke.map((def) => stop(def.id))
+    ]);
     mutConfiguration.delete(s);
   }
+  return nextState;
 }
 
 interface BuiltinAction {
@@ -1411,26 +1442,27 @@ interface BuiltinAction {
     actorContext: AnyActorContext,
     state: AnyState,
     actionArgs: ActionArgs<any, any, any, any>,
-    action: unknown
+    action: unknown,
+    extra: unknown
   ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
+  retryResolve: (
+    actorContext: AnyActorContext,
+    state: AnyState,
+    params: unknown
+  ) => void;
   execute: (actorContext: AnyActorContext, params: unknown) => void;
 }
 
-export function resolveActionsAndContext<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject
->(
-  actions: UnknownAction[],
-  event: TExpressionEvent,
+function resolveActionsAndContextWorker(
   currentState: AnyState,
-  actorCtx: AnyActorContext
+  event: AnyEventObject,
+  actorCtx: AnyActorContext,
+  actions: UnknownAction[],
+  extra: { deferredActorIds: string[] } | undefined,
+  retries: (readonly [BuiltinAction, unknown])[] | undefined
 ): AnyState {
   const { machine } = currentState;
-  // TODO: this `cloneState` is really just a hack to prevent infinite loops
-  // we need to take another look at how internal queue is managed
-  let intermediateState = cloneState(currentState, {
-    _internalQueue: []
-  });
+  let intermediateState = currentState;
 
   for (const action of actions) {
     const isInline = typeof action === 'function';
@@ -1494,11 +1526,16 @@ export function resolveActionsAndContext<
       actorCtx,
       intermediateState,
       actionArgs,
-      resolvedAction // this holds all params
+      resolvedAction, // this holds all params
+      extra
     );
     intermediateState = nextState;
 
-    if ('execute' in resolvedAction) {
+    if ('retryResolve' in builtinAction) {
+      retries?.push([builtinAction, params]);
+    }
+
+    if ('execute' in builtinAction) {
       if (actorCtx?.self.status === ActorStatus.Running) {
         builtinAction.execute(actorCtx!, params);
       } else {
@@ -1507,16 +1544,41 @@ export function resolveActionsAndContext<
     }
 
     if (actions) {
-      intermediateState = resolveActionsAndContext(
-        actions,
-        event,
+      intermediateState = resolveActionsAndContextWorker(
         intermediateState,
-        actorCtx
+        event,
+        actorCtx,
+        actions,
+        extra,
+        retries
       );
     }
   }
 
   return intermediateState;
+}
+
+export function resolveActionsAndContext(
+  currentState: AnyState,
+  event: AnyEventObject,
+  actorCtx: AnyActorContext,
+  actions: UnknownAction[],
+  deferredActorIds?: string[]
+): AnyState {
+  const retries: (readonly [BuiltinAction, unknown])[] | undefined =
+    deferredActorIds ? [] : undefined;
+  const nextState = resolveActionsAndContextWorker(
+    currentState,
+    event,
+    actorCtx,
+    actions,
+    deferredActorIds && { deferredActorIds },
+    retries
+  );
+  retries?.forEach(([builtinAction, params]) => {
+    builtinAction.retryResolve(actorCtx, nextState, params);
+  });
+  return nextState;
 }
 
 export function macrostep(
@@ -1616,7 +1678,7 @@ function stopStep(
     actions.push(stop(child));
   }
 
-  return resolveActionsAndContext(actions, event, nextState, actorCtx);
+  return resolveActionsAndContext(nextState, event, actorCtx, actions);
 }
 
 function selectTransitions(

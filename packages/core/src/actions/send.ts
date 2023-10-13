@@ -60,7 +60,8 @@ function resolveSendTo(
           EventObject
         >
       | undefined;
-  }
+  },
+  extra: { deferredActorIds: string[] } | undefined
 ) {
   const delaysMap = state.machine.implementations.delays;
 
@@ -82,7 +83,7 @@ function resolveSendTo(
   }
 
   const resolvedTarget = typeof to === 'function' ? to(args) : to;
-  let targetActorRef: AnyActorRef | undefined;
+  let targetActorRef: AnyActorRef | string | undefined;
 
   if (typeof resolvedTarget === 'string') {
     if (resolvedTarget === SpecialTargets.Parent) {
@@ -94,7 +95,9 @@ function resolveSendTo(
       // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
       targetActorRef = state.children[resolvedTarget.slice(2)];
     } else {
-      targetActorRef = state.children[resolvedTarget];
+      targetActorRef = extra?.deferredActorIds.includes(resolvedTarget)
+        ? resolvedTarget
+        : state.children[resolvedTarget];
     }
     if (!targetActorRef) {
       throw new Error(
@@ -110,6 +113,22 @@ function resolveSendTo(
     { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
   ];
 }
+
+function retryResolveSendTo(
+  _: AnyActorContext,
+  state: AnyState,
+  params: {
+    to: AnyActorRef;
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+  }
+) {
+  if (typeof params.to === 'string') {
+    params.to = state.children[params.to];
+  }
+}
+
 function executeSendTo(
   actorContext: AnyActorContext,
   params: {
@@ -126,9 +145,8 @@ function executeSendTo(
     return;
   }
 
-  const { to, event } = params;
-
   actorContext.defer(() => {
+    const { to, event } = params;
     actorContext?.system._relay(
       actorContext.self,
       to,
@@ -205,6 +223,7 @@ export function sendTo<
   sendTo.delay = options?.delay;
 
   sendTo.resolve = resolveSendTo;
+  sendTo.retryResolve = retryResolveSendTo;
   sendTo.execute = executeSendTo;
 
   return sendTo;
