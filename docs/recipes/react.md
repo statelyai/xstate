@@ -296,11 +296,11 @@ const machine = createMachine(config);
 
 const Component = () => {
   const doStuff = useSomeHook();
-  const [state, send] = useMachine(machine, React.useMemo(() => {
+  const [state, send] = useMachine(machine, React.useMemo(() => ({
     actions: {
       someHookAction: (ctx) => doStuff(ctx);
     }
-  }, [doStuff]));
+  }), [doStuff]));
   return <></>
 }
 ```
