@@ -1,5 +1,22 @@
 # xstate
 
+## 5.0.0-beta.34
+
+### Patch Changes
+
+- [#4351](https://github.com/statelyai/xstate/pull/4351) [`6f1818365`](https://github.com/statelyai/xstate/commit/6f1818365922749a50501a7475e0309fa4d229ca) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that prevented `invoke.input` from seeing the context updated by the same-level `entry` actions.
+
+- [#4344](https://github.com/statelyai/xstate/pull/4344) [`f9b17f1e9`](https://github.com/statelyai/xstate/commit/f9b17f1e9aa7fed15749af85c27004bc6ec9a24a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Inspection events are now exported:
+
+  ```ts
+  import type {
+    InspectedActorEvent,
+    InspectedEventEvent,
+    InspectedSnapshotEvent,
+    InspectionEvent
+  } from 'xstate';
+  ```
+
 ## 5.0.0-beta.33
 
 ### Minor Changes
