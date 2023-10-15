@@ -1,4 +1,10 @@
-import { assign, createMachine, createActor } from '../src/index.ts';
+import {
+  assign,
+  createMachine,
+  createActor,
+  fromPromise
+} from '../src/index.ts';
+import { provide } from '../src/provide.ts';
 
 interface CounterContext {
   count: number;
@@ -359,5 +365,58 @@ describe('assign meta', () => {
     const service = createActor(machine).start();
 
     service.send({ type: 'EVENT' });
+  });
+});
+
+it('should type events from onDone properly', () => {
+  const stringSrc = fromPromise(() => Promise.resolve('string'));
+
+  const p = provide({
+    actors: {
+      stringSrc
+    },
+    actions: {
+      doSomething({ params }: { params: { foo: string } }) {
+        return params.foo;
+      }
+    }
+  });
+
+  p.createMachine({
+    types: {
+      context: {} as { data: unknown },
+      events: {} as { type: 'foo'; data: string }
+    },
+    context: {
+      data: null
+    },
+    on: {
+      foo: {
+        actions: assign({
+          data: ({ event }) => event.data
+        })
+      }
+    },
+    invoke: {
+      src: 'stringSrc',
+      onDone: {
+        actions: [
+          assign({
+            data: ({ event }) => {
+              event.output satisfies string;
+
+              // @ts-expect-error
+              event.output satisfies number;
+            }
+          }),
+          ({ event }) => {
+            event.output satisfies string;
+
+            // @ts-expect-error
+            event.output satisfies number;
+          }
+        ]
+      }
+    }
   });
 });

@@ -44,6 +44,9 @@ export type IsNever<T> = [T] extends [never] ? true : false;
 export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
+export type Entries<T> = {
+  [K in keyof T]: [K, T[K]];
+}[keyof T][];
 export type Merge<M, N> = Omit<M, keyof N> & N;
 export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
   [E in T as E[P]]: E;
