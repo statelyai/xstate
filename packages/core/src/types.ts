@@ -442,22 +442,7 @@ export type DelayedTransitions<
               TDelay
             >
           >;
-    }
-  | Array<
-      TransitionConfig<
-        TContext,
-        TEvent,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay
-      > & {
-        delay:
-          | Delay<TDelay>
-          | ((args: UnifiedArg<TContext, TEvent, TEvent>) => Delay<TDelay>);
-      }
-    >;
+    };
 
 export type StateTypes =
   | 'atomic'
