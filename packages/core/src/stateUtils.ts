@@ -126,7 +126,9 @@ export function getConfiguration(
   for (const s of configuration) {
     // if previously active, add existing child nodes
     if (s.type === 'compound' && (!adjList.get(s) || !adjList.get(s)!.length)) {
-      getInitialStateNodes(s).forEach((sn) => configurationSet.add(sn));
+      getInitialStateNodesWithTheirAncestors(s).forEach((sn) =>
+        configurationSet.add(sn)
+      );
     } else {
       if (s.type === 'parallel') {
         for (const child of getChildren(s)) {
@@ -135,7 +137,8 @@ export function getConfiguration(
           }
 
           if (!configurationSet.has(child)) {
-            for (const initialStateNode of getInitialStateNodes(child)) {
+            const initialStates = getInitialStateNodesWithTheirAncestors(child);
+            for (const initialStateNode of initialStates) {
               configurationSet.add(initialStateNode);
             }
           }
@@ -594,9 +597,19 @@ function isHistoryNode(
   return stateNode.type === 'history';
 }
 
-export function getInitialStateNodes(
+export function getInitialStateNodesWithTheirAncestors(
   stateNode: AnyStateNode
-): Array<AnyStateNode> {
+) {
+  const states = getInitialStateNodes(stateNode);
+  for (const initialState of states) {
+    for (const ancestor of getProperAncestors(initialState, stateNode)) {
+      states.add(ancestor);
+    }
+  }
+  return states;
+}
+
+export function getInitialStateNodes(stateNode: AnyStateNode) {
   const set = new Set<AnyStateNode>();
 
   function iter(descStateNode: AnyStateNode): void {
@@ -606,10 +619,6 @@ export function getInitialStateNodes(
     set.add(descStateNode);
     if (descStateNode.type === 'compound') {
       for (const targetStateNode of descStateNode.initial.target) {
-        for (const a of getProperAncestors(targetStateNode, stateNode)) {
-          set.add(a);
-        }
-
         iter(targetStateNode);
       }
     } else if (descStateNode.type === 'parallel') {
@@ -621,7 +630,7 @@ export function getInitialStateNodes(
 
   iter(stateNode);
 
-  return [...set];
+  return set;
 }
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
