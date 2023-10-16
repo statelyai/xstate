@@ -35,6 +35,8 @@ import {
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
+export const $$ACTOR_TYPE = 1;
+
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
 ) => void;
@@ -536,6 +538,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
   public toJSON() {
     return {
+      xstate$$type: $$ACTOR_TYPE,
       id: this.id
     };
   }

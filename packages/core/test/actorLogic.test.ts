@@ -781,6 +781,63 @@ describe('machine logic', () => {
     expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
 
+  it('should persist a spawned actor with referenced src', () => {
+    const reducer = fromTransition((s) => s, { count: 42 });
+    const machine = createMachine({
+      types: {
+        context: {} as {
+          ref: AnyActorRef;
+        },
+        actors: {} as {
+          src: 'reducer';
+          logic: typeof reducer;
+          ids: 'child';
+        }
+      },
+      context: ({ spawn }) => ({
+        ref: spawn('reducer', { id: 'child' })
+      })
+    }).provide({
+      actors: {
+        reducer
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    const persistedState = actor.getPersistedState()!;
+
+    expect(persistedState.children.child.state.context).toEqual({ count: 42 });
+
+    const newActor = createActor(machine, {
+      state: persistedState
+    }).start();
+
+    const snapshot = newActor.getSnapshot();
+
+    expect(snapshot.context.ref).toBe(snapshot.children.child);
+
+    expect(snapshot.context.ref.getSnapshot().context.count).toBe(42);
+  });
+
+  it('should not persist a spawned actor with inline src', () => {
+    const machine = createMachine({
+      context: ({ spawn }) => {
+        return {
+          childRef: spawn(createMachine({}))
+        };
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(() =>
+      actorRef.getPersistedState()
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"An inline child actor cannot be persisted."`
+    );
+  });
+
   it('should have access to the system', () => {
     expect.assertions(1);
     const machine = createMachine({

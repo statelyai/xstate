@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { STATE_DELIMITER } from './constants.ts';
+import { $$ACTOR_TYPE } from './interpreter.ts';
 import { memo } from './memo.ts';
 import { MachineSnapshot } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
@@ -309,7 +310,8 @@ export function getPersistedState<
   TOutput,
   TResolvedTypesMeta
 > {
-  const { configuration, tags, machine, children, ...jsonValues } = state;
+  const { configuration, tags, machine, children, context, ...jsonValues } =
+    state;
 
   const childrenJson: Partial<
     PersistedMachineState<
@@ -324,6 +326,9 @@ export function getPersistedState<
 
   for (const id in children) {
     const child = children[id] as any;
+    if (isDevelopment && typeof child.src !== 'string') {
+      throw new Error('An inline child actor cannot be persisted.');
+    }
     childrenJson[id as keyof typeof childrenJson] = {
       state: child.getPersistedState?.(),
       src: child.src
@@ -332,6 +337,9 @@ export function getPersistedState<
 
   return {
     ...jsonValues,
+    // TODO: this makes `PersistedMachineState`'s type kind of a lie
+    // it doesn't truly use `TContext` but rather some kind of a derived form of it
+    context: persistContext(context) as any,
     children: childrenJson
   } as PersistedMachineState<
     TContext,
@@ -341,4 +349,31 @@ export function getPersistedState<
     TOutput,
     TResolvedTypesMeta
   >;
+}
+
+function persistContext(contextPart: Record<string, unknown>) {
+  let copy: typeof contextPart | undefined;
+  for (const key in contextPart) {
+    const value = contextPart[key];
+    if (value && typeof value === 'object') {
+      if ('sessionId' in value && 'send' in value && 'ref' in value) {
+        copy ??= Array.isArray(contextPart)
+          ? (contextPart.slice() as typeof contextPart)
+          : { ...contextPart };
+        copy[key] = {
+          xstate$$type: $$ACTOR_TYPE,
+          id: (value as any as AnyActorRef).id
+        };
+      } else {
+        const result = persistContext(value as typeof contextPart);
+        if (result !== value) {
+          copy ??= Array.isArray(contextPart)
+            ? (contextPart.slice() as typeof contextPart)
+            : { ...contextPart };
+          copy[key] = result;
+        }
+      }
+    }
+  }
+  return copy ?? contextPart;
 }

@@ -91,6 +91,7 @@ export function createSpawner(
                 self: actorContext.self
               })
             : input,
+        src,
         systemId
       }) as any;
       spawnedChildren[actorRef.id] = actorRef;
@@ -117,6 +118,7 @@ export function createSpawner(
         id: options.id,
         parent: actorContext.self,
         input: options.input,
+        src: undefined,
         systemId
       });
 
