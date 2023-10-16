@@ -233,8 +233,7 @@ describe('final states', () => {
   });
 
   it('should emit a done state event for a parallel state when its parallel children reach their final states', () => {
-    const theMachine = createMachine({
-      id: 'theMachine',
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -258,10 +257,6 @@ describe('final states', () => {
                 },
                 second_two: {
                   initial: 'start',
-                  meta: {
-                    description:
-                      "The example fails without both instances of `second_two` but I've left them in so it looks a bit more like the parallel machine I'm actually tring to build."
-                  },
                   states: {
                     start: {
                       on: {
@@ -307,15 +302,15 @@ describe('final states', () => {
               }
             }
           },
-          onDone: '#theMachine.final'
+          onDone: 'done'
         },
-        final: {
+        done: {
           type: 'final'
         }
       }
     });
 
-    const actorRef = createActor(theMachine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({
       type: 'finish_one_alpha'
