@@ -10,7 +10,7 @@ export type InspectMachineEvent =
   | { type: 'unload' }
   | { type: 'disconnect' }
   | { type: 'xstate.event'; event: string; service: string }
-  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any>, 'send'> };
+  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any, any>, 'send'> };
 
 export function createInspectMachine(
   devTools: XStateDevInterface = (globalThis as any).__xstate__,
@@ -24,12 +24,13 @@ export function createInspectMachine(
     serviceMap.set(service.sessionId, service);
   });
 
-  return createMachine<
-    {
-      client?: Pick<ActorRef<any>, 'send'>;
+  return createMachine({
+    types: {} as {
+      context: {
+        client?: Pick<ActorRef<any, any>, 'send'>;
+      };
+      events: InspectMachineEvent;
     },
-    InspectMachineEvent
-  >({
     initial: 'pendingConnection',
     context: {
       client: undefined

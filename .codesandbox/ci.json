@@ -1,7 +1,6 @@
 {
   "packages": [
     "packages/core",
-    "packages/xstate-fsm",
     "packages/xstate-graph",
     "packages/xstate-react",
     "packages/xstate-test"

@@ -1,5 +1,59 @@
 # @xstate/graph
 
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- [#4308](https://github.com/statelyai/xstate/pull/4308) [`af032db12`](https://github.com/statelyai/xstate/commit/af032db12057415955b0bf0487edc48ba570408d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Traversing state machines that have delayed transitions will now work as expected:
+
+  ```ts
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        after: {
+          1000: 'b'
+        }
+      },
+      b: {}
+    }
+  });
+
+  const paths = getShortestPaths(machine); // works
+  ```
+
+## 2.0.0-beta.4
+
+### Major Changes
+
+- [#4238](https://github.com/statelyai/xstate/pull/4238) [`b4f12a517`](https://github.com/statelyai/xstate/commit/b4f12a517dcb2a70200de4fb33d0a5958ff22333) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The steps in the paths returned from functions like `getShortestPaths(...)` and `getSimplePaths(...)` have the following changes:
+
+  - The `step.event` property now represents the `event` object that resulted in the transition to the `step.state`, _not_ the event that comes before the next step.
+  - The `path.steps` array now includes the target `path.state` as the last step.
+    - Note: this means that `path.steps` always has at least one step.
+  - The first `step` now has the `{ type: 'xstate.init' }` event
+
+## 2.0.0-beta.3
+
+### Major Changes
+
+- [#4233](https://github.com/statelyai/xstate/pull/4233) [`3d96d0f95`](https://github.com/statelyai/xstate/commit/3d96d0f95f7f2a7f7dd872d756a5eba1f61a072f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove `getMachineShortestPaths` and `getMachineSimplePaths`
+
+  ```diff
+  import {
+  - getMachineShortestPaths,
+  + getShortestPaths,
+  - getMachineSimplePaths,
+  + getSimplePaths
+  } from '@xstate/graph';
+
+  -const paths = getMachineShortestPaths(machine);
+  +const paths = getShortestPaths(machine);
+
+  -const paths = getMachineSimplePaths(machine);
+  +const paths = getSimplePaths(machine);
+  ```
+
 ## 2.0.0-alpha.2
 
 ### Patch Changes

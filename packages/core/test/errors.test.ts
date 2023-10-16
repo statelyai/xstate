@@ -532,7 +532,7 @@ describe('error handling', () => {
     });
   });
 
-  it(`uncaught error and an error thrown by the error listener should both be reported globally when not eveyr observer comes with an error listener`, (done) => {
+  it(`uncaught error and an error thrown by the error listener should both be reported globally when not every observer comes with an error listener`, (done) => {
     const machine = createMachine({
       initial: 'pending',
       states: {

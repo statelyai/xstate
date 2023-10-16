@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.0.0-beta.10
+
+### Minor Changes
+
+- [#4240](https://github.com/statelyai/xstate/pull/4240) [`409552cf8`](https://github.com/statelyai/xstate/commit/409552cf8578dc517cca4e6eaeb652a33f49c06c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useMachine` function is aliased to `useActor` and not shown as visually deprecated.
+
+## 4.0.0-beta.9
+
+### Major Changes
+
+- [#4265](https://github.com/statelyai/xstate/pull/4265) [`1153b3f9a`](https://github.com/statelyai/xstate/commit/1153b3f9a95b4d76ff5408be8bd03a66f884b9cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - FSM-related functions have been removed.
+
 ## 4.0.0-beta.8
 
 ### Patch Changes
@@ -144,7 +156,7 @@
 
 ### Patch Changes
 
-- [#3799](https://github.com/statelyai/xstate/pull/3799) [`51d254692`](https://github.com/statelyai/xstate/commit/51d254692c2d267c24c65fc5802461540c012393) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused the internally used `useSyncExternalStore` to warn about the computed snapshot not being cached when a not-started machine servive was passed to `useActor`.
+- [#3799](https://github.com/statelyai/xstate/pull/3799) [`51d254692`](https://github.com/statelyai/xstate/commit/51d254692c2d267c24c65fc5802461540c012393) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused the internally used `useSyncExternalStore` to warn about the computed snapshot not being cached when a not-started machine service was passed to `useActor`.
 
 ## 3.1.0
 

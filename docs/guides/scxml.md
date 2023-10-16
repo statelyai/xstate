@@ -3,7 +3,7 @@
 XState is compatible with the [SCXML (State Chart XML: State Machine Notation for Control Abstraction) specification](https://www.w3.org/TR/scxml/). This page contains details on where our API relates to the SCXML specification.
 
 :::tip Check out our new docs!
-🆕 Find more about [SCXML compatibility in XState](https://stately.ai/docs/xstate/advanced/scxml) in our new docs.
+🆕 Find more about [SCXML compatibility in XState](https://stately.ai/docs/xstate-v4/xstate/advanced/scxml) in our new docs.
 :::
 
 ## Events

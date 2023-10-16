@@ -70,7 +70,7 @@ export const workflow = createMachine(
       },
       JobSucceeded: {
         invoke: {
-          src: 'reportJobSuceeded',
+          src: 'reportJobSucceeded',
           onDone: 'End'
         }
       },
@@ -95,8 +95,8 @@ export const workflow = createMachine(
         console.log('Starting checkJobStatus', input);
         return Promise.resolve({ jobStatus: 'SUCCEEDED' });
       }),
-      reportJobSuceeded: fromPromise(({ input }) => {
-        console.log('Starting reportJobSuceeded', input);
+      reportJobSucceeded: fromPromise(({ input }) => {
+        console.log('Starting reportJobSucceeded', input);
         return Promise.resolve();
       }),
       reportJobFailed: fromPromise(({ input }) => {

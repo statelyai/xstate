@@ -176,7 +176,7 @@ function createGuard<
 
 function mapAction(
   element: XMLElement
-): ActionFunction<any, any, any, any, any, any, any> {
+): ActionFunction<any, any, any, any, any, any, any, any> {
   switch (element.name) {
     case 'raise': {
       return raise({
@@ -211,10 +211,16 @@ return ${element.attributes!.sendidexpr};
 
       let convertedEvent:
         | EventObject
-        | SendExpr<MachineContext, EventObject, undefined, EventObject>;
+        | SendExpr<
+            MachineContext,
+            EventObject,
+            undefined,
+            EventObject,
+            EventObject
+          >;
       let convertedDelay:
         | number
-        | DelayExpr<MachineContext, EventObject, undefined>
+        | DelayExpr<MachineContext, EventObject, undefined, EventObject>
         | undefined;
 
       const params =
@@ -322,8 +328,8 @@ return ${element.attributes!.expr};
 
 function mapActions(
   elements: XMLElement[]
-): ActionFunction<any, any, any, any, any, any, any>[] {
-  const mapped: ActionFunction<any, any, any, any, any, any, any>[] = [];
+): ActionFunction<any, any, any, any, any, any, any, any>[] {
+  const mapped: ActionFunction<any, any, any, any, any, any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {
@@ -414,7 +420,7 @@ function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
     const always: any[] = [];
     const on: Record<string, any> = [];
 
-    transitionElements.map((value) => {
+    transitionElements.forEach((value) => {
       const events = ((getAttribute(value, 'event') as string) || '').split(
         /\s+/
       );
@@ -460,6 +466,11 @@ function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
         if (eventType === NULL_EVENT) {
           always.push(transitionConfig);
         } else {
+          if (/^done\.state(\.|$)/.test(eventType)) {
+            eventType = `xstate.${eventType}`;
+          } else if (/^done\.invoke(\.|$)/.test(eventType)) {
+            eventType = eventType.replace(/^done\.invoke/, 'xstate.done.actor');
+          }
           let existing = on[eventType];
           if (!existing) {
             existing = [];

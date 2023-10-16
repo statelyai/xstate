@@ -1,7 +1,7 @@
 # Invoking Services
 
 :::tip Check out our new docs!
-🆕 Our [section on actors in XState](https://stately.ai/docs/xstate/actors/intro) has explainers and examples for promises, callbacks, observables, actions, and actors.
+🆕 Our [section on actors in XState](https://stately.ai/docs/actors) has explainers and examples for promises, callbacks, observables, actions, and actors.
 :::
 
 [:rocket: Quick Reference](#quick-reference)
@@ -118,11 +118,11 @@ const userMachine = createMachine({
 });
 ```
 
-The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` property, e.g.:
+The resolved data is placed into a `'xstate.done.actor.<id>'` event, under the `data` property, e.g.:
 
 ```js
 {
-  type: 'done.invoke.getUser',
+  type: 'xstate.done.actor.getUser',
   data: {
     name: 'David',
     location: 'Florida'
@@ -132,7 +132,7 @@ The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` 
 
 ### Promise Rejection
 
-If a Promise rejects, the `onError` transition will be taken with a `{ type: 'error.platform' }` event. The error data is available on the event's `data` property:
+If a Promise rejects, the `onError` transition will be taken with a `{ type: 'xstate.error.actor' }` event. The error data is available on the event's `data` property:
 
 ```js
 const search = (context, event) =>
@@ -169,7 +169,7 @@ const searchMachine = createMachine({
           actions: assign({
             errorMessage: (context, event) => {
               // event is:
-              // { type: 'error.platform', data: 'No query specified' }
+              // { type: 'xstate.error.actor', data: 'No query specified' }
               return event.data;
             }
           })
@@ -433,7 +433,7 @@ The `data` _replaces_ the default `context` defined on the machine; it is not me
 
 ### Done Data
 
-When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'done.invoke.someId', data: ... }`). This "done data" is specified on the final state's `data` property:
+When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'xstate.done.actor.someId', data: ... }`). This "done data" is specified on the final state's `data` property:
 
 ```js
 const secretMachine = createMachine({
@@ -473,7 +473,7 @@ const parentMachine = createMachine({
           actions: assign({
             revealedSecret: (context, event) => {
               // event is:
-              // { type: 'done.invoke.secret', data: { secret: '42' } }
+              // { type: 'xstate.done.actor.secret', data: { secret: '42' } }
               return event.data.secret;
             }
           })
