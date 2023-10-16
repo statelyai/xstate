@@ -1,5 +1,4 @@
 import { createMachine, createActor } from '../src/index.ts';
-import { after } from '../src/actions.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -49,7 +48,11 @@ describe('delayed transitions', () => {
 
     const transitions = greenNode.transitions;
 
-    expect([...transitions.keys()]).toEqual([after(1000, greenNode.id)]);
+    expect([...transitions.keys()]).toMatchInlineSnapshot(`
+      [
+        "xstate.after(1000)#light.green",
+      ]
+    `);
   });
 
   it('should be able to transition with delay from nested initial state', (done) => {
@@ -212,7 +215,9 @@ describe('delayed transitions', () => {
 
     const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
 
-    service = createActor(createMyMachine(), { state: persistedState }).start();
+    service = createActor(createMyMachine(), {
+      state: persistedState
+    }).start();
 
     service.send({ type: 'NEXT' });
 

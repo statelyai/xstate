@@ -41,9 +41,9 @@ export interface TypegenMeta extends TypegenEnabled {
   /**
    * A map for the internal events of the machine.
    *
-   * key: 'done.invoke.myActor'
+   * key: 'xstate.done.actor.myActor'
    * value: {
-   *   type: 'done.invoke.myActor';
+   *   type: 'xstate.done.actor.myActor';
    *   data: unknown;
    *   __tip: 'Declare the type in event types!';
    * }
@@ -53,7 +53,7 @@ export interface TypegenMeta extends TypegenEnabled {
    * Maps the src of the invoked actor to the event type that includes its known id
    *
    * key: 'invokeSrc'
-   * value: 'done.invoke.invokeName'
+   * value: 'xstate.done.actor.invokeName'
    */
   invokeSrcNameMap: Record<string, string>;
   /**
@@ -162,14 +162,14 @@ type GenerateActorEvents<
   ? {
       type: // 1. if the actor has an id, use that
       TActor['id'] extends string
-        ? `done.invoke.${TActor['id']}`
+        ? `xstate.done.actor.${TActor['id']}`
         : // 2. if the ids were inferred by typegen then use those
         // this doesn't contain *all* possible event types since we can't track spawned actors today
-        // however, those done.invoke events shouldn't exactly be usable by/surface to the user anyway
+        // however, those xstate.done.actor events shouldn't exactly be usable by/surface to the user anyway
         TActor['src'] extends keyof TInvokeSrcNameMap
-        ? `done.invoke.${TInvokeSrcNameMap[TActor['src']] & string}`
+        ? `xstate.done.actor.${TInvokeSrcNameMap[TActor['src']] & string}`
         : // 3. finally use the fallback type
-          `done.invoke.${string}`;
+          `xstate.done.actor.${string}`;
       output: OutputFrom<TActor['logic']>;
     }
   : never;
@@ -215,7 +215,8 @@ export interface ResolveTypegenMeta<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TTag extends string
 > {
   '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
   resolved: {
@@ -249,6 +250,7 @@ export interface ResolveTypegenMeta<
         WrapIntoParameterizedObject<TDelay>,
         Prop<TTypesMeta, 'eventsCausingDelays'>
       >;
+      tags: string extends TTag ? Prop<TTypesMeta, 'tags'> : TTag;
     };
     disabled: TypegenDisabled &
       AllImplementationsProvided &
@@ -260,10 +262,11 @@ export interface ResolveTypegenMeta<
         indexedGuards: IndexByType<TGuard>;
         indexedDelays: IndexByType<WrapIntoParameterizedObject<TDelay>>;
         invokeSrcNameMap: Record<string, string>;
+        tags: TTag;
       };
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'
-    : TTypesMeta extends TypegenEnabled
+    : TTypesMeta['@@xstate/typegen'] extends true
     ? 'enabled'
     : 'disabled'];
 }

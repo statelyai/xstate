@@ -3,13 +3,15 @@
     "target": "esnext",
     "isolatedModules": true,
     "moduleResolution": "node16",
+    "module": "node16",
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "lib": ["es2019", "dom"],
-    "strict": true
+    "strict": true,
+    "stripInternal": true
   },
   "exclude": ["examples", "templates"]
 }

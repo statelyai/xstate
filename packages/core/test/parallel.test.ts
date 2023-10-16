@@ -677,7 +677,8 @@ describe('parallel states', () => {
 
   it('should handle simultaneous orthogonal transitions', () => {
     type Events = { type: 'CHANGE'; value: string } | { type: 'SAVE' };
-    const simultaneousMachine = createMachine<{ value: string }, Events>({
+    const simultaneousMachine = createMachine({
+      types: {} as { context: { value: string }; events: Events },
       id: 'yamlEditor',
       type: 'parallel',
       context: {
@@ -937,7 +938,8 @@ describe('parallel states', () => {
 
     // https://github.com/statelyai/xstate/issues/531
     it('should calculate the entry set for reentering transitions in parallel states', () => {
-      const testMachine = createMachine<{ log: string[] }>({
+      const testMachine = createMachine({
+        types: {} as { context: { log: string[] } },
         id: 'test',
         context: { log: [] },
         type: 'parallel',
@@ -977,7 +979,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('should raise a "done.state.*" event when all child states reach final state', (done) => {
+  it('should raise a "xstate.done.state.*" event when all child states reach final state', (done) => {
     const machine = createMachine({
       id: 'test',
       initial: 'p',
@@ -1044,7 +1046,7 @@ describe('parallel states', () => {
     service.send({ type: 'FINISH' });
   });
 
-  it('should raise a "done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
+  it('should raise a "xstate.done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
     const machine = createMachine({
       initial: 'parallelSteps',
       states: {

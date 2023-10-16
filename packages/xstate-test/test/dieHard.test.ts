@@ -65,8 +65,9 @@ describe('die hard example', () => {
   let jugs: Jugs;
 
   const createDieHardModel = () => {
-    const dieHardMachine = createMachine<DieHardContext>(
+    const dieHardMachine = createMachine(
       {
+        types: {} as { context: DieHardContext },
         id: 'dieHard',
         initial: 'pending',
         context: { three: 0, five: 0 },
@@ -111,7 +112,7 @@ describe('die hard example', () => {
 
     const options = {
       states: {
-        pending: (state: StateFrom<typeof dieHardMachine>) => {
+        pending: (state: ReturnType<(typeof dieHardMachine)['transition']>) => {
           expect(jugs.five).not.toEqual(4);
           expect(jugs.three).toEqual(state.context.three);
           expect(jugs.five).toEqual(state.context.five);
@@ -297,9 +298,12 @@ describe('error path trace', () => {
           "test error
           Path:
           	State: {"value":"first"}
+          	Event: {"type":"xstate.init"}
+
+          	State: {"value":"second"} via {"type":"xstate.init"}
           	Event: {"type":"NEXT_1"}
 
-          	State: {"value":"second"} via {"type":"NEXT_1"}
+          	State: {"value":"third"} via {"type":"NEXT_1"}
           	Event: {"type":"NEXT_2"}
 
           	State: {"value":"third"} via {"type":"NEXT_2"}"

@@ -228,10 +228,11 @@ describe('interpreter', () => {
         | { type: 'ACTIVATE'; wait: number }
         | { type: 'FINISH' };
 
-      const delayExprMachine = createMachine<
-        DelayExprMachineCtx,
-        DelayExpMachineEvents
-      >({
+      const delayExprMachine = createMachine({
+        types: {} as {
+          context: DelayExprMachineCtx;
+          events: DelayExpMachineEvents;
+        },
         id: 'delayExpr',
         context: {
           initialDelay: 100
@@ -309,10 +310,11 @@ describe('interpreter', () => {
             type: 'FINISH';
           };
 
-      const delayExprMachine = createMachine<
-        DelayExprMachineCtx,
-        DelayExpMachineEvents
-      >({
+      const delayExprMachine = createMachine({
+        types: {} as {
+          context: DelayExprMachineCtx;
+          events: DelayExpMachineEvents;
+        },
         id: 'delayExpr',
         context: {
           initialDelay: 100
@@ -460,7 +462,9 @@ describe('interpreter', () => {
           initial: 'on',
           states: {
             on: {
-              invoke: 'myActivity',
+              invoke: {
+                src: 'myActivity'
+              },
               on: {
                 TURN_OFF: 'off'
               }
@@ -490,7 +494,9 @@ describe('interpreter', () => {
           initial: 'on',
           states: {
             on: {
-              invoke: 'myActivity',
+              invoke: {
+                src: 'myActivity'
+              },
               on: {
                 TURN_OFF: 'off'
               }
@@ -524,7 +530,9 @@ describe('interpreter', () => {
           initial: 'on',
           states: {
             on: {
-              invoke: 'myActivity',
+              invoke: {
+                src: 'myActivity'
+              },
               on: {
                 TURN_OFF: 'off'
               }
@@ -559,7 +567,7 @@ describe('interpreter', () => {
               on: { TOGGLE: 'active' }
             },
             active: {
-              invoke: 'blink',
+              invoke: { src: 'blink' },
               on: { TOGGLE: 'inactive' },
               initial: 'A',
               states: {
@@ -654,44 +662,10 @@ describe('interpreter', () => {
     });
   });
 
-  it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock(),
-      deferEvents: false
-    });
+  it('should not throw an error if an event is sent to an uninitialized interpreter', () => {
+    const actorRef = createActor(lightMachine);
 
-    expect(() => service.send({ type: 'SOME_EVENT' })).toThrowError(
-      /uninitialized/
-    );
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-  });
-
-  it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock(),
-      deferEvents: true
-    });
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-  });
-
-  it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock()
-    });
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
+    expect(() => actorRef.send({ type: 'SOME_EVENT' })).not.toThrow();
   });
 
   it('should defer events sent to an uninitialized service', (done) => {
@@ -776,7 +750,7 @@ describe('interpreter', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+          "Event "TIMER" was sent to stopped actor "x:27 (x:27)". This actor has already reached its final state, and will not transition.
       Event: {"type":"TIMER"}",
         ],
       ]
@@ -786,7 +760,8 @@ describe('interpreter', () => {
   it('should be able to log (log action)', () => {
     const logs: any[] = [];
 
-    const logMachine = createMachine<{ count: number }>({
+    const logMachine = createMachine({
+      types: {} as { context: { count: number } },
       id: 'log',
       initial: 'x',
       context: { count: 0 },
@@ -855,7 +830,8 @@ describe('interpreter', () => {
       type: 'NEXT';
       password: string;
     }
-    const machine = createMachine<Ctx, Events>({
+    const machine = createMachine({
+      types: {} as { context: Ctx; events: Events },
       id: 'sendexpr',
       initial: 'start',
       context: {
@@ -864,7 +840,7 @@ describe('interpreter', () => {
       states: {
         start: {
           entry: raise(({ context }) => ({
-            type: 'NEXT',
+            type: 'NEXT' as const,
             password: context.password
           })),
           on: {
@@ -890,6 +866,10 @@ describe('interpreter', () => {
   describe('sendParent() event expressions', () => {
     it('should resolve sendParent event expressions', (done) => {
       const childMachine = createMachine({
+        types: {} as {
+          context: { password: string };
+          input: { password: string };
+        },
         id: 'child',
         initial: 'start',
         context: ({ input }) => ({
@@ -1185,7 +1165,7 @@ describe('interpreter', () => {
         expect(console.warn).toMatchMockCallsInlineSnapshot(`
           [
             [
-              "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+              "Event "TRIGGER" was sent to stopped actor "x:43 (x:43)". This actor has already reached its final state, and will not transition.
           Event: {"type":"TRIGGER"}",
             ],
           ]
@@ -1314,8 +1294,9 @@ describe('interpreter', () => {
 
   describe('observable', () => {
     const context = { count: 0 };
-    const intervalMachine = createMachine<typeof context>({
+    const intervalMachine = createMachine({
       id: 'interval',
+      types: {} as { context: typeof context },
       context,
       initial: 'active',
       states: {
@@ -1375,7 +1356,8 @@ describe('interpreter', () => {
 
     it('should be unsubscribable', (done) => {
       const countContext = { count: 0 };
-      const machine = createMachine<typeof countContext>({
+      const machine = createMachine({
+        types: {} as { context: typeof countContext },
         context: countContext,
         initial: 'active',
         states: {
@@ -1607,27 +1589,41 @@ describe('interpreter', () => {
 
     it('state.children should reference invoked child actors (observable)', (done) => {
       const interval$ = interval(10);
+      const intervalLogic = fromObservable(() => interval$);
 
-      const parentMachine = createMachine({
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: fromObservable(() => interval$),
-              onSnapshot: {
-                target: 'success',
-                guard: ({ event }) => {
-                  return event.data === 3;
+      const parentMachine = createMachine(
+        {
+          types: {} as {
+            actors: {
+              src: 'intervalLogic';
+              logic: typeof intervalLogic;
+            };
+          },
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                id: 'childActor',
+                src: 'intervalLogic',
+                onSnapshot: {
+                  target: 'success',
+                  guard: ({ event }) => {
+                    return event.snapshot.context === 3;
+                  }
                 }
               }
+            },
+            success: {
+              type: 'final'
             }
-          },
-          success: {
-            type: 'final'
+          }
+        },
+        {
+          actors: {
+            intervalLogic
           }
         }
-      });
+      );
 
       const service = createActor(parentMachine);
       service.subscribe({
