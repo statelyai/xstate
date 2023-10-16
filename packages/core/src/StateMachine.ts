@@ -15,7 +15,8 @@ import {
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode,
-  isAtomicStateNode
+  isAtomicStateNode,
+  getInitialStateNodes
 } from './stateUtils.ts';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -455,7 +456,7 @@ export class StateMachine<
     const nextState = microstep(
       [
         {
-          target: [...preInitialState.configuration].filter(isAtomicStateNode),
+          target: [...getInitialStateNodes(this.root)],
           source: this.root,
           reenter: true,
           actions: [],
