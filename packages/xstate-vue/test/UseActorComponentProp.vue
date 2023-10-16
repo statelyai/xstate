@@ -19,7 +19,6 @@ export default defineComponent({
     }
   },
   setup(props) {
-    // const { state: actorState, send: actorSend } = useActor(props.actor!);
     const actorState = useSelector(props.actor!, (s) => s);
 
     onMounted(() => {
