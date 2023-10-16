@@ -10,7 +10,7 @@ const machine = createMachine({
     // This will be persisted
     ref: spawn('reducer', { id: 'child' })
 
-    // This will not be persisted:
+    // This cannot be persisted:
     // ref: spawn(fromTransition((s) => s, { count: 42 }), { id: 'child' })
   })
 }).provide({
