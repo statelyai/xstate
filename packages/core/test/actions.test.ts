@@ -2122,6 +2122,54 @@ describe('initial actions', () => {
 
     expect(actual).toEqual(['entryC', 'initialBar', 'entryBar']);
   });
+
+  it('should execute actions of initial transitions only once when taking an explicit transition', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          initial: {
+            target: 'b_child',
+            actions: () => spy('initial in b')
+          },
+          states: {
+            b_child: {
+              initial: {
+                target: 'b_granchild',
+                actions: () => spy('initial in b_child')
+              },
+              states: {
+                b_granchild: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({
+      type: 'NEXT'
+    });
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "initial in b",
+        ],
+        [
+          "initial in b_child",
+        ],
+      ]
+    `);
+  });
 });
 
 describe('actions on invalid transition', () => {
