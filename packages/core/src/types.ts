@@ -1834,10 +1834,44 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type ActorRefFrom<T extends AnyActorLogic> = ActorRef<
-  EventFromLogic<T>,
-  SnapshotFrom<T>
->;
+export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<
+      infer TContext,
+      infer TEvent,
+      infer TActor,
+      infer _TAction,
+      infer _TGuard,
+      infer _TDelay,
+      infer TTag,
+      infer _TInput,
+      infer TOutput,
+      infer TResolvedTypesMeta
+    >
+    ? ActorRef<
+        TEvent,
+        MachineSnapshot<
+          TContext,
+          TEvent,
+          TActor,
+          TTag,
+          TOutput,
+          AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+            ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+            : TResolvedTypesMeta
+        >
+      >
+    : R extends Promise<infer U>
+    ? ActorRefFrom<PromiseActorLogic<U>>
+    : R extends ActorLogic<
+        infer TSnapshot,
+        infer TEvent,
+        infer _TInput,
+        infer _TPersisted,
+        infer _TSystem
+      >
+    ? ActorRef<TEvent, TSnapshot>
+    : never
+  : never;
 
 export type DevToolsAdapter = (service: AnyActor) => void;
 

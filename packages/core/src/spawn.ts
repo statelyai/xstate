@@ -56,9 +56,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
         input?: unknown;
         syncSnapshot?: boolean;
       }
-    ) => TLogic extends string
-      ? AnyActorRef
-      : ActorRefFrom<Exclude<TLogic, string>>;
+    ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
 export function createSpawner(
   actorContext: AnyActorContext,

@@ -1,9 +1,10 @@
 import { Ref, shallowRef } from 'vue';
 import {
-  ActorLogic,
+  ActorOptions,
   ActorRefFrom,
   AnyActorLogic,
   EventFrom,
+  Snapshot,
   SnapshotFrom
 } from 'xstate';
 import { UseActorRefRestParams, useActorRef } from './useActorRef.ts';
@@ -15,7 +16,11 @@ export function useActor<TLogic extends AnyActorLogic>(
   snapshot: Ref<SnapshotFrom<TLogic>>;
   send: (event: EventFrom<TLogic>) => void;
   actorRef: ActorRefFrom<TLogic>;
-} {
+};
+export function useActor(
+  actorLogic: AnyActorLogic,
+  options?: ActorOptions<AnyActorLogic>
+) {
   if (process.env.NODE_ENV !== 'production') {
     if ('send' in actorLogic && typeof actorLogic.send === 'function') {
       throw new Error(
@@ -24,16 +29,16 @@ export function useActor<TLogic extends AnyActorLogic>(
     }
   }
 
-  function listener(nextState: SnapshotFrom<TLogic>) {
+  function listener(nextState: Snapshot<unknown>) {
     snapshot.value = nextState;
   }
 
-  const actorRef = useActorRef(actorLogic, options, listener as any);
+  const actorRef = useActorRef(actorLogic, options, listener);
   const snapshot = shallowRef(actorRef.getSnapshot());
 
   return {
     snapshot,
     send: actorRef.send,
-    actorRef: actorRef as ActorRefFrom<TLogic>
+    actorRef: actorRef
   };
 }
