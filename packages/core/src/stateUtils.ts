@@ -1159,7 +1159,6 @@ function enterStates(
   let nextState = currentState;
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
-
   computeEntrySet(
     filteredTransitions,
     historyValue,
@@ -1186,10 +1185,8 @@ function enterStates(
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
-      for (const stateNode of statesForDefaultEntry) {
-        const initialActions = stateNode.initial!.actions;
-        actions.push(...initialActions);
-      }
+      const initialActions = stateNodeToEnter.initial!.actions;
+      actions.push(...initialActions);
     }
 
     nextState = resolveActionsAndContext(
