@@ -231,4 +231,105 @@ describe('final states', () => {
 
     expect(spy).toHaveBeenCalledWith(1);
   });
+
+  it('should emit a done state event for a parallel state when its parallel children reach their final states', () => {
+    const theMachine = createMachine({
+      id: 'theMachine',
+      initial: 'first',
+      states: {
+        first: {
+          type: 'parallel',
+          states: {
+            alpha: {
+              type: 'parallel',
+              states: {
+                second_one: {
+                  initial: 'start',
+                  states: {
+                    start: {
+                      on: {
+                        finish_one_alpha: 'finish'
+                      }
+                    },
+                    finish: {
+                      type: 'final'
+                    }
+                  }
+                },
+                second_two: {
+                  initial: 'start',
+                  meta: {
+                    description:
+                      "The example fails without both instances of `second_two` but I've left them in so it looks a bit more like the parallel machine I'm actually tring to build."
+                  },
+                  states: {
+                    start: {
+                      on: {
+                        finish_two_alpha: 'finish'
+                      }
+                    },
+                    finish: {
+                      type: 'final'
+                    }
+                  }
+                }
+              }
+            },
+            beta: {
+              type: 'parallel',
+              states: {
+                second_one: {
+                  initial: 'start',
+                  states: {
+                    start: {
+                      on: {
+                        finish_one_beta: 'finish'
+                      }
+                    },
+                    finish: {
+                      type: 'final'
+                    }
+                  }
+                },
+                second_two: {
+                  initial: 'start',
+                  states: {
+                    start: {
+                      on: {
+                        finish_two_beta: 'finish'
+                      }
+                    },
+                    finish: {
+                      type: 'final'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          onDone: '#theMachine.final'
+        },
+        final: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(theMachine).start();
+
+    actorRef.send({
+      type: 'finish_one_alpha'
+    });
+    actorRef.send({
+      type: 'finish_two_alpha'
+    });
+    actorRef.send({
+      type: 'finish_one_beta'
+    });
+    actorRef.send({
+      type: 'finish_two_beta'
+    });
+
+    expect(actorRef.getSnapshot().status).toBe('done');
+  });
 });
