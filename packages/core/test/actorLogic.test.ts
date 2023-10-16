@@ -822,33 +822,20 @@ describe('machine logic', () => {
 
   it('should not persist a spawned actor with inline src', () => {
     const machine = createMachine({
-      types: {
-        context: {} as {
-          ref: AnyActorRef;
-        }
-      },
-      context: ({ spawn }) => ({
-        ref: spawn(
-          fromTransition((s) => s, { count: 42 }),
-          { id: 'child' }
-        )
-      })
+      context: ({ spawn }) => {
+        return {
+          childRef: spawn(createMachine({}))
+        };
+      }
     });
 
-    const actor = createActor(machine).start();
+    const actorRef = createActor(machine).start();
 
-    const persistedState = actor.getPersistedState()!;
-
-    expect(persistedState.children.child.state.context).toEqual({ count: 42 });
-
-    const newActor = createActor(machine, {
-      state: persistedState
-    }).start();
-
-    const snapshot = newActor.getSnapshot();
-
-    // TODO: should this be a "dummy actor" so that the types are accurate?
-    expect(snapshot.context.ref).toBeUndefined();
+    expect(() =>
+      actorRef.getPersistedState()
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"An inline child actor cannot be persisted."`
+    );
   });
 
   it('should have access to the system', () => {
