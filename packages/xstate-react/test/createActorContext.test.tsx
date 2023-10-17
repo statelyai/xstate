@@ -309,7 +309,7 @@ describe('createActorContext', () => {
     const Component = () => {
       const value = PromiseContext.useSelector((data) => data);
 
-      return <div data-testid="value">{value}</div>;
+      return <div data-testid="value">{value.output}</div>;
     };
 
     const App = () => {

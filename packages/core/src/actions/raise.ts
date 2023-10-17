@@ -14,10 +14,10 @@ import {
   ParameterizedObject
 } from '../types.ts';
 
-function resolve(
+function resolveRaise(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any, any>,
+  args: ActionArgs<any, any, any, any>,
   {
     event: eventOrExpr,
     id,
@@ -29,13 +29,19 @@ function resolve(
           MachineContext,
           EventObject,
           ParameterizedObject | undefined,
+          EventObject,
           EventObject
         >;
     id: string | undefined;
     delay:
       | string
       | number
-      | DelayExpr<MachineContext, EventObject, ParameterizedObject | undefined>
+      | DelayExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject | undefined,
+          EventObject
+        >
       | undefined;
   }
 ) {
@@ -67,7 +73,7 @@ function resolve(
   ];
 }
 
-function execute(
+function executeRaise(
   actorContext: AnyActorContext,
   params: {
     event: EventObject;
@@ -90,7 +96,7 @@ export interface RaiseAction<
   TEvent extends EventObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
   _out_TEvent?: TEvent;
   _out_TDelay?: TDelay;
 }
@@ -112,15 +118,24 @@ export function raise<
 >(
   eventOrExpr:
     | NoInfer<TEvent>
-    | SendExpr<TContext, TExpressionEvent, TExpressionAction, NoInfer<TEvent>>,
+    | SendExpr<
+        TContext,
+        TExpressionEvent,
+        TExpressionAction,
+        NoInfer<TEvent>,
+        TEvent
+      >,
   options?: RaiseActionOptions<
     TContext,
     TExpressionEvent,
     TExpressionAction,
+    NoInfer<TEvent>,
     NoInfer<TDelay>
   >
 ): RaiseAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TDelay> {
-  function raise(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
+  function raise(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -131,8 +146,8 @@ export function raise<
   raise.id = options?.id;
   raise.delay = options?.delay;
 
-  raise.resolve = resolve;
-  raise.execute = execute;
+  raise.resolve = resolveRaise;
+  raise.execute = executeRaise;
 
   return raise;
 }

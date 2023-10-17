@@ -2,7 +2,7 @@ export * from './actions.ts';
 export * from './actors/index.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
 export { type Spawner } from './spawn.ts';
-export { StateMachine } from './StateMachine.ts';
+export { StateMachine, type MachineSnapshot } from './StateMachine.ts';
 export { getStateNodes } from './stateUtils.ts';
 export * from './typegenTypes.ts';
 export * from './types.ts';
@@ -33,6 +33,12 @@ export {
   StateNode,
   type Interpreter
 };
+export type {
+  InspectedActorEvent,
+  InspectedEventEvent,
+  InspectedSnapshotEvent,
+  InspectionEvent
+} from './system.ts';
 
 export { toPromise } from './toPromise.ts';
 

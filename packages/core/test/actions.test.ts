@@ -1,4 +1,4 @@
-import { ActorRef } from '../src/index.ts';
+import { ActorRef, EventObject } from '../src/index.ts';
 import {
   cancel,
   choose,
@@ -16,7 +16,7 @@ import {
   forwardTo,
   createActor
 } from '../src/index.ts';
-import { fromCallback } from '../src/actors/callback.ts';
+import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import { trackEntries } from './utils.ts';
 
 const originalConsoleLog = console.log;
@@ -1685,6 +1685,11 @@ describe('entry/exit actions', () => {
       });
 
       const parent = createMachine({
+        types: {} as {
+          context: {
+            child: ActorRefFrom<typeof child>;
+          };
+        },
         id: 'parent',
         context: ({ spawn }) => ({
           child: spawn(child)
@@ -1725,6 +1730,11 @@ describe('entry/exit actions', () => {
       });
 
       const parent = createMachine({
+        types: {} as {
+          context: {
+            child: ActorRefFrom<typeof child>;
+          };
+        },
         id: 'parent',
         context: ({ spawn }) => ({
           child: spawn(child)
@@ -2111,6 +2121,88 @@ describe('initial actions', () => {
     actor.send({ type: 'NEXT' });
 
     expect(actual).toEqual(['entryC', 'initialBar', 'entryBar']);
+  });
+
+  it('should execute actions of initial transitions only once when taking an explicit transition', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          initial: {
+            target: 'b_child',
+            actions: () => spy('initial in b')
+          },
+          states: {
+            b_child: {
+              initial: {
+                target: 'b_granchild',
+                actions: () => spy('initial in b_child')
+              },
+              states: {
+                b_granchild: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({
+      type: 'NEXT'
+    });
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "initial in b",
+        ],
+        [
+          "initial in b_child",
+        ],
+      ]
+    `);
+  });
+
+  it('should execute actions of all initial transitions resolving to the initial state value', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: {
+        target: 'a',
+        actions: () => spy('root')
+      },
+      states: {
+        a: {
+          initial: {
+            target: 'a1',
+            actions: () => spy('inner')
+          },
+          states: {
+            a1: {}
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "root",
+        ],
+        [
+          "inner",
+        ],
+      ]
+    `);
   });
 });
 
@@ -2639,7 +2731,7 @@ describe('forwardTo()', () => {
 
     const parent = createMachine({
       types: {} as {
-        context: { child?: ActorRef<any> };
+        context: { child?: ActorRef<any, any> };
         events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
       },
       id: 'parent',
@@ -3077,10 +3169,14 @@ describe('sendTo', () => {
     });
 
     const parentMachine = createMachine({
-      context: ({ spawn }) =>
-        ({
-          child: spawn(childMachine)
-        } as { child: ActorRefFrom<typeof childMachine> }),
+      types: {} as {
+        context: {
+          child: ActorRefFrom<typeof childMachine>;
+        };
+      },
+      context: ({ spawn }) => ({
+        child: spawn(childMachine)
+      }),
       entry: sendTo(({ context }) => context.child, { type: 'EVENT' })
     });
 
@@ -3105,6 +3201,12 @@ describe('sendTo', () => {
     });
 
     const parentMachine = createMachine({
+      types: {} as {
+        context: {
+          child: ActorRefFrom<typeof childMachine>;
+          count: number;
+        };
+      },
       context: ({ spawn }) => {
         return {
           child: spawn(childMachine, { id: 'child' }),
@@ -3214,6 +3316,7 @@ describe('sendTo', () => {
     expect.assertions(1);
     const machine = createMachine({
       types: {} as {
+        context: Record<string, CallbackActorRef<EventObject>>;
         events: { type: 'EVENT'; value: string };
       },
       initial: 'a',

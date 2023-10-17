@@ -3,7 +3,7 @@
 In statecharts, you can declare a state as a **parallel state**. This means that all its child states will run _at the same time_. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#parallel-states).
 
 :::tip Check out our new docs!
-🆕 Find more about [parallel states in XState](https://stately.ai/docs/xstate/states/parallel-states) as well as a [no-code introduction to parallel states](https://stately.ai/docs/states/parallel-states).
+🆕 Find more about [parallel states in XState](https://stately.ai/docs/parallel-states) as well as a [no-code introduction to parallel states](https://stately.ai/docs/state-machines-and-statecharts#parallel-states).
 :::
 
 ## API

@@ -142,4 +142,25 @@ describe('getShortestPaths', () => {
 
     expect(pathWithTwoTodos).toBeDefined();
   });
+
+  it('should work for machines with delays', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            1000: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const shortestPaths = getShortestPaths(machine);
+
+    expect(shortestPaths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
+      ['xstate.init'],
+      ['xstate.init', 'xstate.after(1000)#(machine).a']
+    ]);
+  });
 });

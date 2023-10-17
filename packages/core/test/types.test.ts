@@ -2,21 +2,21 @@ import { from } from 'rxjs';
 import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
-import { fromPromise } from '../src/actors';
+import { fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
-  assign,
-  createMachine,
-  createActor,
   MachineContext,
+  ProvidedActor,
   Spawner,
   StateMachine,
-  pure,
+  assign,
   choose,
+  createActor,
+  createMachine,
   not,
-  stateIn,
+  pure,
   sendTo,
-  ProvidedActor
+  stateIn
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -216,29 +216,17 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: 42
-        }
-      }
+      output: 42
     });
   });
 
   it('should reject invalid static output', () => {
-    const machine = createMachine({
+    createMachine({
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          // @ts-expect-error
-          output: 'a string'
-        }
-      }
+      // @ts-expect-error
+      output: 'a string'
     });
   });
 
@@ -247,29 +235,17 @@ describe('output', () => {
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: () => 42
-        }
-      }
+      output: () => 42
     });
   });
 
   it('should reject invalid dynamic output', () => {
-    const machine = createMachine({
+    createMachine({
       types: {} as {
         output: number;
       },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          // @ts-expect-error
-          output: () => 'a string'
-        }
-      }
+      // @ts-expect-error
+      output: () => 'a string'
     });
   });
 
@@ -282,19 +258,13 @@ describe('output', () => {
         };
       },
       context: { password: 'okoń' },
-      initial: 'done',
-      states: {
-        done: {
-          type: 'final',
-          output: ({ context }) => {
-            ((_accept: string) => {})(context.password);
-            // @ts-expect-error
-            ((_accept: number) => {})(context.password);
-            return {
-              secret: 'the secret'
-            };
-          }
-        }
+      output: ({ context }) => {
+        ((_accept: string) => {})(context.password);
+        // @ts-expect-error
+        ((_accept: number) => {})(context.password);
+        return {
+          secret: 'the secret'
+        };
       }
     });
   });
@@ -491,7 +461,7 @@ describe('events', () => {
     service.send({ type: 'UNKNOWN' });
   });
 
-  it('event type should be inferrable from a simple state machine type', () => {
+  it('event type should be inferable from a simple state machine type', () => {
     const toggleMachine = createMachine({
       types: {} as {
         context: {
@@ -754,7 +724,7 @@ describe('events', () => {
 });
 
 describe('interpreter', () => {
-  it('should be convertable to Rx observable', () => {
+  it('should be convertible to Rx observable', () => {
     const s = createActor(
       createMachine({
         types: {
@@ -4038,7 +4008,7 @@ describe('tags', () => {
     actor.getSnapshot().hasTag('a');
   });
 
-  it('`hasTag` should not allow checking a tag ouside of the defined ones', () => {
+  it('`hasTag` should not allow checking a tag outside of the defined ones', () => {
     const machine = createMachine({
       types: {} as {
         tags: 'a' | 'b' | 'c';
@@ -4049,5 +4019,182 @@ describe('tags', () => {
 
     // @ts-expect-error
     actor.getSnapshot().hasTag('other');
+  });
+});
+
+describe('fromCallback', () => {
+  it('should reject a start callback that returns an explicit promise', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(
+          // @ts-ignore
+          () => {
+            return new Promise(() => {});
+          }
+        )
+      }
+    });
+  });
+
+  it('should reject a start callback that is an async function', () => {
+    // it's important to not give a false impression that we support returning promises from this setup as we supported that in the past
+    // the problem is that people could accidentally~ use an async function for convenience purposes
+    // then we'd listen for the promise to resolve and cleanup that actor, closing the communication channel between parent and the child
+    //
+    // fromCallback(async ({ sendBack }) => {
+    //   const api = await getSomeWebApi(); // async function was used to conveniently use `await` here
+    //
+    //   // this didn't work as expected because this promise was completing almost asap
+    //   // so the parent was never able to receive those events sent to it
+    //   api.addEventListener('some_event', () => sendBack({ type: 'EV' }))
+    //
+    //   // implicit completion
+    // })
+    createMachine({
+      invoke: {
+        src: fromCallback(
+          // @ts-ignore
+          async () => {}
+        )
+      }
+    });
+  });
+
+  it('should reject a start callback that returns a non-function and non-undefined value', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(
+          // @ts-ignore
+          () => {
+            return 42;
+          }
+        )
+      }
+    });
+  });
+
+  it('should allow returning an implicit undefined from the start callback', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(() => {})
+      }
+    });
+  });
+
+  it('should allow returning an explicit undefined from the start callback', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(() => {
+          return undefined;
+        })
+      }
+    });
+  });
+
+  it('should allow returning a cleanup function the start callback', () => {
+    createMachine({
+      invoke: {
+        src: fromCallback(() => {
+          return undefined;
+        })
+      }
+    });
+  });
+});
+
+describe('self', () => {
+  it('should accept correct event types in an inline entry custom action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      entry: ({ self }) => {
+        self.send({ type: 'FOO' });
+        self.send({ type: 'BAR' });
+        // @ts-expect-error
+        self.send({ type: 'BAZ' });
+      }
+    });
+  });
+
+  it('should accept correct event types in an inline entry builtin action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      entry: assign(({ self }) => {
+        self.send({ type: 'FOO' });
+        self.send({ type: 'BAR' });
+        // @ts-expect-error
+        self.send({ type: 'BAZ' });
+        return {};
+      })
+    });
+  });
+
+  it('should accept correct event types in an inline transition custom action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      on: {
+        FOO: {
+          actions: ({ self }) => {
+            self.send({ type: 'FOO' });
+            self.send({ type: 'BAR' });
+            // @ts-expect-error
+            self.send({ type: 'BAZ' });
+          }
+        }
+      }
+    });
+  });
+
+  it('should accept correct event types in an inline transition builtin action', () => {
+    createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      },
+      on: {
+        FOO: {
+          actions: assign(({ self }) => {
+            self.send({ type: 'FOO' });
+            self.send({ type: 'BAR' });
+            // @ts-expect-error
+            self.send({ type: 'BAZ' });
+            return {};
+          })
+        }
+      }
+    });
+  });
+
+  it('should return correct snapshot in an inline entry custom action', () => {
+    createMachine({
+      types: {} as {
+        context: { count: number };
+      },
+      context: { count: 0 },
+      entry: ({ self }) => {
+        ((_accept: number) => {})(self.getSnapshot().context.count);
+        // @ts-expect-error
+        ((_accept: string) => {})(self.getSnapshot().context.count);
+      }
+    });
+  });
+
+  it('should return correct snapshot in an inline entry builtin action', () => {
+    createMachine({
+      types: {} as {
+        context: { count: number };
+      },
+      context: { count: 0 },
+      entry: assign(({ self }) => {
+        ((_accept: number) => {})(self.getSnapshot().context.count);
+        // @ts-expect-error
+        ((_accept: string) => {})(self.getSnapshot().context.count);
+        return {};
+      })
+    });
   });
 });

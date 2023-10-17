@@ -8,7 +8,10 @@ import {
   createMachine,
   fromTransition,
   createActor,
-  StateFrom
+  StateFrom,
+  Snapshot,
+  TransitionSnapshot,
+  AnyEventObject
 } from 'xstate';
 import {
   shallowEqual,
@@ -342,9 +345,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue,
-        getOutput: () => undefined
+        getInitialState: () => ({
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: latestValue
+        })
       });
 
     const parentMachine = createMachine({
@@ -366,7 +372,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       const value = useSelector(actor, identitySelector);
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container } = render(<App />);
@@ -485,9 +491,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue,
-        getOutput: () => undefined
+        getInitialState: () => ({
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: latestValue
+        })
       });
 
     const parentMachine = createMachine({
@@ -509,7 +518,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       const value = useSelector(actor, identitySelector);
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container } = render(<App />);
@@ -523,9 +532,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue,
-        getOutput: () => undefined
+        getInitialState: () => ({
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: latestValue
+        })
       });
 
     const actor1 = createCustomActor('foo');
@@ -539,7 +551,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         identitySelector
       );
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container, rerender } = render(<App prop="first" />);
@@ -555,9 +567,14 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       subscribe: () => {
         return { unsubscribe: () => {} };
       },
-      getSnapshot: () => undefined,
-      getInitialState: () => undefined,
-      getOutput: () => undefined
+      getInitialState: () => {
+        return {
+          status: 'active',
+          output: undefined,
+          error: undefined,
+          context: undefined
+        };
+      }
     });
 
     const App = ({ selector }: { selector: any }) => {
@@ -749,20 +766,28 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should work with a null actor', () => {
     const Child = (props: {
-      actor: ActorRef<any, { count: number }> | undefined;
+      actor: ActorRef<any, TransitionSnapshot<{ count: number }>> | undefined;
     }) => {
-      const state = useSelector(props.actor ?? createEmptyActor(), (s) => s);
+      const state = useSelector<
+        ActorRef<
+          AnyEventObject,
+          Snapshot<undefined> & { context?: { count: number } }
+        >,
+        Snapshot<undefined> & { context?: { count: number } }
+      >(props.actor ?? createEmptyActor(), (s) => s);
 
       // @ts-expect-error
-      ((_accept: { count: number }) => {})(state);
-      ((_accept: { count: number } | undefined) => {})(state);
+      ((_accept: { count: number }) => {})(state.context);
+      ((_accept: { count: number } | undefined) => {})(state.context);
 
-      return <div data-testid="state">{state?.count ?? 'undefined'}</div>;
+      return (
+        <div data-testid="state">{state.context?.count ?? 'undefined'}</div>
+      );
     };
 
     const App = () => {
       const [actor, setActor] =
-        React.useState<ActorRef<any, { count: number }>>();
+        React.useState<ActorRef<any, TransitionSnapshot<{ count: number }>>>();
 
       return (
         <>

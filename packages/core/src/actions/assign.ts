@@ -20,21 +20,22 @@ export interface AssignArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
   TActor extends ProvidedActor
-> extends ActionArgs<TContext, TExpressionEvent, TExpressionAction> {
+> extends ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent> {
   spawn: Spawner<TActor>;
 }
 
-function resolve(
+function resolveAssign(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   {
     assignment
   }: {
     assignment:
-      | Assigner<any, any, any, any>
-      | PropertyAssigner<any, any, any, any>;
+      | Assigner<any, any, any, any, any>
+      | PropertyAssigner<any, any, any, any, any>;
   }
 ) {
   if (!state.context) {
@@ -44,7 +45,7 @@ function resolve(
   }
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
-  const assignArgs: AssignArgs<any, any, any, any> = {
+  const assignArgs: AssignArgs<any, any, any, any, any> = {
     context: state.context,
     event: actionArgs.event,
     action: actionArgs.action,
@@ -89,9 +90,10 @@ export interface AssignAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
   TActor extends ProvidedActor
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
   _out_TActor?: TActor;
 }
 
@@ -106,19 +108,27 @@ export function assign<
   TExpressionAction extends ParameterizedObject | undefined =
     | ParameterizedObject
     | undefined,
+  TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor
 >(
   assignment:
-    | Assigner<LowInfer<TContext>, TExpressionEvent, TExpressionAction, TActor>
+    | Assigner<
+        LowInfer<TContext>,
+        TExpressionEvent,
+        TExpressionAction,
+        TEvent,
+        TActor
+      >
     | PropertyAssigner<
         LowInfer<TContext>,
         TExpressionEvent,
         TExpressionAction,
+        TEvent,
         TActor
       >
-): AssignAction<TContext, TExpressionEvent, TExpressionAction, TActor> {
+): AssignAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
   function assign(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -128,7 +138,7 @@ export function assign<
   assign.type = 'xstate.assign';
   assign.assignment = assignment;
 
-  assign.resolve = resolve;
+  assign.resolve = resolveAssign;
 
   return assign;
 }

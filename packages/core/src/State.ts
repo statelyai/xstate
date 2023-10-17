@@ -1,6 +1,8 @@
 import isDevelopment from '#is-development';
 import { STATE_DELIMITER } from './constants.ts';
+import { $$ACTOR_TYPE } from './interpreter.ts';
 import { memo } from './memo.ts';
+import { MachineSnapshot } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   getConfiguration,
@@ -72,7 +74,6 @@ export class State<
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TTag extends string,
-  TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -81,11 +82,10 @@ export class State<
   /**
    * Indicates whether the state is a final state.
    */
-  public done: boolean;
+  public status: 'active' | 'done' | 'error' | 'stopped';
   /**
    * The output data of the top-level finite state.
    */
-  public output: TOutput | undefined;
   public error: unknown;
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
@@ -114,7 +114,6 @@ export class State<
           TEvent,
           TODO,
           any, // tags
-          any, // output
           any // typegen
         >
       | StateValue,
@@ -125,18 +124,18 @@ export class State<
     TEvent,
     TODO,
     any, // tags
-    any, // output
     any // typegen
   > {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TContext, TEvent, TODO, any, any, any>(
+        return new State<TContext, TEvent, TODO, any, any>(
           {
             value: stateValue.value,
             context,
             meta: {},
             configuration: [], // TODO: fix,
-            children: {}
+            children: {},
+            status: 'active'
           },
           machine
         );
@@ -149,13 +148,14 @@ export class State<
       getStateNodes(machine.root, stateValue)
     );
 
-    return new State<TContext, TEvent, TODO, any, any, any>(
+    return new State<TContext, TEvent, TODO, any, any>(
       {
         value: stateValue,
         context,
         meta: undefined,
         configuration: Array.from(configuration),
-        children: {}
+        children: {},
+        status: 'active'
       },
       machine
     );
@@ -182,9 +182,9 @@ export class State<
 
     this.value = getStateValue(machine.root, this.configuration);
     this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
-    this.done = config.done ?? false;
-    this.output = config.output;
-    this.error = config.error;
+    this.status = config.status;
+    (this as any).output = config.output;
+    (this as any).error = config.error;
   }
 
   /**
@@ -246,7 +246,7 @@ export class State<
       );
     }
 
-    const transitionData = this.machine.getTransitionData(this, event);
+    const transitionData = this.machine.getTransitionData(this as any, event);
 
     return (
       !!transitionData?.length &&
@@ -286,22 +286,94 @@ export function cloneState<TState extends AnyState>(
   ) as TState;
 }
 
-export function getPersistedState<TState extends AnyState>(
-  state: TState
-): PersistedMachineState<TState> {
-  const { configuration, tags, machine, children, ...jsonValues } = state;
+export function getPersistedState<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
+  TResolvedTypesMeta = TypegenDisabled
+>(
+  state: MachineSnapshot<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  >
+): PersistedMachineState<
+  TContext,
+  TEvent,
+  TActor,
+  TTag,
+  TOutput,
+  TResolvedTypesMeta
+> {
+  const { configuration, tags, machine, children, context, ...jsonValues } =
+    state;
 
-  const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
+  const childrenJson: Partial<
+    PersistedMachineState<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >['children']
+  > = {};
 
   for (const id in children) {
-    childrenJson[id] = {
-      state: children[id].getPersistedState?.(),
-      src: children[id].src
+    const child = children[id] as any;
+    if (isDevelopment && typeof child.src !== 'string') {
+      throw new Error('An inline child actor cannot be persisted.');
+    }
+    childrenJson[id as keyof typeof childrenJson] = {
+      state: child.getPersistedState?.(),
+      src: child.src
     };
   }
 
   return {
     ...jsonValues,
+    // TODO: this makes `PersistedMachineState`'s type kind of a lie
+    // it doesn't truly use `TContext` but rather some kind of a derived form of it
+    context: persistContext(context) as any,
     children: childrenJson
-  } as PersistedMachineState<TState>;
+  } as PersistedMachineState<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  >;
+}
+
+function persistContext(contextPart: Record<string, unknown>) {
+  let copy: typeof contextPart | undefined;
+  for (const key in contextPart) {
+    const value = contextPart[key];
+    if (value && typeof value === 'object') {
+      if ('sessionId' in value && 'send' in value && 'ref' in value) {
+        copy ??= Array.isArray(contextPart)
+          ? (contextPart.slice() as typeof contextPart)
+          : { ...contextPart };
+        copy[key] = {
+          xstate$$type: $$ACTOR_TYPE,
+          id: (value as any as AnyActorRef).id
+        };
+      } else {
+        const result = persistContext(value as typeof contextPart);
+        if (result !== value) {
+          copy ??= Array.isArray(contextPart)
+            ? (contextPart.slice() as typeof contextPart)
+            : { ...contextPart };
+          copy[key] = result;
+        }
+      }
+    }
+  }
+  return copy ?? contextPart;
 }

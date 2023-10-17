@@ -112,7 +112,7 @@ describe('die hard example', () => {
 
     const options = {
       states: {
-        pending: (state: StateFrom<typeof dieHardMachine>) => {
+        pending: (state: ReturnType<(typeof dieHardMachine)['transition']>) => {
           expect(jugs.five).not.toEqual(4);
           expect(jugs.three).toEqual(state.context.three);
           expect(jugs.five).toEqual(state.context.five);

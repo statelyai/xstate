@@ -6,7 +6,6 @@ import type {
   ActorLogic,
   AnyEventObject,
   EventObject,
-  InvokeConfig,
   MachineContext,
   Mapper,
   Observer,
@@ -15,12 +14,10 @@ import type {
   StateLike,
   StateValue,
   Subscribable,
-  TransitionConfig,
   TransitionConfigTarget,
-  TODO,
   AnyActorRef,
   AnyTransitionConfig,
-  AnyInvokeConfig
+  NonReducibleUnknown
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -225,21 +222,24 @@ export function toArray<T>(value: readonly T[] | T | undefined): readonly T[] {
   return toArrayStrict(value);
 }
 
-export function mapContext<
+export function resolveOutput<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 >(
-  mapper: Mapper<TContext, TEvent, any>,
+  mapper:
+    | Mapper<TContext, TExpressionEvent, unknown, EventObject>
+    | NonReducibleUnknown,
   context: TContext,
-  event: TEvent,
+  event: TExpressionEvent,
   self: AnyActorRef
-): any {
+): unknown {
   if (typeof mapper === 'function') {
     return mapper({ context, event, self });
   }
 
   if (
     isDevelopment &&
+    !!mapper &&
     typeof mapper === 'object' &&
     Object.values(mapper).some((val) => typeof val === 'function')
   ) {
@@ -315,15 +315,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
     !!value && 'subscribe' in value && typeof value.subscribe === 'function'
   );
 }
-
-export const uniqueId = (() => {
-  let currentId = 0;
-
-  return () => {
-    currentId++;
-    return currentId.toString(16);
-  };
-})();
 
 export function isErrorActorEvent(
   event: AnyEventObject
@@ -412,7 +403,12 @@ export function createInvokeId(stateNodeId: string, index: number): string {
 export function resolveReferencedActor(
   referenced:
     | AnyActorLogic
-    | { src: AnyActorLogic; input: Mapper<any, any, any> | any }
+    | {
+        src: AnyActorLogic;
+        input:
+          | Mapper<MachineContext, EventObject, unknown, EventObject>
+          | NonReducibleUnknown;
+      }
     | undefined
 ) {
   return referenced

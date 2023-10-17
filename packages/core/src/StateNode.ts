@@ -13,7 +13,6 @@ import {
 import type {
   DelayedTransitionDefinition,
   EventObject,
-  FinalStateNodeConfig,
   InitialTransitionDefinition,
   InvokeDefinition,
   MachineContext,
@@ -29,7 +28,8 @@ import type {
   ParameterizedObject,
   AnyStateMachine,
   AnyStateNodeConfig,
-  ProvidedActor
+  ProvidedActor,
+  NonReducibleUnknown
 } from './types.ts';
 import {
   createInvokeId,
@@ -40,7 +40,7 @@ import {
 
 const EMPTY_OBJECT = {};
 
-const toSerializableActon = (action: UnknownAction) => {
+const toSerializableAction = (action: UnknownAction) => {
   if (typeof action === 'string') {
     return { type: action };
   }
@@ -134,7 +134,9 @@ export class StateNode<
   /**
    * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
    */
-  public output?: Mapper<TContext, TEvent, any>;
+  public output?:
+    | Mapper<MachineContext, EventObject, unknown, EventObject>
+    | NonReducibleUnknown;
 
   /**
    * The order this state node appears. Corresponds to the implicit document order.
@@ -216,9 +218,7 @@ export class StateNode<
 
     this.meta = this.config.meta;
     this.output =
-      this.type === 'final'
-        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).output
-        : undefined;
+      this.type === 'final' || !this.parent ? this.config.output : undefined;
     this.tags = toArray(config.tags).slice();
   }
 
@@ -248,13 +248,13 @@ export class StateNode<
         ? {
             target: this.initial.target,
             source: this,
-            actions: this.initial.actions.map(toSerializableActon),
+            actions: this.initial.actions.map(toSerializableAction),
             eventType: null as any,
             reenter: false,
             toJSON: () => ({
               target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
-              actions: this.initial!.actions.map(toSerializableActon),
+              actions: this.initial!.actions.map(toSerializableAction),
               eventType: null as any
             })
           }
@@ -266,10 +266,10 @@ export class StateNode<
       on: this.on,
       transitions: [...this.transitions.values()].flat().map((t) => ({
         ...t,
-        actions: t.actions.map(toSerializableActon)
+        actions: t.actions.map(toSerializableAction)
       })),
-      entry: this.entry.map(toSerializableActon),
-      exit: this.exit.map(toSerializableActon),
+      entry: this.entry.map(toSerializableAction),
+      exit: this.exit.map(toSerializableAction),
       meta: this.meta,
       order: this.order || -1,
       output: this.output,
@@ -375,7 +375,7 @@ export class StateNode<
   }
 
   public next(
-    state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
+    state: State<TContext, TEvent, TODO, TODO, TODO>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;

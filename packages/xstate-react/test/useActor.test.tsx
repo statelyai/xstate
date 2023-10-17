@@ -70,10 +70,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
           initial: 'done',
           states: {
             done: {
-              type: 'final',
-              output: 'persisted data'
+              type: 'final'
             }
-          }
+          },
+          output: 'persisted data'
         }) as any
       }
     })
@@ -84,7 +84,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any>;
+    persistedState?: PersistedMachineState<any, any, any, any, any, any>;
   }> = ({
     onFetch = () => {
       return new Promise((res) => res('some data'));
@@ -205,7 +205,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   it('should not spawn actors until service is started', async () => {
     const spawnMachine = createMachine({
-      types: {} as { context: { ref?: ActorRef<any> } },
+      types: {} as { context: { ref?: ActorRef<any, any> } },
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined },
@@ -844,14 +844,14 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       types: {
         context: {} as { value: number }
       },
-      initial: 'intitial',
+      initial: 'initial',
       context: ({ input }: { input: { value: number } }) => {
         return {
           value: input.value
         };
       },
       states: {
-        intitial: {}
+        initial: {}
       }
     });
 
