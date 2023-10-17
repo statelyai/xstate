@@ -218,12 +218,12 @@ export function getStateValue(
 }
 
 export function isInFinalState(
-  configuration: Array<AnyStateNode>,
-  stateNode: AnyStateNode = configuration[0].machine.root
+  configuration: Set<AnyStateNode>,
+  stateNode: AnyStateNode
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
-      (s) => s.type === 'final' && configuration.includes(s)
+      (s) => s.type === 'final' && configuration.has(s)
     );
   }
   if (stateNode.type === 'parallel') {
@@ -1114,7 +1114,7 @@ function microstepProcedure(
 
   const nextConfiguration = [...mutConfiguration];
 
-  const done = isInFinalState(nextConfiguration);
+  const done = isInFinalState(mutConfiguration, currentState.machine.root);
 
   if (done) {
     nextState = resolveActionsAndContext(
@@ -1222,18 +1222,17 @@ function enterStates(
         )
       );
 
-      if (parent.parent) {
-        const grandparent = parent.parent;
-
-        if (grandparent.type === 'parallel') {
-          if (
-            getChildren(grandparent).every((parentNode) =>
-              isInFinalState([...mutConfiguration], parentNode)
-            )
-          ) {
-            internalQueue.push(createDoneStateEvent(grandparent.id));
-          }
+      let ancestorMarker: typeof parent | undefined = parent.parent;
+      while (ancestorMarker) {
+        if (
+          ancestorMarker.type === 'parallel' &&
+          isInFinalState(mutConfiguration, ancestorMarker)
+        ) {
+          internalQueue.push(createDoneStateEvent(ancestorMarker.id));
+          ancestorMarker = ancestorMarker.parent;
+          continue;
         }
+        break;
       }
     }
   }

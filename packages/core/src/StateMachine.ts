@@ -282,7 +282,9 @@ export class StateMachine<
       ...(state as any),
       value: resolveStateValue(this.root, state.value),
       configuration,
-      status: isInFinalState(configuration) ? 'done' : state.status
+      status: isInFinalState(configurationSet, this.root)
+        ? 'done'
+        : state.status
     });
   }
 
