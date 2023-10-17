@@ -1211,17 +1211,13 @@ function enterStates(
               : undefined
           )
         );
-        while (ancestorMarker) {
-          if (
-            ancestorMarker.type === 'parallel' &&
-            isInFinalState(mutConfiguration, ancestorMarker)
-          ) {
-            internalQueue.push(createDoneStateEvent(ancestorMarker.id));
-            rootCompletionNode = ancestorMarker;
-            ancestorMarker = ancestorMarker.parent;
-            continue;
-          }
-          break;
+        while (
+          ancestorMarker?.type === 'parallel' &&
+          isInFinalState(mutConfiguration, ancestorMarker)
+        ) {
+          internalQueue.push(createDoneStateEvent(ancestorMarker.id));
+          rootCompletionNode = ancestorMarker;
+          ancestorMarker = ancestorMarker.parent;
         }
       }
       if (ancestorMarker) {
