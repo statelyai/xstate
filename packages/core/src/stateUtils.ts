@@ -1072,7 +1072,7 @@ function microstepProcedure(
   );
 
   // Enter states
-  const enterStatesResult = enterStates(
+  nextState = enterStates(
     nextState,
     event,
     actorCtx,
@@ -1082,12 +1082,10 @@ function microstepProcedure(
     historyValue,
     isInitial
   );
-  const [, done, machineOutput] = enterStatesResult;
-  nextState = enterStatesResult[0];
 
   const nextConfiguration = [...mutConfiguration];
 
-  if (done) {
+  if (nextState.status === 'done') {
     nextState = resolveActionsAndContext(
       nextState,
       event,
@@ -1101,21 +1099,40 @@ function microstepProcedure(
   try {
     internalQueue.push(...nextState._internalQueue);
 
-    return cloneState(currentState, {
+    return cloneState(nextState, {
       configuration: nextConfiguration,
       historyValue,
-      _internalQueue: internalQueue,
-      context: nextState.context,
-      // TODO: why this one is using currentState and why do we need to check done here
-      status: done ? 'done' : currentState.status,
-      output: machineOutput,
-      children: nextState.children
+      _internalQueue: internalQueue
     });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
     // See https://github.com/statelyai/rfcs/pull/4
     throw e;
   }
+}
+
+function getMachineOutput(
+  state: AnyState,
+  event: AnyEventObject,
+  actorCtx: AnyActorContext,
+  rootNode: AnyStateNode,
+  enteredNode: AnyStateNode
+) {
+  if (!rootNode.output) {
+    return;
+  }
+  const doneStateEvent = createDoneStateEvent(
+    enteredNode.id,
+    enteredNode.output && enteredNode.parent
+      ? resolveOutput(enteredNode.output, state.context, event, actorCtx.self)
+      : undefined
+  );
+  return resolveOutput(
+    rootNode.output,
+    state.context,
+    doneStateEvent,
+    actorCtx.self
+  );
 }
 
 function enterStates(
@@ -1142,9 +1159,6 @@ function enterStates(
   if (isInitial) {
     statesForDefaultEntry.add(currentState.machine.root);
   }
-
-  let done = false;
-  let machineOutput: unknown;
 
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
@@ -1206,36 +1220,21 @@ function enterStates(
         continue;
       }
 
-      done = true;
-      const root = currentState.configuration[0].machine.root;
-
-      if (!root.output) {
-        continue;
-      }
-
-      const doneStateEvent = createDoneStateEvent(
-        stateNodeToEnter.id,
-        stateNodeToEnter.output && stateNodeToEnter.parent
-          ? resolveOutput(
-              stateNodeToEnter.output,
-              nextState.context,
-              event,
-              actorCtx.self
-            )
-          : undefined
-      );
-
-      machineOutput = resolveOutput(
-        root.output,
-        nextState.context,
-        doneStateEvent,
-        actorCtx.self
-      );
+      nextState = cloneState(nextState, {
+        status: 'done',
+        output: getMachineOutput(
+          nextState,
+          event,
+          actorCtx,
+          currentState.configuration[0].machine.root,
+          stateNodeToEnter
+        )
+      });
       continue;
     }
   }
 
-  return [nextState, done, machineOutput] as const;
+  return nextState;
 }
 
 function computeEntrySet(

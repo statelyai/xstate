@@ -15,7 +15,6 @@ import {
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode,
-  isAtomicStateNode,
   getInitialStateNodes
 } from './stateUtils.ts';
 import type {
