@@ -2092,37 +2092,6 @@ describe('initial actions', () => {
     expect(actual).toEqual(['entryB', 'initialFoo', 'entryFoo']);
   });
 
-  it('should support initial actions from transition with target ID', () => {
-    const actual: string[] = [];
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: { NEXT: 'b' }
-        },
-        b: {
-          entry: () => actual.push('entryC'),
-          initial: {
-            target: '#bar',
-            actions: () => actual.push('initialBar')
-          },
-          states: {
-            bar: {
-              id: 'bar',
-              entry: () => actual.push('entryBar')
-            }
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-
-    actor.send({ type: 'NEXT' });
-
-    expect(actual).toEqual(['entryC', 'initialBar', 'entryBar']);
-  });
-
   it('should execute actions of initial transitions only once when taking an explicit transition', () => {
     const spy = jest.fn();
     const machine = createMachine({

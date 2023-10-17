@@ -333,7 +333,7 @@ export interface InitialTransitionConfig<
     TGuard,
     TDelay
   > {
-  target: TransitionTarget;
+  target: string;
 }
 
 export type AnyTransitionConfig = TransitionConfig<
@@ -728,7 +728,7 @@ export interface StateNodeConfig<
    */
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
-    | SingleOrArray<string>
+    | string
     | undefined;
   /**
    * The type of this state node:

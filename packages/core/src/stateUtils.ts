@@ -444,64 +444,36 @@ export function formatInitialTransition<
 >(
   stateNode: AnyStateNode,
   _target:
-    | SingleOrArray<string>
+    | string
+    | undefined
     | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO, TODO>
 ): InitialTransitionDefinition<TContext, TEvent> {
-  if (typeof _target === 'string' || isArray(_target)) {
-    const targets = toArray(_target).map((t) => {
-      // Resolve state string keys (which represent children)
-      // to their state node
-      const descStateNode =
-        typeof t === 'string'
-          ? isStateId(t)
-            ? stateNode.machine.getStateNodeById(t)
-            : stateNode.states[t]
-          : t;
-
-      if (!descStateNode) {
-        throw new Error(
-          `Initial state node "${t}" not found on parent state node #${stateNode.id}`
-        );
-      }
-
-      if (!isDescendant(descStateNode, stateNode)) {
-        throw new Error(
-          `Invalid initial target: state node #${descStateNode.id} is not a descendant of #${stateNode.id}`
-        );
-      }
-
-      return descStateNode;
-    });
-    const resolvedTarget = resolveTarget(stateNode, targets);
-
-    const transition = {
-      source: stateNode,
-      actions: [],
-      eventType: null as any,
-      reenter: false,
-      target: resolvedTarget!,
-      toJSON: () => ({
-        ...transition,
-        source: `#${stateNode.id}`,
-        target: resolvedTarget
-          ? resolvedTarget.map((t) => `#${t.id}`)
-          : undefined
-      })
-    };
-
-    return transition;
+  const resolvedTarget =
+    typeof _target === 'string'
+      ? stateNode.states[_target]
+      : _target
+      ? stateNode.states[_target.target]
+      : undefined;
+  if (!resolvedTarget && _target) {
+    throw new Error(
+      `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
+    );
   }
+  const transition: InitialTransitionDefinition<TContext, TEvent> = {
+    source: stateNode,
+    actions:
+      !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
+    eventType: null as any,
+    reenter: false,
+    target: resolvedTarget ? [resolvedTarget] : [],
+    toJSON: () => ({
+      ...transition,
+      source: `#${stateNode.id}`,
+      target: resolvedTarget ? [`#${resolvedTarget.id}`] : []
+    })
+  };
 
-  return formatTransition(stateNode, '__INITIAL__', {
-    target: toArray(_target.target).map((t) => {
-      if (typeof t === 'string') {
-        return isStateId(t) ? t : `${STATE_DELIMITER}${t}`;
-      }
-
-      return t;
-    }),
-    actions: _target.actions
-  }) as InitialTransitionDefinition<TContext, TEvent>;
+  return transition;
 }
 
 export function resolveTarget(
@@ -589,9 +561,7 @@ export function getInitialStateNodes(stateNode: AnyStateNode) {
     }
     set.add(descStateNode);
     if (descStateNode.type === 'compound') {
-      for (const targetStateNode of descStateNode.initial.target) {
-        iter(targetStateNode);
-      }
+      iter(descStateNode.initial.target[0]);
     } else if (descStateNode.type === 'parallel') {
       for (const child of getChildren(descStateNode)) {
         iter(child);
@@ -1325,26 +1295,22 @@ function addDescendantStatesToEnter<
     statesToEnter.add(stateNode);
     if (stateNode.type === 'compound') {
       statesForDefaultEntry.add(stateNode);
-      const initialStates = stateNode.initial.target;
+      const [initialState] = stateNode.initial.target;
 
-      for (const initialState of initialStates) {
-        addDescendantStatesToEnter(
-          initialState,
-          historyValue,
-          statesForDefaultEntry,
-          statesToEnter
-        );
-      }
+      addDescendantStatesToEnter(
+        initialState,
+        historyValue,
+        statesForDefaultEntry,
+        statesToEnter
+      );
 
-      for (const initialState of initialStates) {
-        addAncestorStatesToEnter(
-          initialState,
-          stateNode,
-          statesToEnter,
-          historyValue,
-          statesForDefaultEntry
-        );
-      }
+      addAncestorStatesToEnter(
+        initialState,
+        stateNode,
+        statesToEnter,
+        historyValue,
+        statesForDefaultEntry
+      );
     } else {
       if (stateNode.type === 'parallel') {
         for (const child of getChildren(stateNode).filter(
