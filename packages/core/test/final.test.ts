@@ -510,4 +510,68 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot().status).toBe('done');
   });
+
+  it('should reach a final state when a parallel state reaches its final state and transitions to a top-level final state in response to that', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          onDone: 'b',
+          states: {
+            a1: {
+              type: 'parallel',
+              states: {
+                a1a: { type: 'final' },
+                a1b: { type: 'final' }
+              }
+            },
+            a2: {
+              initial: 'a2a',
+              states: { a2a: { type: 'final' } }
+            }
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toEqual('done');
+  });
+
+  it('should reach a final state when a parallel state nested in a parallel state reaches its final state and transitions to a top-level final state in response to that', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          onDone: 'b',
+          states: {
+            a1: {
+              type: 'parallel',
+              states: {
+                a1a: { type: 'final' },
+                a1b: { type: 'final' }
+              }
+            },
+            a2: {
+              initial: 'a2a',
+              states: { a2a: { type: 'final' } }
+            }
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toEqual('done');
+  });
 });
