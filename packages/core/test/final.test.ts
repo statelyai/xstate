@@ -6,6 +6,33 @@ import {
 } from '../src/index.ts';
 
 describe('final states', () => {
+  it('status of a machine with a root state being final should be done', () => {
+    const machine = createMachine({ type: 'final' });
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toBe('done');
+  });
+  it('output of a machine with a root state being final should be called with a "xstate.done.state.ROOT_ID" event', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'final',
+      output: ({ event }) => {
+        spy(event);
+      }
+    });
+    createActor(machine, { input: 42 }).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine)",
+          },
+        ],
+      ]
+    `);
+  });
   it('should emit the "xstate.done.state.*" event when all nested states are in their final states', () => {
     const onDoneSpy = jest.fn();
 
@@ -482,5 +509,69 @@ describe('final states', () => {
     });
 
     expect(actorRef.getSnapshot().status).toBe('done');
+  });
+
+  it('should reach a final state when a parallel state reaches its final state and transitions to a top-level final state in response to that', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          onDone: 'b',
+          states: {
+            a1: {
+              type: 'parallel',
+              states: {
+                a1a: { type: 'final' },
+                a1b: { type: 'final' }
+              }
+            },
+            a2: {
+              initial: 'a2a',
+              states: { a2a: { type: 'final' } }
+            }
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toEqual('done');
+  });
+
+  it('should reach a final state when a parallel state nested in a parallel state reaches its final state and transitions to a top-level final state in response to that', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          onDone: 'b',
+          states: {
+            a1: {
+              type: 'parallel',
+              states: {
+                a1a: { type: 'final' },
+                a1b: { type: 'final' }
+              }
+            },
+            a2: {
+              initial: 'a2a',
+              states: { a2a: { type: 'final' } }
+            }
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toEqual('done');
   });
 });

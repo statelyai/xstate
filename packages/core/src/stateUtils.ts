@@ -36,7 +36,6 @@ import {
   StateValueMap,
   TransitionDefinition,
   TODO,
-  AnyActorRef,
   UnknownAction,
   ParameterizedObject,
   ActionFunction,
@@ -60,34 +59,6 @@ type Configuration<
 type AnyConfiguration = Configuration<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
-
-function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
-  configuration: StateNode<TContext, TEvent>[],
-  context: TContext,
-  event: TEvent,
-  self: AnyActorRef
-) {
-  const { machine } = configuration[0];
-  const { root } = machine;
-
-  if (!root.output) {
-    return undefined;
-  }
-
-  const finalChildStateNode = configuration.find(
-    (stateNode) =>
-      stateNode.type === 'final' && stateNode.parent === machine.root
-  )!;
-
-  const doneStateEvent = createDoneStateEvent(
-    finalChildStateNode.id,
-    finalChildStateNode.output
-      ? resolveOutput(finalChildStateNode.output, context, event, self)
-      : undefined
-  );
-
-  return resolveOutput(root.output, context, doneStateEvent, self);
-}
 
 export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
@@ -232,7 +203,7 @@ export function isInFinalState(
     );
   }
 
-  return false;
+  return stateNode.type === 'final';
 }
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
@@ -1101,7 +1072,7 @@ function microstepProcedure(
   );
 
   // Enter states
-  nextState = enterStates(
+  const enterStatesResult = enterStates(
     nextState,
     event,
     actorCtx,
@@ -1111,10 +1082,10 @@ function microstepProcedure(
     historyValue,
     isInitial
   );
+  const [, done, machineOutput] = enterStatesResult;
+  nextState = enterStatesResult[0];
 
   const nextConfiguration = [...mutConfiguration];
-
-  const done = isInFinalState(mutConfiguration, currentState.machine.root);
 
   if (done) {
     nextState = resolveActionsAndContext(
@@ -1128,10 +1099,6 @@ function microstepProcedure(
   }
 
   try {
-    const output = done
-      ? getOutput(nextConfiguration, nextState.context, event, actorCtx.self)
-      : undefined;
-
     internalQueue.push(...nextState._internalQueue);
 
     return cloneState(currentState, {
@@ -1139,8 +1106,9 @@ function microstepProcedure(
       historyValue,
       _internalQueue: internalQueue,
       context: nextState.context,
+      // TODO: why this one is using currentState and why do we need to check done here
       status: done ? 'done' : currentState.status,
-      output,
+      output: machineOutput,
       children: nextState.children
     });
   } catch (e) {
@@ -1175,6 +1143,9 @@ function enterStates(
     statesForDefaultEntry.add(currentState.machine.root);
   }
 
+  let done = false;
+  let machineOutput: unknown;
+
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
   )) {
@@ -1202,42 +1173,69 @@ function enterStates(
     );
 
     if (stateNodeToEnter.type === 'final') {
-      const parent = stateNodeToEnter.parent!;
+      const parent = stateNodeToEnter.parent;
+      let ancestorMarker: typeof parent | undefined = parent?.parent;
 
-      if (!parent.parent) {
+      if (ancestorMarker) {
+        internalQueue.push(
+          createDoneStateEvent(
+            parent!.id,
+            stateNodeToEnter.output
+              ? resolveOutput(
+                  stateNodeToEnter.output,
+                  nextState.context,
+                  event,
+                  actorCtx.self
+                )
+              : undefined
+          )
+        );
+        while (ancestorMarker) {
+          if (
+            ancestorMarker.type === 'parallel' &&
+            isInFinalState(mutConfiguration, ancestorMarker)
+          ) {
+            internalQueue.push(createDoneStateEvent(ancestorMarker.id));
+            ancestorMarker = ancestorMarker.parent;
+            continue;
+          }
+          break;
+        }
+      }
+      if (ancestorMarker) {
         continue;
       }
 
-      internalQueue.push(
-        createDoneStateEvent(
-          parent!.id,
-          stateNodeToEnter.output
-            ? resolveOutput(
-                stateNodeToEnter.output,
-                nextState.context,
-                event,
-                actorCtx.self
-              )
-            : undefined
-        )
+      done = true;
+      const root = currentState.configuration[0].machine.root;
+
+      if (!root.output) {
+        continue;
+      }
+
+      const doneStateEvent = createDoneStateEvent(
+        stateNodeToEnter.id,
+        stateNodeToEnter.output && stateNodeToEnter.parent
+          ? resolveOutput(
+              stateNodeToEnter.output,
+              nextState.context,
+              event,
+              actorCtx.self
+            )
+          : undefined
       );
 
-      let ancestorMarker: typeof parent | undefined = parent.parent;
-      while (ancestorMarker) {
-        if (
-          ancestorMarker.type === 'parallel' &&
-          isInFinalState(mutConfiguration, ancestorMarker)
-        ) {
-          internalQueue.push(createDoneStateEvent(ancestorMarker.id));
-          ancestorMarker = ancestorMarker.parent;
-          continue;
-        }
-        break;
-      }
+      machineOutput = resolveOutput(
+        root.output,
+        nextState.context,
+        doneStateEvent,
+        actorCtx.self
+      );
+      continue;
     }
   }
 
-  return nextState;
+  return [nextState, done, machineOutput] as const;
 }
 
 function computeEntrySet(
