@@ -32,10 +32,10 @@ describe('toPromise', () => {
           }
         },
         done: {
-          type: 'final',
-          output: { count: 42 }
+          type: 'final'
         }
-      }
+      },
+      output: { count: 42 }
     });
 
     const actor = createActor(machine).start();
@@ -59,10 +59,10 @@ describe('toPromise', () => {
       initial: 'done',
       states: {
         done: {
-          type: 'final',
-          output: { count: 42 }
+          type: 'final'
         }
-      }
+      },
+      output: { count: 42 }
     });
 
     const actor = createActor(machine).start();

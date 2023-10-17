@@ -7,9 +7,10 @@ export function toPromise<T extends AnyActorRef>(
     actor.subscribe({
       complete: () => {
         resolve(
-          actor.getOutput()! as T extends Actor<infer TLogic>
-            ? OutputFrom<TLogic>
-            : unknown
+          actor.getSnapshot().output
+          // actor.getOutput()! as T extends Actor<infer TLogic>
+          //   ? OutputFrom<TLogic>
+          //   : unknown
         );
       },
       error: (err) => {
