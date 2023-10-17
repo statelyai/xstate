@@ -1116,15 +1116,20 @@ function getMachineOutput(
   event: AnyEventObject,
   actorCtx: AnyActorContext,
   rootNode: AnyStateNode,
-  enteredNode: AnyStateNode
+  rootCompletionNode: AnyStateNode
 ) {
   if (!rootNode.output) {
     return;
   }
   const doneStateEvent = createDoneStateEvent(
-    enteredNode.id,
-    enteredNode.output && enteredNode.parent
-      ? resolveOutput(enteredNode.output, state.context, event, actorCtx.self)
+    rootCompletionNode.id,
+    rootCompletionNode.output && rootCompletionNode.parent
+      ? resolveOutput(
+          rootCompletionNode.output,
+          state.context,
+          event,
+          actorCtx.self
+        )
       : undefined
   );
   return resolveOutput(
@@ -1188,6 +1193,8 @@ function enterStates(
 
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent;
+      let rootCompletionNode =
+        parent?.type === 'parallel' ? parent : stateNodeToEnter;
       let ancestorMarker: typeof parent | undefined = parent?.parent;
 
       if (ancestorMarker) {
@@ -1210,6 +1217,7 @@ function enterStates(
             isInFinalState(mutConfiguration, ancestorMarker)
           ) {
             internalQueue.push(createDoneStateEvent(ancestorMarker.id));
+            rootCompletionNode = ancestorMarker;
             ancestorMarker = ancestorMarker.parent;
             continue;
           }
@@ -1227,7 +1235,7 @@ function enterStates(
           event,
           actorCtx,
           currentState.configuration[0].machine.root,
-          stateNodeToEnter
+          rootCompletionNode
         )
       });
       continue;

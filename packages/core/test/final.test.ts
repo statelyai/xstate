@@ -574,4 +574,102 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot().status).toEqual('done');
   });
+  it('root output should be called with a "xstate.done.state.*" event of the parallel root when a direct final child of that parallel root is reached', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          type: 'final'
+        }
+      },
+      output: ({ event }) => {
+        spy(event);
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine)",
+          },
+        ],
+      ]
+    `);
+  });
+
+  it('root output should be called with a "xstate.done.state.*" event of the parallel root when a final child of its compound child is reached', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'b',
+          states: {
+            b: {
+              type: 'final'
+            }
+          }
+        }
+      },
+      output: ({ event }) => {
+        spy(event);
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine)",
+          },
+        ],
+      ]
+    `);
+  });
+
+  it('root output should be called with a "xstate.done.state.*" event of the parallel root when a final descendant is reached 2 parallel levels deep', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          type: 'parallel',
+          states: {
+            b: {
+              initial: 'c',
+              states: {
+                c: {
+                  type: 'final'
+                }
+              }
+            }
+          }
+        }
+      },
+      output: ({ event }) => {
+        spy(event);
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine)",
+          },
+        ],
+      ]
+    `);
+  });
 });
