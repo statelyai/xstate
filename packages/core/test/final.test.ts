@@ -776,4 +776,53 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot().status).toBe('active');
   });
+
+  it('root output should only be called once when multiple parallel regions complete at once', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          type: 'final'
+        },
+        b: {
+          type: 'final'
+        }
+      },
+      output: spy
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toBeCalledTimes(1);
+  });
+
+  it('onDone of a parallel state should only be called once when multiple parallel regions complete at once', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          states: {
+            b: {
+              type: 'final'
+            },
+            c: {
+              type: 'final'
+            }
+          },
+          onDone: {
+            actions: spy
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toBeCalledTimes(1);
+  });
 });

@@ -1135,6 +1135,8 @@ function enterStates(
     statesForDefaultEntry.add(currentState.machine.root);
   }
 
+  const completedNodes = new Set();
+
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
   )) {
@@ -1163,6 +1165,12 @@ function enterStates(
 
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent;
+
+      if (completedNodes.has(parent)) {
+        continue;
+      }
+      completedNodes.add(parent);
+
       let rootCompletionNode =
         parent?.type === 'parallel' ? parent : stateNodeToEnter;
       let ancestorMarker: typeof parent | undefined = parent?.parent;
@@ -1183,8 +1191,10 @@ function enterStates(
         );
         while (
           ancestorMarker?.type === 'parallel' &&
+          !completedNodes.has(ancestorMarker) &&
           isInFinalState(mutConfiguration, ancestorMarker)
         ) {
+          completedNodes.add(ancestorMarker);
           internalQueue.push(createDoneStateEvent(ancestorMarker.id));
           rootCompletionNode = ancestorMarker;
           ancestorMarker = ancestorMarker.parent;
@@ -1204,7 +1214,6 @@ function enterStates(
           rootCompletionNode
         )
       });
-      continue;
     }
   }
 
