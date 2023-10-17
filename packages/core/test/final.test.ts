@@ -6,6 +6,33 @@ import {
 } from '../src/index.ts';
 
 describe('final states', () => {
+  it('status of a machine with a root state being final should be done', () => {
+    const machine = createMachine({ type: 'final' });
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toBe('done');
+  });
+  it('output of a machine with a root state being final should be called with a "xstate.done.state.ROOT_ID" event', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'final',
+      output: ({ event }) => {
+        spy(event);
+      }
+    });
+    createActor(machine, { input: 42 }).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine)",
+          },
+        ],
+      ]
+    `);
+  });
   it('should emit the "xstate.done.state.*" event when all nested states are in their final states', () => {
     const onDoneSpy = jest.fn();
 
