@@ -8,7 +8,7 @@ import {
   Values
 } from './types';
 
-export function provide<
+export function setup<
   TActors extends Record<string, AnyActorLogic>,
   TActions extends Record<string, ({ params }: { params: any }) => void>,
   TGuards extends Record<string, ({ params }: { params: any }) => boolean>,

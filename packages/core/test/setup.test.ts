@@ -6,16 +6,16 @@ import {
   fromPromise,
   fromTransition
 } from '../src';
-import { provide } from '../src/provide';
+import { setup } from '../src/setup';
 
-describe('provide()', () => {
+describe('setup()', () => {
   it('can strongly type provided actors', () => {
     const promiseSrc = fromPromise(() => Promise.resolve('hello'));
     const transitionSrc = fromTransition(() => 'world', 'hello');
     const observableSrc = fromObservable(() => of(42));
     const machineSrc = createMachine({});
 
-    const p = provide({
+    const p = setup({
       actors: {
         promiseSrc,
         transitionSrc,
@@ -79,6 +79,40 @@ describe('provide()', () => {
             })
           }
         }
+      ]
+    });
+  });
+
+  it('can strongly type provided actions', () => {
+    const p = setup({
+      actions: {
+        greet: ({ params }: { params: { name: string } }) => {
+          console.log(`Hello, ${params.name}!`);
+        }
+      }
+    });
+
+    p.createMachine({
+      entry: {
+        type: 'greet',
+        params: {
+          name: 'some name'
+        }
+      },
+      exit: [
+        {
+          type: 'greet',
+          params: {
+            // @ts-expect-error
+            name: 42
+          }
+        },
+        {
+          // @ts-expect-error
+          type: 'other'
+        },
+        // @ts-expect-error
+        'greet'
       ]
     });
   });

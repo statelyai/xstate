@@ -4,7 +4,7 @@ import {
   createActor,
   fromPromise
 } from '../src/index.ts';
-import { provide } from '../src/provide.ts';
+import { setup } from '../src/setup.ts';
 
 interface CounterContext {
   count: number;
@@ -371,7 +371,7 @@ describe('assign meta', () => {
 it('should type events from onDone properly', () => {
   const stringSrc = fromPromise(() => Promise.resolve('string'));
 
-  const p = provide({
+  const p = setup({
     actors: {
       stringSrc
     },
