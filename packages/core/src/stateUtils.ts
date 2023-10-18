@@ -1350,7 +1350,10 @@ function addDescendantStatesToEnter<
           (sn) => !isHistoryNode(sn)
         )) {
           if (![...statesToEnter].some((s) => isDescendant(s, child))) {
-            statesToEnter.add(child);
+            if (!isHistoryNode(child)) {
+              statesToEnter.add(child);
+              statesForDefaultEntry.add(child);
+            }
             addDescendantStatesToEnter(
               child,
               historyValue,

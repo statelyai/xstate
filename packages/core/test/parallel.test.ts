@@ -755,6 +755,64 @@ describe('parallel states', () => {
     });
   });
 
+  it('should execute actions of the initial transition of a parallel region when entering the initial state configuration of a machine', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: {
+            target: 'a1',
+            actions: spy
+          },
+          states: {
+            a1: {}
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute actions of the initial transition of a parallel region when the parallel state is targeted with an explicit transition', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'parallel',
+          states: {
+            c: {
+              initial: {
+                target: 'c1',
+                actions: spy
+              },
+              states: {
+                c1: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
   describe('transitions with nested parallel states', () => {
     it('should properly transition when in a simple nested state', () => {
       const actorRef = createActor(nestedParallelState).start();
