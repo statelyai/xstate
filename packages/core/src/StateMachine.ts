@@ -15,7 +15,7 @@ import {
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode,
-  isAtomicStateNode
+  getInitialStateNodes
 } from './stateUtils.ts';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -48,7 +48,7 @@ import type {
   SnapshotFrom
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
-import { createActor } from './interpreter.ts';
+import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
 import isDevelopment from '#is-development';
 
 export const STATE_IDENTIFIER = '#';
@@ -281,7 +281,9 @@ export class StateMachine<
       ...(state as any),
       value: resolveStateValue(this.root, state.value),
       configuration,
-      status: isInFinalState(configuration) ? 'done' : state.status
+      status: isInFinalState(configurationSet, this.root)
+        ? 'done'
+        : state.status
     });
   }
 
@@ -455,7 +457,7 @@ export class StateMachine<
     const nextState = microstep(
       [
         {
-          target: [...preInitialState.configuration].filter(isAtomicStateNode),
+          target: [...getInitialStateNodes(this.root)],
           source: this.root,
           reenter: true,
           actions: [],
@@ -618,7 +620,36 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
-    return this.createState(new State({ ...snapshot, children }, this) as any);
+    const restoredSnapshot = this.createState(
+      new State({ ...snapshot, children }, this) as any
+    );
+
+    let seen = new Set();
+
+    function reviveContext(
+      contextPart: Record<string, unknown>,
+      children: Record<string, AnyActorRef>
+    ) {
+      if (seen.has(contextPart)) {
+        return;
+      }
+      seen.add(contextPart);
+      for (let key in contextPart) {
+        const value: unknown = contextPart[key];
+
+        if (value && typeof value === 'object') {
+          if ('xstate$$type' in value && value.xstate$$type === $$ACTOR_TYPE) {
+            contextPart[key] = children[(value as any).id];
+            continue;
+          }
+          reviveContext(value as typeof contextPart, children);
+        }
+      }
+    }
+
+    reviveContext(restoredSnapshot.context, children);
+
+    return restoredSnapshot;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

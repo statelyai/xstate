@@ -33,7 +33,7 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
 
-📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
+📑 Inspired by the [SCXML specification](https://www.w3.org/TR/scxml/)
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
