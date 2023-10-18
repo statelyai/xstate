@@ -1,5 +1,60 @@
 # xstate
 
+## 5.0.0-beta.35
+
+### Major Changes
+
+- [#4363](https://github.com/statelyai/xstate/pull/4363) [`3513280db`](https://github.com/statelyai/xstate/commit/3513280db56106f0113aac9dc3b9bb603853f085) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to target deep descendants with the `initial` property.
+
+- [#4363](https://github.com/statelyai/xstate/pull/4363) [`3513280db`](https://github.com/statelyai/xstate/commit/3513280db56106f0113aac9dc3b9bb603853f085) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to target multiple descendants with the `initial` property.
+
+- [#4216](https://github.com/statelyai/xstate/pull/4216) [`04cad53e0`](https://github.com/statelyai/xstate/commit/04cad53e07da2beb37520fb3c9e165fbf7b5bf86) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to define delayed transitions using an array. Only object variant is supported now:
+
+  ```ts
+  createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        after: {
+          10000: 'b',
+          noon: 'c'
+        }
+      }
+      // ...
+    }
+  });
+  ```
+
+- [#3921](https://github.com/statelyai/xstate/pull/3921) [`0ca1b860c`](https://github.com/statelyai/xstate/commit/0ca1b860c99bac1e9187e3ca392ad3fbb0626b5d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned actors that have a referenced source (not inline) can be deeply persisted and restored:
+
+  ```ts
+  const machine = createMachine({
+    context: ({ spawn }) => ({
+      // This will be persisted
+      ref: spawn('reducer', { id: 'child' })
+
+      // This cannot be persisted:
+      // ref: spawn(fromTransition((s) => s, { count: 42 }), { id: 'child' })
+    })
+  }).provide({
+    actors: {
+      reducer: fromTransition((s) => s, { count: 42 })
+    }
+  });
+  ```
+
+### Minor Changes
+
+- [#4358](https://github.com/statelyai/xstate/pull/4358) [`03ac5c013`](https://github.com/statelyai/xstate/commit/03ac5c013507bcd899416ed0f3f849b939bf1bee) Thanks [@Andarist](https://github.com/Andarist)! - `xstate.done.state.*` events will now be generated recursively for all parallel states on the ancestors path.
+
+### Patch Changes
+
+- [#4361](https://github.com/statelyai/xstate/pull/4361) [`1a00b5a54`](https://github.com/statelyai/xstate/commit/1a00b5a54c3dc9b13afc187eac06d912411653cc) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a runtime crash related to machines with their root state's type being final (`createMachine({ type: 'final' })`).
+
+- [#4357](https://github.com/statelyai/xstate/pull/4357) [`84c46c1ae`](https://github.com/statelyai/xstate/commit/84c46c1ae95cea34355245a12ca2471eca996337) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not all actions of initial transitions resolving to the initial state of the machine itself being executed.
+
+- [#4356](https://github.com/statelyai/xstate/pull/4356) [`81b6edafd`](https://github.com/statelyai/xstate/commit/81b6edafd6386d822c3b12c9e12e025ab4f843ad) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with actions of initial transitions being called too many times.
+
 ## 5.0.0-beta.34
 
 ### Patch Changes
