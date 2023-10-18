@@ -1094,15 +1094,20 @@ function getMachineOutput(
   event: AnyEventObject,
   actorCtx: AnyActorContext,
   rootNode: AnyStateNode,
-  enteredNode: AnyStateNode
+  rootCompletionNode: AnyStateNode
 ) {
   if (!rootNode.output) {
     return;
   }
   const doneStateEvent = createDoneStateEvent(
-    enteredNode.id,
-    enteredNode.output && enteredNode.parent
-      ? resolveOutput(enteredNode.output, state.context, event, actorCtx.self)
+    rootCompletionNode.id,
+    rootCompletionNode.output && rootCompletionNode.parent
+      ? resolveOutput(
+          rootCompletionNode.output,
+          state.context,
+          event,
+          actorCtx.self
+        )
       : undefined
   );
   return resolveOutput(
@@ -1141,6 +1146,8 @@ function enterStates(
     statesForDefaultEntry.add(currentState.machine.root);
   }
 
+  const completedNodes = new Set();
+
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
   )) {
@@ -1169,6 +1176,14 @@ function enterStates(
 
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent;
+
+      if (completedNodes.has(parent)) {
+        continue;
+      }
+      completedNodes.add(parent);
+
+      let rootCompletionNode =
+        parent?.type === 'parallel' ? parent : stateNodeToEnter;
       let ancestorMarker: typeof parent | undefined = parent?.parent;
 
       if (ancestorMarker) {
@@ -1185,16 +1200,15 @@ function enterStates(
               : undefined
           )
         );
-        while (ancestorMarker) {
-          if (
-            ancestorMarker.type === 'parallel' &&
-            isInFinalState(mutConfiguration, ancestorMarker)
-          ) {
-            internalQueue.push(createDoneStateEvent(ancestorMarker.id));
-            ancestorMarker = ancestorMarker.parent;
-            continue;
-          }
-          break;
+        while (
+          ancestorMarker?.type === 'parallel' &&
+          !completedNodes.has(ancestorMarker) &&
+          isInFinalState(mutConfiguration, ancestorMarker)
+        ) {
+          completedNodes.add(ancestorMarker);
+          internalQueue.push(createDoneStateEvent(ancestorMarker.id));
+          rootCompletionNode = ancestorMarker;
+          ancestorMarker = ancestorMarker.parent;
         }
       }
       if (ancestorMarker) {
@@ -1208,10 +1222,9 @@ function enterStates(
           event,
           actorCtx,
           currentState.configuration[0].machine.root,
-          stateNodeToEnter
+          rootCompletionNode
         )
       });
-      continue;
     }
   }
 
