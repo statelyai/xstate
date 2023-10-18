@@ -523,19 +523,21 @@ export function resolveTarget(
   });
 }
 
-function resolveHistoryTarget<
+function resolveHistoryDefaultTransition<
   TContext extends MachineContext,
   TEvent extends EventObject
->(stateNode: AnyStateNode & { type: 'history' }): ReadonlyArray<AnyStateNode> {
+>(stateNode: AnyStateNode & { type: 'history' }) {
   const normalizedTarget = normalizeTarget<TContext, TEvent>(
     stateNode.config.target
   );
   if (!normalizedTarget) {
-    return stateNode.parent!.initial.target;
+    return stateNode.parent!.initial;
   }
-  return normalizedTarget.map((t) =>
-    typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
-  );
+  return {
+    target: normalizedTarget.map((t) =>
+      typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
+    )
+  };
 }
 
 function isHistoryNode(
@@ -881,7 +883,7 @@ function findLCCA(stateNodes: Array<AnyStateNode>): AnyStateNode {
 }
 
 function getEffectiveTargetStates(
-  transition: AnyTransitionDefinition,
+  transition: Pick<AnyTransitionDefinition, 'target'>,
   historyValue: AnyHistoryValue
 ): Array<AnyStateNode> {
   if (!transition.target) {
@@ -898,9 +900,7 @@ function getEffectiveTargetStates(
         }
       } else {
         for (const node of getEffectiveTargetStates(
-          {
-            target: resolveHistoryTarget(targetNode)
-          } as AnyTransitionDefinition,
+          resolveHistoryDefaultTransition(targetNode),
           historyValue
         )) {
           targets.add(node);
@@ -1275,8 +1275,7 @@ function addDescendantStatesToEnter<
       const historyStateNodes = historyValue[stateNode.id];
       for (const s of historyStateNodes) {
         statesToEnter.add(s);
-        // TODO: recheck if we miss a test case that would make this required:
-        // statesForDefaultEntry.add(s);
+
         addDescendantStatesToEnter(
           s,
           historyValue,
@@ -1294,11 +1293,17 @@ function addDescendantStatesToEnter<
         );
       }
     } else {
-      const targets = resolveHistoryTarget<TContext, TEvent>(stateNode);
-      for (const s of targets) {
+      const historyDefaultTransition = resolveHistoryDefaultTransition<
+        TContext,
+        TEvent
+      >(stateNode);
+      for (const s of historyDefaultTransition.target) {
         statesToEnter.add(s);
-        // TODO: recheck if we miss a test case that would make this required:
-        // statesForDefaultEntry.add(s);
+
+        if (historyDefaultTransition === stateNode.parent?.initial) {
+          statesForDefaultEntry.add(stateNode.parent);
+        }
+
         addDescendantStatesToEnter(
           s,
           historyValue,
@@ -1306,7 +1311,8 @@ function addDescendantStatesToEnter<
           statesToEnter
         );
       }
-      for (const s of targets) {
+
+      for (const s of historyDefaultTransition.target) {
         addAncestorStatesToEnter(
           s,
           stateNode,
