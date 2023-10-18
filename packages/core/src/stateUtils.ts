@@ -1322,8 +1322,7 @@ function addDescendantStatesToEnter<
 
       if (!isHistoryNode(initialState)) {
         statesToEnter.add(initialState);
-        // TODO: recheck if we miss a test case that would make this required:
-        // statesForDefaultEntry.add(initialState);
+        statesForDefaultEntry.add(initialState);
       }
       addDescendantStatesToEnter(
         initialState,
