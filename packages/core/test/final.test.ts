@@ -574,4 +574,206 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot().status).toEqual('done');
   });
+  it('root output should be called with a "xstate.done.state.*" event of the parallel root when a direct final child of that parallel root is reached', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          type: 'final'
+        }
+      },
+      output: ({ event }) => {
+        spy(event);
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine)",
+          },
+        ],
+      ]
+    `);
+  });
+
+  it('root output should be called with a "xstate.done.state.*" event of the parallel root when a final child of its compound child is reached', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'b',
+          states: {
+            b: {
+              type: 'final'
+            }
+          }
+        }
+      },
+      output: ({ event }) => {
+        spy(event);
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine)",
+          },
+        ],
+      ]
+    `);
+  });
+
+  it('root output should be called with a "xstate.done.state.*" event of the parallel root when a final descendant is reached 2 parallel levels deep', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          type: 'parallel',
+          states: {
+            b: {
+              initial: 'c',
+              states: {
+                c: {
+                  type: 'final'
+                }
+              }
+            }
+          }
+        }
+      },
+      output: ({ event }) => {
+        spy(event);
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine)",
+          },
+        ],
+      ]
+    `);
+  });
+
+  it('onDone of an outer parallel state should be called with its own "xstate.done.state.*" event when its direct parallel child completes', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          states: {
+            b: {
+              type: 'parallel',
+              states: {
+                c: {
+                  initial: 'd',
+                  states: {
+                    d: {
+                      type: 'final'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          onDone: {
+            actions: ({ event }) => {
+              spy(event);
+            }
+          }
+        }
+      }
+    });
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "output": undefined,
+            "type": "xstate.done.state.(machine).a",
+          },
+        ],
+      ]
+    `);
+  });
+
+  it('onDone should not be called when the machine reaches its final state', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          type: 'parallel',
+          states: {
+            b: {
+              initial: 'c',
+              states: {
+                c: {
+                  type: 'final'
+                }
+              },
+              onDone: {
+                actions: spy
+              }
+            }
+          },
+          onDone: {
+            actions: spy
+          }
+        }
+      },
+      onDone: {
+        actions: spy
+      }
+    });
+    createActor(machine).start();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('machine should not complete when a parallel child of a compound state completes', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          states: {
+            b: {
+              initial: 'c',
+              states: {
+                c: {
+                  type: 'final'
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toBe('active');
+  });
 });
