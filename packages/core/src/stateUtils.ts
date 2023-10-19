@@ -965,39 +965,20 @@ function computeExitSet(
  * @param currentState
  * @param mutConfiguration
  */
-
 export function microstep<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  transitions: Array<TransitionDefinition<TContext, TEvent>>,
+  transitions: Array<AnyTransitionDefinition>,
   currentState: AnyState,
   actorCtx: AnyActorContext,
-  event: TEvent,
+  event: AnyEventObject,
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
 ): AnyState {
   if (!transitions.length) {
     return currentState;
   }
-  return microstepProcedure(
-    transitions,
-    currentState,
-    event,
-    actorCtx,
-    isInitial,
-    internalQueue
-  );
-}
-
-function microstepProcedure(
-  transitions: Array<AnyTransitionDefinition>,
-  currentState: AnyState,
-  event: AnyEventObject,
-  actorCtx: AnyActorContext,
-  isInitial: boolean,
-  internalQueue: Array<AnyEventObject>
-): typeof currentState {
   const mutConfiguration = new Set(currentState.configuration);
   const historyValue = {
     ...currentState.historyValue
