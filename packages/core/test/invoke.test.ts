@@ -61,7 +61,6 @@ describe('invoke', () => {
           actors: {
             src: 'child';
             id: 'someService';
-            events: EventFrom<typeof childMachine>;
             logic: typeof childMachine;
           };
         },

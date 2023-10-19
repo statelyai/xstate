@@ -974,7 +974,8 @@ export function microstep<
   currentState: AnyState,
   actorCtx: AnyActorContext,
   event: TEvent,
-  isInitial: boolean
+  isInitial: boolean,
+  internalQueue: Array<AnyEventObject>
 ): AnyState {
   const mutConfiguration = new Set(currentState.configuration);
 
@@ -982,18 +983,15 @@ export function microstep<
     return currentState;
   }
 
-  const microstate = microstepProcedure(
+  return microstepProcedure(
     transitions,
     currentState,
     mutConfiguration,
     event,
     actorCtx,
-    isInitial
+    isInitial,
+    internalQueue
   );
-
-  return cloneState(microstate, {
-    value: {} // TODO: make optional
-  });
 }
 
 function microstepProcedure(
@@ -1002,7 +1000,8 @@ function microstepProcedure(
   mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
   actorCtx: AnyActorContext,
-  isInitial: boolean
+  isInitial: boolean,
+  internalQueue: Array<AnyEventObject>
 ): typeof currentState {
   const historyValue = {
     ...currentState.historyValue
@@ -1014,12 +1013,7 @@ function microstepProcedure(
     historyValue
   );
 
-  const internalQueue = [...currentState._internalQueue];
-  // TODO: this `cloneState` is really just a hack to prevent infinite loops
-  // we need to take another look at how internal queue is managed
-  let nextState = cloneState(currentState, {
-    _internalQueue: []
-  });
+  let nextState = currentState;
 
   // Exit states
   if (!isInitial) {
@@ -1029,7 +1023,8 @@ function microstepProcedure(
       actorCtx,
       filteredTransitions,
       mutConfiguration,
-      historyValue
+      historyValue,
+      internalQueue
     );
   }
 
@@ -1038,7 +1033,8 @@ function microstepProcedure(
     nextState,
     event,
     actorCtx,
-    filteredTransitions.flatMap((t) => t.actions)
+    filteredTransitions.flatMap((t) => t.actions),
+    internalQueue
   );
 
   // Enter states
@@ -1062,17 +1058,15 @@ function microstepProcedure(
       actorCtx,
       nextConfiguration
         .sort((a, b) => b.order - a.order)
-        .flatMap((state) => state.exit)
+        .flatMap((state) => state.exit),
+      internalQueue
     );
   }
 
   try {
-    internalQueue.push(...nextState._internalQueue);
-
     return cloneState(nextState, {
       configuration: nextConfiguration,
-      historyValue,
-      _internalQueue: internalQueue
+      historyValue
     });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
@@ -1160,6 +1154,7 @@ function enterStates(
       event,
       actorCtx,
       actions,
+      internalQueue,
       stateNodeToEnter.invoke.map((invokeDef) => invokeDef.id)
     );
 
@@ -1374,7 +1369,8 @@ function exitStates(
   actorCtx: AnyActorContext,
   transitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  historyValue: HistoryValue<any, any>
+  historyValue: HistoryValue<any, any>,
+  internalQueue: AnyEventObject[]
 ) {
   let nextState = currentState;
   const statesToExit = computeExitSet(
@@ -1403,10 +1399,13 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    nextState = resolveActionsAndContext(nextState, event, actorCtx, [
-      ...s.exit,
-      ...s.invoke.map((def) => stop(def.id))
-    ]);
+    nextState = resolveActionsAndContext(
+      nextState,
+      event,
+      actorCtx,
+      [...s.exit, ...s.invoke.map((def) => stop(def.id))],
+      internalQueue
+    );
     mutConfiguration.delete(s);
   }
   return nextState;
@@ -1434,7 +1433,10 @@ function resolveActionsAndContextWorker(
   event: AnyEventObject,
   actorCtx: AnyActorContext,
   actions: UnknownAction[],
-  extra: { deferredActorIds: string[] } | undefined,
+  extra: {
+    internalQueue: AnyEventObject[];
+    deferredActorIds: string[] | undefined;
+  },
   retries: (readonly [BuiltinAction, unknown])[] | undefined
 ): AnyState {
   const { machine } = currentState;
@@ -1539,6 +1541,7 @@ export function resolveActionsAndContext(
   event: AnyEventObject,
   actorCtx: AnyActorContext,
   actions: UnknownAction[],
+  internalQueue: AnyEventObject[],
   deferredActorIds?: string[]
 ): AnyState {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
@@ -1548,7 +1551,7 @@ export function resolveActionsAndContext(
     event,
     actorCtx,
     actions,
-    deferredActorIds && { deferredActorIds },
+    { internalQueue, deferredActorIds },
     retries
   );
   retries?.forEach(([builtinAction, params]) => {
@@ -1560,7 +1563,8 @@ export function resolveActionsAndContext(
 export function macrostep(
   state: AnyState,
   event: EventObject,
-  actorCtx: AnyActorContext
+  actorCtx: AnyActorContext,
+  internalQueue: AnyEventObject[] = []
 ): {
   state: typeof state;
   microstates: Array<typeof state>;
@@ -1589,7 +1593,14 @@ export function macrostep(
   // Determine the next state based on the next microstep
   if (nextEvent.type !== XSTATE_INIT) {
     const transitions = selectTransitions(nextEvent, nextState);
-    nextState = microstep(transitions, state, actorCtx, nextEvent, false);
+    nextState = microstep(
+      transitions,
+      state,
+      actorCtx,
+      nextEvent,
+      false,
+      internalQueue
+    );
     states.push(nextState);
   }
 
@@ -1597,29 +1608,29 @@ export function macrostep(
     let enabledTransitions = selectEventlessTransitions(nextState, nextEvent);
 
     if (!enabledTransitions.length) {
-      if (!nextState._internalQueue.length) {
+      if (!internalQueue.length) {
         break;
-      } else {
-        nextEvent = nextState._internalQueue[0];
-        const transitions = selectTransitions(nextEvent, nextState);
-        nextState = microstep(
-          transitions,
-          nextState,
-          actorCtx,
-          nextEvent,
-          false
-        );
-        nextState._internalQueue.shift();
-
-        states.push(nextState);
       }
+      nextEvent = internalQueue.shift()!;
+      const transitions = selectTransitions(nextEvent, nextState);
+      nextState = microstep(
+        transitions,
+        nextState,
+        actorCtx,
+        nextEvent,
+        false,
+        internalQueue
+      );
+
+      states.push(nextState);
     } else {
       nextState = microstep(
         enabledTransitions,
         nextState,
         actorCtx,
         nextEvent,
-        false
+        false,
+        internalQueue
       );
 
       states.push(nextState);
@@ -1654,7 +1665,7 @@ function stopStep(
     actions.push(stop(child));
   }
 
-  return resolveActionsAndContext(nextState, event, actorCtx, actions);
+  return resolveActionsAndContext(nextState, event, actorCtx, actions, []);
 }
 
 function selectTransitions(

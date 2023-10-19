@@ -89,7 +89,6 @@ export class State<
   public error: unknown;
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
-  public _internalQueue: Array<TEvent>;
   /**
    * The enabled state nodes representative of the state value.
    */
@@ -171,7 +170,6 @@ export class State<
     public machine: AnyStateMachine
   ) {
     this.context = config.context;
-    this._internalQueue = config._internalQueue ?? [];
     this.historyValue = config.historyValue || {};
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
