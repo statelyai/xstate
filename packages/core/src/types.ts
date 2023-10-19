@@ -284,6 +284,8 @@ export interface StateValueMap {
 /**
  * The string or object representing the state value relative to the parent state node.
  *
+ * @remarks
+ *
  * - For a child atomic state node, this is a string, e.g., `"pending"`.
  * - For complex state nodes, this is an object, e.g., `{ success: "someChildState" }`.
  */
