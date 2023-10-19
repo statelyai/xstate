@@ -980,9 +980,7 @@ export function microstep<
     return currentState;
   }
   const mutConfiguration = new Set(currentState.configuration);
-  const historyValue = {
-    ...currentState.historyValue
-  };
+  let historyValue = currentState.historyValue;
 
   const filteredTransitions = removeConflictingTransitions(
     transitions,
@@ -994,7 +992,7 @@ export function microstep<
 
   // Exit states
   if (!isInitial) {
-    nextState = exitStates(
+    [nextState, historyValue] = exitStates(
       nextState,
       event,
       actorCtx,
@@ -1358,6 +1356,8 @@ function exitStates(
 
   statesToExit.sort((a, b) => b.order - a.order);
 
+  let changedHistory: typeof historyValue | undefined;
+
   // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
   for (const exitStateNode of statesToExit) {
     for (const historyNode of getHistoryNodes(exitStateNode)) {
@@ -1370,7 +1370,8 @@ function exitStates(
           return sn.parent === exitStateNode;
         };
       }
-      historyValue[historyNode.id] =
+      changedHistory ??= { ...historyValue };
+      changedHistory[historyNode.id] =
         Array.from(mutConfiguration).filter(predicate);
     }
   }
@@ -1385,7 +1386,7 @@ function exitStates(
     );
     mutConfiguration.delete(s);
   }
-  return nextState;
+  return [nextState, changedHistory || historyValue] as const;
 }
 
 interface BuiltinAction {
