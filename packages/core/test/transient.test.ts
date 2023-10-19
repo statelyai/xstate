@@ -735,4 +735,36 @@ describe('transient states (eventless transitions)', () => {
     const service = createActor(machine).start();
     service.send({ type: 'EVENT', value: 42 });
   });
+
+  it("shouldn't end up in an infinite loop", () => {
+    const machine2 = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          always: [
+            {
+              guard: () => false,
+              target: '.a'
+            },
+            {
+              target: '.b'
+            }
+          ]
+        }
+      }
+    });
+    createActor(machine2).start().send({
+      type: 'event'
+    });
+  });
 });

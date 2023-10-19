@@ -1593,10 +1593,17 @@ export function macrostep(
     states.push(nextState);
   }
 
+  let previousEventlessTransitions: AnyTransitionDefinition[] | undefined;
+
   while (nextState.status === 'active') {
-    let enabledTransitions = selectEventlessTransitions(nextState, nextEvent);
+    let enabledTransitions = selectEventlessTransitions(
+      nextState,
+      nextEvent,
+      previousEventlessTransitions
+    );
 
     if (!enabledTransitions.length) {
+      previousEventlessTransitions = undefined;
       if (!nextState._internalQueue.length) {
         break;
       } else {
@@ -1614,6 +1621,7 @@ export function macrostep(
         states.push(nextState);
       }
     } else {
+      previousEventlessTransitions = enabledTransitions;
       nextState = microstep(
         enabledTransitions,
         nextState,
@@ -1666,7 +1674,8 @@ function selectTransitions(
 
 function selectEventlessTransitions(
   nextState: AnyState,
-  event: AnyEventObject
+  event: AnyEventObject,
+  previousEventlessTransitions: AnyTransitionDefinition[] | undefined
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = nextState.configuration.filter(isAtomicStateNode);
@@ -1679,6 +1688,9 @@ function selectEventlessTransitions(
         continue;
       }
       for (const transition of s.always) {
+        if (previousEventlessTransitions?.includes(transition)) {
+          continue;
+        }
         if (
           transition.guard === undefined ||
           evaluateGuard(transition.guard, nextState.context, event, nextState)
