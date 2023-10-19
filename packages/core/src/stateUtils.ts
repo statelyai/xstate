@@ -1692,7 +1692,10 @@ function selectEventlessTransitions(
           transition.guard === undefined ||
           evaluateGuard(transition.guard, nextState.context, event, nextState)
         ) {
-          if (!previousEventlessTransitions?.includes(transition)) {
+          if (
+            transition.actions.length ||
+            !previousEventlessTransitions?.includes(transition)
+          ) {
             enabledTransitionSet.add(transition);
           }
           break loop;
