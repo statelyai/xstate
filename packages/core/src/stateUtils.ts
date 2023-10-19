@@ -977,16 +977,12 @@ export function microstep<
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
 ): AnyState {
-  const mutConfiguration = new Set(currentState.configuration);
-
   if (!transitions.length) {
     return currentState;
   }
-
   return microstepProcedure(
     transitions,
     currentState,
-    mutConfiguration,
     event,
     actorCtx,
     isInitial,
@@ -997,12 +993,12 @@ export function microstep<
 function microstepProcedure(
   transitions: Array<AnyTransitionDefinition>,
   currentState: AnyState,
-  mutConfiguration: Set<AnyStateNode>,
   event: AnyEventObject,
   actorCtx: AnyActorContext,
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
 ): typeof currentState {
+  const mutConfiguration = new Set(currentState.configuration);
   const historyValue = {
     ...currentState.historyValue
   };
@@ -1612,29 +1608,18 @@ export function macrostep(
         break;
       }
       nextEvent = internalQueue.shift()!;
-      const transitions = selectTransitions(nextEvent, nextState);
-      nextState = microstep(
-        transitions,
-        nextState,
-        actorCtx,
-        nextEvent,
-        false,
-        internalQueue
-      );
-
-      states.push(nextState);
-    } else {
-      nextState = microstep(
-        enabledTransitions,
-        nextState,
-        actorCtx,
-        nextEvent,
-        false,
-        internalQueue
-      );
-
-      states.push(nextState);
+      enabledTransitions = selectTransitions(nextEvent, nextState);
     }
+    nextState = microstep(
+      enabledTransitions,
+      nextState,
+      actorCtx,
+      nextEvent,
+      false,
+      internalQueue
+    );
+
+    states.push(nextState);
   }
 
   if (nextState.status !== 'active') {
