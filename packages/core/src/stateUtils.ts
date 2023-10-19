@@ -1688,14 +1688,13 @@ function selectEventlessTransitions(
         continue;
       }
       for (const transition of s.always) {
-        if (previousEventlessTransitions?.includes(transition)) {
-          continue;
-        }
         if (
           transition.guard === undefined ||
           evaluateGuard(transition.guard, nextState.context, event, nextState)
         ) {
-          enabledTransitionSet.add(transition);
+          if (!previousEventlessTransitions?.includes(transition)) {
+            enabledTransitionSet.add(transition);
+          }
           break loop;
         }
       }

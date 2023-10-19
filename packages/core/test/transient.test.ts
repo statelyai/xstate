@@ -736,8 +736,8 @@ describe('transient states (eventless transitions)', () => {
     service.send({ type: 'EVENT', value: 42 });
   });
 
-  it("shouldn't end up in an infinite loop", () => {
-    const machine2 = createMachine({
+  it("shouldn't end up in an infinite loop when selecting the fallback target", () => {
+    const machine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -763,8 +763,46 @@ describe('transient states (eventless transitions)', () => {
         }
       }
     });
-    createActor(machine2).start().send({
+    const actorRef = createActor(machine).start();
+    actorRef.send({
       type: 'event'
     });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'b' });
+  });
+
+  it("shouldn't end up in an infinite loop when selecting a guarded target", () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          always: [
+            {
+              guard: () => true,
+              target: '.a'
+            },
+            {
+              target: '.b'
+            }
+          ]
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({
+      type: 'event'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
   });
 });
