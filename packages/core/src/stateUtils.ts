@@ -867,15 +867,13 @@ export function removeConflictingTransitions(
 
 function findLeastCommonAncestor(
   stateNodes: Array<AnyStateNode>
-): AnyStateNode {
+): AnyStateNode | undefined {
   const [head, ...tail] = stateNodes;
   for (const ancestor of getProperAncestors(head, undefined)) {
     if (tail.every((sn) => isDescendant(sn, ancestor))) {
       return ancestor;
     }
   }
-
-  return head.machine.root;
 }
 
 function getEffectiveTargetStates(
@@ -930,7 +928,18 @@ function getTransitionDomain(
     return transition.source;
   }
 
-  return findLeastCommonAncestor(targetStates.concat(transition.source));
+  const lca = findLeastCommonAncestor(targetStates.concat(transition.source));
+
+  if (lca) {
+    return lca;
+  }
+
+  // at this point we know that it's a root transition since LCA couldn't be found
+  if (transition.reenter) {
+    return;
+  }
+
+  return transition.source.machine.root;
 }
 
 function computeExitSet(
@@ -1244,7 +1253,7 @@ function computeEntrySet(
     const targetStates = getEffectiveTargetStates(t, historyValue);
     for (const s of targetStates) {
       const ancestors = getProperAncestors(s, domain);
-      if (domain!.type === 'parallel') {
+      if (domain?.type === 'parallel') {
         ancestors.push(domain!);
       }
       addAncestorStatesToEnter(
@@ -1252,7 +1261,7 @@ function computeEntrySet(
         historyValue,
         statesForDefaultEntry,
         ancestors,
-        domain!
+        !t.source.parent && t.reenter ? undefined : domain
       );
     }
   }
@@ -1369,10 +1378,10 @@ function addAncestorStatesToEnter(
   historyValue: HistoryValue<any, any>,
   statesForDefaultEntry: Set<AnyStateNode>,
   ancestors: AnyStateNode[],
-  domain?: AnyStateNode
+  reentrancyDomain?: AnyStateNode
 ) {
   for (const anc of ancestors) {
-    if (domain && isDescendant(anc, domain)) {
+    if (!reentrancyDomain || isDescendant(anc, reentrancyDomain)) {
       statesToEnter.add(anc);
     }
     if (anc.type === 'parallel') {

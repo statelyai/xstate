@@ -2021,6 +2021,41 @@ describe('initial actions', () => {
       ]
     `);
   });
+
+  it('should execute actions of the initial transition when taking a root reentering self-transition', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      id: 'root',
+      initial: {
+        target: 'a',
+        actions: spy
+      },
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      },
+      on: {
+        REENTER: {
+          target: '#root',
+          reenter: true
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+    spy.mockClear();
+
+    actorRef.send({ type: 'REENTER' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(actorRef.getSnapshot().value).toEqual('a');
+  });
 });
 
 describe('actions on invalid transition', () => {
