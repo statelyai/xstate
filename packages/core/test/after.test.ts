@@ -18,7 +18,9 @@ const lightMachine = createMachine({
       }
     },
     red: {
-      after: [{ delay: 1000, target: 'green' }]
+      after: {
+        1000: 'green'
+      }
     }
   }
 });
@@ -229,24 +231,26 @@ describe('delayed transitions', () => {
       const context = {
         delay: 500
       };
-      const machine = createMachine({
-        initial: 'inactive',
-        context,
-        states: {
-          inactive: {
-            after: [
-              {
-                delay: ({ context }) => {
-                  spy(context);
-                  return context.delay;
-                },
-                target: 'active'
-              }
-            ]
-          },
-          active: {}
+      const machine = createMachine(
+        {
+          initial: 'inactive',
+          context,
+          states: {
+            inactive: {
+              after: { myDelay: 'active' }
+            },
+            active: {}
+          }
+        },
+        {
+          delays: {
+            myDelay: ({ context }) => {
+              spy(context);
+              return context.delay;
+            }
+          }
         }
-      });
+      );
 
       const actor = createActor(machine).start();
 
@@ -273,12 +277,9 @@ describe('delayed transitions', () => {
               }
             },
             active: {
-              after: [
-                {
-                  delay: 'someDelay',
-                  target: 'inactive'
-                }
-              ]
+              after: {
+                someDelay: 'inactive'
+              }
             }
           }
         },

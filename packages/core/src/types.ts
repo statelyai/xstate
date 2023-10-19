@@ -336,7 +336,7 @@ export interface InitialTransitionConfig<
     TGuard,
     TDelay
   > {
-  target: TransitionTarget;
+  target: string;
 }
 
 export type AnyTransitionConfig = TransitionConfig<
@@ -445,22 +445,7 @@ export type DelayedTransitions<
               TDelay
             >
           >;
-    }
-  | Array<
-      TransitionConfig<
-        TContext,
-        TEvent,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay
-      > & {
-        delay:
-          | Delay<TDelay>
-          | ((args: UnifiedArg<TContext, TEvent, TEvent>) => Delay<TDelay>);
-      }
-    >;
+    };
 
 export type StateTypes =
   | 'atomic'
@@ -746,7 +731,7 @@ export interface StateNodeConfig<
    */
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
-    | SingleOrArray<string>
+    | string
     | undefined;
   /**
    * The type of this state node:

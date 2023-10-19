@@ -370,7 +370,7 @@ export class StateNode<
 
   public get initial(): InitialTransitionDefinition<TContext, TEvent> {
     return memo(this, 'initial', () =>
-      formatInitialTransition(this, this.config.initial || [])
+      formatInitialTransition(this, this.config.initial)
     );
   }
 

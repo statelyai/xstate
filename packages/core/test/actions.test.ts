@@ -2092,35 +2092,86 @@ describe('initial actions', () => {
     expect(actual).toEqual(['entryB', 'initialFoo', 'entryFoo']);
   });
 
-  it('should support initial actions from transition with target ID', () => {
-    const actual: string[] = [];
+  it('should execute actions of initial transitions only once when taking an explicit transition', () => {
+    const spy = jest.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: {
+            NEXT: 'b'
+          }
         },
         b: {
-          entry: () => actual.push('entryC'),
           initial: {
-            target: '#bar',
-            actions: () => actual.push('initialBar')
+            target: 'b_child',
+            actions: () => spy('initial in b')
           },
           states: {
-            bar: {
-              id: 'bar',
-              entry: () => actual.push('entryBar')
+            b_child: {
+              initial: {
+                target: 'b_granchild',
+                actions: () => spy('initial in b_child')
+              },
+              states: {
+                b_granchild: {}
+              }
             }
           }
         }
       }
     });
 
-    const actor = createActor(machine).start();
+    const actorRef = createActor(machine).start();
 
-    actor.send({ type: 'NEXT' });
+    actorRef.send({
+      type: 'NEXT'
+    });
 
-    expect(actual).toEqual(['entryC', 'initialBar', 'entryBar']);
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "initial in b",
+        ],
+        [
+          "initial in b_child",
+        ],
+      ]
+    `);
+  });
+
+  it('should execute actions of all initial transitions resolving to the initial state value', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: {
+        target: 'a',
+        actions: () => spy('root')
+      },
+      states: {
+        a: {
+          initial: {
+            target: 'a1',
+            actions: () => spy('inner')
+          },
+          states: {
+            a1: {}
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "root",
+        ],
+        [
+          "inner",
+        ],
+      ]
+    `);
   });
 });
 
