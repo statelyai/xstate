@@ -805,4 +805,51 @@ describe('transient states (eventless transitions)', () => {
 
     expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
   });
+
+  it("shouldn't end up in an infinite loop when executing a fire-and-forget action that doesn't change state", () => {
+    let count = 0;
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {}
+          },
+          always: [
+            {
+              actions: () => {
+                count++;
+                if (count > 5) {
+                  throw new Error('Infinite loop detected');
+                }
+              },
+              target: '.a'
+            }
+          ]
+        }
+      }
+    });
+
+    const actorRef = createActor(machine);
+
+    actorRef.subscribe({
+      // TODO: why do I need this? Why doesn't actorRef.send synchronously throw?
+      error: (err) => {
+        console.error(err);
+      }
+    });
+
+    actorRef.start();
+    actorRef.send({
+      type: 'event'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
+  });
 });
