@@ -838,19 +838,13 @@ describe('transient states (eventless transitions)', () => {
 
     const actorRef = createActor(machine);
 
-    actorRef.subscribe({
-      // TODO: why do I need this? Why doesn't actorRef.send synchronously throw?
-      error: (err) => {
-        console.error(err);
-      }
-    });
-
     actorRef.start();
     actorRef.send({
       type: 'event'
     });
 
     expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
+    expect(count).toBe(1);
   });
 
   it('should loop (but not infinitely) for assign actions', () => {

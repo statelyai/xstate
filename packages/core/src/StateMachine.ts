@@ -393,7 +393,8 @@ export class StateMachine<
    */
   private getPreInitialState(
     actorCtx: AnyActorContext,
-    initEvent: any
+    initEvent: any,
+    internalQueue: AnyEventObject[]
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -419,9 +420,13 @@ export class StateMachine<
     if (typeof context === 'function') {
       const assignment = ({ spawn, event }: any) =>
         context({ spawn, input: event.input });
-      return resolveActionsAndContext(preInitial, initEvent, actorCtx, [
-        assign(assignment)
-      ]) as SnapshotFrom<this>;
+      return resolveActionsAndContext(
+        preInitial,
+        initEvent,
+        actorCtx,
+        [assign(assignment)],
+        internalQueue
+      ) as SnapshotFrom<this>;
     }
 
     return preInitial;
@@ -452,8 +457,12 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
-
-    const preInitialState = this.getPreInitialState(actorCtx, initEvent);
+    const internalQueue: AnyEventObject[] = [];
+    const preInitialState = this.getPreInitialState(
+      actorCtx,
+      initEvent,
+      internalQueue
+    );
     const nextState = microstep(
       [
         {
@@ -468,13 +477,15 @@ export class StateMachine<
       preInitialState,
       actorCtx,
       initEvent,
-      true
+      true,
+      internalQueue
     );
 
     const { state: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
-      actorCtx
+      actorCtx,
+      internalQueue
     );
 
     return macroState as SnapshotFrom<this>;

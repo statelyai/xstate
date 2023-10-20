@@ -957,6 +957,21 @@ function computeExitSet(
   return [...statesToExit];
 }
 
+function areConfigurationsEqual(
+  previousConfiguration: StateNode<any, any>[],
+  nextConfigurationSet: Set<StateNode<any, any>>
+) {
+  if (previousConfiguration.length !== nextConfigurationSet.size) {
+    return false;
+  }
+  for (const node of previousConfiguration) {
+    if (!nextConfigurationSet.has(node)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * https://www.w3.org/TR/scxml/#microstepProcedure
  *
@@ -965,48 +980,22 @@ function computeExitSet(
  * @param currentState
  * @param mutConfiguration
  */
-
 export function microstep<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  transitions: Array<TransitionDefinition<TContext, TEvent>>,
+  transitions: Array<AnyTransitionDefinition>,
   currentState: AnyState,
   actorCtx: AnyActorContext,
-  event: TEvent,
-  isInitial: boolean
+  event: AnyEventObject,
+  isInitial: boolean,
+  internalQueue: Array<AnyEventObject>
 ): AnyState {
-  const mutConfiguration = new Set(currentState.configuration);
-
   if (!transitions.length) {
     return currentState;
   }
-
-  const microstate = microstepProcedure(
-    transitions,
-    currentState,
-    mutConfiguration,
-    event,
-    actorCtx,
-    isInitial
-  );
-
-  return cloneState(microstate, {
-    value: {} // TODO: make optional
-  });
-}
-
-function microstepProcedure(
-  transitions: Array<AnyTransitionDefinition>,
-  currentState: AnyState,
-  mutConfiguration: Set<AnyStateNode>,
-  event: AnyEventObject,
-  actorCtx: AnyActorContext,
-  isInitial: boolean
-): typeof currentState {
-  const historyValue = {
-    ...currentState.historyValue
-  };
+  const mutConfiguration = new Set(currentState.configuration);
+  let historyValue = currentState.historyValue;
 
   const filteredTransitions = removeConflictingTransitions(
     transitions,
@@ -1014,22 +1003,18 @@ function microstepProcedure(
     historyValue
   );
 
-  const internalQueue = [...currentState._internalQueue];
-  // TODO: this `cloneState` is really just a hack to prevent infinite loops
-  // we need to take another look at how internal queue is managed
-  let nextState = cloneState(currentState, {
-    _internalQueue: []
-  });
+  let nextState = currentState;
 
   // Exit states
   if (!isInitial) {
-    nextState = exitStates(
+    [nextState, historyValue] = exitStates(
       nextState,
       event,
       actorCtx,
       filteredTransitions,
       mutConfiguration,
-      historyValue
+      historyValue,
+      internalQueue
     );
   }
 
@@ -1038,7 +1023,8 @@ function microstepProcedure(
     nextState,
     event,
     actorCtx,
-    filteredTransitions.flatMap((t) => t.actions)
+    filteredTransitions.flatMap((t) => t.actions),
+    internalQueue
   );
 
   // Enter states
@@ -1062,17 +1048,21 @@ function microstepProcedure(
       actorCtx,
       nextConfiguration
         .sort((a, b) => b.order - a.order)
-        .flatMap((state) => state.exit)
+        .flatMap((state) => state.exit),
+      internalQueue
     );
   }
 
   try {
-    internalQueue.push(...nextState._internalQueue);
-
+    if (
+      historyValue === currentState.historyValue &&
+      areConfigurationsEqual(currentState.configuration, mutConfiguration)
+    ) {
+      return nextState;
+    }
     return cloneState(nextState, {
       configuration: nextConfiguration,
-      historyValue,
-      _internalQueue: internalQueue
+      historyValue
     });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
@@ -1160,6 +1150,7 @@ function enterStates(
       event,
       actorCtx,
       actions,
+      internalQueue,
       stateNodeToEnter.invoke.map((invokeDef) => invokeDef.id)
     );
 
@@ -1374,7 +1365,8 @@ function exitStates(
   actorCtx: AnyActorContext,
   transitions: AnyTransitionDefinition[],
   mutConfiguration: Set<AnyStateNode>,
-  historyValue: HistoryValue<any, any>
+  historyValue: HistoryValue<any, any>,
+  internalQueue: AnyEventObject[]
 ) {
   let nextState = currentState;
   const statesToExit = computeExitSet(
@@ -1384,6 +1376,8 @@ function exitStates(
   );
 
   statesToExit.sort((a, b) => b.order - a.order);
+
+  let changedHistory: typeof historyValue | undefined;
 
   // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
   for (const exitStateNode of statesToExit) {
@@ -1397,19 +1391,23 @@ function exitStates(
           return sn.parent === exitStateNode;
         };
       }
-      historyValue[historyNode.id] =
+      changedHistory ??= { ...historyValue };
+      changedHistory[historyNode.id] =
         Array.from(mutConfiguration).filter(predicate);
     }
   }
 
   for (const s of statesToExit) {
-    nextState = resolveActionsAndContext(nextState, event, actorCtx, [
-      ...s.exit,
-      ...s.invoke.map((def) => stop(def.id))
-    ]);
+    nextState = resolveActionsAndContext(
+      nextState,
+      event,
+      actorCtx,
+      [...s.exit, ...s.invoke.map((def) => stop(def.id))],
+      internalQueue
+    );
     mutConfiguration.delete(s);
   }
-  return nextState;
+  return [nextState, changedHistory || historyValue] as const;
 }
 
 interface BuiltinAction {
@@ -1434,7 +1432,10 @@ function resolveActionsAndContextWorker(
   event: AnyEventObject,
   actorCtx: AnyActorContext,
   actions: UnknownAction[],
-  extra: { deferredActorIds: string[] } | undefined,
+  extra: {
+    internalQueue: AnyEventObject[];
+    deferredActorIds: string[] | undefined;
+  },
   retries: (readonly [BuiltinAction, unknown])[] | undefined
 ): AnyState {
   const { machine } = currentState;
@@ -1539,6 +1540,7 @@ export function resolveActionsAndContext(
   event: AnyEventObject,
   actorCtx: AnyActorContext,
   actions: UnknownAction[],
+  internalQueue: AnyEventObject[],
   deferredActorIds?: string[]
 ): AnyState {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
@@ -1548,7 +1550,7 @@ export function resolveActionsAndContext(
     event,
     actorCtx,
     actions,
-    deferredActorIds && { deferredActorIds },
+    { internalQueue, deferredActorIds },
     retries
   );
   retries?.forEach(([builtinAction, params]) => {
@@ -1560,7 +1562,8 @@ export function resolveActionsAndContext(
 export function macrostep(
   state: AnyState,
   event: EventObject,
-  actorCtx: AnyActorContext
+  actorCtx: AnyActorContext,
+  internalQueue: AnyEventObject[] = []
 ): {
   state: typeof state;
   microstates: Array<typeof state>;
@@ -1589,49 +1592,42 @@ export function macrostep(
   // Determine the next state based on the next microstep
   if (nextEvent.type !== XSTATE_INIT) {
     const transitions = selectTransitions(nextEvent, nextState);
-    nextState = microstep(transitions, state, actorCtx, nextEvent, false);
+    nextState = microstep(
+      transitions,
+      state,
+      actorCtx,
+      nextEvent,
+      false,
+      internalQueue
+    );
     states.push(nextState);
   }
 
-  let previousEventlessTransitions: AnyTransitionDefinition[] | undefined;
+  let shouldSelectEventlessTransitions = true;
 
   while (nextState.status === 'active') {
-    let enabledTransitions = selectEventlessTransitions(
-      nextState,
-      nextEvent,
-      previousEventlessTransitions
-    );
+    let enabledTransitions = shouldSelectEventlessTransitions
+      ? selectEventlessTransitions(nextState, nextEvent)
+      : [];
 
     if (!enabledTransitions.length) {
-      previousEventlessTransitions = undefined;
-      if (!nextState._internalQueue.length) {
+      if (!internalQueue.length) {
         break;
-      } else {
-        nextEvent = nextState._internalQueue[0];
-        const transitions = selectTransitions(nextEvent, nextState);
-        nextState = microstep(
-          transitions,
-          nextState,
-          actorCtx,
-          nextEvent,
-          false
-        );
-        nextState._internalQueue.shift();
-
-        states.push(nextState);
       }
-    } else {
-      previousEventlessTransitions = enabledTransitions;
-      nextState = microstep(
-        enabledTransitions,
-        nextState,
-        actorCtx,
-        nextEvent,
-        false
-      );
-
-      states.push(nextState);
+      nextEvent = internalQueue.shift()!;
+      enabledTransitions = selectTransitions(nextEvent, nextState);
     }
+    const previousState = nextState;
+    nextState = microstep(
+      enabledTransitions,
+      nextState,
+      actorCtx,
+      nextEvent,
+      false,
+      internalQueue
+    );
+    shouldSelectEventlessTransitions = nextState !== previousState;
+    states.push(nextState);
   }
 
   if (nextState.status !== 'active') {
@@ -1662,7 +1658,7 @@ function stopStep(
     actions.push(stop(child));
   }
 
-  return resolveActionsAndContext(nextState, event, actorCtx, actions);
+  return resolveActionsAndContext(nextState, event, actorCtx, actions, []);
 }
 
 function selectTransitions(
@@ -1674,8 +1670,7 @@ function selectTransitions(
 
 function selectEventlessTransitions(
   nextState: AnyState,
-  event: AnyEventObject,
-  previousEventlessTransitions: AnyTransitionDefinition[] | undefined
+  event: AnyEventObject
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = nextState.configuration.filter(isAtomicStateNode);
@@ -1692,12 +1687,7 @@ function selectEventlessTransitions(
           transition.guard === undefined ||
           evaluateGuard(transition.guard, nextState.context, event, nextState)
         ) {
-          if (
-            transition.actions.length ||
-            !previousEventlessTransitions?.includes(transition)
-          ) {
-            enabledTransitionSet.add(transition);
-          }
+          enabledTransitionSet.add(transition);
           break loop;
         }
       }
