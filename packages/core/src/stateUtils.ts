@@ -957,6 +957,21 @@ function computeExitSet(
   return [...statesToExit];
 }
 
+function areConfigurationsEqual(
+  previousConfiguration: StateNode<any, any>[],
+  nextConfigurationSet: Set<StateNode<any, any>>
+) {
+  if (previousConfiguration.length !== nextConfigurationSet.size) {
+    return false;
+  }
+  for (const node of previousConfiguration) {
+    if (!nextConfigurationSet.has(node)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * https://www.w3.org/TR/scxml/#microstepProcedure
  *
@@ -965,47 +980,22 @@ function computeExitSet(
  * @param currentState
  * @param mutConfiguration
  */
-
 export function microstep<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  transitions: Array<TransitionDefinition<TContext, TEvent>>,
+  transitions: Array<AnyTransitionDefinition>,
   currentState: AnyState,
   actorCtx: AnyActorContext,
-  event: TEvent,
+  event: AnyEventObject,
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
 ): AnyState {
-  const mutConfiguration = new Set(currentState.configuration);
-
   if (!transitions.length) {
     return currentState;
   }
-
-  return microstepProcedure(
-    transitions,
-    currentState,
-    mutConfiguration,
-    event,
-    actorCtx,
-    isInitial,
-    internalQueue
-  );
-}
-
-function microstepProcedure(
-  transitions: Array<AnyTransitionDefinition>,
-  currentState: AnyState,
-  mutConfiguration: Set<AnyStateNode>,
-  event: AnyEventObject,
-  actorCtx: AnyActorContext,
-  isInitial: boolean,
-  internalQueue: Array<AnyEventObject>
-): typeof currentState {
-  const historyValue = {
-    ...currentState.historyValue
-  };
+  const mutConfiguration = new Set(currentState.configuration);
+  let historyValue = currentState.historyValue;
 
   const filteredTransitions = removeConflictingTransitions(
     transitions,
@@ -1017,7 +1007,7 @@ function microstepProcedure(
 
   // Exit states
   if (!isInitial) {
-    nextState = exitStates(
+    [nextState, historyValue] = exitStates(
       nextState,
       event,
       actorCtx,
@@ -1064,6 +1054,12 @@ function microstepProcedure(
   }
 
   try {
+    if (
+      historyValue === currentState.historyValue &&
+      areConfigurationsEqual(currentState.configuration, mutConfiguration)
+    ) {
+      return nextState;
+    }
     return cloneState(nextState, {
       configuration: nextConfiguration,
       historyValue
@@ -1381,6 +1377,8 @@ function exitStates(
 
   statesToExit.sort((a, b) => b.order - a.order);
 
+  let changedHistory: typeof historyValue | undefined;
+
   // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
   for (const exitStateNode of statesToExit) {
     for (const historyNode of getHistoryNodes(exitStateNode)) {
@@ -1393,7 +1391,8 @@ function exitStates(
           return sn.parent === exitStateNode;
         };
       }
-      historyValue[historyNode.id] =
+      changedHistory ??= { ...historyValue };
+      changedHistory[historyNode.id] =
         Array.from(mutConfiguration).filter(predicate);
     }
   }
@@ -1408,7 +1407,7 @@ function exitStates(
     );
     mutConfiguration.delete(s);
   }
-  return nextState;
+  return [nextState, changedHistory || historyValue] as const;
 }
 
 interface BuiltinAction {
@@ -1612,29 +1611,18 @@ export function macrostep(
         break;
       }
       nextEvent = internalQueue.shift()!;
-      const transitions = selectTransitions(nextEvent, nextState);
-      nextState = microstep(
-        transitions,
-        nextState,
-        actorCtx,
-        nextEvent,
-        false,
-        internalQueue
-      );
-
-      states.push(nextState);
-    } else {
-      nextState = microstep(
-        enabledTransitions,
-        nextState,
-        actorCtx,
-        nextEvent,
-        false,
-        internalQueue
-      );
-
-      states.push(nextState);
+      enabledTransitions = selectTransitions(nextEvent, nextState);
     }
+    nextState = microstep(
+      enabledTransitions,
+      nextState,
+      actorCtx,
+      nextEvent,
+      false,
+      internalQueue
+    );
+
+    states.push(nextState);
   }
 
   if (nextState.status !== 'active') {
