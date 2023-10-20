@@ -1684,7 +1684,6 @@ export interface StateConfig<
   error?: unknown;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
-  _internalQueue?: Array<TEvent>;
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {

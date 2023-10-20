@@ -1,5 +1,4 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
 import {
   ActionArgs,
   AnyActorContext,
@@ -11,7 +10,8 @@ import {
   NoInfer,
   RaiseActionOptions,
   SendExpr,
-  ParameterizedObject
+  ParameterizedObject,
+  AnyEventObject
 } from '../types.ts';
 
 function resolveRaise(
@@ -43,7 +43,8 @@ function resolveRaise(
           EventObject
         >
       | undefined;
-  }
+  },
+  { internalQueue }: { internalQueue: AnyEventObject[] }
 ) {
   const delaysMap = state.machine.implementations.delays;
 
@@ -63,14 +64,10 @@ function resolveRaise(
   } else {
     resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
   }
-  return [
-    typeof resolvedDelay !== 'number'
-      ? cloneState(state, {
-          _internalQueue: state._internalQueue.concat(resolvedEvent)
-        })
-      : state,
-    { event: resolvedEvent, id, delay: resolvedDelay }
-  ];
+  if (typeof resolvedDelay !== 'number') {
+    internalQueue.push(resolvedEvent);
+  }
+  return [state, { event: resolvedEvent, id, delay: resolvedDelay }];
 }
 
 function executeRaise(
