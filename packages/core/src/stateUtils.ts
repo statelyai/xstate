@@ -1577,7 +1577,7 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
-    nextState = stopStep(nextState, event, actorCtx);
+    nextState = stopChildren(nextState, event, actorCtx);
     states.push(nextState);
 
     return {
@@ -1647,26 +1647,6 @@ function stopChildren(
     Object.values(nextState.children).map((child) => stop(child)),
     []
   );
-}
-
-function stopStep(
-  nextState: AnyState,
-  event: AnyEventObject,
-  actorCtx: AnyActorContext
-) {
-  const exitActions = nextState.configuration
-    .sort((a, b) => b.order - a.order)
-    .flatMap((stateNode) => stateNode.exit);
-
-  nextState = resolveActionsAndContext(
-    nextState,
-    event,
-    actorCtx,
-    exitActions,
-    []
-  );
-
-  return stopChildren(nextState, event, actorCtx);
 }
 
 function selectTransitions(

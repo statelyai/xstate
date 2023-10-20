@@ -138,6 +138,9 @@ function executeSendTo(
     delay: number | undefined;
   }
 ) {
+  if (params.event.type === 'STOPPED') {
+    debugger;
+  }
   if (typeof params.delay === 'number') {
     (actorContext.self as AnyActor).delaySend(
       params as typeof params & { delay: number }

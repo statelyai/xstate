@@ -1385,20 +1385,16 @@ describe('entry/exit actions', () => {
   });
 
   describe('when stopped', () => {
-    it('exit actions should be called when stopping a machine', () => {
-      let exitCalled = false;
-      let childExitCalled = false;
+    it('exit actions should not be called when stopping a machine', () => {
+      const rootSpy = jest.fn();
+      const childSpy = jest.fn();
 
       const machine = createMachine({
-        exit: () => {
-          exitCalled = true;
-        },
+        exit: rootSpy,
         initial: 'a',
         states: {
           a: {
-            exit: () => {
-              childExitCalled = true;
-            }
+            exit: childSpy
           }
         }
       });
@@ -1406,8 +1402,8 @@ describe('entry/exit actions', () => {
       const service = createActor(machine).start();
       service.stop();
 
-      expect(exitCalled).toBeTruthy();
-      expect(childExitCalled).toBeTruthy();
+      expect(rootSpy).not.toHaveBeenCalled();
+      expect(childSpy).not.toHaveBeenCalled();
     });
 
     it('should call each exit handler only once when the service gets stopped', () => {
@@ -1802,7 +1798,7 @@ describe('entry/exit actions', () => {
       expect(eventReceived).toBe(true);
     });
 
-    it('sent events from exit handlers of a done child should be received by its children ', () => {
+    it('sent events from exit handlers of a done child should be received by its children', () => {
       const spy = jest.fn();
 
       const grandchild = createMachine({
@@ -1873,8 +1869,8 @@ describe('entry/exit actions', () => {
       interpreter.stop();
     });
 
-    it('should execute referenced custom actions correctly when stopping an interpreter', () => {
-      let called = false;
+    it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
+      const spy = jest.fn();
       const parent = createMachine(
         {
           id: 'parent',
@@ -1883,9 +1879,7 @@ describe('entry/exit actions', () => {
         },
         {
           actions: {
-            referencedAction: () => {
-              called = true;
-            }
+            referencedAction: spy
           }
         }
       );
@@ -1893,10 +1887,10 @@ describe('entry/exit actions', () => {
       const interpreter = createActor(parent).start();
       interpreter.stop();
 
-      expect(called).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
     });
 
-    it('should execute builtin actions correctly when stopping an interpreter', () => {
+    it('should not execute builtin actions when stopping an interpreter', () => {
       const machine = createMachine(
         {
           context: {
@@ -1927,10 +1921,7 @@ describe('entry/exit actions', () => {
       const interpreter = createActor(machine).start();
       interpreter.stop();
 
-      expect(interpreter.getSnapshot().context.executedAssigns).toEqual([
-        'referenced',
-        'inline'
-      ]);
+      expect(interpreter.getSnapshot().context.executedAssigns).toEqual([]);
     });
 
     it('should clear all scheduled events when the interpreter gets stopped', () => {
@@ -1992,10 +1983,10 @@ describe('entry/exit actions', () => {
 
       service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
 
-      expect(exitActions).toEqual(['foo action', 'bar action']);
+      expect(exitActions).toEqual(['foo action']);
     });
 
-    it('should execute exit actions of the settled state of the last initiated microstep after executing all actions from that microstep', () => {
+    it('should not execute exit actions of the settled state of the last initiated microstep after executing all actions from that microstep', () => {
       const executedActions: string[] = [];
       const machine = createMachine({
         initial: 'foo',
@@ -2033,8 +2024,7 @@ describe('entry/exit actions', () => {
 
       expect(executedActions).toEqual([
         'foo exit action',
-        'foo transition action',
-        'bar exit action'
+        'foo transition action'
       ]);
     });
   });
