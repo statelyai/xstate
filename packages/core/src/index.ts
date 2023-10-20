@@ -15,7 +15,7 @@ import {
   Interpreter,
   InterpreterStatus
 } from './interpreter.ts';
-import { createMachine } from './Machine.ts';
+import { createMachine } from './createMachine.ts';
 import { mapState } from './mapState.ts';
 import { State } from './State.ts';
 import { StateNode } from './StateNode.ts';

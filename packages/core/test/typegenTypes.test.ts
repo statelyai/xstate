@@ -7,7 +7,7 @@ import {
 } from '../src/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 import { fromCallback } from '../src/actors/index.ts';
-import { createMachine } from '../src/Machine.ts';
+import { createMachine } from '../src/createMachine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
 import { PromiseActorLogic } from '../src/actors/promise.ts';
 
@@ -362,8 +362,10 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches({ a: 'd' });
+    createActor(machine).getSnapshot().matches({
+      // @ts-expect-error
+      b: 'c'
+    });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
@@ -1091,6 +1093,7 @@ describe('typegen types', () => {
       machine: StateMachine<
         TContext,
         TEvent,
+        any,
         any,
         any,
         any,

@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { STATE_DELIMITER } from './constants.ts';
+import { StateValueFrom2 } from './createMachine.ts';
 import { $$ACTOR_TYPE } from './interpreter.ts';
 import { memo } from './memo.ts';
 import { MachineSnapshot } from './StateMachine.ts';
@@ -74,6 +75,7 @@ export class State<
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TTag extends string,
+  TStateMapper,
   TResolvedTypesMeta = TypegenDisabled
 > {
   public tags: Set<string>;
@@ -123,6 +125,7 @@ export class State<
     TEvent,
     TODO,
     any, // tags
+    any,
     any // typegen
   > {
     if (stateValue instanceof State) {
@@ -213,11 +216,7 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<
-    TSV extends TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
-      : StateValue
-  >(parentStateValue: TSV): boolean {
+  public matches(parentStateValue: StateValueFrom2<TStateMapper>): boolean {
     return matchesState(parentStateValue as any, this.value);
   }
 
@@ -298,6 +297,7 @@ export function getPersistedState<
     TActor,
     TTag,
     TOutput,
+    any,
     TResolvedTypesMeta
   >
 ): PersistedMachineState<

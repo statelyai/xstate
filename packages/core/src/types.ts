@@ -94,7 +94,15 @@ export interface UnifiedArg<
   event: TExpressionEvent;
   self: ActorRef<
     TEvent,
-    MachineSnapshot<TContext, TEvent, ProvidedActor, string, unknown>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      ProvidedActor,
+      string,
+      unknown,
+      unknown,
+      unknown
+    >
   >;
   system: ActorSystem<any>;
 }
@@ -1606,7 +1614,15 @@ export type Mapper<
   event: TExpressionEvent;
   self: ActorRef<
     TEvent,
-    MachineSnapshot<TContext, TEvent, ProvidedActor, string, unknown>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      ProvidedActor,
+      string,
+      unknown,
+      unknown,
+      unknown
+    >
   >;
 }) => TResult;
 
@@ -1683,7 +1699,18 @@ export interface StateConfig<
   output?: any;
   error?: unknown;
   tags?: Set<string>;
-  machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
+  machine?: StateMachine<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >;
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
@@ -1818,7 +1845,7 @@ export interface ActorRef<
 export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<any, any, any, any, any, any, any, any, any>
+  ? R extends StateMachine<any, any, any, any, any, any, any, any, any, any>
     ? R
     : R extends Promise<infer U>
     ? PromiseActorLogic<U>
@@ -1836,6 +1863,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TTag,
       infer _TInput,
       infer TOutput,
+      infer TStateValue,
       infer TResolvedTypesMeta
     >
     ? ActorRef<
@@ -1846,6 +1874,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TActor,
           TTag,
           TOutput,
+          TStateValue,
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
             : TResolvedTypesMeta
@@ -1881,6 +1910,7 @@ export type InterpreterFrom<
   infer TTag,
   infer TInput,
   infer TOutput,
+  infer TStateValue,
   infer TResolvedTypesMeta
 >
   ? Actor<
@@ -1891,6 +1921,7 @@ export type InterpreterFrom<
           TActor,
           TTag,
           TOutput,
+          TStateValue,
           TResolvedTypesMeta
         >,
         TEvent,
@@ -2211,7 +2242,15 @@ export type PersistedMachineState<
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > = HomomorphicPick<
-  MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+  MachineSnapshot<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    unknown,
+    TResolvedTypesMeta
+  >,
   'value' | 'output' | 'error' | 'context' | 'status' | 'historyValue'
 > & {
   children: {
@@ -2221,6 +2260,7 @@ export type PersistedMachineState<
       TActor,
       TTag,
       TOutput,
+      unknown,
       TResolvedTypesMeta
     >['children']]: {
       state: any; // TODO: fix (should be state from actorref)

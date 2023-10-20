@@ -60,24 +60,25 @@ export type MachineSnapshot<
   TActor extends ProvidedActor,
   TTag extends string,
   TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  TStateMapper,
+  TResolvedTypesMeta
 > =
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
+  | (State<TContext, TEvent, TActor, TTag, TStateMapper, TResolvedTypesMeta> & {
       status: 'active';
       output: undefined;
       error: undefined;
     })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
+  | (State<TContext, TEvent, TActor, TTag, TStateMapper, TResolvedTypesMeta> & {
       status: 'done';
       output: TOutput;
       error: undefined;
     })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
+  | (State<TContext, TEvent, TActor, TTag, TStateMapper, TResolvedTypesMeta> & {
       status: 'error';
       output: undefined;
       error: unknown;
     })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
+  | (State<TContext, TEvent, TActor, TTag, TStateMapper, TResolvedTypesMeta> & {
       status: 'stopped';
       output: undefined;
       error: undefined;
@@ -93,6 +94,7 @@ export class StateMachine<
   TTag extends string,
   TInput,
   TOutput,
+  TStateMapper,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
@@ -110,6 +112,7 @@ export class StateMachine<
         TActor,
         TTag,
         TOutput,
+        TStateMapper,
         TResolvedTypesMeta
       >,
       TEvent,
@@ -242,6 +245,7 @@ export class StateMachine<
     TTag,
     TInput,
     TOutput,
+    TStateMapper,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -264,13 +268,21 @@ export class StateMachine<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta>
+    state: State<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TStateMapper,
+      TResolvedTypesMeta
+    >
   ): MachineSnapshot<
     TContext,
     TEvent,
     TActor,
     TTag,
     TOutput,
+    TStateMapper,
     TResolvedTypesMeta
   > {
     const configurationSet = getConfiguration(
@@ -298,6 +310,7 @@ export class StateMachine<
     TActor,
     TTag,
     TOutput,
+    TStateMapper,
     TResolvedTypesMeta
   > {
     const resolvedStateValue = resolveStateValue(this.root, stateValue);
@@ -321,6 +334,7 @@ export class StateMachine<
       TActor,
       TTag,
       TOutput,
+      TStateMapper,
       TResolvedTypesMeta
     >,
     event: TEvent,
@@ -331,6 +345,7 @@ export class StateMachine<
     TActor,
     TTag,
     TOutput,
+    TStateMapper,
     TResolvedTypesMeta
   > {
     // TODO: handle error events in a better way
@@ -363,12 +378,21 @@ export class StateMachine<
       TActor,
       TTag,
       TOutput,
+      TStateMapper,
       TResolvedTypesMeta
     >,
     event: TEvent,
     actorCtx: AnyActorContext
   ): Array<
-    MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TStateMapper,
+      TResolvedTypesMeta
+    >
   > {
     return macrostep(state, event, actorCtx).microstates as (typeof state)[];
   }
@@ -380,6 +404,7 @@ export class StateMachine<
       TActor,
       TTag,
       TOutput,
+      TStateMapper,
       TResolvedTypesMeta
     >,
     event: TEvent
@@ -401,6 +426,7 @@ export class StateMachine<
     TActor,
     TTag,
     TOutput,
+    TStateMapper,
     TResolvedTypesMeta
   > {
     const { context } = this.config;
@@ -443,6 +469,7 @@ export class StateMachine<
         TActor,
         TTag,
         TOutput,
+        TStateMapper,
         TResolvedTypesMeta
       >,
       TEvent
@@ -454,6 +481,7 @@ export class StateMachine<
     TActor,
     TTag,
     TOutput,
+    TStateMapper,
     TResolvedTypesMeta
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
@@ -498,6 +526,7 @@ export class StateMachine<
       TActor,
       TTag,
       TOutput,
+      TStateMapper,
       TResolvedTypesMeta
     >
   ): void {
@@ -539,6 +568,7 @@ export class StateMachine<
       TActor,
       TTag,
       TOutput,
+      TStateMapper,
       TResolvedTypesMeta
     >
   ): PersistedMachineState<
@@ -560,6 +590,7 @@ export class StateMachine<
           TActor,
           TTag,
           TOutput,
+          TStateMapper,
           TResolvedTypesMeta
         >
       | StateConfig<TContext, TEvent>
@@ -569,6 +600,7 @@ export class StateMachine<
     TActor,
     TTag,
     TOutput,
+    TStateMapper,
     TResolvedTypesMeta
   > {
     return stateConfig instanceof State
@@ -592,6 +624,7 @@ export class StateMachine<
         TActor,
         TTag,
         TOutput,
+        TStateMapper,
         TResolvedTypesMeta
       >,
       TEvent
@@ -602,6 +635,7 @@ export class StateMachine<
     TActor,
     TTag,
     TOutput,
+    TStateMapper,
     TResolvedTypesMeta
   > {
     const children: Record<string, AnyActorRef> = {};

@@ -1,5 +1,5 @@
 import { fromCallback, createActor } from '../src/index.ts';
-import { createMachine } from '../src/Machine.ts';
+import { createMachine } from '../src/createMachine.ts';
 
 describe('deterministic machine', () => {
   const lightMachine = createMachine({

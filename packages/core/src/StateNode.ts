@@ -125,6 +125,7 @@ export class StateNode<
     TODO, // guards
     TODO, // delays
     TODO, // tags
+    TODO, // state value
     TODO // types meta
   >;
   /**
