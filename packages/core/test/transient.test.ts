@@ -851,5 +851,6 @@ describe('transient states (eventless transitions)', () => {
     });
 
     expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
+    expect(count).toBe(1);
   });
 });
