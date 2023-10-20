@@ -865,4 +865,34 @@ describe('transient states (eventless transitions)', () => {
 
     expect(actorRef.getSnapshot().context.count).toEqual(5);
   });
+
+  it("should execute an always transition after a raised transition even if that raised transition doesn't change the state", () => {
+    const spy = jest.fn();
+    let counter = 0;
+    const machine = createMachine({
+      always: {
+        actions: () => spy(counter)
+      },
+      on: {
+        EV: {
+          actions: raise({ type: 'RAISED' })
+        },
+        RAISED: {
+          actions: () => {
+            ++counter;
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    spy.mockClear();
+    actorRef.send({ type: 'EV' });
+
+    expect(spy.mock.calls).toEqual([
+      // called in response to the `EV` event
+      [0],
+      // called in response to the `RAISED` event
+      [1]
+    ]);
+  });
 });

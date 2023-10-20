@@ -1606,9 +1606,14 @@ export function macrostep(
   let shouldSelectEventlessTransitions = true;
 
   while (nextState.status === 'active') {
-    let enabledTransitions = shouldSelectEventlessTransitions
-      ? selectEventlessTransitions(nextState, nextEvent)
-      : [];
+    let enabledTransitions: AnyTransitionDefinition[] =
+      shouldSelectEventlessTransitions
+        ? selectEventlessTransitions(nextState, nextEvent)
+        : [];
+
+    // eventless transitions should always be selected after selecting *regular* transitions
+    // by assigning `undefined` to `previousState` we ensure that `shouldSelectEventlessTransitions` gets always computed to true in such a case
+    const previousState = enabledTransitions.length ? nextState : undefined;
 
     if (!enabledTransitions.length) {
       if (!internalQueue.length) {
@@ -1617,7 +1622,7 @@ export function macrostep(
       nextEvent = internalQueue.shift()!;
       enabledTransitions = selectTransitions(nextEvent, nextState);
     }
-    const previousState = nextState;
+
     nextState = microstep(
       enabledTransitions,
       nextState,
