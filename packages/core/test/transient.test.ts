@@ -852,4 +852,23 @@ describe('transient states (eventless transitions)', () => {
 
     expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
   });
+
+  it('should loop (but not infinitely) for assign actions', () => {
+    const machine = createMachine({
+      context: { count: 0 },
+      initial: 'counting',
+      states: {
+        counting: {
+          always: {
+            guard: ({ context }) => context.count < 5,
+            actions: assign({ count: ({ context }) => context.count + 1 })
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().context.count).toEqual(5);
+  });
 });
