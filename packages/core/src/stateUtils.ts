@@ -1577,7 +1577,7 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
-    nextState = stopStep(event, nextState, actorCtx);
+    nextState = stopStep(nextState, event, actorCtx);
     states.push(nextState);
 
     return {
@@ -1626,8 +1626,7 @@ export function macrostep(
   }
 
   if (nextState.status !== 'active') {
-    // Perform the stop step to ensure that child actors are stopped
-    stopStep(nextEvent, nextState, actorCtx);
+    stopChildren(nextState, nextEvent, actorCtx);
   }
 
   return {
@@ -1636,24 +1635,38 @@ export function macrostep(
   };
 }
 
-function stopStep(
-  event: AnyEventObject,
+function stopChildren(
   nextState: AnyState,
+  event: AnyEventObject,
   actorCtx: AnyActorContext
 ) {
-  const actions: UnknownAction[] = [];
+  return resolveActionsAndContext(
+    nextState,
+    event,
+    actorCtx,
+    Object.values(nextState.children).map((child) => stop(child)),
+    []
+  );
+}
 
-  for (const stateNode of nextState.configuration.sort(
-    (a, b) => b.order - a.order
-  )) {
-    actions.push(...stateNode.exit);
-  }
+function stopStep(
+  nextState: AnyState,
+  event: AnyEventObject,
+  actorCtx: AnyActorContext
+) {
+  const exitActions = nextState.configuration
+    .sort((a, b) => b.order - a.order)
+    .flatMap((stateNode) => stateNode.exit);
 
-  for (const child of Object.values(nextState.children)) {
-    actions.push(stop(child));
-  }
+  nextState = resolveActionsAndContext(
+    nextState,
+    event,
+    actorCtx,
+    exitActions,
+    []
+  );
 
-  return resolveActionsAndContext(nextState, event, actorCtx, actions, []);
+  return stopChildren(nextState, event, actorCtx);
 }
 
 function selectTransitions(
