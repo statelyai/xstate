@@ -838,13 +838,6 @@ describe('transient states (eventless transitions)', () => {
 
     const actorRef = createActor(machine);
 
-    actorRef.subscribe({
-      // TODO: why do I need this? Why doesn't actorRef.send synchronously throw?
-      error: (err) => {
-        console.error(err);
-      }
-    });
-
     actorRef.start();
     actorRef.send({
       type: 'event'
