@@ -1406,216 +1406,6 @@ describe('entry/exit actions', () => {
       expect(childSpy).not.toHaveBeenCalled();
     });
 
-    it('should call each exit handler only once when the service gets stopped', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            initial: 'a1',
-            states: {
-              a1: {}
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual([
-        'exit: a.a1',
-        'exit: a',
-        'exit: __root__'
-      ]);
-    });
-
-    it('should call exit actions in reversed document order when the service gets stopped', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: {
-                // just a noop action to ensure that a transition is selected when we send an event
-                actions: () => {}
-              }
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-
-      // it's important to send an event here that results in a transition that computes new `state.configuration`
-      // and that could impact the order in which exit actions are called
-      service.send({ type: 'EV' });
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual(['exit: a', 'exit: __root__']);
-    });
-
-    it('should call exit actions of parallel states in reversed document order when the service gets stopped after earlier region transition', () => {
-      const machine = createMachine({
-        type: 'parallel',
-        states: {
-          a: {
-            initial: 'child_a',
-            states: {
-              child_a: {
-                on: {
-                  EV: {
-                    // just a noop action to ensure that a transition is selected when we send an event
-                    actions: () => {}
-                  }
-                }
-              }
-            }
-          },
-          b: {
-            initial: 'child_b',
-            states: {
-              child_b: {}
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
-      // and that could impact the order in which exit actions are called
-      service.send({ type: 'EV' });
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual([
-        'exit: b.child_b',
-        'exit: b',
-        'exit: a.child_a',
-        'exit: a',
-        'exit: __root__'
-      ]);
-    });
-
-    it('should call exit actions of parallel states in reversed document order when the service gets stopped after later region transition', () => {
-      const machine = createMachine({
-        type: 'parallel',
-        states: {
-          a: {
-            initial: 'child_a',
-            states: {
-              child_a: {}
-            }
-          },
-          b: {
-            initial: 'child_b',
-            states: {
-              child_b: {
-                on: {
-                  EV: {
-                    // just a noop action to ensure that a transition is selected when we send an event
-                    actions: () => {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
-      // and that could impact the order in which exit actions are called
-      service.send({ type: 'EV' });
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual([
-        'exit: b.child_b',
-        'exit: b',
-        'exit: a.child_a',
-        'exit: a',
-        'exit: __root__'
-      ]);
-    });
-
-    it('should call exit actions of parallel states in reversed document order when the service gets stopped after multiple regions transition', () => {
-      const machine = createMachine({
-        type: 'parallel',
-        states: {
-          a: {
-            initial: 'child_a',
-            states: {
-              child_a: {
-                on: {
-                  EV: {
-                    // just a noop action to ensure that a transition is selected when we send an event
-                    actions: () => {}
-                  }
-                }
-              }
-            }
-          },
-          b: {
-            initial: 'child_b',
-            states: {
-              child_b: {
-                on: {
-                  EV: {
-                    // just a noop action to ensure that a transition is selected when we send an event
-                    actions: () => {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
-      // and that could impact the order in which exit actions are called
-      service.send({ type: 'EV' });
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual([
-        'exit: b.child_b',
-        'exit: b',
-        'exit: a.child_a',
-        'exit: a',
-        'exit: __root__'
-      ]);
-    });
-
-    it('an exit action executed when an interpreter gets stopped should receive `xstate.stop` event', () => {
-      let receivedEvent;
-      const machine = createMachine({
-        exit: ({ event }) => {
-          receivedEvent = event;
-        }
-      });
-
-      const service = createActor(machine).start();
-      service.stop();
-
-      expect(receivedEvent).toEqual({ type: 'xstate.stop' });
-    });
-
     it('an exit action executed when an interpreter reaches its final state should be called with the last received event', () => {
       let receivedEvent;
       const machine = createMachine({
@@ -1753,16 +1543,14 @@ describe('entry/exit actions', () => {
       expect(eventReceived).toBe(true);
     });
 
-    it('sent events from exit handlers of a stopped child should be received by its children', () => {
-      let eventReceived = false;
+    it('sent events from exit handlers of a stopped child should not be received by its children', () => {
+      const spy = jest.fn();
 
       const grandchild = createMachine({
         id: 'grandchild',
         on: {
           STOPPED: {
-            actions: () => {
-              eventReceived = true;
-            }
+            actions: spy
           }
         }
       });
@@ -1795,7 +1583,7 @@ describe('entry/exit actions', () => {
       const interpreter = createActor(parent).start();
       interpreter.send({ type: 'NEXT' });
 
-      expect(eventReceived).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
     });
 
     it('sent events from exit handlers of a done child should be received by its children', () => {
