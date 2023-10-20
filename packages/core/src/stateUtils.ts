@@ -1603,24 +1603,21 @@ export function macrostep(
     states.push(nextState);
   }
 
-  let previousEventlessTransitions: AnyTransitionDefinition[] | undefined;
+  let shouldSelectEventlessTransitions = true;
 
   while (nextState.status === 'active') {
-    let enabledTransitions = (previousEventlessTransitions =
-      selectEventlessTransitions(
-        nextState,
-        nextEvent,
-        previousEventlessTransitions
-      ));
+    let enabledTransitions = shouldSelectEventlessTransitions
+      ? selectEventlessTransitions(nextState, nextEvent)
+      : [];
 
     if (!enabledTransitions.length) {
-      previousEventlessTransitions = undefined;
       if (!internalQueue.length) {
         break;
       }
       nextEvent = internalQueue.shift()!;
       enabledTransitions = selectTransitions(nextEvent, nextState);
     }
+    const previousState = nextState;
     nextState = microstep(
       enabledTransitions,
       nextState,
@@ -1629,7 +1626,7 @@ export function macrostep(
       false,
       internalQueue
     );
-
+    shouldSelectEventlessTransitions = nextState !== previousState;
     states.push(nextState);
   }
 
@@ -1673,8 +1670,7 @@ function selectTransitions(
 
 function selectEventlessTransitions(
   nextState: AnyState,
-  event: AnyEventObject,
-  previousEventlessTransitions: AnyTransitionDefinition[] | undefined
+  event: AnyEventObject
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = nextState.configuration.filter(isAtomicStateNode);
@@ -1691,12 +1687,7 @@ function selectEventlessTransitions(
           transition.guard === undefined ||
           evaluateGuard(transition.guard, nextState.context, event, nextState)
         ) {
-          if (
-            transition.actions.length ||
-            !previousEventlessTransitions?.includes(transition)
-          ) {
-            enabledTransitionSet.add(transition);
-          }
+          enabledTransitionSet.add(transition);
           break loop;
         }
       }
