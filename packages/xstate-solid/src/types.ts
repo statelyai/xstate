@@ -4,29 +4,51 @@ import type {
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
   InternalMachineImplementations,
-  InterpreterOptions,
+  ActorOptions,
   MachineContext,
   ProvidedActor,
-  State,
-  TypegenDisabled
+  TypegenDisabled,
+  HomomorphicPick,
+  MachineSnapshot
 } from 'xstate';
 
-type StateObject<
+type MachineSnapshotPOJO<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor,
+  TTag extends string = string,
+  TOutput = unknown,
   TResolvedTypesMeta = TypegenDisabled
-> = Pick<State<TContext, TEvent, TActor, TResolvedTypesMeta>, keyof AnyState>;
+> = HomomorphicPick<
+  MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
+  keyof MachineSnapshot<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  >
+>;
 
 // Converts a State class type to a POJO State type. This reflects that the state
 // is being spread into a new object for reactive tracking in SolidJS
-export type CheckSnapshot<Snapshot> = Snapshot extends State<
+export type CheckSnapshot<Snapshot> = Snapshot extends MachineSnapshot<
   infer TContext,
   infer TEvents,
   infer TActor,
+  infer TTag,
+  infer TOutput,
   infer TResolvedTypesMeta
 >
-  ? StateObject<TContext, TEvents, TActor, TResolvedTypesMeta>
+  ? MachineSnapshotPOJO<
+      TContext,
+      TEvents,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
   : Snapshot;
 
 type InternalMachineOpts<
@@ -35,8 +57,9 @@ type InternalMachineOpts<
 > = InternalMachineImplementations<
   TMachine['__TContext'],
   TMachine['__TEvent'],
-  TMachine['__TAction'],
   TMachine['__TActor'],
+  TMachine['__TAction'],
+  TMachine['__TDelay'],
   TMachine['__TResolvedTypesMeta'],
   RequireMissing
 >;
@@ -45,8 +68,5 @@ export type RestParams<TMachine extends AnyStateMachine> =
   AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends false
-    ? [
-        options: InterpreterOptions<TMachine> &
-          InternalMachineOpts<TMachine, true>
-      ]
-    : [options?: InterpreterOptions<TMachine> & InternalMachineOpts<TMachine>];
+    ? [options: ActorOptions<TMachine> & InternalMachineOpts<TMachine, true>]
+    : [options?: ActorOptions<TMachine> & InternalMachineOpts<TMachine>];

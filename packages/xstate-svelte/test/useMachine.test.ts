@@ -1,15 +1,21 @@
-import { render, fireEvent } from '@testing-library/svelte';
+import { fireEvent, render } from '@testing-library/svelte';
+import { createActor, createMachine } from 'xstate';
 import UseMachine from './UseMachine.svelte';
-import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcription.svelte';
-import { fetchMachine } from './fetchMachine';
-import { doneInvoke, fromCallback, interpret } from 'xstate';
+import UseMachineNonPersistentSubscription from './UseMachineNonPersistentSubscription.svelte';
+import { fetchMachine } from './fetchMachine.ts';
 
-const actorRef = interpret(
+const actorRef = createActor(
   fetchMachine.provide({
     actors: {
-      fetchData: fromCallback(({ sendBack }) => {
-        sendBack(doneInvoke('fetchData', 'persisted data'));
-      }) as any // TODO: callback actors don't support output (yet?)
+      fetchData: createMachine({
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final'
+          }
+        },
+        output: 'persisted data'
+      }) as any
     }
   })
 ).start();
@@ -52,7 +58,7 @@ describe('useMachine function', () => {
 
   it("should not stop the interpreter even if subscribers' count go temporarily to zero", async () => {
     const { findByText, getByTestId } = render(
-      UseMachineNonPersistentSubcription
+      UseMachineNonPersistentSubscription
     );
     let incButton = await findByText(/Increment/);
 

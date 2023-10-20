@@ -1,4 +1,4 @@
-import { createMachine, fromCallback, fromPromise, interpret } from '../src';
+import { createMachine, fromCallback, fromPromise, createActor } from '../src';
 import { ActorStatus } from '../src/interpreter';
 
 const cleanups: (() => void)[] = [];
@@ -33,7 +33,7 @@ describe('error handling', () => {
       throw new Error('no_infinite_loop_when_error_is_thrown_in_subscribe');
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     actor.subscribe(spy);
     actor.send({ type: 'activate' });
@@ -68,7 +68,7 @@ describe('error handling', () => {
       throw new Error('doesnt_crash_actor_when_error_is_thrown_in_subscribe');
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     actor.subscribe(spy);
     actor.send({ type: 'activate' });
@@ -107,7 +107,7 @@ describe('error handling', () => {
     });
     const errorSpy = jest.fn();
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     actor.subscribe({
       next: nextSpy,
@@ -145,7 +145,7 @@ describe('error handling', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
@@ -172,7 +172,7 @@ describe('error handling', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
@@ -199,7 +199,7 @@ describe('error handling', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
 
     installGlobalOnErrorHandler(() => {
       done.fail();
@@ -228,7 +228,7 @@ describe('error handling', () => {
       }
     });
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
     childActorRef.subscribe({
       error: () => {}
@@ -261,7 +261,7 @@ describe('error handling', () => {
       }
     });
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
     childActorRef.subscribe({
       error: () => {}
@@ -294,7 +294,7 @@ describe('error handling', () => {
       }
     });
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
     childActorRef.subscribe({
       error: () => {}
@@ -338,7 +338,7 @@ describe('error handling', () => {
 
     const errorSpy = jest.fn();
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: errorSpy
     });
@@ -369,7 +369,7 @@ describe('error handling', () => {
 
     const errorSpy = jest.fn();
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: errorSpy
     });
@@ -406,7 +406,7 @@ describe('error handling', () => {
 
     const errorSpy = jest.fn();
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: errorSpy
     });
@@ -439,7 +439,7 @@ describe('error handling', () => {
       }
     });
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     actorRef.start();
 
     expect(actorRef.status).toBe(ActorStatus.Running);
@@ -459,7 +459,7 @@ describe('error handling', () => {
       }
     });
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     actorRef.start();
 
     expect(actorRef.status).not.toBe(ActorStatus.Running);
@@ -485,7 +485,7 @@ describe('error handling', () => {
       }
     });
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: () => {
         throw new Error('error_thrown_by_error_listener');
@@ -516,7 +516,7 @@ describe('error handling', () => {
       }
     });
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: () => {}
     });
@@ -532,7 +532,7 @@ describe('error handling', () => {
     });
   });
 
-  it(`uncaught error and an error thrown by the error listener should both be reported globally when not eveyr observer comes with an error listener`, (done) => {
+  it(`uncaught error and an error thrown by the error listener should both be reported globally when not every observer comes with an error listener`, (done) => {
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -548,7 +548,7 @@ describe('error handling', () => {
       }
     });
 
-    const actorRef = interpret(machine);
+    const actorRef = createActor(machine);
     actorRef.subscribe({
       error: () => {
         throw new Error('error_thrown_by_error_listener');

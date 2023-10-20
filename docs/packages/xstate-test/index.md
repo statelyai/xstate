@@ -196,7 +196,7 @@ Throws an error if the last entered state does not match the `options.target`.
 
 ### `testModel.testCoverage(options?)`
 
-Tests that all state nodes were covered (traversed) in the exected tests.
+Tests that all state nodes were covered (traversed) in the executed tests.
 
 **_Options_**
 

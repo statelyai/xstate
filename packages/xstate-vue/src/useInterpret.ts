@@ -3,9 +3,9 @@ import {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
-  interpret,
-  InterpreterFrom,
-  InterpreterOptions,
+  createActor,
+  Actor,
+  ActorOptions,
   Observer,
   StateFrom,
   TODO,
@@ -19,10 +19,11 @@ type RestParams<TMachine extends AnyStateMachine> =
     TMachine['__TResolvedTypesMeta']
   > extends false
     ? [
-        options: InterpreterOptions<TMachine> &
+        options: ActorOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
             TODO,
             TODO,
             TMachine['__TResolvedTypesMeta'],
@@ -33,10 +34,11 @@ type RestParams<TMachine extends AnyStateMachine> =
           | ((value: StateFrom<TMachine>) => void)
       ]
     : [
-        options?: InterpreterOptions<TMachine> &
+        options?: ActorOptions<TMachine> &
           InternalMachineImplementations<
             TMachine['__TContext'],
             TMachine['__TEvent'],
+            TODO,
             TODO,
             TODO,
             TMachine['__TResolvedTypesMeta']
@@ -49,7 +51,7 @@ type RestParams<TMachine extends AnyStateMachine> =
 export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
-): InterpreterFrom<TMachine> {
+): Actor<TMachine> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
   const { guards, actions, actors, delays, ...interpreterOptions } = options;
@@ -63,7 +65,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 
   const machineWithConfig = machine.provide(machineConfig as any);
 
-  const service = interpret(machineWithConfig, interpreterOptions).start();
+  const service = createActor(machineWithConfig, interpreterOptions).start();
 
   let sub: Subscription | undefined;
   onMounted(() => {

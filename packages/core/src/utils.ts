@@ -1,27 +1,23 @@
 import isDevelopment from '#is-development';
 import { AnyActorLogic, AnyState } from './index.ts';
-import { errorExecution, errorPlatform } from './constantPrefixes.ts';
 import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
   ActorLogic,
   AnyEventObject,
   EventObject,
-  EventType,
-  InvokeConfig,
   MachineContext,
   Mapper,
   Observer,
-  PropertyMapper,
-  ErrorEvent,
+  ErrorActorEvent,
   SingleOrArray,
   StateLike,
   StateValue,
   Subscribable,
-  TransitionConfig,
   TransitionConfigTarget,
-  TODO,
-  AnyActorRef
+  AnyActorRef,
+  AnyTransitionConfig,
+  NonReducibleUnknown
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -212,35 +208,38 @@ export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
 }
 
-export function toArrayStrict<T>(value: T[] | T): T[] {
+export function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
   if (isArray(value)) {
     return value;
   }
   return [value];
 }
 
-export function toArray<T>(value: T[] | T | undefined): T[] {
+export function toArray<T>(value: readonly T[] | T | undefined): readonly T[] {
   if (value === undefined) {
     return [];
   }
   return toArrayStrict(value);
 }
 
-export function mapContext<
+export function resolveOutput<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TExpressionEvent extends EventObject
 >(
-  mapper: Mapper<TContext, TEvent, any>,
+  mapper:
+    | Mapper<TContext, TExpressionEvent, unknown, EventObject>
+    | NonReducibleUnknown,
   context: TContext,
-  event: TEvent,
+  event: TExpressionEvent,
   self: AnyActorRef
-): any {
+): unknown {
   if (typeof mapper === 'function') {
     return mapper({ context, event, self });
   }
 
   if (
     isDevelopment &&
+    !!mapper &&
     typeof mapper === 'object' &&
     Object.values(mapper).some((val) => typeof val === 'function')
   ) {
@@ -262,7 +261,7 @@ export function mapContext<
   return mapper;
 }
 
-export function isBuiltInEvent(eventType: EventType): boolean {
+export function isBuiltInEvent(eventType: string): boolean {
   return /^(done|error)\./.test(eventType);
 }
 
@@ -307,7 +306,7 @@ export function partition<T, A extends T, B extends T>(
   return [truthy, falsy];
 }
 
-export function isArray(value: any): value is any[] {
+export function isArray(value: any): value is readonly any[] {
   return Array.isArray(value);
 }
 
@@ -317,30 +316,18 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   );
 }
 
-export const uniqueId = (() => {
-  let currentId = 0;
-
-  return () => {
-    currentId++;
-    return currentId.toString(16);
-  };
-})();
-
-export function isErrorEvent(event: AnyEventObject): event is ErrorEvent<any> {
-  return (
-    typeof event.type === 'string' &&
-    (event.type === errorExecution || event.type.startsWith(errorPlatform))
-  );
+export function isErrorActorEvent(
+  event: AnyEventObject
+): event is ErrorActorEvent {
+  return event.type.startsWith('xstate.error.actor');
 }
 
 export function toTransitionConfigArray<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  configLike: SingleOrArray<
-    TransitionConfig<TContext, TEvent> | TransitionConfigTarget
-  >
-): Array<TransitionConfig<TContext, TEvent>> {
+  configLike: SingleOrArray<AnyTransitionConfig | TransitionConfigTarget>
+): Array<AnyTransitionConfig> {
   return toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
@@ -358,7 +345,7 @@ export function normalizeTarget<
   TEvent extends EventObject
 >(
   target: SingleOrArray<string | StateNode<TContext, TEvent>> | undefined
-): Array<string | StateNode<TContext, TEvent>> | undefined {
+): ReadonlyArray<string | StateNode<TContext, TEvent>> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
     return undefined;
   }
@@ -392,32 +379,6 @@ export function reportUnhandledExceptionOnInvocation(
   }
 }
 
-export function toInvokeConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  invocable: InvokeConfig<TContext, TEvent, TODO> | string | AnyActorLogic,
-  id: string
-): InvokeConfig<TContext, TEvent, TODO> {
-  if (typeof invocable === 'object') {
-    if ('src' in invocable) {
-      return invocable;
-    }
-
-    if ('transition' in invocable) {
-      return {
-        id,
-        src: invocable
-      };
-    }
-  }
-
-  return {
-    id,
-    src: invocable
-  };
-}
-
 export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
@@ -442,7 +403,12 @@ export function createInvokeId(stateNodeId: string, index: number): string {
 export function resolveReferencedActor(
   referenced:
     | AnyActorLogic
-    | { src: AnyActorLogic; input: Mapper<any, any, any> | any }
+    | {
+        src: AnyActorLogic;
+        input:
+          | Mapper<MachineContext, EventObject, unknown, EventObject>
+          | NonReducibleUnknown;
+      }
     | undefined
 ) {
   return referenced

@@ -1,4 +1,9 @@
-import { createMachine, interpret, assign, AnyActorRef } from '../src/index.ts';
+import {
+  createMachine,
+  createActor,
+  assign,
+  AnyActorRef
+} from '../src/index.ts';
 import { sendTo } from '../src/actions/send';
 
 describe('events', () => {
@@ -53,7 +58,7 @@ describe('events', () => {
       }
     });
 
-    const service = interpret(authClientMachine);
+    const service = createActor(authClientMachine);
     service.subscribe({ complete: () => done() });
     service.start();
 
@@ -73,8 +78,9 @@ describe('nested transitions', () => {
       password: string;
     }
 
-    const authMachine = createMachine<SignInContext, ChangePassword>(
+    const authMachine = createMachine(
       {
+        types: {} as { context: SignInContext; events: ChangePassword },
         context: { email: '', password: '' },
         initial: 'passwordField',
         states: {
@@ -111,14 +117,14 @@ describe('nested transitions', () => {
       },
       {
         actions: {
-          assignPassword: assign<SignInContext, ChangePassword>({
+          assignPassword: assign({
             password: ({ event }) => event.password
           })
         }
       }
     );
     const password = 'xstate123';
-    const actorRef = interpret(authMachine).start();
+    const actorRef = createActor(authMachine).start();
     actorRef.send({ type: 'changePassword', password });
 
     const snapshot = actorRef.getSnapshot();

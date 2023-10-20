@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { fromCallback } from '../src/actors/callback.ts';
+import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
   ActorSystem,
@@ -9,16 +9,19 @@ import {
   fromObservable,
   fromPromise,
   fromTransition,
-  interpret,
+  createActor,
   sendTo,
-  stop
+  stop,
+  Snapshot,
+  EventObject,
+  ActorRefFrom
 } from '../src/index.ts';
 
 describe('system', () => {
   it('should register an invoked actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }>;
+        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
       };
     }>;
 
@@ -54,17 +57,23 @@ describe('system', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should register a spawned actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }>;
+        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
       };
     }>;
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: CallbackActorRef<EventObject, unknown>;
+          machineRef?: ActorRefFrom<ReturnType<typeof createMachine>>;
+        };
+      },
       id: 'parent',
       context: ({ spawn }) => ({
         ref: spawn(
@@ -101,7 +110,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     actor.send({ type: 'toggle' });
   });
@@ -115,14 +124,14 @@ describe('system', () => {
     });
 
     // no .start() here is important for the test
-    const actor = interpret(machine);
+    const actor = createActor(machine);
 
     expect(actor.system.get('someChild')).toBeDefined();
   });
 
   it('root actor can be given the systemId', () => {
     const machine = createMachine({});
-    const actor = interpret(machine, { systemId: 'test' });
+    const actor = createActor(machine, { systemId: 'test' });
     expect(actor.system.get('test')).toBe(actor);
   });
 
@@ -143,7 +152,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -153,9 +162,15 @@ describe('system', () => {
   });
 
   it('should remove spawned actor from receptionist if stopped', () => {
+    const childMachine = createMachine({});
     const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: ActorRefFrom<typeof childMachine>;
+        };
+      },
       context: ({ spawn }) => ({
-        ref: spawn(createMachine({}), {
+        ref: spawn(childMachine, {
           systemId: 'test'
         })
       }),
@@ -166,7 +181,7 @@ describe('system', () => {
       }
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -201,7 +216,7 @@ describe('system', () => {
 
     const errorSpy = jest.fn();
 
-    const actorRef = interpret(machine, { systemId: 'test' });
+    const actorRef = createActor(machine, { systemId: 'test' });
     actorRef.subscribe({
       error: errorSpy
     });
@@ -228,7 +243,7 @@ describe('system', () => {
       }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in referenced custom actions', () => {
@@ -249,7 +264,7 @@ describe('system', () => {
       }
     );
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in assign actions', () => {
@@ -258,12 +273,17 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: assign(({ system }) => {
-        expect(system!.get('test')).toBeDefined();
-      })
+      initial: 'a',
+      states: {
+        a: {
+          entry: assign(({ system }) => {
+            expect(system!.get('test')).toBeDefined();
+          })
+        }
+      }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in sendTo actions', () => {
@@ -272,16 +292,21 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: sendTo(
-        ({ system }) => {
-          expect(system!.get('test')).toBeDefined();
-          return system!.get('test');
-        },
-        { type: 'FOO' }
-      )
+      initial: 'a',
+      states: {
+        a: {
+          entry: sendTo(
+            ({ system }) => {
+              expect(system!.get('test')).toBeDefined();
+              return system!.get('test');
+            },
+            { type: 'FOO' }
+          )
+        }
+      }
     });
 
-    interpret(machine).start();
+    createActor(machine).start();
   });
 
   it('should be accessible in promise logic', () => {
@@ -301,7 +326,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -325,7 +350,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
 
@@ -351,7 +376,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -374,7 +399,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });
@@ -395,7 +420,7 @@ describe('system', () => {
       ]
     });
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
   });

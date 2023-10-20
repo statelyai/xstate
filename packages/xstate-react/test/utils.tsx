@@ -16,7 +16,7 @@ const reactModes = [
 export function describeEachReactMode(
   name: string,
   fn: (suiteCase: {
-    suiteKey: typeof reactModes[number][0];
+    suiteKey: (typeof reactModes)[number][0];
     render: SimplifiedRTLRender;
   }) => void
 ) {

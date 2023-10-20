@@ -2,15 +2,14 @@ import {
   ActorRefFrom,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  InterpreterOptions,
+  ActorOptions,
   MissingImplementationsError,
   StateFrom
 } from 'xstate';
 import { useActor } from './useActor.ts';
 
 /**
- *
- * @deprecated Use `useActor(...)` instead.
+ * @alias useActor
  */
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
@@ -18,7 +17,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   > extends true
     ? TMachine
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options: InterpreterOptions<TMachine> = {}
+  options: ActorOptions<TMachine> = {}
 ): [
   StateFrom<TMachine>,
   ActorRefFrom<TMachine>['send'],

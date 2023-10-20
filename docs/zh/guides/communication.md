@@ -114,11 +114,11 @@ const userMachine = createMachine({
 });
 ```
 
-解析后的数据被放置在一个 `'done.invoke.<id>'` 事件中，在 `data` 属性下，例如：
+解析后的数据被放置在一个 `'xstate.done.actor.<id>'` 事件中，在 `data` 属性下，例如：
 
 ```js
 {
-  type: 'done.invoke.getUser',
+  type: 'xstate.done.actor.getUser',
   data: {
     name: 'David',
     location: 'Florida'
@@ -128,7 +128,7 @@ const userMachine = createMachine({
 
 ### Promise Rejection
 
-如果 Promise 拒绝，则将使用 `{ type: 'error.platform' }` 事件进行 `onError` 转换。 错误数据在事件的 `data` 属性中可用：
+如果 Promise 拒绝，则将使用 `{ type: 'xstate.error.actor' }` 事件进行 `onError` 转换。 错误数据在事件的 `data` 属性中可用：
 
 ```js
 const search = (context, event) =>
@@ -165,7 +165,7 @@ const searchMachine = createMachine({
           actions: assign({
             errorMessage: (context, event) => {
               // event is:
-              // { type: 'error.platform', data: 'No query specified' }
+              // { type: 'xstate.error.actor', data: 'No query specified' }
               return event.data;
             }
           })
@@ -428,7 +428,7 @@ data: (context, event) => ({
 
 ### 完成数据
 
-当子状态机到达其顶级[最终状态](./final.md)时，它可以在“done”事件中发送数据（例如，`{ type: 'done.invoke.someId', data: .. .}`）。 这个“完成的数据”是在最终状态的`data`属性上指定的：
+当子状态机到达其顶级[最终状态](./final.md)时，它可以在“done”事件中发送数据（例如，`{ type: 'xstate.done.actor.someId', data: .. .}`）。 这个“完成的数据”是在最终状态的`data`属性上指定的：
 
 ```js
 const secretMachine = createMachine({
@@ -468,7 +468,7 @@ const parentMachine = createMachine({
           actions: assign({
             revealedSecret: (context, event) => {
               // event is:
-              // { type: 'done.invoke.secret', data: { secret: '42' } }
+              // { type: 'xstate.done.actor.secret', data: { secret: '42' } }
               return event.data.secret;
             }
           })

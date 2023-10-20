@@ -1,4 +1,0 @@
-{
-  "main": "dist/xstate-svelte-fsm.cjs.js",
-  "module": "dist/xstate-svelte-fsm.esm.js"
-}

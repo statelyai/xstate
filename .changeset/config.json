@@ -7,13 +7,10 @@
   "baseBranch": "main",
   "ignore": [
     "@xstate/analytics",
-    "@xstate/graph",
     "@xstate/immer",
     "@xstate/inspect",
-    "@xstate/scxml",
     "@xstate/solid",
-    "@xstate/svelte",
-    "@xstate/test"
+    "@xstate/svelte"
   ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true,

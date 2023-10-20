@@ -1,4 +1,10 @@
-import { ActorRef, ActorLogic, EventObject, interpret } from 'xstate';
+import {
+  ActorRef,
+  ActorLogic,
+  EventObject,
+  createActor,
+  Snapshot
+} from 'xstate';
 import { onBeforeUnmount } from 'vue';
 
 /**
@@ -8,10 +14,11 @@ import { onBeforeUnmount } from 'vue';
  * @param logic The actor logic to spawn
  * @returns An ActorRef with the specified `logic`
  */
-export function useSpawn<TState, TEvent extends EventObject>(
-  logic: ActorLogic<TEvent, TState>
-): ActorRef<TEvent, TState> {
-  const actorRef = interpret(logic);
+export function useSpawn<
+  TState extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(logic: ActorLogic<TState, TEvent>): ActorRef<TEvent, TState> {
+  const actorRef = createActor(logic);
 
   actorRef.start?.();
   onBeforeUnmount(() => {

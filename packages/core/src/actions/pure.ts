@@ -1,19 +1,23 @@
 import isDevelopment from '#is-development';
 import {
-  Action,
+  Actions,
   ActionArgs,
+  UnknownAction,
   AnyActorContext,
   AnyState,
   EventObject,
   MachineContext,
-  SingleOrArray
+  ParameterizedObject,
+  SingleOrArray,
+  NoInfer,
+  ProvidedActor
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
-function resolve(
+function resolvePure(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any>,
+  args: ActionArgs<any, any, any, any>,
   {
     get
   }: {
@@ -23,20 +27,45 @@ function resolve(
     }: {
       context: MachineContext;
       event: EventObject;
-    }) => SingleOrArray<Action<any, any, any>> | undefined;
+    }) => SingleOrArray<UnknownAction> | undefined;
   }
 ) {
   return [
     state,
     undefined,
-    toArray(get({ context: state.context, event: args.event }))
+    toArray(get({ context: args.context, event: args.event }))
   ];
+}
+
+export interface PureAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  _out_TEvent?: TEvent;
+  _out_TActor?: TActor;
+  _out_TAction?: TAction;
+  _out_TGuard?: TGuard;
+  _out_TDelay?: TDelay;
 }
 
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TExpressionAction extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined,
+  TEvent extends EventObject = TExpressionEvent,
+  TActor extends ProvidedActor = ProvidedActor,
+  TAction extends ParameterizedObject = ParameterizedObject,
+  TGuard extends ParameterizedObject = ParameterizedObject,
+  TDelay extends string = string
 >(
   getActions: ({
     context,
@@ -44,9 +73,31 @@ export function pure<
   }: {
     context: TContext;
     event: TExpressionEvent;
-  }) => SingleOrArray<Action<TContext, TExpressionEvent> | string> | undefined
-) {
-  function pure(_: ActionArgs<TContext, TExpressionEvent>) {
+  }) =>
+    | Actions<
+        TContext,
+        TExpressionEvent,
+        NoInfer<TEvent>,
+        undefined,
+        TActor,
+        NoInfer<TAction>,
+        NoInfer<TGuard>,
+        TDelay
+      >
+    | undefined
+): PureAction<
+  TContext,
+  TExpressionEvent,
+  TExpressionAction,
+  TEvent,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay
+> {
+  function pure(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -54,7 +105,8 @@ export function pure<
 
   pure.type = 'xstate.pure';
   pure.get = getActions;
-  pure.resolve = resolve;
+
+  pure.resolve = resolvePure;
 
   return pure;
 }

@@ -1,7 +1,11 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
-import { doneInvoke, error } from './actions.ts';
-import { stopSignalType } from './actors/index.ts';
+import {
+  createDoneActorEvent,
+  createErrorActorEvent,
+  createInitEvent
+} from './eventUtils.ts';
+import { XSTATE_STOP } from './constants.ts';
 import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
@@ -11,27 +15,27 @@ import {
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
-  ActorLogic,
   ActorContext,
   ActorSystem,
   AnyActorLogic,
   AnyStateMachine,
   EventFromLogic,
-  InterpreterFrom,
   PersistedStateFrom,
   SnapshotFrom,
-  AnyActorRef
+  AnyActorRef,
+  DoneActorEvent
 } from './types.ts';
 import {
   ActorRef,
-  DoneEvent,
   EventObject,
   InteropSubscribable,
-  InterpreterOptions,
+  ActorOptions,
   Observer,
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+
+export const $$ACTOR_TYPE = 1;
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -55,8 +59,12 @@ export enum ActorStatus {
   Stopped
 }
 
+/**
+ * @deprecated Use `ActorStatus` instead.
+ */
+export const InterpreterStatus = ActorStatus;
+
 const defaultOptions = {
-  deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
       return setTimeout(fn, ms);
@@ -69,32 +77,27 @@ const defaultOptions = {
   devTools: false
 };
 
-type InternalStateFrom<TLogic extends ActorLogic<any, any, any>> =
-  TLogic extends ActorLogic<infer _, infer __, infer TInternalState>
-    ? TInternalState
-    : never;
-
-export class Interpreter<
-  TLogic extends AnyActorLogic,
-  TEvent extends EventObject = EventFromLogic<TLogic>
-> implements ActorRef<TEvent, SnapshotFrom<TLogic>>
+export class Actor<TLogic extends AnyActorLogic>
+  implements ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
 {
   /**
-   * The current state of the interpreted logic.
+   * The current internal state of the actor.
    */
-  private _state!: InternalStateFrom<TLogic>;
+  private _state!: SnapshotFrom<TLogic>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: Readonly<InterpreterOptions<TLogic>>;
+  public options: Readonly<ActorOptions<TLogic>>;
 
   /**
    * The unique identifier for this actor relative to its parent.
    */
   public id: string;
 
-  private mailbox: Mailbox<TEvent> = new Mailbox(this._process.bind(this));
+  private mailbox: Mailbox<EventFromLogic<TLogic>> = new Mailbox(
+    this._process.bind(this)
+  );
 
   private delayedEventsMap: Record<string, unknown> = {};
 
@@ -106,10 +109,14 @@ export class Interpreter<
   public status: ActorStatus = ActorStatus.NotStarted;
 
   // Actor Ref
-  public _parent?: ActorRef<any>;
-  public ref: ActorRef<TEvent>;
+  public _parent?: ActorRef<any, any>;
+  public ref: ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>;
   // TODO: add typings for system
-  private _actorContext: ActorContext<TEvent, SnapshotFrom<TLogic>, any>;
+  private _actorContext: ActorContext<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>,
+    any
+  >;
 
   private _systemId: string | undefined;
 
@@ -119,26 +126,30 @@ export class Interpreter<
   public sessionId: string;
 
   public system: ActorSystem<any>;
-  private _doneEvent?: DoneEvent;
+  private _doneEvent?: DoneActorEvent;
 
   public src?: string;
 
   /**
-   * Creates a new Interpreter instance (i.e., service) for the given logic with the provided options, if any.
+   * Creates a new actor instance for the given logic with the provided options, if any.
    *
-   * @param logic The logic to be interpreted
-   * @param options Interpreter options
+   * @param logic The logic to create an actor from
+   * @param options Actor options
    */
-  constructor(public logic: TLogic, options?: InterpreterOptions<TLogic>) {
+  constructor(public logic: TLogic, options?: ActorOptions<TLogic>) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
-    };
+    } as ActorOptions<TLogic> & typeof defaultOptions;
 
-    const { clock, logger, parent, id, systemId } = resolvedOptions;
-    const self = this;
+    const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
 
-    this.system = parent?.system ?? createSystem();
+    this.system = parent?.system ?? createSystem(this);
+
+    if (inspect && !parent) {
+      // Always inspect at the system-level
+      this.system.inspect(toObserver(inspect));
+    }
 
     if (systemId) {
       this._systemId = systemId;
@@ -154,7 +165,7 @@ export class Interpreter<
     this.src = resolvedOptions.src;
     this.ref = this;
     this._actorContext = {
-      self,
+      self: this,
       id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
@@ -172,9 +183,13 @@ export class Interpreter<
       }
     };
 
-    // Ensure that the send method is bound to this interpreter instance
+    // Ensure that the send method is bound to this Actor instance
     // if destructured
     this.send = this.send.bind(this);
+    this.system._sendInspectionEvent({
+      type: '@xstate.actor',
+      actorRef: this
+    });
     this._initState();
   }
 
@@ -189,10 +204,9 @@ export class Interpreter<
   // array of functions to defer
   private _deferred: Array<() => void> = [];
 
-  private update(state: InternalStateFrom<TLogic>): void {
+  private update(snapshot: SnapshotFrom<TLogic>, event: EventObject): void {
     // Update state
-    this._state = state;
-    const snapshot = this.getSnapshot();
+    this._state = snapshot;
 
     // Execute deferred effects
     let deferredFn: (typeof this._deferred)[number] | undefined;
@@ -210,21 +224,37 @@ export class Interpreter<
       }
     }
 
-    const status = this.logic.getStatus?.(state);
-
-    switch (status?.status) {
+    switch ((this._state as any).status) {
       case 'done':
         this._stopProcedure();
         this._complete();
-        this._doneEvent = doneInvoke(this.id, status.data);
-        this._parent?.send(this._doneEvent as any);
+        this._doneEvent = createDoneActorEvent(
+          this.id,
+          (this._state as any).output
+        );
+        if (this._parent) {
+          this.system._relay(this, this._parent, this._doneEvent);
+        }
+
         break;
       case 'error':
         this._stopProcedure();
-        this._error(status.data);
-        this._parent?.send(error(this.id, status.data));
+        this._error((this._state as any).error);
+        if (this._parent) {
+          this.system._relay(
+            this,
+            this._parent,
+            createErrorActorEvent(this.id, (this._state as any).error)
+          );
+        }
         break;
     }
+    this.system._sendInspectionEvent({
+      type: '@xstate.snapshot',
+      actorRef: this,
+      event,
+      snapshot
+    });
   }
 
   public subscribe(observer: Observer<SnapshotFrom<TLogic>>): Subscription;
@@ -264,7 +294,7 @@ export class Interpreter<
   }
 
   /**
-   * Starts the interpreter from the initial state
+   * Starts the Actor from the initial state
    */
   public start(): this {
     if (this.status === ActorStatus.Running) {
@@ -278,13 +308,25 @@ export class Interpreter<
     }
     this.status = ActorStatus.Running;
 
-    const status = this.logic.getStatus?.(this._state);
+    const initEvent = createInitEvent(this.options.input);
 
-    switch (status?.status) {
+    this.system._sendInspectionEvent({
+      type: '@xstate.event',
+      sourceRef: this._parent,
+      targetRef: this,
+      event: initEvent
+    });
+
+    const status = (this._state as any).status;
+
+    switch (status) {
       case 'done':
-        // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
+        // a state machine can be "done" upon initialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
-        this.update(this._state);
+        this.update(
+          this._state,
+          initEvent as unknown as EventFromLogic<TLogic>
+        );
       // fallthrough
       case 'error':
         // TODO: rethink cleanup of observers, mailbox, etc
@@ -297,7 +339,7 @@ export class Interpreter<
       } catch (err) {
         this._stopProcedure();
         this._error(err);
-        this._parent?.send(error(this.id, err));
+        this._parent?.send(createErrorActorEvent(this.id, err));
         return this;
       }
     }
@@ -305,7 +347,7 @@ export class Interpreter<
     // TODO: this notifies all subscribers but usually this is redundant
     // there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(this._state);
+    this.update(this._state, initEvent as unknown as EventFromLogic<TLogic>);
 
     if (this.options.devTools) {
       this.attachDevTools();
@@ -316,7 +358,7 @@ export class Interpreter<
     return this;
   }
 
-  private _process(event: TEvent) {
+  private _process(event: EventFromLogic<TLogic>) {
     // TODO: reexamine what happens when an action (or a guard or smth) throws
     let nextState;
     let caughtError;
@@ -332,12 +374,12 @@ export class Interpreter<
 
       this._stopProcedure();
       this._error(err);
-      this._parent?.send(error(this.id, err));
+      this._parent?.send(createErrorActorEvent(this.id, err));
       return;
     }
 
-    this.update(nextState);
-    if (event.type === stopSignalType) {
+    this.update(nextState, event);
+    if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();
     }
@@ -352,13 +394,13 @@ export class Interpreter<
       this.status = ActorStatus.Stopped;
       return this;
     }
-    this.mailbox.enqueue({ type: stopSignalType } as any);
+    this.mailbox.enqueue({ type: XSTATE_STOP } as any);
 
     return this;
   }
 
   /**
-   * Stops the interpreter and unsubscribe all listeners.
+   * Stops the Actor and unsubscribe all listeners.
    */
   public stop(): this {
     if (this._parent) {
@@ -401,7 +443,7 @@ export class Interpreter<
   }
   private _stopProcedure(): this {
     if (this.status !== ActorStatus.Running) {
-      // Interpreter already stopped; do nothing
+      // Actor already stopped; do nothing
       return this;
     }
 
@@ -425,65 +467,52 @@ export class Interpreter<
   }
 
   /**
-   * Sends an event to the running interpreter to trigger a transition.
-   *
-   * @param event The event to send
+   * @internal
    */
-  public send(event: TEvent) {
-    if (typeof event === 'string') {
-      throw new Error(
-        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
-      );
-    }
-
+  public _send(event: EventFromLogic<TLogic>) {
     if (this.status === ActorStatus.Stopped) {
       // do nothing
       if (isDevelopment) {
         const eventString = JSON.stringify(event);
 
         console.warn(
-          `Event "${event.type.toString()}" was sent to stopped actor "${
-            this.id
-          } (${
-            this.sessionId
-          })". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
         );
       }
       return;
     }
 
-    if (this.status !== ActorStatus.Running && !this.options.deferEvents) {
-      throw new Error(
-        `Event "${event.type}" was sent to uninitialized actor "${
-          this.id
-          // tslint:disable-next-line:max-line-length
-        }". Make sure .start() is called for this actor, or set { deferEvents: true } in the actor options.\nEvent: ${JSON.stringify(
-          event
-        )}`
-      );
-    }
-
     this.mailbox.enqueue(event);
   }
 
+  /**
+   * Sends an event to the running Actor to trigger a transition.
+   *
+   * @param event The event to send
+   */
+  public send(event: EventFromLogic<TLogic>) {
+    if (isDevelopment && typeof event === 'string') {
+      throw new Error(
+        `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
+      );
+    }
+    this.system._relay(undefined, this, event);
+  }
+
   // TODO: make private (and figure out a way to do this within the machine)
-  public delaySend({
-    event,
-    id,
-    delay,
-    to
-  }: {
+  public delaySend(params: {
     event: EventObject;
     id: string | undefined;
     delay: number;
     to?: AnyActorRef;
   }): void {
+    const { event, id, delay } = params;
     const timerId = this.clock.setTimeout(() => {
-      if (to) {
-        to.send(event);
-      } else {
-        this.send(event as TEvent);
-      }
+      this.system._relay(
+        this,
+        params.to ?? this,
+        event as EventFromLogic<TLogic>
+      );
     }, delay);
 
     // TODO: consider the rehydration story here
@@ -509,6 +538,7 @@ export class Interpreter<
   }
   public toJSON() {
     return {
+      xstate$$type: $$ACTOR_TYPE,
       id: this.id
     };
   }
@@ -522,32 +552,42 @@ export class Interpreter<
   }
 
   public getSnapshot(): SnapshotFrom<TLogic> {
-    return this.logic.getSnapshot
-      ? this.logic.getSnapshot(this._state)
-      : this._state;
+    return this._state;
   }
 }
 
 /**
- * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ * Creates a new `ActorRef` instance for the given machine with the provided options, if any.
  *
- * @param machine The machine to interpret
- * @param options Interpreter options
+ * @param machine The machine to create an actor from
+ * @param options `ActorRef` options
  */
-export function interpret<TMachine extends AnyStateMachine>(
+export function createActor<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends true
     ? TMachine
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options?: InterpreterOptions<TMachine>
-): InterpreterFrom<TMachine>;
-export function interpret<TLogic extends AnyActorLogic>(
+  options?: ActorOptions<TMachine>
+): Actor<TMachine>;
+export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: InterpreterOptions<TLogic>
-): Interpreter<TLogic>;
-export function interpret(logic: any, options?: InterpreterOptions<any>): any {
-  const interpreter = new Interpreter(logic, options);
+  options?: ActorOptions<TLogic>
+): Actor<TLogic>;
+export function createActor(logic: any, options?: ActorOptions<any>): any {
+  const interpreter = new Actor(logic, options);
 
   return interpreter;
 }
+
+/**
+ * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ *
+ * @deprecated Use `createActor` instead
+ */
+export const interpret = createActor;
+
+/**
+ * @deprecated Use `Actor` instead.
+ */
+export type Interpreter = typeof Actor;

@@ -1,7 +1,7 @@
 import {
   ActorLogic,
   assign,
-  interpret,
+  createActor,
   MachineContext,
   StateMachine
 } from '../src/index.ts';
@@ -307,7 +307,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().matches('a');
+    createActor(machine).getSnapshot().matches('a');
   });
 
   it('should allow valid object `matches`', () => {
@@ -324,7 +324,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().matches({ a: 'c' });
+    createActor(machine).getSnapshot().matches({ a: 'c' });
   });
 
   it('should not allow invalid string `matches`', () => {
@@ -345,7 +345,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().matches('d');
+    createActor(machine).getSnapshot().matches('d');
   });
 
   it('should not allow invalid object `matches`', () => {
@@ -363,7 +363,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().matches({ a: 'd' });
+    createActor(machine).getSnapshot().matches({ a: 'd' });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
@@ -383,7 +383,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(machine).getSnapshot().hasTag('a');
+    createActor(machine).getSnapshot().hasTag('a');
   });
 
   it('should not allow an invalid tag with `hasTag`', () => {
@@ -404,7 +404,7 @@ describe('typegen types', () => {
     });
 
     // @ts-expect-error
-    interpret(machine).getSnapshot().hasTag('d');
+    createActor(machine).getSnapshot().hasTag('d');
   });
 
   it('`withConfig` should require all missing implementations ', () => {
@@ -464,7 +464,7 @@ describe('typegen types', () => {
       types: { typegen: {} as TypesMeta }
     });
 
-    interpret(machine);
+    createActor(machine);
   });
 
   it('should not allow to create an actor out of a machine with missing implementations', () => {
@@ -489,7 +489,7 @@ describe('typegen types', () => {
 
     // TODO: rethink this; should probably be done as a linter rule instead
     // @x-ts-expect-error
-    interpret(machine);
+    createActor(machine);
   });
 
   it('should allow to create an actor out of a machine with implementations provided through `withConfig`', () => {
@@ -512,7 +512,7 @@ describe('typegen types', () => {
       }
     });
 
-    interpret(
+    createActor(
       machine.provide({
         actions: {
           myAction: () => {}
@@ -616,17 +616,17 @@ describe('typegen types', () => {
   it('should include generated dynamic internal event in the provided parameter if types.actors is not provided', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
-        myAction: 'done.invoke.myActor' | 'FOO';
+        myAction: 'xstate.done.actor.myActor' | 'FOO';
       };
       internalEvents: {
-        'done.invoke.myActor': {
-          type: 'done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -643,7 +643,7 @@ describe('typegen types', () => {
             if (event.type === 'FOO') {
               return;
             }
-            event.type === 'done.invoke.myActor';
+            event.type === 'xstate.done.actor.myActor';
             event.output;
             // indirectly check that it's not any
             // @ts-expect-error
@@ -657,17 +657,17 @@ describe('typegen types', () => {
   it('should use an event generated based on types.actors for a dynamic internal event over the generated fallback', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
-        myAction: 'done.invoke.myActor' | 'FOO';
+        myAction: 'xstate.done.actor.myActor' | 'FOO';
       };
       internalEvents: {
-        'done.invoke.myActor': {
-          type: 'done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -689,7 +689,7 @@ describe('typegen types', () => {
             if (event.type === 'FOO') {
               return;
             }
-            event.type === 'done.invoke.myActor';
+            event.type === 'xstate.done.actor.myActor';
             event.output;
             ((_accept: string) => {})(event.output);
           }
@@ -704,14 +704,14 @@ describe('typegen types', () => {
         myActor: 'FOO';
       };
       internalEvents: {
-        'done.invoke.myActor': {
-          type: 'done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -742,14 +742,14 @@ describe('typegen types', () => {
         myActor: 'FOO';
       };
       internalEvents: {
-        'done.invoke.myActor': {
-          type: 'done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -779,14 +779,14 @@ describe('typegen types', () => {
         myActor: 'FOO';
       };
       internalEvents: {
-        'done.invoke.myActor': {
-          type: 'done.invoke.myActor';
+        'xstate.done.actor.myActor': {
+          type: 'xstate.done.actor.myActor';
           output: unknown;
           __tip: 'Declare the type.';
         };
       };
       invokeSrcNameMap: {
-        myActor: 'done.invoke.myActor';
+        myActor: 'xstate.done.actor.myActor';
       };
     }
 
@@ -824,14 +824,14 @@ describe('typegen types', () => {
   //       myActor: 'FOO';
   //     };
   //     internalEvents: {
-  //       'done.invoke.myActor': {
-  //         type: 'done.invoke.myActor';
+  //       'xstate.done.actor.myActor': {
+  //         type: 'xstate.done.actor.myActor';
   //         output: unknown;
   //         __tip: 'Declare the type.';
   //       };
   //     };
   //     invokeSrcNameMap: {
-  //       myActor: 'done.invoke.myActor';
+  //       myActor: 'xstate.done.actor.myActor';
   //     };
   //   }
 
@@ -989,7 +989,7 @@ describe('typegen types', () => {
   // it('should error correctly for implementations called in response to internal events when there is no explicit event type', () => {
   //   interface TypesMeta extends TypegenMeta {
   //     eventsCausingActions: {
-  //       myAction: 'done.invoke.invocation';
+  //       myAction: 'xstate.done.actor.invocation';
   //     };
   //     eventsCausingActors: {
   //       myInvocation: 'xstate.init';
@@ -998,7 +998,7 @@ describe('typegen types', () => {
   //       'xstate.init': { type: 'xstate.init' };
   //     };
   //     invokeSrcNameMap: {
-  //       myInvocation: 'done.invoke.invocation';
+  //       myInvocation: 'xstate.done.actor.invocation';
   //     };
   //   }
 
@@ -1022,7 +1022,7 @@ describe('typegen types', () => {
   //       },
   //       actions: {
   //         myAction: (_context, event) => {
-  //           ((_accept: 'done.invoke.invocation') => {})(event.type);
+  //           ((_accept: 'xstate.done.actor.invocation') => {})(event.type);
   //           ((_accept: string) => {})(event.output);
   //           // @ts-expect-error
   //           ((_accept: number) => {})(event.output);
@@ -1049,7 +1049,7 @@ describe('typegen types', () => {
       }
     });
 
-    const state = interpret(machine).getSnapshot();
+    const state = createActor(machine).getSnapshot();
 
     if (state.matches('a')) {
       // @ts-expect-error
@@ -1074,7 +1074,7 @@ describe('typegen types', () => {
       }
     });
 
-    const state = interpret(machine).getSnapshot();
+    const state = createActor(machine).getSnapshot();
 
     if (state.matches('a') && state.matches('a.b')) {
       ((_accept: string) => {})(state.context.foo);
@@ -1087,7 +1087,20 @@ describe('typegen types', () => {
     function acceptMachine<
       TContext extends MachineContext,
       TEvent extends { type: string }
-    >(machine: StateMachine<TContext, TEvent, any, any, any, any>) {
+    >(
+      machine: StateMachine<
+        TContext,
+        TEvent,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      >
+    ) {
       return machine;
     }
 

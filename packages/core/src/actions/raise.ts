@@ -1,31 +1,50 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
 import {
   ActionArgs,
   AnyActorContext,
-  AnyInterpreter,
+  AnyActor,
   AnyState,
   DelayExpr,
   EventObject,
   MachineContext,
   NoInfer,
   RaiseActionOptions,
-  SendExpr
+  SendExpr,
+  ParameterizedObject,
+  AnyEventObject
 } from '../types.ts';
 
-function resolve(
+function resolveRaise(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any>,
+  args: ActionArgs<any, any, any, any>,
   {
     event: eventOrExpr,
     id,
     delay
   }: {
-    event: EventObject | SendExpr<MachineContext, EventObject, EventObject>;
+    event:
+      | EventObject
+      | SendExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject | undefined,
+          EventObject,
+          EventObject
+        >;
     id: string | undefined;
-    delay: string | number | DelayExpr<MachineContext, EventObject> | undefined;
-  }
+    delay:
+      | string
+      | number
+      | DelayExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject | undefined,
+          EventObject
+        >
+      | undefined;
+  },
+  { internalQueue }: { internalQueue: AnyEventObject[] }
 ) {
   const delaysMap = state.machine.implementations.delays;
 
@@ -45,17 +64,13 @@ function resolve(
   } else {
     resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
   }
-  return [
-    typeof resolvedDelay !== 'number'
-      ? cloneState(state, {
-          _internalQueue: state._internalQueue.concat(resolvedEvent)
-        })
-      : state,
-    { event: resolvedEvent, id, delay: resolvedDelay }
-  ];
+  if (typeof resolvedDelay !== 'number') {
+    internalQueue.push(resolvedEvent);
+  }
+  return [state, { event: resolvedEvent, id, delay: resolvedDelay }];
 }
 
-function execute(
+function executeRaise(
   actorContext: AnyActorContext,
   params: {
     event: EventObject;
@@ -64,11 +79,23 @@ function execute(
   }
 ) {
   if (typeof params.delay === 'number') {
-    (actorContext.self as AnyInterpreter).delaySend(
+    (actorContext.self as AnyActor).delaySend(
       params as typeof params & { delay: number }
     );
     return;
   }
+}
+
+export interface RaiseAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  _out_TEvent?: TEvent;
+  _out_TDelay?: TDelay;
 }
 
 /**
@@ -77,18 +104,35 @@ function execute(
  *
  * @param eventType The event to raise.
  */
-
 export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TEvent extends EventObject = TExpressionEvent,
+  TExpressionAction extends ParameterizedObject | undefined =
+    | ParameterizedObject
+    | undefined,
+  TDelay extends string = string
 >(
   eventOrExpr:
     | NoInfer<TEvent>
-    | SendExpr<TContext, TExpressionEvent, NoInfer<TEvent>>,
-  options?: RaiseActionOptions<TContext, TExpressionEvent>
-) {
-  function raise(_: ActionArgs<TContext, TExpressionEvent>) {
+    | SendExpr<
+        TContext,
+        TExpressionEvent,
+        TExpressionAction,
+        NoInfer<TEvent>,
+        TEvent
+      >,
+  options?: RaiseActionOptions<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    NoInfer<TEvent>,
+    NoInfer<TDelay>
+  >
+): RaiseAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TDelay> {
+  function raise(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -99,11 +143,8 @@ export function raise<
   raise.id = options?.id;
   raise.delay = options?.delay;
 
-  raise.resolve = resolve;
-  raise.execute = execute;
+  raise.resolve = resolveRaise;
+  raise.execute = executeRaise;
 
-  return raise as {
-    (args: ActionArgs<TContext, TExpressionEvent>): void;
-    _out_TEvent?: TEvent;
-  };
+  return raise;
 }

@@ -1,5 +1,5 @@
 /* @jsxImportSource solid-js */
-import { assign, createMachine, interpret } from 'xstate';
+import { assign, createMachine, createActor } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { createEffect, from } from 'solid-js';
 
@@ -18,7 +18,7 @@ describe("usage of interpret from core with Solid's from", () => {
     });
 
     const App = () => {
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
       const serviceState = from(service);
 
       createEffect(() => {
@@ -46,7 +46,7 @@ describe("usage of interpret from core with Solid's from", () => {
     });
 
     const App = () => {
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
       const serviceState = from(service);
       createEffect(() => {
         if (serviceState()!.matches('active')) {
@@ -84,7 +84,7 @@ describe("usage of interpret from core with Solid's from", () => {
     });
 
     const App = () => {
-      const service = interpret(machine).start();
+      const service = createActor(machine).start();
       const serviceState = from(service);
 
       createEffect(() => {
@@ -114,7 +114,8 @@ describe("usage of interpret from core with Solid's from", () => {
     interface Context {
       latestValue: { value: number };
     }
-    const machine = createMachine<Context, { type: 'INC' }>({
+    const machine = createMachine({
+      types: {} as { context: Context; events: { type: 'INC' } },
       initial: 'initial',
       context: {
         latestValue
@@ -137,8 +138,8 @@ describe("usage of interpret from core with Solid's from", () => {
     });
 
     const Test = () => {
-      const service1 = interpret(machine).start();
-      const service2 = interpret(machine).start();
+      const service1 = createActor(machine).start();
+      const service2 = createActor(machine).start();
       const state1 = from(service1);
       const state2 = from(service2);
       return (

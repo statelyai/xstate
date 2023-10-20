@@ -1,4 +1,4 @@
-import { interpret, createMachine } from '../src/index';
+import { createActor, createMachine } from '../src/index';
 
 describe('history states', () => {
   it('should go to the most recently visited state (explicit shallow history type)', () => {
@@ -27,7 +27,7 @@ describe('history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'POWER' });
@@ -60,7 +60,7 @@ describe('history states', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'POWER' });
@@ -89,7 +89,7 @@ describe('history states', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'POWER' });
 
@@ -115,7 +115,7 @@ describe('history states', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'POWER' });
 
@@ -160,7 +160,7 @@ describe('history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'DEPLOY' });
     actorRef.send({ type: 'SUCCESS' });
@@ -204,7 +204,7 @@ describe('history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'NEXT' });
 
@@ -226,7 +226,7 @@ describe('history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     expect(actorRef.getSnapshot().value).toBe('bar');
   });
@@ -253,7 +253,7 @@ describe('history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'NEXT' });
 
@@ -302,7 +302,7 @@ describe('deep history states', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER' });
@@ -354,7 +354,7 @@ describe('deep history states', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER' });
@@ -410,7 +410,7 @@ describe('deep history states', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER' });
@@ -480,7 +480,7 @@ describe('parallel history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER_A' });
@@ -549,7 +549,7 @@ describe('parallel history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER_A' });
@@ -637,7 +637,7 @@ describe('parallel history states', () => {
         }
       }
     });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER_A' });
@@ -727,7 +727,7 @@ describe('parallel history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER_A' });
@@ -817,7 +817,7 @@ describe('parallel history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER_A' });
@@ -909,7 +909,7 @@ describe('parallel history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH' });
     actorRef.send({ type: 'INNER_A' });
@@ -929,7 +929,7 @@ describe('parallel history states', () => {
 });
 
 it('internal transition to a history state should enter default history state configuration if the containing state has never been exited yet', () => {
-  const service = interpret(
+  const service = createActor(
     createMachine({
       initial: 'first',
       states: {
@@ -996,7 +996,7 @@ describe('multistage history states', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
 
     actorRef.send({ type: 'SWITCH_TURBO' });
     actorRef.send({ type: 'POWER' });

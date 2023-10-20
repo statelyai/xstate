@@ -1,4 +1,4 @@
-import { assign, createMachine, interpret } from '../src/index.ts';
+import { assign, createMachine, createActor } from '../src/index.ts';
 
 interface CounterContext {
   count: number;
@@ -7,7 +7,8 @@ interface CounterContext {
 }
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
-  createMachine<CounterContext>({
+  createMachine({
+    types: {} as { context: CounterContext },
     initial: 'counting',
     context: { count: 0, foo: 'bar', ...context },
     states: {
@@ -93,7 +94,7 @@ describe('assign', () => {
   it('applies the assignment to the external state (property assignment)', () => {
     const counterMachine = createCounterMachine();
 
-    const actorRef = interpret(counterMachine).start();
+    const actorRef = createActor(counterMachine).start();
     actorRef.send({
       type: 'DEC'
     });
@@ -112,7 +113,7 @@ describe('assign', () => {
   it('applies the assignment to the external state', () => {
     const counterMachine = createCounterMachine();
 
-    const actorRef = interpret(counterMachine).start();
+    const actorRef = createActor(counterMachine).start();
     actorRef.send({
       type: 'INC'
     });
@@ -130,7 +131,7 @@ describe('assign', () => {
 
   it('applies the assignment to multiple properties (property assignment)', () => {
     const counterMachine = createCounterMachine();
-    const actorRef = interpret(counterMachine).start();
+    const actorRef = createActor(counterMachine).start();
     actorRef.send({
       type: 'WIN_PROP'
     });
@@ -140,7 +141,7 @@ describe('assign', () => {
 
   it('applies the assignment to multiple properties (static)', () => {
     const counterMachine = createCounterMachine();
-    const actorRef = interpret(counterMachine).start();
+    const actorRef = createActor(counterMachine).start();
     actorRef.send({
       type: 'WIN_STATIC'
     });
@@ -150,7 +151,7 @@ describe('assign', () => {
 
   it('applies the assignment to multiple properties (static + prop assignment)', () => {
     const counterMachine = createCounterMachine();
-    const actorRef = interpret(counterMachine).start();
+    const actorRef = createActor(counterMachine).start();
     actorRef.send({
       type: 'WIN_MIX'
     });
@@ -160,7 +161,7 @@ describe('assign', () => {
 
   it('applies the assignment to multiple properties', () => {
     const counterMachine = createCounterMachine();
-    const actorRef = interpret(counterMachine).start();
+    const actorRef = createActor(counterMachine).start();
     actorRef.send({
       type: 'WIN'
     });
@@ -170,7 +171,7 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state (property assignment)', () => {
     const machine = createCounterMachine({ count: 50, foo: 'bar' });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'DEC' });
     const oneState = actorRef.getSnapshot();
 
@@ -185,7 +186,7 @@ describe('assign', () => {
 
     const machine2 = createCounterMachine({ count: 100, foo: 'bar' });
 
-    const actorRef2 = interpret(machine2).start();
+    const actorRef2 = createActor(machine2).start();
     actorRef2.send({ type: 'DEC' });
     const threeState = actorRef2.getSnapshot();
 
@@ -195,7 +196,7 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state', () => {
     const machine = createCounterMachine({ count: 50, foo: 'bar' });
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'INC' });
     const oneState = actorRef.getSnapshot();
 
@@ -210,7 +211,7 @@ describe('assign', () => {
 
     const machine2 = createCounterMachine({ count: 102, foo: 'bar' });
 
-    const actorRef2 = interpret(machine2).start();
+    const actorRef2 = createActor(machine2).start();
     actorRef2.send({ type: 'INC' });
     const threeState = actorRef2.getSnapshot();
 
@@ -220,7 +221,7 @@ describe('assign', () => {
 
   it('should maintain state after unhandled event', () => {
     const counterMachine = createCounterMachine();
-    const actorRef = interpret(counterMachine).start();
+    const actorRef = createActor(counterMachine).start();
 
     actorRef.send({
       type: 'FAKE_EVENT'
@@ -233,7 +234,7 @@ describe('assign', () => {
 
   it('sets undefined properties', () => {
     const counterMachine = createCounterMachine();
-    const actorRef = interpret(counterMachine).start();
+    const actorRef = createActor(counterMachine).start();
 
     actorRef.send({
       type: 'SET_MAYBE'
@@ -250,10 +251,11 @@ describe('assign', () => {
   });
 
   it('can assign from event', () => {
-    const machine = createMachine<
-      { count: number },
-      { type: 'INC'; value: number }
-    >({
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+        events: { type: 'INC'; value: number };
+      },
       initial: 'active',
       context: {
         count: 0
@@ -271,7 +273,7 @@ describe('assign', () => {
       }
     });
 
-    const actorRef = interpret(machine).start();
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'INC', value: 30 });
 
     expect(actorRef.getSnapshot().context.count).toEqual(30);
@@ -282,6 +284,9 @@ describe('assign meta', () => {
   it('should provide the parametrized action to the assigner', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          actions: { type: 'inc'; params: { by: number } };
+        },
         context: { count: 1 },
         entry: {
           type: 'inc',
@@ -291,13 +296,13 @@ describe('assign meta', () => {
       {
         actions: {
           inc: assign(({ context, action }) => ({
-            count: context.count + action.params!.by
+            count: context.count + action.params.by
           }))
         }
       }
     );
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.getSnapshot().context.count).toEqual(11);
   });
@@ -305,6 +310,9 @@ describe('assign meta', () => {
   it('should provide the parametrized action to the partial assigner', () => {
     const machine = createMachine(
       {
+        types: {} as {
+          actions: { type: 'inc'; params: { by: number } };
+        },
         context: { count: 1 },
         entry: {
           type: 'inc',
@@ -314,13 +322,13 @@ describe('assign meta', () => {
       {
         actions: {
           inc: assign({
-            count: ({ context, action }) => context.count + action.params!.by
+            count: ({ context, action }) => context.count + action.params.by
           })
         }
       }
     );
 
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
 
     expect(actor.getSnapshot().context.count).toEqual(11);
   });
@@ -348,7 +356,7 @@ describe('assign meta', () => {
       }
     );
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'EVENT' });
   });

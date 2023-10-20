@@ -2,7 +2,8 @@ import {
   EventObject,
   StateValue,
   StateNode,
-  TransitionDefinition
+  TransitionDefinition,
+  Snapshot
 } from 'xstate';
 
 export type AnyStateNode = StateNode<any, any>;
@@ -66,50 +67,63 @@ export interface ValueAdjacencyMap<TState, TEvent extends EventObject> {
   >;
 }
 
-export interface StatePlan<TState, TEvent extends EventObject> {
+export interface StatePlan<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
   /**
    * The target state.
    */
-  state: TState;
+  state: TSnapshot;
   /**
    * The paths that reach the target state.
    */
-  paths: Array<StatePath<TState, TEvent>>;
+  paths: Array<StatePath<TSnapshot, TEvent>>;
 }
 
-export interface StatePath<TState, TEvent extends EventObject> {
+export interface StatePath<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
   /**
    * The ending state of the path.
    */
-  state: TState;
+  state: TSnapshot;
   /**
    * The ordered array of state-event pairs (steps) which reach the ending `state`.
    */
-  steps: Steps<TState, TEvent>;
+  steps: Steps<TSnapshot, TEvent>;
   /**
    * The combined weight of all steps in the path.
    */
   weight: number;
 }
 
-export interface StatePlanMap<TState, TEvent extends EventObject> {
-  [key: string]: StatePlan<TState, TEvent>;
+export interface StatePlanMap<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  [key: string]: StatePlan<TSnapshot, TEvent>;
 }
 
-export interface Step<TState, TEvent extends EventObject> {
+export interface Step<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
   /**
-   * The current state before taking the event.
-   */
-  state: TState;
-  /**
-   * The event to be taken from the specified state.
+   * The event that resulted in the current state
    */
   event: TEvent;
+  /**
+   * The current state after taking the event.
+   */
+  state: TSnapshot;
 }
 
-export type Steps<TState, TEvent extends EventObject> = Array<
-  Step<TState, TEvent>
->;
+export type Steps<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> = Array<Step<TSnapshot, TEvent>>;
 
 export type ExtractEvent<
   TEvent extends EventObject,
@@ -133,26 +147,35 @@ export interface VisitedContext<TState, TEvent> {
   a?: TState | TEvent; // TODO: remove
 }
 
-export interface SerializationConfig<TState, TEvent extends EventObject> {
+export interface SerializationConfig<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
   serializeState: (
-    state: TState,
+    state: TSnapshot,
     event: TEvent | undefined,
-    prevState?: TState
+    prevState?: TSnapshot
   ) => string;
   serializeEvent: (event: TEvent) => string;
 }
 
-export type SerializationOptions<TState, TEvent extends EventObject> = Partial<
-  Pick<SerializationConfig<TState, TEvent>, 'serializeState' | 'serializeEvent'>
+export type SerializationOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> = Partial<
+  Pick<
+    SerializationConfig<TSnapshot, TEvent>,
+    'serializeState' | 'serializeEvent'
+  >
 >;
 
 export type TraversalOptions<
-  TState,
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> = SerializationOptions<TState, TEvent> &
+> = SerializationOptions<TSnapshot, TEvent> &
   Partial<
     Pick<
-      TraversalConfig<TState, TEvent>,
+      TraversalConfig<TSnapshot, TEvent>,
       | 'filter'
       | 'events'
       | 'traversalLimit'
@@ -162,14 +185,16 @@ export type TraversalOptions<
     >
   >;
 
-export interface TraversalConfig<TState, TEvent extends EventObject>
-  extends SerializationConfig<TState, TEvent> {
+export interface TraversalConfig<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> extends SerializationConfig<TSnapshot, TEvent> {
   /**
    * Determines whether to traverse a transition from `state` on
    * `event` when building the adjacency map.
    */
-  filter: (state: TState, event: TEvent) => boolean;
-  events: readonly TEvent[] | ((state: TState) => readonly TEvent[]);
+  filter: (state: TSnapshot, event: TEvent) => boolean;
+  events: readonly TEvent[] | ((state: TSnapshot) => readonly TEvent[]);
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.
@@ -177,13 +202,13 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * @default `Infinity`
    */
   traversalLimit: number;
-  fromState: TState | undefined;
+  fromState: TSnapshot | undefined;
   /**
    * When true, traversal of the adjacency map will stop
    * for that current state.
    */
-  stopCondition: ((state: TState) => boolean) | undefined;
-  toState: ((state: TState) => boolean) | undefined;
+  stopCondition: ((state: TSnapshot) => boolean) | undefined;
+  toState: ((state: TSnapshot) => boolean) | undefined;
 }
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };

@@ -5,22 +5,28 @@ import {
   AnyState,
   EventObject,
   LogExpr,
-  MachineContext
+  MachineContext,
+  ParameterizedObject
 } from '../types.ts';
 
 type ResolvableLogValue<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject
-> = string | LogExpr<TContext, TExpressionEvent>;
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
+> = string | LogExpr<TContext, TExpressionEvent, TExpressionAction, TEvent>;
 
-function resolve(
+function resolveLog(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   {
     value,
     label
-  }: { value: ResolvableLogValue<any, any>; label: string | undefined }
+  }: {
+    value: ResolvableLogValue<any, any, any, any>;
+    label: string | undefined;
+  }
 ) {
   return [
     state,
@@ -31,7 +37,7 @@ function resolve(
   ];
 }
 
-function execute(
+function executeLog(
   { logger }: AnyActorContext,
   { value, label }: { value: unknown; label: string | undefined }
 ) {
@@ -40,6 +46,15 @@ function execute(
   } else {
     logger(value);
   }
+}
+
+export interface LogAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
 }
 
 /**
@@ -53,15 +68,20 @@ function execute(
 export function log<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 >(
-  value: ResolvableLogValue<TContext, TExpressionEvent> = ({
-    context,
-    event
-  }) => ({ context, event }),
+  value: ResolvableLogValue<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TEvent
+  > = ({ context, event }) => ({ context, event }),
   label?: string
-) {
-  function log(_: ActionArgs<TContext, TExpressionEvent>) {
+): LogAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
+  function log(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -71,8 +91,8 @@ export function log<
   log.value = value;
   log.label = label;
 
-  log.resolve = resolve;
-  log.execute = execute;
+  log.resolve = resolveLog;
+  log.execute = executeLog;
 
   return log;
 }

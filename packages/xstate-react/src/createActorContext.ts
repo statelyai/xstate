@@ -5,7 +5,7 @@ import {
   ActorRefFrom,
   AnyStateMachine,
   SnapshotFrom,
-  InterpreterOptions,
+  ActorOptions,
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   StateMachine,
@@ -16,17 +16,25 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
   TMachine extends StateMachine<
     infer TContext,
     infer TEvent,
+    infer TActor,
     infer TAction,
-    infer TActorMap,
+    infer TGuard,
+    infer TDelay,
+    infer TTag,
     infer TInput,
+    infer TOutput,
     infer TResolvedTypesMeta
   >
     ? StateMachine<
         TContext,
         TEvent,
+        TActor,
         TAction,
-        TActorMap,
+        TGuard,
+        TDelay,
+        TTag,
         TInput,
+        TOutput,
         AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
           ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
           : TResolvedTypesMeta
@@ -35,7 +43,7 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
 
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
-  interpreterOptions?: InterpreterOptions<TLogic>
+  interpreterOptions?: ActorOptions<TLogic>
 ): {
   useSelector: <T>(
     selector: (snapshot: SnapshotFrom<TLogic>) => T,
@@ -45,7 +53,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
   Provider: (
     props: {
       children: React.ReactNode;
-      options?: InterpreterOptions<TLogic>;
+      options?: ActorOptions<TLogic>;
     } & (TLogic extends AnyStateMachine
       ? AreAllImplementationsAssumedToBeProvided<
           TLogic['__TResolvedTypesMeta']
@@ -75,7 +83,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
      * @deprecated Use `logic` instead.
      */
     machine?: never;
-    options?: InterpreterOptions<TLogic>;
+    options?: ActorOptions<TLogic>;
   }) {
     if (machine) {
       throw new Error(

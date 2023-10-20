@@ -1,4 +1,4 @@
-import { createMachine, interpret, StateValue } from '../src/index.ts';
+import { createMachine, createActor, StateValue } from '../src/index.ts';
 import { assign } from '../src/actions/assign.ts';
 import { raise } from '../src/actions/raise.ts';
 import { testMultiTransition } from './utils.ts';
@@ -493,7 +493,7 @@ const deepFlatParallelMachine = createMachine({
 
 describe('parallel states', () => {
   it('should have initial parallel states', () => {
-    const initialState = interpret(wordMachine).getSnapshot();
+    const initialState = createActor(wordMachine).getSnapshot();
 
     expect(initialState.value).toEqual({
       bold: 'off',
@@ -560,7 +560,7 @@ describe('parallel states', () => {
   });
 
   it('should have all parallel states represented in the state value', () => {
-    const actorRef = interpret(wakMachine).start();
+    const actorRef = createActor(wakMachine).start();
     actorRef.send({ type: 'WAK1' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -570,7 +570,7 @@ describe('parallel states', () => {
   });
 
   it('should have all parallel states represented in the state value (2)', () => {
-    const actorRef = interpret(wakMachine).start();
+    const actorRef = createActor(wakMachine).start();
     actorRef.send({ type: 'WAK2' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -580,7 +580,7 @@ describe('parallel states', () => {
   });
 
   it('should work with regions without states', () => {
-    expect(interpret(flatParallelMachine).getSnapshot().value).toEqual({
+    expect(createActor(flatParallelMachine).getSnapshot().value).toEqual({
       foo: {},
       bar: {},
       baz: 'one'
@@ -588,7 +588,7 @@ describe('parallel states', () => {
   });
 
   it('should work with regions without states', () => {
-    const actorRef = interpret(flatParallelMachine).start();
+    const actorRef = createActor(flatParallelMachine).start();
     actorRef.send({ type: 'E' });
     expect(actorRef.getSnapshot().value).toEqual({
       foo: {},
@@ -598,7 +598,7 @@ describe('parallel states', () => {
   });
 
   it('should properly transition to relative substate', () => {
-    const actorRef = interpret(composerMachine).start();
+    const actorRef = createActor(composerMachine).start();
     actorRef.send({
       type: 'singleClickActivity'
     });
@@ -651,7 +651,7 @@ describe('parallel states', () => {
         }
       }
     });
-    expect(interpret(machine).getSnapshot().value).toEqual({
+    expect(createActor(machine).getSnapshot().value).toEqual({
       OUTER1: 'B',
       OUTER2: {
         INNER1: 'OFF',
@@ -661,7 +661,7 @@ describe('parallel states', () => {
   });
 
   it('should properly transition when raising events for a parallel state', () => {
-    const actorRef = interpret(raisingParallelMachine).start();
+    const actorRef = createActor(raisingParallelMachine).start();
     actorRef.send({
       type: 'EVENT_OUTER1_B'
     });
@@ -677,7 +677,8 @@ describe('parallel states', () => {
 
   it('should handle simultaneous orthogonal transitions', () => {
     type Events = { type: 'CHANGE'; value: string } | { type: 'SAVE' };
-    const simultaneousMachine = createMachine<{ value: string }, Events>({
+    const simultaneousMachine = createMachine({
+      types: {} as { context: { value: string }; events: Events },
       id: 'yamlEditor',
       type: 'parallel',
       context: {
@@ -714,7 +715,7 @@ describe('parallel states', () => {
       }
     });
 
-    const actorRef = interpret(simultaneousMachine).start();
+    const actorRef = createActor(simultaneousMachine).start();
     actorRef.send({
       type: 'SAVE'
     });
@@ -735,7 +736,7 @@ describe('parallel states', () => {
 
   describe('transitions with nested parallel states', () => {
     it('should properly transition when in a simple nested state', () => {
-      const actorRef = interpret(nestedParallelState).start();
+      const actorRef = createActor(nestedParallelState).start();
       actorRef.send({
         type: 'EVENT_SIMPLE'
       });
@@ -755,7 +756,7 @@ describe('parallel states', () => {
     });
 
     it('should properly transition when in a complex nested state', () => {
-      const actorRef = interpret(nestedParallelState).start();
+      const actorRef = createActor(nestedParallelState).start();
       actorRef.send({
         type: 'EVENT_COMPLEX'
       });
@@ -804,7 +805,7 @@ describe('parallel states', () => {
     });
 
     it('should represent the flat nested parallel states in the state value', () => {
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       actorRef.send({
         type: 'to-B'
       });
@@ -820,7 +821,7 @@ describe('parallel states', () => {
 
   describe('deep flat parallel states', () => {
     it('should properly evaluate deep flat parallel states', () => {
-      const actorRef = interpret(deepFlatParallelMachine).start();
+      const actorRef = createActor(deepFlatParallelMachine).start();
 
       actorRef.send({ type: 'a' });
       actorRef.send({ type: 'c' });
@@ -866,7 +867,7 @@ describe('parallel states', () => {
         }
       });
 
-      const actorRef = interpret(machine).start();
+      const actorRef = createActor(machine).start();
       expect(() => {
         actorRef.send({
           type: 'UPDATE'
@@ -925,7 +926,7 @@ describe('parallel states', () => {
         }
       });
 
-      const actorRef = interpret(testMachine).start();
+      const actorRef = createActor(testMachine).start();
 
       actorRef.send({ type: 'toggle' });
       actorRef.send({ type: 'go to dashboard' });
@@ -937,7 +938,8 @@ describe('parallel states', () => {
 
     // https://github.com/statelyai/xstate/issues/531
     it('should calculate the entry set for reentering transitions in parallel states', () => {
-      const testMachine = createMachine<{ log: string[] }>({
+      const testMachine = createMachine({
+        types: {} as { context: { log: string[] } },
         id: 'test',
         context: { log: [] },
         type: 'parallel',
@@ -964,7 +966,7 @@ describe('parallel states', () => {
         }
       });
 
-      const actorRef = interpret(testMachine).start();
+      const actorRef = createActor(testMachine).start();
 
       actorRef.send({
         type: 'GOTO_FOOBAZ'
@@ -977,7 +979,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('should raise a "done.state.*" event when all child states reach final state', (done) => {
+  it('should raise a "xstate.done.state.*" event when all child states reach final state', (done) => {
     const machine = createMachine({
       id: 'test',
       initial: 'p',
@@ -1033,7 +1035,7 @@ describe('parallel states', () => {
       }
     });
 
-    const service = interpret(machine);
+    const service = createActor(machine);
     service.subscribe({
       complete: () => {
         done();
@@ -1044,7 +1046,7 @@ describe('parallel states', () => {
     service.send({ type: 'FINISH' });
   });
 
-  it('should raise a "done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
+  it('should raise a "xstate.done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
     const machine = createMachine({
       initial: 'parallelSteps',
       states: {
@@ -1091,7 +1093,7 @@ describe('parallel states', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'finish_one' });
     service.send({ type: 'finish_two' });

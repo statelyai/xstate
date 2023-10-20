@@ -10,13 +10,13 @@ export type InspectMachineEvent =
   | { type: 'unload' }
   | { type: 'disconnect' }
   | { type: 'xstate.event'; event: string; service: string }
-  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any>, 'send'> };
+  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any, any>, 'send'> };
 
 export function createInspectMachine(
   devTools: XStateDevInterface = (globalThis as any).__xstate__,
   options?: { serialize?: Replacer | undefined }
 ) {
-  const serviceMap = new Map<string, Interpreter<any, any>>();
+  const serviceMap = new Map<string, ActorRef<any, any>>();
 
   // Listen for services being registered and index them
   // by their sessionId for quicker lookup
@@ -24,12 +24,13 @@ export function createInspectMachine(
     serviceMap.set(service.sessionId, service);
   });
 
-  return createMachine<
-    {
-      client?: Pick<ActorRef<any>, 'send'>;
+  return createMachine({
+    types: {} as {
+      context: {
+        client?: Pick<ActorRef<any, any>, 'send'>;
+      };
+      events: InspectMachineEvent;
     },
-    InspectMachineEvent
-  >({
     initial: 'pendingConnection',
     context: {
       client: undefined

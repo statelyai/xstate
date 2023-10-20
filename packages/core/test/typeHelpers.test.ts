@@ -4,12 +4,13 @@ import {
   createMachine,
   SnapshotFrom,
   EventFrom,
-  interpret,
+  createActor,
   MachineImplementationsFrom,
   StateValueFrom,
   ActorLogic,
   ActorRefFrom,
-  TagsFrom
+  TagsFrom,
+  Snapshot
 } from '../src/index.ts';
 import { TypegenMeta } from '../src/typegenTypes';
 
@@ -124,7 +125,7 @@ describe('EventFrom', () => {
       }
     });
 
-    const service = interpret(machine);
+    const service = createActor(machine);
 
     type InterpreterEvent = EventFrom<typeof service>;
 
@@ -314,7 +315,7 @@ describe('StateValueFrom', () => {
 
 describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
-    const service = interpret(
+    const service = createActor(
       createMachine({
         types: {
           events: {} as { type: 'FOO' }
@@ -334,7 +335,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(interpret(machine).getSnapshot());
+    acceptState(createActor(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -348,7 +349,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(interpret(machine).getSnapshot());
+    acceptState(createActor(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -356,16 +357,20 @@ describe('SnapshotFrom', () => {
 
 describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on actor logic', () => {
-    const logic: ActorLogic<{ type: 'TEST' }> = {
-      transition: () => {},
-      getInitialState: () => undefined
+    const logic: ActorLogic<Snapshot<undefined>, { type: 'TEST' }> = {
+      transition: (state) => state,
+      getInitialState: () => ({
+        status: 'active',
+        output: undefined,
+        error: undefined
+      })
     };
 
     function acceptActorRef(actorRef: ActorRefFrom<typeof logic>) {
       actorRef.send({ type: 'TEST' });
     }
 
-    acceptActorRef(interpret(logic).start());
+    acceptActorRef(createActor(logic).start());
   });
 });
 

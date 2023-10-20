@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { interpret, createMachine, assign } from 'xstate';
+  import { createActor, createMachine, assign } from 'xstate';
   import { get } from 'svelte/store';
-  import { useSelector } from '../src/index.ts';
+  import { useSelector } from '@xstate/svelte';
 
   const machine = createMachine({
     initial: 'idle',
@@ -24,7 +24,7 @@
     }
   });
 
-  const service = interpret(machine).start();
+  const service = createActor(machine).start();
 
   const state = useSelector(service, (state) => state);
   const count = useSelector(service, (state) => state.context.count);

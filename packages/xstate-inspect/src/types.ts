@@ -1,16 +1,17 @@
 import type {
   ActorRef,
-  AnyInterpreter,
-  AnyState,
+  AnyActor,
   AnyStateMachine,
+  Snapshot,
+  SnapshotFrom,
   StateConfig
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { InspectMachineEvent } from './inspectMachine.ts';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
 
 export type MaybeLazy<T> = T | (() => T);
 
-export type ServiceListener = (service: AnyInterpreter) => void;
+export type ServiceListener = (service: AnyActor) => void;
 
 export type Replacer = (key: string, value: any) => any;
 
@@ -22,7 +23,18 @@ export interface InspectorOptions {
   targetWindow?: Window | undefined | null;
 }
 
-export interface Inspector extends ActorRef<InspectMachineEvent, AnyState> {
+export interface Inspector {
+  name: '@@xstate/inspector';
+  send: (event: InspectMachineEvent) => void;
+  subscribe: (
+    next: (
+      snapshot: SnapshotFrom<ReturnType<typeof createInspectMachine>>
+    ) => void,
+    error?: (err: any) => void,
+    complete?: () => void
+  ) => {
+    unsubscribe: () => void;
+  };
   /**
    * Disconnects the inspector.
    */
@@ -75,7 +87,10 @@ export type ParsedReceiverEvent =
     }
   | { type: 'service.event'; event: string; sessionId: string };
 
-export type InspectReceiver = ActorRef<ReceiverCommand, ParsedReceiverEvent>;
+export type InspectReceiver = ActorRef<
+  ReceiverCommand,
+  Snapshot<unknown> // TODO: this was types as `ParsedReceiverEvent` but since this is supposed to be the snapshot it doesn't look right
+>;
 
 export interface WindowReceiverOptions {
   window: Window;

@@ -1,4 +1,4 @@
-import { createMachine, interpret, assign } from '../src/index';
+import { createMachine, createActor, assign } from '../src/index';
 import { trackEntries } from './utils';
 
 describe('internal transitions', () => {
@@ -20,7 +20,7 @@ describe('internal transitions', () => {
     });
 
     const flushTracked = trackEntries(machine);
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     flushTracked();
 
     actor.send({
@@ -52,7 +52,7 @@ describe('internal transitions', () => {
     });
 
     const flushTracked = trackEntries(machine);
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     flushTracked();
 
     actor.send({
@@ -93,7 +93,7 @@ describe('internal transitions', () => {
     });
 
     const flushTracked = trackEntries(machine);
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     actor.send({
       type: 'NEXT'
     });
@@ -133,7 +133,7 @@ describe('internal transitions', () => {
     });
 
     const flushTracked = trackEntries(machine);
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     flushTracked();
 
     actor.send({
@@ -160,7 +160,7 @@ describe('internal transitions', () => {
         bar: {}
       }
     });
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     actor.send({
       type: 'CLICKED'
     });
@@ -180,7 +180,7 @@ describe('internal transitions', () => {
         }
       }
     });
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     actor.send({
       type: 'TARGETLESS_ARRAY'
     });
@@ -199,7 +199,7 @@ describe('internal transitions', () => {
         }
       }
     });
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     actor.send({
       type: 'TARGETLESS_OBJECT'
     });
@@ -215,7 +215,7 @@ describe('internal transitions', () => {
       initial: 'foo',
       states: { foo: {} }
     });
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     actor.send({
       type: 'TARGETLESS_ARRAY'
     });
@@ -231,7 +231,7 @@ describe('internal transitions', () => {
       initial: 'foo',
       states: { foo: {} }
     });
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     actor.send({
       type: 'TARGETLESS_OBJECT'
     });
@@ -248,7 +248,7 @@ describe('internal transitions', () => {
         foo: {}
       }
     });
-    const actor = interpret(machine).start();
+    const actor = createActor(machine).start();
     actor.send({
       type: 'PARENT_EVENT'
     });
@@ -257,11 +257,14 @@ describe('internal transitions', () => {
   });
 
   it('should reenter proper descendants of a source state of an internal transition', () => {
-    const machine = createMachine<{
-      sourceStateEntries: number;
-      directDescendantEntries: number;
-      deepDescendantEntries: number;
-    }>({
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          sourceStateEntries: number;
+          directDescendantEntries: number;
+          deepDescendantEntries: number;
+        };
+      },
       context: {
         sourceStateEntries: 0,
         directDescendantEntries: 0,
@@ -298,7 +301,7 @@ describe('internal transitions', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'REENTER' });
 
@@ -310,11 +313,14 @@ describe('internal transitions', () => {
   });
 
   it('should exit proper descendants of a source state of an internal transition', () => {
-    const machine = createMachine<{
-      sourceStateExits: number;
-      directDescendantExits: number;
-      deepDescendantExits: number;
-    }>({
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          sourceStateExits: number;
+          directDescendantExits: number;
+          deepDescendantExits: number;
+        };
+      },
       context: {
         sourceStateExits: 0,
         directDescendantExits: 0,
@@ -351,7 +357,7 @@ describe('internal transitions', () => {
       }
     });
 
-    const service = interpret(machine).start();
+    const service = createActor(machine).start();
 
     service.send({ type: 'REENTER' });
 
