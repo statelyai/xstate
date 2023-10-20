@@ -957,6 +957,21 @@ function computeExitSet(
   return [...statesToExit];
 }
 
+function areConfigurationsEqual(
+  previousConfiguration: StateNode<any, any>[],
+  nextConfigurationSet: Set<StateNode<any, any>>
+) {
+  if (previousConfiguration.length !== nextConfigurationSet.size) {
+    return false;
+  }
+  for (const node of previousConfiguration) {
+    if (!nextConfigurationSet.has(node)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * https://www.w3.org/TR/scxml/#microstepProcedure
  *
@@ -1039,6 +1054,12 @@ export function microstep<
   }
 
   try {
+    if (
+      historyValue === currentState.historyValue &&
+      areConfigurationsEqual(currentState.configuration, mutConfiguration)
+    ) {
+      return nextState;
+    }
     return cloneState(nextState, {
       configuration: nextConfiguration,
       historyValue
