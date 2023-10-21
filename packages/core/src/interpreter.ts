@@ -636,6 +636,9 @@ export class Interpreter<
 
     // let what is currently processed to be finished
     scheduler.schedule(() => {
+      if (this._state?.done) {
+        return;
+      }
       // it feels weird to handle this here but we need to handle this even slightly "out of band"
       const _event = toSCXMLEvent({ type: 'xstate.stop' }) as any;
 
