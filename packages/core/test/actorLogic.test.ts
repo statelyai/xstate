@@ -642,37 +642,30 @@ describe('machine logic', () => {
       }
     });
 
-    const parentMachine = createMachine(
-      {
-        initial: 'idle',
-        states: {
-          idle: {
-            on: {
-              START: 'invoked'
-            }
+    const parentMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: 'invoked'
+          }
+        },
+        invoked: {
+          invoke: {
+            id: 'child',
+            src: childMachine
           },
-          invoked: {
-            invoke: {
-              id: 'child',
-              src: 'myChild'
+          on: {
+            NEXT: {
+              actions: sendTo('child', { type: 'NEXT' })
             },
-            on: {
-              NEXT: {
-                actions: sendTo('child', { type: 'NEXT' })
-              },
-              LAST: {
-                actions: sendTo('child', { type: 'LAST' })
-              }
+            LAST: {
+              actions: sendTo('child', { type: 'LAST' })
             }
           }
         }
-      },
-      {
-        actors: {
-          myChild: childMachine
-        }
       }
-    );
+    });
 
     const actor = createActor(parentMachine).start();
 
