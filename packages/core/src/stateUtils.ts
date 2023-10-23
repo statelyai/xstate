@@ -1178,16 +1178,13 @@ function enterStates(
       }
       while (
         ancestorMarker?.type === 'parallel' &&
+        !completedNodes.has(ancestorMarker) &&
         isInFinalState(mutConfiguration, ancestorMarker)
       ) {
-        const completedNode: typeof ancestorMarker = ancestorMarker;
-        if (completedNodes.has(completedNode)) {
-          break;
-        }
-        ancestorMarker = completedNode.parent;
-        rootCompletionNode = completedNode;
-        completedNodes.add(completedNode);
-        internalQueue.push(createDoneStateEvent(completedNode.id));
+        completedNodes.add(ancestorMarker);
+        internalQueue.push(createDoneStateEvent(ancestorMarker.id));
+        rootCompletionNode = ancestorMarker;
+        ancestorMarker = ancestorMarker.parent;
       }
       if (ancestorMarker) {
         continue;
