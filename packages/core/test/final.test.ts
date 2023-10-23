@@ -1027,4 +1027,57 @@ describe('final states', () => {
       'exit: __root__'
     ]);
   });
+
+  it('should not complete a parallel root immediately when only some of its regions are in their final states (final state reached in a compound region)', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {
+              type: 'final'
+            }
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {
+              type: 'final'
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toBe('active');
+  });
+
+  it('should not complete a parallel root immediately when only some of its regions are in their final states (a direct final child state reached)', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          type: 'final'
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {
+              type: 'final'
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toBe('active');
+  });
 });
