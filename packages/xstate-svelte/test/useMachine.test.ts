@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { createActor, createMachine } from 'xstate';
 import UseMachine from './UseMachine.svelte';
-import UseMachineNonPersistentSubcription from './UseMachineNonPersistentSubcription.svelte';
+import UseMachineNonPersistentSubscription from './UseMachineNonPersistentSubscription.svelte';
 import { fetchMachine } from './fetchMachine.ts';
 
 const actorRef = createActor(
@@ -58,7 +58,7 @@ describe('useMachine function', () => {
 
   it("should not stop the interpreter even if subscribers' count go temporarily to zero", async () => {
     const { findByText, getByTestId } = render(
-      UseMachineNonPersistentSubcription
+      UseMachineNonPersistentSubscription
     );
     let incButton = await findByText(/Increment/);
 

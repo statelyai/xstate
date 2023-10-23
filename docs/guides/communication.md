@@ -1,7 +1,7 @@
 # Invoking Services
 
 :::tip Check out our new docs!
-🆕 Our [section on actors in XState](https://stately.ai/docs/xstate/actors/intro) has explainers and examples for promises, callbacks, observables, actions, and actors.
+🆕 Our [section on actors in XState](https://stately.ai/docs/actors) has explainers and examples for promises, callbacks, observables, actions, and actors.
 :::
 
 [:rocket: Quick Reference](#quick-reference)

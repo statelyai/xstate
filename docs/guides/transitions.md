@@ -3,7 +3,7 @@
 Transitions define how the machine reacts to [events](./events.md). To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
 
 :::tip Check out our new docs!
-🆕 Find more about [transitions in XState](https://stately.ai/docs/xstate/basics/what-is-a-statechart#transitions-and-events) as well as a [no-code introduction to transitions](https://stately.ai/docs/state-machines-and-statecharts#transitions-and-events).
+🆕 Find more about [transitions in XState](https://stately.ai/docs/transitions) as well as a [no-code introduction to transitions](https://stately.ai/docs/state-machines-and-statecharts#transitions-and-events).
 :::
 
 ## API

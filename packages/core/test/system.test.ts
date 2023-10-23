@@ -273,9 +273,14 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: assign(({ system }) => {
-        expect(system!.get('test')).toBeDefined();
-      })
+      initial: 'a',
+      states: {
+        a: {
+          entry: assign(({ system }) => {
+            expect(system!.get('test')).toBeDefined();
+          })
+        }
+      }
     });
 
     createActor(machine).start();
@@ -287,13 +292,18 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: sendTo(
-        ({ system }) => {
-          expect(system!.get('test')).toBeDefined();
-          return system!.get('test');
-        },
-        { type: 'FOO' }
-      )
+      initial: 'a',
+      states: {
+        a: {
+          entry: sendTo(
+            ({ system }) => {
+              expect(system!.get('test')).toBeDefined();
+              return system!.get('test');
+            },
+            { type: 'FOO' }
+          )
+        }
+      }
     });
 
     createActor(machine).start();

@@ -15,7 +15,7 @@ import {
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode,
-  isAtomicStateNode
+  getInitialStateNodes
 } from './stateUtils.ts';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -48,7 +48,7 @@ import type {
   SnapshotFrom
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
-import { createActor } from './interpreter.ts';
+import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
 import isDevelopment from '#is-development';
 
 export const STATE_IDENTIFIER = '#';
@@ -281,7 +281,9 @@ export class StateMachine<
       ...(state as any),
       value: resolveStateValue(this.root, state.value),
       configuration,
-      status: isInFinalState(configuration) ? 'done' : state.status
+      status: isInFinalState(configurationSet, this.root)
+        ? 'done'
+        : state.status
     });
   }
 
@@ -391,7 +393,8 @@ export class StateMachine<
    */
   private getPreInitialState(
     actorCtx: AnyActorContext,
-    initEvent: any
+    initEvent: any,
+    internalQueue: AnyEventObject[]
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -418,10 +421,11 @@ export class StateMachine<
       const assignment = ({ spawn, event }: any) =>
         context({ spawn, input: event.input });
       return resolveActionsAndContext(
-        [assign(assignment)],
-        initEvent as TEvent,
         preInitial,
-        actorCtx
+        initEvent,
+        actorCtx,
+        [assign(assignment)],
+        internalQueue
       ) as SnapshotFrom<this>;
     }
 
@@ -453,12 +457,16 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
-
-    const preInitialState = this.getPreInitialState(actorCtx, initEvent);
+    const internalQueue: AnyEventObject[] = [];
+    const preInitialState = this.getPreInitialState(
+      actorCtx,
+      initEvent,
+      internalQueue
+    );
     const nextState = microstep(
       [
         {
-          target: [...preInitialState.configuration].filter(isAtomicStateNode),
+          target: [...getInitialStateNodes(this.root)],
           source: this.root,
           reenter: true,
           actions: [],
@@ -469,13 +477,15 @@ export class StateMachine<
       preInitialState,
       actorCtx,
       initEvent,
-      true
+      true,
+      internalQueue
     );
 
     const { state: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
-      actorCtx
+      actorCtx,
+      internalQueue
     );
 
     return macroState as SnapshotFrom<this>;
@@ -493,7 +503,7 @@ export class StateMachine<
   ): void {
     Object.values(state.children).forEach((child: any) => {
       if (child.status === 0) {
-        child.start?.();
+        child.start();
       }
     });
   }
@@ -625,33 +635,30 @@ export class StateMachine<
       new State({ ...snapshot, children }, this) as any
     );
 
-    // TODO: DRY this up
-    restoredSnapshot.configuration.forEach((stateNode) => {
-      if (stateNode.invoke) {
-        stateNode.invoke.forEach((invokeConfig) => {
-          const { id, src } = invokeConfig;
+    let seen = new Set();
 
-          if (children[id]) {
-            return;
-          }
-
-          const referenced = resolveReferencedActor(
-            this.implementations.actors[src]
-          );
-
-          if (referenced) {
-            const actorRef = createActor(referenced.src, {
-              id,
-              parent: _actorCtx?.self,
-              input:
-                'input' in invokeConfig ? invokeConfig.input : referenced.input
-            });
-
-            children[id] = actorRef;
-          }
-        });
+    function reviveContext(
+      contextPart: Record<string, unknown>,
+      children: Record<string, AnyActorRef>
+    ) {
+      if (seen.has(contextPart)) {
+        return;
       }
-    });
+      seen.add(contextPart);
+      for (let key in contextPart) {
+        const value: unknown = contextPart[key];
+
+        if (value && typeof value === 'object') {
+          if ('xstate$$type' in value && value.xstate$$type === $$ACTOR_TYPE) {
+            contextPart[key] = children[(value as any).id];
+            continue;
+          }
+          reviveContext(value as typeof contextPart, children);
+        }
+      }
+    }
+
+    reviveContext(restoredSnapshot.context, children);
 
     return restoredSnapshot;
   }

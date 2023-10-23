@@ -382,6 +382,9 @@ describe('interpreter', () => {
       const clock = new SimulatedClock();
       const letterMachine = createMachine(
         {
+          types: {} as {
+            events: { type: 'FIRE_DELAY'; value: number };
+          },
           id: 'letter',
           context: {
             delay: 100
@@ -389,12 +392,9 @@ describe('interpreter', () => {
           initial: 'a',
           states: {
             a: {
-              after: [
-                {
-                  delay: ({ context }) => context.delay,
-                  target: 'b'
-                }
-              ]
+              after: {
+                delayA: 'b'
+              }
             },
             b: {
               after: {
@@ -408,21 +408,12 @@ describe('interpreter', () => {
               }
             },
             d: {
-              after: [
-                {
-                  delay: ({ context, event }) =>
-                    context.delay + (event as any).value,
-                  target: 'e'
-                }
-              ]
+              after: {
+                delayD: 'e'
+              }
             },
             e: {
-              after: [
-                {
-                  delay: 'someDelay',
-                  target: 'f'
-                }
-              ]
+              after: { someDelay: 'f' }
             },
             f: {
               type: 'final'
@@ -433,7 +424,9 @@ describe('interpreter', () => {
           delays: {
             someDelay: ({ context }) => {
               return context.delay + 50;
-            }
+            },
+            delayA: ({ context }) => context.delay,
+            delayD: ({ context, event }) => context.delay + (event as any).value
           }
         }
       );
@@ -757,7 +750,7 @@ describe('interpreter', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+          "Event "TIMER" was sent to stopped actor "x:27 (x:27)". This actor has already reached its final state, and will not transition.
       Event: {"type":"TIMER"}",
         ],
       ]
@@ -1172,7 +1165,7 @@ describe('interpreter', () => {
         expect(console.warn).toMatchMockCallsInlineSnapshot(`
           [
             [
-              "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+              "Event "TRIGGER" was sent to stopped actor "x:43 (x:43)". This actor has already reached its final state, and will not transition.
           Event: {"type":"TRIGGER"}",
             ],
           ]

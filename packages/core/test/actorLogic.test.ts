@@ -738,27 +738,110 @@ describe('machine logic', () => {
     );
   });
 
-  it('should invoke an actor even if missing in persisted state', () => {
+  it('should not invoke an actor if it is missing in persisted state', () => {
     const machine = createMachine({
-      invoke: {
-        id: 'child',
-        src: createMachine({
-          initial: 'inner',
-          states: { inner: {} }
-        })
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            id: 'child',
+            src: createMachine({
+              context: ({ input }) => ({
+                // this is only meant to showcase why we can't invoke this actor when it's missing in the persisted state
+                // because we don't have access to the right input as it depends on the event that was used to enter state `b`
+                value: input.deep.prop
+              })
+            }),
+            input: ({ event }) => event.data
+          }
+        }
       }
     });
 
     const actor = createActor(machine).start();
 
+    actor.send({
+      type: 'NEXT',
+      data: {
+        deep: {
+          prop: 'value'
+        }
+      }
+    });
+
+    expect(actor.getSnapshot().children.child).not.toBe(undefined);
+    expect(actor.getSnapshot().children.child.getSnapshot().context).toEqual({
+      value: 'value'
+    });
+
     const persisted = actor.getPersistedState();
 
     delete persisted?.children['child'];
 
-    const actor2 = createActor(machine, { state: persisted }).start();
+    const rehydratedActor = createActor(machine, { state: persisted }).start();
 
-    expect(actor2.getSnapshot().children.child.getSnapshot().value).toBe(
-      'inner'
+    expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
+  });
+
+  it('should persist a spawned actor with referenced src', () => {
+    const reducer = fromTransition((s) => s, { count: 42 });
+    const machine = createMachine({
+      types: {
+        context: {} as {
+          ref: AnyActorRef;
+        },
+        actors: {} as {
+          src: 'reducer';
+          logic: typeof reducer;
+          ids: 'child';
+        }
+      },
+      context: ({ spawn }) => ({
+        ref: spawn('reducer', { id: 'child' })
+      })
+    }).provide({
+      actors: {
+        reducer
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    const persistedState = actor.getPersistedState()!;
+
+    expect(persistedState.children.child.state.context).toEqual({ count: 42 });
+
+    const newActor = createActor(machine, {
+      state: persistedState
+    }).start();
+
+    const snapshot = newActor.getSnapshot();
+
+    expect(snapshot.context.ref).toBe(snapshot.children.child);
+
+    expect(snapshot.context.ref.getSnapshot().context.count).toBe(42);
+  });
+
+  it('should not persist a spawned actor with inline src', () => {
+    const machine = createMachine({
+      context: ({ spawn }) => {
+        return {
+          childRef: spawn(createMachine({}))
+        };
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(() =>
+      actorRef.getPersistedState()
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"An inline child actor cannot be persisted."`
     );
   });
 
