@@ -71,9 +71,13 @@ function getChildren<TContext extends MachineContext, TE extends EventObject>(
 
 function getProperAncestors(
   stateNode: AnyStateNode,
-  toStateNode: AnyStateNode | null
+  toStateNode: AnyStateNode | undefined
 ): Array<typeof stateNode> {
   const ancestors: Array<typeof stateNode> = [];
+
+  if (toStateNode === stateNode) {
+    return ancestors;
+  }
 
   // add all ancestors
   let m = stateNode.parent;
@@ -519,19 +523,21 @@ export function resolveTarget(
   });
 }
 
-function resolveHistoryTarget<
+function resolveHistoryDefaultTransition<
   TContext extends MachineContext,
   TEvent extends EventObject
->(stateNode: AnyStateNode & { type: 'history' }): ReadonlyArray<AnyStateNode> {
+>(stateNode: AnyStateNode & { type: 'history' }) {
   const normalizedTarget = normalizeTarget<TContext, TEvent>(
     stateNode.config.target
   );
   if (!normalizedTarget) {
-    return stateNode.parent!.initial.target;
+    return stateNode.parent!.initial;
   }
-  return normalizedTarget.map((t) =>
-    typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
-  );
+  return {
+    target: normalizedTarget.map((t) =>
+      typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
+    )
+  };
 }
 
 function isHistoryNode(
@@ -877,7 +883,7 @@ function findLCCA(stateNodes: Array<AnyStateNode>): AnyStateNode {
 }
 
 function getEffectiveTargetStates(
-  transition: AnyTransitionDefinition,
+  transition: Pick<AnyTransitionDefinition, 'target'>,
   historyValue: AnyHistoryValue
 ): Array<AnyStateNode> {
   if (!transition.target) {
@@ -894,9 +900,7 @@ function getEffectiveTargetStates(
         }
       } else {
         for (const node of getEffectiveTargetStates(
-          {
-            target: resolveHistoryTarget(targetNode)
-          } as AnyTransitionDefinition,
+          resolveHistoryDefaultTransition(targetNode),
           historyValue
         )) {
           targets.add(node);
@@ -913,18 +917,18 @@ function getEffectiveTargetStates(
 function getTransitionDomain(
   transition: AnyTransitionDefinition,
   historyValue: AnyHistoryValue
-): AnyStateNode | null {
+): AnyStateNode | undefined {
   const targetStates = getEffectiveTargetStates(transition, historyValue);
 
   if (!targetStates) {
-    return null;
+    return;
   }
 
   if (
     !transition.reenter &&
-    transition.source.type !== 'parallel' &&
-    targetStates.every((targetStateNode) =>
-      isDescendant(targetStateNode, transition.source)
+    targetStates.every(
+      (target) =>
+        target === transition.source || isDescendant(target, transition.source)
     )
   ) {
     return transition.source;
@@ -945,6 +949,10 @@ function computeExitSet(
   for (const t of transitions) {
     if (t.target?.length) {
       const domain = getTransitionDomain(t, historyValue);
+
+      if (t.reenter && t.source === domain) {
+        statesToExit.add(domain);
+      }
 
       for (const stateNode of configuration) {
         if (isDescendant(stateNode, domain!)) {
@@ -1112,6 +1120,9 @@ function enterStates(
 ) {
   let nextState = currentState;
   const statesToEnter = new Set<AnyStateNode>();
+  // those are states that were directly targeted or indirectly targeted by the explicit target
+  // in other words, those are states for which initial actions should be executed
+  // when we target `#deep_child` initial actions of its ancestors shouldn't be executed
   const statesForDefaultEntry = new Set<AnyStateNode>();
   computeEntrySet(
     filteredTransitions,
@@ -1213,7 +1224,22 @@ function computeEntrySet(
   statesToEnter: Set<AnyStateNode>
 ) {
   for (const t of transitions) {
+    const domain = getTransitionDomain(t, historyValue);
+
     for (const s of t.target || []) {
+      if (
+        !isHistoryNode(s) &&
+        // if the target is different than the source then it will *definitely* be entered
+        (t.source !== s ||
+          // we know that the domain can't lie within the source
+          // if it's different than the source then it's outside of it and it means that the target has to be entered as well
+          t.source !== domain ||
+          // reentering transitions always enter the target, even if it's the source itself
+          t.reenter)
+      ) {
+        statesToEnter.add(s);
+        statesForDefaultEntry.add(s);
+      }
       addDescendantStatesToEnter(
         s,
         historyValue,
@@ -1221,12 +1247,11 @@ function computeEntrySet(
         statesToEnter
       );
     }
-    const ancestor = getTransitionDomain(t, historyValue);
     const targetStates = getEffectiveTargetStates(t, historyValue);
     for (const s of targetStates) {
       addAncestorStatesToEnter(
         s,
-        ancestor,
+        domain,
         statesToEnter,
         historyValue,
         statesForDefaultEntry
@@ -1248,6 +1273,8 @@ function addDescendantStatesToEnter<
     if (historyValue[stateNode.id]) {
       const historyStateNodes = historyValue[stateNode.id];
       for (const s of historyStateNodes) {
+        statesToEnter.add(s);
+
         addDescendantStatesToEnter(
           s,
           historyValue,
@@ -1263,13 +1290,19 @@ function addDescendantStatesToEnter<
           historyValue,
           statesForDefaultEntry
         );
-        for (const stateForDefaultEntry of statesForDefaultEntry) {
-          statesForDefaultEntry.add(stateForDefaultEntry);
-        }
       }
     } else {
-      const targets = resolveHistoryTarget<TContext, TEvent>(stateNode);
-      for (const s of targets) {
+      const historyDefaultTransition = resolveHistoryDefaultTransition<
+        TContext,
+        TEvent
+      >(stateNode);
+      for (const s of historyDefaultTransition.target) {
+        statesToEnter.add(s);
+
+        if (historyDefaultTransition === stateNode.parent?.initial) {
+          statesForDefaultEntry.add(stateNode.parent);
+        }
+
         addDescendantStatesToEnter(
           s,
           historyValue,
@@ -1277,7 +1310,8 @@ function addDescendantStatesToEnter<
           statesToEnter
         );
       }
-      for (const s of targets) {
+
+      for (const s of historyDefaultTransition.target) {
         addAncestorStatesToEnter(
           s,
           stateNode,
@@ -1285,17 +1319,16 @@ function addDescendantStatesToEnter<
           historyValue,
           statesForDefaultEntry
         );
-        for (const stateForDefaultEntry of statesForDefaultEntry) {
-          statesForDefaultEntry.add(stateForDefaultEntry);
-        }
       }
     }
   } else {
-    statesToEnter.add(stateNode);
     if (stateNode.type === 'compound') {
-      statesForDefaultEntry.add(stateNode);
       const [initialState] = stateNode.initial.target;
 
+      if (!isHistoryNode(initialState)) {
+        statesToEnter.add(initialState);
+        statesForDefaultEntry.add(initialState);
+      }
       addDescendantStatesToEnter(
         initialState,
         historyValue,
@@ -1316,6 +1349,10 @@ function addDescendantStatesToEnter<
           (sn) => !isHistoryNode(sn)
         )) {
           if (![...statesToEnter].some((s) => isDescendant(s, child))) {
+            if (!isHistoryNode(child)) {
+              statesToEnter.add(child);
+              statesForDefaultEntry.add(child);
+            }
             addDescendantStatesToEnter(
               child,
               historyValue,
@@ -1331,7 +1368,7 @@ function addDescendantStatesToEnter<
 
 function addAncestorStatesToEnter(
   stateNode: AnyStateNode,
-  toStateNode: AnyStateNode | null,
+  toStateNode: AnyStateNode | undefined,
   statesToEnter: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
   statesForDefaultEntry: Set<AnyStateNode>
@@ -1342,6 +1379,7 @@ function addAncestorStatesToEnter(
     if (anc.type === 'parallel') {
       for (const child of getChildren(anc).filter((sn) => !isHistoryNode(sn))) {
         if (![...statesToEnter].some((s) => isDescendant(s, child))) {
+          statesToEnter.add(child);
           addDescendantStatesToEnter(
             child,
             historyValue,
@@ -1670,7 +1708,7 @@ function selectEventlessTransitions(
 
   for (const stateNode of atomicStates) {
     loop: for (const s of [stateNode].concat(
-      getProperAncestors(stateNode, null)
+      getProperAncestors(stateNode, undefined)
     )) {
       if (!s.always) {
         continue;
