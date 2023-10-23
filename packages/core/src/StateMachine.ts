@@ -612,9 +612,7 @@ export class StateMachine<
       const childState = actorData.state;
       const src = actorData.src;
 
-      const logic = src
-        ? resolveReferencedActor(this.implementations.actors[src])?.src
-        : undefined;
+      const logic = src ? resolveReferencedActor(this, src)?.src : undefined;
 
       if (!logic) {
         return;

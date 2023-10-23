@@ -360,7 +360,7 @@ export interface InvokeDefinition<
   /**
    * The source of the actor logic to be invoked
    */
-  src: string;
+  src: AnyActorLogic | string;
 
   input?:
     | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
