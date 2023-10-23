@@ -47,7 +47,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^2.1.0",
     "svelte": "^3.24.1 || ^4",
-    "xstate": "^4.38.2"
+    "xstate": "^4.38.3"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {

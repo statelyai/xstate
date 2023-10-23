@@ -1,5 +1,11 @@
 # xstate
 
+## 4.38.3
+
+### Patch Changes
+
+- [#4380](https://github.com/statelyai/xstate/pull/4380) [`e9e065822`](https://github.com/statelyai/xstate/commit/e9e06582215abedf118cf2165e635eccb8e44251) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `exit` actions sometimes being called twice when a machine reaches its final state and leads its parent to stopping it at the same time.
+
 ## 4.38.2
 
 ### Patch Changes
