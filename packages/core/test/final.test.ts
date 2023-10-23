@@ -4,6 +4,7 @@ import {
   assign,
   AnyActorRef
 } from '../src/index.ts';
+import { trackEntries } from './utils.ts';
 
 describe('final states', () => {
   it('status of a machine with a root state being final should be done', () => {
@@ -824,6 +825,207 @@ describe('final states', () => {
     createActor(machine).start();
 
     expect(spy).toBeCalledTimes(1);
+  });
+
+  it('should call exit actions in reversed document order when the machines reaches its final state', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actorRef = createActor(machine).start();
+    flushTracked();
+
+    // it's important to send an event here that results in a transition that computes new `state.configuration`
+    // and that could impact the order in which exit actions are called
+    actorRef.send({ type: 'EV' });
+
+    expect(flushTracked()).toEqual([
+      // result of the transition
+      'exit: a',
+      'enter: b',
+      // result of reaching final states
+      'exit: b',
+      'exit: __root__'
+    ]);
+  });
+
+  it('should call exit actions of parallel states in reversed document order when the machines reaches its final state after earlier region transition', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'child_a1',
+          states: {
+            child_a1: {
+              on: {
+                EV2: 'child_a2'
+              }
+            },
+            child_a2: {
+              type: 'final'
+            }
+          }
+        },
+        b: {
+          initial: 'child_b1',
+          states: {
+            child_b1: {
+              on: {
+                EV1: 'child_b2'
+              }
+            },
+            child_b2: {
+              type: 'final'
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actorRef = createActor(machine).start();
+
+    // it's important to send an event here that results in a transition as that computes new `state.configuration`
+    // and that could impact the order in which exit actions are called
+    actorRef.send({ type: 'EV1' });
+    flushTracked();
+    actorRef.send({ type: 'EV2' });
+
+    expect(flushTracked()).toEqual([
+      // result of the transition
+      'exit: a.child_a1',
+      'enter: a.child_a2',
+      // result of reaching final states
+      'exit: b.child_b2',
+      'exit: b',
+      'exit: a.child_a2',
+      'exit: a',
+      'exit: __root__'
+    ]);
+  });
+
+  it('should call exit actions of parallel states in reversed document order when the machines reaches its final state after later region transition', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'child_a1',
+          states: {
+            child_a1: {
+              on: {
+                EV2: 'child_a2'
+              }
+            },
+            child_a2: {
+              type: 'final'
+            }
+          }
+        },
+        b: {
+          initial: 'child_b1',
+          states: {
+            child_b1: {
+              on: {
+                EV1: 'child_b2'
+              }
+            },
+            child_b2: {
+              type: 'final'
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actorRef = createActor(machine).start();
+    // it's important to send an event here that results in a transition as that computes new `state.configuration`
+    // and that could impact the order in which exit actions are called
+    actorRef.send({ type: 'EV1' });
+    flushTracked();
+    actorRef.send({ type: 'EV2' });
+
+    expect(flushTracked()).toEqual([
+      // result of the transition
+      'exit: a.child_a1',
+      'enter: a.child_a2',
+      // result of reaching final states
+      'exit: b.child_b2',
+      'exit: b',
+      'exit: a.child_a2',
+      'exit: a',
+      'exit: __root__'
+    ]);
+  });
+
+  it('should call exit actions of parallel states in reversed document order when the machines reaches its final state after multiple regions transition', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: 'child_a1',
+          states: {
+            child_a1: {
+              on: {
+                EV: 'child_a2'
+              }
+            },
+            child_a2: {
+              type: 'final'
+            }
+          }
+        },
+        b: {
+          initial: 'child_b1',
+          states: {
+            child_b1: {
+              on: {
+                EV: 'child_b2'
+              }
+            },
+            child_b2: {
+              type: 'final'
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actorRef = createActor(machine).start();
+    flushTracked();
+    // it's important to send an event here that results in a transition as that computes new `state.configuration`
+    // and that could impact the order in which exit actions are called
+    actorRef.send({ type: 'EV' });
+
+    expect(flushTracked()).toEqual([
+      // result of the transition
+      'exit: b.child_b1',
+      'exit: a.child_a1',
+      'enter: a.child_a2',
+      'enter: b.child_b2',
+      // result of reaching final states
+      'exit: b.child_b2',
+      'exit: b',
+      'exit: a.child_a2',
+      'exit: a',
+      'exit: __root__'
+    ]);
   });
 
   it('should not complete a parallel root immediately when only some of its regions are in their final states (final state reached in a compound region)', () => {
