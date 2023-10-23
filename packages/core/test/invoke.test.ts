@@ -3042,8 +3042,7 @@ describe('invoke', () => {
               onDone: {
                 guard: ({ event }) => {
                   // invoke ID should not be 'someSrc'
-                  const expectedType =
-                    'xstate.done.actor.(machine).a:invocation[0]';
+                  const expectedType = 'xstate.done.actor.(machine).a[0]';
                   expect(event.type).toEqual(expectedType);
                   return event.type === expectedType;
                 },
@@ -3110,7 +3109,7 @@ describe('invoke', () => {
       );
 
       expect(
-        createActor(machine).getSnapshot().children['machine.a:invocation[0]']
+        createActor(machine).getSnapshot().children['machine.a[0]']
       ).toBeDefined();
     }
   );
@@ -3224,8 +3223,8 @@ describe('invoke', () => {
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
     setTimeout(() => {
       expect(actual).toEqual([
-        'xstate.done.actor.(machine).first.fetch:invocation[0]',
-        'xstate.done.actor.(machine).second.fetch:invocation[0]'
+        'xstate.done.actor.(machine).first.fetch[0]',
+        'xstate.done.actor.(machine).second.fetch[0]'
       ]);
       done();
     }, 100);

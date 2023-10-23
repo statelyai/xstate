@@ -36,7 +36,7 @@ function resolveInvoke(
 ) {
   const referenced =
     typeof src === 'string'
-      ? resolveReferencedActor(state.machine.implementations.actors[src])
+      ? resolveReferencedActor(state.machine, src)
       : { src, input: undefined };
 
   let actorRef: AnyActorRef | undefined;

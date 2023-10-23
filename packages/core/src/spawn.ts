@@ -67,9 +67,7 @@ export function createSpawner(
   const spawn: Spawner<any> = (src, options = {}) => {
     const { systemId } = options;
     if (typeof src === 'string') {
-      const referenced = resolveReferencedActor(
-        machine.implementations.actors[src]
-      );
+      const referenced = resolveReferencedActor(machine, src);
 
       if (!referenced) {
         throw new Error(

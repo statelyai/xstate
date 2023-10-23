@@ -17,7 +17,9 @@ import type {
   TransitionConfigTarget,
   AnyActorRef,
   AnyTransitionConfig,
-  NonReducibleUnknown
+  NonReducibleUnknown,
+  AnyStateMachine,
+  InvokeConfig
 } from './types.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -397,20 +399,23 @@ export function toObserver<T>(
 }
 
 export function createInvokeId(stateNodeId: string, index: number): string {
-  return `${stateNodeId}:invocation[${index}]`;
+  return `${stateNodeId}[${index}]`;
 }
 
-export function resolveReferencedActor(
-  referenced:
-    | AnyActorLogic
-    | {
-        src: AnyActorLogic;
-        input:
-          | Mapper<MachineContext, EventObject, unknown, EventObject>
-          | NonReducibleUnknown;
-      }
-    | undefined
-) {
+export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
+  if (src.startsWith('xstate#')) {
+    const [, indexStr] = src.match(/\[(\d+)\]$/)!;
+    const node = machine.getStateNodeById(src.slice(7, -(indexStr.length + 2)));
+    const invokeConfig = node.config.invoke!;
+    return {
+      src: (Array.isArray(invokeConfig)
+        ? invokeConfig[indexStr as any]
+        : (invokeConfig as InvokeConfig<any, any, any, any, any, any>)
+      ).src,
+      input: undefined
+    };
+  }
+  const referenced = machine.implementations.actors[src];
   return referenced
     ? 'transition' in referenced
       ? { src: referenced, input: undefined }

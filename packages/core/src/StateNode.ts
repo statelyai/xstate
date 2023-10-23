@@ -299,11 +299,14 @@ export class StateNode<
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
-
         const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
+        const resolvedSrc =
+          typeof src === 'string'
+            ? src
+            : `xstate#${createInvokeId(this.id, i)}`;
         return {
           ...invokeConfig,
-          src: src,
+          src: resolvedSrc,
           id: resolvedId,
           systemId: systemId,
           toJSON() {
@@ -311,7 +314,7 @@ export class StateNode<
             return {
               ...invokeDefValues,
               type: 'xstate.invoke',
-              src: typeof src === 'string' ? src : resolvedId,
+              src: resolvedSrc,
               id: resolvedId
             };
           }
