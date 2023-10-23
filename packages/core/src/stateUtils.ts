@@ -1162,10 +1162,9 @@ function enterStates(
       }
       completedNodes.add(parent);
 
-      let [rootCompletionNode, ancestorMarker] =
-        parent?.type === 'parallel'
-          ? [parent, parent]
-          : [stateNodeToEnter, parent?.parent];
+      let ancestorMarker =
+        parent?.type === 'parallel' ? parent : parent?.parent;
+      let rootCompletionNode = ancestorMarker || stateNodeToEnter;
 
       if (ancestorMarker) {
         internalQueue.push(
