@@ -983,7 +983,7 @@ function areConfigurationsEqual(
 /**
  * https://www.w3.org/TR/scxml/#microstepProcedure
  *
- * @private
+ * @internal
  * @param transitions
  * @param currentState
  * @param mutConfiguration

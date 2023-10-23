@@ -837,7 +837,7 @@ export interface StateNodeConfig<
     TDelay
   >;
   /**
-   * @private
+   * @internal
    */
   parent?: StateNode<TContext, TEvent>;
   /**
