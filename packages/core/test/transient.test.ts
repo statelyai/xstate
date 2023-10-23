@@ -4,7 +4,8 @@ import { assign } from '../src/actions/assign';
 import { stateIn } from '../src/guards';
 
 const greetingContext = { hour: 10 };
-const greetingMachine = createMachine<typeof greetingContext>({
+const greetingMachine = createMachine({
+  types: {} as { context: typeof greetingContext },
   id: 'greeting',
   initial: 'pending',
   context: greetingContext,
@@ -28,7 +29,8 @@ const greetingMachine = createMachine<typeof greetingContext>({
 
 describe('transient states (eventless transitions)', () => {
   it('should choose the first candidate target that matches the guard 1', () => {
-    const machine = createMachine<{ data: boolean; status?: string }>({
+    const machine = createMachine({
+      types: {} as { context: { data: boolean } },
       context: { data: false },
       initial: 'G',
       states: {
@@ -53,7 +55,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the first candidate target that matches the guard 2', () => {
-    const machine = createMachine<{ data: boolean; status?: string }>({
+    const machine = createMachine({
+      types: {} as { context: { data: boolean; status?: string } },
       context: { data: false },
       initial: 'G',
       states: {
@@ -78,7 +81,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the final candidate without a guard if none others match', () => {
-    const machine = createMachine<{ data: boolean; status?: string }>({
+    const machine = createMachine({
+      types: {} as { context: { data: boolean; status?: string } },
       context: { data: true },
       initial: 'G',
       states: {
@@ -495,7 +499,8 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root', () => {
-    const machine = createMachine<{ count: number }, any>({
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -524,11 +529,12 @@ describe('transient states (eventless transitions)', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'ADD' });
 
-    expect(actorRef.getSnapshot().done).toBe(true);
+    expect(actorRef.getSnapshot().status).toBe('done');
   });
 
   it('should work with transient transition on root (with `always`)', () => {
-    const machine = createMachine<{ count: number }, any>({
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -558,13 +564,13 @@ describe('transient states (eventless transitions)', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'ADD' });
 
-    expect(actorRef.getSnapshot().done).toBe(true);
+    expect(actorRef.getSnapshot().status).toBe('done');
   });
 
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
     const timerMachine = createMachine({
       initial: 'initial',
-      context: ({ input }) => ({
+      context: ({ input }: { input: { duration: number } }) => ({
         duration: input.duration
       }),
       types: {
@@ -693,7 +699,7 @@ describe('transient states (eventless transitions)', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'EVENT' });
 
-    expect(actorRef.getSnapshot().done).toBe(true);
+    expect(actorRef.getSnapshot().status).toBe('done');
   });
 
   it('events that trigger eventless transitions should be preserved in actions', () => {
@@ -728,5 +734,165 @@ describe('transient states (eventless transitions)', () => {
 
     const service = createActor(machine).start();
     service.send({ type: 'EVENT', value: 42 });
+  });
+
+  it("shouldn't end up in an infinite loop when selecting the fallback target", () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          always: [
+            {
+              guard: () => false,
+              target: '.a'
+            },
+            {
+              target: '.b'
+            }
+          ]
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({
+      type: 'event'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'b' });
+  });
+
+  it("shouldn't end up in an infinite loop when selecting a guarded target", () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          always: [
+            {
+              guard: () => true,
+              target: '.a'
+            },
+            {
+              target: '.b'
+            }
+          ]
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({
+      type: 'event'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
+  });
+
+  it("shouldn't end up in an infinite loop when executing a fire-and-forget action that doesn't change state", () => {
+    let count = 0;
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {}
+          },
+          always: [
+            {
+              actions: () => {
+                count++;
+                if (count > 5) {
+                  throw new Error('Infinite loop detected');
+                }
+              },
+              target: '.a'
+            }
+          ]
+        }
+      }
+    });
+
+    const actorRef = createActor(machine);
+
+    actorRef.start();
+    actorRef.send({
+      type: 'event'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
+    expect(count).toBe(1);
+  });
+
+  it('should loop (but not infinitely) for assign actions', () => {
+    const machine = createMachine({
+      context: { count: 0 },
+      initial: 'counting',
+      states: {
+        counting: {
+          always: {
+            guard: ({ context }) => context.count < 5,
+            actions: assign({ count: ({ context }) => context.count + 1 })
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().context.count).toEqual(5);
+  });
+
+  it("should execute an always transition after a raised transition even if that raised transition doesn't change the state", () => {
+    const spy = jest.fn();
+    let counter = 0;
+    const machine = createMachine({
+      always: {
+        actions: () => spy(counter)
+      },
+      on: {
+        EV: {
+          actions: raise({ type: 'RAISED' })
+        },
+        RAISED: {
+          actions: () => {
+            ++counter;
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    spy.mockClear();
+    actorRef.send({ type: 'EV' });
+
+    expect(spy.mock.calls).toEqual([
+      // called in response to the `EV` event
+      [0],
+      // called in response to the `RAISED` event
+      [1]
+    ]);
   });
 });

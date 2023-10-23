@@ -1,7 +1,7 @@
 # Activities
 
 ::: warning Deprecated
-Activites are deprecated and will be removed in XState version 5. The recommended approach is to [invoke an actor](./actors.md) instead:
+Activities are deprecated and will be removed in XState version 5. The recommended approach is to [invoke an actor](./actors.md) instead:
 
 ```diff
 -activities: [(context, event) => {

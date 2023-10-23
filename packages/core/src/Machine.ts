@@ -1,31 +1,33 @@
 import {
   MachineConfig,
-  EventObject,
   MachineContext,
   InternalMachineImplementations,
   ParameterizedObject,
   ProvidedActor,
-  AnyEventObject,
   NonReducibleUnknown,
-  Prop
+  Prop,
+  AnyEventObject
 } from './types.ts';
 import {
   TypegenConstraint,
-  TypegenDisabled,
-  ResolveTypegenMeta
+  ResolveTypegenMeta,
+  TypegenDisabled
 } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
 
 export function createMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TGuard extends ParameterizedObject = ParameterizedObject,
-  TDelay extends string = string,
-  TTag extends string = string,
-  TInput = any,
-  TOutput = NonReducibleUnknown,
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown,
+  // it's important to have at least one default type parameter here
+  // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
+  // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<

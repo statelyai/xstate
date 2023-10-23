@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { fromCallback } from '../src/actors/callback.ts';
+import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
   ActorSystem,
@@ -11,14 +11,17 @@ import {
   fromTransition,
   createActor,
   sendTo,
-  stop
+  stop,
+  Snapshot,
+  EventObject,
+  ActorRefFrom
 } from '../src/index.ts';
 
 describe('system', () => {
   it('should register an invoked actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }>;
+        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
       };
     }>;
 
@@ -60,11 +63,17 @@ describe('system', () => {
   it('should register a spawned actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }>;
+        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
       };
     }>;
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: CallbackActorRef<EventObject, unknown>;
+          machineRef?: ActorRefFrom<ReturnType<typeof createMachine>>;
+        };
+      },
       id: 'parent',
       context: ({ spawn }) => ({
         ref: spawn(
@@ -153,9 +162,15 @@ describe('system', () => {
   });
 
   it('should remove spawned actor from receptionist if stopped', () => {
+    const childMachine = createMachine({});
     const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: ActorRefFrom<typeof childMachine>;
+        };
+      },
       context: ({ spawn }) => ({
-        ref: spawn(createMachine({}), {
+        ref: spawn(childMachine, {
           systemId: 'test'
         })
       }),
@@ -258,9 +273,14 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: assign(({ system }) => {
-        expect(system!.get('test')).toBeDefined();
-      })
+      initial: 'a',
+      states: {
+        a: {
+          entry: assign(({ system }) => {
+            expect(system!.get('test')).toBeDefined();
+          })
+        }
+      }
     });
 
     createActor(machine).start();
@@ -272,13 +292,18 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: sendTo(
-        ({ system }) => {
-          expect(system!.get('test')).toBeDefined();
-          return system!.get('test');
-        },
-        { type: 'FOO' }
-      )
+      initial: 'a',
+      states: {
+        a: {
+          entry: sendTo(
+            ({ system }) => {
+              expect(system!.get('test')).toBeDefined();
+              return system!.get('test');
+            },
+            { type: 'FOO' }
+          )
+        }
+      }
     });
 
     createActor(machine).start();

@@ -6,7 +6,8 @@ import type {
   ParameterizedObject,
   AnyState,
   NoRequiredParams,
-  NoInfer
+  NoInfer,
+  WithDynamicParams
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
 
@@ -37,7 +38,7 @@ export type Guard<
   TGuard extends ParameterizedObject
 > =
   | NoRequiredParams<TGuard>
-  | TGuard
+  | WithDynamicParams<TContext, TExpressionEvent, TGuard>
   | GuardPredicate<TContext, TExpressionEvent, TExpressionGuard, TGuard>;
 
 export type UnknownGuard = UnknownReferencedGuard | UnknownInlineGuard;
@@ -71,7 +72,8 @@ function checkStateIn(
   { stateValue }: { stateValue: StateValue }
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
-    return state.configuration.some((sn) => sn.id === stateValue.slice(1));
+    const target = state.machine.getStateNodeById(stateValue);
+    return state.configuration.some((sn) => sn === target);
   }
 
   return state.matches(stateValue);
@@ -242,6 +244,11 @@ export function evaluateGuard<
       ? undefined
       : typeof guard === 'string'
       ? { type: guard }
+      : typeof guard.params === 'function'
+      ? {
+          type: guard.type,
+          params: guard.params({ context, event })
+        }
       : guard
   };
 

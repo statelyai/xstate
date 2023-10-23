@@ -7,7 +7,6 @@ import {
   toObserver
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
 import { stringifyState } from './serialize.ts';
 import type {
@@ -15,6 +14,7 @@ import type {
   InspectorOptions,
   InspectReceiver,
   ParsedReceiverEvent,
+  ReceiverCommand,
   ServiceListener,
   WebSocketReceiverOptions,
   WindowReceiverOptions
@@ -113,7 +113,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     listeners.forEach((listener) => listener.next?.(state));
   });
 
-  let client: Pick<ActorRef<any>, 'send'>;
+  let client: Pick<ActorRef<any, any>, 'send'>;
 
   const messageHandler = (event: MessageEvent<unknown>) => {
     if (
@@ -211,6 +211,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
   }
 
   return {
+    name: '@@xstate/inspector',
     send: (event) => {
       inspectService.send(event);
     },
@@ -231,12 +232,10 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       window.removeEventListener('message', messageHandler);
       sub.unsubscribe();
     }
-  } as Inspector;
+  };
 }
 
-export function createWindowReceiver(
-  options?: Partial<WindowReceiverOptions>
-): InspectReceiver {
+export function createWindowReceiver(options?: Partial<WindowReceiverOptions>) {
   const {
     window: ownWindow = window,
     targetWindow = window.self === window.top ? window.opener : window.parent
@@ -254,10 +253,10 @@ export function createWindowReceiver(
 
   ownWindow.addEventListener('message', handler);
 
-  const actorRef: InspectReceiver = toActorRef({
+  const actorRef = {
     name: 'xstate.windowReceiver',
 
-    send(event) {
+    send(event: ReceiverCommand) {
       if (!targetWindow) {
         return;
       }
@@ -286,7 +285,7 @@ export function createWindowReceiver(
     getSnapshot() {
       return latestEvent;
     }
-  });
+  };
 
   actorRef.send({
     type: 'xstate.inspecting'
@@ -295,17 +294,15 @@ export function createWindowReceiver(
   return actorRef;
 }
 
-export function createWebSocketReceiver(
-  options: WebSocketReceiverOptions
-): InspectReceiver {
+export function createWebSocketReceiver(options: WebSocketReceiverOptions) {
   const { protocol = 'ws' } = options;
   const ws = new WebSocket(`${protocol}://${options.server}`);
   const observers = new Set<Observer<ParsedReceiverEvent>>();
   let latestEvent: ParsedReceiverEvent;
 
-  const actorRef: InspectReceiver = toActorRef({
+  const actorRef = {
     name: 'xstate.webSocketReceiver',
-    send(event) {
+    send(event: ReceiverCommand) {
       ws.send(stringify(event, options.serialize));
     },
     subscribe(
@@ -326,7 +323,7 @@ export function createWebSocketReceiver(
     getSnapshot() {
       return latestEvent;
     }
-  });
+  };
 
   ws.onopen = () => {
     actorRef.send({

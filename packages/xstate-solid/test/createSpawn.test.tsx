@@ -19,7 +19,7 @@ describe("usage with core's fromTransition", () => {
 
       return (
         <button data-testid="count" onclick={() => send({ type: 'INC' })}>
-          {count()}
+          {count().context}
         </button>
       );
     };

@@ -2,15 +2,14 @@ import {
   ActorLogic,
   ActorRefFrom,
   ActorSystem,
-  AnyActorSystem
+  AnyActorSystem,
+  Snapshot
 } from '../types';
 import { XSTATE_STOP } from '../constants';
 
-export interface PromiseInternalState<T, TInput = unknown> {
-  status: 'active' | 'error' | 'done' | 'canceled';
-  data: T | undefined;
+export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
-}
+};
 
 const resolveEventType = '$$xstate.resolve';
 const rejectEventType = '$$xstate.reject';
@@ -28,19 +27,19 @@ export type PromiseActorEvents<T> =
       type: typeof XSTATE_STOP;
     };
 
-export type PromiseActorLogic<T, TInput = unknown> = ActorLogic<
+export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
+  PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
-  T | undefined,
-  PromiseInternalState<T, TInput>, // internal state
-  PromiseInternalState<T, TInput>, // persisted state
-  ActorSystem<any>,
   TInput, // input
-  T // output
+  PromiseSnapshot<TOutput, TInput>, // persisted state
+  ActorSystem<any>
 >;
 
-export type PromiseActorRef<T> = ActorRefFrom<PromiseActorLogic<T>>;
+export type PromiseActorRef<TOutput> = ActorRefFrom<
+  PromiseActorLogic<TOutput, unknown>
+>;
 
-export function fromPromise<T, TInput>(
+export function fromPromise<TOutput, TInput = unknown>(
   // TODO: add types
   promiseCreator: ({
     input,
@@ -48,11 +47,11 @@ export function fromPromise<T, TInput>(
   }: {
     input: TInput;
     system: AnyActorSystem;
-    self: PromiseActorRef<T>;
-  }) => PromiseLike<T>
-): PromiseActorLogic<T, TInput> {
+    self: PromiseActorRef<TOutput>;
+  }) => PromiseLike<TOutput>
+): PromiseActorLogic<TOutput, TInput> {
   // TODO: add event types
-  const logic: PromiseActorLogic<T, TInput> = {
+  const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {
       if (state.status !== 'active') {
@@ -60,24 +59,26 @@ export function fromPromise<T, TInput>(
       }
 
       switch (event.type) {
-        case resolveEventType:
+        case resolveEventType: {
+          const resolvedValue = (event as any).data;
           return {
             ...state,
             status: 'done',
-            data: (event as any).data,
+            output: resolvedValue,
             input: undefined
           };
+        }
         case rejectEventType:
           return {
             ...state,
             status: 'error',
-            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
+            error: (event as any).data,
             input: undefined
           };
         case XSTATE_STOP:
           return {
             ...state,
-            status: 'canceled',
+            status: 'stopped',
             input: undefined
           };
         default:
@@ -97,30 +98,27 @@ export function fromPromise<T, TInput>(
 
       resolvedPromise.then(
         (response) => {
-          // TODO: remove this condition once dead letter queue lands
-          if ((self as any)._state.status !== 'active') {
+          if (self.getSnapshot().status !== 'active') {
             return;
           }
-          self.send({ type: resolveEventType, data: response });
+          system._relay(self, self, { type: resolveEventType, data: response });
         },
         (errorData) => {
-          // TODO: remove this condition once dead letter queue lands
-          if ((self as any)._state.status !== 'active') {
+          if (self.getSnapshot().status !== 'active') {
             return;
           }
-          self.send({ type: rejectEventType, data: errorData });
+          system._relay(self, self, { type: rejectEventType, data: errorData });
         }
       );
     },
     getInitialState: (_, input) => {
       return {
         status: 'active',
-        data: undefined,
+        output: undefined,
+        error: undefined,
         input
       };
     },
-    getSnapshot: (state) => state.data,
-    getStatus: (state) => state,
     getPersistedState: (state) => state,
     restoreState: (state) => state
   };

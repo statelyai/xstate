@@ -1,5 +1,4 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
 import {
   ActionArgs,
   AnyActorContext,
@@ -11,13 +10,14 @@ import {
   NoInfer,
   RaiseActionOptions,
   SendExpr,
-  ParameterizedObject
+  ParameterizedObject,
+  AnyEventObject
 } from '../types.ts';
 
-function resolve(
+function resolveRaise(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any, any>,
+  args: ActionArgs<any, any, any, any>,
   {
     event: eventOrExpr,
     id,
@@ -29,15 +29,22 @@ function resolve(
           MachineContext,
           EventObject,
           ParameterizedObject | undefined,
+          EventObject,
           EventObject
         >;
     id: string | undefined;
     delay:
       | string
       | number
-      | DelayExpr<MachineContext, EventObject, ParameterizedObject | undefined>
+      | DelayExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject | undefined,
+          EventObject
+        >
       | undefined;
-  }
+  },
+  { internalQueue }: { internalQueue: AnyEventObject[] }
 ) {
   const delaysMap = state.machine.implementations.delays;
 
@@ -57,17 +64,13 @@ function resolve(
   } else {
     resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
   }
-  return [
-    typeof resolvedDelay !== 'number'
-      ? cloneState(state, {
-          _internalQueue: state._internalQueue.concat(resolvedEvent)
-        })
-      : state,
-    { event: resolvedEvent, id, delay: resolvedDelay }
-  ];
+  if (typeof resolvedDelay !== 'number') {
+    internalQueue.push(resolvedEvent);
+  }
+  return [state, { event: resolvedEvent, id, delay: resolvedDelay }];
 }
 
-function execute(
+function executeRaise(
   actorContext: AnyActorContext,
   params: {
     event: EventObject;
@@ -83,13 +86,24 @@ function execute(
   }
 }
 
+export interface RaiseAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject,
+  TDelay extends string
+> {
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  _out_TEvent?: TEvent;
+  _out_TDelay?: TDelay;
+}
+
 /**
  * Raises an event. This places the event in the internal event queue, so that
  * the event is immediately consumed by the machine in the current step.
  *
  * @param eventType The event to raise.
  */
-
 export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -101,15 +115,24 @@ export function raise<
 >(
   eventOrExpr:
     | NoInfer<TEvent>
-    | SendExpr<TContext, TExpressionEvent, TExpressionAction, NoInfer<TEvent>>,
+    | SendExpr<
+        TContext,
+        TExpressionEvent,
+        TExpressionAction,
+        NoInfer<TEvent>,
+        TEvent
+      >,
   options?: RaiseActionOptions<
     TContext,
     TExpressionEvent,
     TExpressionAction,
+    NoInfer<TEvent>,
     NoInfer<TDelay>
   >
-) {
-  function raise(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
+): RaiseAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TDelay> {
+  function raise(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -120,12 +143,8 @@ export function raise<
   raise.id = options?.id;
   raise.delay = options?.delay;
 
-  raise.resolve = resolve;
-  raise.execute = execute;
+  raise.resolve = resolveRaise;
+  raise.execute = executeRaise;
 
-  return raise as {
-    (args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
-    _out_TEvent?: TEvent;
-    _out_TDelay?: TDelay;
-  };
+  return raise;
 }
