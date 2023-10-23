@@ -72,7 +72,8 @@ function checkStateIn(
   { stateValue }: { stateValue: StateValue }
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
-    return state.configuration.some((sn) => sn.id === stateValue.slice(1));
+    const target = state.machine.getStateNodeById(stateValue);
+    return state.configuration.some((sn) => sn === target);
   }
 
   return state.matches(stateValue);
