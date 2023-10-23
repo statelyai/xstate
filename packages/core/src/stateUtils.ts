@@ -1157,16 +1157,11 @@ function enterStates(
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent;
 
-      if (completedNodes.has(parent)) {
-        continue;
-      }
-      completedNodes.add(parent);
-
       let ancestorMarker =
         parent?.type === 'parallel' ? parent : parent?.parent;
       let rootCompletionNode = ancestorMarker || stateNodeToEnter;
 
-      if (ancestorMarker) {
+      if (parent?.type === 'compound') {
         internalQueue.push(
           createDoneStateEvent(
             parent!.id,
@@ -1180,21 +1175,19 @@ function enterStates(
               : undefined
           )
         );
-        while (
-          ancestorMarker?.type === 'parallel' &&
-          isInFinalState(mutConfiguration, ancestorMarker)
-        ) {
-          const completedNode: typeof ancestorMarker = ancestorMarker;
-
-          ancestorMarker = completedNode.parent;
-          rootCompletionNode = completedNode;
-
-          if (completedNodes.has(completedNode)) {
-            break;
-          }
-          completedNodes.add(completedNode);
-          internalQueue.push(createDoneStateEvent(completedNode.id));
+      }
+      while (
+        ancestorMarker?.type === 'parallel' &&
+        isInFinalState(mutConfiguration, ancestorMarker)
+      ) {
+        const completedNode: typeof ancestorMarker = ancestorMarker;
+        if (completedNodes.has(completedNode)) {
+          break;
         }
+        ancestorMarker = completedNode.parent;
+        rootCompletionNode = completedNode;
+        completedNodes.add(completedNode);
+        internalQueue.push(createDoneStateEvent(completedNode.id));
       }
       if (ancestorMarker) {
         continue;

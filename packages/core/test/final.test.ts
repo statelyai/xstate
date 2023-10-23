@@ -1080,4 +1080,28 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot().status).toBe('active');
   });
+
+  it('should not resolve output of a final state if its parent is a parallel state', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          type: 'final',
+          output: spy
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {}
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
 });
