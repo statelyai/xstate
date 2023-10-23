@@ -1085,16 +1085,21 @@ describe('final states', () => {
     const spy = jest.fn();
 
     const machine = createMachine({
-      type: 'parallel',
+      initial: 'A',
       states: {
         A: {
-          type: 'final',
-          output: spy
-        },
-        B: {
-          initial: 'B1',
+          type: 'parallel',
           states: {
-            B1: {}
+            B: {
+              type: 'final',
+              output: spy
+            },
+            C: {
+              initial: 'C1',
+              states: {
+                C1: {}
+              }
+            }
           }
         }
       }
