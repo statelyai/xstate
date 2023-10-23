@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   xstate:
-    specifier: 5.0.0-beta.14
-    version: 5.0.0-beta.14
+    specifier: 5.0.0-beta.35
+    version: 5.0.0-beta.35
 
 devDependencies:
   typescript:
@@ -405,6 +405,6 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /xstate@5.0.0-beta.14:
-    resolution: {integrity: sha512-TIo+7AN/P4BRwugiiZnrNugv2pG55/hYbswECy6me9JL2mSYnpMg+nMF6piVKjd5C4m4RB8+/sGJuMV0XfF23Q==}
+  /xstate@5.0.0-beta.35:
+    resolution: {integrity: sha512-fqTJUmjeeRru5ETBCVeyczuKG9axEkmvtNs0JJB1o88VKB/Eh3husSSNexEDXWsocjgotwf/7Ud9g+PluHO6YQ==}
     dev: false
