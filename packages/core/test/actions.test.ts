@@ -1418,15 +1418,13 @@ describe('entry/exit actions', () => {
     });
 
     it('sent events from exit handlers of a done child should be received by its children ', () => {
-      let eventReceived = false;
+      const spy = jest.fn();
 
       const grandchild = createMachine({
         id: 'grandchild',
         on: {
           STOPPED: {
-            actions: () => {
-              eventReceived = true;
-            }
+            actions: spy
           }
         }
       });
@@ -1467,7 +1465,7 @@ describe('entry/exit actions', () => {
       const interpreter = interpret(parent).start();
       interpreter.send({ type: 'NEXT' });
 
-      expect(eventReceived).toBe(true);
+      expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it('actors spawned in exit handlers of a stopped child should not be started', () => {

@@ -1,4 +1,11 @@
-import { Machine, interpret, assign, AnyEventObject } from '../src';
+import {
+  Machine,
+  interpret,
+  assign,
+  AnyEventObject,
+  createMachine,
+  sendParent
+} from '../src';
 
 const finalMachine = Machine({
   id: 'final',
@@ -215,5 +222,57 @@ describe('final states', () => {
     const service = interpret(machine).start();
     service.send({ type: 'FINISH', value: 1 });
     expect(spy).toBeCalledTimes(1);
+  });
+
+  it('should only call exit actions once when a child machine reaches its final state and sends an event to its parent that ends up stopping that child', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      predictableActionArguments: true,
+      initial: 'start',
+      exit: spy,
+      states: {
+        start: {
+          on: {
+            CANCEL: 'canceled'
+          }
+        },
+        canceled: {
+          type: 'final',
+          entry: sendParent({ type: 'canceled' })
+        }
+      }
+    });
+    const parent = createMachine({
+      predictableActionArguments: true,
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            id: 'child',
+            src: child,
+            onDone: 'completed',
+            onError: 'canceled'
+          },
+          on: {
+            canceled: 'canceled'
+          }
+        },
+        canceled: {
+          type: 'final'
+        },
+        completed: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = interpret(parent).start();
+
+    actorRef.children.get('child')!.send({
+      type: 'CANCEL'
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });
