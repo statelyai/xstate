@@ -1,5 +1,21 @@
 # xstate
 
+## 5.0.0-beta.36
+
+### Major Changes
+
+- [#4372](https://github.com/statelyai/xstate/pull/4372) [`c19e6fb1e`](https://github.com/statelyai/xstate/commit/c19e6fb1e32ee84644d0029af0ac439b6137dd06) Thanks [@Andarist](https://github.com/Andarist)! - Removed `State['_internalQueue']`.
+
+- [#4371](https://github.com/statelyai/xstate/pull/4371) [`8b3f6647c`](https://github.com/statelyai/xstate/commit/8b3f6647c70c7bf98c76284bf41c6fbad8e1a63d) Thanks [@Andarist](https://github.com/Andarist)! - Changed behavior of `always` transitions. Previously they were always selected after selecting any transition (including the `always` transitions). Because of that it was relatively easy to create an infinite loop using them.
+
+  Now they are no longer selected if the preceeding transition doesn't change the state of a machine.
+
+- [#4377](https://github.com/statelyai/xstate/pull/4377) [`14cb2ed0c`](https://github.com/statelyai/xstate/commit/14cb2ed0c211b199b7bb119686df800f729677d5) Thanks [@Andarist](https://github.com/Andarist)! - `exit` actions of all states are no longer called when the machine gets stopped externally. Note that they are still called when the machine reaches its final state.
+
+### Patch Changes
+
+- [#4376](https://github.com/statelyai/xstate/pull/4376) [`078eaaddd`](https://github.com/statelyai/xstate/commit/078eaaddd5eb6a9258ad6adfad6e3778e7f74f96) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with exit actions being called twice when machine reached its final state.
+
 ## 5.0.0-beta.35
 
 ### Major Changes
