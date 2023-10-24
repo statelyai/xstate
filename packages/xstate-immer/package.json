@@ -41,10 +41,10 @@
   "dependencies": {},
   "peerDependencies": {
     "immer": "^9.0.6 || ^10",
-    "xstate": "^5.0.0-beta.31"
+    "xstate": "^5.0.0-beta.36"
   },
   "devDependencies": {
     "immer": "^10.0.2",
-    "xstate": "5.0.0-beta.31"
+    "xstate": "5.0.0-beta.36"
   }
 }

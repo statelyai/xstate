@@ -160,11 +160,11 @@ describe('machine.microstep()', () => {
       actorContext
     );
 
-    expect(states.map((s) => [s.value, s._internalQueue.length])).toEqual([
-      ['second', 2], // foo, bar
-      ['third', 1], // bar
-      ['fourth', 0], // (eventless)
-      ['fifth', 0]
+    expect(states.map((s) => s.value)).toEqual([
+      'second',
+      'third',
+      'fourth',
+      'fifth'
     ]);
   });
 });

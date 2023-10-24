@@ -13,6 +13,7 @@ import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
+import { InspectionEvent } from './system.js';
 
 export type HomomorphicPick<T, K extends keyof any> = {
   [P in keyof T as P & K]: T[P];
@@ -332,7 +333,7 @@ export interface InitialTransitionConfig<
     TGuard,
     TDelay
   > {
-  target: TransitionTarget;
+  target: string;
 }
 
 export type AnyTransitionConfig = TransitionConfig<
@@ -359,7 +360,7 @@ export interface InvokeDefinition<
   /**
    * The source of the actor logic to be invoked
    */
-  src: string;
+  src: AnyActorLogic | string;
 
   input?:
     | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
@@ -441,22 +442,7 @@ export type DelayedTransitions<
               TDelay
             >
           >;
-    }
-  | Array<
-      TransitionConfig<
-        TContext,
-        TEvent,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay
-      > & {
-        delay:
-          | Delay<TDelay>
-          | ((args: UnifiedArg<TContext, TEvent, TEvent>) => Delay<TDelay>);
-      }
-    >;
+    };
 
 export type StateTypes =
   | 'atomic'
@@ -742,7 +728,7 @@ export interface StateNodeConfig<
    */
   initial?:
     | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
-    | SingleOrArray<string>
+    | string
     | undefined;
   /**
    * The type of this state node:
@@ -1698,7 +1684,6 @@ export interface StateConfig<
   error?: unknown;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
-  _internalQueue?: Array<TEvent>;
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
@@ -1740,6 +1725,10 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * The source definition.
    */
   src?: string;
+
+  inspect?:
+    | Observer<InspectionEvent>
+    | ((inspectionEvent: InspectionEvent) => void);
 }
 
 export type AnyActor = Actor<any>;
@@ -1809,6 +1798,8 @@ export interface ActorRef<
    */
   id: string;
   sessionId: string;
+  /** @internal */
+  _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
   // TODO: should this be optional?
   start?: () => void;
@@ -1973,7 +1964,7 @@ export interface ActorContext<
   stopChild: (child: AnyActorRef) => void;
 }
 
-export type AnyActorContext = ActorContext<any, any, any>;
+export type AnyActorContext = ActorContext<any, any, AnyActorSystem>;
 
 export type Snapshot<TOutput> =
   | {
@@ -2176,11 +2167,38 @@ export interface ActorSystemInfo {
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
+  /**
+   * @internal
+   */
   _bookId: () => string;
+  /**
+   * @internal
+   */
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
+  /**
+   * @internal
+   */
   _unregister: (actorRef: AnyActorRef) => void;
+  /**
+   * @internal
+   */
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  inspect: (observer: Observer<InspectionEvent>) => void;
+  /**
+   * @internal
+   */
+  _sendInspectionEvent: (
+    event: HomomorphicOmit<InspectionEvent, 'rootId'>
+  ) => void;
+  /**
+   * @internal
+   */
+  _relay: (
+    source: AnyActorRef | undefined,
+    target: AnyActorRef,
+    event: AnyEventObject
+  ) => void;
 }
 
 export type AnyActorSystem = ActorSystem<any>;

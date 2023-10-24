@@ -57,7 +57,7 @@ module.exports = {
             isTSX: true,
             allExtensions: true,
             disallowAmbiguousJSXLike: true,
-            // this is the only overriden option
+            // this is the only overridden option
             // potentially we could just configure it for all the files but surprisingly something crashes when we try to do it
             onlyRemoveTypeImports: true
           }

@@ -560,7 +560,28 @@ describe('parallel states', () => {
   });
 
   it('should have all parallel states represented in the state value', () => {
-    const actorRef = createActor(wakMachine).start();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        wak1: {
+          initial: 'wak1sonA',
+          states: {
+            wak1sonA: {},
+            wak1sonB: {}
+          },
+          on: {
+            WAK1: '.wak1sonB'
+          }
+        },
+        wak2: {
+          initial: 'wak2sonA',
+          states: {
+            wak2sonA: {}
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'WAK1' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -734,6 +755,64 @@ describe('parallel states', () => {
     });
   });
 
+  it('should execute actions of the initial transition of a parallel region when entering the initial state configuration of a machine', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: {
+            target: 'a1',
+            actions: spy
+          },
+          states: {
+            a1: {}
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute actions of the initial transition of a parallel region when the parallel state is targeted with an explicit transition', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'parallel',
+          states: {
+            c: {
+              initial: {
+                target: 'c1',
+                actions: spy
+              },
+              states: {
+                c1: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
   describe('transitions with nested parallel states', () => {
     it('should properly transition when in a simple nested state', () => {
       const actorRef = createActor(nestedParallelState).start();
@@ -880,29 +959,20 @@ describe('parallel states', () => {
     // https://github.com/statelyai/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
       const testMachine = createMachine({
-        id: 'app',
         type: 'parallel',
         states: {
           Pages: {
-            id: 'Pages',
             initial: 'About',
             states: {
               About: {
-                id: 'About',
-                on: {
-                  dashboard: '#Dashboard'
-                }
+                id: 'About'
               },
               Dashboard: {
-                id: 'Dashboard',
-                on: {
-                  about: '#About'
-                }
+                id: 'Dashboard'
               }
             }
           },
           Menu: {
-            id: 'Menu',
             initial: 'Closed',
             states: {
               Closed: {
@@ -916,7 +986,6 @@ describe('parallel states', () => {
                 on: {
                   toggle: '#Closed',
                   'go to dashboard': {
-                    // TODO: see if just '#Dashboard' conforms to SCXML spec
                     target: ['#Dashboard', '#Opened']
                   }
                 }
@@ -957,7 +1026,10 @@ describe('parallel states', () => {
                   log: ({ context }) => [...context.log, 'entered foobaz']
                 }),
                 on: {
-                  GOTO_FOOBAZ: 'foobaz'
+                  GOTO_FOOBAZ: {
+                    target: 'foobaz',
+                    reenter: true
+                  }
                 }
               }
             }

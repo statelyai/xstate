@@ -8,7 +8,7 @@ export function createMockActorContext(): AnyActorContext {
     id: '',
     sessionId: Math.random().toString(32).slice(2),
     defer: () => {},
-    system: emptyActor,
+    system: emptyActor.system!, // TODO: mock system?
     stopChild: () => {}
   };
 }

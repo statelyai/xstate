@@ -1,4 +1,10 @@
-import { ActorLogic, ActorSystem, EventObject, Snapshot } from 'xstate';
+import {
+  ActorContext,
+  ActorLogic,
+  ActorSystem,
+  EventObject,
+  Snapshot
+} from 'xstate';
 import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
 import { createMockActorContext } from './actorContext';
@@ -22,7 +28,11 @@ export function getAdjacencyMap<
     fromState: customFromState,
     stopCondition
   } = resolveTraversalOptions(logic, options);
-  const actorContext = createMockActorContext();
+  const actorContext = createMockActorContext() as ActorContext<
+    TSnapshot,
+    TEvent,
+    TSystem
+  >;
   const fromState =
     customFromState ??
     logic.getInitialState(

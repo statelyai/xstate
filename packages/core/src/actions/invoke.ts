@@ -11,6 +11,7 @@ import {
   EventObject,
   MachineContext,
   ParameterizedObject,
+  AnyActorLogic,
   Snapshot
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
@@ -28,14 +29,15 @@ function resolveInvoke(
   }: {
     id: string;
     systemId: string | undefined;
-    src: string;
+    src: AnyActorLogic | string;
     input?: unknown;
     syncSnapshot: boolean;
   }
 ) {
-  const referenced = resolveReferencedActor(
-    state.machine.implementations.actors[src]
-  );
+  const referenced =
+    typeof src === 'string'
+      ? resolveReferencedActor(state.machine, src)
+      : { src, input: undefined };
 
   let actorRef: AnyActorRef | undefined;
 
@@ -44,7 +46,7 @@ function resolveInvoke(
     const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
       id,
-      src,
+      src: typeof src === 'string' ? src : undefined,
       parent: actorContext?.self,
       systemId,
       input:
@@ -138,7 +140,7 @@ export function invoke<
 }: {
   id: string;
   systemId: string | undefined;
-  src: string;
+  src: AnyActorLogic | string;
   input?: unknown;
   onSnapshot?: {}; // TODO: transition object
 }): InvokeAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
