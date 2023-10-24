@@ -1148,7 +1148,12 @@ function enterStates(
     actions.push(...stateNodeToEnter.entry);
 
     for (const invokeDef of stateNodeToEnter.invoke) {
-      actions.push(spawn(invokeDef.src, invokeDef));
+      actions.push(
+        spawn(invokeDef.src, {
+          ...invokeDef,
+          syncSnapshot: !!invokeDef.onSnapshot
+        })
+      );
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {

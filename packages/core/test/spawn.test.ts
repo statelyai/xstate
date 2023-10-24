@@ -1,4 +1,12 @@
-import { createActor, createMachine, fromPromise, spawn } from '../src';
+import { interval } from 'rxjs';
+import {
+  ActorRefFrom,
+  createActor,
+  createMachine,
+  fromObservable,
+  fromPromise,
+  spawn
+} from '../src';
 
 describe('spawn action', () => {
   it('can spawn', () => {
@@ -37,5 +45,42 @@ describe('spawn action', () => {
     actor.start();
 
     expect(actor.getSnapshot().children.child).toBeDefined();
+  });
+
+  it('should accept `syncSnapshot` option', (done) => {
+    const observableLogic = fromObservable(() => interval(10));
+    const observableMachine = createMachine({
+      id: 'observable',
+      initial: 'idle',
+      context: {
+        observableRef: undefined! as ActorRefFrom<typeof observableLogic>
+      },
+      states: {
+        idle: {
+          entry: spawn(observableLogic, {
+            id: 'int',
+            syncSnapshot: true
+          }),
+          on: {
+            'xstate.snapshot.int': {
+              target: 'success',
+              guard: ({ event }) => event.snapshot.context === 5
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const observableService = createActor(observableMachine);
+    observableService.subscribe({
+      complete: () => {
+        done();
+      }
+    });
+
+    observableService.start();
   });
 });

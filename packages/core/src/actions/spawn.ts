@@ -138,12 +138,12 @@ export function spawn<
     id,
     systemId,
     input,
-    onSnapshot
+    syncSnapshot = false
   }: {
     id?: string | undefined;
     systemId?: string | undefined;
     input?: unknown;
-    onSnapshot?: {}; // TODO: transition object
+    syncSnapshot?: boolean;
   }
 ): SpawnAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
   function spawn(
@@ -159,7 +159,7 @@ export function spawn<
   spawn.systemId = systemId;
   spawn.src = src;
   spawn.input = input;
-  spawn.syncSnapshot = !!onSnapshot;
+  spawn.syncSnapshot = syncSnapshot;
 
   spawn.resolve = resolveSpawn;
   spawn.execute = executeSpawn;
