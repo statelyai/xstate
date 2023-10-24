@@ -144,7 +144,7 @@ export function spawn<
     systemId?: string | undefined;
     input?: unknown;
     syncSnapshot?: boolean;
-  }
+  } = {}
 ): SpawnAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
   function spawn(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
