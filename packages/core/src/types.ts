@@ -23,6 +23,9 @@ export type HomomorphicOmit<T, K extends keyof any> = {
 };
 
 /**
+ *
+ * @remarks
+ *
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
  * It especially is a problem when the union has a function member, like here:
  *
