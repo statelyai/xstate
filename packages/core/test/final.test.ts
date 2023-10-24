@@ -2,7 +2,8 @@ import {
   createMachine,
   createActor,
   assign,
-  AnyActorRef
+  AnyActorRef,
+  sendParent
 } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
@@ -1108,5 +1109,50 @@ describe('final states', () => {
     createActor(machine).start();
 
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('should only call exit actions once when a child machine reaches its final state and sends an event to its parent that ends up stopping that child', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      initial: 'start',
+      exit: spy,
+      states: {
+        start: {
+          on: {
+            CANCEL: 'canceled'
+          }
+        },
+        canceled: {
+          type: 'final',
+          entry: sendParent({ type: 'CHILD_CANCELED' })
+        }
+      }
+    });
+    const parent = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            id: 'child',
+            src: child,
+            onDone: 'completed'
+          },
+          on: {
+            CHILD_CANCELED: 'canceled'
+          }
+        },
+        canceled: {},
+        completed: {}
+      }
+    });
+
+    const actorRef = createActor(parent).start();
+
+    actorRef.getSnapshot().children.child.send({
+      type: 'CANCEL'
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

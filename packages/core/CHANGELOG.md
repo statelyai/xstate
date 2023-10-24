@@ -1,5 +1,11 @@
 # xstate
 
+## 4.38.3
+
+### Patch Changes
+
+- [#4380](https://github.com/statelyai/xstate/pull/4380) [`e9e065822`](https://github.com/statelyai/xstate/commit/e9e06582215abedf118cf2165e635eccb8e44251) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `exit` actions sometimes being called twice when a machine reaches its final state and leads its parent to stopping it at the same time.
+
 ## 5.0.0-beta.36
 
 ### Major Changes
@@ -541,6 +547,16 @@
 
   ```ts
   const callbackLogic = fromCallback(({ input, system, self, sendBack, receive }) => { ... });
+  ```
+
+## 4.38.2
+
+### Patch Changes
+
+- [#4159](https://github.com/statelyai/xstate/pull/4159) [`8bfbb8531`](https://github.com/statelyai/xstate/commit/8bfbb85316d305dc33b00b6e6170652fa248b20b) Thanks [@Andarist](https://github.com/Andarist)! - The `cancel` action was added to the main export:
+
+  ```ts
+  import { cancel } from 'xstate';
   ```
 
 ## 5.0.0-beta.19
