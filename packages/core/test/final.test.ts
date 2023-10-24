@@ -1155,4 +1155,90 @@ describe('final states', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  it('should deliver final outgoing events (from final entry action) to the parent before delivering the `xstate.done.actor.*` event', () => {
+    const child = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            CANCEL: 'canceled'
+          }
+        },
+        canceled: {
+          type: 'final',
+          entry: sendParent({ type: 'CHILD_CANCELED' })
+        }
+      }
+    });
+    const parent = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            id: 'child',
+            src: child,
+            onDone: 'completed'
+          },
+          on: {
+            CHILD_CANCELED: 'canceled'
+          }
+        },
+        canceled: {},
+        completed: {}
+      }
+    });
+
+    const actorRef = createActor(parent).start();
+
+    actorRef.getSnapshot().children.child.send({
+      type: 'CANCEL'
+    });
+
+    // if `xstate.done.actor.*` would be delivered first the value would be `completed`
+    expect(actorRef.getSnapshot().value).toBe('canceled');
+  });
+
+  it('should deliver final outgoing events (from root exit action) to the parent before delivering the `xstate.done.actor.*` event', () => {
+    const child = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            CANCEL: 'canceled'
+          }
+        },
+        canceled: {
+          type: 'final'
+        }
+      },
+      exit: sendParent({ type: 'CHILD_CANCELED' })
+    });
+    const parent = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            id: 'child',
+            src: child,
+            onDone: 'completed'
+          },
+          on: {
+            CHILD_CANCELED: 'canceled'
+          }
+        },
+        canceled: {},
+        completed: {}
+      }
+    });
+
+    const actorRef = createActor(parent).start();
+
+    actorRef.getSnapshot().children.child.send({
+      type: 'CANCEL'
+    });
+
+    // if `xstate.done.actor.*` would be delivered first the value would be `completed`
+    expect(actorRef.getSnapshot().value).toBe('canceled');
+  });
 });
