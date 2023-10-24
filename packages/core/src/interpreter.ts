@@ -20,10 +20,10 @@ import type {
   AnyActorLogic,
   AnyStateMachine,
   EventFromLogic,
-  PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef,
-  DoneActorEvent
+  DoneActorEvent,
+  Snapshot
 } from './types.ts';
 import {
   ActorRef,
@@ -543,8 +543,8 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public getPersistedState(): PersistedStateFrom<TLogic> | undefined {
-    return this.logic.getPersistedState?.(this._state);
+  public getPersistedState(): Snapshot<unknown> {
+    return this.logic.getPersistedState(this._state);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {

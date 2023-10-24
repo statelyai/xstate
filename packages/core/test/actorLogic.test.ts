@@ -598,7 +598,7 @@ describe('machine logic', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.children.a.state).toMatchInlineSnapshot(`
+    expect((persistedState as any).children.a.state).toMatchInlineSnapshot(`
       {
         "error": undefined,
         "input": undefined,
@@ -607,7 +607,7 @@ describe('machine logic', () => {
       }
     `);
 
-    expect(persistedState.children.b.state).toEqual(
+    expect((persistedState as any).children.b.state).toEqual(
       expect.objectContaining({
         context: {
           count: 55
@@ -724,7 +724,7 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(actor.getPersistedState()?.children['child'].state).toEqual(
+    expect((actor.getPersistedState() as any).children['child'].state).toEqual(
       expect.objectContaining({
         value: 'inner'
       })
@@ -772,9 +772,9 @@ describe('machine logic', () => {
       value: 'value'
     });
 
-    const persisted = actor.getPersistedState();
+    const persisted: any = actor.getPersistedState();
 
-    delete persisted?.children['child'];
+    delete persisted.children['child'];
 
     const rehydratedActor = createActor(machine, { state: persisted }).start();
 
@@ -807,7 +807,9 @@ describe('machine logic', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.children.child.state.context).toEqual({ count: 42 });
+    expect((persistedState as any).children.child.state.context).toEqual({
+      count: 42
+    });
 
     const newActor = createActor(machine, {
       state: persistedState

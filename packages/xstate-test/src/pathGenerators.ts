@@ -6,9 +6,8 @@ export const createShortestPathsGen =
   <
     TSnapshot extends Snapshot<unknown>,
     TEvent extends EventObject,
-    TInput,
-    TPersisted
-  >(): PathGenerator<TSnapshot, TEvent, TInput, TPersisted> =>
+    TInput
+  >(): PathGenerator<TSnapshot, TEvent, TInput> =>
   (logic, defaultOptions) => {
     const paths = getShortestPaths(logic, defaultOptions);
 
@@ -19,9 +18,8 @@ export const createSimplePathsGen =
   <
     TSnapshot extends Snapshot<unknown>,
     TEvent extends EventObject,
-    TInput,
-    TPersisted
-  >(): PathGenerator<TSnapshot, TEvent, TInput, TPersisted> =>
+    TInput
+  >(): PathGenerator<TSnapshot, TEvent, TInput> =>
   (logic, defaultOptions) => {
     const paths = getSimplePaths(logic, defaultOptions);
 

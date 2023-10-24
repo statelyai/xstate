@@ -2268,7 +2268,8 @@ describe('invoke', () => {
           output: undefined,
           error: undefined,
           context: 0
-        })
+        }),
+        getPersistedState: (s) => s
       };
 
       const countMachine = createMachine({
@@ -2308,7 +2309,8 @@ describe('invoke', () => {
           status: 'active',
           output: undefined,
           error: undefined
-        })
+        }),
+        getPersistedState: (s) => s
       };
 
       const pingMachine = createMachine({
