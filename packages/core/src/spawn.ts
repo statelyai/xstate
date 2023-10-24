@@ -104,9 +104,7 @@ export function createSpawner(
               });
             }
           },
-          error: () => {
-            /* TODO */
-          }
+          error: () => {}
         });
       }
       return actorRef;
@@ -131,9 +129,7 @@ export function createSpawner(
               });
             }
           },
-          error: () => {
-            /* TODO */
-          }
+          error: () => {}
         });
       }
 

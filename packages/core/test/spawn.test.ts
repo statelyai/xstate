@@ -1,10 +1,4 @@
-import {
-  PromiseActorLogic,
-  createActor,
-  createMachine,
-  fromPromise,
-  spawn
-} from '../src';
+import { createActor, createMachine, fromPromise, spawn } from '../src';
 
 describe('spawn action', () => {
   it('can spawn', () => {

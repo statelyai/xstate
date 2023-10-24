@@ -1,48 +1,118 @@
 import isDevelopment from '#is-development';
+import { cloneState } from '../State.ts';
+import { createErrorActorEvent } from '../eventUtils.ts';
+import { ActorStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
   AnyActorContext,
-  AnyActorLogic,
   AnyActorRef,
+  AnyActor,
   AnyState,
   EventObject,
   MachineContext,
   ParameterizedObject,
+  AnyActorLogic,
+  Snapshot,
   ProvidedActor
 } from '../types.ts';
-import { SpawnOptions, Spawner, createSpawner } from '../spawn.ts';
-import { cloneState } from '../State';
+import { resolveReferencedActor } from '../utils.ts';
 
 function resolveSpawn(
-  actorCtx: AnyActorContext,
+  actorContext: AnyActorContext,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any, any>,
   {
+    id,
+    systemId,
     src,
-    options
-  }: { src: string | AnyActorLogic; options?: SpawnOptions<any, any>[0] }
+    input,
+    syncSnapshot
+  }: {
+    id: string;
+    systemId: string | undefined;
+    src: AnyActorLogic | string;
+    input?: unknown;
+    syncSnapshot: boolean;
+  }
 ) {
-  const spawnedChildren: Record<string, AnyActorRef> = {};
+  const referenced =
+    typeof src === 'string'
+      ? resolveReferencedActor(state.machine, src)
+      : { src, input: undefined };
 
-  const spawner = createSpawner(
-    actorCtx,
-    state,
-    actionArgs.event,
-    spawnedChildren
-  );
+  let actorRef: AnyActorRef | undefined;
 
-  spawner(src, options);
+  if (referenced) {
+    // TODO: inline `input: undefined` should win over the referenced one
+    const configuredInput = input || referenced.input;
+    actorRef = createActor(referenced.src, {
+      id,
+      src: typeof src === 'string' ? src : undefined,
+      parent: actorContext?.self,
+      systemId,
+      input:
+        typeof configuredInput === 'function'
+          ? configuredInput({
+              context: state.context,
+              event: actionArgs.event,
+              self: actorContext?.self
+            })
+          : configuredInput
+    });
 
+    if (syncSnapshot) {
+      actorRef.subscribe({
+        next: (snapshot: Snapshot<unknown>) => {
+          if (snapshot.status === 'active') {
+            actorContext.self.send({
+              type: `xstate.snapshot.${id}`,
+              snapshot
+            });
+          }
+        },
+        error: () => {}
+      });
+    }
+  }
+
+  if (isDevelopment && !actorRef) {
+    console.warn(
+      `Actor type '${src}' not found in machine '${actorContext.id}'.`
+    );
+  }
   return [
     cloneState(state, {
-      children: Object.keys(spawnedChildren).length
-        ? {
-            ...state.children,
-            ...spawnedChildren
-          }
-        : state.children
-    })
+      children: {
+        ...state.children,
+        [id]: actorRef!
+      }
+    }),
+    {
+      id,
+      actorRef
+    }
   ];
+}
+
+function executeSpawn(
+  actorContext: AnyActorContext,
+  { id, actorRef }: { id: string; actorRef: AnyActorRef }
+) {
+  if (!actorRef) {
+    return;
+  }
+
+  actorContext.defer(() => {
+    if (actorRef.status === ActorStatus.Stopped) {
+      return;
+    }
+    try {
+      actorRef.start?.();
+    } catch (err) {
+      (actorContext.self as AnyActor).send(createErrorActorEvent(id, err));
+      return;
+    }
+  });
 }
 
 export interface SpawnAction<
@@ -56,14 +126,6 @@ export interface SpawnAction<
   _out_TActor?: TActor;
 }
 
-/**
- *
- * @param expr The expression function to evaluate which will be logged.
- *  Takes in 2 arguments:
- *  - `ctx` - the current state context
- *  - `event` - the event that caused this action to be executed.
- * @param label The label to give to the logged expression.
- */
 export function spawn<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -71,7 +133,18 @@ export function spawn<
   TEvent extends EventObject,
   TActor extends ProvidedActor
 >(
-  ...args: Parameters<Spawner<TActor>>
+  src: string | AnyActorLogic,
+  {
+    id,
+    systemId,
+    input,
+    onSnapshot
+  }: {
+    id?: string | undefined;
+    systemId?: string | undefined;
+    input?: unknown;
+    onSnapshot?: {}; // TODO: transition object
+  }
 ): SpawnAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
   function spawn(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
@@ -82,10 +155,14 @@ export function spawn<
   }
 
   spawn.type = 'xstate.spawn';
-  spawn.src = args[0];
-  spawn.options = args[1];
+  spawn.id = id;
+  spawn.systemId = systemId;
+  spawn.src = src;
+  spawn.input = input;
+  spawn.syncSnapshot = !!onSnapshot;
 
   spawn.resolve = resolveSpawn;
+  spawn.execute = executeSpawn;
 
   return spawn;
 }
