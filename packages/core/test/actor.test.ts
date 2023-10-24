@@ -166,9 +166,7 @@ describe('spawning machines', () => {
         SET_COMPLETE: {
           actions: sendTo(
             ({ context, event }) => {
-              return context.todoRefs[
-                (event as Extract<TodoEvent, { type: 'SET_COMPLETE' }>).id
-              ];
+              return context.todoRefs[event.id];
             },
             { type: 'SET_COMPLETE' }
           )

@@ -287,7 +287,7 @@ describe('delayed transitions', () => {
           delays: {
             someDelay: ({ event }) => {
               spy(event);
-              return (event as any).delay;
+              return event.delay;
             }
           }
         }
