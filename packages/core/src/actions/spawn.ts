@@ -13,7 +13,9 @@ import {
   ParameterizedObject,
   AnyActorLogic,
   Snapshot,
-  ProvidedActor
+  ProvidedActor,
+  IsLiteralString,
+  InputFrom
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -126,6 +128,42 @@ export interface SpawnAction<
   _out_TActor?: TActor;
 }
 
+type DistributeActors<TActor extends ProvidedActor> = TActor extends any
+  ? 'id' extends keyof TActor
+    ? [
+        src: TActor['src'],
+        options: {
+          id: TActor['id'];
+          systemId?: string;
+          input?: InputFrom<TActor['logic']>;
+          syncSnapshot?: boolean;
+        }
+      ]
+    : [
+        src: TActor['src'],
+        options?: {
+          id?: string;
+          systemId?: string;
+          input?: InputFrom<TActor['logic']>;
+          syncSnapshot?: boolean;
+        }
+      ]
+  : never;
+
+type SpawnArguments<TActor extends ProvidedActor> = IsLiteralString<
+  TActor['src']
+> extends true
+  ? DistributeActors<TActor>
+  : [
+      src: string | AnyActorLogic,
+      options?: {
+        id?: string;
+        systemId?: string;
+        input?: unknown;
+        syncSnapshot?: boolean;
+      }
+    ];
+
 export function spawn<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -133,18 +171,10 @@ export function spawn<
   TEvent extends EventObject,
   TActor extends ProvidedActor
 >(
-  src: string | AnyActorLogic,
-  {
-    id,
-    systemId,
-    input,
-    syncSnapshot = false
-  }: {
-    id?: string | undefined;
-    systemId?: string | undefined;
-    input?: unknown;
-    syncSnapshot?: boolean;
-  } = {}
+  ...[
+    src,
+    { id, systemId, input, syncSnapshot = false } = {} as any
+  ]: SpawnArguments<TActor>
 ): SpawnAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
   function spawn(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>

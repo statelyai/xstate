@@ -757,8 +757,9 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
-      entry: spawn('other')
+      entry:
+        // @ts-expect-error
+        spawn('other')
     });
   });
 
@@ -820,8 +821,9 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      // @ts-expect-error
-      entry: spawn('child')
+      entry:
+        // @ts-expect-error
+        spawn('child')
     });
   });
 
@@ -873,8 +875,9 @@ describe('spawn action', () => {
           logic: typeof child1;
         };
       },
-      // @ts-expect-error
-      entry: spawn(child2)
+      entry:
+        // @ts-expect-error
+        spawn(child2)
     });
   });
 
@@ -968,6 +971,33 @@ describe('spawn action', () => {
         // @ts-expect-error
         input: () => 42
       })
+    });
+  });
+
+  it(`should reject a valid input of a different provided actor`, () => {
+    const child1 = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    const child2 = fromPromise(({}: { input: string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors:
+          | {
+              src: 'child1';
+              logic: typeof child1;
+            }
+          | {
+              src: 'child2';
+              logic: typeof child2;
+            };
+      },
+      entry:
+        // @ts-expect-error
+        spawn('child1', {
+          input: 'hello'
+        })
     });
   });
 });
