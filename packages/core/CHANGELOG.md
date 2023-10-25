@@ -1,5 +1,17 @@
 # xstate
 
+## 5.0.0-beta.37
+
+### Major Changes
+
+- [#4234](https://github.com/statelyai/xstate/pull/4234) [`57814f46d`](https://github.com/statelyai/xstate/commit/57814f46dec425973d52e4b630752ee4824fd9a9) Thanks [@Andarist](https://github.com/Andarist)! - Atomic and parallel states should no longer be reentered when the transition target doesn't escape them. You can get the reentering behavior by configuring `reenter: true` for the transition.
+
+### Patch Changes
+
+- [#4387](https://github.com/statelyai/xstate/pull/4387) [`0be0ef015`](https://github.com/statelyai/xstate/commit/0be0ef015425c8ad46e1afb8c39d3679786b1b10) Thanks [@Andarist](https://github.com/Andarist)! - Added support to `stateIn` guard for checking a combination of an ID and a path, eg. `stateIn('#b.B1')`.
+
+- [#4384](https://github.com/statelyai/xstate/pull/4384) [`e0bbe3397`](https://github.com/statelyai/xstate/commit/e0bbe339752980f7b84670faf6ca80529885c838) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused parallel states with direct final children to be completed without all regions being in their final states.
+
 ## 4.38.3
 
 ### Patch Changes
