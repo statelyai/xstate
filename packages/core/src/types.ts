@@ -290,6 +290,7 @@ export interface StateValueMap {
  * @remarks
  *
  * - For a child atomic state node, this is a string, e.g., `"pending"`.
+ *
  * - For complex state nodes, this is an object, e.g., `{ success: "someChildState" }`.
  */
 export type StateValue = string | StateValueMap;
