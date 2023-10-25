@@ -145,6 +145,8 @@ function executeSendTo(
     return;
   }
 
+  // this forms an outgoing events queue
+  // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorContext.defer(() => {
     const { to, event } = params;
     actorContext?.system._relay(
