@@ -55,11 +55,16 @@ function executeStop(
   if (!actorRef) {
     return;
   }
+  // this allows us to prevent an actor from being started if it gets stopped within the same macrostep
+  // this can happen, for example, when the invoking state is being exited immediately by an always transition
   if (actorRef.status !== ActorStatus.Running) {
     actorContext.stopChild(actorRef);
     return;
   }
-  // TODO: recheck why this one has to be deferred
+  // stopping a child enqueues a stop event in the child actor's mailbox
+  // we need for all of the already enqueued events to be processed before we stop the child
+  // the parent itself might want to send some events to a child (for example from exit actions on the invoking state)
+  // and we don't want to ignore those events
   actorContext.defer(() => {
     actorContext.stopChild(actorRef);
   });
