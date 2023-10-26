@@ -120,16 +120,16 @@ function executeInvoke(
 interface InvokeAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
 }
 
 export function invoke<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 >({
   id,
@@ -143,10 +143,8 @@ export function invoke<
   src: AnyActorLogic | string;
   input?: unknown;
   onSnapshot?: {}; // TODO: transition object
-}): InvokeAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
-  function invoke(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-  ) {
+}): InvokeAction<TContext, TExpressionEvent, TParams, TEvent> {
+  function invoke(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

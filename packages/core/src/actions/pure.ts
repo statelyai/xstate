@@ -40,14 +40,14 @@ function resolvePure(
 export interface PureAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
   _out_TEvent?: TEvent;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -58,8 +58,8 @@ export interface PureAction<
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
     | undefined,
   TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
@@ -88,16 +88,14 @@ export function pure<
 ): PureAction<
   TContext,
   TExpressionEvent,
-  TExpressionAction,
+  TParams,
   TEvent,
   TActor,
   TAction,
   TGuard,
   TDelay
 > {
-  function pure(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-  ) {
+  function pure(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

@@ -290,7 +290,7 @@ export function getDelayedTransitions(
       | DelayExpr<
           MachineContext,
           EventObject,
-          ParameterizedObject | undefined,
+          ParameterizedObject['params'] | undefined,
           EventObject
         >,
     i: number
@@ -1488,7 +1488,7 @@ function resolveActionsAndContextWorker(
               MachineContext,
               EventObject,
               EventObject,
-              ParameterizedObject | undefined,
+              ParameterizedObject['params'] | undefined,
               ProvidedActor,
               ParameterizedObject,
               ParameterizedObject,

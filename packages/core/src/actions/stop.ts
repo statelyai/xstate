@@ -14,13 +14,13 @@ import {
 type ResolvableActorRef<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > =
   | string
   | ActorRef<any, any>
   | ((
-      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+      args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>
     ) => ActorRef<any, any> | string);
 
 function resolveStop(
@@ -73,10 +73,10 @@ function executeStop(
 export interface StopAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
 }
 
 /**
@@ -87,19 +87,12 @@ export interface StopAction<
 export function stop<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 >(
-  actorRef: ResolvableActorRef<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent
-  >
-): StopAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
-  function stop(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-  ) {
+  actorRef: ResolvableActorRef<TContext, TExpressionEvent, TParams, TEvent>
+): StopAction<TContext, TExpressionEvent, TParams, TEvent> {
+  function stop(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

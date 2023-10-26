@@ -19,10 +19,10 @@ import type {
 export interface AssignArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> extends ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent> {
+> extends ActionArgs<TContext, TExpressionEvent, TParams, TEvent> {
   spawn: Spawner<TActor>;
 }
 
@@ -89,11 +89,11 @@ function resolveAssign(
 export interface AssignAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
   _out_TActor?: TActor;
 }
 
@@ -105,31 +105,23 @@ export interface AssignAction<
 export function assign<
   TContext extends MachineContext,
   TExpressionEvent extends AnyEventObject = AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
     | undefined,
   TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor
 >(
   assignment:
-    | Assigner<
-        LowInfer<TContext>,
-        TExpressionEvent,
-        TExpressionAction,
-        TEvent,
-        TActor
-      >
+    | Assigner<LowInfer<TContext>, TExpressionEvent, TParams, TEvent, TActor>
     | PropertyAssigner<
         LowInfer<TContext>,
         TExpressionEvent,
-        TExpressionAction,
+        TParams,
         TEvent,
         TActor
       >
-): AssignAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
-  function assign(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-  ) {
+): AssignAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
+  function assign(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

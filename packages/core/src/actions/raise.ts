@@ -28,7 +28,7 @@ function resolveRaise(
       | SendExpr<
           MachineContext,
           EventObject,
-          ParameterizedObject | undefined,
+          ParameterizedObject['params'] | undefined,
           EventObject,
           EventObject
         >;
@@ -39,7 +39,7 @@ function resolveRaise(
       | DelayExpr<
           MachineContext,
           EventObject,
-          ParameterizedObject | undefined,
+          ParameterizedObject['params'] | undefined,
           EventObject
         >
       | undefined;
@@ -89,11 +89,11 @@ function executeRaise(
 export interface RaiseAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
   _out_TEvent?: TEvent;
   _out_TDelay?: TDelay;
 }
@@ -108,31 +108,23 @@ export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent,
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
     | undefined,
   TDelay extends string = string
 >(
   eventOrExpr:
     | NoInfer<TEvent>
-    | SendExpr<
-        TContext,
-        TExpressionEvent,
-        TExpressionAction,
-        NoInfer<TEvent>,
-        TEvent
-      >,
+    | SendExpr<TContext, TExpressionEvent, TParams, NoInfer<TEvent>, TEvent>,
   options?: RaiseActionOptions<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     NoInfer<TEvent>,
     NoInfer<TDelay>
   >
-): RaiseAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TDelay> {
-  function raise(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-  ) {
+): RaiseAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
+  function raise(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

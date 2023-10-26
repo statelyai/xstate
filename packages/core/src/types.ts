@@ -107,10 +107,10 @@ export type MachineContext = Record<string, any>;
 export interface ActionArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
-  params: GetParameterizedParams<TExpressionAction>;
+  params: TParams;
 }
 
 export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
@@ -148,15 +148,13 @@ export type ActionFunction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > = {
-  (
-    args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-  ): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
   _out_TEvent?: TEvent; // TODO: it feels like we should be able to remove this since now `TEvent` is "observable" by `self`
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -222,7 +220,7 @@ export type Action<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -236,7 +234,7 @@ export type Action<
       TContext,
       TExpressionEvent,
       TEvent,
-      TExpressionAction,
+      TParams,
       TActor,
       TAction,
       TGuard,
@@ -247,7 +245,7 @@ export type UnknownAction = Action<
   MachineContext,
   EventObject,
   EventObject,
-  ParameterizedObject | undefined,
+  ParameterizedObject['params'] | undefined,
   ProvidedActor,
   ParameterizedObject,
   ParameterizedObject,
@@ -258,7 +256,7 @@ export type Actions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -268,7 +266,7 @@ export type Actions<
     TContext,
     TExpressionEvent,
     TEvent,
-    TExpressionAction,
+    TParams,
     TActor,
     TAction,
     TGuard,
@@ -997,7 +995,7 @@ export type ActionFunctionMap<
     TContext,
     TEvent,
     TEvent,
-    TAction extends { type: K } ? TAction : never,
+    GetParameterizedParams<TAction extends { type: K } ? TAction : never>,
     TActor,
     TAction,
     TGuard,
@@ -1013,7 +1011,7 @@ type GuardMap<
   [K in TGuard['type']]?: GuardPredicate<
     TContext,
     TEvent,
-    TGuard extends { type: K } ? TGuard : never,
+    GetParameterizedParams<TGuard extends { type: K } ? TGuard : never>,
     TGuard
   >;
 };
@@ -1022,14 +1020,14 @@ export type DelayFunctionMap<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject
-> = Record<string, DelayConfig<TContext, TEvent, TAction, TEvent>>;
+> = Record<string, DelayConfig<TContext, TEvent, TAction['params'], TEvent>>;
 
 export type DelayConfig<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
-> = number | DelayExpr<TContext, TExpressionEvent, TExpressionAction, TEvent>;
+> = number | DelayExpr<TContext, TExpressionEvent, TParams, TEvent>;
 
 // TODO: possibly refactor this somehow, use even a simpler type, and maybe even make `machine.options` private or something
 export interface MachineImplementationsSimplified<
@@ -1082,7 +1080,7 @@ type MachineImplementationsActions<
     TContext,
     MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActions, K>,
     Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>,
-    Cast<TIndexedActions[K], ParameterizedObject>,
+    Cast<Prop<TIndexedActions[K], 'params'>, ParameterizedObject['params']>,
     Cast<Prop<TIndexedActors, keyof TIndexedActors>, ProvidedActor>,
     Cast<Prop<TIndexedActions, keyof TIndexedActions>, ParameterizedObject>,
     Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>,
@@ -1143,7 +1141,10 @@ type MachineImplementationsDelays<
     // delays in referenced send actions might use specific `TAction`
     // delays executed by auto-generated send actions related to after transitions won't have that
     // since they are effectively implicit inline actions
-    | Cast<Prop<TIndexedActions, keyof TIndexedActions>, ParameterizedObject>
+    | Cast<
+        Prop<Prop<TIndexedActions, keyof TIndexedActions>, 'params'>,
+        ParameterizedObject['params']
+      >
     | undefined,
     Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
   >;
@@ -1162,7 +1163,7 @@ type MachineImplementationsGuards<
   [K in keyof TIndexedGuards]?: Guard<
     TContext,
     MaybeNarrowedEvent<TIndexedEvents, TEventsCausingGuards, K>,
-    Cast<TIndexedGuards[K], ParameterizedObject>,
+    Cast<Prop<TIndexedGuards[K], 'params'>, ParameterizedObject['params']>,
     Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>
   >;
 };
@@ -1445,29 +1446,25 @@ export interface DoneStateEvent<TOutput = unknown> extends EventObject {
 export type DelayExpr<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
-> = (
-  args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-) => number;
+> = (args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) => number;
 
 export type LogExpr<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
-> = (
-  args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
-) => unknown;
+> = (args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) => unknown;
 
 export type SendExpr<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TSentEvent extends EventObject,
   TEvent extends EventObject
 > = (
-  args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>
 ) => TSentEvent;
 
 export enum SpecialTargets {
@@ -1478,13 +1475,13 @@ export enum SpecialTargets {
 export interface SendToActionOptions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TDelay extends string
 > extends RaiseActionOptions<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     TEvent,
     TDelay
   > {}
@@ -1492,108 +1489,81 @@ export interface SendToActionOptions<
 export interface RaiseActionOptions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TDelay extends string
 > {
   id?: string;
   delay?:
     | Delay<TDelay>
-    | DelayExpr<TContext, TExpressionEvent, TExpressionAction, TEvent>;
+    | DelayExpr<TContext, TExpressionEvent, TParams, TEvent>;
 }
 
 export interface RaiseActionParams<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TDelay extends string
 > extends RaiseActionOptions<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     TEvent,
     TDelay
   > {
-  event:
-    | TEvent
-    | SendExpr<TContext, TExpressionEvent, TExpressionAction, TEvent, TEvent>;
+  event: TEvent | SendExpr<TContext, TExpressionEvent, TParams, TEvent, TEvent>;
 }
 
 export interface SendToActionParams<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TSentEvent extends EventObject,
   TEvent extends EventObject,
   TDelay extends string
 > extends SendToActionOptions<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     TEvent,
     TDelay
   > {
   event:
     | TSentEvent
-    | SendExpr<
-        TContext,
-        TExpressionEvent,
-        TExpressionAction,
-        TSentEvent,
-        TEvent
-      >;
+    | SendExpr<TContext, TExpressionEvent, TParams, TSentEvent, TEvent>;
 }
 
 export type Assigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = (
-  args: AssignArgs<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent,
-    TActor
-  >
+  args: AssignArgs<TContext, TExpressionEvent, TParams, TEvent, TActor>
 ) => Partial<TContext>;
 
 export type PartialAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TKey extends keyof TContext
 > = (
-  args: AssignArgs<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent,
-    TActor
-  >
+  args: AssignArgs<TContext, TExpressionEvent, TParams, TEvent, TActor>
 ) => TContext[TKey];
 
 export type PropertyAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = {
   [K in keyof TContext]?:
-    | PartialAssigner<
-        TContext,
-        TExpressionEvent,
-        TExpressionAction,
-        TEvent,
-        TActor,
-        K
-      >
+    | PartialAssigner<TContext, TExpressionEvent, TParams, TEvent, TActor, K>
     | TContext[K];
 };
 
