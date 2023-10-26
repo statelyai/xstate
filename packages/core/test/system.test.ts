@@ -425,7 +425,7 @@ describe('system', () => {
     expect(actor.system.get('test')).toBeDefined();
   });
 
-  it('da', () => {
+  it('should gracefully handle re-registration of a `systemId` during a reentering transition', () => {
     const spy = jest.fn();
 
     let counter = 0;
