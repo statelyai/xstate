@@ -840,9 +840,6 @@ export interface StateNodeConfig<
     TGuard,
     TDelay
   >;
-  /**
-   * @internal
-   */
   parent?: StateNode<TContext, TEvent>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
