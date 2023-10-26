@@ -424,4 +424,49 @@ describe('system', () => {
 
     expect(actor.system.get('test')).toBeDefined();
   });
+
+  it('da', () => {
+    const spy = jest.fn();
+
+    let counter = 0;
+
+    const machine = createMachine({
+      initial: 'listening',
+      states: {
+        listening: {
+          invoke: {
+            systemId: 'listener',
+            src: fromCallback(({ receive }) => {
+              const localId = counter++;
+
+              receive((event) => {
+                spy(localId, event);
+              });
+
+              return () => {};
+            })
+          }
+        }
+      },
+      on: {
+        RESTART: {
+          target: '.listening'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'RESTART' });
+    actorRef.system.get('listener')!.send({ type: 'a' });
+
+    expect(spy.mock.calls).toEqual([
+      [
+        1,
+        {
+          type: 'a'
+        }
+      ]
+    ]);
+  });
 });
