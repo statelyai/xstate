@@ -1610,7 +1610,9 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
-    nextState = stopChildren(nextState, event, actorCtx);
+    nextState = cloneState(stopChildren(nextState, event, actorCtx), {
+      status: 'stopped'
+    });
     states.push(nextState);
 
     return {
