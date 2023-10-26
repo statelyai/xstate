@@ -982,11 +982,6 @@ function areConfigurationsEqual(
 
 /**
  * https://www.w3.org/TR/scxml/#microstepProcedure
- *
- * @internal
- * @param transitions
- * @param currentState
- * @param mutConfiguration
  */
 export function microstep<
   TContext extends MachineContext,
