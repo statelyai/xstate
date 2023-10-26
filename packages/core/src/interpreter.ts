@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { Mailbox } from './Mailbox.ts';
+import { MAILBOX_ACTIVE, MAILBOX_STOPPED, Mailbox } from './Mailbox.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
@@ -53,17 +53,6 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-export enum ActorStatus {
-  NotStarted,
-  Running,
-  Stopped
-}
-
-/**
- * @deprecated Use `ActorStatus` instead.
- */
-export const InterpreterStatus = ActorStatus;
-
 const defaultOptions = {
   clock: {
     setTimeout: (fn, ms) => {
@@ -95,7 +84,8 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public id: string;
 
-  private mailbox: Mailbox<EventFromLogic<TLogic>> = new Mailbox(
+  /** @internal */
+  public _mailbox: Mailbox<EventFromLogic<TLogic>> = new Mailbox(
     this._process.bind(this)
   );
 
@@ -103,10 +93,6 @@ export class Actor<TLogic extends AnyActorLogic>
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
   private logger: (...args: any[]) => void;
-  /**
-   * Whether the service is started.
-   */
-  public status: ActorStatus = ActorStatus.NotStarted;
 
   // Actor Ref
   public _parent?: ActorRef<any, any>;
@@ -276,14 +262,15 @@ export class Actor<TLogic extends AnyActorLogic>
       completeListener
     );
 
-    if (this.status !== ActorStatus.Stopped) {
-      this.observers.add(observer);
-    } else {
+    if ((this._state as any).status === 'done') {
+      // TODO: what about the stopped status?
       try {
         observer.complete?.();
       } catch (err) {
         reportUnhandledError(err);
       }
+    } else {
+      this.observers.add(observer);
     }
 
     return {
@@ -297,16 +284,16 @@ export class Actor<TLogic extends AnyActorLogic>
    * Starts the Actor from the initial state
    */
   public start(): this {
-    if (this.status === ActorStatus.Running) {
+    if (!this._mailbox.status) {
       // Do not restart the service if it is already started
       return this;
     }
+    this._mailbox.status = MAILBOX_ACTIVE;
 
     this.system._register(this.sessionId, this);
     if (this._systemId) {
       this.system._set(this._systemId, this);
     }
-    this.status = ActorStatus.Running;
 
     const initEvent = createInitEvent(this.options.input);
 
@@ -330,6 +317,7 @@ export class Actor<TLogic extends AnyActorLogic>
       // fallthrough
       case 'error':
         // TODO: rethink cleanup of observers, mailbox, etc
+        // TODO: what we do about mailbox status here?
         return this;
     }
 
@@ -340,6 +328,7 @@ export class Actor<TLogic extends AnyActorLogic>
         this._stopProcedure();
         this._error(err);
         this._parent?.send(createErrorActorEvent(this.id, err));
+        // TODO: what we do about mailbox status here?
         return this;
       }
     }
@@ -353,7 +342,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this.attachDevTools();
     }
 
-    this.mailbox.start();
+    this._mailbox.flush();
 
     return this;
   }
@@ -386,16 +375,12 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   private _stop(): this {
-    if (this.status === ActorStatus.Stopped) {
+    this._mailbox.clear();
+    if (this._mailbox.status) {
+      this._mailbox.status = MAILBOX_STOPPED;
       return this;
     }
-    this.mailbox.clear();
-    if (this.status === ActorStatus.NotStarted) {
-      this.status = ActorStatus.Stopped;
-      return this;
-    }
-    this.mailbox.enqueue({ type: XSTATE_STOP } as any);
-
+    this._mailbox.enqueue({ type: XSTATE_STOP } as any);
     return this;
   }
 
@@ -442,7 +427,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
   private _stopProcedure(): this {
-    if (this.status !== ActorStatus.Running) {
+    if (this._mailbox.status) {
       // Actor already stopped; do nothing
       return this;
     }
@@ -452,15 +437,11 @@ export class Actor<TLogic extends AnyActorLogic>
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
-    // TODO: mailbox.reset
-    this.mailbox.clear();
-    // TODO: after `stop` we must prepare ourselves for receiving events again
-    // events sent *after* stop signal must be queued
-    // it seems like this should be the common behavior for all of our consumers
-    // so perhaps this should be unified somehow for all of them
-    this.mailbox = new Mailbox(this._process.bind(this));
+    // TODO: try to write a test case that would validate the need for this but that would kinda require .start()/stop()/start()
+    // atm we kinda support that in Fast Refresh and we actually
+    this._mailbox.clear();
+    this._mailbox.status = MAILBOX_STOPPED;
 
-    this.status = ActorStatus.Stopped;
     this.system._unregister(this);
 
     return this;
@@ -470,7 +451,7 @@ export class Actor<TLogic extends AnyActorLogic>
    * @internal
    */
   public _send(event: EventFromLogic<TLogic>) {
-    if (this.status === ActorStatus.Stopped) {
+    if (this._mailbox.status === MAILBOX_STOPPED) {
       // do nothing
       if (isDevelopment) {
         const eventString = JSON.stringify(event);
@@ -482,7 +463,7 @@ export class Actor<TLogic extends AnyActorLogic>
       return;
     }
 
-    this.mailbox.enqueue(event);
+    this._mailbox.enqueue(event);
   }
 
   /**

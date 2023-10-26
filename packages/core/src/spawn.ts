@@ -144,7 +144,7 @@ export function createSpawner(
     const actorRef = spawn(src, options) as TODO; // TODO: fix types
     spawnedChildren[actorRef.id] = actorRef;
     actorContext.defer(() => {
-      if (actorRef.status === ActorStatus.Stopped) {
+      if (actorRef.getSnapshot().status !== 'active') {
         return;
       }
       try {

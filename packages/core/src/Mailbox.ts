@@ -3,17 +3,21 @@ interface MailboxItem<T> {
   next: MailboxItem<T> | null;
 }
 
+export const MAILBOX_ACTIVE = 0;
+export const MAILBOX_NOT_STARTED = 1;
+export const MAILBOX_STOPPED = 2;
+
+type MAILBOX_STATUS =
+  | typeof MAILBOX_ACTIVE
+  | typeof MAILBOX_NOT_STARTED
+  | typeof MAILBOX_STOPPED;
+
 export class Mailbox<T> {
-  private _active: boolean = false;
+  public status: MAILBOX_STATUS = MAILBOX_NOT_STARTED;
   private _current: MailboxItem<T> | null = null;
   private _last: MailboxItem<T> | null = null;
 
   constructor(private _process: (ev: T) => void) {}
-
-  public start() {
-    this._active = true;
-    this.flush();
-  }
 
   public clear(): void {
     // we can't set _current to null because we might be currently processing
@@ -39,12 +43,12 @@ export class Mailbox<T> {
     this._current = enqueued;
     this._last = enqueued;
 
-    if (this._active) {
+    if (!this.status) {
       this.flush();
     }
   }
 
-  private flush() {
+  public flush() {
     while (this._current) {
       // atm the given _process is responsible for implementing proper try/catch handling
       // we assume here that this won't throw in a way that can affect this mailbox

@@ -108,7 +108,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
 
     return () => {
       actorRef.stop();
-      actorRef.status = ActorStatus.NotStarted;
+      // actorRef.status = ActorStatus.NotStarted; // TODO: do smth here
       (actorRef as any)._initState();
     };
   }, []);

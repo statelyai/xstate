@@ -14,6 +14,7 @@ import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
 import { InspectionEvent } from './system.js';
+import { Mailbox } from './Mailbox.ts';
 
 export type HomomorphicPick<T, K extends keyof any> = {
   [P in keyof T as P & K]: T[P];
@@ -1811,8 +1812,9 @@ export interface ActorRef<
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   system?: ActorSystem<any>;
-  status: ActorStatus;
   src?: string;
+  /** @internal */
+  _mailbox: Mailbox<TEvent>;
 }
 
 export type AnyActorRef = ActorRef<any, any>;

@@ -1488,7 +1488,7 @@ describe('useMachine hook', () => {
     });
     const Display = () => {
       onCleanup(() => {
-        expect(service.status).toBe(ActorStatus.Stopped);
+        expect(service.getSnapshot().status).toBe('stopped');
         done();
       });
       const [state, , service] = useMachine(machine);

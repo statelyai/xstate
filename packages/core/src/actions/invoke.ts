@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { MAILBOX_STOPPED } from '../Mailbox.ts';
 import { cloneState } from '../State.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
 import { ActorStatus, createActor } from '../interpreter.ts';
@@ -60,7 +61,7 @@ function resolveInvoke(
     });
 
     if (syncSnapshot) {
-      actorRef.subscribe({
+      actorRef?.subscribe({
         next: (snapshot: Snapshot<unknown>) => {
           if (snapshot.status === 'active') {
             actorContext.self.send({
@@ -104,13 +105,13 @@ function executeInvoke(
   }
 
   actorContext.defer(() => {
-    if (actorRef.status === ActorStatus.Stopped) {
+    if (actorRef.getSnapshot().status !== 'active') {
       return;
     }
     try {
       actorRef.start?.();
     } catch (err) {
-      (actorContext.self as AnyActor).send(createErrorActorEvent(id, err));
+      actorContext.self.send(createErrorActorEvent(id, err));
       return;
     }
   });

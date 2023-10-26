@@ -15,7 +15,6 @@ import {
   WILDCARD
 } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
-import { ActorStatus } from './interpreter.ts';
 import {
   ActionArgs,
   AnyActorContext,
@@ -1520,7 +1519,7 @@ function resolveActionsAndContextWorker(
     };
 
     if (!('resolve' in resolvedAction)) {
-      if (actorCtx?.self.status === ActorStatus.Running) {
+      if (actorCtx && !actorCtx.self._mailbox.status) {
         resolvedAction(actionArgs);
       } else {
         actorCtx?.defer(() => {
@@ -1546,7 +1545,7 @@ function resolveActionsAndContextWorker(
     }
 
     if ('execute' in builtinAction) {
-      if (actorCtx?.self.status === ActorStatus.Running) {
+      if (actorCtx && !actorCtx.self._mailbox.status) {
         builtinAction.execute(actorCtx!, params);
       } else {
         actorCtx?.defer(builtinAction.execute.bind(null, actorCtx!, params));
