@@ -2225,6 +2225,7 @@ export type PersistedMachineState<
     >['children']]: {
       state: any; // TODO: fix (should be state from actorref)
       src?: string;
+      systemId?: string;
     };
   };
 };

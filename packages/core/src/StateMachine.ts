@@ -623,7 +623,8 @@ export class StateMachine<
       const actorRef = createActor(logic, {
         id: actorId,
         parent: _actorCtx?.self,
-        state: actorState
+        state: actorState,
+        systemId: actorData.systemId
       });
 
       children[actorId] = actorRef;
