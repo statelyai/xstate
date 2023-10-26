@@ -48,13 +48,86 @@ export type InvokeCallback<
   sendBack,
   receive
 }: {
+  /**
+   * Data that was provided to the parent actor
+   * @see {@link https://stately.ai/docs/input} Input docs
+   */
   input: TInput;
+  /**
+   * The actor system to which the parent actor belongs
+   */
   system: AnyActorSystem;
+  /**
+   * The parent actor performing the callback logic
+   */
   self: CallbackActorRef<TEvent>;
+  /**
+   * A function that can send events back to the parent actor
+   */
   sendBack: (event: TSentEvent) => void;
+  /**
+   * A function that can be called with a listener function argument; the listener is then called whenever events are received by the parent actor
+   */
   receive: Receiver<TEvent>;
 }) => (() => void) | void;
 
+/**
+ * An actor logic creator which returns callback logic as defined by a callback function.
+ *
+ * @remarks
+ * Useful for subscription-based or other free-form logic that can send events back to the parent actor.
+ *
+ * Actors created from callback logic (“callback actors”) can:
+ * - Receive events via the `receive` function
+ * - Send events to the parent actor via the `sendBack` function
+ *
+ * Callback actors are a bit different from other actors in that they:
+ * - Do not work with `onDone` or `onError`
+ * - Do not produce a snapshot using `.getSnapshot()`
+ * - Do not emit values when used with `.subscribe()`
+ * - Can not be stopped with `.stop()`
+ *
+ * @param invokeCallback - The callback function used to describe the callback logic
+ * The callback function is passed an object with the following properties:
+ * - `receive` - A function that can be called with a listener function argument; the listener is then called whenever events are received by the parent actor
+ * - `sendBack` - A function that can send events back to the parent actor
+ * - `input` - Data that was provided to the parent actor
+ * - `self` - The parent actor performing the callback logic
+ * - `system` - The actor system to which the parent actor belongs
+ * The callback function can (optionally) return a cleanup function, which is called when the parent actor is stopped.
+ * @see {@link InvokeCallback} for more information about the callback function and its object argument
+ * @see {@link https://stately.ai/docs/input} Input docs for more information about how input is passed
+
+ * @returns Callback logic
+ *
+ * @example
+ * ```typescript
+ * const callbackLogic = fromCallback(({ sendBack, receive }) => {
+ *   let lockStatus = 'unlocked';
+ *
+ *   const handler = (event) => {
+ *     if (lockStatus === 'locked') {
+ *       return;
+ *     }
+ *     sendBack(event);
+ *   };
+ *
+ *   receive((event) => {
+ *     if (event.type === 'lock') {
+ *       lockStatus = 'locked';
+ *     } else if (event.type === 'unlock') {
+ *       lockStatus = 'unlocked';
+ *     }
+ *   });
+ *
+ *   document.body.addEventListener('click', handler);
+ *
+ *   return () => {
+ *     document.body.removeEventListener('click', handler);
+ *   };
+ * });
+ * ```
+ */
 export function fromCallback<TEvent extends EventObject, TInput = unknown>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
