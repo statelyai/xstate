@@ -1304,7 +1304,10 @@ describe('interpreter', () => {
           after: {
             10: {
               target: 'active',
-              actions: assign({ count: ({ context }) => context.count + 1 })
+              reenter: true,
+              actions: assign({
+                count: ({ context }) => context.count + 1
+              })
             }
           },
           always: {

@@ -37,7 +37,6 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState,
   ParameterizedObject,
   AnyActorContext,
   AnyEventObject,
@@ -45,7 +44,8 @@ import type {
   AnyActorRef,
   Equals,
   TODO,
-  SnapshotFrom
+  SnapshotFrom,
+  Snapshot
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
@@ -114,14 +114,6 @@ export class StateMachine<
       >,
       TEvent,
       TInput,
-      PersistedMachineState<
-        TContext,
-        TEvent,
-        TActor,
-        TTag,
-        TOutput,
-        TResolvedTypesMeta
-      >,
       TODO
     >
 {
@@ -393,7 +385,8 @@ export class StateMachine<
    */
   private getPreInitialState(
     actorCtx: AnyActorContext,
-    initEvent: any
+    initEvent: any,
+    internalQueue: AnyEventObject[]
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -419,9 +412,13 @@ export class StateMachine<
     if (typeof context === 'function') {
       const assignment = ({ spawn, event }: any) =>
         context({ spawn, input: event.input });
-      return resolveActionsAndContext(preInitial, initEvent, actorCtx, [
-        assign(assignment)
-      ]) as SnapshotFrom<this>;
+      return resolveActionsAndContext(
+        preInitial,
+        initEvent,
+        actorCtx,
+        [assign(assignment)],
+        internalQueue
+      ) as SnapshotFrom<this>;
     }
 
     return preInitial;
@@ -452,8 +449,12 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
-
-    const preInitialState = this.getPreInitialState(actorCtx, initEvent);
+    const internalQueue: AnyEventObject[] = [];
+    const preInitialState = this.getPreInitialState(
+      actorCtx,
+      initEvent,
+      internalQueue
+    );
     const nextState = microstep(
       [
         {
@@ -468,13 +469,15 @@ export class StateMachine<
       preInitialState,
       actorCtx,
       initEvent,
-      true
+      true,
+      internalQueue
     );
 
     const { state: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
-      actorCtx
+      actorCtx,
+      internalQueue
     );
 
     return macroState as SnapshotFrom<this>;
@@ -530,14 +533,7 @@ export class StateMachine<
       TOutput,
       TResolvedTypesMeta
     >
-  ): PersistedMachineState<
-    TContext,
-    TEvent,
-    TActor,
-    TTag,
-    TOutput,
-    TResolvedTypesMeta
-  > {
+  ) {
     return getPersistedState(state);
   }
 
@@ -566,14 +562,7 @@ export class StateMachine<
   }
 
   public restoreState(
-    snapshot: PersistedMachineState<
-      TContext,
-      TEvent,
-      TActor,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >,
+    snapshot: Snapshot<unknown>,
     _actorCtx: ActorContext<
       MachineSnapshot<
         TContext,
@@ -594,16 +583,18 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     const children: Record<string, AnyActorRef> = {};
+    const snapshotChildren: Record<
+      string,
+      { src: string; state: Snapshot<unknown> }
+    > = (snapshot as any).children;
 
-    Object.keys(snapshot.children).forEach((actorId) => {
+    Object.keys(snapshotChildren).forEach((actorId) => {
       const actorData =
-        snapshot.children[actorId as keyof typeof snapshot.children];
+        snapshotChildren[actorId as keyof typeof snapshotChildren];
       const childState = actorData.state;
       const src = actorData.src;
 
-      const logic = src
-        ? resolveReferencedActor(this.implementations.actors[src])?.src
-        : undefined;
+      const logic = src ? resolveReferencedActor(this, src)?.src : undefined;
 
       if (!logic) {
         return;
@@ -621,7 +612,7 @@ export class StateMachine<
     });
 
     const restoredSnapshot = this.createState(
-      new State({ ...snapshot, children }, this) as any
+      new State({ ...(snapshot as any), children }, this) as any
     );
 
     let seen = new Set();

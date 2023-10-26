@@ -735,4 +735,164 @@ describe('transient states (eventless transitions)', () => {
     const service = createActor(machine).start();
     service.send({ type: 'EVENT', value: 42 });
   });
+
+  it("shouldn't end up in an infinite loop when selecting the fallback target", () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          always: [
+            {
+              guard: () => false,
+              target: '.a'
+            },
+            {
+              target: '.b'
+            }
+          ]
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({
+      type: 'event'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'b' });
+  });
+
+  it("shouldn't end up in an infinite loop when selecting a guarded target", () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          always: [
+            {
+              guard: () => true,
+              target: '.a'
+            },
+            {
+              target: '.b'
+            }
+          ]
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({
+      type: 'event'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
+  });
+
+  it("shouldn't end up in an infinite loop when executing a fire-and-forget action that doesn't change state", () => {
+    let count = 0;
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            event: 'active'
+          }
+        },
+        active: {
+          initial: 'a',
+          states: {
+            a: {}
+          },
+          always: [
+            {
+              actions: () => {
+                count++;
+                if (count > 5) {
+                  throw new Error('Infinite loop detected');
+                }
+              },
+              target: '.a'
+            }
+          ]
+        }
+      }
+    });
+
+    const actorRef = createActor(machine);
+
+    actorRef.start();
+    actorRef.send({
+      type: 'event'
+    });
+
+    expect(actorRef.getSnapshot().value).toEqual({ active: 'a' });
+    expect(count).toBe(1);
+  });
+
+  it('should loop (but not infinitely) for assign actions', () => {
+    const machine = createMachine({
+      context: { count: 0 },
+      initial: 'counting',
+      states: {
+        counting: {
+          always: {
+            guard: ({ context }) => context.count < 5,
+            actions: assign({ count: ({ context }) => context.count + 1 })
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().context.count).toEqual(5);
+  });
+
+  it("should execute an always transition after a raised transition even if that raised transition doesn't change the state", () => {
+    const spy = jest.fn();
+    let counter = 0;
+    const machine = createMachine({
+      always: {
+        actions: () => spy(counter)
+      },
+      on: {
+        EV: {
+          actions: raise({ type: 'RAISED' })
+        },
+        RAISED: {
+          actions: () => {
+            ++counter;
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    spy.mockClear();
+    actorRef.send({ type: 'EV' });
+
+    expect(spy.mock.calls).toEqual([
+      // called in response to the `EV` event
+      [0],
+      // called in response to the `RAISED` event
+      [1]
+    ]);
+  });
 });

@@ -21,8 +21,7 @@ export function selectivelyStringify<T extends object>(
 }
 
 export function stringifyState(state: AnyState, replacer?: Replacer): string {
-  const { machine, configuration, _internalQueue, tags, ...stateToStringify } =
-    state;
+  const { machine, configuration, tags, ...stateToStringify } = state;
   return selectivelyStringify(
     { ...stateToStringify, tags: Array.from(tags) },
     ['context'],

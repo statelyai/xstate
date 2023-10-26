@@ -31,7 +31,6 @@ export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
   TInput, // input
-  PromiseSnapshot<TOutput, TInput>, // persisted state
   ActorSystem<any>
 >;
 
@@ -120,7 +119,7 @@ export function fromPromise<TOutput, TInput = unknown>(
       };
     },
     getPersistedState: (state) => state,
-    restoreState: (state) => state
+    restoreState: (state: any) => state
   };
 
   return logic;

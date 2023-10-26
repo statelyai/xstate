@@ -130,7 +130,6 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
       infer _TSnapshot,
       infer _TEvent,
       infer TInput,
-      infer _TPersisted,
       infer _TSystem
     >
   ? TInput
@@ -140,7 +139,6 @@ export type OutputFrom<T extends AnyActorLogic> = T extends ActorLogic<
   infer TSnapshot,
   infer _TEvent,
   infer _TInput,
-  infer _TPersisted,
   infer _TSystem
 >
   ? (TSnapshot & { status: 'done' })['output']
@@ -363,7 +361,7 @@ export interface InvokeDefinition<
   /**
    * The source of the actor logic to be invoked
    */
-  src: string;
+  src: AnyActorLogic | string;
 
   input?:
     | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
@@ -1687,7 +1685,6 @@ export interface StateConfig<
   error?: unknown;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
-  _internalQueue?: Array<TEvent>;
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
@@ -1808,8 +1805,7 @@ export interface ActorRef<
   // TODO: should this be optional?
   start?: () => void;
   getSnapshot: () => TSnapshot;
-  // TODO: this should return some sort of TPersistedState, not any
-  getPersistedState?: () => any;
+  getPersistedState: () => Snapshot<unknown>;
   stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
@@ -1861,7 +1857,6 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer TSnapshot,
         infer TEvent,
         infer _TInput,
-        infer _TPersisted,
         infer _TSystem
       >
     ? ActorRef<TEvent, TSnapshot>
@@ -1899,14 +1894,6 @@ export type InterpreterFrom<
         >,
         TEvent,
         TInput,
-        PersistedMachineState<
-          TContext,
-          TEvent,
-          TActor,
-          TTag,
-          TOutput,
-          TResolvedTypesMeta
-        >,
         ActorSystem<any>
       >
     >
@@ -1996,10 +1983,6 @@ export interface ActorLogic<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput = unknown,
-  /**
-   * Serialized internal state used for persistence & restoration
-   */
-  TPersisted = TSnapshot,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   config?: unknown;
@@ -2013,21 +1996,20 @@ export interface ActorLogic<
     input: TInput
   ) => TSnapshot;
   restoreState?: (
-    persistedState: TPersisted,
+    persistedState: Snapshot<unknown>,
     actorCtx: ActorContext<TSnapshot, TEvent>
   ) => TSnapshot;
   start?: (state: TSnapshot, actorCtx: ActorContext<TSnapshot, TEvent>) => void;
   /**
    * @returns Persisted state
    */
-  getPersistedState?: (state: TSnapshot) => TPersisted;
+  getPersistedState: (state: TSnapshot) => Snapshot<unknown>;
 }
 
 export type AnyActorLogic = ActorLogic<
   any, // snapshot
   any, // event
   any, // input
-  any, // persisted state
   any // system
 >;
 
@@ -2049,35 +2031,17 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer _TResolvedTypesMeta
       >
     ? StateFrom<R>
-    : R extends ActorLogic<any, any, any, any, any>
+    : R extends ActorLogic<any, any, any, any>
     ? ReturnType<R['transition']>
     : R extends ActorContext<infer TSnapshot, infer _, infer __>
     ? TSnapshot
     : never
   : never;
 
-export type EventFromLogic<TLogic extends ActorLogic<any, any, any, any, any>> =
-  TLogic extends ActorLogic<
-    infer _,
-    infer TEvent,
-    infer __,
-    infer _____,
-    infer ______
-  >
+export type EventFromLogic<TLogic extends ActorLogic<any, any, any, any>> =
+  TLogic extends ActorLogic<infer _, infer TEvent, infer __, infer _____>
     ? TEvent
     : never;
-
-export type PersistedStateFrom<
-  TLogic extends ActorLogic<any, any, any, any, any>
-> = TLogic extends ActorLogic<
-  infer _TSnapshot,
-  infer _TEvent,
-  infer _TInput,
-  infer TPersisted,
-  infer _TSystem
->
-  ? TPersisted
-  : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -2206,29 +2170,3 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 }
 
 export type AnyActorSystem = ActorSystem<any>;
-
-export type PersistedMachineState<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TTag extends string,
-  TOutput,
-  TResolvedTypesMeta = TypegenDisabled
-> = HomomorphicPick<
-  MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
-  'value' | 'output' | 'error' | 'context' | 'status' | 'historyValue'
-> & {
-  children: {
-    [K in keyof MachineSnapshot<
-      TContext,
-      TEvent,
-      TActor,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >['children']]: {
-      state: any; // TODO: fix (should be state from actorref)
-      src?: string;
-    };
-  };
-};
