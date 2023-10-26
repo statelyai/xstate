@@ -169,4 +169,41 @@ describe('rehydration', () => {
 
     expect(rehydratedActor.getSnapshot().value).toBe('c');
   });
+
+  it('a rehydrated done child should not re-notify the parent about its completion', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: ({ spawn }) => {
+          spawn('foo', {
+            systemId: 'mySystemId'
+          });
+          return {};
+        },
+        on: {
+          '*': {
+            actions: spy
+          }
+        }
+      },
+      {
+        actors: {
+          foo: createMachine({ type: 'final' })
+        }
+      }
+    );
+
+    const actor = createActor(machine).start();
+    const persistedState = actor.getPersistedState();
+    actor.stop();
+
+    spy.mockClear();
+
+    createActor(machine, {
+      state: persistedState
+    }).start();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
 });

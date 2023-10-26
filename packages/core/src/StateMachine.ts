@@ -502,7 +502,7 @@ export class StateMachine<
     >
   ): void {
     Object.values(state.children).forEach((child: any) => {
-      if (child.status === 0) {
+      if (child.getSnapshot().status === 'active') {
         child.start();
       }
     });
