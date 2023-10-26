@@ -124,8 +124,8 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
   {
     type: 'service.event';
     event: SCXML.Event<any>;
-    sessionId: string
-  };
+    sessionId: string;
+  }
   ```
 
 To listen to events from an inspected source, create a receiver with the appropriate `create*Receiver(...)` function; for example:

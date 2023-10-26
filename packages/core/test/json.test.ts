@@ -88,7 +88,8 @@ describe('json', () => {
             }
           }
         }
-      }
+      },
+      output: { result: 42 }
     });
 
     const json = JSON.parse(JSON.stringify(machine.definition));
@@ -156,7 +157,7 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "eventType": "done.invoke.active:invocation[0]",
+          "eventType": "xstate.done.actor.active[0]",
           "guard": undefined,
           "reenter": false,
           "source": "#active",
@@ -167,7 +168,7 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "eventType": "error.platform.active:invocation[0]",
+          "eventType": "xstate.error.actor.active[0]",
           "guard": undefined,
           "reenter": false,
           "source": "#active",

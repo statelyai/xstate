@@ -34,7 +34,7 @@ module.exports = {
           // as Babel doesn't support targets like "ES2022". We currently target the latest LTS version of node here.
           // When targeting browsers, the code is usually going through some kind of bundler anyway
           // and thus it's the user's responsibility to downlevel the code to what they need.
-          node: 16
+          node: 18
         },
         exclude: [
           '@babel/plugin-proposal-optional-chaining' // despite being supported by node 16 optional chaining was still transpiled by some reason
@@ -57,7 +57,7 @@ module.exports = {
             isTSX: true,
             allExtensions: true,
             disallowAmbiguousJSXLike: true,
-            // this is the only overriden option
+            // this is the only overridden option
             // potentially we could just configure it for all the files but surprisingly something crashes when we try to do it
             onlyRemoveTypeImports: true
           }

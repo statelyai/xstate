@@ -47,7 +47,7 @@ const pkgChanges = new Map(
     })
 );
 
-for (const peerPkg of ['xstate', '@xstate/fsm']) {
+for (const peerPkg of ['xstate']) {
   const peerPkgChange = pkgChanges.get(peerPkg);
   if (!peerPkgChange || !peerPkgChange.versionChanged) {
     continue;

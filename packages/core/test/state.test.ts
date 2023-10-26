@@ -241,15 +241,15 @@ describe('State', () => {
     });
   });
 
-  describe('.done', () => {
+  describe('status', () => {
     it('should show that a machine has not reached its final state', () => {
-      expect(createActor(exampleMachine).getSnapshot().done).toBe(false);
+      expect(createActor(exampleMachine).getSnapshot().status).not.toBe('done');
     });
 
     it('should show that a machine has reached its final state', () => {
       const actorRef = createActor(exampleMachine).start();
       actorRef.send({ type: 'TO_FINAL' });
-      expect(actorRef.getSnapshot().done).toBe(true);
+      expect(actorRef.getSnapshot().status).toBe('done');
     });
   });
 
@@ -625,9 +625,19 @@ describe('State', () => {
       const actorRef = createActor(machine).start();
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
-      const restoredState = machine.createState(JSON.parse(persistedState));
+      const restoredSnapshot = machine.createState(JSON.parse(persistedState));
 
-      expect(restoredState.hasTag('foo')).toBe(true);
+      expect(restoredSnapshot.hasTag('foo')).toBe(true);
+    });
+  });
+
+  describe('.status', () => {
+    it("should be 'stopped' after a running actor gets stopped", () => {
+      const snapshot = createActor(createMachine({}))
+        .start()
+        .stop()
+        .getSnapshot();
+      expect(snapshot.status).toBe('stopped');
     });
   });
 });

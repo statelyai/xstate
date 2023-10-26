@@ -24,28 +24,10 @@ npm i xstate @xstate/vue
 
 By using the global variable `XStateVue`
 
-or
-
-```html
-<script src="https://unpkg.com/@xstate/vue/dist/xstate-vue.fsm.min.js"></script>
-```
-
-By using the global variable `XStateVueFSM`
-
 2. Import the `useMachine` composition function:
 
 ```vue
-<template>
-  <button @click="send('TOGGLE')">
-    {{
-      state.value === 'inactive'
-        ? 'Click to activate'
-        : 'Active! Click to deactivate'
-    }}
-  </button>
-</template>
-
-<script>
+<script setup>
 import { useMachine } from '@xstate/vue';
 import { createMachine } from 'xstate';
 
@@ -62,16 +44,18 @@ const toggleMachine = createMachine({
   }
 });
 
-export default {
-  setup() {
-    const { state, send } = useMachine(toggleMachine);
-    return {
-      state,
-      send
-    };
-  }
-};
+const { state, send } = useMachine(toggleMachine);
 </script>
+
+<template>
+  <button @click="send('TOGGLE')">
+    {{
+      state.value === 'inactive'
+        ? 'Click to activate'
+        : 'Active! Click to deactivate'
+    }}
+  </button>
+</template>
 ```
 
 ## API
@@ -106,13 +90,9 @@ _Since 0.5.0_
 ```js
 import { useActor } from '@xstate/vue';
 
-export default {
-  props: ['someSpawnedActor'],
-  setup(props) {
-    const { state, send } = useActor(props.someSpawnedActor);
-    return { state, send };
-  }
-};
+const props = defineProps(['someSpawnedActor']);
+
+const { state, send } = useActor(props.someSpawnedActor);
 ```
 
 ### `useInterpret(machine, options?, observer?)`
@@ -132,12 +112,8 @@ _Since 0.5.0_
 ```js
 import { useInterpret } from '@xstate/vue';
 import { someMachine } from '../path/to/someMachine';
-export default {
-  setup() {
-    const service = useInterpret(someMachine);
-    return service;
-  }
-};
+
+const service = useInterpret(someMachine);
 ```
 
 With options + listener:
@@ -145,23 +121,19 @@ With options + listener:
 ```js
 import { useInterpret } from '@xstate/vue';
 import { someMachine } from '../path/to/someMachine';
-export default {
-  setup() {
-    const service = useInterpret(
-      someMachine,
-      {
-        actions: {
-          /* ... */
-        }
-      },
-      (state) => {
-        // subscribes to state changes
-        console.log(state.value);
-      }
-    );
-    // ...
+
+const service = useInterpret(
+  someMachine,
+  {
+    actions: {
+      /* ... */
+    }
+  },
+  (state) => {
+    // subscribes to state changes
+    console.log(state.value);
   }
-};
+);
 ```
 
 ### `useSelector(actor, selector, compare?, getSnapshot?)`
@@ -181,16 +153,11 @@ _Since 0.6.0_
 ```js
 import { useSelector } from '@xstate/vue';
 
+const props = defineProps(['service']);
+
 const selectCount = (state) => state.context.count;
 
-export default {
-  props: ['service'],
-  setup(props) {
-    const count = useSelector(props.service, selectCount);
-    // ...
-    return { count };
-  }
-};
+const count = useSelector(props.service, selectCount);
 ```
 
 With `compare` function:
@@ -198,17 +165,12 @@ With `compare` function:
 ```js
 import { useSelector } from '@xstate/vue';
 
+const props = defineProps(['service']);
+
 const selectUser = (state) => state.context.user;
 const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
 
-export default {
-  props: ['service'],
-  setup(props) {
-    const user = useSelector(props.service, selectUser, compareUser);
-    // ...
-    return { user };
-  }
-};
+const user = useSelector(props.service, selectUser, compareUser);
 ```
 
 With `useInterpret(...)`:
@@ -219,33 +181,9 @@ import { someMachine } from '../path/to/someMachine';
 
 const selectCount = (state) => state.context.count;
 
-export default {
-  setup() {
-    const service = useInterpret(someMachine);
-    const count = useSelector(service, selectCount);
-    // ...
-    return { count, service };
-  }
-};
+const service = useInterpret(someMachine);
+const count = useSelector(service, selectCount);
 ```
-
-### `useMachine(machine)` with `@xstate/fsm`
-
-A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
-
-This special `useMachine` hook is imported from `@xstate/vue/lib/fsm`
-
-**Arguments**
-
-- `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
-
-**Returns** an object `{state, send, service}`:
-
-- `state` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
-- `send` - A function that sends events to the running service.
-- `service` - The created `@xstate/fsm` service.
-
-**Example** (TODO)
 
 ## Configuring Machines
 
@@ -254,28 +192,7 @@ Existing machines can be configured by passing the machine options as the 2nd ar
 Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
 ```vue
-<template>
-  <template v-if="state.value === 'idle'">
-    <button @click="send({ type: 'FETCH', query: 'something' })">
-      Search for something
-    </button>
-  </template>
-
-  <template v-else-if="state.value === 'loading'">
-    <div>Searching...</div>
-  </template>
-
-  <template v-else-if="state.value === 'success'">
-    <div>Success! {{ state.context.data }}</div>
-  </template>
-
-  <template v-else-if="state.value === 'failure'">
-    <p>{{ state.context.error.message }}</p>
-    <button @click="send('RETRY')">Retry</button>
-  </template>
-</template>
-
-<script>
+<script setup>
 import { assign, createMachine } from 'xstate';
 import { useMachine } from '@xstate/vue';
 
@@ -319,30 +236,44 @@ const fetchMachine = createMachine({
   }
 });
 
-export default {
-  props: {
-    onResolve: {
-      type: Function,
-      default: () => {}
-    }
-  },
-  setup(props) {
-    const { state, send } = useMachine(fetchMachine, {
-      actions: {
-        notifySuccess: (ctx) => props.onResolve(ctx.data)
-      },
-      services: {
-        fetchData: (_context, event) =>
-          fetch(`some/api/${event.query}`).then((res) => res.json())
-      }
-    });
-    return {
-      state,
-      send
-    };
+const props = defineProps({
+  onResolve: {
+    type: Function,
+    default: () => {}
   }
-};
+});
+
+const { state, send } = useMachine(fetchMachine, {
+  actions: {
+    notifySuccess: (ctx) => props.onResolve(ctx.data)
+  },
+  services: {
+    fetchData: (_context, event) =>
+      fetch(`some/api/${event.query}`).then((res) => res.json())
+  }
+});
 </script>
+
+<template>
+  <template v-if="state.value === 'idle'">
+    <button @click="send({ type: 'FETCH', query: 'something' })">
+      Search for something
+    </button>
+  </template>
+
+  <template v-else-if="state.value === 'loading'">
+    <div>Searching...</div>
+  </template>
+
+  <template v-else-if="state.value === 'success'">
+    <div>Success! {{ state.context.data }}</div>
+  </template>
+
+  <template v-else-if="state.value === 'failure'">
+    <p>{{ state.context.error.message }}</p>
+    <button @click="send('RETRY')">Retry</button>
+  </template>
+</template>
 ```
 
 ## Matching States
@@ -353,8 +284,8 @@ For [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [par
 <template>
   <div>
     <loader-idle v-if="state.matches('idle')" />
-    <loader-loading-user v-if-else="state.matches({ loading: 'user' })" />
-    <loader-loading-friends v-if-else="state.matches({ loading: 'friends' })" />
+    <loader-loading-user v-else-if="state.matches({ loading: 'user' })" />
+    <loader-loading-friends v-else-if="state.matches({ loading: 'friends' })" />
   </div>
 </template>
 ```
@@ -364,22 +295,15 @@ For [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [par
 You can persist and rehydrate state with `useMachine(...)` via `options.state`:
 
 ```vue
-<script>
+<script setup>
 // Get the persisted state config object from somewhere, e.g. localStorage
 const persistedState = JSON.parse(
   localStorage.getItem('some-persisted-state-key')
 );
 
-export default {
-  setup() {
-    const { state, send } = useMachine(someMachine, {
-      state: persistedState
-    });
-
-    // state will initially be that persisted state, not the machine's initialState
-    return { state, send };
-  }
-};
+const { state, send } = useMachine(someMachine, {
+  state: persistedState
+});
 </script>
 ```
 

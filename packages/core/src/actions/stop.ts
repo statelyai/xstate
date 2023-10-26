@@ -14,19 +14,20 @@ import {
 type ResolvableActorRef<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 > =
   | string
-  | ActorRef<any>
+  | ActorRef<any, any>
   | ((
-      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
-    ) => ActorRef<any> | string);
+      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    ) => ActorRef<any, any> | string);
 
-function resolve(
+function resolveStop(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any, any>,
-  { actorRef }: { actorRef: ResolvableActorRef<any, any, any> }
+  args: ActionArgs<any, any, any, any>,
+  { actorRef }: { actorRef: ResolvableActorRef<any, any, any, any> }
 ) {
   const actorRefOrString =
     typeof actorRef === 'function' ? actorRef(args) : actorRef;
@@ -47,18 +48,23 @@ function resolve(
     resolvedActorRef
   ];
 }
-function execute(
+function executeStop(
   actorContext: AnyActorContext,
   actorRef: ActorRef<any, any> | undefined
 ) {
   if (!actorRef) {
     return;
   }
+  // this allows us to prevent an actor from being started if it gets stopped within the same macrostep
+  // this can happen, for example, when the invoking state is being exited immediately by an always transition
   if (actorRef.status !== ActorStatus.Running) {
     actorContext.stopChild(actorRef);
     return;
   }
-  // TODO: recheck why this one has to be deferred
+  // stopping a child enqueues a stop event in the child actor's mailbox
+  // we need for all of the already enqueued events to be processed before we stop the child
+  // the parent itself might want to send some events to a child (for example from exit actions on the invoking state)
+  // and we don't want to ignore those events
   actorContext.defer(() => {
     actorContext.stopChild(actorRef);
   });
@@ -67,9 +73,10 @@ function execute(
 export interface StopAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
 }
 
 /**
@@ -80,11 +87,19 @@ export interface StopAction<
 export function stop<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 >(
-  actorRef: ResolvableActorRef<TContext, TExpressionEvent, TExpressionAction>
-): StopAction<TContext, TExpressionEvent, TExpressionAction> {
-  function stop(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
+  actorRef: ResolvableActorRef<
+    TContext,
+    TExpressionEvent,
+    TExpressionAction,
+    TEvent
+  >
+): StopAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
+  function stop(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -93,8 +108,8 @@ export function stop<
   stop.type = 'xstate.stop';
   stop.actorRef = actorRef;
 
-  stop.resolve = resolve;
-  stop.execute = execute;
+  stop.resolve = resolveStop;
+  stop.execute = executeStop;
 
   return stop;
 }

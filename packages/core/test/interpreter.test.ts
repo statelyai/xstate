@@ -382,6 +382,9 @@ describe('interpreter', () => {
       const clock = new SimulatedClock();
       const letterMachine = createMachine(
         {
+          types: {} as {
+            events: { type: 'FIRE_DELAY'; value: number };
+          },
           id: 'letter',
           context: {
             delay: 100
@@ -389,12 +392,9 @@ describe('interpreter', () => {
           initial: 'a',
           states: {
             a: {
-              after: [
-                {
-                  delay: ({ context }) => context.delay,
-                  target: 'b'
-                }
-              ]
+              after: {
+                delayA: 'b'
+              }
             },
             b: {
               after: {
@@ -408,21 +408,12 @@ describe('interpreter', () => {
               }
             },
             d: {
-              after: [
-                {
-                  delay: ({ context, event }) =>
-                    context.delay + (event as any).value,
-                  target: 'e'
-                }
-              ]
+              after: {
+                delayD: 'e'
+              }
             },
             e: {
-              after: [
-                {
-                  delay: 'someDelay',
-                  target: 'f'
-                }
-              ]
+              after: { someDelay: 'f' }
             },
             f: {
               type: 'final'
@@ -433,7 +424,9 @@ describe('interpreter', () => {
           delays: {
             someDelay: ({ context }) => {
               return context.delay + 50;
-            }
+            },
+            delayA: ({ context }) => context.delay,
+            delayD: ({ context, event }) => context.delay + (event as any).value
           }
         }
       );
@@ -669,44 +662,10 @@ describe('interpreter', () => {
     });
   });
 
-  it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock(),
-      deferEvents: false
-    });
+  it('should not throw an error if an event is sent to an uninitialized interpreter', () => {
+    const actorRef = createActor(lightMachine);
 
-    expect(() => service.send({ type: 'SOME_EVENT' })).toThrowError(
-      /uninitialized/
-    );
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-  });
-
-  it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock(),
-      deferEvents: true
-    });
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-  });
-
-  it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
-    const service = createActor(lightMachine, {
-      clock: new SimulatedClock()
-    });
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
-
-    service.start();
-
-    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
+    expect(() => actorRef.send({ type: 'SOME_EVENT' })).not.toThrow();
   });
 
   it('should defer events sent to an uninitialized service', (done) => {
@@ -791,7 +750,7 @@ describe('interpreter', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+          "Event "TIMER" was sent to stopped actor "x:27 (x:27)". This actor has already reached its final state, and will not transition.
       Event: {"type":"TIMER"}",
         ],
       ]
@@ -1206,7 +1165,7 @@ describe('interpreter', () => {
         expect(console.warn).toMatchMockCallsInlineSnapshot(`
           [
             [
-              "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.
+              "Event "TRIGGER" was sent to stopped actor "x:43 (x:43)". This actor has already reached its final state, and will not transition.
           Event: {"type":"TRIGGER"}",
             ],
           ]
@@ -1345,7 +1304,10 @@ describe('interpreter', () => {
           after: {
             10: {
               target: 'active',
-              actions: assign({ count: ({ context }) => context.count + 1 })
+              reenter: true,
+              actions: assign({
+                count: ({ context }) => context.count + 1
+              })
             }
           },
           always: {
@@ -1630,27 +1592,41 @@ describe('interpreter', () => {
 
     it('state.children should reference invoked child actors (observable)', (done) => {
       const interval$ = interval(10);
+      const intervalLogic = fromObservable(() => interval$);
 
-      const parentMachine = createMachine({
-        initial: 'active',
-        states: {
-          active: {
-            invoke: {
-              id: 'childActor',
-              src: fromObservable(() => interval$),
-              onSnapshot: {
-                target: 'success',
-                guard: ({ event }) => {
-                  return event.data === 3;
+      const parentMachine = createMachine(
+        {
+          types: {} as {
+            actors: {
+              src: 'intervalLogic';
+              logic: typeof intervalLogic;
+            };
+          },
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                id: 'childActor',
+                src: 'intervalLogic',
+                onSnapshot: {
+                  target: 'success',
+                  guard: ({ event }) => {
+                    return event.snapshot.context === 3;
+                  }
                 }
               }
+            },
+            success: {
+              type: 'final'
             }
-          },
-          success: {
-            type: 'final'
+          }
+        },
+        {
+          actors: {
+            intervalLogic
           }
         }
-      });
+      );
 
       const service = createActor(parentMachine);
       service.subscribe({

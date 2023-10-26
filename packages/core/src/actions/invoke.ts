@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
-import { error } from '../actions.ts';
+import { createErrorActorEvent } from '../eventUtils.ts';
 import { ActorStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
@@ -10,29 +10,34 @@ import {
   AnyState,
   EventObject,
   MachineContext,
-  ParameterizedObject
+  ParameterizedObject,
+  AnyActorLogic,
+  Snapshot
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
-function resolve(
+function resolveInvoke(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any>,
+  actionArgs: ActionArgs<any, any, any, any>,
   {
     id,
     systemId,
     src,
-    input
+    input,
+    syncSnapshot
   }: {
     id: string;
     systemId: string | undefined;
-    src: string;
+    src: AnyActorLogic | string;
     input?: unknown;
+    syncSnapshot: boolean;
   }
 ) {
-  const referenced = resolveReferencedActor(
-    state.machine.implementations.actors[src]
-  );
+  const referenced =
+    typeof src === 'string'
+      ? resolveReferencedActor(state.machine, src)
+      : { src, input: undefined };
 
   let actorRef: AnyActorRef | undefined;
 
@@ -41,7 +46,7 @@ function resolve(
     const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
       id,
-      src,
+      src: typeof src === 'string' ? src : undefined,
       parent: actorContext?.self,
       systemId,
       input:
@@ -53,6 +58,22 @@ function resolve(
             })
           : configuredInput
     });
+
+    if (syncSnapshot) {
+      actorRef.subscribe({
+        next: (snapshot: Snapshot<unknown>) => {
+          if (snapshot.status === 'active') {
+            actorContext.self.send({
+              type: `xstate.snapshot.${id}`,
+              snapshot
+            });
+          }
+        },
+        error: () => {
+          /* TODO */
+        }
+      });
+    }
   }
 
   if (isDevelopment && !actorRef) {
@@ -74,7 +95,7 @@ function resolve(
   ];
 }
 
-function execute(
+function executeInvoke(
   actorContext: AnyActorContext,
   { id, actorRef }: { id: string; actorRef: AnyActorRef }
 ) {
@@ -89,7 +110,7 @@ function execute(
     try {
       actorRef.start?.();
     } catch (err) {
-      (actorContext.self as AnyActor).send(error(id, err));
+      (actorContext.self as AnyActor).send(createErrorActorEvent(id, err));
       return;
     }
   });
@@ -99,28 +120,32 @@ function execute(
 interface InvokeAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
 }
 
 export function invoke<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined
+  TExpressionAction extends ParameterizedObject | undefined,
+  TEvent extends EventObject
 >({
   id,
   systemId,
   src,
-  input
+  input,
+  onSnapshot
 }: {
   id: string;
   systemId: string | undefined;
-  src: string;
+  src: AnyActorLogic | string;
   input?: unknown;
-}): InvokeAction<TContext, TExpressionEvent, TExpressionAction> {
+  onSnapshot?: {}; // TODO: transition object
+}): InvokeAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
   function invoke(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction>
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -132,9 +157,10 @@ export function invoke<
   invoke.systemId = systemId;
   invoke.src = src;
   invoke.input = input;
+  invoke.syncSnapshot = !!onSnapshot;
 
-  invoke.resolve = resolve;
-  invoke.execute = execute;
+  invoke.resolve = resolveInvoke;
+  invoke.execute = executeInvoke;
 
   return invoke;
 }

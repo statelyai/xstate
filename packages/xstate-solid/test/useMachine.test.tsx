@@ -1,30 +1,28 @@
 /* @jsxImportSource solid-js */
-import { useMachine, useActor } from '../src';
 import {
-  assign,
-  doneInvoke,
-  createMachine,
-  PersistedMachineState,
-  raise,
-  createActor,
-  ActorLogicFrom,
-  Actor,
-  ActorStatus
-} from 'xstate';
-import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
-import { fromPromise, fromCallback } from 'xstate/actors';
-import {
-  createEffect,
-  createSignal,
   For,
   Match,
+  Show,
+  Switch,
+  createEffect,
+  createSignal,
   mergeProps,
   on,
   onCleanup,
-  onMount,
-  Show,
-  Switch
+  onMount
 } from 'solid-js';
+import { fireEvent, render, screen, waitFor } from 'solid-testing-library';
+import {
+  Actor,
+  ActorLogicFrom,
+  ActorStatus,
+  assign,
+  createActor,
+  createMachine,
+  raise
+} from 'xstate';
+import { fromCallback, fromPromise } from 'xstate/actors';
+import { useActor, useMachine } from '../src';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -72,9 +70,15 @@ describe('useMachine hook', () => {
   const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback(({ sendBack }) => {
-          sendBack(doneInvoke('fetchData', 'persisted data'));
-        }) as any // TODO: callback actors don't support output (yet?)
+        fetchData: createMachine({
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final'
+            }
+          },
+          output: 'persisted data'
+        }) as any
       }
     })
   ).start();
@@ -84,7 +88,7 @@ describe('useMachine hook', () => {
 
   const Fetcher = (props: {
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any>;
+    persistedState?: typeof persistedFetchState;
   }) => {
     const mergedProps = mergeProps(
       {
@@ -232,7 +236,7 @@ describe('useMachine hook', () => {
               )
           }),
           on: {
-            [doneInvoke('my-promise')]: 'success'
+            'xstate.done.actor.my-promise': 'success'
           }
         },
         success: {
@@ -1656,12 +1660,12 @@ describe('useMachine (strict mode)', () => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
-      initial: 'intitial',
+      initial: 'initial',
       context: ({ input }: { input: { value: number } }) => ({
         value: input.value
       }),
       states: {
-        intitial: {}
+        initial: {}
       }
     });
 

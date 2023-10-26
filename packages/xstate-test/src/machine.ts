@@ -6,11 +6,13 @@ import {
   createMachine,
   EventFrom,
   EventObject,
-  StateFrom,
   TypegenConstraint,
   TypegenDisabled,
   MachineContext,
-  StateValue
+  StateValue,
+  SnapshotFrom,
+  MachineSnapshot,
+  ProvidedActor
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -67,9 +69,23 @@ function stateValuesEqual(
 }
 
 function serializeMachineTransition(
-  state: AnyState,
+  state: MachineSnapshot<
+    MachineContext,
+    EventObject,
+    ProvidedActor,
+    string,
+    unknown
+  >,
   event: AnyEventObject | undefined,
-  prevState: AnyState | undefined,
+  prevState:
+    | MachineSnapshot<
+        MachineContext,
+        EventObject,
+        ProvidedActor,
+        string,
+        unknown
+      >
+    | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
   // TODO: the stateValuesEqual check here is very likely not exactly correct
@@ -111,8 +127,10 @@ function serializeMachineTransition(
  */
 export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: Partial<TestModelOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
-): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
+  options?: Partial<
+    TestModelOptions<SnapshotFrom<TMachine>, EventFrom<TMachine>>
+  >
+): TestModel<SnapshotFrom<TMachine>, EventFrom<TMachine>, unknown> {
   validateMachine(machine);
 
   const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
@@ -122,44 +140,45 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     options?.serializeTransition ?? serializeMachineTransition;
   const { events: getEvents, ...otherOptions } = options ?? {};
 
-  const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
-    machine as any,
-    {
-      serializeState: (state, event, prevState) => {
-        // Only consider the `state` if `serializeTransition()` is opted out (empty string)
-        return `${serializeState(state)}${serializeTransition(
-          state,
-          event,
-          prevState,
-          {
-            serializeEvent
-          }
-        )}` as SerializedState;
-      },
-      stateMatcher: (state, key) => {
-        return key.startsWith('#')
-          ? state.configuration.includes(machine.getStateNodeById(key))
-          : state.matches(key);
-      },
-      events: (state) => {
-        const events =
-          typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+  const testModel = new TestModel<
+    SnapshotFrom<TMachine>,
+    EventFrom<TMachine>,
+    unknown
+  >(machine as any, {
+    serializeState: (state, event, prevState) => {
+      // Only consider the `state` if `serializeTransition()` is opted out (empty string)
+      return `${serializeState(state)}${serializeTransition(
+        state,
+        event,
+        prevState,
+        {
+          serializeEvent
+        }
+      )}` as SerializedState;
+    },
+    stateMatcher: (state, key) => {
+      return key.startsWith('#')
+        ? (state as any).configuration.includes(machine.getStateNodeById(key))
+        : (state as any).matches(key);
+    },
+    events: (state) => {
+      const events =
+        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
-        return flatten(
-          state.nextEvents.map((eventType) => {
+      return flatten(
+        (state as any).nextEvents.map((eventType: string) => {
+          // @ts-ignore
+          if (events.some((e) => e.type === eventType)) {
             // @ts-ignore
-            if (events.some((e) => e.type === eventType)) {
-              // @ts-ignore
-              return events.filter((e) => e.type === eventType);
-            }
+            return events.filter((e) => e.type === eventType);
+          }
 
-            return [{ type: eventType } as any]; // TODO: fix types
-          })
-        );
-      },
-      ...otherOptions
-    }
-  );
+          return [{ type: eventType } as any]; // TODO: fix types
+        })
+      );
+    },
+    ...otherOptions
+  });
 
   return testModel;
 }

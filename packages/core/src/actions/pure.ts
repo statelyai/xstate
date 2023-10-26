@@ -9,14 +9,15 @@ import {
   MachineContext,
   ParameterizedObject,
   SingleOrArray,
-  NoInfer
+  NoInfer,
+  ProvidedActor
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
-function resolve(
+function resolvePure(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any, any>,
+  args: ActionArgs<any, any, any, any>,
   {
     get
   }: {
@@ -41,12 +42,14 @@ export interface PureAction<
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
   TEvent extends EventObject,
+  TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>): void;
+  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
   _out_TEvent?: TEvent;
+  _out_TActor?: TActor;
   _out_TAction?: TAction;
   _out_TGuard?: TGuard;
   _out_TDelay?: TDelay;
@@ -59,6 +62,7 @@ export function pure<
     | ParameterizedObject
     | undefined,
   TEvent extends EventObject = TExpressionEvent,
+  TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string
@@ -75,6 +79,7 @@ export function pure<
         TExpressionEvent,
         NoInfer<TEvent>,
         undefined,
+        TActor,
         NoInfer<TAction>,
         NoInfer<TGuard>,
         TDelay
@@ -85,11 +90,14 @@ export function pure<
   TExpressionEvent,
   TExpressionAction,
   TEvent,
+  TActor,
   TAction,
   TGuard,
   TDelay
 > {
-  function pure(_: ActionArgs<TContext, TExpressionEvent, TExpressionAction>) {
+  function pure(
+    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -97,7 +105,8 @@ export function pure<
 
   pure.type = 'xstate.pure';
   pure.get = getActions;
-  pure.resolve = resolve;
+
+  pure.resolve = resolvePure;
 
   return pure;
 }

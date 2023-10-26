@@ -6,8 +6,8 @@ This guides you through setting up XState in a Svelte project. For new Svelte or
 
 XState integrates great with Svelte & SvelteKit, and especially [Svelte stores](https://svelte.dev/docs#svelte_store). We recommend the official `@xstate/svelte` package to get the most out of XState and Svelte.
 
-- Find installation details and example usage in the new docs on the [xstate svelte package](https://stately.ai/docs/xstate/packages/xstate-svelte).
-- Check out a [template](https://stately.ai/docs/xstate/templates) to get started quickly with a minimal project.
+- Find installation details and example usage in the new docs on the [xstate svelte package](https://stately.ai/docs/xstate-svelte).
+- Check out a [template](https://stately.ai/docs/templates) to get started quickly with a minimal project.
 
 ## Legacy Svelte projects based on Rollup
 

@@ -5,100 +5,92 @@ import {
   EventObject,
   Subscription,
   AnyActorSystem,
-  ActorRefFrom
+  ActorRefFrom,
+  Snapshot
 } from '../types';
 
-export interface ObservableInternalState<T, TInput = unknown> {
-  subscription: Subscription | undefined;
-  status: 'active' | 'done' | 'error' | 'canceled';
-  data: T | undefined;
+export type ObservableSnapshot<TContext, TInput> = Snapshot<undefined> & {
+  context: TContext | undefined;
   input: TInput | undefined;
-}
+  _subscription: Subscription | undefined;
+};
 
-export type ObservablePersistedState<T, TInput = unknown> = Omit<
-  ObservableInternalState<T, TInput>,
-  'subscription'
->;
-
-export type ObservableActorLogic<T, TInput> = ActorLogic<
+export type ObservableActorLogic<TContext, TInput> = ActorLogic<
+  ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
-  T | undefined,
-  ObservableInternalState<T, TInput>,
-  ObservablePersistedState<T, TInput>,
-  AnyActorSystem,
-  TInput
+  TInput,
+  AnyActorSystem
 >;
 
-export type ObservableActorRef<T> = ActorRefFrom<ObservableActorLogic<T, any>>;
+export type ObservableActorRef<TContext> = ActorRefFrom<
+  ObservableActorLogic<TContext, any>
+>;
 
-export function fromObservable<T, TInput>(
+export function fromObservable<TContext, TInput>(
   observableCreator: ({
     input,
     system
   }: {
     input: TInput;
     system: AnyActorSystem;
-    self: ObservableActorRef<T>;
-  }) => Subscribable<T>
-): ObservableActorLogic<T, TInput> {
+    self: ObservableActorRef<TContext>;
+  }) => Subscribable<TContext>
+): ObservableActorLogic<TContext, TInput> {
   const nextEventType = '$$xstate.next';
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
-  return {
+  // TODO: add event types
+  const logic: ObservableActorLogic<TContext, TInput> = {
     config: observableCreator,
-    transition: (state, event, { self, id, defer }) => {
-      if (state.status !== 'active') {
-        return state;
+    transition: (snapshot, event, { self, id, defer, system }) => {
+      if (snapshot.status !== 'active') {
+        return snapshot;
       }
 
       switch (event.type) {
-        case nextEventType:
-          // match the exact timing of events sent by machines
-          // send actions are not executed immediately
-          defer(() => {
-            self._parent?.send({
-              type: `xstate.snapshot.${id}`,
-              data: event.data
-            });
-          });
-          return {
-            ...state,
-            data: (event as any).data
+        case nextEventType: {
+          const newSnapshot = {
+            ...snapshot,
+            context: event.data as TContext
           };
+          return newSnapshot;
+        }
         case errorEventType:
           return {
-            ...state,
+            ...snapshot,
             status: 'error',
+            error: (event as any).data,
             input: undefined,
-            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
-            subscription: undefined
+            _subscription: undefined
           };
         case completeEventType:
           return {
-            ...state,
+            ...snapshot,
             status: 'done',
             input: undefined,
-            subscription: undefined
+            _subscription: undefined
           };
         case XSTATE_STOP:
-          state.subscription!.unsubscribe();
+          snapshot._subscription!.unsubscribe();
           return {
-            ...state,
-            status: 'canceled',
+            ...snapshot,
+            status: 'stopped',
             input: undefined,
-            subscription: undefined
+            _subscription: undefined
           };
         default:
-          return state;
+          return snapshot;
       }
     },
     getInitialState: (_, input) => {
       return {
-        subscription: undefined,
         status: 'active',
-        data: undefined,
-        input
+        output: undefined,
+        error: undefined,
+        context: undefined,
+        input,
+        _subscription: undefined
       };
     },
     start: (state, { self, system }) => {
@@ -106,34 +98,30 @@ export function fromObservable<T, TInput>(
         // Do not restart a completed observable
         return;
       }
-      state.subscription = observableCreator({
+      state._subscription = observableCreator({
         input: state.input!,
         system,
         self
       }).subscribe({
         next: (value) => {
-          self.send({ type: nextEventType, data: value });
+          system._relay(self, self, { type: nextEventType, data: value });
         },
         error: (err) => {
-          self.send({ type: errorEventType, data: err });
+          system._relay(self, self, { type: errorEventType, data: err });
         },
         complete: () => {
-          self.send({ type: completeEventType });
+          system._relay(self, self, { type: completeEventType });
         }
       });
     },
-    getSnapshot: (state) => state.data,
-    getPersistedState: ({ status, data, input }) => ({
-      status,
-      data,
-      input
-    }),
-    getStatus: (state) => state,
+    getPersistedState: ({ _subscription, ...state }) => state,
     restoreState: (state) => ({
-      ...state,
-      subscription: undefined
+      ...(state as any),
+      _subscription: undefined
     })
   };
+
+  return logic;
 }
 
 /**
@@ -159,7 +147,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
   const completeEventType = '$$xstate.complete';
 
   // TODO: event types
-  return {
+  const logic: ObservableActorLogic<T, TInput> = {
     config: lazyObservable,
     transition: (state, event) => {
       if (state.status !== 'active') {
@@ -171,24 +159,24 @@ export function fromEventObservable<T extends EventObject, TInput>(
           return {
             ...state,
             status: 'error',
+            error: (event as any).data,
             input: undefined,
-            data: (event as any).data, // TODO: if we keep this as `data` we should reflect this in the type
-            subscription: undefined
+            _subscription: undefined
           };
         case completeEventType:
           return {
             ...state,
             status: 'done',
             input: undefined,
-            subscription: undefined
+            _subscription: undefined
           };
         case XSTATE_STOP:
-          state.subscription!.unsubscribe();
+          state._subscription!.unsubscribe();
           return {
             ...state,
-            status: 'canceled',
+            status: 'stopped',
             input: undefined,
-            subscription: undefined
+            _subscription: undefined
           };
         default:
           return state;
@@ -196,10 +184,12 @@ export function fromEventObservable<T extends EventObject, TInput>(
     },
     getInitialState: (_, input) => {
       return {
-        subscription: undefined,
         status: 'active',
-        data: undefined,
-        input
+        output: undefined,
+        error: undefined,
+        context: undefined,
+        input,
+        _subscription: undefined
       };
     },
     start: (state, { self, system }) => {
@@ -208,32 +198,30 @@ export function fromEventObservable<T extends EventObject, TInput>(
         return;
       }
 
-      state.subscription = lazyObservable({
+      state._subscription = lazyObservable({
         input: state.input!,
         system,
         self
       }).subscribe({
         next: (value) => {
-          self._parent?.send(value);
+          if (self._parent) {
+            system._relay(self, self._parent, value);
+          }
         },
         error: (err) => {
-          self.send({ type: errorEventType, data: err });
+          system._relay(self, self, { type: errorEventType, data: err });
         },
         complete: () => {
-          self.send({ type: completeEventType });
+          system._relay(self, self, { type: completeEventType });
         }
       });
     },
-    getSnapshot: (_) => undefined,
-    getPersistedState: ({ status, data, input }) => ({
-      status,
-      data,
-      input
-    }),
-    getStatus: (state) => state,
-    restoreState: (state) => ({
+    getPersistedState: ({ _subscription, ...state }) => state,
+    restoreState: (state: any) => ({
       ...state,
-      subscription: undefined
+      _subscription: undefined
     })
   };
+
+  return logic;
 }

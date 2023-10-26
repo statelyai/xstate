@@ -1,14 +1,7 @@
-import { render, fireEvent, waitFor } from '@testing-library/vue';
-import UseMachine from './UseMachine.vue';
+import { fireEvent, render, waitFor } from '@testing-library/vue';
+import { PromiseActorLogic, assign, createActor, createMachine } from 'xstate';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
-import {
-  createMachine,
-  assign,
-  doneInvoke,
-  createActor,
-  fromCallback
-} from 'xstate';
-import { CallbackActorLogic } from 'xstate/actors';
+import UseMachine from './UseMachine.vue';
 
 describe('useMachine composition function', () => {
   const context = {
@@ -19,7 +12,7 @@ describe('useMachine composition function', () => {
     types: {} as {
       actors: {
         src: 'fetchData';
-        logic: CallbackActorLogic<any>;
+        logic: PromiseActorLogic<string>;
       };
     },
     initial: 'idle',
@@ -50,9 +43,15 @@ describe('useMachine composition function', () => {
   const actorRef = createActor(
     fetchMachine.provide({
       actors: {
-        fetchData: fromCallback(({ sendBack }) => {
-          sendBack(doneInvoke('fetchData', 'persisted data'));
-        })
+        fetchData: createMachine({
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final'
+            }
+          },
+          output: 'persisted data'
+        }) as any
       }
     })
   ).start();
