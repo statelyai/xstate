@@ -5,7 +5,6 @@ import {
   sendParent,
   StateValue,
   createMachine,
-  ActorStatus,
   ActorRefFrom,
   ActorRef,
   cancel,
@@ -1793,7 +1792,8 @@ describe('interpreter', () => {
 
     const service = createActor(machine).start();
 
-    expect(service.status).toBe(ActorStatus.Stopped);
+    expect(service.getSnapshot().status).toBe('done');
+
     service.subscribe({
       complete: () => {
         done();

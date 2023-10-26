@@ -53,16 +53,12 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-export enum ActorStatus {
-  NotStarted,
-  Running,
-  Stopped
+// those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
+export enum ProcessingStatus {
+  NotStarted = 0,
+  Running = 1,
+  Stopped = 2
 }
-
-/**
- * @deprecated Use `ActorStatus` instead.
- */
-export const InterpreterStatus = ActorStatus;
 
 const defaultOptions = {
   clock: {
@@ -103,10 +99,9 @@ export class Actor<TLogic extends AnyActorLogic>
 
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
   private logger: (...args: any[]) => void;
-  /**
-   * Whether the service is started.
-   */
-  public status: ActorStatus = ActorStatus.NotStarted;
+
+  /** @internal */
+  public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
 
   // Actor Ref
   public _parent?: ActorRef<any, any>;
@@ -324,7 +319,7 @@ export class Actor<TLogic extends AnyActorLogic>
       completeListener
     );
 
-    if (this.status !== ActorStatus.Stopped) {
+    if (this._processingStatus !== ProcessingStatus.Stopped) {
       this.observers.add(observer);
     } else {
       try {
@@ -345,7 +340,7 @@ export class Actor<TLogic extends AnyActorLogic>
    * Starts the Actor from the initial state
    */
   public start(): this {
-    if (this.status === ActorStatus.Running) {
+    if (this._processingStatus === ProcessingStatus.Running) {
       // Do not restart the service if it is already started
       return this;
     }
@@ -354,7 +349,7 @@ export class Actor<TLogic extends AnyActorLogic>
     if (this._systemId) {
       this.system._set(this._systemId, this);
     }
-    this.status = ActorStatus.Running;
+    this._processingStatus = ProcessingStatus.Running;
 
     const initEvent = createInitEvent(this.options.input);
 
@@ -434,12 +429,12 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   private _stop(): this {
-    if (this.status === ActorStatus.Stopped) {
+    if (this._processingStatus === ProcessingStatus.Stopped) {
       return this;
     }
     this.mailbox.clear();
-    if (this.status === ActorStatus.NotStarted) {
-      this.status = ActorStatus.Stopped;
+    if (this._processingStatus === ProcessingStatus.NotStarted) {
+      this._processingStatus = ProcessingStatus.Stopped;
       return this;
     }
     this.mailbox.enqueue({ type: XSTATE_STOP } as any);
@@ -490,7 +485,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
   private _stopProcedure(): this {
-    if (this.status !== ActorStatus.Running) {
+    if (this._processingStatus !== ProcessingStatus.Running) {
       // Actor already stopped; do nothing
       return this;
     }
@@ -508,7 +503,7 @@ export class Actor<TLogic extends AnyActorLogic>
     // so perhaps this should be unified somehow for all of them
     this.mailbox = new Mailbox(this._process.bind(this));
 
-    this.status = ActorStatus.Stopped;
+    this._processingStatus = ProcessingStatus.Stopped;
     this.system._unregister(this);
 
     return this;
@@ -518,7 +513,7 @@ export class Actor<TLogic extends AnyActorLogic>
    * @internal
    */
   public _send(event: EventFromLogic<TLogic>) {
-    if (this.status === ActorStatus.Stopped) {
+    if (this._processingStatus === ProcessingStatus.Stopped) {
       // do nothing
       if (isDevelopment) {
         const eventString = JSON.stringify(event);
