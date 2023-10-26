@@ -630,4 +630,14 @@ describe('State', () => {
       expect(restoredSnapshot.hasTag('foo')).toBe(true);
     });
   });
+
+  describe('.status', () => {
+    it("should be 'stopped' after a running actor gets stopped", () => {
+      const snapshot = createActor(createMachine({}))
+        .start()
+        .stop()
+        .getSnapshot();
+      expect(snapshot.status).toBe('stopped');
+    });
+  });
 });
