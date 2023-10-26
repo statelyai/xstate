@@ -16,13 +16,7 @@ export type TransitionActorLogic<
   TContext,
   TEvent extends EventObject,
   TInput
-> = ActorLogic<
-  TransitionSnapshot<TContext>,
-  TEvent,
-  TInput,
-  TransitionSnapshot<TContext>,
-  AnyActorSystem
->;
+> = ActorLogic<TransitionSnapshot<TContext>, TEvent, TInput, AnyActorSystem>;
 
 export type TransitionActorRef<
   TContext,
@@ -81,6 +75,6 @@ export function fromTransition<
       };
     },
     getPersistedState: (state) => state,
-    restoreState: (state) => state
+    restoreState: (state: any) => state
   };
 }

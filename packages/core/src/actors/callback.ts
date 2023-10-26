@@ -6,8 +6,7 @@ import {
   ActorSystem,
   ActorRefFrom,
   TODO,
-  Snapshot,
-  HomomorphicOmit
+  Snapshot
 } from '../types';
 import { XSTATE_STOP } from '../constants.ts';
 
@@ -24,7 +23,6 @@ export type CallbackActorLogic<
   CallbackSnapshot<TInput, TEvent>,
   TEvent,
   TInput,
-  HomomorphicOmit<CallbackSnapshot<TInput, TEvent>, '_receivers' | '_dispose'>,
   ActorSystem<any>
 >;
 
@@ -120,7 +118,7 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
       };
     },
     getPersistedState: ({ _dispose, _receivers, ...rest }) => rest,
-    restoreState: (state) => ({
+    restoreState: (state: any) => ({
       _receivers: new Set(),
       _dispose: undefined,
       ...state

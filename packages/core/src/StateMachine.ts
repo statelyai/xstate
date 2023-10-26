@@ -37,7 +37,6 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState,
   ParameterizedObject,
   AnyActorContext,
   AnyEventObject,
@@ -45,7 +44,8 @@ import type {
   AnyActorRef,
   Equals,
   TODO,
-  SnapshotFrom
+  SnapshotFrom,
+  Snapshot
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
@@ -114,14 +114,6 @@ export class StateMachine<
       >,
       TEvent,
       TInput,
-      PersistedMachineState<
-        TContext,
-        TEvent,
-        TActor,
-        TTag,
-        TOutput,
-        TResolvedTypesMeta
-      >,
       TODO
     >
 {
@@ -541,14 +533,7 @@ export class StateMachine<
       TOutput,
       TResolvedTypesMeta
     >
-  ): PersistedMachineState<
-    TContext,
-    TEvent,
-    TActor,
-    TTag,
-    TOutput,
-    TResolvedTypesMeta
-  > {
+  ) {
     return getPersistedState(state);
   }
 
@@ -577,14 +562,7 @@ export class StateMachine<
   }
 
   public restoreState(
-    snapshot: PersistedMachineState<
-      TContext,
-      TEvent,
-      TActor,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >,
+    snapshot: Snapshot<unknown>,
     _actorCtx: ActorContext<
       MachineSnapshot<
         TContext,
@@ -605,10 +583,14 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     const children: Record<string, AnyActorRef> = {};
+    const snapshotChildren: Record<
+      string,
+      { src: string; state: Snapshot<unknown> }
+    > = (snapshot as any).children;
 
-    Object.keys(snapshot.children).forEach((actorId) => {
+    Object.keys(snapshotChildren).forEach((actorId) => {
       const actorData =
-        snapshot.children[actorId as keyof typeof snapshot.children];
+        snapshotChildren[actorId as keyof typeof snapshotChildren];
       const childState = actorData.state;
       const src = actorData.src;
 
@@ -630,7 +612,7 @@ export class StateMachine<
     });
 
     const restoredSnapshot = this.createState(
-      new State({ ...snapshot, children }, this) as any
+      new State({ ...(snapshot as any), children }, this) as any
     );
 
     let seen = new Set();
