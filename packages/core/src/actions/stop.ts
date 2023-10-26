@@ -55,6 +55,12 @@ function executeStop(
   if (!actorRef) {
     return;
   }
+
+  // we need to eagerly unregister it here so a new actor with the same systemId can be registered immediately
+  // since we defer actual stopping of the actor but we don't defer actor creations (and we can't do that)
+  // this could throw on `systemId` collision, for example, when dealing with reentering transitions
+  actorContext.system._unregister(actorRef);
+
   // this allows us to prevent an actor from being started if it gets stopped within the same macrostep
   // this can happen, for example, when the invoking state is being exited immediately by an always transition
   if (actorRef.status !== ActorStatus.Running) {
