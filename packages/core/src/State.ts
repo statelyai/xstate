@@ -18,14 +18,14 @@ import type {
   EventObject,
   HistoryValue,
   MachineContext,
-  PersistedMachineState,
   Prop,
   StateConfig,
   StateValue,
   TODO,
   AnyActorRef,
   Compute,
-  EventDescriptor
+  EventDescriptor,
+  Snapshot
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -300,27 +300,11 @@ export function getPersistedState<
     TOutput,
     TResolvedTypesMeta
   >
-): PersistedMachineState<
-  TContext,
-  TEvent,
-  TActor,
-  TTag,
-  TOutput,
-  TResolvedTypesMeta
-> {
+): Snapshot<unknown> {
   const { configuration, tags, machine, children, context, ...jsonValues } =
     state;
 
-  const childrenJson: Partial<
-    PersistedMachineState<
-      TContext,
-      TEvent,
-      TActor,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >['children']
-  > = {};
+  const childrenJson: Record<string, unknown> = {};
 
   for (const id in children) {
     const child = children[id] as any;
@@ -328,26 +312,19 @@ export function getPersistedState<
       throw new Error('An inline child actor cannot be persisted.');
     }
     childrenJson[id as keyof typeof childrenJson] = {
-      state: child.getPersistedState?.(),
+      state: child.getPersistedState(),
       src: child.src,
       systemId: child._systemId
     };
   }
 
-  return {
+  const persisted = {
     ...jsonValues,
-    // TODO: this makes `PersistedMachineState`'s type kind of a lie
-    // it doesn't truly use `TContext` but rather some kind of a derived form of it
     context: persistContext(context) as any,
     children: childrenJson
-  } as PersistedMachineState<
-    TContext,
-    TEvent,
-    TActor,
-    TTag,
-    TOutput,
-    TResolvedTypesMeta
-  >;
+  };
+
+  return persisted;
 }
 
 function persistContext(contextPart: Record<string, unknown>) {

@@ -1133,7 +1133,8 @@ describe('actors', () => {
           status: 'active',
           output: undefined,
           error: undefined
-        })
+        }),
+        getPersistedState: (s) => s
       };
 
       const pingMachine = createMachine({
