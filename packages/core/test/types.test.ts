@@ -2571,7 +2571,7 @@ describe('actions', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: ({ params }) => {
+      entry: (_, params) => {
         ((_accept: undefined) => {})(params);
         // @ts-expect-error
         ((_accept: 'not any') => {})(params);
@@ -2584,7 +2584,7 @@ describe('actions', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: assign(({ params }) => {
+      entry: assign((_, params) => {
         ((_accept: undefined) => {})(params);
         // @ts-expect-error
         ((_accept: 'not any') => {})(params);
@@ -2604,7 +2604,7 @@ describe('actions', () => {
       },
       {
         actions: {
-          greet: ({ params }) => {
+          greet: (_, params) => {
             ((_accept: string) => {})(params.name);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params.name);
@@ -2625,7 +2625,7 @@ describe('actions', () => {
       },
       {
         actions: {
-          greet: assign(({ params }) => {
+          greet: assign((_, params) => {
             ((_accept: string) => {})(params.name);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params.name);
@@ -2951,7 +2951,7 @@ describe('choose', () => {
       entry: choose([
         {
           actions: 'someAction',
-          guard: ({ params }) => {
+          guard: (_, params) => {
             ((_accept: undefined) => {})(params);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params);
@@ -2981,7 +2981,7 @@ describe('choose', () => {
           someGuard: choose([
             {
               actions: 'someAction',
-              guard: ({ params }) => {
+              guard: (_, params) => {
                 ((_accept: undefined) => {})(params);
                 // @ts-expect-error
                 ((_accept: 'not any') => {})(params);
@@ -3435,7 +3435,7 @@ describe('guards', () => {
       },
       on: {
         EV: {
-          guard: ({ params }) => {
+          guard: (_, params) => {
             ((_accept: undefined) => {})(params);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params);
@@ -3460,7 +3460,7 @@ describe('guards', () => {
       },
       on: {
         EV: {
-          guard: not(({ params }) => {
+          guard: not((_, params) => {
             ((_accept: undefined) => {})(params);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params);
@@ -3487,7 +3487,7 @@ describe('guards', () => {
       },
       {
         guards: {
-          isGreaterThan: ({ params }) => {
+          isGreaterThan: (_, params) => {
             ((_accept: number) => {})(params.count);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params);
@@ -3514,7 +3514,7 @@ describe('guards', () => {
       },
       {
         guards: {
-          isGreaterThan: not(({ params }) => {
+          isGreaterThan: not((_, params) => {
             ((_accept: number) => {})(params.count);
             // @ts-expect-error
             ((_accept: 'not any') => {})(guard);

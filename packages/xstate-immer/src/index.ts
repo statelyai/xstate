@@ -16,7 +16,8 @@ export type ImmerAssigner<
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = (
-  args: AssignArgs<Draft<TContext>, TExpressionEvent, TParams, TEvent, TActor>
+  args: AssignArgs<Draft<TContext>, TExpressionEvent, TEvent, TActor>,
+  params: TParams
 ) => void;
 
 function immerAssign<
@@ -29,14 +30,17 @@ function immerAssign<
   TActor extends ProvidedActor = ProvidedActor
 >(recipe: ImmerAssigner<TContext, TExpressionEvent, TParams, TEvent, TActor>) {
   return xstateAssign<TContext, TExpressionEvent, TParams, TEvent, TActor>(
-    ({ context, ...rest }) => {
+    ({ context, ...rest }, params) => {
       return produce(
         context,
         (draft) =>
-          void recipe({
-            context: draft,
-            ...rest
-          } as any)
+          void recipe(
+            {
+              context: draft,
+              ...rest
+            } as any,
+            params
+          )
       );
     }
   );

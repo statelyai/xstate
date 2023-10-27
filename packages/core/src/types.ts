@@ -107,11 +107,8 @@ export type MachineContext = Record<string, any>;
 export interface ActionArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
-> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
-  params: TParams;
-}
+> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {}
 
 export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
   infer _TContext,
@@ -154,7 +151,7 @@ export type ActionFunction<
   TGuard extends ParameterizedObject,
   TDelay extends string
 > = {
-  (args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent; // TODO: it feels like we should be able to remove this since now `TEvent` is "observable" by `self`
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -1450,14 +1447,20 @@ export type DelayExpr<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
-> = (args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) => number;
+> = (
+  args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+  params: TParams
+) => number;
 
 export type LogExpr<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
-> = (args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) => unknown;
+> = (
+  args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+  params: TParams
+) => unknown;
 
 export type SendExpr<
   TContext extends MachineContext,
@@ -1466,7 +1469,8 @@ export type SendExpr<
   TSentEvent extends EventObject,
   TEvent extends EventObject
 > = (
-  args: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>
+  args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+  params: TParams
 ) => TSentEvent;
 
 export enum SpecialTargets {
@@ -1543,7 +1547,8 @@ export type Assigner<
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = (
-  args: AssignArgs<TContext, TExpressionEvent, TParams, TEvent, TActor>
+  args: AssignArgs<TContext, TExpressionEvent, TEvent, TActor>,
+  params: TParams
 ) => Partial<TContext>;
 
 export type PartialAssigner<
@@ -1554,7 +1559,8 @@ export type PartialAssigner<
   TActor extends ProvidedActor,
   TKey extends keyof TContext
 > = (
-  args: AssignArgs<TContext, TExpressionEvent, TParams, TEvent, TActor>
+  args: AssignArgs<TContext, TExpressionEvent, TEvent, TActor>,
+  params: TParams
 ) => TContext[TKey];
 
 export type PropertyAssigner<

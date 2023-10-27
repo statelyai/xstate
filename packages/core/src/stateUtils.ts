@@ -1448,7 +1448,8 @@ interface BuiltinAction {
   resolve: (
     actorContext: AnyActorContext,
     state: AnyState,
-    actionArgs: ActionArgs<any, any, any, any>,
+    actionArgs: ActionArgs<any, any, any>,
+    actionParams: ParameterizedObject['params'] | undefined,
     action: unknown,
     extra: unknown
   ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
@@ -1505,23 +1506,24 @@ function resolveActionsAndContextWorker(
       context: intermediateState.context,
       event,
       self: actorCtx?.self,
-      system: actorCtx?.system,
-      params:
-        isInline || typeof action === 'string'
-          ? undefined
-          : 'params' in action
-          ? typeof action.params === 'function'
-            ? action.params({ context: intermediateState.context, event })
-            : action.params
-          : undefined
+      system: actorCtx?.system
     };
+
+    const actionParams =
+      isInline || typeof action === 'string'
+        ? undefined
+        : 'params' in action
+        ? typeof action.params === 'function'
+          ? action.params({ context: intermediateState.context, event })
+          : action.params
+        : undefined;
 
     if (!('resolve' in resolvedAction)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolvedAction(actionArgs);
+        resolvedAction(actionArgs, actionParams);
       } else {
         actorCtx?.defer(() => {
-          resolvedAction(actionArgs);
+          resolvedAction(actionArgs, actionParams);
         });
       }
       continue;
@@ -1533,6 +1535,7 @@ function resolveActionsAndContextWorker(
       actorCtx,
       intermediateState,
       actionArgs,
+      actionParams,
       resolvedAction, // this holds all params
       extra
     );

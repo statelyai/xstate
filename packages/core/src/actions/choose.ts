@@ -16,7 +16,8 @@ import { toArray } from '../utils.ts';
 function resolveChoose(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+  actionArgs: ActionArgs<any, any, any>,
+  _actionParams: ParameterizedObject['params'] | undefined,
   {
     branches
   }: {
@@ -53,7 +54,7 @@ export interface ChooseAction<
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
   _out_TGuard?: TGuard;
@@ -91,7 +92,10 @@ export function choose<
   TGuard,
   TDelay
 > {
-  function choose(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
+  function choose(
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

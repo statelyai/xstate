@@ -17,7 +17,8 @@ import { toArray } from '../utils.ts';
 function resolvePure(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any, any, any>,
+  args: ActionArgs<any, any, any>,
+  _actionParams: ParameterizedObject['params'] | undefined,
   {
     get
   }: {
@@ -47,7 +48,7 @@ export interface PureAction<
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -95,7 +96,10 @@ export function pure<
   TGuard,
   TDelay
 > {
-  function pure(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
+  function pure(
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

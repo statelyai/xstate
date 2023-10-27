@@ -295,7 +295,7 @@ describe('assign meta', () => {
       },
       {
         actions: {
-          inc: assign(({ context, params }) => ({
+          inc: assign(({ context }, params) => ({
             count: context.count + params.by
           }))
         }
@@ -322,7 +322,7 @@ describe('assign meta', () => {
       {
         actions: {
           inc: assign({
-            count: ({ context, params }) => context.count + params.by
+            count: ({ context }, params) => context.count + params.by
           })
         }
       }
@@ -347,7 +347,7 @@ describe('assign meta', () => {
       },
       {
         actions: {
-          inc: assign(({ context, params }) => {
+          inc: assign(({ context }, params) => {
             expect(params).toEqual({ value: 5 });
             done();
             return context;

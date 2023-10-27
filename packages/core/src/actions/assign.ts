@@ -19,17 +19,17 @@ import type {
 export interface AssignArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> extends ActionArgs<TContext, TExpressionEvent, TParams, TEvent> {
+> extends ActionArgs<TContext, TExpressionEvent, TEvent> {
   spawn: Spawner<TActor>;
 }
 
 function resolveAssign(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+  actionArgs: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     assignment
   }: {
@@ -45,10 +45,9 @@ function resolveAssign(
   }
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
-  const assignArgs: AssignArgs<any, any, any, any, any> = {
+  const assignArgs: AssignArgs<any, any, any, any> = {
     context: state.context,
     event: actionArgs.event,
-    params: actionArgs.params,
     spawn: createSpawner(
       actorContext,
       state,
@@ -60,13 +59,13 @@ function resolveAssign(
   };
   let partialUpdate: Record<string, unknown> = {};
   if (typeof assignment === 'function') {
-    partialUpdate = assignment(assignArgs);
+    partialUpdate = assignment(assignArgs, actionParams);
   } else {
     for (const key of Object.keys(assignment)) {
       const propAssignment = assignment[key];
       partialUpdate[key] =
         typeof propAssignment === 'function'
-          ? propAssignment(assignArgs)
+          ? propAssignment(assignArgs, actionParams)
           : propAssignment;
     }
   }
@@ -93,7 +92,7 @@ export interface AssignAction<
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TActor?: TActor;
 }
 
@@ -121,7 +120,10 @@ export function assign<
         TActor
       >
 ): AssignAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
-  function assign(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
+  function assign(
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

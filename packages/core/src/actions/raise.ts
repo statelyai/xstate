@@ -17,7 +17,8 @@ import {
 function resolveRaise(
   _: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any, any, any>,
+  args: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     event: eventOrExpr,
     id,
@@ -54,15 +55,20 @@ function resolveRaise(
     );
   }
   const resolvedEvent =
-    typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
+    typeof eventOrExpr === 'function'
+      ? eventOrExpr(args, actionParams)
+      : eventOrExpr;
 
   let resolvedDelay: number | undefined;
   if (typeof delay === 'string') {
     const configDelay = delaysMap && delaysMap[delay];
     resolvedDelay =
-      typeof configDelay === 'function' ? configDelay(args) : configDelay;
+      typeof configDelay === 'function'
+        ? configDelay(args, actionParams)
+        : configDelay;
   } else {
-    resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
+    resolvedDelay =
+      typeof delay === 'function' ? delay(args, actionParams) : delay;
   }
   if (typeof resolvedDelay !== 'number') {
     internalQueue.push(resolvedEvent);
@@ -93,7 +99,7 @@ export interface RaiseAction<
   TEvent extends EventObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent;
   _out_TDelay?: TDelay;
 }
@@ -124,7 +130,10 @@ export function raise<
     NoInfer<TDelay>
   >
 ): RaiseAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
-  function raise(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
+  function raise(
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

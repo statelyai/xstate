@@ -17,18 +17,16 @@ export type GuardPredicate<
   TParams extends ParameterizedObject['params'] | undefined,
   TGuard extends ParameterizedObject
 > = {
-  (args: GuardArgs<TContext, TExpressionEvent, TParams>): boolean;
+  (args: GuardArgs<TContext, TExpressionEvent>, params: TParams): boolean;
   _out_TGuard?: TGuard;
 };
 
 export interface GuardArgs<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined
+  TExpressionEvent extends EventObject
 > {
   context: TContext;
   event: TExpressionEvent;
-  params: TParams;
 }
 
 export type Guard<
@@ -61,14 +59,14 @@ interface BuiltinGuard {
   (): boolean;
   check: (
     state: AnyState,
-    guardArgs: GuardArgs<any, any, any>,
+    guardArgs: GuardArgs<any, any>,
     params: unknown
   ) => boolean;
 }
 
 function checkStateIn(
   state: AnyState,
-  _: GuardArgs<any, any, any>,
+  _: GuardArgs<any, any>,
   { stateValue }: { stateValue: StateValue }
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
@@ -83,8 +81,18 @@ export function stateIn<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined
->(stateValue: StateValue) {
-  function stateIn(_: GuardArgs<TContext, TExpressionEvent, TParams>) {
+>(
+  stateValue: StateValue
+): GuardPredicate<
+  TContext,
+  TExpressionEvent,
+  TParams,
+  any // TODO: recheck if we could replace this with something better here
+> {
+  function stateIn(
+    args: GuardArgs<TContext, TExpressionEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -94,17 +102,12 @@ export function stateIn<
   stateIn.check = checkStateIn;
   stateIn.stateValue = stateValue;
 
-  return stateIn as GuardPredicate<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    any // TODO: recheck if we could replace this with something better here
-  >;
+  return stateIn;
 }
 
 function checkNot(
   state: AnyState,
-  { context, event }: GuardArgs<any, any, any>,
+  { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
   return !evaluateGuard(guards[0], context, event, state);
@@ -115,8 +118,10 @@ export function not<
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
   TGuard extends ParameterizedObject
->(guard: Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>) {
-  function not(_: GuardArgs<TContext, TExpressionEvent, TParams>) {
+>(
+  guard: Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
+): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
+  function not(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -126,12 +131,12 @@ export function not<
   not.check = checkNot;
   not.guards = [guard];
 
-  return not as GuardPredicate<TContext, TExpressionEvent, TParams, TGuard>;
+  return not;
 }
 
 function checkAnd(
   state: AnyState,
-  { context, event }: GuardArgs<any, any, any>,
+  { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
   return guards.every((guard) => evaluateGuard(guard, context, event, state));
@@ -146,8 +151,8 @@ export function and<
   guards: ReadonlyArray<
     Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
   >
-) {
-  function and(_: GuardArgs<TContext, TExpressionEvent, TParams>) {
+): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
+  function and(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -157,12 +162,12 @@ export function and<
   and.check = checkAnd;
   and.guards = guards;
 
-  return and as GuardPredicate<TContext, TExpressionEvent, TParams, TGuard>;
+  return and;
 }
 
 function checkOr(
   state: AnyState,
-  { context, event }: GuardArgs<any, any, any>,
+  { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
   return guards.some((guard) => evaluateGuard(guard, context, event, state));
@@ -177,8 +182,8 @@ export function or<
   guards: ReadonlyArray<
     Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
   >
-) {
-  function or(_: GuardArgs<TContext, TExpressionEvent, TParams>) {
+): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
+  function or(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -188,7 +193,7 @@ export function or<
   or.check = checkOr;
   or.guards = guards;
 
-  return or as GuardPredicate<TContext, TExpressionEvent, TParams, TGuard>;
+  return or;
 }
 
 // TODO: throw on cycles (depth check should be enough)
@@ -224,22 +229,23 @@ export function evaluateGuard<
 
   const guardArgs = {
     context,
-    event,
-    params:
-      isInline || typeof guard === 'string'
-        ? undefined
-        : 'params' in guard
-        ? typeof guard.params === 'function'
-          ? guard.params({ context, event })
-          : guard.params
-        : undefined
+    event
   };
+
+  const guardParams =
+    isInline || typeof guard === 'string'
+      ? undefined
+      : 'params' in guard
+      ? typeof guard.params === 'function'
+        ? guard.params({ context, event })
+        : guard.params
+      : undefined;
 
   if (!('check' in resolved)) {
     // the existing type of `.guards` assumes non-nullable `TExpressionGuard`
     // inline guards expect `TExpressionGuard` to be set to `undefined`
     // it's fine to cast this here, our logic makes sure that we call those 2 "variants" correctly
-    return resolved(guardArgs as never);
+    return resolved(guardArgs, guardParams as never);
   }
 
   const builtinGuard = resolved as unknown as BuiltinGuard;

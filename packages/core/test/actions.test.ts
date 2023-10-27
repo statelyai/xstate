@@ -2213,7 +2213,7 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ params }) => {
+          entryAction: (_, params) => {
             spy(params);
           }
         }
@@ -2242,7 +2242,7 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ params }) => {
+          entryAction: (_, params) => {
             spy(params);
           }
         }
@@ -2266,7 +2266,7 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ params }) => {
+          entryAction: (_, params) => {
             spy(params);
           }
         }
@@ -2295,7 +2295,7 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ params }) => {
+          entryAction: (_, params) => {
             spy(params);
           }
         }
@@ -2325,7 +2325,7 @@ describe('action meta', () => {
       },
       {
         actions: {
-          myAction: ({ params }) => {
+          myAction: (_, params) => {
             spy(params);
           }
         }
@@ -2359,7 +2359,7 @@ describe('purely defined actions', () => {
       },
       {
         actions: {
-          doSomething: ({ params }) => spy(params)
+          doSomething: (_, params) => spy(params)
         }
       }
     );
@@ -2403,7 +2403,7 @@ describe('purely defined actions', () => {
       },
       {
         actions: {
-          doSomething: ({ params }) => {
+          doSomething: (_, params) => {
             spy(params);
           }
         }
@@ -3766,7 +3766,7 @@ describe('actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: ({ params }) => {
+        entry: (_, params) => {
           spy(params);
         }
       })
@@ -3779,7 +3779,7 @@ describe('actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: assign(({ params }) => {
+        entry: assign((_, params) => {
           spy(params);
           return {};
         })
@@ -3796,7 +3796,7 @@ describe('actions', () => {
       createMachine({
         on: {
           FOO: {
-            actions: ({ params }) => {
+            actions: (_, params) => {
               spy(params);
             }
           }
@@ -3815,7 +3815,7 @@ describe('actions', () => {
       createMachine({
         on: {
           FOO: {
-            actions: assign(({ params }) => {
+            actions: assign((_, params) => {
               spy(params);
               return {};
             })
@@ -3838,7 +3838,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ params }) => {
+            myAction: (_, params) => {
               spy(params);
             }
           }
@@ -3859,7 +3859,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ params }) => {
+            myAction: assign((_, params) => {
               spy(params);
               return {};
             })
@@ -3886,7 +3886,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ params }) => {
+            myAction: (_, params) => {
               spy(params);
             }
           }
@@ -3914,7 +3914,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ params }) => {
+            myAction: assign((_, params) => {
               spy(params);
               return {};
             })
@@ -3938,7 +3938,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ params }) => {
+            myAction: (_, params) => {
               spy(params);
               return {};
             }
@@ -3960,7 +3960,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ params }) => {
+            myAction: assign((_, params) => {
               spy(params);
               return {};
             })
@@ -3983,7 +3983,7 @@ describe('actions', () => {
         {
           actions: {
             myPure: pure(() => ['myAction']),
-            myAction: ({ params }) => {
+            myAction: (_, params) => {
               spy(params);
               return {};
             }
@@ -4006,7 +4006,7 @@ describe('actions', () => {
         {
           actions: {
             myPure: pure(() => ['myAction']),
-            myAction: assign(({ params }) => {
+            myAction: assign((_, params) => {
               spy(params);
               return {};
             })

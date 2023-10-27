@@ -446,7 +446,7 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          custom: ({ context, event, params }) => {
+          custom: ({ context, event }, params) => {
             const { prop, compare, op } = params;
             if (op === 'greaterThan') {
               return context[prop] + event.value > compare;
@@ -484,7 +484,7 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ params }) => {
+          myGuard: (_, params) => {
             spy(params);
             return true;
           }
@@ -511,7 +511,7 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ params }) => {
+          myGuard: (_, params) => {
             spy(params);
             return true;
           }
@@ -546,7 +546,7 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ params }) => {
+          myGuard: (_, params) => {
             spy(params);
             return true;
           }
@@ -578,7 +578,7 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ params }) => {
+          myGuard: (_, params) => {
             spy(params);
             return true;
           }
@@ -880,7 +880,7 @@ describe('not() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ params }) => {
+          greaterThan10: (_, params) => {
             return params.value > 10;
           }
         }
@@ -1003,7 +1003,7 @@ describe('and() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ params }) => {
+          greaterThan10: (_, params) => {
             return params.value > 10;
           }
         }
@@ -1131,7 +1131,7 @@ describe('or() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ params }) => {
+          greaterThan10: (_, params) => {
             return params.value > 10;
           }
         }

@@ -19,7 +19,8 @@ import { resolveReferencedActor } from '../utils.ts';
 function resolveInvoke(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+  actionArgs: ActionArgs<any, any, any>,
+  _actionParams: ParameterizedObject['params'] | undefined,
   {
     id,
     systemId,
@@ -123,7 +124,7 @@ interface InvokeAction<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
 }
 
 export function invoke<
@@ -144,7 +145,10 @@ export function invoke<
   input?: unknown;
   onSnapshot?: {}; // TODO: transition object
 }): InvokeAction<TContext, TExpressionEvent, TParams, TEvent> {
-  function invoke(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
+  function invoke(
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

@@ -19,7 +19,8 @@ type ResolvableLogValue<
 function resolveLog(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+  actionArgs: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     value,
     label
@@ -31,7 +32,8 @@ function resolveLog(
   return [
     state,
     {
-      value: typeof value === 'function' ? value(actionArgs) : value,
+      value:
+        typeof value === 'function' ? value(actionArgs, actionParams) : value,
       label
     }
   ];
@@ -54,7 +56,7 @@ export interface LogAction<
   TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
 }
 
 /**
@@ -77,7 +79,10 @@ export function log<
   }) => ({ context, event }),
   label?: string
 ): LogAction<TContext, TExpressionEvent, TParams, TEvent> {
-  function log(_: ActionArgs<TContext, TExpressionEvent, TParams, TEvent>) {
+  function log(
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
