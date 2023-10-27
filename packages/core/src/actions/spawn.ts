@@ -30,7 +30,8 @@ type ResolvableActorId<
 function resolveSpawn(
   actorContext: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+  actionArgs: ActionArgs<any, any, any>,
+  _actionParams: ParameterizedObject['params'] | undefined,
   {
     id,
     systemId,
@@ -129,11 +130,11 @@ function executeSpawn(
 export interface SpawnAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TActor?: TActor;
 }
 
@@ -189,7 +190,7 @@ type SpawnArguments<
 export function spawn<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 >(
@@ -197,9 +198,10 @@ export function spawn<
     src,
     { id, systemId, input, syncSnapshot = false } = {} as any
   ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
-): SpawnAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
+): SpawnAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
   function spawn(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

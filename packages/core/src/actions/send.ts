@@ -27,7 +27,8 @@ import { XSTATE_ERROR } from '../constants.ts';
 function resolveSendTo(
   actorContext: AnyActorContext,
   state: AnyState,
-  args: ActionArgs<any, any, any, any>,
+  args: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     to,
     event: eventOrExpr,
@@ -38,14 +39,15 @@ function resolveSendTo(
       | AnyActorRef
       | string
       | ((
-          args: UnifiedArg<MachineContext, EventObject, EventObject>
+          args: UnifiedArg<MachineContext, EventObject, EventObject>,
+          params: ParameterizedObject['params'] | undefined
         ) => AnyActorRef | string);
     event:
       | EventObject
       | SendExpr<
           MachineContext,
           EventObject,
-          ParameterizedObject | undefined,
+          ParameterizedObject['params'] | undefined,
           EventObject,
           EventObject
         >;
@@ -56,7 +58,7 @@ function resolveSendTo(
       | DelayExpr<
           MachineContext,
           EventObject,
-          ParameterizedObject | undefined,
+          ParameterizedObject['params'] | undefined,
           EventObject
         >
       | undefined;
@@ -71,18 +73,23 @@ function resolveSendTo(
     );
   }
   const resolvedEvent =
-    typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
+    typeof eventOrExpr === 'function'
+      ? eventOrExpr(args, actionParams)
+      : eventOrExpr;
 
   let resolvedDelay: number | undefined;
   if (typeof delay === 'string') {
     const configDelay = delaysMap && delaysMap[delay];
     resolvedDelay =
-      typeof configDelay === 'function' ? configDelay(args) : configDelay;
+      typeof configDelay === 'function'
+        ? configDelay(args, actionParams)
+        : configDelay;
   } else {
-    resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
+    resolvedDelay =
+      typeof delay === 'function' ? delay(args, actionParams) : delay;
   }
 
-  const resolvedTarget = typeof to === 'function' ? to(args) : to;
+  const resolvedTarget = typeof to === 'function' ? to(args, actionParams) : to;
   let targetActorRef: AnyActorRef | string | undefined;
 
   if (typeof resolvedTarget === 'string') {
@@ -162,11 +169,11 @@ function executeSendTo(
 export interface SendToAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TDelay?: TDelay;
 }
 
@@ -182,7 +189,7 @@ export interface SendToAction<
 export function sendTo<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TTargetActor extends AnyActorRef,
   TEvent extends EventObject,
   TDelay extends string
@@ -191,27 +198,29 @@ export function sendTo<
     | TTargetActor
     | string
     | ((
-        args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+        args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+        params: TParams
       ) => TTargetActor | string),
   eventOrExpr:
     | EventFrom<TTargetActor>
     | SendExpr<
         TContext,
         TExpressionEvent,
-        TExpressionAction,
+        TParams,
         InferEvent<Cast<EventFrom<TTargetActor>, EventObject>>,
         TEvent
       >,
   options?: SendToActionOptions<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     NoInfer<TEvent>,
     NoInfer<TDelay>
   >
-): SendToAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TDelay> {
+): SendToAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
   function sendTo(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -240,24 +249,18 @@ export function sendTo<
 export function sendParent<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TSentEvent extends EventObject = AnyEventObject,
   TEvent extends EventObject = AnyEventObject,
   TDelay extends string = string
 >(
   event:
     | TSentEvent
-    | SendExpr<
-        TContext,
-        TExpressionEvent,
-        TExpressionAction,
-        TSentEvent,
-        TEvent
-      >,
+    | SendExpr<TContext, TExpressionEvent, TParams, TSentEvent, TEvent>,
   options?: SendToActionOptions<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     TEvent,
     TDelay
   >
@@ -265,7 +268,7 @@ export function sendParent<
   return sendTo<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     AnyActorRef,
     TEvent,
     TDelay
@@ -275,13 +278,14 @@ export function sendParent<
 type Target<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > =
   | string
   | ActorRef<any, any>
   | ((
-      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+      args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+      params: TParams
     ) => string | ActorRef<any, any>);
 
 /**
@@ -293,15 +297,15 @@ type Target<
 export function forwardTo<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TDelay extends string
 >(
-  target: Target<TContext, TExpressionEvent, TExpressionAction, TEvent>,
+  target: Target<TContext, TExpressionEvent, TParams, TEvent>,
   options?: SendToActionOptions<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     TEvent,
     TDelay
   >
@@ -324,7 +328,7 @@ export function forwardTo<
   return sendTo<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     AnyActorRef,
     TEvent,
     TDelay
@@ -341,7 +345,7 @@ export function forwardTo<
 export function escalate<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TErrorData = any,
   TEvent extends EventObject = AnyEventObject
 >(
@@ -351,23 +355,20 @@ export function escalate<
   options?: SendToActionParams<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     EventObject,
     TEvent,
     string
   >
 ) {
-  return sendParent<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    EventObject,
-    TEvent
-  >((arg) => {
-    return {
-      type: XSTATE_ERROR,
-      data:
-        typeof errorData === 'function' ? (errorData as any)(arg) : errorData
-    };
-  }, options);
+  return sendParent<TContext, TExpressionEvent, TParams, EventObject, TEvent>(
+    (arg) => {
+      return {
+        type: XSTATE_ERROR,
+        data:
+          typeof errorData === 'function' ? (errorData as any)(arg) : errorData
+      };
+    },
+    options
+  );
 }

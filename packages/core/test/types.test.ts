@@ -2823,34 +2823,34 @@ describe('actions', () => {
     });
   });
 
-  it('should type action param as undefined in inline custom action', () => {
+  it('should type action params as undefined in inline custom action', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: ({ action }) => {
-        ((_accept: undefined) => {})(action);
+      entry: (_, params) => {
+        ((_accept: undefined) => {})(params);
         // @ts-expect-error
-        ((_accept: 'not any') => {})(action);
+        ((_accept: 'not any') => {})(params);
       }
     });
   });
 
-  it('should type action param as undefined in inline builtin action', () => {
+  it('should type action params as undefined in inline builtin action', () => {
     createMachine({
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: assign(({ action }) => {
-        ((_accept: undefined) => {})(action);
+      entry: assign((_, params) => {
+        ((_accept: undefined) => {})(params);
         // @ts-expect-error
-        ((_accept: 'not any') => {})(action);
+        ((_accept: 'not any') => {})(params);
         return {};
       })
     });
   });
 
-  it('should type action param as the specific defined action type in the provided custom action', () => {
+  it('should type action params as the specific defined params in the provided custom action', () => {
     createMachine(
       {
         types: {} as {
@@ -2861,17 +2861,17 @@ describe('actions', () => {
       },
       {
         actions: {
-          greet: ({ action }) => {
-            ((_accept: string) => {})(action.params.name);
+          greet: (_, params) => {
+            ((_accept: string) => {})(params.name);
             // @ts-expect-error
-            ((_accept: 'not any') => {})(action.params.name);
+            ((_accept: 'not any') => {})(params.name);
           }
         }
       }
     );
   });
 
-  it('should type action param as the specific defined action type in the provided builtin action', () => {
+  it('should type action params as the specific defined params in the provided builtin action', () => {
     createMachine(
       {
         types: {} as {
@@ -2882,10 +2882,10 @@ describe('actions', () => {
       },
       {
         actions: {
-          greet: assign(({ action }) => {
-            ((_accept: string) => {})(action.params.name);
+          greet: assign((_, params) => {
+            ((_accept: string) => {})(params.name);
             // @ts-expect-error
-            ((_accept: 'not any') => {})(action.params.name);
+            ((_accept: 'not any') => {})(params.name);
             return {};
           })
         }
@@ -3193,7 +3193,7 @@ describe('choose', () => {
     );
   });
 
-  it('should type guard param as undefined in inline custom guard when choose is used in the config', () => {
+  it('should type guard params as undefined in inline custom guard when choose is used in the config', () => {
     createMachine({
       types: {
         guards: {} as
@@ -3208,10 +3208,10 @@ describe('choose', () => {
       entry: choose([
         {
           actions: 'someAction',
-          guard: ({ guard }) => {
-            ((_accept: undefined) => {})(guard);
+          guard: (_, params) => {
+            ((_accept: undefined) => {})(params);
             // @ts-expect-error
-            ((_accept: 'not any') => {})(guard);
+            ((_accept: 'not any') => {})(params);
             return true;
           }
         }
@@ -3219,7 +3219,7 @@ describe('choose', () => {
     });
   });
 
-  it('should type guard param as undefined in inline custom guard when choose is used in the implementations', () => {
+  it('should type guard params as undefined in inline custom guard when choose is used in the implementations', () => {
     createMachine(
       {
         types: {
@@ -3238,10 +3238,10 @@ describe('choose', () => {
           someGuard: choose([
             {
               actions: 'someAction',
-              guard: ({ guard }) => {
-                ((_accept: undefined) => {})(guard);
+              guard: (_, params) => {
+                ((_accept: undefined) => {})(params);
                 // @ts-expect-error
-                ((_accept: 'not any') => {})(guard);
+                ((_accept: 'not any') => {})(params);
                 return true;
               }
             }
@@ -3678,7 +3678,7 @@ describe('guards', () => {
     });
   });
 
-  it('should type guard param as undefined in inline custom guard', () => {
+  it('should type guard params as undefined in inline custom guard', () => {
     createMachine({
       types: {} as {
         guards:
@@ -3692,10 +3692,10 @@ describe('guards', () => {
       },
       on: {
         EV: {
-          guard: ({ guard }) => {
-            ((_accept: undefined) => {})(guard);
+          guard: (_, params) => {
+            ((_accept: undefined) => {})(params);
             // @ts-expect-error
-            ((_accept: 'not any') => {})(guard);
+            ((_accept: 'not any') => {})(params);
             return true;
           }
         }
@@ -3717,10 +3717,10 @@ describe('guards', () => {
       },
       on: {
         EV: {
-          guard: not(({ guard }) => {
-            ((_accept: undefined) => {})(guard);
+          guard: not((_, params) => {
+            ((_accept: undefined) => {})(params);
             // @ts-expect-error
-            ((_accept: 'not any') => {})(guard);
+            ((_accept: 'not any') => {})(params);
             return true;
           })
         }
@@ -3728,7 +3728,7 @@ describe('guards', () => {
     });
   });
 
-  it('should type guard param as the specific defined guard type in the provided custom guard', () => {
+  it('should type guard params as the specific params in the provided custom guard', () => {
     createMachine(
       {
         types: {} as {
@@ -3744,10 +3744,10 @@ describe('guards', () => {
       },
       {
         guards: {
-          isGreaterThan: ({ guard }) => {
-            ((_accept: number) => {})(guard.params.count);
+          isGreaterThan: (_, params) => {
+            ((_accept: number) => {})(params.count);
             // @ts-expect-error
-            ((_accept: 'not any') => {})(guard);
+            ((_accept: 'not any') => {})(params);
             return true;
           }
         }
@@ -3755,7 +3755,7 @@ describe('guards', () => {
     );
   });
 
-  it('should type guard param as the specific defined guard type in the provided composite guard', () => {
+  it('should type guard params as the specific params in the provided composite guard', () => {
     createMachine(
       {
         types: {} as {
@@ -3771,8 +3771,8 @@ describe('guards', () => {
       },
       {
         guards: {
-          isGreaterThan: not(({ guard }) => {
-            ((_accept: number) => {})(guard.params.count);
+          isGreaterThan: not((_, params) => {
+            ((_accept: number) => {})(params.count);
             // @ts-expect-error
             ((_accept: 'not any') => {})(guard);
             return true;
