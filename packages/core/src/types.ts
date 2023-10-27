@@ -23,6 +23,9 @@ export type HomomorphicOmit<T, K extends keyof any> = {
 };
 
 /**
+ *
+ * @remarks
+ *
  * `T | unknown` reduces to `unknown` and that can be problematic when it comes to contextual typing.
  * It especially is a problem when the union has a function member, like here:
  *
@@ -282,7 +285,10 @@ export interface StateValueMap {
 /**
  * The string or object representing the state value relative to the parent state node.
  *
+ * @remarks
+ *
  * - For a child atomic state node, this is a string, e.g., `"pending"`.
+ *
  * - For complex state nodes, this is an object, e.g., `{ success: "someChildState" }`.
  */
 export type StateValue = string | StateValueMap;
@@ -832,9 +838,6 @@ export interface StateNodeConfig<
     TGuard,
     TDelay
   >;
-  /**
-   * @private
-   */
   parent?: StateNode<TContext, TEvent>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
