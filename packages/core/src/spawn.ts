@@ -15,7 +15,7 @@ import {
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
-type SpawnOptions<
+export type SpawnOptions<
   TActor extends ProvidedActor,
   TSrc extends TActor['src']
 > = TActor extends {
@@ -104,9 +104,7 @@ export function createSpawner(
               });
             }
           },
-          error: () => {
-            /* TODO */
-          }
+          error: () => {}
         });
       }
       return actorRef;
@@ -131,9 +129,7 @@ export function createSpawner(
               });
             }
           },
-          error: () => {
-            /* TODO */
-          }
+          error: () => {}
         });
       }
 

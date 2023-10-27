@@ -16,7 +16,8 @@ import {
   not,
   pure,
   sendTo,
-  stateIn
+  stateIn,
+  spawn
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -745,7 +746,263 @@ describe('interpreter', () => {
   });
 });
 
-describe('spawn', () => {
+describe('spawn action', () => {
+  it('should reject actor outside of the defined ones at usage site', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry:
+        // @ts-expect-error
+        spawn('other')
+    });
+  });
+
+  it('should accept a defined actor at usage site', () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child')
+    });
+  });
+
+  it('should allow valid configured actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child', { id: 'ok1' })
+    });
+  });
+
+  it('should disallow invalid actor id', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child', {
+        // @ts-expect-error
+        id: 'child'
+      })
+    });
+  });
+
+  it('should require id to be specified when it was configured', () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          id: 'ok1' | 'ok2';
+          logic: typeof child;
+        };
+      },
+      entry:
+        // @ts-expect-error
+        spawn('child')
+    });
+  });
+
+  it(`shouldn't require id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child')
+    });
+  });
+
+  it(`should allow id to be specified when it was not configured`, () => {
+    const child = createMachine({});
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child', { id: 'someId' })
+    });
+  });
+
+  it(`should not allow anonymous inline actors outside of the configured ones`, () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child1;
+        };
+      },
+      entry:
+        // @ts-expect-error
+        spawn(child2)
+    });
+  });
+
+  it(`should reject static wrong input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child', {
+        // @ts-expect-error
+        input: 'hello'
+      })
+    });
+  });
+
+  it(`should allow static correct input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child', {
+        input: 42
+      })
+    });
+  });
+
+  it(`should allow static input that is a subtype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number | string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child', {
+        input: 42
+      })
+    });
+  });
+
+  it(`should reject static input that is a supertype of the expected one`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child', {
+        // @ts-expect-error
+        input: Math.random() > 0.5 ? 'string' : 42
+      })
+    });
+  });
+
+  it(`should reject an attempt to provide dynamic input`, () => {
+    const child = fromPromise(({}: { input: number }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child', {
+        // @ts-expect-error
+        input: () => 42
+      })
+    });
+  });
+
+  it(`should reject a valid input of a different provided actor`, () => {
+    const child1 = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    const child2 = fromPromise(({}: { input: string }) =>
+      Promise.resolve('foo')
+    );
+
+    createMachine({
+      types: {} as {
+        actors:
+          | {
+              src: 'child1';
+              logic: typeof child1;
+            }
+          | {
+              src: 'child2';
+              logic: typeof child2;
+            };
+      },
+      entry:
+        // @ts-expect-error
+        spawn('child1', {
+          input: 'hello'
+        })
+    });
+  });
+});
+
+describe('spawner in assign', () => {
   it('spawned actor ref should be compatible with the result of ActorRefFrom', () => {
     const createChild = () => createMachine({});
 
