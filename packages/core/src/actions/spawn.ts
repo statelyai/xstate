@@ -15,9 +15,17 @@ import {
   Snapshot,
   ProvidedActor,
   IsLiteralString,
-  InputFrom
+  InputFrom,
+  UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
+
+type ResolvableActorId<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TId extends string | undefined
+> = TId | ((args: UnifiedArg<TContext, TExpressionEvent, TEvent>) => TId);
 
 function resolveSpawn(
   actorContext: AnyActorContext,
@@ -30,7 +38,7 @@ function resolveSpawn(
     input,
     syncSnapshot
   }: {
-    id: string;
+    id: ResolvableActorId<MachineContext, EventObject, EventObject, string>;
     systemId: string | undefined;
     src: AnyActorLogic | string;
     input?: unknown;
@@ -41,6 +49,7 @@ function resolveSpawn(
     typeof src === 'string'
       ? resolveReferencedActor(state.machine, src)
       : { src, input: undefined };
+  const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
 
   let actorRef: AnyActorRef | undefined;
 
@@ -48,7 +57,7 @@ function resolveSpawn(
     // TODO: inline `input: undefined` should win over the referenced one
     const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
-      id,
+      id: resolvedId,
       src: typeof src === 'string' ? src : undefined,
       parent: actorContext?.self,
       systemId,
@@ -86,7 +95,7 @@ function resolveSpawn(
     cloneState(state, {
       children: {
         ...state.children,
-        [id]: actorRef!
+        [resolvedId]: actorRef!
       }
     }),
     {
@@ -128,12 +137,22 @@ export interface SpawnAction<
   _out_TActor?: TActor;
 }
 
-type DistributeActors<TActor extends ProvidedActor> = TActor extends any
+type DistributeActors<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
+> = TActor extends any
   ? 'id' extends keyof TActor
     ? [
         src: TActor['src'],
         options: {
-          id: TActor['id'];
+          id: ResolvableActorId<
+            TContext,
+            TExpressionEvent,
+            TEvent,
+            TActor['id']
+          >;
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
@@ -142,7 +161,7 @@ type DistributeActors<TActor extends ProvidedActor> = TActor extends any
     : [
         src: TActor['src'],
         options?: {
-          id?: string;
+          id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
@@ -150,14 +169,17 @@ type DistributeActors<TActor extends ProvidedActor> = TActor extends any
       ]
   : never;
 
-type SpawnArguments<TActor extends ProvidedActor> = IsLiteralString<
-  TActor['src']
-> extends true
-  ? DistributeActors<TActor>
+type SpawnArguments<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
+> = IsLiteralString<TActor['src']> extends true
+  ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
   : [
       src: string | AnyActorLogic,
       options?: {
-        id?: string;
+        id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
         systemId?: string;
         input?: unknown;
         syncSnapshot?: boolean;
@@ -174,7 +196,7 @@ export function spawn<
   ...[
     src,
     { id, systemId, input, syncSnapshot = false } = {} as any
-  ]: SpawnArguments<TActor>
+  ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
 ): SpawnAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
   function spawn(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>

@@ -5,6 +5,7 @@ import {
   createMachine,
   fromObservable,
   fromPromise,
+  sendTo,
   spawn
 } from '../src';
 
@@ -82,5 +83,33 @@ describe('spawn action', () => {
     });
 
     observableService.start();
+  });
+
+  it('should handle a dynamic id', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      on: {
+        FOO: {
+          actions: spy
+        }
+      }
+    });
+
+    const machine = createMachine({
+      context: {
+        childId: 'myChild'
+      },
+      entry: [
+        spawn(child, { id: ({ context }) => context.childId }),
+        sendTo('myChild', {
+          type: 'FOO'
+        })
+      ]
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });
