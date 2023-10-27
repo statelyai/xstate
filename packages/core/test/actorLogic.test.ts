@@ -859,10 +859,10 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state, event, actorCtx) => {
+        transition: (state, event, actorScope) => {
           logs.push(event.type);
 
-          return actorLogic.transition(state, event, actorCtx);
+          return actorLogic.transition(state, event, actorScope);
         }
       };
     }
@@ -897,8 +897,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
           logs.push(s.output);
 
           return s;
@@ -921,8 +921,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
           logs.push(s.context);
 
           return s;
@@ -948,8 +948,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
 
           if (s.status === 'active') {
             logs.push(s.context);

@@ -1,5 +1,5 @@
 import {
-  ActorContext,
+  ActorScope,
   ActorLogic,
   ActorSystem,
   EventObject,
@@ -7,7 +7,7 @@ import {
 } from 'xstate';
 import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
-import { createMockActorContext } from './actorContext';
+import { createMockActorScope } from './actorScope';
 
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,
@@ -27,7 +27,7 @@ export function getAdjacencyMap<
     fromState: customFromState,
     stopCondition
   } = resolveTraversalOptions(logic, options);
-  const actorContext = createMockActorContext() as ActorContext<
+  const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
     TEvent,
     TSystem
@@ -35,7 +35,7 @@ export function getAdjacencyMap<
   const fromState =
     customFromState ??
     logic.getInitialState(
-      actorContext,
+      actorScope,
       // TODO: fix this
       undefined as TInput
     );
@@ -79,7 +79,7 @@ export function getAdjacencyMap<
       typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
-      const nextState = transition(state, nextEvent, actorContext);
+      const nextState = transition(state, nextEvent, actorScope);
 
       if (!options.filter || options.filter(nextState, nextEvent)) {
         adj[serializedState].transitions[

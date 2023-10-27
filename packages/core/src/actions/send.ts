@@ -3,7 +3,7 @@ import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActorRef,
-  AnyActorContext,
+  AnyActorScope,
   AnyActorRef,
   AnyEventObject,
   AnyActor,
@@ -25,7 +25,7 @@ import {
 import { XSTATE_ERROR } from '../constants.ts';
 
 function resolveSendTo(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   state: AnyState,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
@@ -94,9 +94,9 @@ function resolveSendTo(
 
   if (typeof resolvedTarget === 'string') {
     if (resolvedTarget === SpecialTargets.Parent) {
-      targetActorRef = actorContext?.self._parent;
+      targetActorRef = actorScope?.self._parent;
     } else if (resolvedTarget === SpecialTargets.Internal) {
-      targetActorRef = actorContext?.self;
+      targetActorRef = actorScope?.self;
     } else if (resolvedTarget.startsWith('#_')) {
       // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
       // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
@@ -112,7 +112,7 @@ function resolveSendTo(
       );
     }
   } else {
-    targetActorRef = resolvedTarget || actorContext?.self;
+    targetActorRef = resolvedTarget || actorScope?.self;
   }
 
   return [
@@ -122,7 +122,7 @@ function resolveSendTo(
 }
 
 function retryResolveSendTo(
-  _: AnyActorContext,
+  _: AnyActorScope,
   state: AnyState,
   params: {
     to: AnyActorRef;
@@ -137,7 +137,7 @@ function retryResolveSendTo(
 }
 
 function executeSendTo(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   params: {
     to: AnyActorRef;
     event: EventObject;
@@ -146,7 +146,7 @@ function executeSendTo(
   }
 ) {
   if (typeof params.delay === 'number') {
-    (actorContext.self as AnyActor).delaySend(
+    (actorScope.self as AnyActor).delaySend(
       params as typeof params & { delay: number }
     );
     return;
@@ -154,13 +154,13 @@ function executeSendTo(
 
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
-  actorContext.defer(() => {
+  actorScope.defer(() => {
     const { to, event } = params;
-    actorContext?.system._relay(
-      actorContext.self,
+    actorScope?.system._relay(
+      actorScope.self,
       to,
       event.type === XSTATE_ERROR
-        ? createErrorActorEvent(actorContext.self.id, (event as any).data)
+        ? createErrorActorEvent(actorScope.self.id, (event as any).data)
         : event
     );
   });

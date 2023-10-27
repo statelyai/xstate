@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import {
-  AnyActorContext,
+  AnyActorScope,
   AnyActor,
   AnyState,
   EventObject,
@@ -22,7 +22,7 @@ type ResolvableSendId<
     ) => string);
 
 function resolveCancel(
-  _: AnyActorContext,
+  _: AnyActorScope,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
@@ -33,8 +33,8 @@ function resolveCancel(
   return [state, resolvedSendId];
 }
 
-function executeCancel(actorContext: AnyActorContext, resolvedSendId: string) {
-  (actorContext.self as AnyActor).cancel(resolvedSendId);
+function executeCancel(actorScope: AnyActorScope, resolvedSendId: string) {
+  (actorScope.self as AnyActor).cancel(resolvedSendId);
 }
 
 export interface CancelAction<

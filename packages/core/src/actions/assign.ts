@@ -3,7 +3,7 @@ import { cloneState } from '../State.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
 import type {
   ActionArgs,
-  AnyActorContext,
+  AnyActorScope,
   AnyActorRef,
   AnyEventObject,
   AnyState,
@@ -26,7 +26,7 @@ export interface AssignArgs<
 }
 
 function resolveAssign(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
@@ -48,14 +48,9 @@ function resolveAssign(
   const assignArgs: AssignArgs<any, any, any, any> = {
     context: state.context,
     event: actionArgs.event,
-    spawn: createSpawner(
-      actorContext,
-      state,
-      actionArgs.event,
-      spawnedChildren
-    ),
-    self: actorContext?.self,
-    system: actorContext?.system
+    spawn: createSpawner(actorScope, state, actionArgs.event, spawnedChildren),
+    self: actorScope?.self,
+    system: actorScope?.system
   };
   let partialUpdate: Record<string, unknown> = {};
   if (typeof assignment === 'function') {

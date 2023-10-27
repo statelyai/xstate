@@ -1,6 +1,6 @@
-import { AnyActorContext, createEmptyActor } from 'xstate';
+import { AnyActorScope, createEmptyActor } from 'xstate';
 
-export function createMockActorContext(): AnyActorContext {
+export function createMockActorScope(): AnyActorScope {
   const emptyActor = createEmptyActor();
   return {
     self: emptyActor,

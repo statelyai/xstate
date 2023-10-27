@@ -24,7 +24,7 @@ import type {
   TypegenDisabled
 } from './typegenTypes.ts';
 import type {
-  ActorContext,
+  ActorScope,
   ActorLogic,
   EventObject,
   InternalMachineImplementations,
@@ -38,7 +38,7 @@ import type {
   StateValue,
   TransitionDefinition,
   ParameterizedObject,
-  AnyActorContext,
+  AnyActorScope,
   AnyEventObject,
   ProvidedActor,
   AnyActorRef,
@@ -316,7 +316,7 @@ export class StateMachine<
       TResolvedTypesMeta
     >,
     event: TEvent,
-    actorCtx: ActorContext<typeof state, TEvent>
+    actorScope: ActorScope<typeof state, TEvent>
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -336,7 +336,7 @@ export class StateMachine<
       });
     }
 
-    const { state: nextState } = macrostep(state, event, actorCtx);
+    const { state: nextState } = macrostep(state, event, actorScope);
 
     return nextState as typeof state;
   }
@@ -358,11 +358,11 @@ export class StateMachine<
       TResolvedTypesMeta
     >,
     event: TEvent,
-    actorCtx: AnyActorContext
+    actorScope: AnyActorScope
   ): Array<
     MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
   > {
-    return macrostep(state, event, actorCtx).microstates as (typeof state)[];
+    return macrostep(state, event, actorScope).microstates as (typeof state)[];
   }
 
   public getTransitionData(
@@ -384,7 +384,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: AnyActorContext,
+    actorScope: AnyActorScope,
     initEvent: any,
     internalQueue: AnyEventObject[]
   ): MachineSnapshot<
@@ -415,7 +415,7 @@ export class StateMachine<
       return resolveActionsAndContext(
         preInitial,
         initEvent,
-        actorCtx,
+        actorScope,
         [assign(assignment)],
         internalQueue
       ) as SnapshotFrom<this>;
@@ -428,7 +428,7 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx: ActorContext<
+    actorScope: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
@@ -451,7 +451,7 @@ export class StateMachine<
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this.getPreInitialState(
-      actorCtx,
+      actorScope,
       initEvent,
       internalQueue
     );
@@ -467,7 +467,7 @@ export class StateMachine<
         }
       ],
       preInitialState,
-      actorCtx,
+      actorScope,
       initEvent,
       true,
       internalQueue
@@ -476,7 +476,7 @@ export class StateMachine<
     const { state: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
-      actorCtx,
+      actorScope,
       internalQueue
     );
 
@@ -563,7 +563,7 @@ export class StateMachine<
 
   public restoreState(
     snapshot: Snapshot<unknown>,
-    _actorCtx: ActorContext<
+    _actorScope: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
@@ -600,11 +600,11 @@ export class StateMachine<
         return;
       }
 
-      const actorState = logic.restoreState?.(childState, _actorCtx);
+      const actorState = logic.restoreState?.(childState, _actorScope);
 
       const actorRef = createActor(logic, {
         id: actorId,
-        parent: _actorCtx?.self,
+        parent: _actorScope?.self,
         state: actorState,
         systemId: actorData.systemId
       });

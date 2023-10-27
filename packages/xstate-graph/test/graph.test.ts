@@ -16,7 +16,7 @@ import {
   getSimplePaths
 } from '../src';
 import { joinPaths } from '../src/graph';
-import { createMockActorContext } from '../src/actorContext';
+import { createMockActorScope } from '../src/actorScope';
 
 function getPathsSnapshot(
   paths: Array<StatePath<Snapshot<unknown>, EventObject>>
@@ -217,7 +217,7 @@ describe('@xstate/graph', () => {
       expect(
         shortestPaths.find((path) =>
           path.state.matches(
-            lightMachine.getInitialState(createMockActorContext()).value
+            lightMachine.getInitialState(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
@@ -376,28 +376,28 @@ describe('@xstate/graph', () => {
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(createMockActorContext()).value
+            lightMachine.getInitialState(createMockActorScope()).value
           )
         )
       ).toBeDefined();
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(createMockActorContext()).value
+            lightMachine.getInitialState(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(createMockActorContext()).value
+            equivMachine.getInitialState(createMockActorScope()).value
           )
         )!
       ).toBeDefined();
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(createMockActorContext()).value
+            equivMachine.getInitialState(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
