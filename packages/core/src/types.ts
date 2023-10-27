@@ -1080,7 +1080,7 @@ type MachineImplementationsActions<
     TContext,
     MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActions, K>,
     Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>,
-    Cast<Prop<TIndexedActions[K], 'params'>, ParameterizedObject['params']>,
+    GetParameterizedParams<Cast<TIndexedActions[K], ParameterizedObject>>,
     Cast<Prop<TIndexedActors, keyof TIndexedActors>, ProvidedActor>,
     Cast<Prop<TIndexedActions, keyof TIndexedActions>, ParameterizedObject>,
     Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>,
@@ -1143,7 +1143,7 @@ type MachineImplementationsDelays<
     // since they are effectively implicit inline actions
     | Cast<
         Prop<Prop<TIndexedActions, keyof TIndexedActions>, 'params'>,
-        ParameterizedObject['params']
+        ParameterizedObject['params'] | undefined
       >
     | undefined,
     Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
@@ -1163,7 +1163,9 @@ type MachineImplementationsGuards<
   [K in keyof TIndexedGuards]?: Guard<
     TContext,
     MaybeNarrowedEvent<TIndexedEvents, TEventsCausingGuards, K>,
-    Cast<Prop<TIndexedGuards[K], 'params'>, ParameterizedObject['params']>,
+    GetParameterizedParams<
+      Cast<TIndexedGuards[K], ParameterizedObject | undefined>
+    >,
     Cast<Prop<TIndexedGuards, keyof TIndexedGuards>, ParameterizedObject>
   >;
 };
