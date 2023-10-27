@@ -4,7 +4,7 @@ import type { StateNode } from './StateNode.ts';
 import { raise } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
-import { invoke } from './actions/invoke.ts';
+import { spawn } from './actions/spawn.ts';
 import { stop } from './actions/stop.ts';
 import {
   XSTATE_INIT,
@@ -1148,7 +1148,12 @@ function enterStates(
     actions.push(...stateNodeToEnter.entry);
 
     for (const invokeDef of stateNodeToEnter.invoke) {
-      actions.push(invoke(invokeDef));
+      actions.push(
+        spawn(invokeDef.src, {
+          ...invokeDef,
+          syncSnapshot: !!invokeDef.onSnapshot
+        })
+      );
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {

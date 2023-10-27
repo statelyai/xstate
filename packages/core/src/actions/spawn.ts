@@ -12,11 +12,22 @@ import {
   MachineContext,
   ParameterizedObject,
   AnyActorLogic,
-  Snapshot
+  Snapshot,
+  ProvidedActor,
+  IsLiteralString,
+  InputFrom,
+  UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
-function resolveInvoke(
+type ResolvableActorId<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TId extends string | undefined
+> = TId | ((args: UnifiedArg<TContext, TExpressionEvent, TEvent>) => TId);
+
+function resolveSpawn(
   actorContext: AnyActorContext,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any, any>,
@@ -27,7 +38,7 @@ function resolveInvoke(
     input,
     syncSnapshot
   }: {
-    id: string;
+    id: ResolvableActorId<MachineContext, EventObject, EventObject, string>;
     systemId: string | undefined;
     src: AnyActorLogic | string;
     input?: unknown;
@@ -38,6 +49,7 @@ function resolveInvoke(
     typeof src === 'string'
       ? resolveReferencedActor(state.machine, src)
       : { src, input: undefined };
+  const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
 
   let actorRef: AnyActorRef | undefined;
 
@@ -45,7 +57,7 @@ function resolveInvoke(
     // TODO: inline `input: undefined` should win over the referenced one
     const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
-      id,
+      id: resolvedId,
       src: typeof src === 'string' ? src : undefined,
       parent: actorContext?.self,
       systemId,
@@ -69,9 +81,7 @@ function resolveInvoke(
             });
           }
         },
-        error: () => {
-          /* TODO */
-        }
+        error: () => {}
       });
     }
   }
@@ -85,7 +95,7 @@ function resolveInvoke(
     cloneState(state, {
       children: {
         ...state.children,
-        [id]: actorRef!
+        [resolvedId]: actorRef!
       }
     }),
     {
@@ -95,7 +105,7 @@ function resolveInvoke(
   ];
 }
 
-function executeInvoke(
+function executeSpawn(
   actorContext: AnyActorContext,
   { id, actorRef }: { id: string; actorRef: AnyActorRef }
 ) {
@@ -116,35 +126,79 @@ function executeInvoke(
   });
 }
 
-// we don't export this since it's an internal action that is not meant to be used in the user's code
-interface InvokeAction<
+export interface SpawnAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
 > {
   (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  _out_TActor?: TActor;
 }
 
-export function invoke<
+type DistributeActors<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
+> = TActor extends any
+  ? 'id' extends keyof TActor
+    ? [
+        src: TActor['src'],
+        options: {
+          id: ResolvableActorId<
+            TContext,
+            TExpressionEvent,
+            TEvent,
+            TActor['id']
+          >;
+          systemId?: string;
+          input?: InputFrom<TActor['logic']>;
+          syncSnapshot?: boolean;
+        }
+      ]
+    : [
+        src: TActor['src'],
+        options?: {
+          id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
+          systemId?: string;
+          input?: InputFrom<TActor['logic']>;
+          syncSnapshot?: boolean;
+        }
+      ]
+  : never;
+
+type SpawnArguments<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
+> = IsLiteralString<TActor['src']> extends true
+  ? DistributeActors<TContext, TExpressionEvent, TEvent, TActor>
+  : [
+      src: string | AnyActorLogic,
+      options?: {
+        id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
+        systemId?: string;
+        input?: unknown;
+        syncSnapshot?: boolean;
+      }
+    ];
+
+export function spawn<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TExpressionAction extends ParameterizedObject | undefined,
-  TEvent extends EventObject
->({
-  id,
-  systemId,
-  src,
-  input,
-  onSnapshot
-}: {
-  id: string;
-  systemId: string | undefined;
-  src: AnyActorLogic | string;
-  input?: unknown;
-  onSnapshot?: {}; // TODO: transition object
-}): InvokeAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
-  function invoke(
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
+>(
+  ...[
+    src,
+    { id, systemId, input, syncSnapshot = false } = {} as any
+  ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
+): SpawnAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
+  function spawn(
     _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
   ) {
     if (isDevelopment) {
@@ -152,15 +206,15 @@ export function invoke<
     }
   }
 
-  invoke.type = 'xstate.invoke';
-  invoke.id = id;
-  invoke.systemId = systemId;
-  invoke.src = src;
-  invoke.input = input;
-  invoke.syncSnapshot = !!onSnapshot;
+  spawn.type = 'xstate.spawn';
+  spawn.id = id;
+  spawn.systemId = systemId;
+  spawn.src = src;
+  spawn.input = input;
+  spawn.syncSnapshot = syncSnapshot;
 
-  invoke.resolve = resolveInvoke;
-  invoke.execute = executeInvoke;
+  spawn.resolve = resolveSpawn;
+  spawn.execute = executeSpawn;
 
-  return invoke;
+  return spawn;
 }
