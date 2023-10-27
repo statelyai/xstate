@@ -1922,7 +1922,7 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   ? TResolvedTypesMeta
   : never;
 
-export interface ActorContext<
+export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TSystem extends ActorSystem<any> = ActorSystem<any>
@@ -1936,7 +1936,7 @@ export interface ActorContext<
   stopChild: (child: AnyActorRef) => void;
 }
 
-export type AnyActorContext = ActorContext<any, any, AnyActorSystem>;
+export type AnyActorScope = ActorScope<any, any, AnyActorSystem>;
 
 export type Snapshot<TOutput> =
   | {
@@ -1970,17 +1970,17 @@ export interface ActorLogic<
   transition: (
     state: TSnapshot,
     message: TEvent,
-    ctx: ActorContext<TSnapshot, TEvent, TSystem>
+    ctx: ActorScope<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
   getInitialState: (
-    actorCtx: ActorContext<TSnapshot, TEvent, TSystem>,
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem>,
     input: TInput
   ) => TSnapshot;
   restoreState?: (
     persistedState: Snapshot<unknown>,
-    actorCtx: ActorContext<TSnapshot, TEvent>
+    actorScope: ActorScope<TSnapshot, TEvent>
   ) => TSnapshot;
-  start?: (state: TSnapshot, actorCtx: ActorContext<TSnapshot, TEvent>) => void;
+  start?: (state: TSnapshot, actorScope: ActorScope<TSnapshot, TEvent>) => void;
   /**
    * @returns Persisted state
    */
@@ -2014,7 +2014,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? StateFrom<R>
     : R extends ActorLogic<any, any, any, any>
     ? ReturnType<R['transition']>
-    : R extends ActorContext<infer TSnapshot, infer _, infer __>
+    : R extends ActorScope<infer TSnapshot, infer _, infer __>
     ? TSnapshot
     : never
   : never;

@@ -15,7 +15,7 @@ import {
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
-  ActorContext,
+  ActorScope,
   ActorSystem,
   AnyActorLogic,
   AnyStateMachine,
@@ -112,7 +112,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public _parent?: ActorRef<any, any>;
   public ref: ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>;
   // TODO: add typings for system
-  private _actorContext: ActorContext<
+  private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     any
@@ -164,7 +164,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.options = resolvedOptions;
     this.src = resolvedOptions.src;
     this.ref = this;
-    this._actorContext = {
+    this._actorScope = {
       self: this,
       id: this.id,
       sessionId: this.sessionId,
@@ -196,9 +196,9 @@ export class Actor<TLogic extends AnyActorLogic>
   private _initState() {
     this._state = this.options.state
       ? this.logic.restoreState
-        ? this.logic.restoreState(this.options.state, this._actorContext)
+        ? this.logic.restoreState(this.options.state, this._actorScope)
         : this.options.state
-      : this.logic.getInitialState(this._actorContext, this.options?.input);
+      : this.logic.getInitialState(this._actorScope, this.options?.input);
   }
 
   // array of functions to defer
@@ -335,7 +335,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     if (this.logic.start) {
       try {
-        this.logic.start(this._state, this._actorContext);
+        this.logic.start(this._state, this._actorScope);
       } catch (err) {
         this._stopProcedure();
         this._error(err);
@@ -363,7 +363,7 @@ export class Actor<TLogic extends AnyActorLogic>
     let nextState;
     let caughtError;
     try {
-      nextState = this.logic.transition(this._state, event, this._actorContext);
+      nextState = this.logic.transition(this._state, event, this._actorScope);
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
       caughtError = { err };

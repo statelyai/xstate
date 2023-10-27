@@ -4,7 +4,7 @@ import { createErrorActorEvent } from '../eventUtils.ts';
 import { ActorStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
-  AnyActorContext,
+  AnyActorScope,
   AnyActorRef,
   AnyActor,
   AnyState,
@@ -28,7 +28,7 @@ type ResolvableActorId<
 > = TId | ((args: UnifiedArg<TContext, TExpressionEvent, TEvent>) => TId);
 
 function resolveSpawn(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   state: AnyState,
   actionArgs: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
@@ -60,14 +60,14 @@ function resolveSpawn(
     actorRef = createActor(referenced.src, {
       id: resolvedId,
       src: typeof src === 'string' ? src : undefined,
-      parent: actorContext?.self,
+      parent: actorScope?.self,
       systemId,
       input:
         typeof configuredInput === 'function'
           ? configuredInput({
               context: state.context,
               event: actionArgs.event,
-              self: actorContext?.self
+              self: actorScope?.self
             })
           : configuredInput
     });
@@ -76,7 +76,7 @@ function resolveSpawn(
       actorRef.subscribe({
         next: (snapshot: Snapshot<unknown>) => {
           if (snapshot.status === 'active') {
-            actorContext.self.send({
+            actorScope.self.send({
               type: `xstate.snapshot.${id}`,
               snapshot
             });
@@ -89,7 +89,7 @@ function resolveSpawn(
 
   if (isDevelopment && !actorRef) {
     console.warn(
-      `Actor type '${src}' not found in machine '${actorContext.id}'.`
+      `Actor type '${src}' not found in machine '${actorScope.id}'.`
     );
   }
   return [
@@ -107,21 +107,21 @@ function resolveSpawn(
 }
 
 function executeSpawn(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   { id, actorRef }: { id: string; actorRef: AnyActorRef }
 ) {
   if (!actorRef) {
     return;
   }
 
-  actorContext.defer(() => {
+  actorScope.defer(() => {
     if (actorRef.status === ActorStatus.Stopped) {
       return;
     }
     try {
       actorRef.start?.();
     } catch (err) {
-      (actorContext.self as AnyActor).send(createErrorActorEvent(id, err));
+      (actorScope.self as AnyActor).send(createErrorActorEvent(id, err));
       return;
     }
   });
