@@ -12,22 +12,24 @@ import {
 type ResolvableSendId<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > =
   | string
   | ((
-      args: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+      args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+      params: TParams
     ) => string);
 
 function resolveCancel(
   _: AnyActorContext,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+  actionArgs: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   { sendId }: { sendId: ResolvableSendId<any, any, any, any> }
 ) {
   const resolvedSendId =
-    typeof sendId === 'function' ? sendId(actionArgs) : sendId;
+    typeof sendId === 'function' ? sendId(actionArgs, actionParams) : sendId;
   return [state, resolvedSendId];
 }
 
@@ -38,10 +40,10 @@ function executeCancel(actorContext: AnyActorContext, resolvedSendId: string) {
 export interface CancelAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
 }
 
 /**
@@ -54,18 +56,14 @@ export interface CancelAction<
 export function cancel<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject
 >(
-  sendId: ResolvableSendId<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent
-  >
-): CancelAction<TContext, TExpressionEvent, TExpressionAction, TEvent> {
+  sendId: ResolvableSendId<TContext, TExpressionEvent, TParams, TEvent>
+): CancelAction<TContext, TExpressionEvent, TParams, TEvent> {
   function cancel(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

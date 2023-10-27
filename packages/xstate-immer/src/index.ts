@@ -12,52 +12,38 @@ export { immerAssign as assign };
 export type ImmerAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = (
-  args: AssignArgs<
-    Draft<TContext>,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent,
-    TActor
-  >
+  args: AssignArgs<Draft<TContext>, TExpressionEvent, TEvent, TActor>,
+  params: TParams
 ) => void;
 
 function immerAssign<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject = EventObject,
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
     | undefined,
   TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor
->(
-  recipe: ImmerAssigner<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent,
-    TActor
-  >
-) {
-  return xstateAssign<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent,
-    TActor
-  >(({ context, ...rest }) => {
-    return produce(
-      context,
-      (draft) =>
-        void recipe({
-          context: draft,
-          ...rest
-        } as any)
-    );
-  });
+>(recipe: ImmerAssigner<TContext, TExpressionEvent, TParams, TEvent, TActor>) {
+  return xstateAssign<TContext, TExpressionEvent, TParams, TEvent, TActor>(
+    ({ context, ...rest }, params) => {
+      return produce(
+        context,
+        (draft) =>
+          void recipe(
+            {
+              context: draft,
+              ...rest
+            } as any,
+            params
+          )
+      );
+    }
+  );
 }
 
 export interface ImmerUpdateEvent<
@@ -78,7 +64,7 @@ export function createUpdater<
   recipe: ImmerAssigner<
     TContext,
     TExpressionEvent,
-    ParameterizedObject | undefined,
+    ParameterizedObject['params'] | undefined,
     TEvent,
     TActor
   >
@@ -95,7 +81,7 @@ export function createUpdater<
     action: immerAssign<
       TContext,
       TExpressionEvent,
-      ParameterizedObject | undefined, // TODO: not sure if this is correct
+      ParameterizedObject['params'] | undefined, // TODO: not sure if this is correct
       TEvent,
       TActor
     >(recipe),

@@ -4,7 +4,7 @@ import type { StateNode } from './StateNode.ts';
 import { raise } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
-import { invoke } from './actions/invoke.ts';
+import { spawn } from './actions/spawn.ts';
 import { stop } from './actions/stop.ts';
 import {
   XSTATE_INIT,
@@ -290,7 +290,7 @@ export function getDelayedTransitions(
       | DelayExpr<
           MachineContext,
           EventObject,
-          ParameterizedObject | undefined,
+          ParameterizedObject['params'] | undefined,
           EventObject
         >,
     i: number
@@ -982,11 +982,6 @@ function areConfigurationsEqual(
 
 /**
  * https://www.w3.org/TR/scxml/#microstepProcedure
- *
- * @private
- * @param transitions
- * @param currentState
- * @param mutConfiguration
  */
 export function microstep<
   TContext extends MachineContext,
@@ -1148,7 +1143,12 @@ function enterStates(
     actions.push(...stateNodeToEnter.entry);
 
     for (const invokeDef of stateNodeToEnter.invoke) {
-      actions.push(invoke(invokeDef));
+      actions.push(
+        spawn(invokeDef.src, {
+          ...invokeDef,
+          syncSnapshot: !!invokeDef.onSnapshot
+        })
+      );
     }
 
     if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -1448,7 +1448,8 @@ interface BuiltinAction {
   resolve: (
     actorContext: AnyActorContext,
     state: AnyState,
-    actionArgs: ActionArgs<any, any, any, any>,
+    actionArgs: ActionArgs<any, any, any>,
+    actionParams: ParameterizedObject['params'] | undefined,
     action: unknown,
     extra: unknown
   ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
@@ -1488,7 +1489,7 @@ function resolveActionsAndContextWorker(
               MachineContext,
               EventObject,
               EventObject,
-              ParameterizedObject | undefined,
+              ParameterizedObject['params'] | undefined,
               ProvidedActor,
               ParameterizedObject,
               ParameterizedObject,
@@ -1505,26 +1506,24 @@ function resolveActionsAndContextWorker(
       context: intermediateState.context,
       event,
       self: actorCtx?.self,
-      system: actorCtx?.system,
-      action: isInline
-        ? undefined
-        : typeof action === 'string'
-        ? { type: action }
-        : typeof action.params === 'function'
-        ? {
-            type: action.type,
-            params: action.params({ context: intermediateState.context, event })
-          }
-        : // TS isn't able to narrow it down here
-          (action as { type: string })
+      system: actorCtx?.system
     };
+
+    const actionParams =
+      isInline || typeof action === 'string'
+        ? undefined
+        : 'params' in action
+        ? typeof action.params === 'function'
+          ? action.params({ context: intermediateState.context, event })
+          : action.params
+        : undefined;
 
     if (!('resolve' in resolvedAction)) {
       if (actorCtx?.self.status === ActorStatus.Running) {
-        resolvedAction(actionArgs);
+        resolvedAction(actionArgs, actionParams);
       } else {
         actorCtx?.defer(() => {
-          resolvedAction(actionArgs);
+          resolvedAction(actionArgs, actionParams);
         });
       }
       continue;
@@ -1536,6 +1535,7 @@ function resolveActionsAndContextWorker(
       actorCtx,
       intermediateState,
       actionArgs,
+      actionParams,
       resolvedAction, // this holds all params
       extra
     );

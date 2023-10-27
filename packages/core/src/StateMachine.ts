@@ -585,7 +585,7 @@ export class StateMachine<
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
       string,
-      { src: string; state: Snapshot<unknown> }
+      { src: string; state: Snapshot<unknown>; systemId?: string }
     > = (snapshot as any).children;
 
     Object.keys(snapshotChildren).forEach((actorId) => {
@@ -605,7 +605,8 @@ export class StateMachine<
       const actorRef = createActor(logic, {
         id: actorId,
         parent: _actorCtx?.self,
-        state: actorState
+        state: actorState,
+        systemId: actorData.systemId
       });
 
       children[actorId] = actorRef;

@@ -1,5 +1,89 @@
 # xstate
 
+## 5.0.0-beta.38
+
+### Minor Changes
+
+- [#4329](https://github.com/statelyai/xstate/pull/4329) [`41f5a7dc5`](https://github.com/statelyai/xstate/commit/41f5a7dc59a2cd946dff937664de2fa14780b007) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now `spawn(...)` actors directly outside of `assign(...)` action creators:
+
+  ```ts
+  import { createMachine, spawn } from 'xstate';
+
+  const listenerMachine = createMachine({
+    // ...
+  });
+
+  const parentMachine = createMachine({
+    // ...
+    on: {
+      'listener.create': {
+        entry: spawn(listenerMachine, { id: 'listener' })
+      }
+    }
+    // ...
+  });
+
+  const actor = createActor(parentMachine).start();
+
+  actor.send({ type: 'listener.create' });
+
+  actor.getSnapshot().children.listener; // ActorRefFrom<typeof listenerMachine>
+  ```
+
+- [#4257](https://github.com/statelyai/xstate/pull/4257) [`531a63482`](https://github.com/statelyai/xstate/commit/531a634827c0a7a88f5c2720109e953d203e077a) Thanks [@Andarist](https://github.com/Andarist)! - Action parameters can now be directly accessed from the 2nd argument of the action implementation:
+
+  ```ts
+  const machine = createMachine(
+    {
+      // ...
+      entry: {
+        type: 'greet',
+        params: { message: 'hello' }
+      }
+    },
+    {
+      actions: {
+        greet: (_, params) => {
+          params.message; // 'hello'
+        }
+      }
+    }
+  );
+  ```
+
+- [#4257](https://github.com/statelyai/xstate/pull/4257) [`531a63482`](https://github.com/statelyai/xstate/commit/531a634827c0a7a88f5c2720109e953d203e077a) Thanks [@Andarist](https://github.com/Andarist)! - Guard parameters can now be directly accessed from the 2nd argument of the guard implementation:
+
+  ```ts
+  const machine = createMachine(
+    {
+      // ...
+      on: {
+        EVENT: {
+          guard: {
+            type: 'isGreaterThan',
+            params: { value: 10 }
+          }
+        }
+      }
+    },
+    {
+      guards: {
+        isGreaterThan: (_, params) => {
+          params.value; // 10
+        }
+      }
+    }
+  );
+  ```
+
+### Patch Changes
+
+- [#4405](https://github.com/statelyai/xstate/pull/4405) [`a01169eb2`](https://github.com/statelyai/xstate/commit/a01169eb20db30724e7fb086d7b59837525ec406) Thanks [@Andarist](https://github.com/Andarist)! - Fixed crash on a `systemId` synchronous re-registration attempt that could happen, for example, when dealing with reentering transitions.
+
+- [#4401](https://github.com/statelyai/xstate/pull/4401) [`eea74c594`](https://github.com/statelyai/xstate/commit/eea74c5943e9b2157934d260b793e06169099b41) Thanks [@Andarist](https://github.com/Andarist)! - Fixed the issue with stopped state machines not updating their snapshots with that information.
+
+- [#4403](https://github.com/statelyai/xstate/pull/4403) [`3f84bba72`](https://github.com/statelyai/xstate/commit/3f84bba72145a98d0dbdf10630371351851f2346) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with rehydrated actors not registering themselves in the system.
+
 ## 5.0.0-beta.37
 
 ### Major Changes
