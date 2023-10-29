@@ -1495,7 +1495,9 @@ function resolveActionsAndContextWorker(
               string
             >
           >
-        )[typeof action === 'string' ? action : action.type];
+        )[typeof action === 'string' ? action : action.type] ??
+        // Wildcard action
+        (machine.implementations.actions as any)['*'];
 
     if (!resolvedAction) {
       continue;

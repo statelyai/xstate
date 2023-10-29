@@ -4017,4 +4017,22 @@ describe('actions', () => {
 
     expect(spy).toHaveBeenCalledWith(undefined);
   });
+
+  it('supports wildcard actions', (done) => {
+    const machine = createMachine(
+      {
+        entry: { type: 'whatever', params: { foo: 'bar' } }
+      },
+      {
+        actions: {
+          '*': (_, params) => {
+            expect(params).toEqual({ foo: 'bar' });
+            done();
+          }
+        }
+      }
+    );
+
+    createActor(machine).start();
+  });
 });
