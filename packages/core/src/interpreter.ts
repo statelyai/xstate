@@ -313,7 +313,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system._sendInspectionEvent({
       type: '@xstate.event',
       sourceRef: this._parent,
-      targetRef: this,
+      actorRef: this,
       event: initEvent
     });
 
