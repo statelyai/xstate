@@ -49,16 +49,16 @@ export type InvokeCallback<
   receive
 }: {
   /**
-   * Data that was provided to the parent actor
    * @see {@link https://stately.ai/docs/input} Input docs
+   * Data that was provided to the callback actor
    */
   input: TInput;
   /**
-   * The actor system to which the parent actor belongs
+   * The actor system to which the callback actor belongs
    */
   system: AnyActorSystem;
   /**
-   * The parent actor performing the callback logic
+   * The parent actor of the callback actor
    */
   self: CallbackActorRef<TEvent>;
   /**
@@ -66,7 +66,8 @@ export type InvokeCallback<
    */
   sendBack: (event: TSentEvent) => void;
   /**
-   * A function that can be called with a listener function argument; the listener is then called whenever events are received by the parent actor
+   * A function that can be called with a listener function argument;
+   * the listener is then called whenever events are received by the callback actor
    */
   receive: Receiver<TEvent>;
 }) => (() => void) | void;
@@ -89,12 +90,12 @@ export type InvokeCallback<
  *
  * @param invokeCallback - The callback function used to describe the callback logic
  * The callback function is passed an object with the following properties:
- * - `receive` - A function that can be called with a listener function argument; the listener is then called whenever events are received by the parent actor
+ * - `receive` - A function that can send events back to the parent actor; the listener is then called whenever events are received by the callback actor
  * - `sendBack` - A function that can send events back to the parent actor
- * - `input` - Data that was provided to the parent actor
- * - `self` - The parent actor performing the callback logic
- * - `system` - The actor system to which the parent actor belongs
- * The callback function can (optionally) return a cleanup function, which is called when the parent actor is stopped.
+ * - `input` - Data that was provided to the callback actor
+ * - `self` - The parent actor of the callback actor
+ * - `system` - The actor system to which the callback actor belongs
+ * The callback function can (optionally) return a cleanup function, which is called when the actor is stopped.
  * @see {@link InvokeCallback} for more information about the callback function and its object argument
  * @see {@link https://stately.ai/docs/input} Input docs for more information about how input is passed
 
