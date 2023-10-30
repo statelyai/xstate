@@ -48,27 +48,10 @@ export type InvokeCallback<
   sendBack,
   receive
 }: {
-  /**
-   * Data that was provided to the callback actor
-   * @see {@link https://stately.ai/docs/input | Input docs}
-   */
   input: TInput;
-  /**
-   * The actor system to which the callback actor belongs
-   */
   system: AnyActorSystem;
-  /**
-   * The parent actor of the callback actor
-   */
   self: CallbackActorRef<TEvent>;
-  /**
-   * A function that can send events back to the parent actor
-   */
   sendBack: (event: TSentEvent) => void;
-  /**
-   * A function that can be called with a listener function argument;
-   * the listener is then called whenever events are received by the callback actor
-   */
   receive: Receiver<TEvent>;
 }) => (() => void) | void;
 
