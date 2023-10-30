@@ -557,10 +557,20 @@ export class Actor<TLogic extends AnyActorLogic>
 }
 
 /**
- * Creates a new `ActorRef` instance for the given machine with the provided options, if any.
+ * Creates a new actor instance for the given actor logic with the provided options, if any.
  *
- * @param machine The machine to create an actor from
- * @param options `ActorRef` options
+ * @param logic - The actor logic to create an actor from
+ * @param options - Actor options
+ */
+export function createActor<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options?: ActorOptions<TLogic>
+): Actor<TLogic>;
+/**
+ * Creates a new actor instance for the given state machine actor logic with the provided options, if any.
+ *
+ * @param machine - The state machine actor logic to create an actor from
+ * @param options - Actor options
  */
 export function createActor<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
@@ -570,10 +580,6 @@ export function createActor<TMachine extends AnyStateMachine>(
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: ActorOptions<TMachine>
 ): Actor<TMachine>;
-export function createActor<TLogic extends AnyActorLogic>(
-  logic: TLogic,
-  options?: ActorOptions<TLogic>
-): Actor<TLogic>;
 export function createActor(logic: any, options?: ActorOptions<any>): any {
   const interpreter = new Actor(logic, options);
 
