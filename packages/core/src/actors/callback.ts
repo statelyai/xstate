@@ -49,8 +49,8 @@ export type InvokeCallback<
   receive
 }: {
   /**
-   * @see {@link https://stately.ai/docs/input} Input docs
    * Data that was provided to the callback actor
+   * @see {@link https://stately.ai/docs/input | Input docs}
    */
   input: TInput;
   /**
@@ -97,7 +97,7 @@ export type InvokeCallback<
  * - `system` - The actor system to which the callback actor belongs
  * The callback function can (optionally) return a cleanup function, which is called when the actor is stopped.
  * @see {@link InvokeCallback} for more information about the callback function and its object argument
- * @see {@link https://stately.ai/docs/input} Input docs for more information about how input is passed
+ * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
 
  * @returns Callback logic
  *
