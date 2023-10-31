@@ -592,12 +592,6 @@ export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: ActorOptions<TLogic>
 ): Actor<TLogic>;
-/**
- * Creates a new actor instance for the given state machine actor logic with the provided options, if any.
- *
- * @param machine - The state machine actor logic to create an actor from
- * @param options - Actor options
- */
 export function createActor<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
