@@ -1722,6 +1722,8 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Actions from machine actors will not be re-executed, because they are assumed to have been already executed.
    * However, invocations will be restarted, and spawned actors will be restored recursively.
    *
+   * Can be generated with {@link Actor.getPersistedState}.
+   *
    * @see https://stately.ai/docs/persistence
    */
   // state?:

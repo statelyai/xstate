@@ -606,6 +606,8 @@ export class Actor<TLogic extends AnyActorLogic>
    *
    * Note that the persisted state is not the same as the snapshot from `actor.getSnapshot()`. Persisted state represents the internal state of the actor, while snapshots represent the actor's last emitted value.
    *
+   * Can be restored with {@link ActorOptions.state}
+   *
    * @see https://stately.ai/docs/persistence
    */
   public getPersistedState(): Snapshot<unknown>;
