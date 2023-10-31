@@ -551,6 +551,20 @@ export class Actor<TLogic extends AnyActorLogic>
     return this;
   }
 
+  /**
+   * Read an actor’s snapshot synchronously.
+   *
+   * @remarks
+   * The snapshot represent an actor's last emitted value.
+   *
+   * When an actor receives an event, its internal state may change.
+   * An actor may emit a snapshot when a state transition occurs.
+   *
+   * Note that some actors, such as callback actors generated with `fromCallback`, will not emit snapshots.
+   *
+   * @see {@link Actor.subscribe} to subscribe to an actor’s snapshot values.
+   * @see {@link Actor.getPersistedState} to persist the internal state of an actor (which is more than just a snapshot).
+   */
   public getSnapshot(): SnapshotFrom<TLogic> {
     return this._state;
   }
