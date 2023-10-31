@@ -9,7 +9,7 @@ Below is an incomplete collection of many resources for learning and applying XS
 :::tip Official Course
 Watch the official [State Machines in JavaScript with XState](https://frontendmasters.com/courses/xstate/) course by [@davidkpiano](https://twitter.com/davidkpiano) on Frontend Masters! In this course, you’ll learn the fundamentals of state machines and statecharts, from building your own without any libraries in pure JavaScript, up to using XState to take advantage of a wide variety of other features.
 
-The workshop code examples are [open-sourced and available on GitHub](https://github.com/statelyai/frontend-masters-xstate-workshop).
+The workshop code examples are [open-sourced and available on GitHub](https://github.com/davidkpiano/frontend-masters-xstate-workshop).
 
 There is also a follow-up course: [State Modeling with React and XState](https://frontendmasters.com/workshops/xstate-react/). Once you've gone through the first course, be sure to take this one too so you can learn how to apply state machines and statecharts to real-world apps and master advanced concepts such as spawning/invoking actors and model-based testing.
 :::
@@ -103,7 +103,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [Learn and Apply XState with Vonage Video](https://dev.to/vonagedev/learn-and-apply-xstate-with-vonage-video-5dfg) by [Kelly Andrews](https://dev.to/kellyjandrews) on 2020-07-01
   - [Article on Nexmo.com](https://www.nexmo.com/blog/2020/07/01/learn-and-apply-xstate-with-vonage-video)
 - [Introduction to XState](https://flaviocopes.com/xstate/) by [Flavio Copes](https://flaviocopes.com/) on 2020-06-26
-- [Multistep form handling with Finite State Machines, Formik and TypeScript](https://thewidlarzgroup.com/multistep-form-xstate-formik/) by Daniel Grychtoł on 2020-06-17
+- [Multistep form handling in React Native with Finite State Machines, Formik and TypeScript](https://thewidlarzgroup.com/multistep-form-xstate-formik/) by [Daniel Grychtoł](https://twitter.com/daniel_mark01) on 2020-06-17
 - [Intro to XState - a true state management library for React](https://medium.com/@pavlo_lompas/intro-to-xstate-a-true-state-management-system-library-for-react-d8c0051c71e4) by [Pavlo Lompas](https://medium.com/@pavlo_lompas) on 2020-06-15
 - [Remake of the 100 squares game](https://onehundred.now.sh/) by [@nikpundik](https://twitter.com/nikpundik) on 2020-06-05
   - [Tweet with demo](https://twitter.com/nikpundik/status/1268936078737670145)

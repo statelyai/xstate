@@ -23,7 +23,7 @@ describe('rehydration', () => {
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
 
-    it('should call exit actions when machine gets stopped immediately', () => {
+    it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
       const machine = createMachine({
         exit: () => actual.push('root'),
@@ -39,12 +39,11 @@ describe('rehydration', () => {
       const persistedState = JSON.stringify(actorRef.getPersistedState());
       actorRef.stop();
 
-      actual.length = 0;
       createActor(machine, { state: JSON.parse(persistedState) })
         .start()
         .stop();
 
-      expect(actual).toEqual(['a', 'root']);
+      expect(actual).toEqual([]);
     });
 
     it('should get correct result back from `can` immediately', () => {
@@ -92,7 +91,7 @@ describe('rehydration', () => {
       expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
 
-    it('should call exit actions when machine gets stopped immediately', () => {
+    it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
       const machine = createMachine({
         exit: () => actual.push('root'),
@@ -113,7 +112,7 @@ describe('rehydration', () => {
         .start()
         .stop();
 
-      expect(actual).toEqual(['active', 'root']);
+      expect(actual).toEqual([]);
     });
   });
 
@@ -169,5 +168,61 @@ describe('rehydration', () => {
     ).not.toThrow();
 
     expect(rehydratedActor.getSnapshot().value).toBe('c');
+  });
+
+  it('a rehydrated active child should be registered in the system', () => {
+    const machine = createMachine(
+      {
+        context: ({ spawn }) => {
+          spawn('foo', {
+            systemId: 'mySystemId'
+          });
+          return {};
+        }
+      },
+      {
+        actors: {
+          foo: createMachine({})
+        }
+      }
+    );
+
+    const actor = createActor(machine).start();
+    const persistedState = actor.getPersistedState();
+    actor.stop();
+
+    const rehydratedActor = createActor(machine, {
+      state: persistedState
+    }).start();
+
+    expect(rehydratedActor.system.get('mySystemId')).not.toBeUndefined();
+  });
+
+  it('a rehydrated done child should not be registered in the system', () => {
+    const machine = createMachine(
+      {
+        context: ({ spawn }) => {
+          spawn('foo', {
+            systemId: 'mySystemId'
+          });
+          return {};
+        }
+      },
+      {
+        actors: {
+          foo: createMachine({ type: 'final' })
+        }
+      }
+    );
+
+    const actor = createActor(machine).start();
+    const persistedState = actor.getPersistedState();
+    actor.stop();
+
+    const rehydratedActor = createActor(machine, {
+      state: persistedState
+    }).start();
+
+    expect(rehydratedActor.system.get('mySystemId')).toBeUndefined();
   });
 });

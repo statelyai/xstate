@@ -46,8 +46,7 @@ function isStateLike(state: any): state is AnyState {
 export class TestModel<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput,
-  TPersisted
+  TInput
 > {
   public options: TestModelOptions<TSnapshot, TEvent>;
   public defaultTraversalOptions?: TraversalOptions<TSnapshot, TEvent>;
@@ -69,7 +68,7 @@ export class TestModel<
   }
 
   constructor(
-    public logic: ActorLogic<TSnapshot, TEvent, TInput, TPersisted>,
+    public logic: ActorLogic<TSnapshot, TEvent, TInput>,
     options?: Partial<TestModelOptions<TSnapshot, TEvent>>
   ) {
     this.options = {
@@ -79,7 +78,7 @@ export class TestModel<
   }
 
   public getPaths(
-    pathGenerator: PathGenerator<TSnapshot, TEvent, TInput, TPersisted>,
+    pathGenerator: PathGenerator<TSnapshot, TEvent, TInput>,
     options?: Partial<TraversalOptions<TSnapshot, TEvent>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const paths = pathGenerator(this.logic, this.resolveOptions(options));

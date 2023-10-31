@@ -130,7 +130,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   options?: Partial<
     TestModelOptions<SnapshotFrom<TMachine>, EventFrom<TMachine>>
   >
-): TestModel<SnapshotFrom<TMachine>, EventFrom<TMachine>, unknown, unknown> {
+): TestModel<SnapshotFrom<TMachine>, EventFrom<TMachine>, unknown> {
   validateMachine(machine);
 
   const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
@@ -143,8 +143,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   const testModel = new TestModel<
     SnapshotFrom<TMachine>,
     EventFrom<TMachine>,
-    unknown,
-    any
+    unknown
   >(machine as any, {
     serializeState: (state, event, prevState) => {
       // Only consider the `state` if `serializeTransition()` is opted out (empty string)

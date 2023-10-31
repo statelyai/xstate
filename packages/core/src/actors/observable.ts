@@ -6,8 +6,7 @@ import {
   Subscription,
   AnyActorSystem,
   ActorRefFrom,
-  Snapshot,
-  HomomorphicOmit
+  Snapshot
 } from '../types';
 
 export type ObservableSnapshot<TContext, TInput> = Snapshot<undefined> & {
@@ -16,16 +15,10 @@ export type ObservableSnapshot<TContext, TInput> = Snapshot<undefined> & {
   _subscription: Subscription | undefined;
 };
 
-export type ObservablePersistedState<TContext, TInput> = HomomorphicOmit<
-  ObservableSnapshot<TContext, TInput>,
-  '_subscription'
->;
-
 export type ObservableActorLogic<TContext, TInput> = ActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
-  ObservablePersistedState<TContext, TInput>,
   AnyActorSystem
 >;
 
@@ -47,19 +40,21 @@ export function fromObservable<TContext, TInput>(
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
-  return {
+  // TODO: add event types
+  const logic: ObservableActorLogic<TContext, TInput> = {
     config: observableCreator,
-    transition: (snapshot, event, { self, id, defer }) => {
+    transition: (snapshot, event, { self, id, defer, system }) => {
       if (snapshot.status !== 'active') {
         return snapshot;
       }
 
       switch (event.type) {
         case nextEventType: {
-          return {
+          const newSnapshot = {
             ...snapshot,
             context: event.data as TContext
           };
+          return newSnapshot;
         }
         case errorEventType:
           return {
@@ -109,22 +104,24 @@ export function fromObservable<TContext, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          self.send({ type: nextEventType, data: value });
+          system._relay(self, self, { type: nextEventType, data: value });
         },
         error: (err) => {
-          self.send({ type: errorEventType, data: err });
+          system._relay(self, self, { type: errorEventType, data: err });
         },
         complete: () => {
-          self.send({ type: completeEventType });
+          system._relay(self, self, { type: completeEventType });
         }
       });
     },
     getPersistedState: ({ _subscription, ...state }) => state,
     restoreState: (state) => ({
-      ...state,
+      ...(state as any),
       _subscription: undefined
     })
   };
+
+  return logic;
 }
 
 /**
@@ -150,7 +147,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
   const completeEventType = '$$xstate.complete';
 
   // TODO: event types
-  return {
+  const logic: ObservableActorLogic<T, TInput> = {
     config: lazyObservable,
     transition: (state, event) => {
       if (state.status !== 'active') {
@@ -207,20 +204,24 @@ export function fromEventObservable<T extends EventObject, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          self._parent?.send(value);
+          if (self._parent) {
+            system._relay(self, self._parent, value);
+          }
         },
         error: (err) => {
-          self.send({ type: errorEventType, data: err });
+          system._relay(self, self, { type: errorEventType, data: err });
         },
         complete: () => {
-          self.send({ type: completeEventType });
+          system._relay(self, self, { type: completeEventType });
         }
       });
     },
     getPersistedState: ({ _subscription, ...state }) => state,
-    restoreState: (state) => ({
+    restoreState: (state: any) => ({
       ...state,
       _subscription: undefined
     })
   };
+
+  return logic;
 }

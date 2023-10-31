@@ -21,11 +21,10 @@ type TODO = any;
 export type GetPathsOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput,
-  TPersisted
+  TInput
 > = Partial<
   TraversalOptions<TSnapshot, TEvent> & {
-    pathGenerator?: PathGenerator<TSnapshot, TEvent, TInput, TPersisted>;
+    pathGenerator?: PathGenerator<TSnapshot, TEvent, TInput>;
   }
 >;
 
@@ -205,9 +204,8 @@ export type TestTransitionsConfig<
 export type PathGenerator<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput,
-  TPersisted
+  TInput
 > = (
-  behavior: ActorLogic<TSnapshot, TEvent, TInput, TPersisted>,
+  behavior: ActorLogic<TSnapshot, TEvent, TInput>,
   options: TraversalOptions<TSnapshot, TEvent>
 ) => Array<StatePath<TSnapshot, TEvent>>;

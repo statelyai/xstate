@@ -1,4 +1,5 @@
 import {
+  ActorScope,
   ActorLogic,
   ActorSystem,
   AnyStateMachine,
@@ -19,7 +20,7 @@ import {
   createDefaultLogicOptions
 } from './graph';
 import { alterPath } from './alterPath';
-import { createMockActorContext } from './actorContext';
+import { createMockActorScope } from './actorScope';
 
 function isMachine(value: any): value is AnyStateMachine {
   return !!value && '__xstatenode' in value;
@@ -29,10 +30,9 @@ export function getPathsFromEvents<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TPersisted = TSnapshot,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<TSnapshot, TEvent, TInput, TPersisted, TSystem>,
+  logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   events: TEvent[],
   options?: TraversalOptions<TSnapshot, TEvent>
 ): Array<StatePath<TSnapshot, TEvent>> {
@@ -46,11 +46,15 @@ export function getPathsFromEvents<
       ? createDefaultMachineOptions(logic)
       : createDefaultLogicOptions()) as TraversalOptions<TSnapshot, TEvent>
   );
-  const actorContext = createMockActorContext();
+  const actorScope = createMockActorScope() as ActorScope<
+    TSnapshot,
+    TEvent,
+    TSystem
+  >;
   const fromState =
     resolvedOptions.fromState ??
     logic.getInitialState(
-      actorContext,
+      actorScope,
       // TODO: fix this
       undefined as TInput
     );

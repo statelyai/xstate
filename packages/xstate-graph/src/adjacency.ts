@@ -1,16 +1,21 @@
-import { ActorLogic, ActorSystem, EventObject, Snapshot } from 'xstate';
+import {
+  ActorScope,
+  ActorLogic,
+  ActorSystem,
+  EventObject,
+  Snapshot
+} from 'xstate';
 import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
-import { createMockActorContext } from './actorContext';
+import { createMockActorScope } from './actorScope';
 
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TPersisted = TSnapshot,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<TSnapshot, TEvent, TInput, TPersisted, TSystem>,
+  logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   options: TraversalOptions<TSnapshot, TEvent>
 ): AdjacencyMap<TSnapshot, TEvent> {
   const { transition } = logic;
@@ -22,11 +27,15 @@ export function getAdjacencyMap<
     fromState: customFromState,
     stopCondition
   } = resolveTraversalOptions(logic, options);
-  const actorContext = createMockActorContext();
+  const actorScope = createMockActorScope() as ActorScope<
+    TSnapshot,
+    TEvent,
+    TSystem
+  >;
   const fromState =
     customFromState ??
     logic.getInitialState(
-      actorContext,
+      actorScope,
       // TODO: fix this
       undefined as TInput
     );
@@ -70,7 +79,7 @@ export function getAdjacencyMap<
       typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
-      const nextState = transition(state, nextEvent, actorContext);
+      const nextState = transition(state, nextEvent, actorScope);
 
       if (!options.filter || options.filter(nextState, nextEvent)) {
         adj[serializedState].transitions[

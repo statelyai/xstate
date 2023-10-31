@@ -7,7 +7,7 @@ import {
   ActorRef,
   ActorRefFrom,
   DoneActorEvent,
-  PersistedMachineState,
+  Snapshot,
   StateFrom,
   assign,
   createActor,
@@ -84,7 +84,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any, any, any, any, any, any>;
+    persistedState?: Snapshot<unknown>;
   }> = ({
     onFetch = () => {
       return new Promise((res) => res('some data'));
@@ -844,14 +844,14 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       types: {
         context: {} as { value: number }
       },
-      initial: 'intitial',
+      initial: 'initial',
       context: ({ input }: { input: { value: number } }) => {
         return {
           value: input.value
         };
       },
       states: {
-        intitial: {}
+        initial: {}
       }
     });
 

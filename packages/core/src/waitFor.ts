@@ -6,7 +6,7 @@ interface WaitForOptions {
    * How long to wait before rejecting, if no emitted
    * state satisfies the predicate.
    *
-   * @default 10_000 (10 seconds)
+   * @defaultValue 10_000 (10 seconds)
    */
   timeout: number;
 }

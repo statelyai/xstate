@@ -2,7 +2,7 @@ import { createErrorActorEvent } from './eventUtils.ts';
 import { ActorStatus, createActor } from './interpreter.ts';
 import {
   ActorRefFrom,
-  AnyActorContext,
+  AnyActorScope,
   AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
@@ -15,7 +15,7 @@ import {
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
-type SpawnOptions<
+export type SpawnOptions<
   TActor extends ProvidedActor,
   TSrc extends TActor['src']
 > = TActor extends {
@@ -59,7 +59,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
     ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
 export function createSpawner(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   { machine, context }: AnyState,
   event: AnyEventObject,
   spawnedChildren: Record<string, AnyActorRef>
@@ -67,9 +67,7 @@ export function createSpawner(
   const spawn: Spawner<any> = (src, options = {}) => {
     const { systemId } = options;
     if (typeof src === 'string') {
-      const referenced = resolveReferencedActor(
-        machine.implementations.actors[src]
-      );
+      const referenced = resolveReferencedActor(machine, src);
 
       if (!referenced) {
         throw new Error(
@@ -82,15 +80,16 @@ export function createSpawner(
       // TODO: this should also receive `src`
       const actorRef = createActor(referenced.src, {
         id: options.id,
-        parent: actorContext.self,
+        parent: actorScope.self,
         input:
           typeof input === 'function'
             ? input({
                 context,
                 event,
-                self: actorContext.self
+                self: actorScope.self
               })
             : input,
+        src,
         systemId
       }) as any;
       spawnedChildren[actorRef.id] = actorRef;
@@ -99,15 +98,13 @@ export function createSpawner(
         actorRef.subscribe({
           next: (snapshot: Snapshot<unknown>) => {
             if (snapshot.status === 'active') {
-              actorContext.self.send({
+              actorScope.self.send({
                 type: `xstate.snapshot.${actorRef.id}`,
                 snapshot
               });
             }
           },
-          error: () => {
-            /* TODO */
-          }
+          error: () => {}
         });
       }
       return actorRef;
@@ -115,8 +112,9 @@ export function createSpawner(
       // TODO: this should also receive `src`
       const actorRef = createActor(src, {
         id: options.id,
-        parent: actorContext.self,
+        parent: actorScope.self,
         input: options.input,
+        src: undefined,
         systemId
       });
 
@@ -124,16 +122,14 @@ export function createSpawner(
         actorRef.subscribe({
           next: (snapshot: Snapshot<unknown>) => {
             if (snapshot.status === 'active') {
-              actorContext.self.send({
+              actorScope.self.send({
                 type: `xstate.snapshot.${actorRef.id}`,
                 snapshot,
                 id: actorRef.id
               });
             }
           },
-          error: () => {
-            /* TODO */
-          }
+          error: () => {}
         });
       }
 
@@ -143,14 +139,14 @@ export function createSpawner(
   return (src, options) => {
     const actorRef = spawn(src, options) as TODO; // TODO: fix types
     spawnedChildren[actorRef.id] = actorRef;
-    actorContext.defer(() => {
+    actorScope.defer(() => {
       if (actorRef.status === ActorStatus.Stopped) {
         return;
       }
       try {
         actorRef.start?.();
       } catch (err) {
-        actorContext.self.send(createErrorActorEvent(actorRef.id, err));
+        actorScope.self.send(createErrorActorEvent(actorRef.id, err));
         return;
       }
     });

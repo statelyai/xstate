@@ -16,10 +16,6 @@ import {
   Actor,
   ActorLogicFrom,
   ActorStatus,
-  EventObject,
-  MachineContext,
-  PersistedMachineState,
-  ProvidedActor,
   assign,
   createActor,
   createMachine,
@@ -1664,12 +1660,12 @@ describe('useMachine (strict mode)', () => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
-      initial: 'intitial',
+      initial: 'initial',
       context: ({ input }: { input: { value: number } }) => ({
         value: input.value
       }),
       states: {
-        intitial: {}
+        initial: {}
       }
     });
 

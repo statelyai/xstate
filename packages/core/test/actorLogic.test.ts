@@ -598,7 +598,7 @@ describe('machine logic', () => {
 
     const persistedState = actor.getPersistedState()!;
 
-    expect(persistedState.children.a.state).toMatchInlineSnapshot(`
+    expect((persistedState as any).children.a.state).toMatchInlineSnapshot(`
       {
         "error": undefined,
         "input": undefined,
@@ -607,7 +607,7 @@ describe('machine logic', () => {
       }
     `);
 
-    expect(persistedState.children.b.state).toEqual(
+    expect((persistedState as any).children.b.state).toEqual(
       expect.objectContaining({
         context: {
           count: 55
@@ -724,34 +724,119 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(actor.getPersistedState()?.children['child'].state).toEqual(
+    expect((actor.getPersistedState() as any).children['child'].state).toEqual(
       expect.objectContaining({
         value: 'inner'
       })
     );
   });
 
-  it('should invoke an actor even if missing in persisted state', () => {
+  it('should not invoke an actor if it is missing in persisted state', () => {
     const machine = createMachine({
-      invoke: {
-        id: 'child',
-        src: createMachine({
-          initial: 'inner',
-          states: { inner: {} }
-        })
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            id: 'child',
+            src: createMachine({
+              context: ({ input }) => ({
+                // this is only meant to showcase why we can't invoke this actor when it's missing in the persisted state
+                // because we don't have access to the right input as it depends on the event that was used to enter state `b`
+                value: input.deep.prop
+              })
+            }),
+            input: ({ event }) => event.data
+          }
+        }
       }
     });
 
     const actor = createActor(machine).start();
 
-    const persisted = actor.getPersistedState();
+    actor.send({
+      type: 'NEXT',
+      data: {
+        deep: {
+          prop: 'value'
+        }
+      }
+    });
 
-    delete persisted?.children['child'];
+    expect(actor.getSnapshot().children.child).not.toBe(undefined);
+    expect(actor.getSnapshot().children.child.getSnapshot().context).toEqual({
+      value: 'value'
+    });
 
-    const actor2 = createActor(machine, { state: persisted }).start();
+    const persisted: any = actor.getPersistedState();
 
-    expect(actor2.getSnapshot().children.child.getSnapshot().value).toBe(
-      'inner'
+    delete persisted.children['child'];
+
+    const rehydratedActor = createActor(machine, { state: persisted }).start();
+
+    expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
+  });
+
+  it('should persist a spawned actor with referenced src', () => {
+    const reducer = fromTransition((s) => s, { count: 42 });
+    const machine = createMachine({
+      types: {
+        context: {} as {
+          ref: AnyActorRef;
+        },
+        actors: {} as {
+          src: 'reducer';
+          logic: typeof reducer;
+          ids: 'child';
+        }
+      },
+      context: ({ spawn }) => ({
+        ref: spawn('reducer', { id: 'child' })
+      })
+    }).provide({
+      actors: {
+        reducer
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    const persistedState = actor.getPersistedState()!;
+
+    expect((persistedState as any).children.child.state.context).toEqual({
+      count: 42
+    });
+
+    const newActor = createActor(machine, {
+      state: persistedState
+    }).start();
+
+    const snapshot = newActor.getSnapshot();
+
+    expect(snapshot.context.ref).toBe(snapshot.children.child);
+
+    expect(snapshot.context.ref.getSnapshot().context.count).toBe(42);
+  });
+
+  it('should not persist a spawned actor with inline src', () => {
+    const machine = createMachine({
+      context: ({ spawn }) => {
+        return {
+          childRef: spawn(createMachine({}))
+        };
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(() =>
+      actorRef.getPersistedState()
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"An inline child actor cannot be persisted."`
     );
   });
 
@@ -774,10 +859,10 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state, event, actorCtx) => {
+        transition: (state, event, actorScope) => {
           logs.push(event.type);
 
-          return actorLogic.transition(state, event, actorCtx);
+          return actorLogic.transition(state, event, actorScope);
         }
       };
     }
@@ -812,8 +897,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
           logs.push(s.output);
 
           return s;
@@ -836,8 +921,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
           logs.push(s.context);
 
           return s;
@@ -863,8 +948,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
 
           if (s.status === 'active') {
             logs.push(s.context);

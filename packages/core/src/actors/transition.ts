@@ -1,6 +1,6 @@
 import {
   ActorLogic,
-  ActorContext,
+  ActorScope,
   ActorSystem,
   EventObject,
   ActorRefFrom,
@@ -16,13 +16,7 @@ export type TransitionActorLogic<
   TContext,
   TEvent extends EventObject,
   TInput
-> = ActorLogic<
-  TransitionSnapshot<TContext>,
-  TEvent,
-  TInput,
-  TransitionSnapshot<TContext>,
-  AnyActorSystem
->;
+> = ActorLogic<TransitionSnapshot<TContext>, TEvent, TInput, AnyActorSystem>;
 
 export type TransitionActorRef<
   TContext,
@@ -49,7 +43,7 @@ export function fromTransition<
   transition: (
     state: TContext,
     event: TEvent,
-    actorContext: ActorContext<TransitionSnapshot<TContext>, TEvent, TSystem>
+    actorScope: ActorScope<TransitionSnapshot<TContext>, TEvent, TSystem>
   ) => TContext,
   initialContext:
     | TContext
@@ -63,10 +57,10 @@ export function fromTransition<
 ): TransitionActorLogic<TContext, TEvent, TInput> {
   return {
     config: transition,
-    transition: (state, event, actorContext) => {
+    transition: (state, event, actorScope) => {
       return {
         ...state,
-        context: transition(state.context, event as TEvent, actorContext as any)
+        context: transition(state.context, event as TEvent, actorScope as any)
       };
     },
     getInitialState: (_, input) => {
@@ -81,6 +75,6 @@ export function fromTransition<
       };
     },
     getPersistedState: (state) => state,
-    restoreState: (state) => state
+    restoreState: (state: any) => state
   };
 }

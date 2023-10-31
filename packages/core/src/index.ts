@@ -33,6 +33,12 @@ export {
   StateNode,
   type Interpreter
 };
+export type {
+  InspectedActorEvent,
+  InspectedEventEvent,
+  InspectedSnapshotEvent,
+  InspectionEvent
+} from './system.ts';
 
 export { and, not, or, stateIn } from './guards.ts';
 

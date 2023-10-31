@@ -5,7 +5,7 @@ interface Applicant {
   lname: string;
   age: number;
   email: string;
-};
+}
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#applicant-request-decision-example
 export const workflow = createMachine(
