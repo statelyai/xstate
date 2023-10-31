@@ -1704,6 +1704,45 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   src?: string | AnyActorLogic;
 
+  /**
+   * A callback function which can be used to inspect actor system updates.
+   *
+   * @remarks
+   * The callback function can accept an inspectionEvent argument. The types of inspection events that can be observed include:
+   *
+   * - `@xstate.actor` - An actor ref has been created in the system
+   * - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
+   * - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
+   *
+   * @example
+   * ```ts
+   * import { createMachine } from 'xstate';
+   *
+   * const machine = createMachine({
+   *   // ...
+   * });
+   *
+   * const actor = createActor(machine, {
+   *   inspect: (inspectionEvent) => {
+   *     if (inspectionEvent.type === '@xstate.actor') {
+   *       console.log(inspectionEvent.actorRef);
+   *     }
+   *
+   *     if (inspectionEvent.type === '@xstate.event') {
+   *       console.log(inspectionEvent.sourceRef);
+   *       console.log(inspectionEvent.targetRef);
+   *       console.log(inspectionEvent.event);
+   *     }
+   *
+   *     if (inspectionEvent.type === '@xstate.snapshot') {
+   *       console.log(inspectionEvent.actorRef);
+   *       console.log(inspectionEvent.event);
+   *       console.log(inspectionEvent.snapshot);
+   *     }
+   *   }
+   * });
+   * ```
+   */
   inspect?:
     | Observer<InspectionEvent>
     | ((inspectionEvent: InspectionEvent) => void);
