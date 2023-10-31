@@ -1686,6 +1686,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * @see {@link SimulatedClock}
    */
   clock?: Clock;
+  /**
+   * Specifies the logger to be used for log(...) actions. Defaults to the native console.log method.
+   */
   logger?: (...args: any[]) => void;
   parent?: ActorRef<any, any>;
   /**
