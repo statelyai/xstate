@@ -604,7 +604,7 @@ export class Actor<TLogic extends AnyActorLogic>
    * @remarks
    * The internal state can be persisted from any actor, not only machines.
    *
-   * Note that the persisted state is not the same as the snapshot from `actor.getSnapshot()`. Persisted state represents the internal state of the actor, while snapshots represent the actor's last emitted value.
+   * Note that the persisted state is not the same as the snapshot from {@link Actor.getSnapshot}. Persisted state represents the internal state of the actor, while snapshots represent the actor's last emitted value.
    *
    * Can be restored with {@link ActorOptions.state}
    *
