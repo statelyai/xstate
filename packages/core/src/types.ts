@@ -1702,8 +1702,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   devTools?: boolean | DevToolsAdapter; // TODO: add enhancer options
 
-  sync?: boolean;
-
   /**
    * The system ID to register this actor under
    */
