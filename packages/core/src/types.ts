@@ -1669,6 +1669,22 @@ export interface StateConfig<
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
+  /**
+   * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
+   *
+   * @remarks
+   * You can create your own “clock”. The clock interface is an object with two functions/methods:
+   *
+   * - `setTimeout` - same arguments as `window.setTimeout(fn, timeout)`
+   * - `clearTimeout` - same arguments as `window.clearTimeout(id)`
+   *
+   * By default, the native `setTimeout` and `clearTimeout` functions are used.
+   *
+   * For testing, XState provides `SimulatedClock`.
+   *
+   * @see {@link Clock}
+   * @see {@link SimulatedClock}
+   */
   clock?: Clock;
   logger?: (...args: any[]) => void;
   parent?: ActorRef<any, any>;
