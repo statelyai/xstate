@@ -1713,6 +1713,17 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   input?: InputFrom<TLogic>;
 
+  /**
+   * Initializes actor logic from a specific persisted internal state.
+   *
+   * @remarks
+   *
+   * If the state is compatible with the actor logic, when the actor is started it will be at that persisted state.
+   * Actions from machine actors will not be re-executed, because they are assumed to have been already executed.
+   * However, invocations will be restarted, and spawned actors will be restored recursively.
+   *
+   * @see https://stately.ai/docs/persistence
+   */
   // state?:
   //   | PersistedStateFrom<TActorLogic>
   //   | InternalStateFrom<TActorLogic>;
