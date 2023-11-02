@@ -77,6 +77,9 @@ const defaultOptions = {
   devTools: false
 };
 
+/**
+ * An Actor is a running process that can receive events, send events and change its behavior based on the events it receives, which can cause effects outside of the actor. When you run a state machine, it becomes an actor.
+ */
 export class Actor<TLogic extends AnyActorLogic>
   implements ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
 {
@@ -125,6 +128,9 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public sessionId: string;
 
+  /**
+   * The system to which this actor belongs.
+   */
   public system: ActorSystem<any>;
   private _doneEvent?: DoneActorEvent;
 
@@ -547,7 +553,10 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system._relay(undefined, this, event);
   }
 
-  // TODO: make private (and figure out a way to do this within the machine)
+  /**
+   * TODO: figure out a way to do this within the machine
+   * @internal
+   */
   public delaySend(params: {
     event: EventObject;
     id: string | undefined;
@@ -569,7 +578,10 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
 
-  // TODO: make private (and figure out a way to do this within the machine)
+  /**
+   * TODO: figure out a way to do this within the machine
+   * @internal
+   */
   public cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
@@ -599,6 +611,20 @@ export class Actor<TLogic extends AnyActorLogic>
     return this;
   }
 
+  /**
+   * Read an actor’s snapshot synchronously.
+   *
+   * @remarks
+   * The snapshot represent an actor's last emitted value.
+   *
+   * When an actor receives an event, its internal state may change.
+   * An actor may emit a snapshot when a state transition occurs.
+   *
+   * Note that some actors, such as callback actors generated with `fromCallback`, will not emit snapshots.
+   *
+   * @see {@link Actor.subscribe} to subscribe to an actor’s snapshot values.
+   * @see {@link Actor.getPersistedState} to persist the internal state of an actor (which is more than just a snapshot).
+   */
   public getSnapshot(): SnapshotFrom<TLogic> {
     return this._state;
   }
