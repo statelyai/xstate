@@ -125,6 +125,9 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public sessionId: string;
 
+  /**
+   * The system to which this actor belongs.
+   */
   public system: ActorSystem<any>;
   private _doneEvent?: DoneActorEvent;
 
