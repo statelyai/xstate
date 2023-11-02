@@ -77,6 +77,9 @@ const defaultOptions = {
   devTools: false
 };
 
+/**
+ * An Actor is a running process that can receive events, send events and change its behavior based on the events it receives, which can cause effects outside of the actor. When you run a state machine, it becomes an actor.
+ */
 export class Actor<TLogic extends AnyActorLogic>
   implements ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
 {
