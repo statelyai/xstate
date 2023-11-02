@@ -502,7 +502,10 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system._relay(undefined, this, event);
   }
 
-  // TODO: make private (and figure out a way to do this within the machine)
+  /**
+   * TODO: figure out a way to do this within the machine
+   * @internal
+   */
   public delaySend(params: {
     event: EventObject;
     id: string | undefined;
