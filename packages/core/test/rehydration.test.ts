@@ -170,6 +170,62 @@ describe('rehydration', () => {
     expect(rehydratedActor.getSnapshot().value).toBe('c');
   });
 
+  it('a rehydrated active child should be registered in the system', () => {
+    const machine = createMachine(
+      {
+        context: ({ spawn }) => {
+          spawn('foo', {
+            systemId: 'mySystemId'
+          });
+          return {};
+        }
+      },
+      {
+        actors: {
+          foo: createMachine({})
+        }
+      }
+    );
+
+    const actor = createActor(machine).start();
+    const persistedState = actor.getPersistedState();
+    actor.stop();
+
+    const rehydratedActor = createActor(machine, {
+      state: persistedState
+    }).start();
+
+    expect(rehydratedActor.system.get('mySystemId')).not.toBeUndefined();
+  });
+
+  it('a rehydrated done child should not be registered in the system', () => {
+    const machine = createMachine(
+      {
+        context: ({ spawn }) => {
+          spawn('foo', {
+            systemId: 'mySystemId'
+          });
+          return {};
+        }
+      },
+      {
+        actors: {
+          foo: createMachine({ type: 'final' })
+        }
+      }
+    );
+
+    const actor = createActor(machine).start();
+    const persistedState = actor.getPersistedState();
+    actor.stop();
+
+    const rehydratedActor = createActor(machine, {
+      state: persistedState
+    }).start();
+
+    expect(rehydratedActor.system.get('mySystemId')).toBeUndefined();
+  });
+
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
     const spy = jest.fn();
 

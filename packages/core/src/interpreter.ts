@@ -15,15 +15,15 @@ import {
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
-  ActorContext,
+  ActorScope,
   ActorSystem,
   AnyActorLogic,
   AnyStateMachine,
   EventFromLogic,
-  PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef,
-  DoneActorEvent
+  DoneActorEvent,
+  Snapshot
 } from './types.ts';
 import {
   ActorRef,
@@ -112,7 +112,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public _parent?: ActorRef<any, any>;
   public ref: ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>;
   // TODO: add typings for system
-  private _actorContext: ActorContext<
+  private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     any
@@ -164,7 +164,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.options = resolvedOptions;
     this.src = resolvedOptions.src;
     this.ref = this;
-    this._actorContext = {
+    this._actorScope = {
       self: this,
       id: this.id,
       sessionId: this.sessionId,
@@ -196,9 +196,9 @@ export class Actor<TLogic extends AnyActorLogic>
   private _initState() {
     this._state = this.options.state
       ? this.logic.restoreState
-        ? this.logic.restoreState(this.options.state, this._actorContext)
+        ? this.logic.restoreState(this.options.state, this._actorScope)
         : this.options.state
-      : this.logic.getInitialState(this._actorContext, this.options?.input);
+      : this.logic.getInitialState(this._actorScope, this.options?.input);
   }
 
   // array of functions to defer
@@ -257,6 +257,54 @@ export class Actor<TLogic extends AnyActorLogic>
     });
   }
 
+  /**
+   * Subscribe an observer to an actor’s snapshot values.
+   *
+   * @remarks
+   * The observer will receive the actor’s snapshot value when it is emitted. The observer can be:
+   * - A plain function that receives the latest snapshot, or
+   * - An observer object whose `.next(snapshot)` method receives the latest snapshot
+   *
+   * @example
+   * ```ts
+   * // Observer as a plain function
+   * const subscription = actor.subscribe((snapshot) => {
+   *   console.log(snapshot);
+   * });
+   * ```
+   *
+   * @example
+   * ```ts
+   * // Observer as an object
+   * const subscription = actor.subscribe({
+   *   next(snapshot) {
+   *     console.log(snapshot);
+   *   },
+   *   error(err) {
+   *     // ...
+   *   },
+   *   complete() {
+   *     // ...
+   *   },
+   * });
+   * ```
+   *
+   * The return value of `actor.subscribe(observer)` is a subscription object that has an `.unsubscribe()` method. You can call `subscription.unsubscribe()` to unsubscribe the observer:
+   *
+   * @example
+   * ```ts
+   * const subscription = actor.subscribe((snapshot) => {
+   *   // ...
+   * });
+   *
+   * // Unsubscribe the observer
+   * subscription.unsubscribe();
+   * ```
+   *
+   * When the actor is stopped, all of its observers will automatically be unsubscribed.
+   *
+   * @param observer - Either a plain function that receives the latest snapshot, or an observer object whose `.next(snapshot)` method receives the latest snapshot
+   */
   public subscribe(observer: Observer<SnapshotFrom<TLogic>>): Subscription;
   public subscribe(
     nextListener?: (state: SnapshotFrom<TLogic>) => void,
@@ -335,7 +383,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     if (this.logic.start) {
       try {
-        this.logic.start(this._state, this._actorContext);
+        this.logic.start(this._state, this._actorScope);
       } catch (err) {
         this._stopProcedure();
         this._error(err);
@@ -363,7 +411,7 @@ export class Actor<TLogic extends AnyActorLogic>
     let nextState;
     let caughtError;
     try {
-      nextState = this.logic.transition(this._state, event, this._actorContext);
+      nextState = this.logic.transition(this._state, event, this._actorScope);
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
       caughtError = { err };
@@ -543,8 +591,8 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public getPersistedState(): PersistedStateFrom<TLogic> | undefined {
-    return this.logic.getPersistedState?.(this._state);
+  public getPersistedState(): Snapshot<unknown> {
+    return this.logic.getPersistedState(this._state);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {

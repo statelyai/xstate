@@ -24,7 +24,7 @@ import type {
   TypegenDisabled
 } from './typegenTypes.ts';
 import type {
-  ActorContext,
+  ActorScope,
   ActorLogic,
   EventObject,
   InternalMachineImplementations,
@@ -37,15 +37,15 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState,
   ParameterizedObject,
-  AnyActorContext,
+  AnyActorScope,
   AnyEventObject,
   ProvidedActor,
   AnyActorRef,
   Equals,
   TODO,
-  SnapshotFrom
+  SnapshotFrom,
+  Snapshot
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
@@ -114,14 +114,6 @@ export class StateMachine<
       >,
       TEvent,
       TInput,
-      PersistedMachineState<
-        TContext,
-        TEvent,
-        TActor,
-        TTag,
-        TOutput,
-        TResolvedTypesMeta
-      >,
       TODO
     >
 {
@@ -324,7 +316,7 @@ export class StateMachine<
       TResolvedTypesMeta
     >,
     event: TEvent,
-    actorCtx: ActorContext<typeof state, TEvent>
+    actorScope: ActorScope<typeof state, TEvent>
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -344,7 +336,7 @@ export class StateMachine<
       });
     }
 
-    const { state: nextState } = macrostep(state, event, actorCtx);
+    const { state: nextState } = macrostep(state, event, actorScope);
 
     return nextState as typeof state;
   }
@@ -366,11 +358,11 @@ export class StateMachine<
       TResolvedTypesMeta
     >,
     event: TEvent,
-    actorCtx: AnyActorContext
+    actorScope: AnyActorScope
   ): Array<
     MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
   > {
-    return macrostep(state, event, actorCtx).microstates as (typeof state)[];
+    return macrostep(state, event, actorScope).microstates as (typeof state)[];
   }
 
   public getTransitionData(
@@ -392,7 +384,7 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: AnyActorContext,
+    actorScope: AnyActorScope,
     initEvent: any,
     internalQueue: AnyEventObject[]
   ): MachineSnapshot<
@@ -423,7 +415,7 @@ export class StateMachine<
       return resolveActionsAndContext(
         preInitial,
         initEvent,
-        actorCtx,
+        actorScope,
         [assign(assignment)],
         internalQueue
       ) as SnapshotFrom<this>;
@@ -436,7 +428,7 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx: ActorContext<
+    actorScope: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
@@ -459,7 +451,7 @@ export class StateMachine<
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this.getPreInitialState(
-      actorCtx,
+      actorScope,
       initEvent,
       internalQueue
     );
@@ -475,7 +467,7 @@ export class StateMachine<
         }
       ],
       preInitialState,
-      actorCtx,
+      actorScope,
       initEvent,
       true,
       internalQueue
@@ -484,7 +476,7 @@ export class StateMachine<
     const { state: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
-      actorCtx,
+      actorScope,
       internalQueue
     );
 
@@ -541,14 +533,7 @@ export class StateMachine<
       TOutput,
       TResolvedTypesMeta
     >
-  ): PersistedMachineState<
-    TContext,
-    TEvent,
-    TActor,
-    TTag,
-    TOutput,
-    TResolvedTypesMeta
-  > {
+  ) {
     return getPersistedState(state);
   }
 
@@ -577,15 +562,8 @@ export class StateMachine<
   }
 
   public restoreState(
-    snapshot: PersistedMachineState<
-      TContext,
-      TEvent,
-      TActor,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >,
-    _actorCtx: ActorContext<
+    snapshot: Snapshot<unknown>,
+    _actorScope: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
@@ -605,10 +583,14 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     const children: Record<string, AnyActorRef> = {};
+    const snapshotChildren: Record<
+      string,
+      { src: string; state: Snapshot<unknown>; systemId?: string }
+    > = (snapshot as any).children;
 
-    Object.keys(snapshot.children).forEach((actorId) => {
+    Object.keys(snapshotChildren).forEach((actorId) => {
       const actorData =
-        snapshot.children[actorId as keyof typeof snapshot.children];
+        snapshotChildren[actorId as keyof typeof snapshotChildren];
       const childState = actorData.state;
       const src = actorData.src;
 
@@ -618,19 +600,20 @@ export class StateMachine<
         return;
       }
 
-      const actorState = logic.restoreState?.(childState, _actorCtx);
+      const actorState = logic.restoreState?.(childState, _actorScope);
 
       const actorRef = createActor(logic, {
         id: actorId,
-        parent: _actorCtx?.self,
-        state: actorState
+        parent: _actorScope?.self,
+        state: actorState,
+        systemId: actorData.systemId
       });
 
       children[actorId] = actorRef;
     });
 
     const restoredSnapshot = this.createState(
-      new State({ ...snapshot, children }, this) as any
+      new State({ ...(snapshot as any), children }, this) as any
     );
 
     let seen = new Set();

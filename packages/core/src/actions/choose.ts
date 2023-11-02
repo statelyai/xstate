@@ -3,7 +3,7 @@ import {
   EventObject,
   ChooseBranch,
   MachineContext,
-  AnyActorContext,
+  AnyActorScope,
   AnyState,
   ActionArgs,
   ParameterizedObject,
@@ -14,9 +14,10 @@ import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
 
 function resolveChoose(
-  _: AnyActorContext,
+  _: AnyActorScope,
   state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+  actionArgs: ActionArgs<any, any, any>,
+  _actionParams: ParameterizedObject['params'] | undefined,
   {
     branches
   }: {
@@ -46,14 +47,14 @@ function resolveChoose(
 export interface ChooseAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
   _out_TGuard?: TGuard;
@@ -64,7 +65,7 @@ export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -84,7 +85,7 @@ export function choose<
 ): ChooseAction<
   TContext,
   TExpressionEvent,
-  TExpressionAction,
+  TParams,
   TEvent,
   TActor,
   TAction,
@@ -92,7 +93,8 @@ export function choose<
   TDelay
 > {
   function choose(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
