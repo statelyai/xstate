@@ -1757,13 +1757,17 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *
    * const actor = createActor(machine, {
    *   inspect: (inspectionEvent) => {
+   *     if (inspectionEvent.actorRef === actor) {
+   *       // This event is for the root actor
+   *     }
+   *
    *     if (inspectionEvent.type === '@xstate.actor') {
    *       console.log(inspectionEvent.actorRef);
    *     }
    *
    *     if (inspectionEvent.type === '@xstate.event') {
    *       console.log(inspectionEvent.sourceRef);
-   *       console.log(inspectionEvent.targetRef);
+   *       console.log(inspectionEvent.actorRef);
    *       console.log(inspectionEvent.event);
    *     }
    *
