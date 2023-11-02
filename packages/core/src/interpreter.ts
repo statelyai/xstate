@@ -527,7 +527,10 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
 
-  // TODO: make private (and figure out a way to do this within the machine)
+  /**
+   * TODO: figure out a way to do this within the machine
+   * @internal
+   */
   public cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
