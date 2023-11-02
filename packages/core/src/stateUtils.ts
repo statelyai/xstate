@@ -864,21 +864,15 @@ export function removeConflictingTransitions(
   return Array.from(filteredTransitions);
 }
 
-function findLCCA(stateNodes: Array<AnyStateNode>): AnyStateNode {
-  const [head] = stateNodes;
-
-  let current = getPathFromRootToNode(head);
-  let candidates: Array<AnyStateNode> = [];
-
-  for (const stateNode of stateNodes) {
-    const path = getPathFromRootToNode(stateNode);
-
-    candidates = current.filter((sn) => path.includes(sn));
-    current = candidates;
-    candidates = [];
+function findLeastCommonAncestor(
+  stateNodes: Array<AnyStateNode>
+): AnyStateNode | undefined {
+  const [head, ...tail] = stateNodes;
+  for (const ancestor of getProperAncestors(head, undefined)) {
+    if (tail.every((sn) => isDescendant(sn, ancestor))) {
+      return ancestor;
+    }
   }
-
-  return current[current.length - 1];
 }
 
 function getEffectiveTargetStates(
@@ -933,9 +927,18 @@ function getTransitionDomain(
     return transition.source;
   }
 
-  const lcca = findLCCA(targetStates.concat(transition.source));
+  const lca = findLeastCommonAncestor(targetStates.concat(transition.source));
 
-  return lcca;
+  if (lca) {
+    return lca;
+  }
+
+  // at this point we know that it's a root transition since LCA couldn't be found
+  if (transition.reenter) {
+    return;
+  }
+
+  return transition.source.machine.root;
 }
 
 function computeExitSet(
@@ -1248,12 +1251,16 @@ function computeEntrySet(
     }
     const targetStates = getEffectiveTargetStates(t, historyValue);
     for (const s of targetStates) {
+      const ancestors = getProperAncestors(s, domain);
+      if (domain?.type === 'parallel') {
+        ancestors.push(domain!);
+      }
       addAncestorStatesToEnter(
-        s,
-        domain,
         statesToEnter,
         historyValue,
-        statesForDefaultEntry
+        statesForDefaultEntry,
+        ancestors,
+        !t.source.parent && t.reenter ? undefined : domain
       );
     }
   }
@@ -1282,7 +1289,7 @@ function addDescendantStatesToEnter<
         );
       }
       for (const s of historyStateNodes) {
-        addAncestorStatesToEnter(
+        addProperAncestorStatesToEnter(
           s,
           stateNode.parent!,
           statesToEnter,
@@ -1311,7 +1318,7 @@ function addDescendantStatesToEnter<
       }
 
       for (const s of historyDefaultTransition.target) {
-        addAncestorStatesToEnter(
+        addProperAncestorStatesToEnter(
           s,
           stateNode,
           statesToEnter,
@@ -1335,7 +1342,7 @@ function addDescendantStatesToEnter<
         statesToEnter
       );
 
-      addAncestorStatesToEnter(
+      addProperAncestorStatesToEnter(
         initialState,
         stateNode,
         statesToEnter,
@@ -1366,15 +1373,16 @@ function addDescendantStatesToEnter<
 }
 
 function addAncestorStatesToEnter(
-  stateNode: AnyStateNode,
-  toStateNode: AnyStateNode | undefined,
   statesToEnter: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
-  statesForDefaultEntry: Set<AnyStateNode>
+  statesForDefaultEntry: Set<AnyStateNode>,
+  ancestors: AnyStateNode[],
+  reentrancyDomain?: AnyStateNode
 ) {
-  const properAncestors = getProperAncestors(stateNode, toStateNode);
-  for (const anc of properAncestors) {
-    statesToEnter.add(anc);
+  for (const anc of ancestors) {
+    if (!reentrancyDomain || isDescendant(anc, reentrancyDomain)) {
+      statesToEnter.add(anc);
+    }
     if (anc.type === 'parallel') {
       for (const child of getChildren(anc).filter((sn) => !isHistoryNode(sn))) {
         if (![...statesToEnter].some((s) => isDescendant(s, child))) {
@@ -1389,6 +1397,21 @@ function addAncestorStatesToEnter(
       }
     }
   }
+}
+
+function addProperAncestorStatesToEnter(
+  stateNode: AnyStateNode,
+  toStateNode: AnyStateNode | undefined,
+  statesToEnter: Set<AnyStateNode>,
+  historyValue: HistoryValue<any, any>,
+  statesForDefaultEntry: Set<AnyStateNode>
+) {
+  addAncestorStatesToEnter(
+    statesToEnter,
+    historyValue,
+    statesForDefaultEntry,
+    getProperAncestors(stateNode, toStateNode)
+  );
 }
 
 function exitStates(
