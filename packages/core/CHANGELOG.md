@@ -1,5 +1,17 @@
 # xstate
 
+## 5.0.0-beta.39
+
+### Minor Changes
+
+- [#4407](https://github.com/statelyai/xstate/pull/4407) [`c46a80015`](https://github.com/statelyai/xstate/commit/c46a80015a2332c39cb34dbbe2d32d13beeb9c45) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Internal: changed the actor context type from `ActorContext` to `ActorScope` to mitigate confusion.
+
+### Patch Changes
+
+- [#4404](https://github.com/statelyai/xstate/pull/4404) [`a91fdea06`](https://github.com/statelyai/xstate/commit/a91fdea0686ccef459b0f99ebc614903f38cbe30) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused non-active children to be rehydrated.
+
+- [#4368](https://github.com/statelyai/xstate/pull/4368) [`5393e82df`](https://github.com/statelyai/xstate/commit/5393e82df1445c29920f477bf2855d5a387317ed) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with parallel regions sometimes not being correctly reentered when taking transitions targeting other parallel regions.
+
 ## 5.0.0-beta.38
 
 ### Minor Changes
