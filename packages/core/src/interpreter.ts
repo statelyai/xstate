@@ -151,11 +151,6 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system.inspect(toObserver(inspect));
     }
 
-    if (systemId) {
-      this._systemId = systemId;
-      this.system._set(systemId, this);
-    }
-
     this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
@@ -191,6 +186,11 @@ export class Actor<TLogic extends AnyActorLogic>
       actorRef: this
     });
     this._initState();
+
+    if (systemId && (this._state as any).status === 'active') {
+      this._systemId = systemId;
+      this.system._set(systemId, this);
+    }
   }
 
   private _initState() {
