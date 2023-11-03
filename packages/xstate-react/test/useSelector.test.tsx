@@ -11,7 +11,8 @@ import {
   StateFrom,
   Snapshot,
   TransitionSnapshot,
-  AnyEventObject
+  AnyEventObject,
+  AnyActor
 } from 'xstate';
 import {
   shallowEqual,
@@ -480,7 +481,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const parentMachine = createMachine({
       types: {
         context: {} as {
-          childActor: ReturnType<typeof createActor>;
+          childActor: AnyActor;
         }
       },
       context: () => ({
