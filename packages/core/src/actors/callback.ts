@@ -83,7 +83,7 @@ export type InvokeCallback<
  * - Send events to the parent actor via the `sendBack` function
  *
  * Callback actors are a bit different from other actors in that they:
- * - Do not work with `onDone` or `onError`
+ * - Do not work with `onDone`
  * - Do not produce a snapshot using `.getSnapshot()`
  * - Do not emit values when used with `.subscribe()`
  * - Can not be stopped with `.stop()`
