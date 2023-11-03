@@ -1,4 +1,4 @@
-import { createActor, createMachine } from '../src/index';
+import { createActor, createMachine, fromCallback } from '../src/index';
 
 describe('history states', () => {
   it('should go to the most recently visited state (explicit shallow history type)', () => {
@@ -496,6 +496,35 @@ describe('history states', () => {
 
     actorRef.send({ type: 'NEXT' });
     actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should invoke an actor when reentering the stored configuration through the history state', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'running',
+      states: {
+        running: {
+          on: {
+            PING: {
+              target: 'refresh'
+            }
+          },
+          invoke: {
+            src: fromCallback(spy)
+          }
+        },
+        refresh: {
+          type: 'history'
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    spy.mockClear();
+
+    actorRef.send({ type: 'PING' });
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
