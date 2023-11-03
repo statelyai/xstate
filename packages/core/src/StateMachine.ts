@@ -606,6 +606,7 @@ export class StateMachine<
         id: actorId,
         parent: _actorScope?.self,
         state: actorState,
+        src,
         systemId: actorData.systemId
       });
 
