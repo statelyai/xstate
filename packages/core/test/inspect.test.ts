@@ -13,7 +13,7 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
     return {
       type: inspectionEvent.type,
       sourceId: inspectionEvent.sourceRef?.sessionId,
-      targetId: inspectionEvent.targetRef.sessionId,
+      targetId: inspectionEvent.actorRef.sessionId,
       event: inspectionEvent.event
     };
   }
