@@ -23,13 +23,7 @@ const createSimpleActor = (
       error: undefined,
       context: value
     }),
-    subscribe: () => {
-      return {
-        unsubscribe: () => {
-          /* ... */
-        }
-      };
-    }
+    getPersistedState: () => null as any
   });
 
 export default defineComponent({

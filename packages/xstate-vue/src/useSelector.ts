@@ -23,6 +23,7 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
     }
   };
 
+  // TODO: add test for actor changing
   watch(
     actorRefRef,
     (newActor, _, onCleanup) => {
