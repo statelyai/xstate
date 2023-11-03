@@ -25,13 +25,14 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
   ...[options = {}, observerOrListener]: UseActorRefRestParams<TLogic>
 ): ActorRefFrom<TLogic> {
-  const actorRef = createActor(actorLogic, options).start();
+  const actorRef = createActor(actorLogic, options);
 
   let sub: Subscription;
   onMounted(() => {
     if (observerOrListener) {
       sub = actorRef.subscribe(toObserver(observerOrListener as any));
     }
+    actorRef.start();
   });
 
   onBeforeUnmount(() => {
