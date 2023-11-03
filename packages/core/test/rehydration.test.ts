@@ -262,4 +262,30 @@ describe('rehydration', () => {
 
     expect(spy).not.toHaveBeenCalled();
   });
+
+  it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
+    const machine = createMachine(
+      {
+        invoke: {
+          src: 'foo'
+        }
+      },
+      {
+        actors: {
+          foo: fromPromise(() => Promise.resolve(42))
+        }
+      }
+    );
+
+    const actor = createActor(machine).start();
+
+    const rehydratedActor = createActor(machine, {
+      state: actor.getPersistedState()
+    }).start();
+
+    const persistedChildren = (rehydratedActor.getPersistedState() as any)
+      .children;
+    expect(Object.keys(persistedChildren).length).toBe(1);
+    expect((Object.values(persistedChildren)[0] as any).src).toBe('foo');
+  });
 });
