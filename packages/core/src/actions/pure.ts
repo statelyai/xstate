@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { evaluateGuard } from '../guards.ts';
 import {
   Actions,
   ActionArgs,
@@ -143,11 +144,13 @@ function resolveCreateAction(
     get: ({
       context,
       event,
-      exec
+      exec,
+      guard
     }: {
       context: MachineContext;
       event: EventObject;
       exec: CreateActionExec;
+      guard: (guard: any) => boolean;
     }) => SingleOrArray<UnknownAction> | undefined;
   }
 ) {
@@ -166,7 +169,10 @@ function resolveCreateAction(
       actions.push(action);
     }
   };
-  get({ context: args.context, event: args.event, exec });
+  const guard = (guard: any) => {
+    return evaluateGuard(guard, state.context, args.event, state);
+  };
+  get({ context: args.context, event: args.event, exec, guard });
   return [state, undefined, actions];
 }
 
@@ -189,6 +195,7 @@ export function createAction<
   }: {
     context: TContext;
     event: TExpressionEvent;
+    guard: (guard: TGuard) => boolean;
     exec: {
       assign: (
         ...args: Parameters<
