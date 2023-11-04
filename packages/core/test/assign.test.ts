@@ -1,3 +1,4 @@
+import { createAction } from '../src/actions/pure.ts';
 import { assign, createMachine, createActor } from '../src/index.ts';
 
 interface CounterContext {
@@ -360,4 +361,66 @@ describe('assign meta', () => {
 
     service.send({ type: 'EVENT' });
   });
+});
+
+it('test', () => {
+  const greetSpy = jest.fn();
+  const machine = createMachine(
+    {
+      types: {} as {
+        actions: {
+          type: 'greet';
+          params: { message: string };
+        };
+      },
+      context: { count: 0 },
+      entry: createAction(({ exec, context }) => {
+        exec.assign({
+          count: ({ context }) => context.count + 1
+        });
+
+        exec.assign({
+          count: ({ context }) => context.count + 1
+        });
+
+        // Should still be 0
+        if (context.count === 0) {
+          exec.raise({
+            type: 'raised'
+          });
+        }
+
+        exec.action({
+          type: 'greet',
+          params: {
+            message: 'hello'
+          }
+        });
+      }),
+      on: {
+        raised: {
+          actions: assign({
+            count: ({ context }) => context.count + 1
+          })
+        }
+      }
+    },
+    {
+      actions: {
+        greet: (_, params) => {
+          greetSpy(params);
+        }
+      }
+    }
+  );
+
+  const actor = createActor(machine).start();
+
+  expect(actor.getSnapshot().context.count).toEqual(3);
+
+  expect(greetSpy).toHaveBeenCalledWith(
+    expect.objectContaining({
+      message: 'hello'
+    })
+  );
 });
