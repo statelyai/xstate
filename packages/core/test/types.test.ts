@@ -10,15 +10,14 @@ import {
   Spawner,
   StateMachine,
   assign,
-  choose,
   createActor,
   createMachine,
   not,
-  pure,
   sendTo,
   stateIn,
   spawn
 } from '../src/index';
+import { createAction } from '../src/actions/pure';
 
 function noop(_x: unknown) {
   return;
@@ -2996,19 +2995,31 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: [
-            {
-              type: 'greet',
-              params: {
-                name: 'Anders'
-              }
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: [
+      //       {
+      //         type: 'greet',
+      //         params: {
+      //           name: 'Anders'
+      //         }
+      //       }
+      //     ]
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action({
+            type: 'greet',
+            params: {
+              name: 'Anders',
+              // @ts-expect-error
+              foo: 'bar'
             }
-          ]
+          });
         }
-      ])
+      })
     });
   });
 
@@ -3017,18 +3028,27 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: [
-            {
-              type: 'greet',
-              // @ts-expect-error
-              params: {}
-            }
-          ]
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: [
+      //       {
+      //         type: 'greet',
+      //         // @ts-expect-error
+      //         params: {}
+      //       }
+      //     ]
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action({
+            type: 'greet',
+            // @ts-expect-error
+            params: {}
+          });
         }
-      ])
+      })
     });
   });
 
@@ -3037,15 +3057,23 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          // @ts-expect-error
-          actions: {
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     // @ts-expect-error
+      //     actions: {
+      //       type: 'other' as const
+      //     }
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action({
+            // @ts-expect-error
             type: 'other' as const
-          }
+          });
         }
-      ])
+      })
     });
   });
 
@@ -3054,12 +3082,17 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: 'poke'
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: 'poke'
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action({ type: 'poke' });
         }
-      ])
+      })
     });
   });
 
@@ -3068,14 +3101,19 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: {
-            type: 'poke'
-          }
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: {
+      //       type: 'poke'
+      //     }
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action({ type: 'poke' });
         }
-      ])
+      })
     });
   });
 
@@ -3084,22 +3122,35 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: [
-            {
-              type: 'greet',
-              params: {
-                name: 'Anders'
-              }
-            },
-            {
-              type: 'poke'
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: [
+      //       {
+      //         type: 'greet',
+      //         params: {
+      //           name: 'Anders'
+      //         }
+      //       },
+      //       {
+      //         type: 'poke'
+      //       }
+      //     ]
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action({
+            type: 'greet',
+            params: {
+              name: 'Anders'
             }
-          ]
+          });
+          exec.action({
+            type: 'poke'
+          });
         }
-      ])
+      })
     });
   });
 
@@ -3108,14 +3159,21 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: {
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: {
+      //       type: 'poke'
+      //     }
+      //   }
+      // ] as const)
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action({
             type: 'poke'
-          }
+          });
         }
-      ] as const)
+      })
     });
   });
 
@@ -3128,11 +3186,14 @@ describe('choose', () => {
       },
       {
         actions: {
-          foo: choose([
-            {
-              actions: () => {}
-            }
-          ])
+          // foo: choose([
+          //   {
+          //     actions: () => {}
+          //   }
+          // ])
+          foo: createAction(({ exec }) => {
+            exec.action(() => {});
+          })
         }
       }
     );
@@ -3154,12 +3215,17 @@ describe('choose', () => {
       },
       {
         actions: {
-          foo: choose([
-            {
-              actions: () => {},
-              guard: 'plainGuard'
+          // foo: choose([
+          //   {
+          //     actions: () => {},
+          //     guard: 'plainGuard'
+          //   }
+          // ])
+          foo: createAction(({ exec, guard }) => {
+            if (guard({ type: 'plainGuard' })) {
+              exec.action(() => {});
             }
-          ])
+          })
         }
       }
     );
@@ -3181,13 +3247,23 @@ describe('choose', () => {
       },
       {
         actions: {
-          foo: choose([
-            {
-              actions: () => {},
-              // @ts-expect-error
-              guard: 'other' as const
+          // foo: choose([
+          //   {
+          //     actions: () => {},
+          //     // @ts-expect-error
+          //     guard: 'other' as const
+          //   }
+          // ])
+          foo: createAction(({ exec, guard }) => {
+            if (
+              guard({
+                // @ts-expect-error
+                type: 'other'
+              })
+            ) {
+              exec.action(() => {});
             }
-          ])
+          })
         }
       }
     );
@@ -3205,17 +3281,29 @@ describe('choose', () => {
             }
           | { type: 'plainGuard' }
       },
-      entry: choose([
-        {
-          actions: 'someAction',
-          guard: (_, params) => {
+      // entry: choose([
+      //   {
+      //     actions: 'someAction',
+      //     guard: (_, params) => {
+      //       ((_accept: undefined) => {})(params);
+      //       // @ts-expect-error
+      //       ((_accept: 'not any') => {})(params);
+      //       return true;
+      //     }
+      //   }
+      // ])
+      entry: createAction(({ exec, guard }) => {
+        if (
+          guard((_, params) => {
             ((_accept: undefined) => {})(params);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params);
             return true;
-          }
+          })
+        ) {
+          exec.action({ type: 'someAction' });
         }
-      ])
+      })
     });
   });
 
@@ -3235,17 +3323,29 @@ describe('choose', () => {
       },
       {
         actions: {
-          someGuard: choose([
-            {
-              actions: 'someAction',
-              guard: (_, params) => {
+          // someGuard: choose([
+          //   {
+          //     actions: 'someAction',
+          //     guard: (_, params) => {
+          //       ((_accept: undefined) => {})(params);
+          //       // @ts-expect-error
+          //       ((_accept: 'not any') => {})(params);
+          //       return true;
+          //     }
+          //   }
+          // ])
+          someGuard: createAction(({ exec, guard }) => {
+            if (
+              guard((_, params) => {
                 ((_accept: undefined) => {})(params);
                 // @ts-expect-error
                 ((_accept: 'not any') => {})(params);
                 return true;
-              }
+              })
+            ) {
+              exec.action({ type: 'someAction' });
             }
-          ])
+          })
         }
       }
     );
@@ -3258,15 +3358,23 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: pure(() => {
-        return [
-          {
-            type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
-            params: {
-              name: 'Anders'
-            }
+      // entry: pure(() => {
+      //   return [
+      //     {
+      //       type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
+      //       params: {
+      //         name: 'Anders'
+      //       }
+      //     }
+      //   ];
+      // })
+      entry: createAction(({ exec }) => {
+        exec.action({
+          type: 'greet', // string doesn't widen ;-)
+          params: {
+            name: 'Anders'
           }
-        ];
+        });
       })
     });
   });
@@ -3276,11 +3384,17 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // @ts-expect-error
-      entry: pure(() => {
-        return {
+      // @x-ts-expect-error
+      // entry: pure(() => {
+      //   return {
+      //     type: 'other'
+      //   };
+      // })
+      entry: createAction(({ exec }) => {
+        exec.action({
+          // @ts-expect-error
           type: 'other'
-        };
+        });
       })
     });
   });
@@ -3290,18 +3404,29 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: pure(() => {
-        return [
-          {
-            type: 'greet' as const,
-            params: {
-              name: 'Anders'
-            }
-          },
-          {
-            type: 'poke' as const
+      // entry: pure(() => {
+      //   return [
+      //     {
+      //       type: 'greet' as const,
+      //       params: {
+      //         name: 'Anders'
+      //       }
+      //     },
+      //     {
+      //       type: 'poke' as const
+      //     }
+      //   ];
+      // })
+      entry: createAction(({ exec }) => {
+        exec.action({
+          type: 'greet',
+          params: {
+            name: 'Anders'
           }
-        ];
+        });
+        exec.action({
+          type: 'poke'
+        });
       })
     });
   });
@@ -3311,12 +3436,17 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: pure(() => {
-        return [
-          {
-            type: 'poke'
-          }
-        ] as const;
+      // entry: pure(() => {
+      //   return [
+      //     {
+      //       type: 'poke'
+      //     }
+      //   ] as const;
+      // })
+      entry: createAction(({ exec }) => {
+        exec.action({
+          type: 'poke'
+        });
       })
     });
   });
@@ -3326,8 +3456,11 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: pure(() => {
-        return [() => {}];
+      // entry: pure(() => {
+      //   return [() => {}];
+      // })
+      entry: createAction(({ exec }) => {
+        exec.action(() => {});
       })
     });
   });
@@ -3337,8 +3470,11 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: pure(() => {
-        return 'poke' as const;
+      // entry: pure(() => {
+      //   return 'poke' as const;
+      // })
+      entry: createAction(({ exec }) => {
+        exec.action({ type: 'poke' });
       })
     });
   });
@@ -3348,8 +3484,11 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      entry: pure(() => {
-        return ['poke' as const];
+      // entry: pure(() => {
+      //   return 'poke' as const;
+      // })
+      entry: createAction(({ exec }) => {
+        exec.action({ type: 'poke' });
       })
     });
   });
@@ -3367,8 +3506,11 @@ describe('pure', () => {
       },
       on: {
         SOMETHING: {
-          actions: pure(({ context }) => {
-            return raise({ type: 'SOMETHING_ELSE' });
+          // actions: pure(({ context }) => {
+          //   return raise({ type: 'SOMETHING_ELSE' });
+          // })
+          actions: createAction(({ exec }) => {
+            exec.raise({ type: 'SOMETHING_ELSE' });
           })
         }
       }
@@ -3389,8 +3531,14 @@ describe('pure', () => {
       on: {
         SOMETHING: {
           actions: [
-            pure(({ context }) => {
-              return raise({
+            // pure(({ context }) => {
+            //   return raise({
+            //     // @ts-expect-error
+            //     type: 'OTHER'
+            //   });
+            // })
+            createAction(({ exec }) => {
+              exec.raise({
                 // @ts-expect-error
                 type: 'OTHER'
               });
@@ -4121,12 +4269,17 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: raise({ type: 'FOO' }, { delay: 100 })
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: raise({ type: 'FOO' }, { delay: 100 })
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action(raise({ type: 'FOO' }, { delay: 100 }));
         }
-      ])
+      })
     });
   });
 
@@ -4135,12 +4288,17 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: raise({ type: 'FOO' }, { delay: 'one minute' })
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: raise({ type: 'FOO' }, { delay: 'one minute' })
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action(raise({ type: 'FOO' }, { delay: 'one minute' }));
         }
-      ])
+      })
     });
   });
 
@@ -4149,18 +4307,31 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: choose([
-        {
-          guard: () => true,
-          actions: raise(
-            { type: 'FOO' },
-            {
-              // @ts-expect-error
-              delay: 'unknown delay'
-            }
-          )
+      // entry: choose([
+      //   {
+      //     guard: () => true,
+      //     actions: raise(
+      //       { type: 'FOO' },
+      //       {
+      //         // @ts-expect-error
+      //         delay: 'unknown delay'
+      //       }
+      //     )
+      //   }
+      // ])
+      entry: createAction(({ exec }) => {
+        if (true) {
+          exec.action(
+            raise(
+              { type: 'FOO' },
+              {
+                // @ts-expect-error
+                delay: 'unknown delay'
+              }
+            )
+          );
         }
-      ])
+      })
     });
   });
 
@@ -4169,8 +4340,11 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: pure(() => {
-        return raise({ type: 'FOO' }, { delay: 100 });
+      // entry: pure(() => {
+      //   return raise({ type: 'FOO' }, { delay: 100 });
+      // })
+      entry: createAction(({ exec }) => {
+        exec.raise({ type: 'FOO' }, { delay: 100 });
       })
     });
   });
@@ -4180,8 +4354,11 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: pure(() => {
-        return raise({ type: 'FOO' }, { delay: 'one minute' });
+      // entry: pure(() => {
+      //   return raise({ type: 'FOO' }, { delay: 'one minute' });
+      // })
+      entry: createAction(({ exec }) => {
+        exec.raise({ type: 'FOO' }, { delay: 'one minute' });
       })
     });
   });
@@ -4191,8 +4368,17 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      entry: pure(() => {
-        return raise(
+      // entry: pure(() => {
+      //   return raise(
+      //     { type: 'FOO' },
+      //     {
+      //       // @ts-expect-error
+      //       delay: 'unknown delay'
+      //     }
+      //   );
+      // })
+      entry: createAction(({ exec }) => {
+        exec.raise(
           { type: 'FOO' },
           {
             // @ts-expect-error

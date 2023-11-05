@@ -1,9 +1,7 @@
 import { ActorRef, EventObject } from '../src/index.ts';
 import {
   cancel,
-  choose,
   log,
-  pure,
   raise,
   sendParent,
   sendTo,
@@ -18,6 +16,7 @@ import {
 } from '../src/index.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import { trackEntries } from './utils.ts';
+import { createAction } from '../src/actions/pure.ts';
 
 const originalConsoleLog = console.log;
 
@@ -2385,11 +2384,17 @@ describe('purely defined actions', () => {
         context: {
           items: [{ id: 1 }, { id: 2 }, { id: 3 }]
         },
-        entry: pure(({ context }) => {
-          return {
+        // entry: pure(({ context }) => {
+        //   return {
+        //     type: 'doSomething',
+        //     params: { length: context.items.length }
+        //   };
+        // })
+        entry: createAction(({ exec, context }) => {
+          exec.action({
             type: 'doSomething',
             params: { length: context.items.length }
-          };
+          });
         })
       },
       {
@@ -2409,12 +2414,20 @@ describe('purely defined actions', () => {
       context: {
         items: [{ id: 1 }, { id: 2 }, { id: 3 }]
       },
-      entry: pure(({ context }) => {
+      // entry: pure(({ context }) => {
+      //   if (context.items.length > 5) {
+      //     return {
+      //       type: 'doSomething',
+      //       params: { length: context.items.length }
+      //     };
+      //   }
+      // })
+      entry: createAction(({ exec, context }) => {
         if (context.items.length > 5) {
-          return {
+          exec.action({
             type: 'doSomething',
             params: { length: context.items.length }
-          };
+          });
         }
       })
     });
@@ -2429,11 +2442,19 @@ describe('purely defined actions', () => {
         context: {
           items: [{ id: 1 }, { id: 2 }, { id: 3 }]
         },
-        entry: pure(({ context }) =>
-          context.items.map((item: any, index: number) => ({
-            type: 'doSomething',
-            params: { item, index }
-          }))
+        // entry: pure(({ context }) =>
+        //   context.items.map((item: any, index: number) => ({
+        //     type: 'doSomething',
+        //     params: { item, index }
+        //   }))
+        // )
+        entry: createAction(({ exec, context }) =>
+          context.items.map((item: any, index: number) => {
+            exec.action({
+              type: 'doSomething',
+              params: { item, index }
+            });
+          })
         )
       },
       {
@@ -2456,7 +2477,8 @@ describe('purely defined actions', () => {
     const spy = jest.fn();
     const machine = createMachine(
       {
-        entry: pure(() => ['SOME_ACTION'])
+        // entry: pure(() => ['SOME_ACTION'])
+        entry: createAction(({ exec }) => exec.action({ type: 'SOME_ACTION' }))
       },
       {
         actions: {
@@ -2473,11 +2495,12 @@ describe('purely defined actions', () => {
   it('should allow function actions in pure', () => {
     let called = false;
     const machine = createMachine({
-      entry: pure(() => [
-        () => {
-          called = true;
-        }
-      ])
+      // entry: pure(() => [
+      //   () => {
+      //     called = true;
+      //   }
+      // ])
+      entry: createAction(({ exec }) => exec.action(() => (called = true)))
     });
 
     createActor(machine).start();
@@ -2681,9 +2704,14 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: choose([
-            { guard: () => true, actions: assign({ answer: 42 }) }
-          ])
+          // entry: choose([
+          //   { guard: () => true, actions: assign({ answer: 42 }) }
+          // ])
+          entry: createAction(({ exec }) => {
+            if (true) {
+              exec.assign({ answer: 42 });
+            }
+          })
         }
       }
     });
@@ -2706,12 +2734,18 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: choose([
-            {
-              guard: () => true,
-              actions: [() => (executed = true), assign({ answer: 42 })]
+          // entry: choose([
+          //   {
+          //     guard: () => true,
+          //     actions: [() => (executed = true), assign({ answer: 42 })]
+          //   }
+          // ])
+          entry: createAction(({ exec }) => {
+            if (true) {
+              exec.action(() => (executed = true));
+              exec.assign({ answer: 42 });
             }
-          ])
+          })
         }
       }
     });
@@ -2734,13 +2768,20 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: choose([
-            {
-              guard: () => false,
-              actions: assign({ shouldNotAppear: true })
-            },
-            { guard: () => true, actions: assign({ answer: 42 }) }
-          ])
+          // entry: choose([
+          //   {
+          //     guard: () => false,
+          //     actions: assign({ shouldNotAppear: true })
+          //   },
+          //   { guard: () => true, actions: assign({ answer: 42 }) }
+          // ]),
+          entry: createAction(({ exec }) => {
+            if (false) {
+              exec.assign({ shouldNotAppear: true });
+            } else {
+              exec.assign({ answer: 42 });
+            }
+          })
         }
       }
     });
@@ -2762,13 +2803,20 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: choose([
-            {
-              guard: () => false,
-              actions: assign({ shouldNotAppear: true })
-            },
-            { actions: assign({ answer: 42 }) }
-          ])
+          // entry: choose([
+          //   {
+          //     guard: () => false,
+          //     actions: assign({ shouldNotAppear: true })
+          //   },
+          //   { actions: assign({ answer: 42 }) }
+          // ])
+          entry: createAction(({ exec }) => {
+            if (false) {
+              exec.assign({ shouldNotAppear: true });
+            } else {
+              exec.assign({ answer: 42 });
+            }
+          })
         }
       }
     });
@@ -2795,28 +2843,37 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: choose([
-            {
-              guard: () => true,
-              actions: [
-                assign({ firstLevel: true }),
-                choose([
-                  {
-                    guard: () => true,
-                    actions: [
-                      assign({ secondLevel: true }),
-                      choose([
-                        {
-                          guard: () => true,
-                          actions: [assign({ thirdLevel: true })]
-                        }
-                      ])
-                    ]
-                  }
-                ])
-              ]
+          // entry: choose([
+          //   {
+          //     guard: () => true,
+          //     actions: [
+          //       assign({ firstLevel: true }),
+          //       choose([
+          //         {
+          //           guard: () => true,
+          //           actions: [
+          //             assign({ secondLevel: true }),
+          //             choose([
+          //               {
+          //                 guard: () => true,
+          //                 actions: [assign({ thirdLevel: true })]
+          //               }
+          //             ])
+          //           ]
+          //         }
+          //       ])
+          //     ]
+          //   }
+          // ])
+          entry: createAction(({ exec }) => {
+            exec.assign({ firstLevel: true });
+            if (true) {
+              exec.assign({ secondLevel: true });
+              if (true) {
+                exec.assign({ thirdLevel: true });
+              }
             }
-          ])
+          })
         }
       }
     });
@@ -2843,12 +2900,17 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: choose([
-            {
-              guard: ({ context }) => context.counter > 100,
-              actions: assign({ answer: 42 })
+          // entry: choose([
+          //   {
+          //     guard: ({ context }) => context.counter > 100,
+          //     actions: assign({ answer: 42 })
+          //   }
+          // ]),
+          entry: createAction(({ context, exec }) => {
+            if (context.counter > 100) {
+              exec.assign({ answer: 42 });
             }
-          ])
+          })
         }
       }
     });
@@ -2879,12 +2941,18 @@ describe('choose', () => {
           on: {
             NEXT: {
               target: 'bar',
-              actions: choose([
-                {
-                  guard: ({ event }) => event.counter > 100,
-                  actions: assign({ answer: 42 })
-                }
-              ])
+              actions:
+                // choose([
+                //   {
+                //     guard: ({ event }) => event.counter > 100,
+                //     actions: assign({ answer: 42 })
+                //   }
+                // ])
+                createAction(({ event, exec }) => {
+                  if (event.counter > 100) {
+                    exec.assign({ answer: 42 });
+                  }
+                })
             }
           }
         },
@@ -2904,12 +2972,21 @@ describe('choose', () => {
 
     const machine = createMachine(
       {
-        types: {} as { context: Ctx },
+        types: {} as {
+          context: Ctx;
+          guards: { type: 'worstGuard' };
+          actions: { type: 'revealAnswer' };
+        },
         context: {},
         initial: 'foo',
         states: {
           foo: {
-            entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
+            // entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
+            entry: createAction(({ exec, guard }) => {
+              if (guard({ type: 'worstGuard' })) {
+                exec.action({ type: 'revealAnswer' });
+              }
+            })
           }
         }
       },
@@ -2950,9 +3027,14 @@ describe('choose', () => {
         },
         actions: {
           revealAnswer: assign({ answer: 42 }),
-          conditionallyRevealAnswer: choose([
-            { guard: 'worstGuard', actions: 'revealAnswer' }
-          ])
+          // conditionallyRevealAnswer: choose([
+          //   { guard: 'worstGuard', actions: 'revealAnswer' }
+          // ])
+          conditionallyRevealAnswer: createAction(({ exec, guard }) => {
+            if (guard({ type: 'worstGuard' })) {
+              exec.action({ type: 'revealAnswer' });
+            }
+          })
         }
       }
     );
@@ -3142,9 +3224,12 @@ describe('sendTo', () => {
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
-      entry: pure(({ context }) => {
-        return [sendTo(context.child, { type: 'EVENT' })];
-      })
+      // entry: pure(({ context }) => {
+      //   return [sendTo(context.child, { type: 'EVENT' })];
+      // })
+      entry: createAction(({ exec }) =>
+        exec.action(sendTo(({ context }) => context.child, { type: 'EVENT' }))
+      )
     });
 
     createActor(parentMachine).start();
@@ -3464,12 +3549,17 @@ describe('assign action order', () => {
         context: { count: 0 },
         entry: [
           ({ context }) => captured.push(context.count), // 0
-          pure(() => {
-            return [
-              assign({ count: ({ context }) => context.count + 1 }),
-              { type: 'capture' }, // 1
-              assign({ count: ({ context }) => context.count + 1 })
-            ];
+          // pure(() => {
+          //   return [
+          //     assign({ count: ({ context }) => context.count + 1 }),
+          //     { type: 'capture' }, // 1
+          //     assign({ count: ({ context }) => context.count + 1 })
+          //   ];
+          // }),
+          createAction(({ exec }) => {
+            exec.action(assign({ count: ({ context }) => context.count + 1 }));
+            exec.action({ type: 'capture' });
+            exec.action(assign({ count: ({ context }) => context.count + 1 }));
           }),
           ({ context }) => captured.push(context.count) // 2
         ]
@@ -3574,50 +3664,113 @@ describe('types', () => {
         text: 'hello'
       },
       entry: [
-        choose([{ actions: assign({ count: 31 }) }]),
-        // @ts-expect-error
-        choose([{ actions: assign({ count: 'string' }) }]),
+        // choose([{ actions: assign({ count: 31 }) }]),
+        createAction(({ exec }) => {
+          exec.assign({ count: 31 });
+        }),
 
-        choose([{ actions: assign({ count: () => 31 }) }]),
-        // @ts-expect-error
-        choose([{ actions: assign({ count: () => 'string' }) }]),
+        // choose([{ actions: assign({ count: 'string' }) }]),
+        createAction(({ exec }) => {
+          exec.assign({
+            // @ts-expect-error
+            count: 'string'
+          });
+        }),
 
-        choose([
-          { actions: assign({ count: ({ context }) => context.count + 31 }) }
-        ]),
-        choose([
+        // choose([{ actions: assign({ count: () => 31 }) }]),
+        createAction(({ exec }) => {
+          exec.assign({ count: () => 31 });
+        }),
+        // choose([{ actions: assign({ count: () => 'string' }) }]),
+        createAction(({ exec }) => {
+          exec.assign({
+            // @ts-expect-error
+            count: () => 'string'
+          });
+        }),
+
+        // choose([
+        //   { actions: assign({ count: ({ context }) => context.count + 31 }) }
+        // ]),
+        createAction(({ exec }) => {
+          exec.assign({ count: ({ context }) => context.count + 31 });
+        }),
+        // choose([
+        //   // @ts-expect-error
+        //   { actions: assign({ count: ({ context }) => context.text + 31 }) }
+        // ]),
+        createAction(({ exec }) => {
+          exec.assign({
+            // @ts-expect-error
+            count: ({ context }) => context.text + 31
+          });
+        }),
+
+        // choose([{ actions: assign(() => ({ count: 31 })) }]),
+        createAction(({ exec }) => {
+          exec.assign(() => ({ count: 31 }));
+        }),
+
+        // choose([{ actions: assign(() => ({ count: 'string' })) }]),
+        createAction(({ exec }) => {
           // @ts-expect-error
-          { actions: assign({ count: ({ context }) => context.text + 31 }) }
-        ]),
+          exec.assign(() => ({
+            count: 'string'
+          }));
+        }),
 
-        choose([{ actions: assign(() => ({ count: 31 })) }]),
-        // @ts-expect-error
-        choose([{ actions: assign(() => ({ count: 'string' })) }]),
+        // choose([
+        //   { actions: assign(({ context }) => ({ count: context.count + 31 })) }
+        // ]),
+        createAction(({ exec }) => {
+          exec.assign(({ context }) => ({ count: context.count + 31 }));
+        }),
 
-        choose([
-          { actions: assign(({ context }) => ({ count: context.count + 31 })) }
-        ]),
-        choose([
+        // choose([
+        //   // @ts-expect-error
+        //   { actions: assign(({ context }) => ({ count: context.text + 31 })) }
+        // ])
+        createAction(({ exec }) => {
           // @ts-expect-error
-          { actions: assign(({ context }) => ({ count: context.text + 31 })) }
-        ])
+          exec.assign(({ context }) => ({
+            count: context.text + 31
+          }));
+        })
       ],
       on: {
         say: {
           actions: [
-            choose([{ actions: assign({ text: ({ event }) => event.value }) }]),
-            choose([
-              // @ts-expect-error
-              { actions: assign({ count: ({ event }) => event.value }) }
-            ]),
+            // choose([{ actions: assign({ text: ({ event }) => event.value }) }]),
+            createAction(({ exec }) => {
+              exec.assign({ text: ({ event }) => event.value });
+            }),
+            // choose([
+            //   // @ts-expect-error
+            //   { actions: assign({ count: ({ event }) => event.value }) }
+            // ]),
+            createAction(({ exec }) => {
+              exec.assign({
+                // @ts-expect-error
+                count: ({ event }) => event.value
+              });
+            }),
 
-            choose([
-              { actions: assign(({ event }) => ({ text: event.value })) }
-            ]),
-            choose([
+            // choose([
+            //   { actions: assign(({ event }) => ({ text: event.value })) }
+            // ]),
+            createAction(({ exec }) => {
+              exec.assign(({ event }) => ({ text: event.value }));
+            }),
+            // choose([
+            //   // @ts-expect-error
+            //   { actions: assign(({ event }) => ({ count: event.value })) }
+            // ])
+            createAction(({ exec }) => {
               // @ts-expect-error
-              { actions: assign(({ event }) => ({ count: event.value })) }
-            ])
+              exec.assign(({ event }) => ({
+                count: event.value
+              }));
+            })
           ]
         }
       }
@@ -3969,7 +4122,8 @@ describe('actions', () => {
     createActor(
       createMachine(
         {
-          entry: pure(() => ['myAction'])
+          // entry: pure(() => ['myAction'])
+          entry: createAction(({ exec }) => exec.action({ type: 'myAction' }))
         },
         {
           actions: {
@@ -3991,7 +4145,8 @@ describe('actions', () => {
     createActor(
       createMachine(
         {
-          entry: pure(() => ['myAction'])
+          // entry: pure(() => ['myAction'])
+          entry: createAction(({ exec }) => exec.action({ type: 'myAction' }))
         },
         {
           actions: {
@@ -4017,7 +4172,9 @@ describe('actions', () => {
         },
         {
           actions: {
-            myPure: pure(() => ['myAction']),
+            myPure: createAction(({ exec }) =>
+              exec.action({ type: 'myAction' })
+            ),
             myAction: (_, params) => {
               spy(params);
               return {};
@@ -4040,7 +4197,9 @@ describe('actions', () => {
         },
         {
           actions: {
-            myPure: pure(() => ['myAction']),
+            myPure: createAction(({ exec }) =>
+              exec.action({ type: 'myAction' })
+            ),
             myAction: assign((_, params) => {
               spy(params);
               return {};

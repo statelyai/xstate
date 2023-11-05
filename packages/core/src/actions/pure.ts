@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { evaluateGuard } from '../guards.ts';
+import { GuardPredicate, evaluateGuard } from '../guards.ts';
 import {
   Actions,
   ActionArgs,
@@ -195,7 +195,11 @@ export function createAction<
   }: {
     context: TContext;
     event: TExpressionEvent;
-    guard: (guard: TGuard) => boolean;
+    guard: (
+      guard:
+        | TGuard
+        | GuardPredicate<TContext, TExpressionEvent, undefined, TGuard>
+    ) => boolean;
     exec: {
       assign: (
         ...args: Parameters<
