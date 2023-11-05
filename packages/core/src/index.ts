@@ -41,6 +41,7 @@ export type {
 } from './system.ts';
 
 export { and, not, or, stateIn } from './guards.ts';
+export { setup } from './setup.ts';
 
 declare global {
   interface SymbolConstructor {

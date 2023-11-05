@@ -4,9 +4,9 @@ import {
   createMachine,
   fromObservable,
   fromPromise,
-  fromTransition
+  fromTransition,
+  setup
 } from '../src';
-import { setup } from '../src/setup';
 
 describe('setup()', () => {
   it('can strongly type provided actors', () => {
