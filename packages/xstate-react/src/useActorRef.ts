@@ -20,26 +20,18 @@ import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 export function useIdleActor(
   logic: AnyActorLogic,
   options: Partial<ActorOptions<AnyActorLogic>>
-): [AnyActor, React.MutableRefObject<Snapshot<unknown>>] {
-  const [[currentConfig, actorRef, snapshotRef], setCurrent] = useState(() => {
+): AnyActor {
+  const [[currentConfig, actorRef], setCurrent] = useState(() => {
     const actorRef = createActor(logic, options);
-    return [
-      logic.config,
-      actorRef,
-      {
-        current: actorRef.getPersistedState()
-      }
-    ];
+    return [logic.config, actorRef];
   });
 
   if (logic.config !== currentConfig) {
     const newActorRef = createActor(logic, {
       ...options,
-      // TODO: what about rehydration outside of Fast Refresh/Strict Mode?
-      state: snapshotRef.current
+      state: actorRef.getPersistedState()
     });
-    snapshotRef.current = actorRef.getPersistedState();
-    setCurrent([logic.config, newActorRef, snapshotRef]);
+    setCurrent([logic.config, newActorRef]);
   }
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
@@ -49,7 +41,7 @@ export function useIdleActor(
     ).implementations;
   });
 
-  return [actorRef, snapshotRef];
+  return actorRef;
 }
 
 type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
@@ -96,7 +88,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options = {}, observerOrListener]: RestParams<TLogic>
 ): ActorRefFrom<TLogic> {
-  const [actorRef, persistedRef] = useIdleActor(machine, options);
+  const actorRef = useIdleActor(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
@@ -115,7 +107,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
       const persistedState = actorRef.getPersistedState();
       actorRef.stop();
       (actorRef as any)._processingStatus = 0;
-      (actorRef as any)._initState((persistedRef.current = persistedState));
+      (actorRef as any)._initState(persistedState);
     };
   }, [actorRef]);
 

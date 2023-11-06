@@ -5,7 +5,6 @@ import {
   Actor,
   ActorLogicFrom,
   ActorRef,
-  ActorRefFrom,
   DoneActorEvent,
   Snapshot,
   StateFrom,
