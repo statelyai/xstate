@@ -1,6 +1,6 @@
 import type { StateNode } from './StateNode.ts';
 import type { State } from './State.ts';
-import type { ActorStatus, Scheduler, Actor } from './interpreter.ts';
+import type { ProcessingStatus, Scheduler, Actor } from './interpreter.ts';
 import type { MachineSnapshot, StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
@@ -1792,7 +1792,8 @@ export interface ActorRef<
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   system?: ActorSystem<any>;
-  status: ActorStatus;
+  /** @internal */
+  _processingStatus: ProcessingStatus;
   src?: string;
 }
 

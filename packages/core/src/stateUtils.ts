@@ -15,7 +15,6 @@ import {
   WILDCARD
 } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
-import { ActorStatus } from './interpreter.ts';
 import {
   ActionArgs,
   AnyEventObject,
@@ -50,6 +49,7 @@ import {
   toStateValue,
   toTransitionConfigArray
 } from './utils.ts';
+import { ProcessingStatus } from './interpreter.ts';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1541,7 +1541,7 @@ function resolveActionsAndContextWorker(
         : undefined;
 
     if (!('resolve' in resolvedAction)) {
-      if (actorScope?.self.status === ActorStatus.Running) {
+      if (actorScope?.self._processingStatus === ProcessingStatus.Running) {
         resolvedAction(actionArgs, actionParams);
       } else {
         actorScope?.defer(() => {
@@ -1568,7 +1568,7 @@ function resolveActionsAndContextWorker(
     }
 
     if ('execute' in builtinAction) {
-      if (actorScope?.self.status === ActorStatus.Running) {
+      if (actorScope?.self._processingStatus === ProcessingStatus.Running) {
         builtinAction.execute(actorScope!, params);
       } else {
         actorScope?.defer(
