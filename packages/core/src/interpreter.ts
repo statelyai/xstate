@@ -186,7 +186,7 @@ export class Actor<TLogic extends AnyActorLogic>
       type: '@xstate.actor',
       actorRef: this
     });
-    this._initState();
+    this._initState(options?.state);
 
     if (systemId && (this._state as any).status === 'active') {
       this._systemId = systemId;
@@ -194,11 +194,11 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
 
-  private _initState() {
-    this._state = this.options.state
+  private _initState(persistedState?: Snapshot<unknown>) {
+    this._state = persistedState
       ? this.logic.restoreState
-        ? this.logic.restoreState(this.options.state, this._actorScope)
-        : this.options.state
+        ? this.logic.restoreState(persistedState, this._actorScope)
+        : persistedState
       : this.logic.getInitialState(this._actorScope, this.options?.input);
   }
 
@@ -217,7 +217,6 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     for (const observer of this.observers) {
-      // TODO: should observers be notified in case of the error?
       try {
         observer.next?.(snapshot);
       } catch (err) {

@@ -298,16 +298,23 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine({
-      types: {
-        context: {} as {
-          childActor: ActorRefFrom<typeof childMachine>;
-        }
+    const parentMachine = createMachine(
+      {
+        types: {
+          context: {} as {
+            childActor: ActorRefFrom<typeof childMachine>;
+          }
+        },
+        context: ({ spawn }) => ({
+          childActor: spawn('child')
+        })
       },
-      context: ({ spawn }) => ({
-        childActor: spawn(childMachine)
-      })
-    });
+      {
+        actors: {
+          child: childMachine
+        }
+      }
+    );
     const selector = (state: StateFrom<typeof childMachine>) =>
       state.context.count;
 
@@ -339,19 +346,30 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should immediately render snapshot of initially spawned custom actor', () => {
-    const createCustomActor = (latestValue: string) =>
-      createActor(fromTransition((s) => s, latestValue));
+    const createCustomLogic = (latestValue: string) =>
+      fromTransition((s) => s, latestValue);
 
-    const parentMachine = createMachine({
-      types: {
-        context: {} as {
-          childActor: ReturnType<typeof createCustomActor>;
-        }
+    const parentMachine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'fooChild';
+            logic: ReturnType<typeof createCustomLogic>;
+          };
+          context: {
+            childActor: ActorRefFrom<ReturnType<typeof createCustomLogic>>;
+          };
+        },
+        context: ({ spawn }) => ({
+          childActor: spawn('fooChild')
+        })
       },
-      context: () => ({
-        childActor: createCustomActor('foo')
-      })
-    });
+      {
+        actors: {
+          fooChild: createCustomLogic('foo')
+        }
+      }
+    );
 
     const identitySelector = (value: any) => value;
 
@@ -383,16 +401,23 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine({
-      types: {
-        context: {} as {
-          childActor: ActorRefFrom<typeof childMachine>;
-        }
+    const parentMachine = createMachine(
+      {
+        types: {
+          context: {} as {
+            childActor: ActorRefFrom<typeof childMachine>;
+          }
+        },
+        context: ({ spawn }) => ({
+          childActor: spawn('child')
+        })
       },
-      context: ({ spawn }) => ({
-        childActor: spawn(childMachine)
-      })
-    });
+      {
+        actors: {
+          child: childMachine
+        }
+      }
+    );
 
     const App = ({ prop }: { prop: string }) => {
       const [state] = useMachine(parentMachine);
@@ -428,16 +453,23 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine({
-      types: {
-        context: {} as {
-          childActor: ActorRefFrom<typeof childMachine>;
-        }
+    const parentMachine = createMachine(
+      {
+        types: {
+          context: {} as {
+            childActor: ActorRefFrom<typeof childMachine>;
+          }
+        },
+        context: ({ spawn }) => ({
+          childActor: spawn('child')
+        })
       },
-      context: ({ spawn }) => ({
-        childActor: spawn(childMachine)
-      })
-    });
+      {
+        actors: {
+          child: childMachine
+        }
+      }
+    );
 
     const App = ({ prop }: { prop: string }) => {
       const [state] = useMachine(parentMachine);
@@ -474,19 +506,26 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should render snapshot value when actor doesn't emit anything", () => {
-    const createCustomActor = (latestValue: string) =>
-      createActor(fromTransition((s) => s, latestValue));
+    const createCustomLogic = (latestValue: string) =>
+      fromTransition((s) => s, latestValue);
 
-    const parentMachine = createMachine({
-      types: {
-        context: {} as {
-          childActor: ReturnType<typeof createActor>;
-        }
+    const parentMachine = createMachine(
+      {
+        types: {
+          context: {} as {
+            childActor: ActorRefFrom<typeof createCustomLogic>;
+          }
+        },
+        context: ({ spawn }) => ({
+          childActor: spawn('fooChild')
+        })
       },
-      context: () => ({
-        childActor: createCustomActor('foo')
-      })
-    });
+      {
+        actors: {
+          fooChild: createCustomLogic('foo')
+        }
+      }
+    );
 
     const identitySelector = (value: any) => value;
 
@@ -629,11 +668,18 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const child = createMachine({
       entry: () => (called = true)
     });
-    const machine = createMachine({
-      context: ({ spawn }) => ({
-        childRef: spawn(child)
-      })
-    });
+    const machine = createMachine(
+      {
+        context: ({ spawn }) => ({
+          childRef: spawn('child')
+        })
+      },
+      {
+        actors: {
+          child
+        }
+      }
+    );
 
     function App() {
       const service = useActorRef(machine);
@@ -658,23 +704,30 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine({
-      types: {} as {
-        context: { ref: ActorRefFrom<typeof childMachine> };
-      },
-      context: ({ spawn }) => ({
-        ref: spawn(childMachine)
-      }),
-      initial: 'waiting',
-      states: {
-        waiting: {
-          on: { TEST: 'success' }
+    const machine = createMachine(
+      {
+        types: {} as {
+          context: { ref: ActorRefFrom<typeof childMachine> };
         },
-        success: {
-          type: 'final'
+        context: ({ spawn }) => ({
+          ref: spawn('child')
+        }),
+        initial: 'waiting',
+        states: {
+          waiting: {
+            on: { TEST: 'success' }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          child: childMachine
         }
       }
-    });
+    );
 
     const App = () => {
       const actorRef = useActorRef(machine);

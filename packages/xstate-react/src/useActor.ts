@@ -7,7 +7,7 @@ import {
   ActorOptions,
   SnapshotFrom
 } from 'xstate';
-import { useIdleInterpreter } from './useActorRef.ts';
+import { useIdleActor } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -24,7 +24,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     );
   }
 
-  const actorRef = useIdleInterpreter(logic, options as any);
+  const [actorRef, persistedRef] = useIdleActor(logic, options as any);
 
   const getSnapshot = useCallback(() => {
     return actorRef.getSnapshot();
@@ -48,9 +48,10 @@ export function useActor<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
+      const persistedState = actorRef.getPersistedState();
       actorRef.stop();
       (actorRef as any)._processingStatus = 0;
-      (actorRef as any)._initState();
+      (actorRef as any)._initState((persistedRef.current = persistedState));
     };
   }, [actorRef]);
 

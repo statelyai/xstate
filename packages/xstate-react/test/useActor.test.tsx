@@ -118,7 +118,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     }
   };
 
-  it('should work with the useMachine hook', async () => {
+  it('should work with the useActor hook', async () => {
     render(<Fetcher onFetch={() => new Promise((res) => res('fake data'))} />);
     const button = screen.getByText('Fetch');
     fireEvent.click(button);
@@ -128,7 +128,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     expect(dataEl.textContent).toBe('fake data');
   });
 
-  it('should work with the useMachine hook (rehydrated state)', async () => {
+  it('should work with the useActor hook (rehydrated state)', async () => {
     render(
       <Fetcher
         onFetch={() => new Promise((res) => res('fake data'))}
@@ -204,31 +204,34 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not spawn actors until service is started', async () => {
-    const spawnMachine = createMachine({
-      types: {} as { context: { ref?: ActorRef<any, any> } },
-      id: 'spawn',
-      initial: 'start',
-      context: { ref: undefined },
-      states: {
-        start: {
-          entry: assign({
-            ref: ({ spawn }) =>
-              spawn(
-                fromPromise(() => {
-                  return new Promise((res) => res(42));
-                }),
-                { id: 'my-promise' }
-              )
-          }),
-          on: {
-            'xstate.done.actor.my-promise': 'success'
+    const spawnMachine = createMachine(
+      {
+        types: {} as { context: { ref?: ActorRef<any, any> } },
+        id: 'spawn',
+        initial: 'start',
+        context: { ref: undefined },
+        states: {
+          start: {
+            entry: assign({
+              ref: ({ spawn }) => spawn('revealAnswer', { id: 'my-promise' })
+            }),
+            on: {
+              'xstate.done.actor.my-promise': 'success'
+            }
+          },
+          success: {
+            type: 'final'
           }
-        },
-        success: {
-          type: 'final'
+        }
+      },
+      {
+        actors: {
+          revealAnswer: fromPromise(() => {
+            return new Promise((res) => res(42));
+          })
         }
       }
-    });
+    );
 
     const Spawner = () => {
       const [current] = useActor(spawnMachine);
@@ -522,34 +525,31 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     const { getByRole } = render(<App />);
 
-    expect(effectsFired).toBe(
-      suiteKey === 'strict'
-        ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
-          // atm it's 3 cause we the double-invoked effect sees the initial value
-          // but the 3rd call comes from the restarted machine (that happens because of the strict effects)
-          // the second effect with `service.start()` doesn't have a way to change what another effect in the same "effect batch" sees
-          3
-        : 1
-    );
+    expect(effectsFired).toBe(suiteKey === 'strict' ? 2 : 1);
 
     const button = getByRole('button');
     fireEvent.click(button);
 
-    expect(effectsFired).toBe(suiteKey === 'strict' ? 3 : 1);
+    expect(effectsFired).toBe(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
 
-    const machine = createMachine({
-      context: ({ spawn }) => ({
-        ref: spawn(
-          fromCallback(() => {
+    const machine = createMachine(
+      {
+        context: ({ spawn }) => ({
+          ref: spawn('child')
+        })
+      },
+      {
+        actors: {
+          child: fromCallback(() => {
             childSpawned = true;
           })
-        )
-      })
-    });
+        }
+      }
+    );
 
     const App = () => {
       useActor(machine);
@@ -855,25 +855,34 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          invoke: {
-            id: 'test',
-            src: childMachine,
-            input: { value: 42 }
+    const machine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof childMachine;
+            id: 'test';
+          };
+        },
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              src: 'child',
+              id: 'test',
+              input: { value: 42 }
+            }
           }
         }
+      },
+      {
+        actors: { child: childMachine }
       }
-    });
+    );
 
     const Test = () => {
       const [state] = useActor(machine);
-      const childState = useSelector(
-        state.children.test as ActorRefFrom<typeof childMachine>, // TODO: introduce typing for this in machine types
-        (s) => s
-      );
+      const childState = useSelector(state.children.test!, (s) => s);
 
       expect(childState.context.value).toBe(42);
 
@@ -1003,7 +1012,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     expect(spy).toHaveBeenCalledTimes(
       suiteKey === 'strict'
         ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
-          // but we don't rehydrate child actors right now, we just recreate the initial state and that leads to an extra render with strict effects
+          // but we don't rehydrate child actors right now, we recreate them based on the persisted state and that leads to an extra render with strict effects
+          // since the stopped top-level actor starts again but with a recreated state
           3
         : 1
     );

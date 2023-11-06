@@ -1,4 +1,3 @@
-import isDevelopment from '#is-development';
 import { useEffect, useState } from 'react';
 import {
   AnyActorLogic,
@@ -13,37 +12,44 @@ import {
   StateFrom,
   toObserver,
   SnapshotFrom,
-  TODO
+  TODO,
+  Snapshot
 } from 'xstate';
-import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
-export function useIdleInterpreter(
-  machine: AnyActorLogic,
+export function useIdleActor(
+  logic: AnyActorLogic,
   options: Partial<ActorOptions<AnyActorLogic>>
-): AnyActor {
-  if (isDevelopment) {
-    const [initialMachine] = useState(machine);
-
-    if (machine.config !== initialMachine.config) {
-      console.warn(
-        `Actor logic has changed between renders. This is not supported and may lead to invalid snapshots.`
-      );
-    }
-  }
-
-  const actorRef = useConstant(() => {
-    return createActor(machine as AnyStateMachine, options);
+): [AnyActor, React.MutableRefObject<Snapshot<unknown>>] {
+  const [[currentConfig, actorRef, snapshotRef], setCurrent] = useState(() => {
+    const actorRef = createActor(logic, options);
+    return [
+      logic.config,
+      actorRef,
+      {
+        current: actorRef.getPersistedState()
+      }
+    ];
   });
+
+  if (logic.config !== currentConfig) {
+    const newActorRef = createActor(logic, {
+      ...options,
+      // TODO: what about rehydration outside of Fast Refresh/Strict Mode?
+      state: snapshotRef.current
+    });
+    snapshotRef.current = actorRef.getPersistedState();
+    setCurrent([logic.config, newActorRef, snapshotRef]);
+  }
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
     (actorRef.logic as AnyStateMachine).implementations = (
-      machine as AnyStateMachine
+      logic as AnyStateMachine
     ).implementations;
   });
 
-  return actorRef as any;
+  return [actorRef, snapshotRef];
 }
 
 type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
@@ -90,7 +96,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options = {}, observerOrListener]: RestParams<TLogic>
 ): ActorRefFrom<TLogic> {
-  const actorRef = useIdleInterpreter(machine, options);
+  const [actorRef, persistedRef] = useIdleActor(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
@@ -106,11 +112,12 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
+      const persistedState = actorRef.getPersistedState();
       actorRef.stop();
       (actorRef as any)._processingStatus = 0;
-      (actorRef as any)._initState();
+      (actorRef as any)._initState((persistedRef.current = persistedState));
     };
-  }, []);
+  }, [actorRef]);
 
   return actorRef as any;
 }

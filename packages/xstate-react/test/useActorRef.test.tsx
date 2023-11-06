@@ -105,44 +105,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     expect(actual).toEqual([42]);
   });
 
-  it('should warn when machine reference is updated during the hook lifecycle', () => {
-    console.warn = jest.fn();
-    const createTestMachine = () => createMachine({});
-    const App = () => {
-      const [, setId] = React.useState(1);
-      useMachine(createTestMachine());
-
-      return (
-        <>
-          <button
-            onClick={() => {
-              setId(2);
-            }}
-          >
-            update id
-          </button>
-        </>
-      );
-    };
-
-    render(<App />);
-
-    fireEvent.click(screen.getByRole('button'));
-
-    expect(console.warn).toHaveBeenCalledTimes(suiteKey === 'strict' ? 4 : 1);
-    expect((console.warn as jest.Mock).mock.calls[0][0]).toMatchInlineSnapshot(
-      `"Actor logic has changed between renders. This is not supported and may lead to invalid snapshots."`
-    );
-    if (suiteKey === 'strict') {
-      expect(
-        (console.warn as jest.Mock).mock.calls[1][0]
-      ).toMatchInlineSnapshot(
-        `"Actor logic has changed between renders. This is not supported and may lead to invalid snapshots."`
-      );
-    }
-  });
-
-  it('should not warn when only the provided machine implementations have changed', () => {
+  it('should rerender OK when only the provided machine implementations have changed', () => {
     console.warn = jest.fn();
     const machine = createMachine({
       initial: 'foo',
@@ -179,6 +142,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           >
             update id
           </button>
+          <span>{id}</span>
         </>
       );
     };
@@ -187,7 +151,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     fireEvent.click(screen.getByRole('button'));
 
-    expect(console.warn).not.toHaveBeenCalled();
+    expect(screen.getByText('2')).toBeTruthy();
   });
 
   it('should change state when started', async () => {
@@ -203,17 +167,28 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine({
-      types: {} as { context: { childRef: ActorRefFrom<typeof childMachine> } },
-      context: ({ spawn }) => ({
-        childRef: spawn(childMachine)
-      }),
-      on: {
-        SEND_TO_CHILD: {
-          actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
+    const parentMachine = createMachine(
+      {
+        types: {} as {
+          context: { childRef: ActorRefFrom<typeof childMachine> };
+        },
+        context: ({ spawn }) => ({
+          childRef: spawn('child')
+        }),
+        on: {
+          SEND_TO_CHILD: {
+            actions: sendTo(({ context }) => context.childRef, {
+              type: 'EVENT'
+            })
+          }
+        }
+      },
+      {
+        actors: {
+          child: childMachine
         }
       }
-    });
+    );
 
     const App = () => {
       const parentActor = useActorRef(parentMachine);
@@ -258,21 +233,30 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine({
-      types: {} as {
-        context: {
-          childRef: ActorRefFrom<typeof childMachine>;
-        };
+    const parentMachine = createMachine(
+      {
+        types: {} as {
+          context: {
+            childRef: ActorRefFrom<typeof childMachine>;
+          };
+        },
+        context: ({ spawn }) => ({
+          childRef: spawn('child')
+        }),
+        on: {
+          SEND_TO_CHILD: {
+            actions: sendTo(({ context }) => context.childRef, {
+              type: 'EVENT'
+            })
+          }
+        }
       },
-      context: ({ spawn }) => ({
-        childRef: spawn(childMachine)
-      }),
-      on: {
-        SEND_TO_CHILD: {
-          actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
+      {
+        actors: {
+          child: childMachine
         }
       }
-    });
+    );
 
     const App = () => {
       const [parentState, parentSend] = useMachine(parentMachine);
@@ -379,130 +363,131 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     await testWaitFor(() => expect(count.textContent).toBe('42'));
   });
 
-  // TODO: reexecuted layout effect in strict mode sees the outdated state
-  // it fires after passive cleanup (that stops the machine) and before the passive setup (that restarts the machine)
-  (suiteKey === 'strict' ? it.skip : it)(
-    'invoked actor should be able to receive (deferred) events that it replays when active',
-    (done) => {
-      const childMachine = createMachine({
-        id: 'childMachine',
-        initial: 'active',
-        states: {
-          active: {
-            on: {
-              FINISH: { actions: sendParent({ type: 'FINISH' }) }
-            }
+  it('invoked actor should be able to receive (deferred) events that it replays when active', () => {
+    let isDone = false;
+
+    const childMachine = createMachine({
+      id: 'childMachine',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            FINISH: { actions: sendParent({ type: 'FINISH' }) }
           }
         }
-      });
-      const machine = createMachine({
-        initial: 'active',
-        invoke: {
-          id: 'child',
-          src: childMachine
+      }
+    });
+    const machine = createMachine({
+      initial: 'active',
+      invoke: {
+        id: 'child',
+        src: childMachine
+      },
+      states: {
+        active: {
+          on: { FINISH: 'success' }
         },
-        states: {
-          active: {
-            on: { FINISH: 'success' }
-          },
-          success: {}
-        }
-      });
+        success: {}
+      }
+    });
 
-      const ChildTest: React.FC<{
-        actor: ActorRefFrom<typeof childMachine>;
-      }> = ({ actor }) => {
-        const state = useSelector(actor, (s) => s);
+    const ChildTest: React.FC<{
+      actor: ActorRefFrom<typeof childMachine>;
+    }> = ({ actor }) => {
+      const state = useSelector(actor, (s) => s);
 
-        expect(state.value).toEqual('active');
+      expect(state.value).toEqual('active');
 
-        React.useLayoutEffect(() => {
+      React.useLayoutEffect(() => {
+        if (actor.getSnapshot().status === 'active') {
           actor.send({ type: 'FINISH' });
-        }, []);
-
-        return null;
-      };
-
-      const Test = () => {
-        const actorRef = useActorRef(machine);
-        const childActor = useSelector(
-          actorRef,
-          (s) => s.children.child as ActorRefFrom<typeof childMachine>
-        );
-
-        const isDone = useSelector(actorRef, (s) => s.matches('success'));
-
-        if (isDone) {
-          done();
         }
+      }, []);
 
-        return <ChildTest actor={childActor} />;
-      };
+      return null;
+    };
 
-      render(<Test />);
-    }
-  );
+    const Test = () => {
+      const actorRef = useActorRef(machine);
+      const childActor = useSelector(
+        actorRef,
+        (s) => s.children.child as ActorRefFrom<typeof childMachine>
+      );
 
-  // TODO: reexecuted layout effect in strict mode sees the outdated state
-  // it fires after passive cleanup (that stops the machine) and before the passive setup (that restarts the machine)
-  (suiteKey === 'strict' ? it.skip : it)(
-    'spawned actor should be able to receive (deferred) events that it replays when active',
-    (done) => {
-      const childMachine = createMachine({
-        id: 'childMachine',
-        initial: 'active',
-        states: {
-          active: {
-            on: {
-              FINISH: { actions: sendParent({ type: 'FINISH' }) }
-            }
+      isDone = useSelector(actorRef, (s) => s.matches('success'));
+
+      return <ChildTest actor={childActor} />;
+    };
+
+    render(<Test />);
+
+    expect(isDone).toBe(true);
+  });
+
+  it('spawned actor should be able to receive (deferred) events that it replays when active', () => {
+    let isDone = false;
+
+    const childMachine = createMachine({
+      id: 'childMachine',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            FINISH: { actions: sendParent({ type: 'FINISH' }) }
           }
         }
-      });
-      const machine = createMachine({
+      }
+    });
+    const machine = createMachine(
+      {
         initial: 'active',
         states: {
           active: {
             entry: assign({
-              actorRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
+              actorRef: ({ spawn }) => spawn('child', { id: 'child' })
             }),
             on: { FINISH: 'success' }
           },
           success: {}
         }
-      });
-
-      const ChildTest: React.FC<{
-        actor: ActorRefFrom<typeof childMachine>;
-      }> = ({ actor }) => {
-        const state = useSelector(actor, (s) => s);
-
-        expect(state.value).toEqual('active');
-
-        React.useLayoutEffect(() => {
-          actor.send({ type: 'FINISH' });
-        }, []);
-
-        return null;
-      };
-
-      const Test = () => {
-        const actorRef = useActorRef(machine);
-        const childActor = useSelector(
-          actorRef,
-          (s) => s.children.child as ActorRefFrom<typeof childMachine>
-        );
-
-        const isDone = useSelector(actorRef, (s) => s.matches('success'));
-
-        if (isDone) {
-          done();
+      },
+      {
+        actors: {
+          child: childMachine
         }
+      }
+    );
 
-        return <ChildTest actor={childActor} />;
-      };
+    const ChildTest: React.FC<{
+      actor: ActorRefFrom<typeof childMachine>;
+    }> = ({ actor }) => {
+      const state = useSelector(actor, (s) => s);
 
-      render(<Test />);
-    }
-  );
+      expect(state.value).toEqual('active');
+
+      React.useLayoutEffect(() => {
+        if (actor.getSnapshot().status === 'active') {
+          actor.send({ type: 'FINISH' });
+        }
+      }, []);
+
+      return null;
+    };
+
+    const Test = () => {
+      const actorRef = useActorRef(machine);
+      const childActor = useSelector(
+        actorRef,
+        (s) => s.children.child as ActorRefFrom<typeof childMachine>
+      );
+
+      isDone = useSelector(actorRef, (s) => s.matches('success'));
+
+      return <ChildTest actor={childActor} />;
+    };
+
+    render(<Test />);
+
+    expect(isDone).toBe(true);
+  });
 });
