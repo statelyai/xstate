@@ -71,7 +71,7 @@ describe('error handling', () => {
       }
     });
 
-    const subscriber = jest.fn().mockImplementation(() => {
+    const subscriber = jest.fn().mockImplementationOnce(() => {
       throw new Error('doesnt_crash_actor_when_error_is_thrown_in_subscribe');
     });
 
