@@ -140,7 +140,7 @@ function retryResolveSendTo(
 function executeSendTo(
   actorScope: AnyActorScope,
   params: {
-    to: AnyActorRef;
+    to: AnyActorRef | string;
     event: EventObject;
     id: string | undefined;
     delay: number | undefined;
@@ -159,7 +159,9 @@ function executeSendTo(
     const { to, event } = params;
     actorScope?.system._relay(
       actorScope.self,
-      to,
+      // at this point, in a deferred task, it should already be mutated by retryResolveSendTo
+      // if it initially started as a string
+      to as Exclude<typeof to, string>,
       event.type === XSTATE_ERROR
         ? createErrorActorEvent(actorScope.self.id, (event as any).data)
         : event

@@ -568,13 +568,20 @@ export class Actor<TLogic extends AnyActorLogic>
     event: EventObject;
     id: string | undefined;
     delay: number;
-    to?: AnyActorRef;
+    to?: AnyActorRef | string;
   }): void {
     const startedAt = Date.now();
     const id = params.id || `xstate.${Math.random().toString(36).slice(8)}`;
 
     const timerId = this.system.scheduler.setTimeout(
-      () => this.system._relay(this, params.to || this, params.event),
+      () =>
+        this.system._relay(
+          this,
+          // at this point, in a timeout, it should already be mutated by retryResolveSendTo
+          // if it initially started as a string
+          (params.to as Exclude<typeof params.to, string>) || this,
+          params.event
+        ),
       params.delay
     );
 
