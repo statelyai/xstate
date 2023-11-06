@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneState } from '../State.ts';
-import { ActorStatus } from '../interpreter.ts';
+import { ProcessingStatus } from '../interpreter.ts';
 import {
   ActionArgs,
   ActorRef,
@@ -65,7 +65,7 @@ function executeStop(
 
   // this allows us to prevent an actor from being started if it gets stopped within the same macrostep
   // this can happen, for example, when the invoking state is being exited immediately by an always transition
-  if (actorRef.status !== ActorStatus.Running) {
+  if (actorRef._processingStatus !== ProcessingStatus.Running) {
     actorScope.stopChild(actorRef);
     return;
   }

@@ -7,14 +7,7 @@ export { getStateNodes } from './stateUtils.ts';
 export * from './typegenTypes.ts';
 export * from './types.ts';
 export { waitFor } from './waitFor.ts';
-import {
-  Actor,
-  ActorStatus,
-  createActor,
-  interpret,
-  Interpreter,
-  InterpreterStatus
-} from './interpreter.ts';
+import { Actor, createActor, interpret, Interpreter } from './interpreter.ts';
 import { createMachine } from './Machine.ts';
 import { mapState } from './mapState.ts';
 import { State } from './State.ts';
@@ -23,11 +16,9 @@ import { StateNode } from './StateNode.ts';
 export { matchesState, pathToStateValue, toObserver } from './utils.ts';
 export {
   Actor,
-  ActorStatus,
   createActor,
   createMachine,
   interpret,
-  InterpreterStatus,
   mapState,
   State,
   StateNode,

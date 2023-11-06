@@ -13,8 +13,7 @@ import {
   StateFrom,
   toObserver,
   SnapshotFrom,
-  TODO,
-  ActorStatus
+  TODO
 } from 'xstate';
 import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
@@ -108,7 +107,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
 
     return () => {
       actorRef.stop();
-      actorRef.status = ActorStatus.NotStarted;
+      (actorRef as any)._processingStatus = 0;
       (actorRef as any)._initState();
     };
   }, []);

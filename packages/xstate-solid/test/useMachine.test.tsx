@@ -15,7 +15,6 @@ import { fireEvent, render, screen, waitFor } from 'solid-testing-library';
 import {
   Actor,
   ActorLogicFrom,
-  ActorStatus,
   assign,
   createActor,
   createMachine,
@@ -1484,7 +1483,7 @@ describe('useMachine hook', () => {
     });
     const Display = () => {
       onCleanup(() => {
-        expect(service.status).toBe(ActorStatus.Stopped);
+        expect(service.getSnapshot().status).toBe('stopped');
         done();
       });
       const [state, , service] = useMachine(machine);
