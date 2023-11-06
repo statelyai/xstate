@@ -3400,7 +3400,7 @@ describe('invoke', () => {
     expect(actual).toEqual(['stop 1', 'start 2']);
   });
 
-  it.only('should be able to receive a delayed event sent by the entry action of the invoking state', async () => {
+  it('should be able to receive a delayed event sent by the entry action of the invoking state', async () => {
     const child = createMachine({
       types: {} as {
         events: {
