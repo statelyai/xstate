@@ -564,30 +564,25 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
-  public delaySend({
-    event,
-    id,
-    delay,
-    to: target = this
-  }: {
+  public delaySend(params: {
     event: EventObject;
     id: string | undefined;
     delay: number;
     to?: AnyActorRef;
   }): void {
     const startedAt = Date.now();
-    id ??= `xstate.${Math.random().toString(36).slice(8)}`;
+    const id = params.id || `xstate.${Math.random().toString(36).slice(8)}`;
 
     const timerId = this.system.scheduler.setTimeout(
-      () => this.system._relay(this, target, event),
-      delay
+      () => this.system._relay(this, params.to || this, params.event),
+      params.delay
     );
 
     this.delayedEventsMap[id] = {
       timerId,
       startedAt,
-      delay,
-      target
+      delay: params.delay,
+      target: params.to
     };
   }
 
