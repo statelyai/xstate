@@ -41,12 +41,14 @@ export interface TypegenMeta extends TypegenEnabled {
   /**
    * A map for the internal events of the machine.
    *
+   * ```js
    * key: 'xstate.done.actor.myActor'
    * value: {
    *   type: 'xstate.done.actor.myActor';
    *   data: unknown;
    *   __tip: 'Declare the type in event types!';
    * }
+   * ```
    */
   internalEvents: {};
   /**

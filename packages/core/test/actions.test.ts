@@ -837,7 +837,10 @@ describe('entry/exit actions', () => {
         states: {
           green: {
             on: {
-              RESTART: 'green'
+              RESTART: {
+                target: 'green',
+                reenter: true
+              }
             }
           }
         }
@@ -1009,13 +1012,52 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should exit deep descendant during a self-transition', () => {
+    it('should exit deep descendant during a default self-transition', () => {
       const m = createMachine({
         initial: 'a',
         states: {
           a: {
             on: {
               EV: 'a'
+            },
+            initial: 'a1',
+            states: {
+              a1: {
+                initial: 'a11',
+                states: {
+                  a11: {}
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = createActor(m).start();
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a1.a11',
+        'exit: a.a1',
+        'enter: a.a1',
+        'enter: a.a1.a11'
+      ]);
+    });
+
+    it('should exit deep descendant during a reentering self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: {
+                target: 'a',
+                reenter: true
+              }
             },
             initial: 'a1',
             states: {
@@ -1047,7 +1089,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should reenter leaf state during its self-transition', () => {
+    it('should not reenter leaf state during its default self-transition', () => {
       const m = createMachine({
         initial: 'a',
         states: {
@@ -1057,6 +1099,36 @@ describe('entry/exit actions', () => {
               a1: {
                 on: {
                   EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = createActor(m).start();
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual([]);
+    });
+
+    it('should reenter leaf state during its reentering self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: {
+                    target: 'a1',
+                    reenter: true
+                  }
                 }
               }
             }
@@ -1385,20 +1457,16 @@ describe('entry/exit actions', () => {
   });
 
   describe('when stopped', () => {
-    it('exit actions should be called when stopping a machine', () => {
-      let exitCalled = false;
-      let childExitCalled = false;
+    it('exit actions should not be called when stopping a machine', () => {
+      const rootSpy = jest.fn();
+      const childSpy = jest.fn();
 
       const machine = createMachine({
-        exit: () => {
-          exitCalled = true;
-        },
+        exit: rootSpy,
         initial: 'a',
         states: {
           a: {
-            exit: () => {
-              childExitCalled = true;
-            }
+            exit: childSpy
           }
         }
       });
@@ -1406,218 +1474,8 @@ describe('entry/exit actions', () => {
       const service = createActor(machine).start();
       service.stop();
 
-      expect(exitCalled).toBeTruthy();
-      expect(childExitCalled).toBeTruthy();
-    });
-
-    it('should call each exit handler only once when the service gets stopped', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            initial: 'a1',
-            states: {
-              a1: {}
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual([
-        'exit: a.a1',
-        'exit: a',
-        'exit: __root__'
-      ]);
-    });
-
-    it('should call exit actions in reversed document order when the service gets stopped', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EV: {
-                // just a noop action to ensure that a transition is selected when we send an event
-                actions: () => {}
-              }
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-
-      // it's important to send an event here that results in a transition that computes new `state.configuration`
-      // and that could impact the order in which exit actions are called
-      service.send({ type: 'EV' });
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual(['exit: a', 'exit: __root__']);
-    });
-
-    it('should call exit actions of parallel states in reversed document order when the service gets stopped after earlier region transition', () => {
-      const machine = createMachine({
-        type: 'parallel',
-        states: {
-          a: {
-            initial: 'child_a',
-            states: {
-              child_a: {
-                on: {
-                  EV: {
-                    // just a noop action to ensure that a transition is selected when we send an event
-                    actions: () => {}
-                  }
-                }
-              }
-            }
-          },
-          b: {
-            initial: 'child_b',
-            states: {
-              child_b: {}
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
-      // and that could impact the order in which exit actions are called
-      service.send({ type: 'EV' });
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual([
-        'exit: b.child_b',
-        'exit: b',
-        'exit: a.child_a',
-        'exit: a',
-        'exit: __root__'
-      ]);
-    });
-
-    it('should call exit actions of parallel states in reversed document order when the service gets stopped after later region transition', () => {
-      const machine = createMachine({
-        type: 'parallel',
-        states: {
-          a: {
-            initial: 'child_a',
-            states: {
-              child_a: {}
-            }
-          },
-          b: {
-            initial: 'child_b',
-            states: {
-              child_b: {
-                on: {
-                  EV: {
-                    // just a noop action to ensure that a transition is selected when we send an event
-                    actions: () => {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
-      // and that could impact the order in which exit actions are called
-      service.send({ type: 'EV' });
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual([
-        'exit: b.child_b',
-        'exit: b',
-        'exit: a.child_a',
-        'exit: a',
-        'exit: __root__'
-      ]);
-    });
-
-    it('should call exit actions of parallel states in reversed document order when the service gets stopped after multiple regions transition', () => {
-      const machine = createMachine({
-        type: 'parallel',
-        states: {
-          a: {
-            initial: 'child_a',
-            states: {
-              child_a: {
-                on: {
-                  EV: {
-                    // just a noop action to ensure that a transition is selected when we send an event
-                    actions: () => {}
-                  }
-                }
-              }
-            }
-          },
-          b: {
-            initial: 'child_b',
-            states: {
-              child_b: {
-                on: {
-                  EV: {
-                    // just a noop action to ensure that a transition is selected when we send an event
-                    actions: () => {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      const flushTracked = trackEntries(machine);
-
-      const service = createActor(machine).start();
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
-      // and that could impact the order in which exit actions are called
-      service.send({ type: 'EV' });
-      flushTracked();
-      service.stop();
-
-      expect(flushTracked()).toEqual([
-        'exit: b.child_b',
-        'exit: b',
-        'exit: a.child_a',
-        'exit: a',
-        'exit: __root__'
-      ]);
-    });
-
-    it('an exit action executed when an interpreter gets stopped should receive `xstate.stop` event', () => {
-      let receivedEvent;
-      const machine = createMachine({
-        exit: ({ event }) => {
-          receivedEvent = event;
-        }
-      });
-
-      const service = createActor(machine).start();
-      service.stop();
-
-      expect(receivedEvent).toEqual({ type: 'xstate.stop' });
+      expect(rootSpy).not.toHaveBeenCalled();
+      expect(childSpy).not.toHaveBeenCalled();
     });
 
     it('an exit action executed when an interpreter reaches its final state should be called with the last received event', () => {
@@ -1757,16 +1615,14 @@ describe('entry/exit actions', () => {
       expect(eventReceived).toBe(true);
     });
 
-    it('sent events from exit handlers of a stopped child should be received by its children', () => {
-      let eventReceived = false;
+    it('sent events from exit handlers of a stopped child should not be received by its children', () => {
+      const spy = jest.fn();
 
       const grandchild = createMachine({
         id: 'grandchild',
         on: {
           STOPPED: {
-            actions: () => {
-              eventReceived = true;
-            }
+            actions: spy
           }
         }
       });
@@ -1799,19 +1655,17 @@ describe('entry/exit actions', () => {
       const interpreter = createActor(parent).start();
       interpreter.send({ type: 'NEXT' });
 
-      expect(eventReceived).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
     });
 
-    it('sent events from exit handlers of a done child should be received by its children ', () => {
-      let eventReceived = false;
+    it('sent events from exit handlers of a done child should be received by its children', () => {
+      const spy = jest.fn();
 
       const grandchild = createMachine({
         id: 'grandchild',
         on: {
           STOPPED: {
-            actions: () => {
-              eventReceived = true;
-            }
+            actions: spy
           }
         }
       });
@@ -1852,7 +1706,7 @@ describe('entry/exit actions', () => {
       const interpreter = createActor(parent).start();
       interpreter.send({ type: 'NEXT' });
 
-      expect(eventReceived).toBe(true);
+      expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it('actors spawned in exit handlers of a stopped child should not be started', () => {
@@ -1875,8 +1729,8 @@ describe('entry/exit actions', () => {
       interpreter.stop();
     });
 
-    it('should execute referenced custom actions correctly when stopping an interpreter', () => {
-      let called = false;
+    it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
+      const spy = jest.fn();
       const parent = createMachine(
         {
           id: 'parent',
@@ -1885,9 +1739,7 @@ describe('entry/exit actions', () => {
         },
         {
           actions: {
-            referencedAction: () => {
-              called = true;
-            }
+            referencedAction: spy
           }
         }
       );
@@ -1895,10 +1747,10 @@ describe('entry/exit actions', () => {
       const interpreter = createActor(parent).start();
       interpreter.stop();
 
-      expect(called).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
     });
 
-    it('should execute builtin actions correctly when stopping an interpreter', () => {
+    it('should not execute builtin actions when stopping an interpreter', () => {
       const machine = createMachine(
         {
           context: {
@@ -1929,10 +1781,7 @@ describe('entry/exit actions', () => {
       const interpreter = createActor(machine).start();
       interpreter.stop();
 
-      expect(interpreter.getSnapshot().context.executedAssigns).toEqual([
-        'referenced',
-        'inline'
-      ]);
+      expect(interpreter.getSnapshot().context.executedAssigns).toEqual([]);
     });
 
     it('should clear all scheduled events when the interpreter gets stopped', () => {
@@ -1994,10 +1843,10 @@ describe('entry/exit actions', () => {
 
       service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
 
-      expect(exitActions).toEqual(['foo action', 'bar action']);
+      expect(exitActions).toEqual(['foo action']);
     });
 
-    it('should execute exit actions of the settled state of the last initiated microstep after executing all actions from that microstep', () => {
+    it('should not execute exit actions of the settled state of the last initiated microstep after executing all actions from that microstep', () => {
       const executedActions: string[] = [];
       const machine = createMachine({
         initial: 'foo',
@@ -2035,8 +1884,7 @@ describe('entry/exit actions', () => {
 
       expect(executedActions).toEqual([
         'foo exit action',
-        'foo transition action',
-        'bar exit action'
+        'foo transition action'
       ]);
     });
   });
@@ -2092,35 +1940,121 @@ describe('initial actions', () => {
     expect(actual).toEqual(['entryB', 'initialFoo', 'entryFoo']);
   });
 
-  it('should support initial actions from transition with target ID', () => {
-    const actual: string[] = [];
+  it('should execute actions of initial transitions only once when taking an explicit transition', () => {
+    const spy = jest.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: {
+            NEXT: 'b'
+          }
         },
         b: {
-          entry: () => actual.push('entryC'),
           initial: {
-            target: '#bar',
-            actions: () => actual.push('initialBar')
+            target: 'b_child',
+            actions: () => spy('initial in b')
           },
           states: {
-            bar: {
-              id: 'bar',
-              entry: () => actual.push('entryBar')
+            b_child: {
+              initial: {
+                target: 'b_granchild',
+                actions: () => spy('initial in b_child')
+              },
+              states: {
+                b_granchild: {}
+              }
             }
           }
         }
       }
     });
 
-    const actor = createActor(machine).start();
+    const actorRef = createActor(machine).start();
 
-    actor.send({ type: 'NEXT' });
+    actorRef.send({
+      type: 'NEXT'
+    });
 
-    expect(actual).toEqual(['entryC', 'initialBar', 'entryBar']);
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "initial in b",
+        ],
+        [
+          "initial in b_child",
+        ],
+      ]
+    `);
+  });
+
+  it('should execute actions of all initial transitions resolving to the initial state value', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: {
+        target: 'a',
+        actions: () => spy('root')
+      },
+      states: {
+        a: {
+          initial: {
+            target: 'a1',
+            actions: () => spy('inner')
+          },
+          states: {
+            a1: {}
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "root",
+        ],
+        [
+          "inner",
+        ],
+      ]
+    `);
+  });
+
+  it('should execute actions of the initial transition when taking a root reentering self-transition', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      id: 'root',
+      initial: {
+        target: 'a',
+        actions: spy
+      },
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      },
+      on: {
+        REENTER: {
+          target: '#root',
+          reenter: true
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+    spy.mockClear();
+
+    actorRef.send({ type: 'REENTER' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(actorRef.getSnapshot().value).toEqual('a');
   });
 });
 
@@ -2294,7 +2228,7 @@ describe('actions config', () => {
 });
 
 describe('action meta', () => {
-  it('should provide the original action', () => {
+  it('should provide the original params', () => {
     const spy = jest.fn();
 
     const testMachine = createMachine(
@@ -2314,8 +2248,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2324,14 +2258,11 @@ describe('action meta', () => {
     createActor(testMachine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        value: 'something'
-      }
+      value: 'something'
     });
   });
 
-  it('should provide the action in its object form even if it was configured as string', () => {
+  it('should provide undefined params when it was configured as string', () => {
     const spy = jest.fn();
 
     const testMachine = createMachine(
@@ -2346,8 +2277,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2355,9 +2286,7 @@ describe('action meta', () => {
 
     createActor(testMachine).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
   it('should provide the action with resolved params when they are dynamic', () => {
@@ -2372,8 +2301,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2382,10 +2311,7 @@ describe('action meta', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        stuff: 100
-      }
+      stuff: 100
     });
   });
 
@@ -2404,8 +2330,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2414,10 +2340,7 @@ describe('action meta', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        secret: 42
-      }
+      secret: 42
     });
   });
 
@@ -2437,8 +2360,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          myAction: ({ action }) => {
-            spy(action);
+          myAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2449,10 +2372,7 @@ describe('action meta', () => {
     actorRef.send({ type: 'FOO', secret: 77 });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        secret: 77
-      }
+      secret: 77
     });
   });
 });
@@ -2474,7 +2394,7 @@ describe('purely defined actions', () => {
       },
       {
         actions: {
-          doSomething: ({ action }) => spy(action.params)
+          doSomething: (_, params) => spy(params)
         }
       }
     );
@@ -2518,8 +2438,8 @@ describe('purely defined actions', () => {
       },
       {
         actions: {
-          doSomething: ({ action }) => {
-            spy(action.params);
+          doSomething: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -3881,8 +3801,8 @@ describe('actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: ({ action }) => {
-          spy(action);
+        entry: (_, params) => {
+          spy(params);
         }
       })
     ).start();
@@ -3894,8 +3814,8 @@ describe('actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: assign(({ action }) => {
-          spy(action);
+        entry: assign((_, params) => {
+          spy(params);
           return {};
         })
       })
@@ -3911,8 +3831,8 @@ describe('actions', () => {
       createMachine({
         on: {
           FOO: {
-            actions: ({ action }) => {
-              spy(action);
+            actions: (_, params) => {
+              spy(params);
             }
           }
         }
@@ -3923,15 +3843,15 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it('should call inline transition builtin action with undefined parametrized action object', () => {
+  it('should call inline transition builtin action with undefined parameters', () => {
     const spy = jest.fn();
 
     const actorRef = createActor(
       createMachine({
         on: {
           FOO: {
-            actions: assign(({ action }) => {
-              spy(action);
+            actions: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -3943,7 +3863,7 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced custom action with a parametrized action object when it's referenced using a string", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3953,18 +3873,18 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: (_, params) => {
+              spy(params);
             }
           }
         }
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with a parametrized action object when it's referenced using a string", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3974,8 +3894,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -3983,7 +3903,7 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
   it('should call a referenced custom action with the provided parametrized action object', () => {
@@ -4001,8 +3921,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: (_, params) => {
+              spy(params);
             }
           }
         }
@@ -4010,10 +3930,7 @@ describe('actions', () => {
     ).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        foo: 'bar'
-      }
+      foo: 'bar'
     });
   });
 
@@ -4032,8 +3949,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -4042,14 +3959,11 @@ describe('actions', () => {
     ).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        foo: 'bar'
-      }
+      foo: 'bar'
     });
   });
 
-  it("should call a referenced custom action with its parametrized action object when it's referenced by an inline pure", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced by an inline pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -4059,8 +3973,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: (_, params) => {
+              spy(params);
               return {};
             }
           }
@@ -4068,12 +3982,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with its parametrized action object when it's referenced by an inline pure", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced by an inline pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -4083,8 +3995,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -4092,12 +4004,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced custom action with its parametrized action object when it's referenced by a referenced pure", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced by a referenced pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -4108,8 +4018,8 @@ describe('actions', () => {
         {
           actions: {
             myPure: pure(() => ['myAction']),
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: (_, params) => {
+              spy(params);
               return {};
             }
           }
@@ -4117,12 +4027,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with its parametrized action object when it's referenced by a referenced pure", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced by a referenced pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -4133,8 +4041,8 @@ describe('actions', () => {
         {
           actions: {
             myPure: pure(() => ['myAction']),
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -4142,8 +4050,6 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 });

@@ -1,4 +1,4 @@
-import { createActor, createMachine } from '../src/index';
+import { createActor, createMachine, fromCallback } from '../src/index';
 
 describe('history states', () => {
   it('should go to the most recently visited state (explicit shallow history type)', () => {
@@ -260,6 +260,273 @@ describe('history states', () => {
     expect(actorRef.getSnapshot().value).toEqual({
       bar: 'qwe'
     });
+  });
+
+  it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was never visited yet', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: '#hist' }
+        },
+        b: {
+          initial: {
+            target: 'b1',
+            actions: spy
+          },
+          states: {
+            b1: {},
+            b2: {
+              id: 'hist',
+              type: 'history'
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was never visited yet', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: '#hist' }
+        },
+        b: {
+          initial: {
+            target: 'b1',
+            actions: spy
+          },
+          states: {
+            b1: {},
+            b2: {
+              id: 'hist',
+              type: 'history',
+              target: 'b3'
+            },
+            b3: {}
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('should execute entry actions of a parent of the targeted history state when its parent state was never visited yet', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: '#hist' }
+        },
+        b: {
+          entry: spy,
+          initial: 'b1',
+          states: {
+            b1: {},
+            b2: {
+              id: 'hist',
+              type: 'history',
+              target: 'b3'
+            },
+            b3: {}
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute actions of the initial transition when it select a history state as the initial state of its parent', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          initial: {
+            target: 'b1',
+            actions: spy
+          },
+          states: {
+            b1: {
+              id: 'hist',
+              type: 'history',
+              target: 'b2'
+            },
+            b2: {}
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was already visited', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: '#hist' }
+        },
+        b: {
+          initial: {
+            target: 'b1',
+            actions: spy
+          },
+          states: {
+            b1: {},
+            b2: {
+              id: 'hist',
+              type: 'history'
+            }
+          },
+          on: {
+            NEXT: 'a'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+    spy.mockClear();
+
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(0);
+  });
+
+  it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was already visited', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: '#hist' }
+        },
+        b: {
+          initial: {
+            target: 'b1',
+            actions: spy
+          },
+          states: {
+            b1: {},
+            b2: {
+              id: 'hist',
+              type: 'history',
+              target: 'b3'
+            },
+            b3: {}
+          },
+          on: {
+            NEXT: 'a'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+    spy.mockClear();
+
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('should execute entry actions of a parent of the targeted history state when its parent state was already visited', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: '#hist' }
+        },
+        b: {
+          entry: spy,
+          initial: 'b1',
+          states: {
+            b1: {},
+            b2: {
+              id: 'hist',
+              type: 'history',
+              target: 'b3'
+            },
+            b3: {}
+          },
+          on: {
+            NEXT: 'a'
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+    spy.mockClear();
+
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should invoke an actor when reentering the stored configuration through the history state', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'running',
+      states: {
+        running: {
+          on: {
+            PING: {
+              target: 'refresh'
+            }
+          },
+          invoke: {
+            src: fromCallback(spy)
+          }
+        },
+        refresh: {
+          type: 'history'
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    spy.mockClear();
+
+    actorRef.send({ type: 'PING' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });
 

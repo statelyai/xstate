@@ -19,7 +19,7 @@ import {
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
 import { alterPath } from './alterPath';
-import { createMockActorContext } from './actorContext';
+import { createMockActorScope } from './actorScope';
 
 export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -32,9 +32,9 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   type TEvent = EventFromLogic<TLogic>;
 
   const resolvedOptions = resolveTraversalOptions(logic, options);
-  const actorContext = createMockActorContext();
+  const actorScope = createMockActorScope();
   const fromState =
-    resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
+    resolvedOptions.fromState ?? logic.getInitialState(actorScope, undefined);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;

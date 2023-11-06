@@ -15,15 +15,15 @@ import {
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
-  ActorContext,
+  ActorScope,
   ActorSystem,
   AnyActorLogic,
   AnyStateMachine,
   EventFromLogic,
-  PersistedStateFrom,
   SnapshotFrom,
   AnyActorRef,
-  DoneActorEvent
+  DoneActorEvent,
+  Snapshot
 } from './types.ts';
 import {
   ActorRef,
@@ -34,6 +34,8 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+
+export const $$ACTOR_TYPE = 1;
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
   state: SnapshotFrom<TLogic>
@@ -84,6 +86,9 @@ const defaultOptions = {
   devTools: false
 };
 
+/**
+ * An Actor is a running process that can receive events, send events and change its behavior based on the events it receives, which can cause effects outside of the actor. When you run a state machine, it becomes an actor.
+ */
 export class Actor<TLogic extends AnyActorLogic>
   implements ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>
 {
@@ -116,7 +121,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public _parent?: ActorRef<any, any>;
   public ref: ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>;
   // TODO: add typings for system
-  private _actorContext: ActorContext<
+  private _actorScope: ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     any
@@ -129,6 +134,9 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public sessionId: string;
 
+  /**
+   * The system to which this actor belongs.
+   */
   public system: ActorSystem<any>;
   private _doneEvent?: DoneActorEvent;
 
@@ -160,11 +168,6 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system.inspect(toObserver(inspect));
     }
 
-    if (systemId) {
-      this._systemId = systemId;
-      this.system._set(systemId, this);
-    }
-
     this.sessionId = this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = logger;
@@ -172,7 +175,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.options = resolvedOptions;
     this.src = resolvedOptions.src;
     this.ref = this;
-    this._actorContext = {
+    this._actorScope = {
       self: this,
       id: this.id,
       sessionId: this.sessionId,
@@ -199,14 +202,19 @@ export class Actor<TLogic extends AnyActorLogic>
       actorRef: this
     });
     this._initState();
+
+    if (systemId && (this._state as any).status === 'active') {
+      this._systemId = systemId;
+      this.system._set(systemId, this);
+    }
   }
 
   private _initState() {
     this._state = this.options.state
       ? this.logic.restoreState
-        ? this.logic.restoreState(this.options.state, this._actorContext)
+        ? this.logic.restoreState(this.options.state, this._actorScope)
         : this.options.state
-      : this.logic.getInitialState(this._actorContext, this.options?.input);
+      : this.logic.getInitialState(this._actorScope, this.options?.input);
   }
 
   // array of functions to defer
@@ -265,6 +273,54 @@ export class Actor<TLogic extends AnyActorLogic>
     });
   }
 
+  /**
+   * Subscribe an observer to an actor’s snapshot values.
+   *
+   * @remarks
+   * The observer will receive the actor’s snapshot value when it is emitted. The observer can be:
+   * - A plain function that receives the latest snapshot, or
+   * - An observer object whose `.next(snapshot)` method receives the latest snapshot
+   *
+   * @example
+   * ```ts
+   * // Observer as a plain function
+   * const subscription = actor.subscribe((snapshot) => {
+   *   console.log(snapshot);
+   * });
+   * ```
+   *
+   * @example
+   * ```ts
+   * // Observer as an object
+   * const subscription = actor.subscribe({
+   *   next(snapshot) {
+   *     console.log(snapshot);
+   *   },
+   *   error(err) {
+   *     // ...
+   *   },
+   *   complete() {
+   *     // ...
+   *   },
+   * });
+   * ```
+   *
+   * The return value of `actor.subscribe(observer)` is a subscription object that has an `.unsubscribe()` method. You can call `subscription.unsubscribe()` to unsubscribe the observer:
+   *
+   * @example
+   * ```ts
+   * const subscription = actor.subscribe((snapshot) => {
+   *   // ...
+   * });
+   *
+   * // Unsubscribe the observer
+   * subscription.unsubscribe();
+   * ```
+   *
+   * When the actor is stopped, all of its observers will automatically be unsubscribed.
+   *
+   * @param observer - Either a plain function that receives the latest snapshot, or an observer object whose `.next(snapshot)` method receives the latest snapshot
+   */
   public subscribe(observer: Observer<SnapshotFrom<TLogic>>): Subscription;
   public subscribe(
     nextListener?: (state: SnapshotFrom<TLogic>) => void,
@@ -321,7 +377,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system._sendInspectionEvent({
       type: '@xstate.event',
       sourceRef: this._parent,
-      targetRef: this,
+      actorRef: this,
       event: initEvent
     });
 
@@ -329,7 +385,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     switch (status) {
       case 'done':
-        // a state machine can be "done" upon intialization (it could reach a final state using initial microsteps)
+        // a state machine can be "done" upon initialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
         this.update(
           this._state,
@@ -343,7 +399,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     if (this.logic.start) {
       try {
-        this.logic.start(this._state, this._actorContext);
+        this.logic.start(this._state, this._actorScope);
       } catch (err) {
         this._stopProcedure();
         this._error(err);
@@ -371,7 +427,7 @@ export class Actor<TLogic extends AnyActorLogic>
     let nextState;
     let caughtError;
     try {
-      nextState = this.logic.transition(this._state, event, this._actorContext);
+      nextState = this.logic.transition(this._state, event, this._actorScope);
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
       caughtError = { err };
@@ -535,7 +591,10 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  // TODO: make private (and figure out a way to do this within the machine)
+  /**
+   * TODO: figure out a way to do this within the machine
+   * @internal
+   */
   public cancel(sendId: string | number): void {
     for (const id in this.delayedEventsMap) {
       if (id === sendId) {
@@ -557,11 +616,12 @@ export class Actor<TLogic extends AnyActorLogic>
   }
   public toJSON() {
     return {
+      xstate$$type: $$ACTOR_TYPE,
       id: this.id
     };
   }
 
-  public getPersistedState(): PersistedStateFrom<TLogic> | undefined {
+  public getPersistedState(): Snapshot<unknown> {
     const persistedState = this.logic.getPersistedState?.(this._state);
     const timerKeys = Object.keys(this.delayedEventsMap);
     if (!timerKeys.length) {
@@ -577,6 +637,20 @@ export class Actor<TLogic extends AnyActorLogic>
     return this;
   }
 
+  /**
+   * Read an actor’s snapshot synchronously.
+   *
+   * @remarks
+   * The snapshot represent an actor's last emitted value.
+   *
+   * When an actor receives an event, its internal state may change.
+   * An actor may emit a snapshot when a state transition occurs.
+   *
+   * Note that some actors, such as callback actors generated with `fromCallback`, will not emit snapshots.
+   *
+   * @see {@link Actor.subscribe} to subscribe to an actor’s snapshot values.
+   * @see {@link Actor.getPersistedState} to persist the internal state of an actor (which is more than just a snapshot).
+   */
   public getSnapshot(): SnapshotFrom<TLogic> {
     return this._state;
   }

@@ -1,7 +1,7 @@
 import { createMachine, createActor, StateValue } from '../src/index.ts';
 import { assign } from '../src/actions/assign.ts';
 import { raise } from '../src/actions/raise.ts';
-import { testMultiTransition } from './utils.ts';
+import { testMultiTransition, trackEntries } from './utils.ts';
 
 const composerMachine = createMachine({
   initial: 'ReadOnly',
@@ -560,7 +560,28 @@ describe('parallel states', () => {
   });
 
   it('should have all parallel states represented in the state value', () => {
-    const actorRef = createActor(wakMachine).start();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        wak1: {
+          initial: 'wak1sonA',
+          states: {
+            wak1sonA: {},
+            wak1sonB: {}
+          },
+          on: {
+            WAK1: '.wak1sonB'
+          }
+        },
+        wak2: {
+          initial: 'wak2sonA',
+          states: {
+            wak2sonA: {}
+          }
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
     actorRef.send({ type: 'WAK1' });
 
     expect(actorRef.getSnapshot().value).toEqual({
@@ -734,6 +755,64 @@ describe('parallel states', () => {
     });
   });
 
+  it('should execute actions of the initial transition of a parallel region when entering the initial state configuration of a machine', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: {
+            target: 'a1',
+            actions: spy
+          },
+          states: {
+            a1: {}
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute actions of the initial transition of a parallel region when the parallel state is targeted with an explicit transition', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'parallel',
+          states: {
+            c: {
+              initial: {
+                target: 'c1',
+                actions: spy
+              },
+              states: {
+                c1: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
   describe('transitions with nested parallel states', () => {
     it('should properly transition when in a simple nested state', () => {
       const actorRef = createActor(nestedParallelState).start();
@@ -880,29 +959,20 @@ describe('parallel states', () => {
     // https://github.com/statelyai/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
       const testMachine = createMachine({
-        id: 'app',
         type: 'parallel',
         states: {
           Pages: {
-            id: 'Pages',
             initial: 'About',
             states: {
               About: {
-                id: 'About',
-                on: {
-                  dashboard: '#Dashboard'
-                }
+                id: 'About'
               },
               Dashboard: {
-                id: 'Dashboard',
-                on: {
-                  about: '#About'
-                }
+                id: 'Dashboard'
               }
             }
           },
           Menu: {
-            id: 'Menu',
             initial: 'Closed',
             states: {
               Closed: {
@@ -916,7 +986,6 @@ describe('parallel states', () => {
                 on: {
                   toggle: '#Closed',
                   'go to dashboard': {
-                    // TODO: see if just '#Dashboard' conforms to SCXML spec
                     target: ['#Dashboard', '#Opened']
                   }
                 }
@@ -957,7 +1026,10 @@ describe('parallel states', () => {
                   log: ({ context }) => [...context.log, 'entered foobaz']
                 }),
                 on: {
-                  GOTO_FOOBAZ: 'foobaz'
+                  GOTO_FOOBAZ: {
+                    target: 'foobaz',
+                    reenter: true
+                  }
                 }
               }
             }
@@ -1099,5 +1171,108 @@ describe('parallel states', () => {
     service.send({ type: 'finish_two' });
 
     expect(service.getSnapshot().value).toBe('finished');
+  });
+
+  it('source parallel region should be reentered when a transition within it targets another parallel region (parallel root)', async () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        Operation: {
+          initial: 'Waiting',
+          states: {
+            Waiting: {
+              on: {
+                TOGGLE_MODE: {
+                  target: '#Demo'
+                }
+              }
+            },
+            Fetching: {}
+          }
+        },
+        Mode: {
+          initial: 'Normal',
+          states: {
+            Normal: {},
+            Demo: {
+              id: 'Demo'
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked();
+
+    actor.send({ type: 'TOGGLE_MODE' });
+
+    expect(flushTracked()).toEqual([
+      'exit: Mode.Normal',
+      'exit: Mode',
+      'exit: Operation.Waiting',
+      'exit: Operation',
+      'enter: Operation',
+      'enter: Operation.Waiting',
+      'enter: Mode',
+      'enter: Mode.Demo'
+    ]);
+  });
+
+  it('source parallel region should be reentered when a transition within it targets another parallel region (nested parallel)', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          states: {
+            Operation: {
+              initial: 'Waiting',
+              states: {
+                Waiting: {
+                  on: {
+                    TOGGLE_MODE: {
+                      target: '#Demo'
+                    }
+                  }
+                },
+                Fetching: {}
+              }
+            },
+            Mode: {
+              initial: 'Normal',
+              states: {
+                Normal: {},
+                Demo: {
+                  id: 'Demo'
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked();
+
+    actor.send({ type: 'TOGGLE_MODE' });
+
+    expect(flushTracked()).toEqual([
+      'exit: a.Mode.Normal',
+      'exit: a.Mode',
+      'exit: a.Operation.Waiting',
+      'exit: a.Operation',
+      'enter: a.Operation',
+      'enter: a.Operation.Waiting',
+      'enter: a.Mode',
+      'enter: a.Mode.Demo'
+    ]);
   });
 });

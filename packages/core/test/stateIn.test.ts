@@ -464,4 +464,39 @@ describe('transition "in" check', () => {
       location: 'success'
     });
   });
+
+  it('should be possible to check an ID with a path', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {
+              on: {
+                MY_EVENT: {
+                  guard: stateIn('#b.B1'),
+                  actions: spy
+                }
+              }
+            }
+          }
+        },
+        B: {
+          id: 'b',
+          initial: 'B1',
+          states: {
+            B1: {}
+          }
+        }
+      }
+    });
+
+    createActor(machine).start().send({
+      type: 'MY_EVENT'
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
 });

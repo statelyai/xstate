@@ -273,9 +273,14 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: assign(({ system }) => {
-        expect(system!.get('test')).toBeDefined();
-      })
+      initial: 'a',
+      states: {
+        a: {
+          entry: assign(({ system }) => {
+            expect(system!.get('test')).toBeDefined();
+          })
+        }
+      }
     });
 
     createActor(machine).start();
@@ -287,13 +292,18 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: sendTo(
-        ({ system }) => {
-          expect(system!.get('test')).toBeDefined();
-          return system!.get('test');
-        },
-        { type: 'FOO' }
-      )
+      initial: 'a',
+      states: {
+        a: {
+          entry: sendTo(
+            ({ system }) => {
+              expect(system!.get('test')).toBeDefined();
+              return system!.get('test');
+            },
+            { type: 'FOO' }
+          )
+        }
+      }
     });
 
     createActor(machine).start();
@@ -413,5 +423,50 @@ describe('system', () => {
     const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
+  });
+
+  it('should gracefully handle re-registration of a `systemId` during a reentering transition', () => {
+    const spy = jest.fn();
+
+    let counter = 0;
+
+    const machine = createMachine({
+      initial: 'listening',
+      states: {
+        listening: {
+          invoke: {
+            systemId: 'listener',
+            src: fromCallback(({ receive }) => {
+              const localId = counter++;
+
+              receive((event) => {
+                spy(localId, event);
+              });
+
+              return () => {};
+            })
+          }
+        }
+      },
+      on: {
+        RESTART: {
+          target: '.listening'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'RESTART' });
+    actorRef.system.get('listener')!.send({ type: 'a' });
+
+    expect(spy.mock.calls).toEqual([
+      [
+        1,
+        {
+          type: 'a'
+        }
+      ]
+    ]);
   });
 });
