@@ -356,6 +356,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
     this._processingStatus = ProcessingStatus.Running;
 
+    // TODO: this isn't correct when rehydrating
     const initEvent = createInitEvent(this.options.input);
 
     this.system._sendInspectionEvent({

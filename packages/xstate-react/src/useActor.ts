@@ -8,6 +8,7 @@ import {
   SnapshotFrom
 } from 'xstate';
 import { useIdleActor } from './useActorRef.ts';
+import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -48,10 +49,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      const persistedState = actorRef.getPersistedState();
-      actorRef.stop();
-      (actorRef as any)._processingStatus = 0;
-      (actorRef as any)._initState(persistedState);
+      stopRootWithRehydration(actorRef);
     };
   }, [actorRef]);
 

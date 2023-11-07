@@ -37,21 +37,21 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     });
 
     const App = () => {
-      const service = useActorRef(machine);
+      const actorRef = useActorRef(machine);
 
       React.useEffect(() => {
-        service.subscribe((state) => {
+        actorRef.subscribe((state) => {
           if (state.matches('active')) {
             done();
           }
         });
-      }, [service]);
+      }, [actorRef]);
 
       return (
         <button
           data-testid="button"
           onClick={() => {
-            service.send({ type: 'ACTIVATE' });
+            actorRef.send({ type: 'ACTIVATE' });
           }}
         ></button>
       );

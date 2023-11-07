@@ -465,14 +465,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     render(<App />);
 
-    expect(rerenders).toBe(
-      suiteKey === 'strict'
-        ? // it's rendered twice for the each state
-          // and the machine gets currently completely restarted in a double-invoked strict effect
-          // so we get a new state from that restarted machine (and thus 2 additional strict renders) and we end up with 4
-          4
-        : 1
-    );
+    expect(rerenders).toBe(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('should maintain the same reference for objects created when resolving initial state', () => {
@@ -1008,13 +1001,6 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     render(<App />);
 
-    expect(spy).toHaveBeenCalledTimes(
-      suiteKey === 'strict'
-        ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
-          // but we don't rehydrate child actors right now, we recreate them based on the persisted state and that leads to an extra render with strict effects
-          // since the stopped top-level actor starts again but with a recreated state
-          3
-        : 1
-    );
+    expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
   });
 });
