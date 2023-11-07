@@ -46,49 +46,12 @@ export function useIdleInterpreter(
   return actorRef as any;
 }
 
-type RestParams<TLogic extends AnyActorLogic> = TLogic extends AnyStateMachine
-  ? AreAllImplementationsAssumedToBeProvided<
-      TLogic['__TResolvedTypesMeta']
-    > extends false
-    ? [
-        options: ActorOptions<TLogic> &
-          InternalMachineImplementations<
-            TLogic['__TContext'],
-            TLogic['__TEvent'],
-            TODO,
-            TODO,
-            TODO,
-            TLogic['__TResolvedTypesMeta'],
-            true
-          >,
-        observerOrListener?:
-          | Observer<StateFrom<TLogic>>
-          | ((value: StateFrom<TLogic>) => void)
-      ]
-    : [
-        options?: ActorOptions<TLogic> &
-          InternalMachineImplementations<
-            TLogic['__TContext'],
-            TLogic['__TEvent'],
-            TODO,
-            TODO,
-            TODO,
-            TLogic['__TResolvedTypesMeta']
-          >,
-        observerOrListener?:
-          | Observer<StateFrom<TLogic>>
-          | ((value: StateFrom<TLogic>) => void)
-      ]
-  : [
-      options?: ActorOptions<TLogic>,
-      observerOrListener?:
-        | Observer<SnapshotFrom<TLogic>>
-        | ((value: SnapshotFrom<TLogic>) => void)
-    ];
-
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
-  ...[options = {}, observerOrListener]: RestParams<TLogic>
+  options: ActorOptions<TLogic> = {},
+  observerOrListener?:
+    | Observer<SnapshotFrom<TLogic>>
+    | ((value: SnapshotFrom<TLogic>) => void)
 ): ActorRefFrom<TLogic> {
   const actorRef = useIdleInterpreter(machine, options);
 
