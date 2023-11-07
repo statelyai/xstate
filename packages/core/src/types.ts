@@ -1741,7 +1741,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * A callback function which can be used to inspect actor system updates.
    *
    * @remarks
-   * The callback function can accept an inspectionEvent argument. The types of inspection events that can be observed include:
+   * If a callback function is provided, it can accept an inspection event argument. The types of inspection events that can be observed include:
    *
    * - `@xstate.actor` - An actor ref has been created in the system
    * - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
