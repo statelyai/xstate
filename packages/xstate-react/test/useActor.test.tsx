@@ -203,34 +203,31 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not spawn actors until service is started', async () => {
-    const spawnMachine = createMachine(
-      {
-        types: {} as { context: { ref?: ActorRef<any, any> } },
-        id: 'spawn',
-        initial: 'start',
-        context: { ref: undefined },
-        states: {
-          start: {
-            entry: assign({
-              ref: ({ spawn }) => spawn('revealAnswer', { id: 'my-promise' })
-            }),
-            on: {
-              'xstate.done.actor.my-promise': 'success'
-            }
-          },
-          success: {
-            type: 'final'
+    const spawnMachine = createMachine({
+      types: {} as { context: { ref?: ActorRef<any, any> } },
+      id: 'spawn',
+      initial: 'start',
+      context: { ref: undefined },
+      states: {
+        start: {
+          entry: assign({
+            ref: ({ spawn }) =>
+              spawn(
+                fromPromise(() => {
+                  return new Promise((res) => res(42));
+                }),
+                { id: 'my-promise' }
+              )
+          }),
+          on: {
+            'xstate.done.actor.my-promise': 'success'
           }
-        }
-      },
-      {
-        actors: {
-          revealAnswer: fromPromise(() => {
-            return new Promise((res) => res(42));
-          })
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const Spawner = () => {
       const [current] = useActor(spawnMachine);
@@ -528,20 +525,15 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
 
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => ({
-          ref: spawn('child')
-        })
-      },
-      {
-        actors: {
-          child: fromCallback(() => {
+    const machine = createMachine({
+      context: ({ spawn }) => ({
+        ref: spawn(
+          fromCallback(() => {
             childSpawned = true;
           })
-        }
-      }
-    );
+        )
+      })
+    });
 
     const App = () => {
       useActor(machine);

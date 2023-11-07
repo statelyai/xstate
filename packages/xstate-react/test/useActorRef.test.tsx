@@ -167,28 +167,17 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine(
-      {
-        types: {} as {
-          context: { childRef: ActorRefFrom<typeof childMachine> };
-        },
-        context: ({ spawn }) => ({
-          childRef: spawn('child')
-        }),
-        on: {
-          SEND_TO_CHILD: {
-            actions: sendTo(({ context }) => context.childRef, {
-              type: 'EVENT'
-            })
-          }
-        }
-      },
-      {
-        actors: {
-          child: childMachine
+    const parentMachine = createMachine({
+      types: {} as { context: { childRef: ActorRefFrom<typeof childMachine> } },
+      context: ({ spawn }) => ({
+        childRef: spawn(childMachine)
+      }),
+      on: {
+        SEND_TO_CHILD: {
+          actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
         }
       }
-    );
+    });
 
     const App = () => {
       const parentActor = useActorRef(parentMachine);
@@ -233,30 +222,21 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const parentMachine = createMachine(
-      {
-        types: {} as {
-          context: {
-            childRef: ActorRefFrom<typeof childMachine>;
-          };
-        },
-        context: ({ spawn }) => ({
-          childRef: spawn('child')
-        }),
-        on: {
-          SEND_TO_CHILD: {
-            actions: sendTo(({ context }) => context.childRef, {
-              type: 'EVENT'
-            })
-          }
-        }
+    const parentMachine = createMachine({
+      types: {} as {
+        context: {
+          childRef: ActorRefFrom<typeof childMachine>;
+        };
       },
-      {
-        actors: {
-          child: childMachine
+      context: ({ spawn }) => ({
+        childRef: spawn(childMachine)
+      }),
+      on: {
+        SEND_TO_CHILD: {
+          actions: sendTo(({ context }) => context.childRef, { type: 'EVENT' })
         }
       }
-    );
+    });
 
     const App = () => {
       const [parentState, parentSend] = useMachine(parentMachine);
@@ -438,25 +418,18 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
         }
       }
     });
-    const machine = createMachine(
-      {
-        initial: 'active',
-        states: {
-          active: {
-            entry: assign({
-              actorRef: ({ spawn }) => spawn('child', { id: 'child' })
-            }),
-            on: { FINISH: 'success' }
-          },
-          success: {}
-        }
-      },
-      {
-        actors: {
-          child: childMachine
-        }
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: assign({
+            actorRef: ({ spawn }) => spawn(childMachine, { id: 'child' })
+          }),
+          on: { FINISH: 'success' }
+        },
+        success: {}
       }
-    );
+    });
 
     const ChildTest: React.FC<{
       actor: ActorRefFrom<typeof childMachine>;
