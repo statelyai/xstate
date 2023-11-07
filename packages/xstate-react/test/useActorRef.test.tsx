@@ -505,4 +505,54 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       render(<Test />);
     }
   );
+
+  it("should execute action bound to a specific machine's instance when the action is provided in render", () => {
+    const spy1 = jest.fn();
+    const spy2 = jest.fn();
+
+    const machine = createMachine({
+      on: {
+        DO: {
+          actions: 'stuff'
+        }
+      }
+    });
+
+    const Test = () => {
+      const actorRef1 = useActorRef(
+        machine.provide({
+          actions: {
+            stuff: spy1
+          }
+        })
+      );
+      useActorRef(
+        machine.provide({
+          actions: {
+            stuff: spy2
+          }
+        })
+      );
+
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            actorRef1.send({
+              type: 'DO'
+            });
+          }}
+        >
+          Click
+        </button>
+      );
+    };
+
+    render(<Test />);
+
+    screen.getByRole('button').click();
+
+    expect(spy1).toHaveBeenCalledTimes(1);
+    expect(spy2).not.toHaveBeenCalled();
+  });
 });
