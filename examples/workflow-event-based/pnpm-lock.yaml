@@ -2,7 +2,7 @@ lockfileVersion: '6.0'
 
 dependencies:
   xstate:
-    specifier: 5.0.0-beta.40
+    specifier: beta
     version: 5.0.0-beta.40
 
 devDependencies:

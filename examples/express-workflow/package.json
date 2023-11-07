@@ -14,7 +14,7 @@
     "body-parser": "^1.20.2",
     "express": "^4.18.2",
     "ts-node": "^10.9.1",
-    "xstate": "5.0.0-beta.33"
+    "xstate": "beta"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

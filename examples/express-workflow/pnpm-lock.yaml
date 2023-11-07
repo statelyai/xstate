@@ -14,8 +14,8 @@ dependencies:
     specifier: ^10.9.1
     version: 10.9.1(@types/node@20.9.0)(typescript@5.2.2)
   xstate:
-    specifier: 5.0.0-beta.33
-    version: 5.0.0-beta.33
+    specifier: beta
+    version: 5.0.0-beta.40
 
 devDependencies:
   '@types/express':
@@ -677,8 +677,8 @@ packages:
     engines: {node: '>= 0.8'}
     dev: false
 
-  /xstate@5.0.0-beta.33:
-    resolution: {integrity: sha512-zHwbY2d2GGrsIySUCybrlq6YAPGM20yKpvliroDqfSbwa255Z1d7RYLkbbxiLx8SnEwDpWVple7JTXkjOw3JLA==}
+  /xstate@5.0.0-beta.40:
+    resolution: {integrity: sha512-q3tGXbfaHC785Eol2YFU3NmYfRy3XIA/pN2m2rK2oHY5t70SCUO0TvmLqxheE5sB4yJI+47U6XX7pdCtCVA3hg==}
     dev: false
 
   /yn@3.1.1:

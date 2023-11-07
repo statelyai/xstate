@@ -2,7 +2,7 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@xstate/react':
-    specifier: 4.0.0-beta.10
+    specifier: beta
     version: 4.0.0-beta.10(@types/react@17.0.70)(react@17.0.2)(xstate@5.0.0-beta.40)
   react:
     specifier: ^17.0.2
@@ -11,7 +11,7 @@ dependencies:
     specifier: ^17.0.2
     version: 17.0.2(react@17.0.2)
   xstate:
-    specifier: 5.0.0-beta.40
+    specifier: beta
     version: 5.0.0-beta.40
 
 devDependencies:

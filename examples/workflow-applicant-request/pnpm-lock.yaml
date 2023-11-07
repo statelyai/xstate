@@ -5,7 +5,7 @@ dependencies:
     specifier: ^10.9.1
     version: 10.9.1(@types/node@20.9.0)(typescript@5.2.2)
   xstate:
-    specifier: 5.0.0-beta.40
+    specifier: beta
     version: 5.0.0-beta.40
 
 devDependencies:
