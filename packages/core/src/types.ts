@@ -1669,10 +1669,6 @@ export interface StateConfig<
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
-  /**
-   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
-   */
-  execute?: boolean;
   clock?: Clock;
   logger?: (...args: any[]) => void;
   parent?: ActorRef<any, any>;
