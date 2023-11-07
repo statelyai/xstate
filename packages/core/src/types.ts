@@ -1738,7 +1738,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   src?: string | AnyActorLogic;
 
   /**
-   * A callback function which can be used to inspect actor system updates.
+   * A callback function or observer object which can be used to inspect actor system updates.
    *
    * @remarks
    * If a callback function is provided, it can accept an inspection event argument. The types of inspection events that can be observed include:
@@ -1775,6 +1775,37 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *       console.log(inspectionEvent.actorRef);
    *       console.log(inspectionEvent.event);
    *       console.log(inspectionEvent.snapshot);
+   *     }
+   *   }
+   * });
+   * ```
+   *
+   * Alternately, an observer object (`{ next?, error?, complete? }`) can be provided:
+   *
+   * @example
+   * ```ts
+   * const actor = createActor(machine, {
+   *   inspect: {
+   *     next: (inspectionEvent) => {
+   *       if (inspectionEvent.actorRef === actor) {
+   *         // This event is for the root actor
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.actor') {
+   *         console.log(inspectionEvent.actorRef);
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.event') {
+   *         console.log(inspectionEvent.sourceRef);
+   *         console.log(inspectionEvent.actorRef);
+   *         console.log(inspectionEvent.event);
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.snapshot') {
+   *         console.log(inspectionEvent.actorRef);
+   *         console.log(inspectionEvent.event);
+   *         console.log(inspectionEvent.snapshot);
+   *       }
    *     }
    *   }
    * });
