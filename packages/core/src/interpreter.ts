@@ -158,7 +158,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
-    this.src = resolvedOptions.src || logic;
+    this.src = resolvedOptions.src ?? logic;
     this.ref = this;
     this._actorScope = {
       self: this,
