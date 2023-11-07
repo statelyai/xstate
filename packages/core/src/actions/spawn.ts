@@ -59,7 +59,7 @@ function resolveSpawn(
     const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
       id: resolvedId,
-      src: typeof src === 'string' ? src : undefined,
+      src,
       parent: actorScope?.self,
       systemId,
       input:

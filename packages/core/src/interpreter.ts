@@ -129,7 +129,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public system: ActorSystem<any>;
   private _doneEvent?: DoneActorEvent;
 
-  public src?: string;
+  public src: string | AnyActorLogic;
 
   /**
    * Creates a new actor instance for the given logic with the provided options, if any.
@@ -158,7 +158,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
-    this.src = resolvedOptions.src;
+    this.src = resolvedOptions.src || logic;
     this.ref = this;
     this._actorScope = {
       self: this,
@@ -598,8 +598,9 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public getPersistedState(): Snapshot<unknown> {
-    return this.logic.getPersistedState(this._state);
+  public getPersistedState(): Snapshot<unknown>;
+  public getPersistedState(options?: unknown): Snapshot<unknown> {
+    return this.logic.getPersistedState(this._state, options);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {

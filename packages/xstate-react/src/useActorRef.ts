@@ -21,7 +21,7 @@ export function useIdleActor(
   logic: AnyActorLogic,
   options: Partial<ActorOptions<AnyActorLogic>>
 ): AnyActor {
-  const [[currentConfig, actorRef], setCurrent] = useState(() => {
+  let [[currentConfig, actorRef], setCurrent] = useState(() => {
     const actorRef = createActor(logic, options);
     return [logic.config, actorRef];
   });
@@ -29,9 +29,12 @@ export function useIdleActor(
   if (logic.config !== currentConfig) {
     const newActorRef = createActor(logic, {
       ...options,
-      state: actorRef.getPersistedState()
+      state: (actorRef.getPersistedState as any)({
+        __unsafeAllowInlineActors: true
+      })
     });
     setCurrent([logic.config, newActorRef]);
+    actorRef = newActorRef;
   }
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available

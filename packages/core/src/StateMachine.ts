@@ -45,7 +45,8 @@ import type {
   Equals,
   TODO,
   SnapshotFrom,
-  Snapshot
+  Snapshot,
+  AnyActorLogic
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
@@ -180,7 +181,6 @@ export class StateMachine<
     this.getInitialState = this.getInitialState.bind(this);
     this.restoreState = this.restoreState.bind(this);
     this.start = this.start.bind(this);
-    this.getPersistedState = this.getPersistedState.bind(this);
 
     this.root = new StateNode(config, {
       _key: this.id,
@@ -534,9 +534,10 @@ export class StateMachine<
       TTag,
       TOutput,
       TResolvedTypesMeta
-    >
+    >,
+    options?: unknown
   ) {
-    return getPersistedState(state);
+    return getPersistedState(state, options);
   }
 
   public createState(
@@ -587,7 +588,11 @@ export class StateMachine<
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
       string,
-      { src: string; state: Snapshot<unknown>; systemId?: string }
+      {
+        src: string | AnyActorLogic;
+        state: Snapshot<unknown>;
+        systemId?: string;
+      }
     > = (snapshot as any).children;
 
     Object.keys(snapshotChildren).forEach((actorId) => {
@@ -596,7 +601,8 @@ export class StateMachine<
       const childState = actorData.state;
       const src = actorData.src;
 
-      const logic = src ? resolveReferencedActor(this, src)?.src : undefined;
+      const logic =
+        typeof src === 'string' ? resolveReferencedActor(this, src)?.src : src;
 
       if (!logic) {
         return;

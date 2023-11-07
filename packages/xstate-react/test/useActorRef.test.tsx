@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   ActorRefFrom,
+  AnyStateMachine,
   assign,
   createMachine,
   fromPromise,
@@ -462,5 +463,302 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     render(<Test />);
 
     expect(isDone).toBe(true);
+  });
+
+  it('should be able to rerender with a new machine', () => {
+    const machine1 = createMachine({
+      initial: 'a',
+      states: { a: {} }
+    });
+
+    const machine2 = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {}
+      }
+    });
+
+    function Test() {
+      const [machine, setMachine] = React.useState(machine1);
+      const actorRef = useActorRef(machine);
+      const value = useSelector(actorRef, (state) => state.value);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setMachine(machine2);
+            }}
+          >
+            Reload machine
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              actorRef.send({
+                type: 'NEXT'
+              });
+            }}
+          >
+            Send event
+          </button>
+          <span>{value}</span>
+        </>
+      );
+    }
+
+    render(<Test />);
+
+    fireEvent.click(screen.getByText('Reload machine'));
+    fireEvent.click(screen.getByText('Send event'));
+
+    expect(screen.getByText('b')).toBeTruthy();
+  });
+
+  it('should be able to rehydrate an incoming new machine using the persisted state of the previous one', () => {
+    const machine1 = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {}
+      }
+    });
+
+    const machine2 = createMachine({
+      initial: 'b',
+      states: {
+        b: {
+          on: { NEXT: 'c' }
+        },
+        c: {}
+      }
+    });
+
+    function Test() {
+      const [machine, setMachine] = React.useState(machine1);
+      const actorRef = useActorRef(machine);
+      const value = useSelector(actorRef, (state) => state.value);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setMachine(machine2);
+            }}
+          >
+            Reload machine
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              actorRef.send({
+                type: 'NEXT'
+              });
+            }}
+          >
+            Send event
+          </button>
+          <span>{value}</span>
+        </>
+      );
+    }
+
+    render(<Test />);
+
+    fireEvent.click(screen.getByText('Send event'));
+    fireEvent.click(screen.getByText('Reload machine'));
+    fireEvent.click(screen.getByText('Send event'));
+
+    expect(screen.getByText('c')).toBeTruthy();
+  });
+
+  it('should not create extra rerenders when recreating the actor on the machine change', () => {
+    let rerenders = 0;
+
+    const machine1 = createMachine({});
+
+    const machine2 = createMachine({});
+
+    function Test() {
+      const [machine, setMachine] = React.useState(machine1);
+      useActorRef(machine);
+
+      rerenders++;
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setMachine(machine2);
+            }}
+          >
+            Reload machine
+          </button>
+        </>
+      );
+    }
+
+    render(<Test />);
+
+    fireEvent.click(screen.getByText('Reload machine'));
+
+    // while those numbers might be a little bit surprising at first glance they are actually correct
+    // we are using the "derive state from props pattern" here and that involved 2 renders
+    // so we have a first render and then two other renders when the machine changes
+    // and in strict mode every render is simply doubled
+    expect(rerenders).toBe(suiteKey === 'strict' ? 6 : 3);
+  });
+
+  it('all renders should be consistent - a value derived in render should be derived from the latest source', () => {
+    let detectedInconsistency = false;
+
+    const machine1 = createMachine({
+      tags: ['m1']
+    });
+
+    const machine2 = createMachine({
+      tags: ['m2']
+    });
+
+    function Test() {
+      const [machine, setMachine] = React.useState(machine1);
+      const actorRef = useActorRef(machine);
+      const tag = useSelector(actorRef, (state) => [...state.tags][0]);
+
+      detectedInconsistency ||= machine.config.tags[0] !== tag;
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setMachine(machine2);
+            }}
+          >
+            Reload machine
+          </button>
+        </>
+      );
+    }
+
+    render(<Test />);
+
+    fireEvent.click(screen.getByText('Reload machine'));
+
+    expect(detectedInconsistency).toBe(false);
+  });
+
+  it('all commits should be consistent - a value derived in render should be derived from the latest source', () => {
+    let detectedInconsistency = false;
+
+    const machine1 = createMachine({
+      tags: ['m1']
+    });
+
+    const machine2 = createMachine({
+      tags: ['m2']
+    });
+
+    function Test() {
+      React.useEffect(() => {
+        detectedInconsistency ||= machine.config.tags[0] !== tag;
+      });
+
+      const [machine, setMachine] = React.useState(machine1);
+      const actorRef = useActorRef(machine);
+      const tag = useSelector(actorRef, (state) => [...state.tags][0]);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setMachine(machine2);
+            }}
+          >
+            Reload machine
+          </button>
+        </>
+      );
+    }
+
+    render(<Test />);
+
+    fireEvent.click(screen.getByText('Reload machine'));
+
+    expect(detectedInconsistency).toBe(false);
+  });
+
+  it('should be able to rehydrate an inline actor when changing machines', () => {
+    const spy = jest.fn();
+
+    const createSampleMachine = (counter: number) => {
+      const child = createMachine({
+        on: {
+          EV: {
+            actions: () => {
+              spy(counter);
+            }
+          }
+        }
+      });
+
+      return createMachine({
+        context: ({ spawn }) => {
+          return {
+            childRef: spawn(child)
+          };
+        }
+      });
+    };
+
+    const machine1 = createSampleMachine(1);
+    const machine2 = createSampleMachine(2);
+
+    function Test() {
+      const [machine, setMachine] = React.useState<AnyStateMachine>(machine1);
+      const actorRef = useActorRef(machine);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setMachine(machine2);
+            }}
+          >
+            Reload machine
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              Object.values(actorRef.getSnapshot().children)[0].send({
+                type: 'EV'
+              });
+            }}
+          >
+            Send event
+          </button>
+        </>
+      );
+    }
+
+    render(<Test />);
+
+    fireEvent.click(screen.getByText('Reload machine'));
+    fireEvent.click(screen.getByText('Send event'));
+
+    expect(spy.mock.calls).toHaveLength(1);
+    // we don't have any means to rehydrate an inline actor with a new src (can't locate its new src)
+    // so the best we can do is to reuse the old src
+    expect(spy.mock.calls[0][0]).toBe(1);
   });
 });

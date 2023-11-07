@@ -109,12 +109,11 @@ export function createSpawner(
       }
       return actorRef;
     } else {
-      // TODO: this should also receive `src`
       const actorRef = createActor(src, {
         id: options.id,
         parent: actorScope.self,
         input: options.input,
-        src: undefined,
+        src,
         systemId
       });
 
