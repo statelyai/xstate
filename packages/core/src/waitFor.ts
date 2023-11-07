@@ -12,7 +12,7 @@ interface WaitForOptions {
 }
 
 const defaultWaitForOptions: WaitForOptions = {
-  timeout: 10_000 // 10 seconds
+  timeout: Infinity // much more than 10 seconds
 };
 
 /**
