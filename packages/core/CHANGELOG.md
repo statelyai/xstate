@@ -1,5 +1,15 @@
 # xstate
 
+## 5.0.0-beta.41
+
+### Major Changes
+
+- [#4423](https://github.com/statelyai/xstate/pull/4423) [`8fb984494`](https://github.com/statelyai/xstate/commit/8fb98449471a67ad4231c2ce18d88d511b1112f8) Thanks [@Andarist](https://github.com/Andarist)! - Removed `Interpreter['status']` from publicly available properties.
+
+### Minor Changes
+
+- [#4435](https://github.com/statelyai/xstate/pull/4435) [`37d879335`](https://github.com/statelyai/xstate/commit/37d879335c3c9ad1c28533bef4768ed0411fa0e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The default `timeout` for `waitFor(...)` is now `Infinity` instead of 10 seconds.
+
 ## 5.0.0-beta.40
 
 ### Minor Changes

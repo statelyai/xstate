@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.0-beta.11
+
+### Minor Changes
+
+- [#4436](https://github.com/statelyai/xstate/pull/4436) [`340aee643`](https://github.com/statelyai/xstate/commit/340aee6437767fa3dc5cef6e991cf975fe27467a) Thanks [@Andarist](https://github.com/Andarist)! - Fast refresh now works as expected for most use-cases.
+
 ## 4.0.0-beta.10
 
 ### Minor Changes
