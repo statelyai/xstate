@@ -1,4 +1,3 @@
-import isDevelopment from '#is-development';
 import { useEffect, useState } from 'react';
 import {
   AnyActorLogic,
@@ -15,35 +14,37 @@ import {
   SnapshotFrom,
   TODO
 } from 'xstate';
-import useConstant from './useConstant.ts';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
+import { stopRootWithRehydration } from './stopRootWithRehydration';
 
-export function useIdleInterpreter(
-  machine: AnyActorLogic,
+export function useIdleActor(
+  logic: AnyActorLogic,
   options: Partial<ActorOptions<AnyActorLogic>>
 ): AnyActor {
-  if (isDevelopment) {
-    const [initialMachine] = useState(machine);
-
-    if (machine.config !== initialMachine.config) {
-      console.warn(
-        `Actor logic has changed between renders. This is not supported and may lead to invalid snapshots.`
-      );
-    }
-  }
-
-  const actorRef = useConstant(() => {
-    return createActor(machine as AnyStateMachine, options);
+  let [[currentConfig, actorRef], setCurrent] = useState(() => {
+    const actorRef = createActor(logic, options);
+    return [logic.config, actorRef];
   });
+
+  if (logic.config !== currentConfig) {
+    const newActorRef = createActor(logic, {
+      ...options,
+      state: (actorRef.getPersistedState as any)({
+        __unsafeAllowInlineActors: true
+      })
+    });
+    setCurrent([logic.config, newActorRef]);
+    actorRef = newActorRef;
+  }
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
     (actorRef.logic as AnyStateMachine).implementations = (
-      machine as AnyStateMachine
+      logic as AnyStateMachine
     ).implementations;
   });
 
-  return actorRef as any;
+  return actorRef;
 }
 
 export function useActorRef<TLogic extends AnyActorLogic>(
@@ -53,7 +54,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)
 ): ActorRefFrom<TLogic> {
-  const actorRef = useIdleInterpreter(machine, options);
+  const actorRef = useIdleActor(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {
@@ -69,11 +70,9 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      actorRef.stop();
-      (actorRef as any)._processingStatus = 0;
-      (actorRef as any)._initState();
+      stopRootWithRehydration(actorRef);
     };
-  }, []);
+  }, [actorRef]);
 
   return actorRef as any;
 }

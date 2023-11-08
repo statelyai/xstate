@@ -129,7 +129,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public system: ActorSystem<any>;
   private _doneEvent?: DoneActorEvent;
 
-  public src?: string;
+  public src: string | AnyActorLogic;
 
   /**
    * Creates a new actor instance for the given logic with the provided options, if any.
@@ -158,7 +158,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
-    this.src = resolvedOptions.src;
+    this.src = resolvedOptions.src ?? logic;
     this.ref = this;
     this._actorScope = {
       self: this,
@@ -186,7 +186,7 @@ export class Actor<TLogic extends AnyActorLogic>
       type: '@xstate.actor',
       actorRef: this
     });
-    this._initState();
+    this._initState(options?.state);
 
     if (systemId && (this._state as any).status === 'active') {
       this._systemId = systemId;
@@ -194,11 +194,11 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
 
-  private _initState() {
-    this._state = this.options.state
+  private _initState(persistedState?: Snapshot<unknown>) {
+    this._state = persistedState
       ? this.logic.restoreState
-        ? this.logic.restoreState(this.options.state, this._actorScope)
-        : this.options.state
+        ? this.logic.restoreState(persistedState, this._actorScope)
+        : persistedState
       : this.logic.getInitialState(this._actorScope, this.options?.input);
   }
 
@@ -217,7 +217,6 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     for (const observer of this.observers) {
-      // TODO: should observers be notified in case of the error?
       try {
         observer.next?.(snapshot);
       } catch (err) {
@@ -357,6 +356,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
     this._processingStatus = ProcessingStatus.Running;
 
+    // TODO: this isn't correct when rehydrating
     const initEvent = createInitEvent(this.options.input);
 
     this.system._sendInspectionEvent({
@@ -598,8 +598,9 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
-  public getPersistedState(): Snapshot<unknown> {
-    return this.logic.getPersistedState(this._state);
+  public getPersistedState(): Snapshot<unknown>;
+  public getPersistedState(options?: unknown): Snapshot<unknown> {
+    return this.logic.getPersistedState(this._state, options);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {

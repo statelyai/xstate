@@ -1702,7 +1702,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
    * The source definition.
    */
-  src?: string;
+  src?: string | AnyActorLogic;
 
   inspect?:
     | Observer<InspectionEvent>
@@ -1790,7 +1790,7 @@ export interface ActorRef<
   system?: ActorSystem<any>;
   /** @internal */
   _processingStatus: ProcessingStatus;
-  src?: string;
+  src: string | AnyActorLogic;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
@@ -1981,7 +1981,7 @@ export interface ActorLogic<
   /**
    * @returns Persisted state
    */
-  getPersistedState: (state: TSnapshot) => Snapshot<unknown>;
+  getPersistedState: (state: TSnapshot, options?: unknown) => Snapshot<unknown>;
 }
 
 export type AnyActorLogic = ActorLogic<

@@ -299,7 +299,8 @@ export function getPersistedState<
     TTag,
     TOutput,
     TResolvedTypesMeta
-  >
+  >,
+  options?: unknown
 ): Snapshot<unknown> {
   const { configuration, tags, machine, children, context, ...jsonValues } =
     state;
@@ -308,11 +309,15 @@ export function getPersistedState<
 
   for (const id in children) {
     const child = children[id] as any;
-    if (isDevelopment && typeof child.src !== 'string') {
+    if (
+      isDevelopment &&
+      typeof child.src !== 'string' &&
+      (!options || !('__unsafeAllowInlineActors' in (options as object)))
+    ) {
       throw new Error('An inline child actor cannot be persisted.');
     }
     childrenJson[id as keyof typeof childrenJson] = {
-      state: child.getPersistedState(),
+      state: child.getPersistedState(options),
       src: child.src,
       systemId: child._systemId
     };
