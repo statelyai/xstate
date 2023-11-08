@@ -6,7 +6,6 @@ import { StateNode } from './StateNode.ts';
 import {
   getConfiguration,
   getStateNodeByPath,
-  getInitialConfiguration,
   getStateNodes,
   isInFinalState,
   isStateId,
@@ -398,7 +397,7 @@ export class StateMachine<
       {
         context:
           typeof context !== 'function' && context ? context : ({} as TContext),
-        configuration: getInitialConfiguration(this.root),
+        configuration: [this.root],
         children: {},
         status: 'active'
       },
