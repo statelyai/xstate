@@ -288,4 +288,31 @@ describe('rehydration', () => {
     expect(Object.keys(persistedChildren).length).toBe(1);
     expect((Object.values(persistedChildren)[0] as any).src).toBe('foo');
   });
+
+  it('should complete on a rehydrated final state', () => {
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: { NEXT: 'bar' }
+        },
+        bar: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+    const persistedState = actorRef.getPersistedState();
+
+    const spy = jest.fn();
+    const actorRef2 = createActor(machine, { state: persistedState });
+    actorRef2.subscribe({
+      complete: spy
+    });
+
+    actorRef2.start();
+    expect(spy).toHaveBeenCalled();
+  });
 });

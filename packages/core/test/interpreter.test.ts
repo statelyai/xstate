@@ -1054,7 +1054,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: State.from('bar', undefined, machine)
+        state: machine.resolveStateValue('bar')
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();

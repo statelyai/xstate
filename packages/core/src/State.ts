@@ -98,68 +98,6 @@ export class State<
   public children: ComputeChildren<TActor>;
 
   /**
-   * Creates a new State instance for the given `stateValue` and `context`.
-   * @param stateValue
-   * @param context
-   */
-  public static from<
-    TContext extends MachineContext,
-    TEvent extends EventObject = EventObject
-  >(
-    stateValue:
-      | State<
-          TContext,
-          TEvent,
-          TODO,
-          any, // tags
-          any // typegen
-        >
-      | StateValue,
-    context: TContext = {} as TContext,
-    machine: AnyStateMachine
-  ): State<
-    TContext,
-    TEvent,
-    TODO,
-    any, // tags
-    any // typegen
-  > {
-    if (stateValue instanceof State) {
-      if (stateValue.context !== context) {
-        return new State<TContext, TEvent, TODO, any, any>(
-          {
-            value: stateValue.value,
-            context,
-            meta: {},
-            configuration: [], // TODO: fix,
-            children: {},
-            status: 'active'
-          },
-          machine
-        );
-      }
-
-      return stateValue;
-    }
-
-    const configuration = getConfiguration(
-      getStateNodes(machine.root, stateValue)
-    );
-
-    return new State<TContext, TEvent, TODO, any, any>(
-      {
-        value: stateValue,
-        context,
-        meta: undefined,
-        configuration: Array.from(configuration),
-        children: {},
-        status: 'active'
-      },
-      machine
-    );
-  }
-
-  /**
    * Creates a new `State` instance that represents the current state of a running machine.
    *
    * @param config
@@ -171,9 +109,7 @@ export class State<
     this.context = config.context;
     this.historyValue = config.historyValue || {};
     this.matches = this.matches.bind(this);
-    this.configuration =
-      config.configuration ??
-      Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
+    this.configuration = config.configuration;
     this.children = config.children as any;
 
     this.value = getStateValue(machine.root, this.configuration);

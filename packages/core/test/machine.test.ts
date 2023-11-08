@@ -242,7 +242,7 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.resolveState()', () => {
+  describe('machine.resolveStateValue()', () => {
     const resolveMachine = createMachine({
       id: 'resolve',
       initial: 'foo',
@@ -283,9 +283,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state value', () => {
-      const tempState = State.from('foo', undefined, resolveMachine);
-
-      const resolvedState = resolveMachine.resolveState(tempState);
+      const resolvedState = resolveMachine.resolveStateValue('foo');
 
       expect(resolvedState.value).toEqual({
         foo: { one: { a: 'aa', b: 'bb' } }
@@ -293,9 +291,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state configuration (implicit via events)', () => {
-      const tempState = State.from('foo', undefined, resolveMachine);
-
-      const resolvedState = resolveMachine.resolveState(tempState);
+      const resolvedState = resolveMachine.resolveStateValue('foo');
 
       expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
     });
@@ -312,60 +308,10 @@ describe('machine', () => {
           }
         }
       });
-      const tempState = State.from('bar', undefined, machine);
 
-      const resolvedState = machine.resolveState(tempState as any);
+      const resolvedState = machine.resolveStateValue('bar');
 
       expect(resolvedState.status).toBe('done');
-    });
-
-    it('should resolve from a state config object', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: { NEXT: 'bar' }
-          },
-          bar: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actorRef = createActor(machine).start();
-      actorRef.send({ type: 'NEXT' });
-      const barState = actorRef.getSnapshot();
-
-      const jsonBarState = JSON.parse(JSON.stringify(barState));
-
-      expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
-    });
-
-    it('should terminate on a resolved final state', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: { NEXT: 'bar' }
-          },
-          bar: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actorRef = createActor(machine).start();
-      actorRef.send({ type: 'NEXT' });
-      const persistedState = actorRef.getPersistedState();
-
-      const spy = jest.fn();
-      const actorRef2 = createActor(machine, { state: persistedState });
-      actorRef2.subscribe({
-        complete: spy
-      });
-
-      actorRef2.start();
-      expect(spy).toHaveBeenCalled();
     });
   });
 
