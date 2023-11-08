@@ -1,5 +1,4 @@
 import isDevelopment from '#is-development';
-import { STATE_DELIMITER } from './constants.ts';
 import { $$ACTOR_TYPE } from './interpreter.ts';
 import { memo } from './memo.ts';
 import { MachineSnapshot } from './StateMachine.ts';
@@ -172,7 +171,6 @@ export class State<
     this.context = config.context;
     this.historyValue = config.historyValue || {};
     this.matches = this.matches.bind(this);
-    this.toStrings = this.toStrings.bind(this);
     this.configuration =
       config.configuration ??
       Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
@@ -183,24 +181,6 @@ export class State<
     this.status = config.status;
     (this as any).output = config.output;
     (this as any).error = config.error;
-  }
-
-  /**
-   * Returns an array of all the string leaf state node paths.
-   * @param stateValue
-   * @param delimiter The character(s) that separate each subpath in the string state node path.
-   */
-  public toStrings(stateValue: StateValue = this.value): string[] {
-    if (typeof stateValue === 'string') {
-      return [stateValue];
-    }
-    const valueKeys = Object.keys(stateValue);
-
-    return valueKeys.concat(
-      ...valueKeys.map((key) =>
-        this.toStrings(stateValue[key]).map((s) => key + STATE_DELIMITER + s)
-      )
-    );
   }
 
   public toJSON() {

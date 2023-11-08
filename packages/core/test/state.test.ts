@@ -219,28 +219,6 @@ describe('State', () => {
     });
   });
 
-  describe('State.prototype.toStrings', () => {
-    it('should return all state paths as strings', () => {
-      const actorRef = createActor(exampleMachine).start();
-      actorRef.send({
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(actorRef.getSnapshot().toStrings()).toEqual([
-        'two',
-        'two.deep',
-        'two.deep.foo'
-      ]);
-    });
-
-    it('should keep reference to state instance after destructuring', () => {
-      expect(createActor(exampleMachine).getSnapshot().toStrings()).toEqual([
-        'one'
-      ]);
-    });
-  });
-
   describe('status', () => {
     it('should show that a machine has not reached its final state', () => {
       expect(createActor(exampleMachine).getSnapshot().status).not.toBe('done');
