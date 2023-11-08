@@ -1,84 +1,8 @@
-import { createMachine, interpret } from 'xstate';
+import { createActor } from 'xstate';
 import { promises as fs } from 'fs';
+import { donutMachine } from './donutMachine';
 
 const FILENAME = './persisted-state.json';
-
-const donutMachine = createMachine({
-  id: 'donut',
-  initial: 'ingredients',
-  states: {
-    ingredients: {
-      on: {
-        NEXT: 'directions'
-      }
-    },
-    directions: {
-      initial: 'makeDough',
-      onDone: 'fry',
-      states: {
-        makeDough: {
-          on: { NEXT: 'mix' }
-        },
-        mix: {
-          type: 'parallel',
-          states: {
-            mixDry: {
-              initial: 'mixing',
-              states: {
-                mixing: {
-                  on: { MIXED_DRY: 'mixed' }
-                },
-                mixed: {
-                  type: 'final'
-                }
-              }
-            },
-            mixWet: {
-              initial: 'mixing',
-              states: {
-                mixing: {
-                  on: { MIXED_WET: 'mixed' }
-                },
-                mixed: {
-                  type: 'final'
-                }
-              }
-            }
-          },
-          onDone: 'allMixed'
-        },
-        allMixed: {
-          type: 'final'
-        }
-      }
-    },
-    fry: {
-      on: {
-        NEXT: 'flip'
-      }
-    },
-    flip: {
-      on: {
-        NEXT: 'dry'
-      }
-    },
-    dry: {
-      on: {
-        NEXT: 'glaze'
-      }
-    },
-    glaze: {
-      on: {
-        NEXT: 'serve'
-      }
-    },
-    serve: {
-      on: {
-        ANOTHER_DONUT: 'ingredients'
-      }
-    }
-  }
-});
 
 let restoredState;
 try {
@@ -88,7 +12,7 @@ try {
   restoredState = undefined;
 }
 
-const actor = interpret(donutMachine, {
+const actor = createActor(donutMachine, {
   state: restoredState
 });
 
