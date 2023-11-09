@@ -598,6 +598,18 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
+  /**
+   * Obtain the internal state of the actor, which can be persisted.
+   *
+   * @remarks
+   * The internal state can be persisted from any actor, not only machines.
+   *
+   * Note that the persisted state is not the same as the snapshot from {@link Actor.getSnapshot}. Persisted state represents the internal state of the actor, while snapshots represent the actor's last emitted value.
+   *
+   * Can be restored with {@link ActorOptions.state}
+   *
+   * @see https://stately.ai/docs/persistence
+   */
   public getPersistedState(): Snapshot<unknown>;
   public getPersistedState(options?: unknown): Snapshot<unknown> {
     return this.logic.getPersistedState(this._state, options);
