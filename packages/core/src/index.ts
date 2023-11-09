@@ -9,7 +9,6 @@ export * from './types.ts';
 export { waitFor } from './waitFor.ts';
 import { Actor, createActor, interpret, Interpreter } from './interpreter.ts';
 import { createMachine } from './Machine.ts';
-import { mapState } from './mapState.ts';
 import { State } from './State.ts';
 import { StateNode } from './StateNode.ts';
 // TODO: decide from where those should be exported
@@ -19,7 +18,6 @@ export {
   createActor,
   createMachine,
   interpret,
-  mapState,
   State,
   StateNode,
   type Interpreter
