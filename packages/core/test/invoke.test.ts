@@ -2936,6 +2936,33 @@ describe('invoke', () => {
       });
       actor.start();
     });
+
+    it('a wildcard transition should be able to receive an error event', (done) => {
+      const machine = createMachine({
+        initial: 'fetching',
+        states: {
+          fetching: {
+            invoke: {
+              src: fromPromise(() => Promise.reject(new Error('test err'))),
+              onDone: {
+                target: 'complete'
+              }
+            },
+            on: {
+              '*': {
+                actions: () => {
+                  done();
+                }
+              }
+            }
+          },
+          complete: {
+            type: 'final'
+          }
+        }
+      });
+      createActor(machine).start();
+    });
   });
 
   it('invoke `src` can be used with invoke `input`', (done) => {

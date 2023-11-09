@@ -326,10 +326,7 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     // TODO: handle error events in a better way
-    if (
-      isErrorActorEvent(event) &&
-      !state.nextEvents.some((nextEvent) => nextEvent === event.type)
-    ) {
+    if (isErrorActorEvent(event) && !state.can(event as any)) {
       return cloneState(state, {
         status: 'error',
         error: event.data
