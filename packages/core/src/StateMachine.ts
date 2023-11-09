@@ -1,7 +1,12 @@
 import { assign } from './actions.ts';
 import { createInitEvent } from './eventUtils.ts';
 import { STATE_DELIMITER } from './constants.ts';
-import { cloneState, getPersistedState, State } from './State.ts';
+import {
+  cloneMachineSnapshot,
+  createMachineSnapshot,
+  getPersistedState,
+  MachineSnapshot
+} from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
   getConfiguration,
@@ -32,7 +37,6 @@ import type {
   MachineImplementationsSimplified,
   MachineTypes,
   NoInfer,
-  StateConfig,
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
@@ -54,35 +58,6 @@ import isDevelopment from '#is-development';
 
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
-
-export type MachineSnapshot<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TTag extends string,
-  TOutput,
-  TResolvedTypesMeta = TypegenDisabled
-> =
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
-      status: 'active';
-      output: undefined;
-      error: undefined;
-    })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
-      status: 'done';
-      output: TOutput;
-      error: undefined;
-    })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
-      status: 'error';
-      output: undefined;
-      error: unknown;
-    })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
-      status: 'stopped';
-      output: undefined;
-      error: undefined;
-    });
 
 export class StateMachine<
   TContext extends MachineContext,
@@ -272,7 +247,7 @@ export class StateMachine<
       getStateNodes(this.root, resolvedStateValue)
     );
 
-    return new State(
+    return createMachineSnapshot(
       {
         configuration: [...configurationSet],
         context: config.context || ({} as TContext),
@@ -326,7 +301,7 @@ export class StateMachine<
       isErrorActorEvent(event) &&
       !state.nextEvents.some((nextEvent) => nextEvent === event.type)
     ) {
-      return cloneState(state, {
+      return cloneMachineSnapshot(state, {
         status: 'error',
         error: event.data
       });
@@ -393,7 +368,7 @@ export class StateMachine<
   > {
     const { context } = this.config;
 
-    const preInitial = new State(
+    const preInitial = createMachineSnapshot(
       {
         context:
           typeof context !== 'function' && context ? context : ({} as TContext),
@@ -592,7 +567,7 @@ export class StateMachine<
       children[actorId] = actorRef;
     });
 
-    const restoredSnapshot = new State(
+    const restoredSnapshot = createMachineSnapshot(
       {
         ...(snapshot as any),
         children,

@@ -1,5 +1,4 @@
 import { createActor, createMachine, assign } from '../src/index.ts';
-import { State } from '../src/State.ts';
 
 const pedestrianStates = {
   initial: 'walk',

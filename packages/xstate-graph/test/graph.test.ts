@@ -3,7 +3,6 @@ import {
   createMachine,
   EventObject,
   assign,
-  State,
   fromTransition,
   Snapshot
 } from 'xstate';
@@ -30,14 +29,14 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
 } {
   return {
     state:
-      path.state instanceof State
+      'machine' in path.state && 'value' in path.state
         ? path.state.value
         : 'context' in path.state
         ? path.state.context
         : path.state,
     steps: path.steps.map((step) => ({
       state:
-        step.state instanceof State
+        'machine' in step.state && 'value' in step.state
           ? step.state.value
           : 'context' in step.state
           ? step.state.context

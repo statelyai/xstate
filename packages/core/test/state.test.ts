@@ -176,14 +176,6 @@ describe('State', () => {
     });
   });
 
-  describe('State.prototype.matches', () => {
-    it('should keep reference to state instance after destructuring', () => {
-      const { matches } = createActor(exampleMachine).getSnapshot();
-
-      expect(matches('one')).toBe(true);
-    });
-  });
-
   describe('status', () => {
     it('should show that a machine has not reached its final state', () => {
       expect(createActor(exampleMachine).getSnapshot().status).not.toBe('done');

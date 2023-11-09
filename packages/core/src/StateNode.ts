@@ -1,4 +1,4 @@
-import type { State } from './State.ts';
+import { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
@@ -362,7 +362,7 @@ export class StateNode<
   }
 
   public next(
-    state: State<TContext, TEvent, TODO, TODO, TODO>,
+    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;

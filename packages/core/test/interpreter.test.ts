@@ -12,7 +12,6 @@ import {
   stop,
   log
 } from '../src/index.ts';
-import { State } from '../src/State';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
