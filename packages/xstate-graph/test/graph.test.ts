@@ -477,7 +477,7 @@ describe('@xstate/graph', () => {
 
     it('should return a path from a specified from-state', () => {
       const path = getPathsFromEvents(lightMachine, [{ type: 'TIMER' }], {
-        fromState: lightMachine.resolveStateValue('yellow')
+        fromState: lightMachine.resolveState({ value: 'yellow' })
       })[0];
 
       expect(path).toBeDefined();
@@ -655,7 +655,7 @@ it.each([getShortestPaths, getSimplePaths])(
     });
 
     const paths = pathGetter(machine, {
-      fromState: machine.resolveStateValue('b')
+      fromState: machine.resolveState({ value: 'b' })
     });
 
     // Instead of taking 2 steps to reach state 'b' (A, B),

@@ -1657,13 +1657,11 @@ export interface StateConfig<
 > {
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
-  meta?: any;
   configuration: Array<StateNode<TContext, TEvent>>;
   children: Record<string, ActorRef<any, any>>;
   status: 'active' | 'done' | 'error' | 'stopped';
   output?: any;
   error?: unknown;
-  tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
 }
 

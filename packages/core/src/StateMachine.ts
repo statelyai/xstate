@@ -46,7 +46,8 @@ import type {
   TODO,
   SnapshotFrom,
   Snapshot,
-  AnyActorLogic
+  AnyActorLogic,
+  HistoryValue
 } from './types.ts';
 import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
@@ -248,11 +249,17 @@ export class StateMachine<
     });
   }
 
-  public resolveStateValue(
-    stateValue: StateValue,
-    ...[context]: Equals<TContext, MachineContext> extends true
-      ? []
-      : [TContext]
+  public resolveState(
+    config: {
+      value: StateValue;
+      context?: TContext;
+      historyValue?: HistoryValue<TContext, TEvent>;
+      status?: 'active' | 'done' | 'error' | 'stopped';
+      output?: TOutput;
+      error?: unknown;
+    } & (Equals<TContext, MachineContext> extends false
+      ? { context: unknown }
+      : {})
   ): MachineSnapshot<
     TContext,
     TEvent,
@@ -261,7 +268,7 @@ export class StateMachine<
     TOutput,
     TResolvedTypesMeta
   > {
-    const resolvedStateValue = resolveStateValue(this.root, stateValue);
+    const resolvedStateValue = resolveStateValue(this.root, config.value);
     const configurationSet = getConfiguration(
       getStateNodes(this.root, resolvedStateValue)
     );
@@ -269,9 +276,14 @@ export class StateMachine<
     return new State(
       {
         configuration: [...configurationSet],
-        context: (context || {}) as TContext,
+        context: config.context || ({} as TContext),
         children: {},
-        status: isInFinalState(configurationSet, this.root) ? 'done' : 'active'
+        status: isInFinalState(configurationSet, this.root)
+          ? 'done'
+          : config.status || 'active',
+        output: config.output,
+        error: config.error,
+        historyValue: config.historyValue
       },
       this
     ) as MachineSnapshot<
@@ -386,7 +398,6 @@ export class StateMachine<
       {
         context:
           typeof context !== 'function' && context ? context : ({} as TContext),
-        meta: undefined,
         configuration: getInitialConfiguration(this.root),
         children: {},
         status: 'active'

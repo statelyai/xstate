@@ -23,7 +23,7 @@ describe('invalid or resolved states', () => {
     });
     expect(
       machine.transition(
-        machine.resolveStateValue('A'),
+        machine.resolveState({ value: 'A' }),
         { type: 'E' },
         {} as any // TODO: figure out the simulation API
       ).value
@@ -55,7 +55,7 @@ describe('invalid or resolved states', () => {
     });
     expect(
       machine.transition(
-        machine.resolveStateValue({ A: {}, B: {} }),
+        machine.resolveState({ value: { A: {}, B: {} } }),
         { type: 'E' },
         {} as any // TODO: figure out the simulation API
       ).value
@@ -86,7 +86,7 @@ describe('invalid or resolved states', () => {
       }
     });
     machine.transition(
-      machine.resolveStateValue({ A: 'A1', B: 'B1' }),
+      machine.resolveState({ value: { A: 'A1', B: 'B1' } }),
       { type: 'E' },
       {} as any // TODO: figure out the simulation API
     );
@@ -114,7 +114,7 @@ describe('invalid or resolved states', () => {
     });
     expect(() =>
       machine.transition(
-        machine.resolveStateValue({ A: 'A3', B: 'B3' }),
+        machine.resolveState({ value: { A: 'A3', B: 'B3' } }),
         { type: 'E' },
         {} as any // TODO: figure out the simulation API
       )
@@ -143,7 +143,7 @@ describe('invalid or resolved states', () => {
     });
     expect(
       machine.transition(
-        machine.resolveStateValue({ A: 'A1', B: {} }),
+        machine.resolveState({ value: { A: 'A1', B: {} } }),
         { type: 'E' },
         {} as any // TODO: figure out the simulation API
       ).value

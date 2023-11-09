@@ -81,7 +81,7 @@ describe('rehydration', () => {
         }
       });
 
-      const activeState = machine.resolveStateValue('active');
+      const activeState = machine.resolveState({ value: 'active' });
       const service = createActor(machine, {
         state: activeState
       });
@@ -107,7 +107,7 @@ describe('rehydration', () => {
       });
 
       createActor(machine, {
-        state: machine.resolveStateValue('active')
+        state: machine.resolveState({ value: 'active' })
       })
         .start()
         .stop();

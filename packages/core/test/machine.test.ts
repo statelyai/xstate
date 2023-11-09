@@ -283,7 +283,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state value', () => {
-      const resolvedState = resolveMachine.resolveStateValue('foo');
+      const resolvedState = resolveMachine.resolveState({ value: 'foo' });
 
       expect(resolvedState.value).toEqual({
         foo: { one: { a: 'aa', b: 'bb' } }
@@ -291,7 +291,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state configuration (implicit via events)', () => {
-      const resolvedState = resolveMachine.resolveStateValue('foo');
+      const resolvedState = resolveMachine.resolveState({ value: 'foo' });
 
       expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
     });
@@ -309,7 +309,7 @@ describe('machine', () => {
         }
       });
 
-      const resolvedState = machine.resolveStateValue('bar');
+      const resolvedState = machine.resolveState({ value: 'bar' });
 
       expect(resolvedState.status).toBe('done');
     });
