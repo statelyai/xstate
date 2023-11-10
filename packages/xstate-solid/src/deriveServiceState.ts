@@ -29,7 +29,6 @@ export const deriveServiceState = <
     return {
       ...state,
       toJSON: state.toJSON,
-      toStrings: state.toStrings,
       can: state.can,
       hasTag: state.hasTag,
       nextEvents: state.nextEvents,
