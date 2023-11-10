@@ -1,6 +1,6 @@
 import React from 'react';
 import { useActor } from '@xstate/react';
-import { friendMachine } from './friend.machine';
+import { friendMachine } from './friendMachine';
 import { ActorRefFrom } from 'xstate';
 
 export const Friend: React.FC<{

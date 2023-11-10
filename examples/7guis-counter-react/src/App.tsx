@@ -1,7 +1,7 @@
 import React from 'react';
 import './App.css';
 import { useMachine } from '@xstate/react';
-import { counterMachine } from './counter.machine';
+import { counterMachine } from './counterMachine';
 
 function App() {
   const [state, send] = useMachine(counterMachine);

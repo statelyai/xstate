@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@xstate/react':
-    specifier: 4.0.0-beta.5
-    version: 4.0.0-beta.5(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.13)
+    specifier: beta
+    version: 4.0.0-beta.10(@types/react@17.0.70)(react@17.0.2)(xstate@5.0.0-beta.40)
   react:
     specifier: ^17.0.2
     version: 17.0.2
@@ -11,22 +11,22 @@ dependencies:
     specifier: ^17.0.2
     version: 17.0.2(react@17.0.2)
   xstate:
-    specifier: 5.0.0-beta.13
-    version: 5.0.0-beta.13
+    specifier: beta
+    version: 5.0.0-beta.40
 
 devDependencies:
   '@types/react':
-    specifier: ^17.0.59
-    version: 17.0.59
+    specifier: ^17.0.70
+    version: 17.0.70
   '@types/react-dom':
-    specifier: ^17.0.20
-    version: 17.0.20
+    specifier: ^17.0.23
+    version: 17.0.23
   typescript:
     specifier: ^4.9.5
     version: 4.9.5
   vite:
-    specifier: ^2.9.15
-    version: 2.9.15
+    specifier: ^2.9.16
+    version: 2.9.16
 
 packages:
 
@@ -39,41 +39,38 @@ packages:
     dev: true
     optional: true
 
-  /@types/prop-types@15.7.5:
-    resolution: {integrity: sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==}
+  /@types/prop-types@15.7.10:
+    resolution: {integrity: sha512-mxSnDQxPqsZxmeShFH+uwQ4kO4gcJcGahjjMFeLbKE95IAZiiZyiEepGZjtXJ7hN/yfu0bu9xN2ajcU0JcxX6A==}
 
-  /@types/react-dom@17.0.20:
-    resolution: {integrity: sha512-4pzIjSxDueZZ90F52mU3aPoogkHIoSIDG+oQ+wQK7Cy2B9S+MvOqY0uEA/qawKz381qrEDkvpwyt8Bm31I8sbA==}
+  /@types/react-dom@17.0.23:
+    resolution: {integrity: sha512-lnJAZfMEDxfvELeeT24w4rnUYwpzUzQAOTfJQbWYnLcx8AEfz+fXJDCbowIBqNK/Bi4D6j8ovT8Qsda2OtDApA==}
     dependencies:
-      '@types/react': 17.0.59
+      '@types/react': 17.0.70
     dev: true
 
-  /@types/react@17.0.59:
-    resolution: {integrity: sha512-gSON5zWYIGyoBcycCE75E9+r6dCC2dHdsrVkOEiIYNU5+Q28HcBAuqvDuxHcCbMfHBHdeT5Tva/AFn3rnMKE4g==}
+  /@types/react@17.0.70:
+    resolution: {integrity: sha512-yqYMK49/cnqw+T8R9/C+RNjRddYmPDGI5lKHi3bOYceQCBAh8X2ngSbZP0gnVeyvHr0T7wEgIIGKT1usNol08w==}
     dependencies:
-      '@types/prop-types': 15.7.5
-      '@types/scheduler': 0.16.3
+      '@types/prop-types': 15.7.10
+      '@types/scheduler': 0.16.6
       csstype: 3.1.2
 
-  /@types/scheduler@0.16.3:
-    resolution: {integrity: sha512-5cJ8CB4yAx7BH1oMvdU0Jh9lrEXyPkar6F9G/ERswkCuvP4KQZfZkSjcMbAICCpQTN4OuZn8tz0HiKv9TGZgrQ==}
+  /@types/scheduler@0.16.6:
+    resolution: {integrity: sha512-Vlktnchmkylvc9SnwwwozTv04L/e1NykF5vgoQ0XTmI8DD+wxfjQuHuvHS3p0r2jz2x2ghPs2h1FVeDirIteWA==}
 
-  /@xstate/react@4.0.0-beta.5(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.13):
-    resolution: {integrity: sha512-E/icGXFNnTJFk3aoA8VOKQ988+R2a9j/o4g6bFhBlitQuoFgtFYWUX/d1R+rc/xaYKIxtE/lPodzqCa5s39VHQ==}
+  /@xstate/react@4.0.0-beta.10(@types/react@17.0.70)(react@17.0.2)(xstate@5.0.0-beta.40):
+    resolution: {integrity: sha512-S77ALlcoMYMiG9cVlf9qpcy0V6hZ6Va9K/jU4xidX21JsI6YI9i8HMtmMAiRbeV+chkwThe0otEEWFFUWXNHgg==}
     peerDependencies:
-      '@xstate/fsm': ^3.0.0-beta.2
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      xstate: ^5.0.0-beta.13
+      xstate: ^5.0.0-beta.29
     peerDependenciesMeta:
-      '@xstate/fsm':
-        optional: true
       xstate:
         optional: true
     dependencies:
       react: 17.0.2
-      use-isomorphic-layout-effect: 1.1.2(@types/react@17.0.59)(react@17.0.2)
+      use-isomorphic-layout-effect: 1.1.2(@types/react@17.0.70)(react@17.0.2)
       use-sync-external-store: 1.2.0(react@17.0.2)
-      xstate: 5.0.0-beta.13
+      xstate: 5.0.0-beta.40
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -290,29 +287,29 @@ packages:
       esbuild-windows-arm64: 0.14.54
     dev: true
 
-  /fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+  /fsevents@2.3.3:
+    resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /function-bind@1.1.1:
-    resolution: {integrity: sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==}
+  /function-bind@1.1.2:
+    resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
     dev: true
 
-  /has@1.0.3:
-    resolution: {integrity: sha512-f2dvO0VU6Oej7RkWJGrehjbzMAjFp5/VKPp5tTpWIV4JHHZK1/BxbFRtf/siA2SWTe09caDmVtYYzWEIbBS4zw==}
-    engines: {node: '>= 0.4.0'}
+  /hasown@2.0.0:
+    resolution: {integrity: sha512-vUptKVTpIJhcczKBbgnS+RtcuYMB8+oNzPK2/Hp3hanz8JmpATdmmgLgSaadVREkDm+e2giHwY3ZRkyjSIDDFA==}
+    engines: {node: '>= 0.4'}
     dependencies:
-      function-bind: 1.1.1
+      function-bind: 1.1.2
     dev: true
 
-  /is-core-module@2.12.1:
-    resolution: {integrity: sha512-Q4ZuBAe2FUsKtyQJoQHlvP8OvBERxO3jEmy1I7hcRXcJBGGHFh/aJBswbXuS9sgrDH2QUO8ilkwNPHvHMd8clg==}
+  /is-core-module@2.13.1:
+    resolution: {integrity: sha512-hHrIjvZsftOsvKSn2TRYl63zvxsgE0K+0mYMoH6gD4omR5IWB2KynivBQczo3+wF1cCkjzvptnI9Q0sPU66ilw==}
     dependencies:
-      has: 1.0.3
+      hasown: 2.0.0
     dev: true
 
   /js-tokens@4.0.0:
@@ -326,8 +323,8 @@ packages:
       js-tokens: 4.0.0
     dev: false
 
-  /nanoid@3.3.6:
-    resolution: {integrity: sha512-BGcqMMJuToF7i1rt+2PWSNVnWIkGCU78jBG3RxO/bZlnZPK2Cmi2QaffxGO/2RvWi9sL+FAiRiXMgsyxQ1DIDA==}
+  /nanoid@3.3.7:
+    resolution: {integrity: sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
     dev: true
@@ -345,11 +342,11 @@ packages:
     resolution: {integrity: sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==}
     dev: true
 
-  /postcss@8.4.23:
-    resolution: {integrity: sha512-bQ3qMcpF6A/YjR55xtoTr0jGOlnPOKAIMdOWiv0EIT6HVPEaJiJB4NLljSbiHoC2RX7DN5Uvjtpbg1NPdwv1oA==}
+  /postcss@8.4.31:
+    resolution: {integrity: sha512-PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ==}
     engines: {node: ^10 || ^12 || >=14}
     dependencies:
-      nanoid: 3.3.6
+      nanoid: 3.3.7
       picocolors: 1.0.0
       source-map-js: 1.0.2
     dev: true
@@ -373,11 +370,11 @@ packages:
       object-assign: 4.1.1
     dev: false
 
-  /resolve@1.22.2:
-    resolution: {integrity: sha512-Sb+mjNHOULsBv818T40qSPeRiuWLyaGMa5ewydRLFimneixmVy2zdivRl+AF6jaYPC8ERxGDmFSiqui6SfPd+g==}
+  /resolve@1.22.8:
+    resolution: {integrity: sha512-oKWePCxqpd6FlLvGV1VU0x7bkPmmCNolxzjMf4NczoDnQcIWrAF+cPtZn5i6n+RfD2d9i0tzpKnG6Yk168yIyw==}
     hasBin: true
     dependencies:
-      is-core-module: 2.12.1
+      is-core-module: 2.13.1
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
     dev: true
@@ -387,7 +384,7 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
   /scheduler@0.20.2:
@@ -413,7 +410,7 @@ packages:
     hasBin: true
     dev: true
 
-  /use-isomorphic-layout-effect@1.1.2(@types/react@17.0.59)(react@17.0.2):
+  /use-isomorphic-layout-effect@1.1.2(@types/react@17.0.70)(react@17.0.2):
     resolution: {integrity: sha512-49L8yCO3iGT/ZF9QttjwLF/ZD9Iwto5LnH5LmEdk/6cFmXddqi2ulF0edxTwjj+7mqvpVVGQWvbXZdn32wRSHA==}
     peerDependencies:
       '@types/react': '*'
@@ -422,7 +419,7 @@ packages:
       '@types/react':
         optional: true
     dependencies:
-      '@types/react': 17.0.59
+      '@types/react': 17.0.70
       react: 17.0.2
     dev: false
 
@@ -434,8 +431,8 @@ packages:
       react: 17.0.2
     dev: false
 
-  /vite@2.9.15:
-    resolution: {integrity: sha512-fzMt2jK4vQ3yK56te3Kqpkaeq9DkcZfBbzHwYpobasvgYmP2SoAr6Aic05CsB4CzCZbsDv4sujX3pkEGhLabVQ==}
+  /vite@2.9.16:
+    resolution: {integrity: sha512-X+6q8KPyeuBvTQV8AVSnKDvXoBMnTx8zxh54sOwmmuOdxkjMmEJXH2UEchA+vTMps1xw9vL64uwJOWryULg7nA==}
     engines: {node: '>=12.2.0'}
     hasBin: true
     peerDependencies:
@@ -451,13 +448,13 @@ packages:
         optional: true
     dependencies:
       esbuild: 0.14.54
-      postcss: 8.4.23
-      resolve: 1.22.2
+      postcss: 8.4.31
+      resolve: 1.22.8
       rollup: 2.77.3
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
-  /xstate@5.0.0-beta.13:
-    resolution: {integrity: sha512-cv27Y9t6xJimBZ/FBFe6Vjegai/3Gv6INFQcdsiNGrFuXXjP7IMwjytOIxL6VhlDasXcoofWQoPy95v2d284ow==}
+  /xstate@5.0.0-beta.40:
+    resolution: {integrity: sha512-q3tGXbfaHC785Eol2YFU3NmYfRy3XIA/pN2m2rK2oHY5t70SCUO0TvmLqxheE5sB4yJI+47U6XX7pdCtCVA3hg==}
     dev: false

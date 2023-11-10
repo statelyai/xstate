@@ -1,4 +1,4 @@
-import { createMachine } from 'xstate';
+import { createMachine, fromCallback } from 'xstate';
 
 type Dir = 'Up' | 'Left' | 'Down' | 'Right';
 type Point = { x: number; y: number };
@@ -46,7 +46,10 @@ export const snakeMachine = createMachine({
   id: 'SnakeMachine',
   types: {
     context: {} as SnakeMachineContext,
-    events: {} as { type: 'NEW_GAME' } | { type: 'ARROW_KEY'; dir: Dir }
+    events: {} as
+      | { type: 'NEW_GAME' }
+      | { type: 'ARROW_KEY'; dir: Dir }
+      | { type: 'TICK' }
   },
   context: createInitialContext(),
   initial: 'New Game',
@@ -61,10 +64,14 @@ export const snakeMachine = createMachine({
     },
     Moving: {
       entry: 'move snake',
-      after: {
-        '80': {
-          target: '#SnakeMachine.Moving'
-        }
+      invoke: {
+        src: fromCallback(({ sendBack }) => {
+          const i = setInterval(() => {
+            sendBack({ type: 'TICK' });
+          }, 80);
+
+          return () => clearInterval(i);
+        })
       },
       always: [
         {
@@ -81,6 +88,9 @@ export const snakeMachine = createMachine({
         }
       ],
       on: {
+        TICK: {
+          actions: 'move snake'
+        },
         ARROW_KEY: {
           actions: 'save dir',
           target: '#SnakeMachine.Moving'
