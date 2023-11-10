@@ -46,14 +46,14 @@ function resolveSpawn(
     syncSnapshot: boolean;
   }
 ) {
-  const referenced =
+  const logic =
     typeof src === 'string' ? resolveReferencedActor(state.machine, src) : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
 
   let actorRef: AnyActorRef | undefined;
 
-  if (referenced) {
-    actorRef = createActor(referenced.src, {
+  if (logic) {
+    actorRef = createActor(logic, {
       id: resolvedId,
       src,
       parent: actorScope?.self,

@@ -67,16 +67,15 @@ export function createSpawner(
   const spawn: Spawner<any> = (src, options = {}) => {
     const { systemId, input } = options;
     if (typeof src === 'string') {
-      const referenced = resolveReferencedActor(machine, src);
+      const logic = resolveReferencedActor(machine, src);
 
-      if (!referenced) {
+      if (!logic) {
         throw new Error(
           `Actor logic '${src}' not implemented in machine '${machine.id}'`
         );
       }
 
-      // TODO: this should also receive `src`
-      const actorRef = createActor(referenced.src, {
+      const actorRef = createActor(logic, {
         id: options.id,
         parent: actorScope.self,
         input:

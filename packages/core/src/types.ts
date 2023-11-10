@@ -1087,7 +1087,7 @@ type MachineImplementationsActions<
 };
 
 type MachineImplementationsActors<
-  TContext extends MachineContext,
+  _TContext extends MachineContext,
   TResolvedTypesMeta,
   TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
   _TInvokeSrcNameMap = Prop<
