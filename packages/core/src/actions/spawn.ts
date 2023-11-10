@@ -16,7 +16,8 @@ import {
   ProvidedActor,
   IsLiteralString,
   InputFrom,
-  UnifiedArg
+  UnifiedArg,
+  Mapper
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -151,7 +152,9 @@ type DistributeActors<
             TActor['id']
           >;
           systemId?: string;
-          input?: InputFrom<TActor['logic']>;
+          input?:
+            | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
+            | InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
         }
       ]
@@ -160,7 +163,9 @@ type DistributeActors<
         options?: {
           id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
           systemId?: string;
-          input?: InputFrom<TActor['logic']>;
+          input?:
+            | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
+            | InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
         }
       ]
