@@ -454,7 +454,7 @@ describe('transient states (eventless transitions)', () => {
     expect(() => actorRef.start()).not.toThrow();
   });
 
-  it('should be taken even in absence of other transitions', () => {
+  it('should not be taken even in absence of other transitions', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -471,34 +471,41 @@ describe('transient states (eventless transitions)', () => {
 
     actorRef.send({ type: 'WHATEVER' });
 
-    expect(actorRef.getSnapshot().value).toBe('b');
+    expect(actorRef.getSnapshot().value).toBe('a');
   });
 
-  it('should select subsequent transient transitions even in absence of other transitions', () => {
+  it('should select subsequent always transitions after selecting a regular transition', () => {
+    let shouldMatch = false;
+
     const machine = createMachine({
       initial: 'a',
       states: {
         a: {
-          always: {
-            target: 'b',
-            guard: ({ event }) => event.type === 'WHATEVER'
+          on: {
+            FOO: 'b'
           }
         },
         b: {
           always: {
             target: 'c',
-            guard: () => true
+            guard: ({ event }) => event.type === 'FOO'
           }
         },
-        c: {}
+        c: {
+          always: {
+            target: 'd',
+            guard: ({ event }) => event.type === 'FOO'
+          }
+        },
+        d: {}
       }
     });
 
     const actorRef = createActor(machine).start();
 
-    actorRef.send({ type: 'WHATEVER' });
+    actorRef.send({ type: 'FOO' });
 
-    expect(actorRef.getSnapshot().value).toBe('c');
+    expect(actorRef.getSnapshot().value).toBe('d');
   });
 
   it('events that trigger eventless transitions should be preserved in guards', () => {
