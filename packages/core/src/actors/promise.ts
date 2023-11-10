@@ -56,8 +56,11 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  *
  * @example
  * ```ts
- * const promiseLogic = fromPromise(() => {
- *   return fetch('https://example.com/...').then((data) => data.json());
+ * const promiseLogic = fromPromise(async () => {
+ *   const result = await fetch('https://example.com/...')
+ *     .then((data) => data.json());
+ *
+ *   return result;
  * });
  *
  * const promiseActor = createActor(promiseLogic);
