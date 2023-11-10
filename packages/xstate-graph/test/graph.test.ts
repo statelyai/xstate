@@ -3,7 +3,6 @@ import {
   createMachine,
   EventObject,
   assign,
-  State,
   fromTransition,
   Snapshot
 } from 'xstate';
@@ -30,14 +29,14 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
 } {
   return {
     state:
-      path.state instanceof State
+      'machine' in path.state && 'value' in path.state
         ? path.state.value
         : 'context' in path.state
         ? path.state.context
         : path.state,
     steps: path.steps.map((step) => ({
       state:
-        step.state instanceof State
+        'machine' in step.state && 'value' in step.state
           ? step.state.value
           : 'context' in step.state
           ? step.state.context
@@ -477,9 +476,7 @@ describe('@xstate/graph', () => {
 
     it('should return a path from a specified from-state', () => {
       const path = getPathsFromEvents(lightMachine, [{ type: 'TIMER' }], {
-        fromState: lightMachine.resolveState(
-          lightMachine.resolveStateValue('yellow')
-        )
+        fromState: lightMachine.resolveState({ value: 'yellow' })
       })[0];
 
       expect(path).toBeDefined();
@@ -657,7 +654,7 @@ it.each([getShortestPaths, getSimplePaths])(
     });
 
     const paths = pathGetter(machine, {
-      fromState: machine.resolveState(machine.resolveStateValue('b'))
+      fromState: machine.resolveState({ value: 'b' })
     });
 
     // Instead of taking 2 steps to reach state 'b' (A, B),

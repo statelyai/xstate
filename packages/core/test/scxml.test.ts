@@ -422,7 +422,7 @@ async function runTestToCompletion(
     }
     service.send({ type: event.name });
 
-    const stateIds = getStateNodes(machine.root, nextState).map(
+    const stateIds = getStateNodes(machine.root, nextState.value).map(
       (stateNode) => stateNode.id
     );
 

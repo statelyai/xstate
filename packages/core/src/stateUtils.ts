@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { State, cloneState } from './State.ts';
+import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { raise } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
@@ -634,17 +634,12 @@ export function getStateNodeByPath(
 /**
  * Returns the state nodes represented by the current state value.
  *
- * @param state The state value or State instance
+ * @param stateValue The state value or State instance
  */
 export function getStateNodes<
   TContext extends MachineContext,
   TEvent extends EventObject
->(
-  stateNode: AnyStateNode,
-  state: StateValue | State<TContext, TEvent, TODO, TODO, TODO>
-): Array<AnyStateNode> {
-  const stateValue = state instanceof State ? state.value : toStateValue(state);
-
+>(stateNode: AnyStateNode, stateValue: StateValue): Array<AnyStateNode> {
   if (typeof stateValue === 'string') {
     return [stateNode, stateNode.states[stateValue]];
   }
@@ -677,7 +672,7 @@ export function transitionAtomicNode<
 >(
   stateNode: AnyStateNode,
   stateValue: string,
-  state: State<TContext, TEvent, TODO, TODO, TODO>,
+  state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
@@ -696,7 +691,7 @@ export function transitionCompoundNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent, TODO, TODO, TODO>,
+  state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
@@ -722,7 +717,7 @@ export function transitionParallelNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValueMap,
-  state: State<TContext, TEvent, TODO, TODO, TODO>,
+  state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
@@ -758,13 +753,7 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  state: State<
-    TContext,
-    TEvent,
-    TODO,
-    TODO,
-    TODO // tags
-  >,
+  state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
@@ -1065,7 +1054,7 @@ export function microstep<
     ) {
       return nextState;
     }
-    return cloneState(nextState, {
+    return cloneMachineSnapshot(nextState, {
       configuration: nextConfiguration,
       historyValue
     });
@@ -1203,13 +1192,13 @@ function enterStates(
         continue;
       }
 
-      nextState = cloneState(nextState, {
+      nextState = cloneMachineSnapshot(nextState, {
         status: 'done',
         output: getMachineOutput(
           nextState,
           event,
           actorScope,
-          currentState.configuration[0].machine.root,
+          nextState.machine.root,
           rootCompletionNode
         )
       });
@@ -1634,9 +1623,12 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
-    nextState = cloneState(stopChildren(nextState, event, actorScope), {
-      status: 'stopped'
-    });
+    nextState = cloneMachineSnapshot(
+      stopChildren(nextState, event, actorScope),
+      {
+        status: 'stopped'
+      }
+    );
     states.push(nextState);
 
     return {
@@ -1794,29 +1786,4 @@ export function stateValuesEqual(
     aKeys.length === bKeys.length &&
     aKeys.every((key) => stateValuesEqual(a[key], b[key]))
   );
-}
-
-export function getInitialConfiguration(
-  rootNode: AnyStateNode
-): AnyStateNode[] {
-  const configuration: AnyStateNode[] = [];
-  const initialTransition = rootNode.initial;
-
-  const statesToEnter = new Set<AnyStateNode>();
-  const statesForDefaultEntry = new Set<AnyStateNode>([rootNode]);
-
-  computeEntrySet(
-    [initialTransition],
-    {},
-    statesForDefaultEntry,
-    statesToEnter
-  );
-
-  for (const stateNodeToEnter of [...statesToEnter].sort(
-    (a, b) => a.order - b.order
-  )) {
-    configuration.push(stateNodeToEnter);
-  }
-
-  return configuration;
 }

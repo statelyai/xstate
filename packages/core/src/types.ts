@@ -1,7 +1,7 @@
 import type { StateNode } from './StateNode.ts';
-import type { State } from './State.ts';
+import type { MachineSnapshot } from './State.ts';
 import type { Clock, Actor, ProcessingStatus } from './interpreter.ts';
-import type { MachineSnapshot, StateMachine } from './StateMachine.ts';
+import type { StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
@@ -926,13 +926,8 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-export type AnyState = State<
-  any, // context
-  any, // event
-  any, // actor
-  any, // tags
-  any // typegen
->;
+// TODO: replace with AnyMachineSnapshot
+export type AnyState = MachineSnapshot<any, any, any, any, any, any>;
 
 export type AnyStateMachine = StateMachine<
   any,
@@ -1655,22 +1650,41 @@ export interface StateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  value: StateValue;
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
-  meta?: any;
-  configuration?: Array<StateNode<TContext, TEvent>>;
+  configuration: Array<StateNode<TContext, TEvent>>;
   children: Record<string, ActorRef<any, any>>;
   status: 'active' | 'done' | 'error' | 'stopped';
   output?: any;
   error?: unknown;
-  tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
+  /**
+   * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
+   *
+   * @remarks
+   * You can create your own “clock”. The clock interface is an object with two functions/methods:
+   *
+   * - `setTimeout` - same arguments as `window.setTimeout(fn, timeout)`
+   * - `clearTimeout` - same arguments as `window.clearTimeout(id)`
+   *
+   * By default, the native `setTimeout` and `clearTimeout` functions are used.
+   *
+   * For testing, XState provides `SimulatedClock`.
+   *
+   * @see {@link Clock}
+   * @see {@link SimulatedClock}
+   */
   clock?: Clock;
+  /**
+   * Specifies the logger to be used for log(...) actions. Defaults to the native console.log method.
+   */
   logger?: (...args: any[]) => void;
+  /**
+   * @internal
+   */
   parent?: ActorRef<any, any>;
   /**
    * The custom `id` for referencing this service.
@@ -1683,8 +1697,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   devTools?: boolean | DevToolsAdapter; // TODO: add enhancer options
 
-  sync?: boolean;
-
   /**
    * The system ID to register this actor under
    */
@@ -1694,6 +1706,19 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   input?: InputFrom<TLogic>;
 
+  /**
+   * Initializes actor logic from a specific persisted internal state.
+   *
+   * @remarks
+   *
+   * If the state is compatible with the actor logic, when the actor is started it will be at that persisted state.
+   * Actions from machine actors will not be re-executed, because they are assumed to have been already executed.
+   * However, invocations will be restarted, and spawned actors will be restored recursively.
+   *
+   * Can be generated with {@link Actor.getPersistedState}.
+   *
+   * @see https://stately.ai/docs/persistence
+   */
   // state?:
   //   | PersistedStateFrom<TActorLogic>
   //   | InternalStateFrom<TActorLogic>;
@@ -1704,6 +1729,80 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   src?: string | AnyActorLogic;
 
+  /**
+   * A callback function or observer object which can be used to inspect actor system updates.
+   *
+   * @remarks
+   * If a callback function is provided, it can accept an inspection event argument. The types of inspection events that can be observed include:
+   *
+   * - `@xstate.actor` - An actor ref has been created in the system
+   * - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
+   * - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
+   *
+   * @example
+   * ```ts
+   * import { createMachine } from 'xstate';
+   *
+   * const machine = createMachine({
+   *   // ...
+   * });
+   *
+   * const actor = createActor(machine, {
+   *   inspect: (inspectionEvent) => {
+   *     if (inspectionEvent.actorRef === actor) {
+   *       // This event is for the root actor
+   *     }
+   *
+   *     if (inspectionEvent.type === '@xstate.actor') {
+   *       console.log(inspectionEvent.actorRef);
+   *     }
+   *
+   *     if (inspectionEvent.type === '@xstate.event') {
+   *       console.log(inspectionEvent.sourceRef);
+   *       console.log(inspectionEvent.actorRef);
+   *       console.log(inspectionEvent.event);
+   *     }
+   *
+   *     if (inspectionEvent.type === '@xstate.snapshot') {
+   *       console.log(inspectionEvent.actorRef);
+   *       console.log(inspectionEvent.event);
+   *       console.log(inspectionEvent.snapshot);
+   *     }
+   *   }
+   * });
+   * ```
+   *
+   * Alternately, an observer object (`{ next?, error?, complete? }`) can be provided:
+   *
+   * @example
+   * ```ts
+   * const actor = createActor(machine, {
+   *   inspect: {
+   *     next: (inspectionEvent) => {
+   *       if (inspectionEvent.actorRef === actor) {
+   *         // This event is for the root actor
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.actor') {
+   *         console.log(inspectionEvent.actorRef);
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.event') {
+   *         console.log(inspectionEvent.sourceRef);
+   *         console.log(inspectionEvent.actorRef);
+   *         console.log(inspectionEvent.event);
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.snapshot') {
+   *         console.log(inspectionEvent.actorRef);
+   *         console.log(inspectionEvent.event);
+   *         console.log(inspectionEvent.snapshot);
+   *       }
+   *     }
+   *   }
+   * });
+   * ```
+   */
   inspect?:
     | Observer<InspectionEvent>
     | ((inspectionEvent: InspectionEvent) => void);
@@ -2035,10 +2134,11 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TResolvedTypesMeta
     >
     ? TEvent
-    : R extends State<
+    : R extends MachineSnapshot<
         infer _TContext,
         infer TEvent,
         infer _TActor,
+        infer _TTag,
         infer _TOutput,
         infer _TResolvedTypesMeta
       >
@@ -2068,10 +2168,11 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TTypesMeta
     >
     ? TContext
-    : R extends State<
+    : R extends MachineSnapshot<
         infer TContext,
         infer _TEvent,
         infer _TActor,
+        infer _TTag,
         infer _TOutput,
         infer _TResolvedTypesMeta
       >

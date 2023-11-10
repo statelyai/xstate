@@ -12,7 +12,6 @@ import {
   stop,
   log
 } from '../src/index.ts';
-import { State } from '../src/State';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
@@ -1054,7 +1053,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: State.from('bar', undefined, machine)
+        state: machine.resolveState({ value: 'bar' })
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1071,7 +1070,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveStateValue('bar')
+        state: machine.resolveState({ value: 'bar' })
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1094,7 +1093,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveStateValue('foo')
+        state: machine.resolveState({ value: 'foo' })
       });
 
       expect(actor.getSnapshot().matches({ foo: 'one' })).toBeTruthy();

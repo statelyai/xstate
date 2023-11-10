@@ -3,7 +3,6 @@ import {
   EventObject,
   MachineConfig,
   MachineTypes,
-  State,
   StateNodeConfig,
   TransitionConfig,
   TypegenConstraint,
@@ -13,7 +12,8 @@ import {
   MachineContext,
   ActorLogic,
   ParameterizedObject,
-  Snapshot
+  Snapshot,
+  MachineSnapshot
 } from 'xstate';
 
 type TODO = any;
@@ -102,11 +102,11 @@ export type TestMachineOptions<
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
     testContext: T,
-    state: State<TContext, any, any, any, any>
+    state: MachineSnapshot<TContext, any, any, any, any, any>
   ) => Promise<void> | void;
   description?:
     | string
-    | ((state: State<TContext, any, any, any, any>) => string);
+    | ((state: MachineSnapshot<TContext, any, any, any, any, any>) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -184,7 +184,7 @@ export interface TestTransitionConfig<
   TTestContext
 > extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, string> {
   test?: (
-    state: State<TContext, TEvent, any, any, any>,
+    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
     testContext: TTestContext
   ) => void;
 }
