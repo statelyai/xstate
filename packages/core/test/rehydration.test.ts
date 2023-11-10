@@ -81,7 +81,7 @@ describe('rehydration', () => {
         }
       });
 
-      const activeState = machine.resolveStateValue('active');
+      const activeState = machine.resolveState({ value: 'active' });
       const service = createActor(machine, {
         state: activeState
       });
@@ -107,7 +107,7 @@ describe('rehydration', () => {
       });
 
       createActor(machine, {
-        state: machine.resolveStateValue('active')
+        state: machine.resolveState({ value: 'active' })
       })
         .start()
         .stop();
@@ -287,5 +287,32 @@ describe('rehydration', () => {
       .children;
     expect(Object.keys(persistedChildren).length).toBe(1);
     expect((Object.values(persistedChildren)[0] as any).src).toBe('foo');
+  });
+
+  it('should complete on a rehydrated final state', () => {
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: { NEXT: 'bar' }
+        },
+        bar: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+    const persistedState = actorRef.getPersistedState();
+
+    const spy = jest.fn();
+    const actorRef2 = createActor(machine, { state: persistedState });
+    actorRef2.subscribe({
+      complete: spy
+    });
+
+    actorRef2.start();
+    expect(spy).toHaveBeenCalled();
   });
 });

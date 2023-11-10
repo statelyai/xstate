@@ -1,5 +1,5 @@
 import { createErrorActorEvent } from './eventUtils.ts';
-import { ActorStatus, createActor } from './interpreter.ts';
+import { ProcessingStatus, createActor } from './interpreter.ts';
 import {
   ActorRefFrom,
   AnyActorScope,
@@ -109,12 +109,11 @@ export function createSpawner(
       }
       return actorRef;
     } else {
-      // TODO: this should also receive `src`
       const actorRef = createActor(src, {
         id: options.id,
         parent: actorScope.self,
         input: options.input,
-        src: undefined,
+        src,
         systemId
       });
 
@@ -140,7 +139,7 @@ export function createSpawner(
     const actorRef = spawn(src, options) as TODO; // TODO: fix types
     spawnedChildren[actorRef.id] = actorRef;
     actorScope.defer(() => {
-      if (actorRef.status === ActorStatus.Stopped) {
+      if (actorRef._processingStatus === ProcessingStatus.Stopped) {
         return;
       }
       try {

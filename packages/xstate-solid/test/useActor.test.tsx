@@ -334,71 +334,6 @@ describe('useActor', () => {
     render(() => <Test />);
   });
 
-  it('should be reactive to toStrings method calls', () => {
-    const machine = createMachine({
-      initial: 'green',
-      states: {
-        green: {
-          on: {
-            TRANSITION: 'yellow'
-          }
-        },
-        yellow: {
-          on: {
-            TRANSITION: 'red'
-          }
-        },
-        red: {
-          on: {
-            TRANSITION: 'green'
-          }
-        }
-      }
-    });
-
-    const App = () => {
-      const service = createActor(machine).start();
-      const [state, send] = useActor(service);
-      const [toStrings, setToStrings] = createSignal(state().toStrings());
-      createEffect(
-        on(
-          () => state().value,
-          () => {
-            setToStrings(state().toStrings());
-          }
-        )
-      );
-      return (
-        <div>
-          <button
-            data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
-          />
-          <div data-testid="to-strings">{JSON.stringify(toStrings())}</div>
-        </div>
-      );
-    };
-
-    render(() => <App />);
-    const toStringsEl = screen.getByTestId('to-strings');
-    const transitionBtn = screen.getByTestId('transition-button');
-
-    // Green
-    expect(toStringsEl.textContent).toEqual('["green"]');
-    transitionBtn.click();
-
-    // Yellow
-    expect(toStringsEl.textContent).toEqual('["yellow"]');
-    transitionBtn.click();
-
-    // Red
-    expect(toStringsEl.textContent).toEqual('["red"]');
-    transitionBtn.click();
-
-    // Green
-    expect(toStringsEl.textContent).toEqual('["green"]');
-  });
-
   it('should be reactive to toJSON method calls', () => {
     const machine = createMachine({
       initial: 'green',
@@ -439,7 +374,7 @@ describe('useActor', () => {
             data-testid="transition-button"
             onclick={() => send({ type: 'TRANSITION' })}
           />
-          <div data-testid="to-json">{toJson().value.toString()}</div>
+          <div data-testid="to-json">{(toJson() as any).value.toString()}</div>
         </div>
       );
     };

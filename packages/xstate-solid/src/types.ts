@@ -1,55 +1,9 @@
 import type {
-  AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  EventObject,
   InternalMachineImplementations,
-  ActorOptions,
-  MachineContext,
-  ProvidedActor,
-  TypegenDisabled,
-  HomomorphicPick,
-  MachineSnapshot
+  ActorOptions
 } from 'xstate';
-
-type MachineSnapshotPOJO<
-  TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TActor extends ProvidedActor = ProvidedActor,
-  TTag extends string = string,
-  TOutput = unknown,
-  TResolvedTypesMeta = TypegenDisabled
-> = HomomorphicPick<
-  MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>,
-  keyof MachineSnapshot<
-    TContext,
-    TEvent,
-    TActor,
-    TTag,
-    TOutput,
-    TResolvedTypesMeta
-  >
->;
-
-// Converts a State class type to a POJO State type. This reflects that the state
-// is being spread into a new object for reactive tracking in SolidJS
-export type CheckSnapshot<Snapshot> = Snapshot extends MachineSnapshot<
-  infer TContext,
-  infer TEvents,
-  infer TActor,
-  infer TTag,
-  infer TOutput,
-  infer TResolvedTypesMeta
->
-  ? MachineSnapshotPOJO<
-      TContext,
-      TEvents,
-      TActor,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >
-  : Snapshot;
 
 type InternalMachineOpts<
   TMachine extends AnyStateMachine,

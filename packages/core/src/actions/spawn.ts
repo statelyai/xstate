@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
+import { cloneMachineSnapshot } from '../State.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
-import { ActorStatus, createActor } from '../interpreter.ts';
+import { ProcessingStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
   AnyActorScope,
@@ -59,7 +59,7 @@ function resolveSpawn(
     const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
       id: resolvedId,
-      src: typeof src === 'string' ? src : undefined,
+      src,
       parent: actorScope?.self,
       systemId,
       input:
@@ -93,7 +93,7 @@ function resolveSpawn(
     );
   }
   return [
-    cloneState(state, {
+    cloneMachineSnapshot(state, {
       children: {
         ...state.children,
         [resolvedId]: actorRef!
@@ -115,7 +115,7 @@ function executeSpawn(
   }
 
   actorScope.defer(() => {
-    if (actorRef.status === ActorStatus.Stopped) {
+    if (actorRef._processingStatus === ProcessingStatus.Stopped) {
       return;
     }
     try {

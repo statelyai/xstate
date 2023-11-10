@@ -474,17 +474,17 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should render snapshot value when actor doesn't emit anything", () => {
-    const createCustomActor = (latestValue: string) =>
-      createActor(fromTransition((s) => s, latestValue));
+    const createCustomLogic = (latestValue: string) =>
+      fromTransition((s) => s, latestValue);
 
     const parentMachine = createMachine({
       types: {
         context: {} as {
-          childActor: ReturnType<typeof createActor>;
+          childActor: ActorRefFrom<typeof createCustomLogic>;
         }
       },
-      context: () => ({
-        childActor: createCustomActor('foo')
+      context: ({ spawn }) => ({
+        childActor: spawn(createCustomLogic('foo'))
       })
     });
 
