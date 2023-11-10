@@ -1795,28 +1795,3 @@ export function stateValuesEqual(
     aKeys.every((key) => stateValuesEqual(a[key], b[key]))
   );
 }
-
-export function getInitialConfiguration(
-  rootNode: AnyStateNode
-): AnyStateNode[] {
-  const configuration: AnyStateNode[] = [];
-  const initialTransition = rootNode.initial;
-
-  const statesToEnter = new Set<AnyStateNode>();
-  const statesForDefaultEntry = new Set<AnyStateNode>([rootNode]);
-
-  computeEntrySet(
-    [initialTransition],
-    {},
-    statesForDefaultEntry,
-    statesToEnter
-  );
-
-  for (const stateNodeToEnter of [...statesToEnter].sort(
-    (a, b) => a.order - b.order
-  )) {
-    configuration.push(stateNodeToEnter);
-  }
-
-  return configuration;
-}
