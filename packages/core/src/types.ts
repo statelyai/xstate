@@ -1089,31 +1089,16 @@ type MachineImplementationsActions<
 type MachineImplementationsActors<
   TContext extends MachineContext,
   TResolvedTypesMeta,
-  TEventsCausingActors = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingActors'
-  >,
   TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
   _TInvokeSrcNameMap = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'invokeSrcNameMap'
   >
 > = {
-  // TODO: this should require `{ src, input }` for required inputs
-  [K in keyof TIndexedActors]?:
-    | Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>
-    | {
-        src: Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>;
-        input:
-          | Mapper<
-              TContext,
-              MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActors, K>,
-              InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>,
-              Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
-            >
-          | InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>;
-      };
+  [K in keyof TIndexedActors]?: Cast<
+    Prop<TIndexedActors[K], 'logic'>,
+    AnyActorLogic
+  >;
 };
 
 type MachineImplementationsDelays<

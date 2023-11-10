@@ -47,29 +47,25 @@ function resolveSpawn(
   }
 ) {
   const referenced =
-    typeof src === 'string'
-      ? resolveReferencedActor(state.machine, src)
-      : { src, input: undefined };
+    typeof src === 'string' ? resolveReferencedActor(state.machine, src) : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
 
   let actorRef: AnyActorRef | undefined;
 
   if (referenced) {
-    // TODO: inline `input: undefined` should win over the referenced one
-    const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
       id: resolvedId,
       src,
       parent: actorScope?.self,
       systemId,
       input:
-        typeof configuredInput === 'function'
-          ? configuredInput({
+        typeof input === 'function'
+          ? input({
               context: state.context,
               event: actionArgs.event,
               self: actorScope?.self
             })
-          : configuredInput
+          : input
     });
 
     if (syncSnapshot) {
