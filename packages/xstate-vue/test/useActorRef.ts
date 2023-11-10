@@ -1,5 +1,5 @@
 import { render, fireEvent } from '@testing-library/vue';
-import UseActorRef2 from './UseActorRef2.vue';
+import UseActorRef2 from './UseActorRefWithTransitionLogic.vue';
 
 describe('useActorRef', () => {
   it('should be able to spawn an actor from actor logic', async () => {
