@@ -1,7 +1,7 @@
 import type { StateNode } from './StateNode.ts';
-import type { State } from './State.ts';
+import type { MachineSnapshot } from './State.ts';
 import type { Clock, Actor, ProcessingStatus } from './interpreter.ts';
-import type { MachineSnapshot, StateMachine } from './StateMachine.ts';
+import type { StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
@@ -926,13 +926,8 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-export type AnyState = State<
-  any, // context
-  any, // event
-  any, // actor
-  any, // tags
-  any // typegen
->;
+// TODO: replace with AnyMachineSnapshot
+export type AnyState = MachineSnapshot<any, any, any, any, any, any>;
 
 export type AnyStateMachine = StateMachine<
   any,
@@ -2139,10 +2134,11 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TResolvedTypesMeta
     >
     ? TEvent
-    : R extends State<
+    : R extends MachineSnapshot<
         infer _TContext,
         infer TEvent,
         infer _TActor,
+        infer _TTag,
         infer _TOutput,
         infer _TResolvedTypesMeta
       >
@@ -2172,10 +2168,11 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TTypesMeta
     >
     ? TContext
-    : R extends State<
+    : R extends MachineSnapshot<
         infer TContext,
         infer _TEvent,
         infer _TActor,
+        infer _TTag,
         infer _TOutput,
         infer _TResolvedTypesMeta
       >

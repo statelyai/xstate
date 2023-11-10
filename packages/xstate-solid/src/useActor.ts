@@ -3,7 +3,6 @@ import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState.ts';
 import { createImmutable } from './createImmutable.ts';
-import type { CheckSnapshot } from './types.ts';
 import { unwrap } from 'solid-js/store';
 
 const noop = () => {
@@ -14,13 +13,13 @@ type Sender<TEvent> = (event: TEvent) => void;
 
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: Accessor<TActor> | TActor
-): [Accessor<CheckSnapshot<SnapshotFrom<TActor>>>, TActor['send']];
+): [Accessor<SnapshotFrom<TActor>>, TActor['send']];
 export function useActor<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 >(
   actorRef: Accessor<ActorRef<TEvent, TSnapshot>> | ActorRef<TEvent, TSnapshot>
-): [Accessor<CheckSnapshot<TSnapshot>>, Sender<TEvent>];
+): [Accessor<TSnapshot>, Sender<TEvent>];
 export function useActor(
   actorRef:
     | Accessor<ActorRef<EventObject, Snapshot<unknown>>>
@@ -34,7 +33,10 @@ export function useActor(
     snapshot: deriveServiceState(actorMemo().getSnapshot?.())
   });
 
-  const setActorState = (actorState: unknown, prevState?: unknown) => {
+  const setActorState = (
+    actorState: Snapshot<unknown>,
+    prevState?: Snapshot<unknown>
+  ) => {
     setState({
       snapshot: deriveServiceState(actorState, prevState)
     });

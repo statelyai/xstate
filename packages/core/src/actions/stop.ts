@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
+import { cloneMachineSnapshot } from '../State.ts';
 import { ProcessingStatus } from '../interpreter.ts';
 import {
   ActionArgs,
@@ -44,7 +44,7 @@ function resolveStop(
     delete children[resolvedActorRef.id];
   }
   return [
-    cloneState(state, {
+    cloneMachineSnapshot(state, {
       children
     }),
     resolvedActorRef

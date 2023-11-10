@@ -752,7 +752,7 @@ describe('useMachine hook', () => {
             data-testid="transition-button"
             onclick={() => send({ type: 'TRANSITION' })}
           />
-          <div data-testid="to-json">{toJson().value.toString()}</div>
+          <div data-testid="to-json">{(toJson() as any).value.toString()}</div>
         </div>
       );
     };

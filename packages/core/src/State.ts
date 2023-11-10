@@ -1,13 +1,9 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './interpreter.ts';
 import { memo } from './memo.ts';
-import { MachineSnapshot } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
-import {
-  getConfiguration,
-  getStateNodes,
-  getStateValue
-} from './stateUtils.ts';
+import type { StateMachine } from './StateMachine.ts';
+import { getStateValue } from './stateUtils.ts';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
@@ -20,11 +16,11 @@ import type {
   Prop,
   StateConfig,
   StateValue,
-  TODO,
   AnyActorRef,
   Compute,
   EventDescriptor,
-  Snapshot
+  Snapshot,
+  ParameterizedObject
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -65,85 +61,70 @@ export function isStateConfig<
 }
 
 /**
- * @deprecated Use `isStateConfig(object)` or `state instanceof State` instead.
+ * @deprecated Use `isStateConfig(object)`
  */
 export const isState = isStateConfig;
-export class State<
+
+interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TTag extends string,
+  TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > {
-  public tags: Set<string>;
+  machine: StateMachine<
+    TContext,
+    TEvent,
+    TActor,
+    ParameterizedObject,
+    ParameterizedObject,
+    string,
+    TTag,
+    unknown,
+    TOutput,
+    TResolvedTypesMeta
+  >;
+  tags: Set<string>;
+  value: StateValue;
+  status: 'active' | 'done' | 'error' | 'stopped';
+  error: unknown;
+  context: TContext;
 
-  public value: StateValue;
-  /**
-   * Indicates whether the state is a final state.
-   */
-  public status: 'active' | 'done' | 'error' | 'stopped';
-  /**
-   * The output data of the top-level finite state.
-   */
-  public error: unknown;
-  public context: TContext;
-  public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
+  historyValue: Readonly<HistoryValue<TContext, TEvent>>;
   /**
    * The enabled state nodes representative of the state value.
    */
-  public configuration: Array<StateNode<TContext, TEvent>>;
+  configuration: Array<StateNode<TContext, TEvent>>;
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  public children: ComputeChildren<TActor>;
+  children: ComputeChildren<TActor>;
 
   /**
-   * Creates a new `State` instance that represents the current state of a running machine.
-   *
-   * @param config
+   * The next events that will cause a transition from the current state.
    */
-  constructor(
-    config: StateConfig<TContext, TEvent>,
-    public machine: AnyStateMachine
-  ) {
-    this.context = config.context;
-    this.historyValue = config.historyValue || {};
-    this.matches = this.matches.bind(this);
-    this.configuration = config.configuration;
-    this.children = config.children as any;
+  nextEvents: Array<EventDescriptor<TEvent>>;
 
-    this.value = getStateValue(machine.root, this.configuration);
-    this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
-    this.status = config.status;
-    (this as any).output = config.output;
-    (this as any).error = config.error;
-  }
-
-  public toJSON() {
-    const { configuration, tags, machine, ...jsonValues } = this;
-
-    return { ...jsonValues, tags: Array.from(tags), meta: this.meta };
-  }
+  meta: Record<string, any>;
 
   /**
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<
+  matches: <
     TSV extends TResolvedTypesMeta extends TypegenEnabled
       ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
       : StateValue
-  >(parentStateValue: TSV): boolean {
-    return matchesState(parentStateValue as any, this.value);
-  }
+  >(
+    parentStateValue: TSV
+  ) => boolean;
 
   /**
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
-  public hasTag(tag: TTag): boolean {
-    return this.tags.has(tag as string);
-  }
+  hasTag: (tag: TTag) => boolean;
 
   /**
    * Determines whether sending the `event` will cause a non-forbidden transition
@@ -153,48 +134,219 @@ export class State<
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
-  public can(event: TEvent): boolean {
-    if (isDevelopment && !this.machine) {
-      console.warn(
-        `state.can(...) used outside of a machine-created State object; this will always return false.`
-      );
-    }
+  can: (event: TEvent) => boolean;
 
-    const transitionData = this.machine.getTransitionData(this as any, event);
-
-    return (
-      !!transitionData?.length &&
-      // Check that at least one transition is not forbidden
-      transitionData.some((t) => t.target !== undefined || t.actions.length)
-    );
-  }
-
-  /**
-   * The next events that will cause a transition from the current state.
-   */
-  public get nextEvents(): Array<EventDescriptor<TEvent>> {
-    return memo(this, 'nextEvents', () => {
-      return [
-        ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
-      ];
-    });
-  }
-
-  public get meta(): Record<string, any> {
-    return this.configuration.reduce((acc, stateNode) => {
-      if (stateNode.meta !== undefined) {
-        acc[stateNode.id] = stateNode.meta;
-      }
-      return acc;
-    }, {} as Record<string, any>);
-  }
+  toJSON: () => unknown;
 }
 
-export function cloneState<TState extends AnyState>(
+interface ActiveMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
+  TResolvedTypesMeta = TypegenDisabled
+> extends MachineSnapshotBase<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  > {
+  status: 'active';
+  output: undefined;
+  error: undefined;
+}
+
+interface DoneMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
+  TResolvedTypesMeta = TypegenDisabled
+> extends MachineSnapshotBase<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  > {
+  status: 'done';
+  output: TOutput;
+  error: undefined;
+}
+
+interface ErrorMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
+  TResolvedTypesMeta = TypegenDisabled
+> extends MachineSnapshotBase<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  > {
+  status: 'error';
+  output: undefined;
+  error: unknown;
+}
+
+interface StoppedMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
+  TResolvedTypesMeta = TypegenDisabled
+> extends MachineSnapshotBase<
+    TContext,
+    TEvent,
+    TActor,
+    TTag,
+    TOutput,
+    TResolvedTypesMeta
+  > {
+  status: 'stopped';
+  output: undefined;
+  error: undefined;
+}
+
+export type MachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TOutput,
+  TResolvedTypesMeta = TypegenDisabled
+> =
+  | ActiveMachineSnapshot<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  | DoneMachineSnapshot<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  | ErrorMachineSnapshot<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  | StoppedMachineSnapshot<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >;
+
+export function createMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TTag extends string,
+  TResolvedTypesMeta = TypegenDisabled
+>(
+  config: StateConfig<TContext, TEvent>,
+  machine: AnyStateMachine
+): MachineSnapshot<
+  TContext,
+  TEvent,
+  TActor,
+  TTag,
+  undefined,
+  TResolvedTypesMeta
+> {
+  return {
+    status: config.status as any,
+    output: config.output,
+    error: config.error,
+    machine,
+    context: config.context,
+    configuration: config.configuration,
+    value: getStateValue(machine.root, config.configuration),
+    tags: new Set(flatten(config.configuration.map((sn) => sn.tags))),
+    children: config.children as any,
+    historyValue: config.historyValue || {},
+    matches(parentStateValue) {
+      return matchesState(parentStateValue as any, this.value);
+    },
+    hasTag(tag) {
+      return this.tags.has(tag);
+    },
+    can(event) {
+      if (isDevelopment && !this.machine) {
+        console.warn(
+          `state.can(...) used outside of a machine-created State object; this will always return false.`
+        );
+      }
+
+      const transitionData = this.machine.getTransitionData(this as any, event);
+
+      return (
+        !!transitionData?.length &&
+        // Check that at least one transition is not forbidden
+        transitionData.some((t) => t.target !== undefined || t.actions.length)
+      );
+    },
+    get nextEvents() {
+      return memo(this, 'nextEvents', () => {
+        return [
+          ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
+        ];
+      });
+    },
+    get meta() {
+      return this.configuration.reduce((acc, stateNode) => {
+        if (stateNode.meta !== undefined) {
+          acc[stateNode.id] = stateNode.meta;
+        }
+        return acc;
+      }, {} as Record<string, any>);
+    },
+    toJSON() {
+      const {
+        configuration,
+        tags,
+        machine,
+        nextEvents,
+        toJSON,
+        can,
+        hasTag,
+        matches,
+        ...jsonValues
+      } = this;
+      return { ...jsonValues, tags: Array.from(tags) };
+    }
+  };
+}
+
+export function cloneMachineSnapshot<TState extends AnyState>(
   state: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {
-  return new State(
+  return createMachineSnapshot(
+    // TODO: it's wasteful that this spread triggers getters
     { ...state, ...config } as StateConfig<any, any>,
     state.machine
   ) as TState;
@@ -218,8 +370,19 @@ export function getPersistedState<
   >,
   options?: unknown
 ): Snapshot<unknown> {
-  const { configuration, tags, machine, children, context, ...jsonValues } =
-    state;
+  const {
+    configuration,
+    tags,
+    machine,
+    children,
+    context,
+    can,
+    hasTag,
+    matches,
+    toJSON,
+    nextEvents,
+    ...jsonValues
+  } = state;
 
   const childrenJson: Record<string, unknown> = {};
 
