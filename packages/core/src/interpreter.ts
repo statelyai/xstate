@@ -584,7 +584,7 @@ export class Actor<TLogic extends AnyActorLogic>
       timerId,
       startedAt,
       delay: params.delay,
-      target: params.to
+      target: params.to as AnyActorRef // TODO: this may be a lie
     };
   }
 

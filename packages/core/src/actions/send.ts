@@ -23,7 +23,6 @@ import {
   NoInfer
 } from '../types.ts';
 import { XSTATE_ERROR } from '../constants.ts';
-import { cloneState } from '../State.ts';
 
 function resolveSendTo(
   actorScope: AnyActorScope,
