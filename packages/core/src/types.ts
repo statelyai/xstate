@@ -1655,16 +1655,13 @@ export interface StateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  value: StateValue;
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
-  meta?: any;
-  configuration?: Array<StateNode<TContext, TEvent>>;
+  configuration: Array<StateNode<TContext, TEvent>>;
   children: Record<string, ActorRef<any, any>>;
   status: 'active' | 'done' | 'error' | 'stopped';
   output?: any;
   error?: unknown;
-  tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
 }
 

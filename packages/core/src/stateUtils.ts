@@ -1209,7 +1209,7 @@ function enterStates(
           nextState,
           event,
           actorScope,
-          currentState.configuration[0].machine.root,
+          nextState.machine.root,
           rootCompletionNode
         )
       });
