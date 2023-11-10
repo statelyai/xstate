@@ -10,9 +10,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <button id="increment" type="button">Increment</button>
       <button id="decrement" type="button">Decrement</button>
     </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
   </div>
 `;
 

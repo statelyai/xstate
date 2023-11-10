@@ -1,5 +1,5 @@
 import { ActorRefFrom, createMachine, assign, stop } from 'xstate';
-import { friendMachine } from './friend.machine';
+import { friendMachine } from './friendMachine';
 
 export const friendsMachine = createMachine({
   types: {} as {

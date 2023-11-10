@@ -66,7 +66,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('green'),
+          lightMachine.resolveState({ value: 'green' }),
           {
             type: 'TIMER'
           },
@@ -102,7 +102,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(() =>
         lightMachine.transition(
-          testMachine.resolveStateValue('red'),
+          testMachine.resolveState({ value: 'red' }),
           undefined as any,
           actorScope
         )
@@ -113,7 +113,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         testMachine.transition(
-          testMachine.resolveStateValue('a'),
+          testMachine.resolveState({ value: 'a' }),
           { type: 'T' },
           actorScope
         ).value
@@ -126,7 +126,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(() =>
         testMachine.transition(
-          testMachine.resolveStateValue('fake'),
+          testMachine.resolveState({ value: 'fake' }),
           { type: 'T' },
           actorScope
         )
@@ -137,7 +137,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(() =>
         testMachine.transition(
-          testMachine.resolveStateValue('a.fake'),
+          testMachine.resolveState({ value: 'a.fake' }),
           {
             type: 'T'
           },
@@ -175,7 +175,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue({ red: 'walk' }),
+          lightMachine.resolveState({ value: { red: 'walk' } }),
           { type: 'PED_COUNTDOWN' },
           actorScope
         ).value
@@ -186,7 +186,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('red'),
+          lightMachine.resolveState({ value: 'red' }),
           {
             type: 'PED_COUNTDOWN'
           },
@@ -201,7 +201,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('red'),
+          lightMachine.resolveState({ value: 'red' }),
           {
             type: 'PED_COUNTDOWN'
           },
@@ -216,7 +216,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue({ red: 'stop' }),
+          lightMachine.resolveState({ value: { red: 'stop' } }),
           { type: 'TIMER' },
           actorScope
         ).value
@@ -255,7 +255,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('yellow'),
+          lightMachine.resolveState({ value: 'yellow' }),
           {
             type: 'TIMER'
           },
@@ -327,7 +327,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
 
       const walkState = lightMachine.transition(
-        lightMachine.resolveStateValue({ red: 'walk' }),
+        lightMachine.resolveState({ value: { red: 'walk' } }),
         { type: 'TIMER' },
         actorScope
       );

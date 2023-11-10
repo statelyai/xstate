@@ -14,7 +14,7 @@ export const stopwatchMachine = createMachine({
     },
     running: {
       invoke: {
-        src: fromCallback((sendBack) => {
+        src: fromCallback(({ sendBack }) => {
           const interval = setInterval(() => {
             sendBack({ type: 'TICK' });
           }, 10);

@@ -1,5 +1,4 @@
-import { AnyState, matchesState } from 'xstate';
-import type { CheckSnapshot } from './types.ts';
+import { AnyState, Snapshot } from 'xstate';
 
 function isState(state: any): state is AnyState {
   return (
@@ -12,35 +11,38 @@ function isState(state: any): state is AnyState {
   );
 }
 
+function reactiveMethod<T, Args extends unknown[], R>(
+  method: (this: T, ...args: Args) => R
+) {
+  return function (this: T, ...args: Args) {
+    return method.apply(this, args);
+  };
+}
+
 /**
  * Takes in an interpreter or actor ref and returns a State object with reactive
  * methods or if not State, the initial value passed in
  * @param state {AnyState | unknown}
  * @param prevState {AnyState | unknown}
  */
-export const deriveServiceState = <
-  StateSnapshot extends AnyState,
-  StateReturnType = CheckSnapshot<StateSnapshot>
->(
-  state: StateSnapshot | unknown,
-  prevState?: StateSnapshot | unknown
-): StateReturnType => {
+export const deriveServiceState = <T extends unknown>(
+  state: Snapshot<T>,
+  prevState?: Snapshot<T>
+) => {
   if (isState(state)) {
+    const shouldKeepReactiveMethods = prevState && isState(prevState);
     return {
       ...state,
-      toJSON: state.toJSON,
-      toStrings: state.toStrings,
-      can: state.can,
-      hasTag: state.hasTag,
-      nextEvents: state.nextEvents,
-      matches:
-        prevState && isState(prevState)
-          ? prevState.matches
-          : function (this: AnyState, parentStateValue: string) {
-              return matchesState(parentStateValue, this.value);
-            }
-    } as StateReturnType;
-  } else {
-    return state as StateReturnType;
+      can: shouldKeepReactiveMethods
+        ? prevState.can
+        : reactiveMethod(state.can),
+      hasTag: shouldKeepReactiveMethods
+        ? prevState.hasTag
+        : reactiveMethod(state.hasTag),
+      matches: shouldKeepReactiveMethods
+        ? prevState.matches
+        : reactiveMethod(state.matches)
+    };
   }
+  return state;
 };

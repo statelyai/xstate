@@ -1,5 +1,29 @@
 # xstate
 
+## 5.0.0-beta.42
+
+### Major Changes
+
+- [#4438](https://github.com/statelyai/xstate/pull/4438) [`7bbf41d7d`](https://github.com/statelyai/xstate/commit/7bbf41d7d17257d2b2a2675494f68cbae8dc19fd) Thanks [@Andarist](https://github.com/Andarist)! - Removed `State#toStrings` method.
+
+- [#4443](https://github.com/statelyai/xstate/pull/4443) [`18862e53c`](https://github.com/statelyai/xstate/commit/18862e53cc24c38db6e21f5aecac501942db1d9d) Thanks [@Andarist](https://github.com/Andarist)! - `State` class has been removed and replaced by `MachineSnapshot` object. They largely have the same properties and methods. On of the main noticeable results of this change is that you can no longer check `state instanceof State`.
+
+- [#4444](https://github.com/statelyai/xstate/pull/4444) [`d6e41a923`](https://github.com/statelyai/xstate/commit/d6e41a923bfaa9e39fdd60d4bbee661bd048dfaf) Thanks [@Andarist](https://github.com/Andarist)! - Removed `mapState` utility function.
+
+### Minor Changes
+
+- [#4440](https://github.com/statelyai/xstate/pull/4440) [`10d95393a`](https://github.com/statelyai/xstate/commit/10d95393a3bfdfab31a9670ae56751e7557a4a17) Thanks [@Andarist](https://github.com/Andarist)! - `State.from`, `StateMachine#createState` and `StateMachine#resolveStateValue` were removed. They largely served the same purpose as `StateMachine#resolveState` and this is the method that is still available and can be used instead of them.
+
+## 5.0.0-beta.41
+
+### Major Changes
+
+- [#4423](https://github.com/statelyai/xstate/pull/4423) [`8fb984494`](https://github.com/statelyai/xstate/commit/8fb98449471a67ad4231c2ce18d88d511b1112f8) Thanks [@Andarist](https://github.com/Andarist)! - Removed `Interpreter['status']` from publicly available properties.
+
+### Minor Changes
+
+- [#4435](https://github.com/statelyai/xstate/pull/4435) [`37d879335`](https://github.com/statelyai/xstate/commit/37d879335c3c9ad1c28533bef4768ed0411fa0e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The default `timeout` for `waitFor(...)` is now `Infinity` instead of 10 seconds.
+
 ## 5.0.0-beta.40
 
 ### Minor Changes

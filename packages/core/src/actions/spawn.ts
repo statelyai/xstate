@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
+import { cloneMachineSnapshot } from '../State.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
 import { ProcessingStatus, createActor } from '../interpreter.ts';
 import {
@@ -59,7 +59,7 @@ function resolveSpawn(
     const configuredInput = input || referenced.input;
     actorRef = createActor(referenced.src, {
       id: resolvedId,
-      src: typeof src === 'string' ? src : undefined,
+      src,
       parent: actorScope?.self,
       systemId,
       input:
@@ -93,7 +93,7 @@ function resolveSpawn(
     );
   }
   return [
-    cloneState(state, {
+    cloneMachineSnapshot(state, {
       children: {
         ...state.children,
         [resolvedId]: actorRef!

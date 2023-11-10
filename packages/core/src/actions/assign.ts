@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
+import { cloneMachineSnapshot } from '../State.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
 import type {
   ActionArgs,
@@ -68,7 +68,7 @@ function resolveAssign(
   const updatedContext = Object.assign({}, state.context, partialUpdate);
 
   return [
-    cloneState(state, {
+    cloneMachineSnapshot(state, {
       context: updatedContext,
       children: Object.keys(spawnedChildren).length
         ? {

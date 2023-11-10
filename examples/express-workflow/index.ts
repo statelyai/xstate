@@ -1,51 +1,14 @@
-import {
-  createMachine,
-  createActor,
-  PersistedMachineState,
-  assign
-} from 'xstate';
+import { createActor } from 'xstate';
 import bodyParser from 'body-parser';
 
 function generateActorId() {
   return Math.random().toString(36).substring(2, 8);
 }
 
-const persistedStates: Record<
-  string,
-  PersistedMachineState<any, any, any, any, any, any>
-> = {};
-
-const machine = createMachine({
-  id: 'counter',
-  initial: 'green',
-  context: {
-    cycles: 0
-  },
-  states: {
-    green: {
-      on: {
-        TIMER: 'yellow'
-      }
-    },
-    yellow: {
-      on: {
-        TIMER: 'red'
-      }
-    },
-    red: {
-      on: {
-        TIMER: {
-          target: 'green',
-          actions: assign({
-            cycles: ({ context }) => context.cycles + 1
-          })
-        }
-      }
-    }
-  }
-});
+const persistedStates: Record<string, unknown> = {};
 
 import express from 'express';
+import { machine } from './machine';
 
 const app = express();
 
