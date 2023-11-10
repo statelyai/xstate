@@ -6,7 +6,7 @@ import {
   AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   InputFrom,
   IsLiteralString,
   ProvidedActor,
@@ -60,7 +60,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
 
 export function createSpawner(
   actorScope: AnyActorScope,
-  { machine, context }: AnyState,
+  { machine, context }: AnyMachineSnapshot,
   event: AnyEventObject,
   spawnedChildren: Record<string, AnyActorRef>
 ): Spawner<any> {

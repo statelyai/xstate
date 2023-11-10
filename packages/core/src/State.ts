@@ -8,7 +8,7 @@ import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
   ActorRefFrom,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
   HistoryValue,
@@ -49,21 +49,17 @@ type ComputeChildren<TActor extends ProvidedActor> =
             : {})
       >;
 
-export function isStateConfig<
+export function isMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: any): state is StateConfig<TContext, TEvent> {
-  if (typeof state !== 'object' || state === null) {
-    return false;
-  }
-
-  return 'value' in state;
+>(value: unknown): value is AnyMachineSnapshot {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'machine' in value &&
+    'value' in value
+  );
 }
-
-/**
- * @deprecated Use `isStateConfig(object)`
- */
-export const isState = isStateConfig;
 
 interface MachineSnapshotBase<
   TContext extends MachineContext,
@@ -341,7 +337,7 @@ export function createMachineSnapshot<
   };
 }
 
-export function cloneMachineSnapshot<TState extends AnyState>(
+export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   state: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {

@@ -2,7 +2,7 @@ import isDevelopment from '#is-development';
 import {
   ActionArgs,
   AnyActorScope,
-  AnyState,
+  AnyMachineSnapshot,
   EventObject,
   LogExpr,
   MachineContext,
@@ -18,7 +18,7 @@ type ResolvableLogValue<
 
 function resolveLog(
   _: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {

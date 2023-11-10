@@ -5,7 +5,7 @@ import {
   ActionArgs,
   ActorRef,
   AnyActorScope,
-  AnyState,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ParameterizedObject
@@ -26,7 +26,7 @@ type ResolvableActorRef<
 
 function resolveStop(
   _: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { actorRef }: { actorRef: ResolvableActorRef<any, any, any, any> }

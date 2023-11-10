@@ -274,7 +274,7 @@ export type Actions<
   >
 >;
 
-export type StateKey = string | AnyState;
+export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
   [key: string]: StateValue;
@@ -926,8 +926,7 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-// TODO: replace with AnyMachineSnapshot
-export type AnyState = MachineSnapshot<any, any, any, any, any, any>;
+export type AnyMachineSnapshot = MachineSnapshot<any, any, any, any, any, any>;
 
 export type AnyStateMachine = StateMachine<
   any,

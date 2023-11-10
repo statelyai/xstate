@@ -1,6 +1,6 @@
-import { AnyState, Snapshot } from 'xstate';
+import { AnyMachineSnapshot, Snapshot } from 'xstate';
 
-function isState(state: any): state is AnyState {
+function isState(state: any): state is AnyMachineSnapshot {
   return (
     !!state &&
     typeof state === 'object' &&
@@ -22,8 +22,8 @@ function reactiveMethod<T, Args extends unknown[], R>(
 /**
  * Takes in an interpreter or actor ref and returns a State object with reactive
  * methods or if not State, the initial value passed in
- * @param state {AnyState | unknown}
- * @param prevState {AnyState | unknown}
+ * @param state {AnyMachineSnapshot | unknown}
+ * @param prevState {AnyMachineSnapshot | unknown}
  */
 export const deriveServiceState = <T extends unknown>(
   state: Snapshot<T>,

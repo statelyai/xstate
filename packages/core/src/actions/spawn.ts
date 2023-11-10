@@ -7,7 +7,7 @@ import {
   AnyActorScope,
   AnyActorRef,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ParameterizedObject,
@@ -29,7 +29,7 @@ type ResolvableActorId<
 
 function resolveSpawn(
   actorScope: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {

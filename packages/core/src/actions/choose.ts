@@ -4,7 +4,7 @@ import {
   ChooseBranch,
   MachineContext,
   AnyActorScope,
-  AnyState,
+  AnyMachineSnapshot,
   ActionArgs,
   ParameterizedObject,
   NoInfer,
@@ -15,7 +15,7 @@ import { toArray } from '../utils.ts';
 
 function resolveChoose(
   _: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {

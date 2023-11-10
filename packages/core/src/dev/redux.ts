@@ -1,4 +1,4 @@
-import { AnyState, DevToolsAdapter } from '../types.ts';
+import { AnyMachineSnapshot, DevToolsAdapter } from '../types.ts';
 
 interface ReduxDevToolsOptions {
   [key: string]: any;
@@ -13,7 +13,7 @@ export const createReduxDevTools = (
         {
           name: service.id,
           autoPause: true,
-          stateSanitizer: (state: AnyState): object => {
+          stateSanitizer: (state: AnyMachineSnapshot): object => {
             return {
               value: state.value,
               context: state.context

@@ -2,7 +2,7 @@ import isDevelopment from '#is-development';
 import {
   AnyActorScope,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ActionArgs,
@@ -23,7 +23,7 @@ type ResolvableSendId<
 
 function resolveCancel(
   _: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { sendId }: { sendId: ResolvableSendId<any, any, any, any> }

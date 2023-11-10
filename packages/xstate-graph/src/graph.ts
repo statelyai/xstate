@@ -1,7 +1,7 @@
 import {
   EventObject,
   AnyStateMachine,
-  AnyState,
+  AnyMachineSnapshot,
   StateFrom,
   EventFrom,
   StateMachine,

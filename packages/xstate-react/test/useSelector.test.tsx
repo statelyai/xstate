@@ -3,7 +3,7 @@ import * as React from 'react';
 import {
   ActorRef,
   ActorRefFrom,
-  AnyState,
+  AnyMachineSnapshot,
   assign,
   createMachine,
   fromTransition,
@@ -605,7 +605,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const snapshots: AnyState[] = [];
+    const snapshots: AnyMachineSnapshot[] = [];
 
     function App() {
       const service = useActorRef(machine);
