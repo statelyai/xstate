@@ -1,5 +1,5 @@
 <template>
-  <button @click="service.send({ type: 'TOGGLE' })" data-testid="button">
+  <button @click="actor.send({ type: 'TOGGLE' })" data-testid="button">
     {{ state === 'inactive' ? 'Turn on' : 'Turn off' }}
   </button>
 </template>
@@ -32,7 +32,7 @@ export default defineComponent({
     });
     const state = ref(actor.getSnapshot().value);
 
-    return { service: actor, state };
+    return { actor, state };
   }
 });
 </script>
