@@ -8,6 +8,7 @@ import {
   SnapshotFrom
 } from 'xstate';
 import { UseActorRefRestParams, useActorRef } from './useActorRef.ts';
+import { useSelector } from './useSelector.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
@@ -34,7 +35,7 @@ export function useActor(
   }
 
   const actorRef = useActorRef(actorLogic, options, listener);
-  const snapshot = shallowRef(actorRef.getSnapshot());
+  const snapshot = useSelector(actorRef, (state) => state);
 
   return {
     snapshot,
