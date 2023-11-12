@@ -2,9 +2,14 @@
 '@xstate/vue': major
 ---
 
-The `useMachine(machine)` hook now returns `{ snapshot, send }` instead of `{ state, send }`:
+The `useMachine(machine)` hook now returns `{ snapshot, send, service }` instead of `{ state, send, actorRef }`:
 
 ```diff
-- const { state, send } = useMachine(machine);
-+ const { snapshot, send } = useMachine(machine);
+const {
+- state,
++ snapshot,
+  send,
+- actorRef
++ service
+} = useMachine(machine);
 ```
