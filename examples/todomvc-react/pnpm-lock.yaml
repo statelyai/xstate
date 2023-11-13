@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   '@xstate/react':
-    specifier: 4.0.0-beta.4
-    version: 4.0.0-beta.4(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.13)
+    specifier: beta
+    version: 4.0.0-beta.10(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.40)
   classnames:
     specifier: ^2.3.2
     version: 2.3.2
@@ -20,8 +20,8 @@ dependencies:
     specifier: ^1.0.5
     version: 1.0.5
   xstate:
-    specifier: 5.0.0-beta.13
-    version: 5.0.0-beta.13
+    specifier: beta
+    version: 5.0.0-beta.40
 
 devDependencies:
   '@types/react':
@@ -629,22 +629,19 @@ packages:
     resolution: {integrity: sha512-7OjdcV8vQ74eiz1TZLzZP4JwqM5fA94K6yntPS5Z25r9HDuGNzaGdgvwKYq6S+MxwF0TFRwe50fIR/MYnakdkQ==}
     dev: true
 
-  /@xstate/react@4.0.0-beta.4(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.13):
-    resolution: {integrity: sha512-dUcbZZhc57wY6WGEfCEKc/hIFab7H4s7/rGBv9Bb1aIWYmrR2GolbFIi6e7hS2UylIHHtNk4UibRz1aqOFqVhA==}
+  /@xstate/react@4.0.0-beta.10(@types/react@17.0.59)(react@17.0.2)(xstate@5.0.0-beta.40):
+    resolution: {integrity: sha512-S77ALlcoMYMiG9cVlf9qpcy0V6hZ6Va9K/jU4xidX21JsI6YI9i8HMtmMAiRbeV+chkwThe0otEEWFFUWXNHgg==}
     peerDependencies:
-      '@xstate/fsm': ^3.0.0-beta.2
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      xstate: ^5.0.0-beta.10
+      xstate: ^5.0.0-beta.29
     peerDependenciesMeta:
-      '@xstate/fsm':
-        optional: true
       xstate:
         optional: true
     dependencies:
       react: 17.0.2
       use-isomorphic-layout-effect: 1.1.2(@types/react@17.0.59)(react@17.0.2)
       use-sync-external-store: 1.2.0(react@17.0.2)
-      xstate: 5.0.0-beta.13
+      xstate: 5.0.0-beta.40
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -2350,8 +2347,8 @@ packages:
         optional: true
     dev: true
 
-  /xstate@5.0.0-beta.13:
-    resolution: {integrity: sha512-cv27Y9t6xJimBZ/FBFe6Vjegai/3Gv6INFQcdsiNGrFuXXjP7IMwjytOIxL6VhlDasXcoofWQoPy95v2d284ow==}
+  /xstate@5.0.0-beta.40:
+    resolution: {integrity: sha512-q3tGXbfaHC785Eol2YFU3NmYfRy3XIA/pN2m2rK2oHY5t70SCUO0TvmLqxheE5sB4yJI+47U6XX7pdCtCVA3hg==}
     dev: false
 
   /yallist@3.1.1:
