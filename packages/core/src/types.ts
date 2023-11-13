@@ -2056,29 +2056,67 @@ export type Snapshot<TOutput> =
       error: undefined;
     };
 
+/**
+ * Represents logic which can be used by an actor.
+ *
+ * @template TSnapshot - The type of the snapshot.
+ * @template TEvent - The type of the event object.
+ * @template TInput - The type of the input.
+ * @template TSystem - The type of the actor system.
+ */
 export interface ActorLogic<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput = unknown,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
+  /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
+  /**
+   * Transition function that processes the current state and an incoming message
+   * to produce a new state.
+   * @param state - The current state.
+   * @param message - The incoming message.
+   * @param ctx - The actor scope.
+   * @returns The new state.
+   */
   transition: (
     state: TSnapshot,
     message: TEvent,
     ctx: ActorScope<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
+  /**
+   * Called to provide the initial state of the actor.
+   * @param actorScope - The actor scope.
+   * @param input - The input for the initial state.
+   * @returns The initial state.
+   */
   getInitialState: (
     actorScope: ActorScope<TSnapshot, TEvent, TSystem>,
     input: TInput
   ) => TSnapshot;
+  /**
+   * Called when Actor is created to restore the internal state of the actor given a persisted state.
+   * The persisted state can be created by `getPersistedState`.
+   * @param persistedState - The persisted state to restore from.
+   * @param actorScope - The actor scope.
+   * @returns The restored state.
+   */
   restoreState?: (
     persistedState: Snapshot<unknown>,
     actorScope: ActorScope<TSnapshot, TEvent>
   ) => TSnapshot;
+  /**
+   * Called when the actor is started.
+   * @param state - The starting state.
+   * @param actorScope - The actor scope.
+   */
   start?: (state: TSnapshot, actorScope: ActorScope<TSnapshot, TEvent>) => void;
   /**
-   * @returns Persisted state
+   * Obtains the internal state of the actor in a representation which can be be persisted.
+   * The persisted state can be restored by `restoreState`.
+   * @param state - The current state.
+   * @returns The a representation of the internal state to be persisted.
    */
   getPersistedState: (state: TSnapshot, options?: unknown) => Snapshot<unknown>;
 }
