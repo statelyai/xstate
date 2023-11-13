@@ -2078,7 +2078,7 @@ export interface ActorLogic<
   TInput = unknown,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
-  /** Optional configuration for the actor logic. */
+  /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /**
    * Transition function that processes the current state and an incoming message
