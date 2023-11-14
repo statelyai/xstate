@@ -407,18 +407,11 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
     const [, indexStr] = src.match(/\[(\d+)\]$/)!;
     const node = machine.getStateNodeById(src.slice(7, -(indexStr.length + 2)));
     const invokeConfig = node.config.invoke!;
-    return {
-      src: (Array.isArray(invokeConfig)
+    return (
+      Array.isArray(invokeConfig)
         ? invokeConfig[indexStr as any]
         : (invokeConfig as InvokeConfig<any, any, any, any, any, any>)
-      ).src,
-      input: undefined
-    };
+    ).src;
   }
-  const referenced = machine.implementations.actors[src];
-  return referenced
-    ? 'transition' in referenced
-      ? { src: referenced, input: undefined }
-      : referenced
-    : undefined;
+  return machine.implementations.actors[src];
 }

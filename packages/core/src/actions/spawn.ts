@@ -16,7 +16,8 @@ import {
   ProvidedActor,
   IsLiteralString,
   InputFrom,
-  UnifiedArg
+  UnifiedArg,
+  Mapper
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -46,30 +47,26 @@ function resolveSpawn(
     syncSnapshot: boolean;
   }
 ) {
-  const referenced =
-    typeof src === 'string'
-      ? resolveReferencedActor(state.machine, src)
-      : { src, input: undefined };
+  const logic =
+    typeof src === 'string' ? resolveReferencedActor(state.machine, src) : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
 
   let actorRef: AnyActorRef | undefined;
 
-  if (referenced) {
-    // TODO: inline `input: undefined` should win over the referenced one
-    const configuredInput = input || referenced.input;
-    actorRef = createActor(referenced.src, {
+  if (logic) {
+    actorRef = createActor(logic, {
       id: resolvedId,
       src,
       parent: actorScope?.self,
       systemId,
       input:
-        typeof configuredInput === 'function'
-          ? configuredInput({
+        typeof input === 'function'
+          ? input({
               context: state.context,
               event: actionArgs.event,
               self: actorScope?.self
             })
-          : configuredInput
+          : input
     });
 
     if (syncSnapshot) {
@@ -155,7 +152,9 @@ type DistributeActors<
             TActor['id']
           >;
           systemId?: string;
-          input?: InputFrom<TActor['logic']>;
+          input?:
+            | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
+            | InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
         }
       ]
@@ -164,7 +163,9 @@ type DistributeActors<
         options?: {
           id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
           systemId?: string;
-          input?: InputFrom<TActor['logic']>;
+          input?:
+            | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
+            | InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
         }
       ]
