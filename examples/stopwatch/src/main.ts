@@ -1,7 +1,7 @@
 import './style.css';
 
 import { stopwatchMachine } from './stopwatchMachine';
-import { interpret } from 'xstate';
+import { createActor } from 'xstate';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -19,7 +19,7 @@ const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
 const resetButton = document.querySelector<HTMLButtonElement>('#reset')!;
 const outputEl = document.querySelector<HTMLDivElement>('#output')!;
 
-const stopwatchActor = interpret(stopwatchMachine);
+const stopwatchActor = createActor(stopwatchMachine);
 stopwatchActor.subscribe((snapshot) => {
   outputEl.innerHTML = snapshot.context.elapsed.toString();
 });

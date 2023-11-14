@@ -2,7 +2,7 @@ import { from } from 'rxjs';
 import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
-import { fromCallback, fromPromise } from '../src/actors';
+import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
   MachineContext,
@@ -1009,7 +1009,7 @@ describe('spawner in assign', () => {
     function createParent(_deps: {
       spawnChild: (
         spawn: Spawner<ProvidedActor>
-      ) => ActorRefFrom<typeof createChild>;
+      ) => ActorRefFrom<ReturnType<typeof createChild>>;
     }) {}
 
     createParent({
@@ -2644,7 +2644,7 @@ describe('actions', () => {
         context: {} as {
           count: number;
           childRef: ActorRefFrom<typeof childMachine>;
-          promiseRef: ActorRefFrom<Promise<string>>;
+          promiseRef: ActorRefFrom<PromiseActorLogic<string>>;
         }
       },
       context: ({ spawn }) => ({
