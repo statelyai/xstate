@@ -928,6 +928,9 @@ export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyMachineSnapshot = MachineSnapshot<any, any, any, any, any, any>;
 
+/** @deprecated use `AnyMachineSnapshot` instead */
+export type AnyState = AnyMachineSnapshot;
+
 export type AnyStateMachine = StateMachine<
   any,
   any,
