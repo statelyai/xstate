@@ -294,17 +294,23 @@ export type MachineSnapshot<
     >;
 
 const machineSnapshotMatches = function matches(
-  this: AnyState,
+  this: AnyMachineSnapshot,
   testValue: StateValue
 ) {
   return matchesState(testValue, this.value);
 };
 
-const machineSnapshotHasTag = function hasTag(this: AnyState, tag: string) {
+const machineSnapshotHasTag = function hasTag(
+  this: AnyMachineSnapshot,
+  tag: string
+) {
   return this.tags.has(tag);
 };
 
-const machineSnapshotCan = function can(this: AnyState, event: EventObject) {
+const machineSnapshotCan = function can(
+  this: AnyMachineSnapshot,
+  event: EventObject
+) {
   if (isDevelopment && !this.machine) {
     console.warn(
       `state.can(...) used outside of a machine-created State object; this will always return false.`
@@ -320,7 +326,7 @@ const machineSnapshotCan = function can(this: AnyState, event: EventObject) {
   );
 };
 
-const machineSnapshotToJSON = function toJSON(this: AnyState) {
+const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     configuration,
     tags,
@@ -335,7 +341,9 @@ const machineSnapshotToJSON = function toJSON(this: AnyState) {
   return { ...jsonValues, tags: Array.from(tags) };
 };
 
-const machineSnapshotNextEvents = function nextEvents(this: AnyState) {
+const machineSnapshotNextEvents = function nextEvents(
+  this: AnyMachineSnapshot
+) {
   return memo(this, 'nextEvents', () => {
     return [
       ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
@@ -343,7 +351,7 @@ const machineSnapshotNextEvents = function nextEvents(this: AnyState) {
   });
 };
 
-const machineSnapshotMeta = function nextEvents(this: AnyState) {
+const machineSnapshotMeta = function nextEvents(this: AnyMachineSnapshot) {
   return this.configuration.reduce((acc, stateNode) => {
     if (stateNode.meta !== undefined) {
       acc[stateNode.id] = stateNode.meta;
