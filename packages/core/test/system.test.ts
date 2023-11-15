@@ -510,4 +510,34 @@ describe('system', () => {
       ]
     ]);
   });
+
+  it('should be able to send an event to an ancestor with a registered `systemId` from an initial entry action', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      entry: sendTo(
+        ({ system }) => {
+          debugger;
+          return system.get('myRoot');
+        },
+        {
+          type: 'EV'
+        }
+      )
+    });
+
+    const machine = createMachine({
+      invoke: {
+        src: child
+      },
+      on: {
+        EV: {
+          actions: spy
+        }
+      }
+    });
+    createActor(machine, { systemId: 'myRoot' }).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
 });
