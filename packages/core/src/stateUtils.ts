@@ -19,7 +19,7 @@ import {
   ActionArgs,
   AnyEventObject,
   AnyHistoryValue,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayExpr,
@@ -41,12 +41,10 @@ import {
   AnyActorScope
 } from './types.ts';
 import {
-  isArray,
   resolveOutput,
   normalizeTarget,
   toArray,
   toStatePath,
-  toStateValue,
   toTransitionConfigArray
 } from './utils.ts';
 import { ProcessingStatus } from './interpreter.ts';
@@ -979,12 +977,12 @@ export function microstep<
   TEvent extends EventObject
 >(
   transitions: Array<AnyTransitionDefinition>,
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   actorScope: AnyActorScope,
   event: AnyEventObject,
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
-): AnyState {
+): AnyMachineSnapshot {
   if (!transitions.length) {
     return currentState;
   }
@@ -1066,7 +1064,7 @@ export function microstep<
 }
 
 function getMachineOutput(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   rootNode: AnyStateNode,
@@ -1095,7 +1093,7 @@ function getMachineOutput(
 }
 
 function enterStates(
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   filteredTransitions: AnyTransitionDefinition[],
@@ -1404,7 +1402,7 @@ function addProperAncestorStatesToEnter(
 }
 
 function exitStates(
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   transitions: AnyTransitionDefinition[],
@@ -1458,22 +1456,26 @@ interface BuiltinAction {
   (): void;
   resolve: (
     actorScope: AnyActorScope,
-    state: AnyState,
+    state: AnyMachineSnapshot,
     actionArgs: ActionArgs<any, any, any>,
     actionParams: ParameterizedObject['params'] | undefined,
     action: unknown,
     extra: unknown
-  ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
+  ) => [
+    newState: AnyMachineSnapshot,
+    params: unknown,
+    actions?: UnknownAction[]
+  ];
   retryResolve: (
     actorScope: AnyActorScope,
-    state: AnyState,
+    state: AnyMachineSnapshot,
     params: unknown
   ) => void;
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
 function resolveActionsAndContextWorker(
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   actions: UnknownAction[],
@@ -1482,7 +1484,7 @@ function resolveActionsAndContextWorker(
     deferredActorIds: string[] | undefined;
   },
   retries: (readonly [BuiltinAction, unknown])[] | undefined
-): AnyState {
+): AnyMachineSnapshot {
   const { machine } = currentState;
   let intermediateState = currentState;
 
@@ -1582,13 +1584,13 @@ function resolveActionsAndContextWorker(
 }
 
 export function resolveActionsAndContext(
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   actions: UnknownAction[],
   internalQueue: AnyEventObject[],
   deferredActorIds?: string[]
-): AnyState {
+): AnyMachineSnapshot {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
     deferredActorIds ? [] : undefined;
   const nextState = resolveActionsAndContextWorker(
@@ -1606,7 +1608,7 @@ export function resolveActionsAndContext(
 }
 
 export function macrostep(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   event: EventObject,
   actorScope: AnyActorScope,
   internalQueue: AnyEventObject[] = []
@@ -1619,7 +1621,7 @@ export function macrostep(
   }
 
   let nextState = state;
-  const states: AnyState[] = [];
+  const states: AnyMachineSnapshot[] = [];
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
@@ -1697,7 +1699,7 @@ export function macrostep(
 }
 
 function stopChildren(
-  nextState: AnyState,
+  nextState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope
 ) {
@@ -1712,13 +1714,13 @@ function stopChildren(
 
 function selectTransitions(
   event: AnyEventObject,
-  nextState: AnyState
+  nextState: AnyMachineSnapshot
 ): AnyTransitionDefinition[] {
   return nextState.machine.getTransitionData(nextState as any, event);
 }
 
 function selectEventlessTransitions(
-  nextState: AnyState,
+  nextState: AnyMachineSnapshot,
   event: AnyEventObject
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();

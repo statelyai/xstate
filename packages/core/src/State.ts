@@ -8,7 +8,7 @@ import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
   ActorRefFrom,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
   HistoryValue,
@@ -49,21 +49,17 @@ type ComputeChildren<TActor extends ProvidedActor> =
             : {})
       >;
 
-export function isStateConfig<
+export function isMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: any): state is StateConfig<TContext, TEvent> {
-  if (typeof state !== 'object' || state === null) {
-    return false;
-  }
-
-  return 'value' in state;
+>(value: unknown): value is AnyMachineSnapshot {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'machine' in value &&
+    'value' in value
+  );
 }
-
-/**
- * @deprecated Use `isStateConfig(object)`
- */
-export const isState = isStateConfig;
 
 interface MachineSnapshotBase<
   TContext extends MachineContext,
@@ -298,17 +294,23 @@ export type MachineSnapshot<
     >;
 
 const machineSnapshotMatches = function matches(
-  this: AnyState,
+  this: AnyMachineSnapshot,
   testValue: StateValue
 ) {
   return matchesState(testValue, this.value);
 };
 
-const machineSnapshotHasTag = function hasTag(this: AnyState, tag: string) {
+const machineSnapshotHasTag = function hasTag(
+  this: AnyMachineSnapshot,
+  tag: string
+) {
   return this.tags.has(tag);
 };
 
-const machineSnapshotCan = function can(this: AnyState, event: EventObject) {
+const machineSnapshotCan = function can(
+  this: AnyMachineSnapshot,
+  event: EventObject
+) {
   if (isDevelopment && !this.machine) {
     console.warn(
       `state.can(...) used outside of a machine-created State object; this will always return false.`
@@ -324,7 +326,7 @@ const machineSnapshotCan = function can(this: AnyState, event: EventObject) {
   );
 };
 
-const machineSnapshotToJSON = function toJSON(this: AnyState) {
+const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     configuration,
     tags,
@@ -339,7 +341,9 @@ const machineSnapshotToJSON = function toJSON(this: AnyState) {
   return { ...jsonValues, tags: Array.from(tags) };
 };
 
-const machineSnapshotNextEvents = function nextEvents(this: AnyState) {
+const machineSnapshotNextEvents = function nextEvents(
+  this: AnyMachineSnapshot
+) {
   return memo(this, 'nextEvents', () => {
     return [
       ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
@@ -347,7 +351,7 @@ const machineSnapshotNextEvents = function nextEvents(this: AnyState) {
   });
 };
 
-const machineSnapshotMeta = function nextEvents(this: AnyState) {
+const machineSnapshotMeta = function nextEvents(this: AnyMachineSnapshot) {
   return this.configuration.reduce((acc, stateNode) => {
     if (stateNode.meta !== undefined) {
       acc[stateNode.id] = stateNode.meta;
@@ -407,7 +411,7 @@ export function createMachineSnapshot<
   return snapshot as never;
 }
 
-export function cloneMachineSnapshot<TState extends AnyState>(
+export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   state: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {

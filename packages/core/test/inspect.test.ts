@@ -5,7 +5,8 @@ import {
   sendParent,
   sendTo,
   waitFor,
-  InspectionEvent
+  InspectionEvent,
+  isMachineSnapshot
 } from '../src';
 
 function simplifyEvent(inspectionEvent: InspectionEvent) {
@@ -28,11 +29,9 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
     return {
       type: inspectionEvent.type,
       actorId: inspectionEvent.actorRef.sessionId,
-      snapshot:
-        typeof inspectionEvent.snapshot === 'object' &&
-        'value' in inspectionEvent.snapshot
-          ? { value: inspectionEvent.snapshot.value }
-          : inspectionEvent.snapshot,
+      snapshot: isMachineSnapshot(inspectionEvent.snapshot)
+        ? { value: inspectionEvent.snapshot.value }
+        : inspectionEvent.snapshot,
       event: inspectionEvent.event,
       status: inspectionEvent.snapshot.status
     };
