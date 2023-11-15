@@ -53,12 +53,12 @@
   "devDependencies": {
     "@types/ws": "^8.2.2",
     "ws": "^8.4.0",
-    "xstate": "5.0.0-beta.43"
+    "xstate": "5.0.0-beta.44"
   },
   "peerDependencies": {
     "@types/ws": "^8.0.0",
     "ws": "^8.0.0",
-    "xstate": "^5.0.0-beta.43"
+    "xstate": "^5.0.0-beta.44"
   },
   "peerDependenciesMeta": {
     "@types/ws": {
