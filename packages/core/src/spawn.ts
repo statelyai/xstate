@@ -11,33 +11,30 @@ import {
   IsLiteralString,
   ProvidedActor,
   Snapshot,
-  TODO
+  TODO,
+  RequiredActorOptions,
+  IsNotNever,
+  ConditionalRequired
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
-export type SpawnOptions<
+type SpawnOptions<
   TActor extends ProvidedActor,
   TSrc extends TActor['src']
 > = TActor extends {
   src: TSrc;
 }
-  ? 'id' extends keyof TActor
-    ? [
-        options: {
-          id: TActor['id'];
-          systemId?: string;
-          input?: InputFrom<TActor['logic']>;
-          syncSnapshot?: boolean;
-        }
-      ]
-    : [
+  ? ConditionalRequired<
+      [
         options?: {
-          id?: string;
+          id?: TActor['id'];
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
-        }
-      ]
+        } & { [K in RequiredActorOptions<TActor>]: unknown }
+      ],
+      IsNotNever<RequiredActorOptions<TActor>>
+    >
   : never;
 
 export type Spawner<TActor extends ProvidedActor> = IsLiteralString<

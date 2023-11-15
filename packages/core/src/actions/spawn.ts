@@ -17,7 +17,10 @@ import {
   IsLiteralString,
   InputFrom,
   UnifiedArg,
-  Mapper
+  Mapper,
+  RequiredActorOptions,
+  ConditionalRequired,
+  IsNotNever
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -135,40 +138,40 @@ export interface SpawnAction<
   _out_TActor?: TActor;
 }
 
+interface SpawnActionOptions<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
+> {
+  id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, TActor['id']>;
+  systemId?: string;
+  input?:
+    | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
+    | InputFrom<TActor['logic']>;
+  syncSnapshot?: boolean;
+}
+
 type DistributeActors<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = TActor extends any
-  ? 'id' extends keyof TActor
-    ? [
+  ? ConditionalRequired<
+      [
         src: TActor['src'],
-        options: {
-          id: ResolvableActorId<
-            TContext,
-            TExpressionEvent,
-            TEvent,
-            TActor['id']
-          >;
-          systemId?: string;
-          input?:
-            | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
-            | InputFrom<TActor['logic']>;
-          syncSnapshot?: boolean;
+        options?: SpawnActionOptions<
+          TContext,
+          TExpressionEvent,
+          TEvent,
+          TActor
+        > & {
+          [K in RequiredActorOptions<TActor>]: unknown;
         }
-      ]
-    : [
-        src: TActor['src'],
-        options?: {
-          id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
-          systemId?: string;
-          input?:
-            | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
-            | InputFrom<TActor['logic']>;
-          syncSnapshot?: boolean;
-        }
-      ]
+      ],
+      IsNotNever<RequiredActorOptions<TActor>>
+    >
   : never;
 
 type SpawnArguments<

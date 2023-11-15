@@ -1055,6 +1055,38 @@ describe('spawn action', () => {
         })
     });
   });
+
+  it(`should require input to be specified when it is required`, () => {
+    const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry:
+        // @ts-expect-error
+        spawn('child')
+    });
+  });
+
+  it(`should not require input when it's optional`, () => {
+    const child = fromPromise(({}: { input: number | undefined }) =>
+      Promise.resolve(100)
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: spawn('child')
+    });
+  });
 });
 
 describe('spawner in assign', () => {
@@ -1397,6 +1429,43 @@ describe('spawner in assign', () => {
         myChild: ({ spawn }) => {
           return spawn(otherChild);
         }
+      })
+    });
+  });
+
+  it(`should require input to be specified when it is required`, () => {
+    const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        // @ts-expect-error
+        spawn('child');
+        return {};
+      })
+    });
+  });
+
+  it(`should not require input when it's optional`, () => {
+    const child = fromPromise(({}: { input: number | undefined }) =>
+      Promise.resolve(100)
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      entry: assign(({ spawn }) => {
+        spawn('child');
+        return {};
       })
     });
   });
@@ -1753,6 +1822,41 @@ describe('invoke', () => {
     });
     noop(machine);
     expect(true).toBeTruthy();
+  });
+
+  it(`should require input to be specified when it is required`, () => {
+    const child = fromPromise(({}: { input: number }) => Promise.resolve(100));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child'
+      }
+    });
+  });
+
+  it(`should not require input when it's optional`, () => {
+    const child = fromPromise(({}: { input: number | undefined }) =>
+      Promise.resolve(100)
+    );
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+        };
+      },
+      invoke: {
+        src: 'child'
+      }
+    });
   });
 });
 

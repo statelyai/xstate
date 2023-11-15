@@ -46,6 +46,7 @@ type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
+export type IsNotNever<T> = [T] extends [never] ? false : true;
 
 export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
@@ -190,9 +191,10 @@ export type NoRequiredParams<T extends ParameterizedObject> = T extends any
     : never
   : never;
 
-type ConditionalRequired<T, Condition extends boolean> = Condition extends true
-  ? Required<T>
-  : T;
+export type ConditionalRequired<
+  T,
+  Condition extends boolean
+> = Condition extends true ? Required<T> : T;
 
 export type WithDynamicParams<
   TContext extends MachineContext,
@@ -570,6 +572,12 @@ type DistributeActors<
          */
         src: TSrc;
 
+        /**
+         * The unique identifier for the invoked machine. If not specified, this
+         * will be the machine's own `id`, or the URL (from `src`).
+         */
+        id?: TSpecificActor['id'];
+
         // TODO: currently we do not enforce required inputs here
         // in a sense, we shouldn't - they could be provided within the `implementations` object
         // how do we verify if the required input has been provided?
@@ -622,21 +630,7 @@ type DistributeActors<
                 TDelay
               >
             >;
-      } & (TSpecificActor['id'] extends string
-        ? {
-            /**
-             * The unique identifier for the invoked machine. If not specified, this
-             * will be the machine's own `id`, or the URL (from `src`).
-             */
-            id: TSpecificActor['id'];
-          }
-        : {
-            /**
-             * The unique identifier for the invoked machine. If not specified, this
-             * will be the machine's own `id`, or the URL (from `src`).
-             */
-            id?: string;
-          })
+      } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
     >
   : never;
 
@@ -2272,3 +2266,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 }
 
 export type AnyActorSystem = ActorSystem<any>;
+
+export type RequiredActorOptions<TActor extends ProvidedActor> =
+  | ('id' extends keyof TActor ? 'id' : never)
+  | (undefined extends InputFrom<TActor['logic']> ? never : 'input');
