@@ -186,11 +186,16 @@ export class Actor<TLogic extends AnyActorLogic>
       type: '@xstate.actor',
       actorRef: this
     });
-    this._initState(options?.state);
 
-    if (systemId && (this._state as any).status === 'active') {
+    if (systemId) {
       this._systemId = systemId;
       this.system._set(systemId, this);
+    }
+
+    this._initState(options?.state);
+
+    if (systemId && (this._state as any).status !== 'active') {
+      this.system._unregister(this);
     }
   }
 
