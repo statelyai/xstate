@@ -515,15 +515,9 @@ describe('system', () => {
     const spy = jest.fn();
 
     const child = createMachine({
-      entry: sendTo(
-        ({ system }) => {
-          debugger;
-          return system.get('myRoot');
-        },
-        {
-          type: 'EV'
-        }
-      )
+      entry: sendTo(({ system }) => system.get('myRoot'), {
+        type: 'EV'
+      })
     });
 
     const machine = createMachine({
