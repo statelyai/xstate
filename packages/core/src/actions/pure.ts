@@ -3,8 +3,8 @@ import {
   Actions,
   ActionArgs,
   UnknownAction,
-  AnyActorContext,
-  AnyState,
+  AnyActorScope,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ParameterizedObject,
@@ -15,8 +15,8 @@ import {
 import { toArray } from '../utils.ts';
 
 function resolvePure(
-  _: AnyActorContext,
-  state: AnyState,
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {

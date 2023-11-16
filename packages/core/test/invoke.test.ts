@@ -11,7 +11,7 @@ import {
 } from '../src/actors/index.ts';
 import {
   ActorLogic,
-  ActorContext,
+  ActorScope,
   EventObject,
   SpecialTargets,
   StateValue,
@@ -2386,7 +2386,7 @@ describe('invoke', () => {
       const countReducer = (
         count: number,
         event: CountEvents,
-        { self }: ActorContext<any, CountEvents>
+        { self }: ActorScope<any, CountEvents>
       ): number => {
         if (event.type === 'INC') {
           self.send({ type: 'DOUBLE' });

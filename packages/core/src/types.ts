@@ -1,7 +1,7 @@
 import type { StateNode } from './StateNode.ts';
-import type { State } from './State.ts';
-import type { ActorStatus, Clock, Actor } from './interpreter.ts';
-import type { MachineSnapshot, StateMachine } from './StateMachine.ts';
+import type { MachineSnapshot } from './State.ts';
+import type { Clock, Actor, ProcessingStatus } from './interpreter.ts';
+import type { StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
@@ -46,6 +46,7 @@ type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
+export type IsNotNever<T> = [T] extends [never] ? false : true;
 
 export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
@@ -193,9 +194,10 @@ export type NoRequiredParams<T extends ParameterizedObject> = T extends any
     : never
   : never;
 
-type ConditionalRequired<T, Condition extends boolean> = Condition extends true
-  ? Required<T>
-  : T;
+export type ConditionalRequired<
+  T,
+  Condition extends boolean
+> = Condition extends true ? Required<T> : T;
 
 export type WithDynamicParams<
   TContext extends MachineContext,
@@ -277,7 +279,7 @@ export type Actions<
   >
 >;
 
-export type StateKey = string | AnyState;
+export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
   [key: string]: StateValue;
@@ -573,6 +575,12 @@ type DistributeActors<
          */
         src: TSrc;
 
+        /**
+         * The unique identifier for the invoked machine. If not specified, this
+         * will be the machine's own `id`, or the URL (from `src`).
+         */
+        id?: TSpecificActor['id'];
+
         // TODO: currently we do not enforce required inputs here
         // in a sense, we shouldn't - they could be provided within the `implementations` object
         // how do we verify if the required input has been provided?
@@ -625,21 +633,7 @@ type DistributeActors<
                 TDelay
               >
             >;
-      } & (TSpecificActor['id'] extends string
-        ? {
-            /**
-             * The unique identifier for the invoked machine. If not specified, this
-             * will be the machine's own `id`, or the URL (from `src`).
-             */
-            id: TSpecificActor['id'];
-          }
-        : {
-            /**
-             * The unique identifier for the invoked machine. If not specified, this
-             * will be the machine's own `id`, or the URL (from `src`).
-             */
-            id?: string;
-          })
+      } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
     >
   : never;
 
@@ -929,13 +923,10 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-export type AnyState = State<
-  any, // context
-  any, // event
-  any, // actor
-  any, // tags
-  any // typegen
->;
+export type AnyMachineSnapshot = MachineSnapshot<any, any, any, any, any, any>;
+
+/** @deprecated use `AnyMachineSnapshot` instead */
+export type AnyState = AnyMachineSnapshot;
 
 export type AnyStateMachine = StateMachine<
   any,
@@ -1095,33 +1086,18 @@ type MachineImplementationsActions<
 };
 
 type MachineImplementationsActors<
-  TContext extends MachineContext,
+  _TContext extends MachineContext,
   TResolvedTypesMeta,
-  TEventsCausingActors = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingActors'
-  >,
   TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
   _TInvokeSrcNameMap = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'invokeSrcNameMap'
   >
 > = {
-  // TODO: this should require `{ src, input }` for required inputs
-  [K in keyof TIndexedActors]?:
-    | Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>
-    | {
-        src: Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>;
-        input:
-          | Mapper<
-              TContext,
-              MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActors, K>,
-              InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>,
-              Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
-            >
-          | InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>;
-      };
+  [K in keyof TIndexedActors]?: Cast<
+    Prop<TIndexedActors[K], 'logic'>,
+    AnyActorLogic
+  >;
 };
 
 type MachineImplementationsDelays<
@@ -1658,26 +1634,41 @@ export interface StateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  value: StateValue;
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
-  meta?: any;
-  configuration?: Array<StateNode<TContext, TEvent>>;
+  configuration: Array<StateNode<TContext, TEvent>>;
   children: Record<string, ActorRef<any, any>>;
   status: 'active' | 'done' | 'error' | 'stopped';
   output?: any;
   error?: unknown;
-  tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
-   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
+   * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
+   *
+   * @remarks
+   * You can create your own “clock”. The clock interface is an object with two functions/methods:
+   *
+   * - `setTimeout` - same arguments as `window.setTimeout(fn, timeout)`
+   * - `clearTimeout` - same arguments as `window.clearTimeout(id)`
+   *
+   * By default, the native `setTimeout` and `clearTimeout` functions are used.
+   *
+   * For testing, XState provides `SimulatedClock`.
+   *
+   * @see {@link Clock}
+   * @see {@link SimulatedClock}
    */
-  execute?: boolean;
   clock?: Clock;
+  /**
+   * Specifies the logger to be used for log(...) actions. Defaults to the native console.log method.
+   */
   logger?: (...args: any[]) => void;
+  /**
+   * @internal
+   */
   parent?: ActorRef<any, any>;
   /**
    * The custom `id` for referencing this service.
@@ -1690,8 +1681,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   devTools?: boolean | DevToolsAdapter; // TODO: add enhancer options
 
-  sync?: boolean;
-
   /**
    * The system ID to register this actor under
    */
@@ -1701,6 +1690,19 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   input?: InputFrom<TLogic>;
 
+  /**
+   * Initializes actor logic from a specific persisted internal state.
+   *
+   * @remarks
+   *
+   * If the state is compatible with the actor logic, when the actor is started it will be at that persisted state.
+   * Actions from machine actors will not be re-executed, because they are assumed to have been already executed.
+   * However, invocations will be restarted, and spawned actors will be restored recursively.
+   *
+   * Can be generated with {@link Actor.getPersistedState}.
+   *
+   * @see https://stately.ai/docs/persistence
+   */
   // state?:
   //   | PersistedStateFrom<TActorLogic>
   //   | InternalStateFrom<TActorLogic>;
@@ -1709,8 +1711,82 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
    * The source definition.
    */
-  src?: string;
+  src?: string | AnyActorLogic;
 
+  /**
+   * A callback function or observer object which can be used to inspect actor system updates.
+   *
+   * @remarks
+   * If a callback function is provided, it can accept an inspection event argument. The types of inspection events that can be observed include:
+   *
+   * - `@xstate.actor` - An actor ref has been created in the system
+   * - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
+   * - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
+   *
+   * @example
+   * ```ts
+   * import { createMachine } from 'xstate';
+   *
+   * const machine = createMachine({
+   *   // ...
+   * });
+   *
+   * const actor = createActor(machine, {
+   *   inspect: (inspectionEvent) => {
+   *     if (inspectionEvent.actorRef === actor) {
+   *       // This event is for the root actor
+   *     }
+   *
+   *     if (inspectionEvent.type === '@xstate.actor') {
+   *       console.log(inspectionEvent.actorRef);
+   *     }
+   *
+   *     if (inspectionEvent.type === '@xstate.event') {
+   *       console.log(inspectionEvent.sourceRef);
+   *       console.log(inspectionEvent.actorRef);
+   *       console.log(inspectionEvent.event);
+   *     }
+   *
+   *     if (inspectionEvent.type === '@xstate.snapshot') {
+   *       console.log(inspectionEvent.actorRef);
+   *       console.log(inspectionEvent.event);
+   *       console.log(inspectionEvent.snapshot);
+   *     }
+   *   }
+   * });
+   * ```
+   *
+   * Alternately, an observer object (`{ next?, error?, complete? }`) can be provided:
+   *
+   * @example
+   * ```ts
+   * const actor = createActor(machine, {
+   *   inspect: {
+   *     next: (inspectionEvent) => {
+   *       if (inspectionEvent.actorRef === actor) {
+   *         // This event is for the root actor
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.actor') {
+   *         console.log(inspectionEvent.actorRef);
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.event') {
+   *         console.log(inspectionEvent.sourceRef);
+   *         console.log(inspectionEvent.actorRef);
+   *         console.log(inspectionEvent.event);
+   *       }
+   *
+   *       if (inspectionEvent.type === '@xstate.snapshot') {
+   *         console.log(inspectionEvent.actorRef);
+   *         console.log(inspectionEvent.event);
+   *         console.log(inspectionEvent.snapshot);
+   *       }
+   *     }
+   *   }
+   * });
+   * ```
+   */
   inspect?:
     | Observer<InspectionEvent>
     | ((inspectionEvent: InspectionEvent) => void);
@@ -1795,8 +1871,9 @@ export interface ActorRef<
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
   system?: ActorSystem<any>;
-  status: ActorStatus;
-  src?: string;
+  /** @internal */
+  _processingStatus: ProcessingStatus;
+  src: string | AnyActorLogic;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
@@ -1925,7 +2002,7 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   ? TResolvedTypesMeta
   : never;
 
-export interface ActorContext<
+export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TSystem extends ActorSystem<any> = ActorSystem<any>
@@ -1939,7 +2016,7 @@ export interface ActorContext<
   stopChild: (child: AnyActorRef) => void;
 }
 
-export type AnyActorContext = ActorContext<any, any, AnyActorSystem>;
+export type AnyActorScope = ActorScope<any, any, AnyActorSystem>;
 
 export type Snapshot<TOutput> =
   | {
@@ -1963,31 +2040,69 @@ export type Snapshot<TOutput> =
       error: undefined;
     };
 
+/**
+ * Represents logic which can be used by an actor.
+ *
+ * @template TSnapshot - The type of the snapshot.
+ * @template TEvent - The type of the event object.
+ * @template TInput - The type of the input.
+ * @template TSystem - The type of the actor system.
+ */
 export interface ActorLogic<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput = unknown,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
+  /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
+  /**
+   * Transition function that processes the current state and an incoming message
+   * to produce a new state.
+   * @param state - The current state.
+   * @param message - The incoming message.
+   * @param ctx - The actor scope.
+   * @returns The new state.
+   */
   transition: (
     state: TSnapshot,
     message: TEvent,
-    ctx: ActorContext<TSnapshot, TEvent, TSystem>
+    ctx: ActorScope<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
+  /**
+   * Called to provide the initial state of the actor.
+   * @param actorScope - The actor scope.
+   * @param input - The input for the initial state.
+   * @returns The initial state.
+   */
   getInitialState: (
-    actorCtx: ActorContext<TSnapshot, TEvent, TSystem>,
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem>,
     input: TInput
   ) => TSnapshot;
+  /**
+   * Called when Actor is created to restore the internal state of the actor given a persisted state.
+   * The persisted state can be created by `getPersistedState`.
+   * @param persistedState - The persisted state to restore from.
+   * @param actorScope - The actor scope.
+   * @returns The restored state.
+   */
   restoreState?: (
     persistedState: Snapshot<unknown>,
-    actorCtx: ActorContext<TSnapshot, TEvent>
+    actorScope: ActorScope<TSnapshot, TEvent>
   ) => TSnapshot;
-  start?: (state: TSnapshot, actorCtx: ActorContext<TSnapshot, TEvent>) => void;
   /**
-   * @returns Persisted state
+   * Called when the actor is started.
+   * @param state - The starting state.
+   * @param actorScope - The actor scope.
    */
-  getPersistedState: (state: TSnapshot) => Snapshot<unknown>;
+  start?: (state: TSnapshot, actorScope: ActorScope<TSnapshot, TEvent>) => void;
+  /**
+   * Obtains the internal state of the actor in a representation which can be be persisted.
+   * The persisted state can be restored by `restoreState`.
+   * @param state - The current state.
+   * @returns The a representation of the internal state to be persisted.
+   */
+  getPersistedState: (state: TSnapshot, options?: unknown) => Snapshot<unknown>;
 }
 
 export type AnyActorLogic = ActorLogic<
@@ -2017,7 +2132,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? StateFrom<R>
     : R extends ActorLogic<any, any, any, any>
     ? ReturnType<R['transition']>
-    : R extends ActorContext<infer TSnapshot, infer _, infer __>
+    : R extends ActorScope<infer TSnapshot, infer _, infer __>
     ? TSnapshot
     : never
   : never;
@@ -2041,10 +2156,11 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TResolvedTypesMeta
     >
     ? TEvent
-    : R extends State<
+    : R extends MachineSnapshot<
         infer _TContext,
         infer TEvent,
         infer _TActor,
+        infer _TTag,
         infer _TOutput,
         infer _TResolvedTypesMeta
       >
@@ -2074,10 +2190,11 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TTypesMeta
     >
     ? TContext
-    : R extends State<
+    : R extends MachineSnapshot<
         infer TContext,
         infer _TEvent,
         infer _TActor,
+        infer _TTag,
         infer _TOutput,
         infer _TResolvedTypesMeta
       >
@@ -2154,3 +2271,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 }
 
 export type AnyActorSystem = ActorSystem<any>;
+
+export type RequiredActorOptions<TActor extends ProvidedActor> =
+  | ('id' extends keyof TActor ? 'id' : never)
+  | (undefined extends InputFrom<TActor['logic']> ? never : 'input');

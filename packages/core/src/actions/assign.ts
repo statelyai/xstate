@@ -1,12 +1,12 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
+import { cloneMachineSnapshot } from '../State.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
 import type {
   ActionArgs,
-  AnyActorContext,
+  AnyActorScope,
   AnyActorRef,
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   Assigner,
   EventObject,
   LowInfer,
@@ -26,8 +26,8 @@ export interface AssignArgs<
 }
 
 function resolveAssign(
-  actorContext: AnyActorContext,
-  state: AnyState,
+  actorScope: AnyActorScope,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -48,14 +48,9 @@ function resolveAssign(
   const assignArgs: AssignArgs<any, any, any, any> = {
     context: state.context,
     event: actionArgs.event,
-    spawn: createSpawner(
-      actorContext,
-      state,
-      actionArgs.event,
-      spawnedChildren
-    ),
-    self: actorContext?.self,
-    system: actorContext?.system
+    spawn: createSpawner(actorScope, state, actionArgs.event, spawnedChildren),
+    self: actorScope?.self,
+    system: actorScope?.system
   };
   let partialUpdate: Record<string, unknown> = {};
   if (typeof assignment === 'function') {
@@ -73,7 +68,7 @@ function resolveAssign(
   const updatedContext = Object.assign({}, state.context, partialUpdate);
 
   return [
-    cloneState(state, {
+    cloneMachineSnapshot(state, {
       context: updatedContext,
       children: Object.keys(spawnedChildren).length
         ? {

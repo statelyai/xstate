@@ -26,8 +26,8 @@ import {
   Subscribable,
   createActor,
   createMachine,
-  stop,
-  waitFor
+  waitFor,
+  stop
 } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
 
@@ -837,7 +837,7 @@ describe('actors', () => {
     let spawnCounter = 0;
 
     interface TestContext {
-      promise?: ActorRefFrom<Promise<string>>;
+      promise?: ActorRefFrom<PromiseActorLogic<string>>;
     }
 
     const child = createMachine({
@@ -1030,7 +1030,9 @@ describe('actors', () => {
     it('should work with a promise logic (fulfill)', (done) => {
       const countMachine = createMachine({
         types: {} as {
-          context: { count: ActorRefFrom<Promise<number>> | undefined };
+          context: {
+            count: ActorRefFrom<PromiseActorLogic<number>> | undefined;
+          };
         },
         context: {
           count: undefined
@@ -1075,7 +1077,9 @@ describe('actors', () => {
     it('should work with a promise logic (reject)', (done) => {
       const errorMessage = 'An error occurred';
       const countMachine = createMachine({
-        types: {} as { context: { count: ActorRefFrom<Promise<number>> } },
+        types: {} as {
+          context: { count: ActorRefFrom<PromiseActorLogic<number>> };
+        },
         context: ({ spawn }) => ({
           count: spawn(
             fromPromise(

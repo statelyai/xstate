@@ -1,11 +1,11 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
-import { ActorStatus } from '../interpreter.ts';
+import { cloneMachineSnapshot } from '../State.ts';
+import { ProcessingStatus } from '../interpreter.ts';
 import {
   ActionArgs,
   ActorRef,
-  AnyActorContext,
-  AnyState,
+  AnyActorScope,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ParameterizedObject
@@ -25,8 +25,8 @@ type ResolvableActorRef<
     ) => ActorRef<any, any> | string);
 
 function resolveStop(
-  _: AnyActorContext,
-  state: AnyState,
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { actorRef }: { actorRef: ResolvableActorRef<any, any, any, any> }
@@ -44,14 +44,14 @@ function resolveStop(
     delete children[resolvedActorRef.id];
   }
   return [
-    cloneState(state, {
+    cloneMachineSnapshot(state, {
       children
     }),
     resolvedActorRef
   ];
 }
 function executeStop(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   actorRef: ActorRef<any, any> | undefined
 ) {
   if (!actorRef) {
@@ -61,20 +61,20 @@ function executeStop(
   // we need to eagerly unregister it here so a new actor with the same systemId can be registered immediately
   // since we defer actual stopping of the actor but we don't defer actor creations (and we can't do that)
   // this could throw on `systemId` collision, for example, when dealing with reentering transitions
-  actorContext.system._unregister(actorRef);
+  actorScope.system._unregister(actorRef);
 
   // this allows us to prevent an actor from being started if it gets stopped within the same macrostep
   // this can happen, for example, when the invoking state is being exited immediately by an always transition
-  if (actorRef.status !== ActorStatus.Running) {
-    actorContext.stopChild(actorRef);
+  if (actorRef._processingStatus !== ProcessingStatus.Running) {
+    actorScope.stopChild(actorRef);
     return;
   }
   // stopping a child enqueues a stop event in the child actor's mailbox
   // we need for all of the already enqueued events to be processed before we stop the child
   // the parent itself might want to send some events to a child (for example from exit actions on the invoking state)
   // and we don't want to ignore those events
-  actorContext.defer(() => {
-    actorContext.stopChild(actorRef);
+  actorScope.defer(() => {
+    actorScope.stopChild(actorRef);
   });
 }
 

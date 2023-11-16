@@ -1,5 +1,107 @@
 # xstate
 
+## 5.0.0-beta.44
+
+### Major Changes
+
+- [#4448](https://github.com/statelyai/xstate/pull/4448) [`9c4353020`](https://github.com/statelyai/xstate/commit/9c435302042be8090e78dc75fe4a9288a64dbb11) Thanks [@Andarist](https://github.com/Andarist)! - `isState`/`isStateConfig` were replaced by `isMachineSnapshot`. Similarly, `AnyState` type was deprecated and it's replaced by `AnyMachineSnapshot` type.
+
+### Patch Changes
+
+- [#4463](https://github.com/statelyai/xstate/pull/4463) [`178deadac`](https://github.com/statelyai/xstate/commit/178deadac5dc29c1b7a749936622456d98294fa5) Thanks [@Andarist](https://github.com/Andarist)! - `invoke` and `spawn` will now require `input` to be provided if the used actor requires it.
+
+- [#4464](https://github.com/statelyai/xstate/pull/4464) [`5278a9895`](https://github.com/statelyai/xstate/commit/5278a989573bc8a78bd89f5950654be6b1eaad49) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to target actors registered with `systemId` from within initial actions.
+
+## 5.0.0-beta.43
+
+### Major Changes
+
+- [#4451](https://github.com/statelyai/xstate/pull/4451) [`21f18b54b`](https://github.com/statelyai/xstate/commit/21f18b54b6badec8a34e3349d2bf360e0648abf4) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to configure `input` within the implementations object. You no longer can do this:
+
+  ```ts
+  createMachine(
+    {
+      invoke: {
+        src: 'child'
+      }
+    },
+    {
+      actors: {
+        child: {
+          src: childMachine,
+          input: 'foo'
+        }
+      }
+    }
+  );
+  ```
+
+  The `input` can only be provided within the config of the machine.
+
+## 5.0.0-beta.42
+
+### Major Changes
+
+- [#4438](https://github.com/statelyai/xstate/pull/4438) [`7bbf41d7d`](https://github.com/statelyai/xstate/commit/7bbf41d7d17257d2b2a2675494f68cbae8dc19fd) Thanks [@Andarist](https://github.com/Andarist)! - Removed `State#toStrings` method.
+
+- [#4443](https://github.com/statelyai/xstate/pull/4443) [`18862e53c`](https://github.com/statelyai/xstate/commit/18862e53cc24c38db6e21f5aecac501942db1d9d) Thanks [@Andarist](https://github.com/Andarist)! - `State` class has been removed and replaced by `MachineSnapshot` object. They largely have the same properties and methods. On of the main noticeable results of this change is that you can no longer check `state instanceof State`.
+
+- [#4444](https://github.com/statelyai/xstate/pull/4444) [`d6e41a923`](https://github.com/statelyai/xstate/commit/d6e41a923bfaa9e39fdd60d4bbee661bd048dfaf) Thanks [@Andarist](https://github.com/Andarist)! - Removed `mapState` utility function.
+
+### Minor Changes
+
+- [#4440](https://github.com/statelyai/xstate/pull/4440) [`10d95393a`](https://github.com/statelyai/xstate/commit/10d95393a3bfdfab31a9670ae56751e7557a4a17) Thanks [@Andarist](https://github.com/Andarist)! - `State.from`, `StateMachine#createState` and `StateMachine#resolveStateValue` were removed. They largely served the same purpose as `StateMachine#resolveState` and this is the method that is still available and can be used instead of them.
+
+## 5.0.0-beta.41
+
+### Major Changes
+
+- [#4423](https://github.com/statelyai/xstate/pull/4423) [`8fb984494`](https://github.com/statelyai/xstate/commit/8fb98449471a67ad4231c2ce18d88d511b1112f8) Thanks [@Andarist](https://github.com/Andarist)! - Removed `Interpreter['status']` from publicly available properties.
+
+### Minor Changes
+
+- [#4435](https://github.com/statelyai/xstate/pull/4435) [`37d879335`](https://github.com/statelyai/xstate/commit/37d879335c3c9ad1c28533bef4768ed0411fa0e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The default `timeout` for `waitFor(...)` is now `Infinity` instead of 10 seconds.
+
+## 5.0.0-beta.40
+
+### Minor Changes
+
+- [#4414](https://github.com/statelyai/xstate/pull/4414) [`26fbc6c85`](https://github.com/statelyai/xstate/commit/26fbc6c8598f8621ce0ba510390f536e41d773d7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - All inspector events (snapshot, event, actor) now have a common `actorRef` property. This makes it easier to discern which inspection event is for which actor:
+
+  ```ts
+  const actor = createActor(someMachine, {
+    inspect: (event) => {
+      // Was previously a type error
+      if (event.actorRef === actor) {
+        // This event is for the root actor
+      }
+
+      if (event.type === '@xstate.event') {
+        // previously event.targetRef
+        event.actorRef;
+      }
+    }
+  });
+  ```
+
+  In the `'xstate.event'` event, the `actorRef` property is now the target actor (recipient of the event). Previously, this was the `event.targetRef` property (which is now removed).
+
+### Patch Changes
+
+- [#4425](https://github.com/statelyai/xstate/pull/4425) [`74baddc1b`](https://github.com/statelyai/xstate/commit/74baddc1b3881d9143f01c02e10c741d1d4cfef4) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with persisting children that got rehydrated.
+
+## 5.0.0-beta.39
+
+### Minor Changes
+
+- [#4407](https://github.com/statelyai/xstate/pull/4407) [`c46a80015`](https://github.com/statelyai/xstate/commit/c46a80015a2332c39cb34dbbe2d32d13beeb9c45) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Internal: changed the actor context type from `ActorContext` to `ActorScope` to mitigate confusion.
+
+### Patch Changes
+
+- [#4404](https://github.com/statelyai/xstate/pull/4404) [`a91fdea06`](https://github.com/statelyai/xstate/commit/a91fdea0686ccef459b0f99ebc614903f38cbe30) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused non-active children to be rehydrated.
+
+- [#4368](https://github.com/statelyai/xstate/pull/4368) [`5393e82df`](https://github.com/statelyai/xstate/commit/5393e82df1445c29920f477bf2855d5a387317ed) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with parallel regions sometimes not being correctly reentered when taking transitions targeting other parallel regions.
+
 ## 5.0.0-beta.38
 
 ### Minor Changes

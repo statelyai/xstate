@@ -1,9 +1,9 @@
 <script lang="ts">
-  export let persistedState: AnyState | undefined = undefined;
+  export let persistedState: AnyMachineSnapshot | undefined = undefined;
 
   import { useMachine } from '@xstate/svelte';
   import { fetchMachine } from './fetchMachine.ts';
-  import type { AnyState } from 'xstate';
+  import type { AnyMachineSnapshot } from 'xstate';
   import { fromPromise } from 'xstate/actors';
 
   const onFetch = () =>

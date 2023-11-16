@@ -1,7 +1,7 @@
 import { createMachine, createActor, StateValue } from '../src/index.ts';
 import { assign } from '../src/actions/assign.ts';
 import { raise } from '../src/actions/raise.ts';
-import { testMultiTransition } from './utils.ts';
+import { testMultiTransition, trackEntries } from './utils.ts';
 
 const composerMachine = createMachine({
   initial: 'ReadOnly',
@@ -1171,5 +1171,172 @@ describe('parallel states', () => {
     service.send({ type: 'finish_two' });
 
     expect(service.getSnapshot().value).toBe('finished');
+  });
+
+  it('source parallel region should be reentered when a transition within it targets another parallel region (parallel root)', async () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        Operation: {
+          initial: 'Waiting',
+          states: {
+            Waiting: {
+              on: {
+                TOGGLE_MODE: {
+                  target: '#Demo'
+                }
+              }
+            },
+            Fetching: {}
+          }
+        },
+        Mode: {
+          initial: 'Normal',
+          states: {
+            Normal: {},
+            Demo: {
+              id: 'Demo'
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked();
+
+    actor.send({ type: 'TOGGLE_MODE' });
+
+    expect(flushTracked()).toEqual([
+      'exit: Mode.Normal',
+      'exit: Mode',
+      'exit: Operation.Waiting',
+      'exit: Operation',
+      'enter: Operation',
+      'enter: Operation.Waiting',
+      'enter: Mode',
+      'enter: Mode.Demo'
+    ]);
+  });
+
+  it('source parallel region should be reentered when a transition within it targets another parallel region (nested parallel)', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          type: 'parallel',
+          states: {
+            Operation: {
+              initial: 'Waiting',
+              states: {
+                Waiting: {
+                  on: {
+                    TOGGLE_MODE: {
+                      target: '#Demo'
+                    }
+                  }
+                },
+                Fetching: {}
+              }
+            },
+            Mode: {
+              initial: 'Normal',
+              states: {
+                Normal: {},
+                Demo: {
+                  id: 'Demo'
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked();
+
+    actor.send({ type: 'TOGGLE_MODE' });
+
+    expect(flushTracked()).toEqual([
+      'exit: a.Mode.Normal',
+      'exit: a.Mode',
+      'exit: a.Operation.Waiting',
+      'exit: a.Operation',
+      'enter: a.Operation',
+      'enter: a.Operation.Waiting',
+      'enter: a.Mode',
+      'enter: a.Mode.Demo'
+    ]);
+  });
+
+  it('targetless transition on a parallel state should not enter nor exit any states', () => {
+    const machine = createMachine({
+      id: 'test',
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'disabled',
+          states: {
+            disabled: {},
+            enabled: {}
+          }
+        },
+        second: {}
+      },
+      on: {
+        MY_EVENT: {
+          actions: () => {}
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked();
+
+    actor.send({ type: 'MY_EVENT' });
+
+    expect(flushTracked()).toEqual([]);
+  });
+
+  it('targetless transition in one of the parallel regions should not enter nor exit any states', () => {
+    const machine = createMachine({
+      id: 'test',
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'disabled',
+          states: {
+            disabled: {},
+            enabled: {}
+          },
+          on: {
+            MY_EVENT: {
+              actions: () => {}
+            }
+          }
+        },
+        second: {}
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked();
+
+    actor.send({ type: 'MY_EVENT' });
+
+    expect(flushTracked()).toEqual([]);
   });
 });

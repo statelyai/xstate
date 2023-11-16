@@ -1,8 +1,8 @@
 import isDevelopment from '#is-development';
 import {
-  AnyActorContext,
+  AnyActorScope,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ActionArgs,
@@ -22,8 +22,8 @@ type ResolvableSendId<
     ) => string);
 
 function resolveCancel(
-  _: AnyActorContext,
-  state: AnyState,
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { sendId }: { sendId: ResolvableSendId<any, any, any, any> }
@@ -33,8 +33,8 @@ function resolveCancel(
   return [state, resolvedSendId];
 }
 
-function executeCancel(actorContext: AnyActorContext, resolvedSendId: string) {
-  (actorContext.self as AnyActor).cancel(resolvedSendId);
+function executeCancel(actorScope: AnyActorScope, resolvedSendId: string) {
+  (actorScope.self as AnyActor).cancel(resolvedSendId);
 }
 
 export interface CancelAction<

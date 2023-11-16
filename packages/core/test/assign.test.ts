@@ -313,7 +313,7 @@ describe('assign meta', () => {
     expect(actor.getSnapshot().context.count).toEqual(11);
   });
 
-  it.only('should provide the action parameters to the partial assigner', () => {
+  it('should provide the action parameters to the partial assigner', () => {
     const machine = createMachine(
       {
         types: {} as {

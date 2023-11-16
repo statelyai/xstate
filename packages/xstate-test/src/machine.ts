@@ -1,7 +1,7 @@
 import { SerializedState, serializeState } from '@xstate/graph';
 import {
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   createMachine,
   EventFrom,
@@ -23,7 +23,7 @@ import {
 import { flatten, simpleStringify } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
 
-export async function testStateFromMeta(state: AnyState) {
+export async function testStateFromMeta(state: AnyMachineSnapshot) {
   for (const id of Object.keys(state.meta)) {
     const stateNodeMeta = state.meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {

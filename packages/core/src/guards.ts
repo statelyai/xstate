@@ -4,7 +4,7 @@ import type {
   StateValue,
   MachineContext,
   ParameterizedObject,
-  AnyState,
+  AnyMachineSnapshot,
   NoRequiredParams,
   NoInfer,
   WithDynamicParams
@@ -58,14 +58,14 @@ type UnknownInlineGuard = Guard<
 interface BuiltinGuard {
   (): boolean;
   check: (
-    state: AnyState,
+    state: AnyMachineSnapshot,
     guardArgs: GuardArgs<any, any>,
     params: unknown
   ) => boolean;
 }
 
 function checkStateIn(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   _: GuardArgs<any, any>,
   { stateValue }: { stateValue: StateValue }
 ) {
@@ -106,7 +106,7 @@ export function stateIn<
 }
 
 function checkNot(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
@@ -135,7 +135,7 @@ export function not<
 }
 
 function checkAnd(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
@@ -166,7 +166,7 @@ export function and<
 }
 
 function checkOr(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
@@ -204,7 +204,7 @@ export function evaluateGuard<
   guard: UnknownGuard | UnknownInlineGuard,
   context: TContext,
   event: TExpressionEvent,
-  state: AnyState
+  state: AnyMachineSnapshot
 ): boolean {
   const { machine } = state;
   const isInline = typeof guard === 'function';

@@ -3,8 +3,8 @@ import {
   EventObject,
   ChooseBranch,
   MachineContext,
-  AnyActorContext,
-  AnyState,
+  AnyActorScope,
+  AnyMachineSnapshot,
   ActionArgs,
   ParameterizedObject,
   NoInfer,
@@ -14,8 +14,8 @@ import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
 
 function resolveChoose(
-  _: AnyActorContext,
-  state: AnyState,
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {

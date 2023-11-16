@@ -1,10 +1,7 @@
 import type { ActorRef, SnapshotFrom, EventObject, Snapshot } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
-import { deriveServiceState } from './deriveServiceState.ts';
 import { createImmutable } from './createImmutable.ts';
-import type { CheckSnapshot } from './types.ts';
-import { unwrap } from 'solid-js/store';
 
 const noop = () => {
   /* ... */
@@ -14,13 +11,13 @@ type Sender<TEvent> = (event: TEvent) => void;
 
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: Accessor<TActor> | TActor
-): [Accessor<CheckSnapshot<SnapshotFrom<TActor>>>, TActor['send']];
+): [Accessor<SnapshotFrom<TActor>>, TActor['send']];
 export function useActor<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 >(
   actorRef: Accessor<ActorRef<TEvent, TSnapshot>> | ActorRef<TEvent, TSnapshot>
-): [Accessor<CheckSnapshot<TSnapshot>>, Sender<TEvent>];
+): [Accessor<TSnapshot>, Sender<TEvent>];
 export function useActor(
   actorRef:
     | Accessor<ActorRef<EventObject, Snapshot<unknown>>>
@@ -31,24 +28,18 @@ export function useActor(
   );
 
   const [state, setState] = createImmutable({
-    snapshot: deriveServiceState(actorMemo().getSnapshot?.())
+    snapshot: actorMemo().getSnapshot?.()
   });
-
-  const setActorState = (actorState: unknown, prevState?: unknown) => {
-    setState({
-      snapshot: deriveServiceState(actorState, prevState)
-    });
-  };
 
   createEffect<boolean>((isInitialActor) => {
     const currentActor = actorMemo();
 
     if (!isInitialActor) {
-      setActorState(currentActor.getSnapshot?.());
+      setState({ snapshot: currentActor.getSnapshot?.() });
     }
 
     const { unsubscribe } = currentActor.subscribe({
-      next: (nextState) => setActorState(nextState, unwrap(state.snapshot)),
+      next: (nextState) => setState({ snapshot: nextState }),
       error: noop,
       complete: noop
     });

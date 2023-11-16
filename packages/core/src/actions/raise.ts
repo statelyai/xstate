@@ -1,9 +1,9 @@
 import isDevelopment from '#is-development';
 import {
   ActionArgs,
-  AnyActorContext,
+  AnyActorScope,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   DelayExpr,
   EventObject,
   MachineContext,
@@ -15,8 +15,8 @@ import {
 } from '../types.ts';
 
 function resolveRaise(
-  _: AnyActorContext,
-  state: AnyState,
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -77,7 +77,7 @@ function resolveRaise(
 }
 
 function executeRaise(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   params: {
     event: EventObject;
     id: string | undefined;
@@ -85,7 +85,7 @@ function executeRaise(
   }
 ) {
   if (typeof params.delay === 'number') {
-    (actorContext.self as AnyActor).delaySend(
+    (actorScope.self as AnyActor).delaySend(
       params as typeof params & { delay: number }
     );
     return;

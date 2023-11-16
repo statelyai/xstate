@@ -1,8 +1,8 @@
 import isDevelopment from '#is-development';
 import {
   ActionArgs,
-  AnyActorContext,
-  AnyState,
+  AnyActorScope,
+  AnyMachineSnapshot,
   EventObject,
   LogExpr,
   MachineContext,
@@ -17,8 +17,8 @@ type ResolvableLogValue<
 > = string | LogExpr<TContext, TExpressionEvent, TParams, TEvent>;
 
 function resolveLog(
-  _: AnyActorContext,
-  state: AnyState,
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -40,7 +40,7 @@ function resolveLog(
 }
 
 function executeLog(
-  { logger }: AnyActorContext,
+  { logger }: AnyActorScope,
   { value, label }: { value: unknown; label: string | undefined }
 ) {
   if (label) {
