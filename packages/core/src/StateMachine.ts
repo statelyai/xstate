@@ -299,7 +299,7 @@ export class StateMachine<
     // TODO: handle error events in a better way
     if (
       isErrorActorEvent(event) &&
-      !state.nextEvents.some((nextEvent) => nextEvent === event.type)
+      !state.getNextEvents().some((nextEvent) => nextEvent === event.type)
     ) {
       return cloneMachineSnapshot(state, {
         status: 'error',
