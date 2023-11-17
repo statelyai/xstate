@@ -9,7 +9,7 @@ import {
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
-  getConfiguration,
+  getAllStateNodes,
   getStateNodeByPath,
   getStateNodes,
   isInFinalState,
@@ -243,16 +243,16 @@ export class StateMachine<
     TResolvedTypesMeta
   > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
-    const configurationSet = getConfiguration(
+    const nodeSet = getAllStateNodes(
       getStateNodes(this.root, resolvedStateValue)
     );
 
     return createMachineSnapshot(
       {
-        configuration: [...configurationSet],
+        nodes: [...nodeSet],
         context: config.context || ({} as TContext),
         children: {},
-        status: isInFinalState(configurationSet, this.root)
+        status: isInFinalState(nodeSet, this.root)
           ? 'done'
           : config.status || 'active',
         output: config.output,
@@ -372,7 +372,7 @@ export class StateMachine<
       {
         context:
           typeof context !== 'function' && context ? context : ({} as TContext),
-        configuration: [this.root],
+        nodes: [this.root],
         children: {},
         status: 'active'
       },
@@ -571,8 +571,8 @@ export class StateMachine<
       {
         ...(snapshot as any),
         children,
-        configuration: Array.from(
-          getConfiguration(getStateNodes(this.root, (snapshot as any).value))
+        nodes: Array.from(
+          getAllStateNodes(getStateNodes(this.root, (snapshot as any).value))
         )
       },
       this

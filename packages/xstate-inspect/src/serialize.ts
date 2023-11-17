@@ -24,7 +24,7 @@ export function stringifyState(
   state: AnyMachineSnapshot,
   replacer?: Replacer
 ): string {
-  const { machine, configuration, tags, ...stateToStringify } = state;
+  const { machine, nodes, tags, ...stateToStringify } = state;
   return selectivelyStringify(
     { ...stateToStringify, tags: Array.from(tags) },
     ['context'],
