@@ -249,7 +249,7 @@ export class StateMachine<
 
     return createMachineSnapshot(
       {
-        nodes: [...nodeSet],
+        _nodes: [...nodeSet],
         context: config.context || ({} as TContext),
         children: {},
         status: isInFinalState(nodeSet, this.root)
@@ -372,7 +372,7 @@ export class StateMachine<
       {
         context:
           typeof context !== 'function' && context ? context : ({} as TContext),
-        nodes: [this.root],
+        _nodes: [this.root],
         children: {},
         status: 'active'
       },
@@ -571,7 +571,7 @@ export class StateMachine<
       {
         ...(snapshot as any),
         children,
-        nodes: Array.from(
+        _nodes: Array.from(
           getAllStateNodes(getStateNodes(this.root, (snapshot as any).value))
         )
       },

@@ -985,7 +985,7 @@ export function microstep<
   if (!transitions.length) {
     return currentState;
   }
-  const mutStateNodeSet = new Set(currentState.nodes);
+  const mutStateNodeSet = new Set(currentState._nodes);
   let historyValue = currentState.historyValue;
 
   const filteredTransitions = removeConflictingTransitions(
@@ -1047,12 +1047,12 @@ export function microstep<
   try {
     if (
       historyValue === currentState.historyValue &&
-      areStateNodeCollectionsEqual(currentState.nodes, mutStateNodeSet)
+      areStateNodeCollectionsEqual(currentState._nodes, mutStateNodeSet)
     ) {
       return nextState;
     }
     return cloneMachineSnapshot(nextState, {
-      nodes: nextStateNodes,
+      _nodes: nextStateNodes,
       historyValue
     });
   } catch (e) {
@@ -1723,7 +1723,7 @@ function selectEventlessTransitions(
   event: AnyEventObject
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-  const atomicStates = nextState.nodes.filter(isAtomicStateNode);
+  const atomicStates = nextState._nodes.filter(isAtomicStateNode);
 
   for (const stateNode of atomicStates) {
     loop: for (const s of [stateNode].concat(
@@ -1746,7 +1746,7 @@ function selectEventlessTransitions(
 
   return removeConflictingTransitions(
     Array.from(enabledTransitionSet),
-    new Set(nextState.nodes),
+    new Set(nextState._nodes),
     nextState.historyValue
   );
 }

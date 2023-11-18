@@ -71,7 +71,7 @@ function checkStateIn(
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
     const target = state.machine.getStateNodeById(stateValue);
-    return state.nodes.some((sn) => sn === target);
+    return state._nodes.some((sn) => sn === target);
   }
 
   return state.matches(stateValue);

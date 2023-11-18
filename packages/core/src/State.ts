@@ -90,7 +90,7 @@ interface MachineSnapshotBase<
   /**
    * The enabled state nodes representative of the state value.
    */
-  nodes: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<StateNode<TContext, TEvent>>;
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
@@ -345,7 +345,7 @@ const machineSnapshotCan = function can(
 
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
-    nodes,
+    _nodes: nodes,
     tags,
     machine,
     getNextEvents,
@@ -362,11 +362,11 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
 const machineSnapshotGetNextEvents = function getNextEvents(
   this: AnyMachineSnapshot
 ) {
-  return [...new Set(flatten([...this.nodes.map((sn) => sn.ownEvents)]))];
+  return [...new Set(flatten([...this._nodes.map((sn) => sn.ownEvents)]))];
 };
 
 const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
-  return this.nodes.reduce((acc, stateNode) => {
+  return this._nodes.reduce((acc, stateNode) => {
     if (stateNode.meta !== undefined) {
       acc[stateNode.id] = stateNode.meta;
     }
@@ -397,9 +397,9 @@ export function createMachineSnapshot<
     error: config.error,
     machine,
     context: config.context,
-    nodes: config.nodes,
-    value: getStateValue(machine.root, config.nodes),
-    tags: new Set(flatten(config.nodes.map((sn) => sn.tags))),
+    _nodes: config._nodes,
+    value: getStateValue(machine.root, config._nodes),
+    tags: new Set(flatten(config._nodes.map((sn) => sn.tags))),
     children: config.children as any,
     historyValue: config.historyValue || {},
     // this one is generic in the target and it's hard to create a matching non-generic source signature
@@ -441,7 +441,7 @@ export function getPersistedState<
   options?: unknown
 ): Snapshot<unknown> {
   const {
-    nodes,
+    _nodes: nodes,
     tags,
     machine,
     children,

@@ -1633,7 +1633,10 @@ export interface StateConfig<
 > {
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
-  nodes: Array<StateNode<TContext, TEvent>>;
+  /**
+   * @internal
+   */
+  _nodes: Array<StateNode<TContext, TEvent>>;
   children: Record<string, ActorRef<any, any>>;
   status: 'active' | 'done' | 'error' | 'stopped';
   output?: any;
