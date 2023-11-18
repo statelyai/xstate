@@ -1,5 +1,4 @@
 import { createActor, createMachine, assign } from '../src/index.ts';
-import { State } from '../src/State.ts';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -242,7 +241,7 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.resolveState()', () => {
+  describe('machine.resolveStateValue()', () => {
     const resolveMachine = createMachine({
       id: 'resolve',
       initial: 'foo',
@@ -283,9 +282,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state value', () => {
-      const tempState = State.from('foo', undefined, resolveMachine);
-
-      const resolvedState = resolveMachine.resolveState(tempState);
+      const resolvedState = resolveMachine.resolveState({ value: 'foo' });
 
       expect(resolvedState.value).toEqual({
         foo: { one: { a: 'aa', b: 'bb' } }
@@ -293,33 +290,12 @@ describe('machine', () => {
     });
 
     it('should resolve the state configuration (implicit via events)', () => {
-      const tempState = State.from('foo', undefined, resolveMachine);
-
-      const resolvedState = resolveMachine.resolveState(tempState);
+      const resolvedState = resolveMachine.resolveState({ value: 'foo' });
 
       expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
     });
 
-    it('should resolve .done', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: { NEXT: 'bar' }
-          },
-          bar: {
-            type: 'final'
-          }
-        }
-      });
-      const tempState = State.from('bar', undefined, machine);
-
-      const resolvedState = machine.resolveState(tempState);
-
-      expect(resolvedState.done).toBe(true);
-    });
-
-    it('should resolve from a state config object', () => {
+    it('should resolve `status: done`', () => {
       const machine = createMachine({
         initial: 'foo',
         states: {
@@ -332,40 +308,9 @@ describe('machine', () => {
         }
       });
 
-      const actorRef = createActor(machine).start();
-      actorRef.send({ type: 'NEXT' });
-      const barState = actorRef.getSnapshot();
+      const resolvedState = machine.resolveState({ value: 'bar' });
 
-      const jsonBarState = JSON.parse(JSON.stringify(barState));
-
-      expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
-    });
-
-    it('should terminate on a resolved final state', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: { NEXT: 'bar' }
-          },
-          bar: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actorRef = createActor(machine).start();
-      actorRef.send({ type: 'NEXT' });
-      const persistedState = actorRef.getPersistedState();
-
-      const spy = jest.fn();
-      const actorRef2 = createActor(machine, { state: persistedState });
-      actorRef2.subscribe({
-        complete: spy
-      });
-
-      actorRef2.start();
-      expect(spy).toHaveBeenCalled();
+      expect(resolvedState.status).toBe('done');
     });
   });
 

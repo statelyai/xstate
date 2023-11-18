@@ -3,8 +3,8 @@ import {
   Actions,
   ActionArgs,
   UnknownAction,
-  AnyActorContext,
-  AnyState,
+  AnyActorScope,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ParameterizedObject,
@@ -14,10 +14,11 @@ import {
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 
-function resolve(
-  _: AnyActorContext,
-  state: AnyState,
-  args: ActionArgs<any, any, any, any>,
+function resolvePure(
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
+  args: ActionArgs<any, any, any>,
+  _actionParams: ParameterizedObject['params'] | undefined,
   {
     get
   }: {
@@ -40,14 +41,14 @@ function resolve(
 export interface PureAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -58,8 +59,8 @@ export interface PureAction<
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
     | undefined,
   TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
@@ -88,7 +89,7 @@ export function pure<
 ): PureAction<
   TContext,
   TExpressionEvent,
-  TExpressionAction,
+  TParams,
   TEvent,
   TActor,
   TAction,
@@ -96,7 +97,8 @@ export function pure<
   TDelay
 > {
   function pure(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -105,7 +107,8 @@ export function pure<
 
   pure.type = 'xstate.pure';
   pure.get = getActions;
-  pure.resolve = resolve;
+
+  pure.resolve = resolvePure;
 
   return pure;
 }

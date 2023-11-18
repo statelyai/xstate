@@ -5,31 +5,25 @@ import {
   AnyEventObject,
   ActorSystem,
   ActorRefFrom,
-  TODO
+  TODO,
+  Snapshot
 } from '../types';
-import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
+import { XSTATE_STOP } from '../constants.ts';
 
-export interface CallbackInternalState<
-  TEvent extends EventObject,
-  TInput = unknown
-> {
-  canceled: boolean;
-  receivers: Set<(e: TEvent) => void>;
-  dispose: (() => void) | void;
+type CallbackSnapshot<TInput, TEvent> = Snapshot<undefined> & {
   input: TInput;
-}
+  _receivers: Set<(e: TEvent) => void>;
+  _dispose: (() => void) | void;
+};
 
 export type CallbackActorLogic<
   TEvent extends EventObject,
   TInput = unknown
 > = ActorLogic<
+  CallbackSnapshot<TInput, TEvent>,
   TEvent,
-  undefined,
-  CallbackInternalState<TEvent, TInput>,
-  Pick<CallbackInternalState<TEvent, TInput>, 'input' | 'canceled'>,
-  ActorSystem<any>,
   TInput,
-  any
+  ActorSystem<any>
 >;
 
 export type CallbackActorRef<
@@ -54,36 +48,112 @@ export type InvokeCallback<
   sendBack,
   receive
 }: {
+  /**
+   * Data that was provided to the callback actor
+   * @see {@link https://stately.ai/docs/input | Input docs}
+   */
   input: TInput;
+  /**
+   * The actor system to which the callback actor belongs
+   */
   system: AnyActorSystem;
+  /**
+   * The parent actor of the callback actor
+   */
   self: CallbackActorRef<TEvent>;
+  /**
+   * A function that can send events back to the parent actor
+   */
   sendBack: (event: TSentEvent) => void;
+  /**
+   * A function that can be called with a listener function argument;
+   * the listener is then called whenever events are received by the callback actor
+   */
   receive: Receiver<TEvent>;
 }) => (() => void) | void;
 
-export function fromCallback<TEvent extends EventObject, TInput>(
+/**
+ * An actor logic creator which returns callback logic as defined by a callback function.
+ *
+ * @remarks
+ * Useful for subscription-based or other free-form logic that can send events back to the parent actor.
+ *
+ * Actors created from callback logic (“callback actors”) can:
+ * - Receive events via the `receive` function
+ * - Send events to the parent actor via the `sendBack` function
+ *
+ * Callback actors are a bit different from other actors in that they:
+ * - Do not work with `onDone`
+ * - Do not produce a snapshot using `.getSnapshot()`
+ * - Do not emit values when used with `.subscribe()`
+ * - Can not be stopped with `.stop()`
+ *
+ * @param invokeCallback - The callback function used to describe the callback logic
+ * The callback function is passed an object with the following properties:
+ * - `receive` - A function that can send events back to the parent actor; the listener is then called whenever events are received by the callback actor
+ * - `sendBack` - A function that can send events back to the parent actor
+ * - `input` - Data that was provided to the callback actor
+ * - `self` - The parent actor of the callback actor
+ * - `system` - The actor system to which the callback actor belongs
+ * The callback function can (optionally) return a cleanup function, which is called when the actor is stopped.
+ * @see {@link InvokeCallback} for more information about the callback function and its object argument
+ * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
+
+ * @returns Callback logic
+ *
+ * @example
+ * ```typescript
+ * const callbackLogic = fromCallback(({ sendBack, receive }) => {
+ *   let lockStatus = 'unlocked';
+ *
+ *   const handler = (event) => {
+ *     if (lockStatus === 'locked') {
+ *       return;
+ *     }
+ *     sendBack(event);
+ *   };
+ *
+ *   receive((event) => {
+ *     if (event.type === 'lock') {
+ *       lockStatus = 'locked';
+ *     } else if (event.type === 'unlock') {
+ *       lockStatus = 'unlocked';
+ *     }
+ *   });
+ *
+ *   document.body.addEventListener('click', handler);
+ *
+ *   return () => {
+ *     document.body.removeEventListener('click', handler);
+ *   };
+ * });
+ * ```
+ */
+export function fromCallback<TEvent extends EventObject, TInput = unknown>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
-  return {
+  const logic: CallbackActorLogic<TEvent, TInput> = {
     config: invokeCallback,
-    start: (_state, { self }) => {
-      self.send({ type: XSTATE_INIT } as TEvent);
+    start: (_state, { self, system }) => {
+      system._relay(self, self, { type: 'xstate.create' });
     },
-    transition: (state, event, { self, id, system }) => {
-      if (event.type === XSTATE_INIT) {
+    transition: (state, event, { self, system }) => {
+      if (event.type === 'xstate.create') {
         const sendBack = (eventForParent: AnyEventObject) => {
-          if (state.canceled) {
+          if (state.status === 'stopped') {
             return;
           }
 
-          self._parent?.send(eventForParent);
+          if (self._parent) {
+            system._relay(self, self._parent, eventForParent);
+          }
         };
 
         const receive: Receiver<TEvent> = (newListener) => {
-          state.receivers.add(newListener);
+          state._receivers.add(newListener);
         };
 
-        state.dispose = invokeCallback({
+        state._dispose = invokeCallback({
           input: state.input,
           system,
           self: self as TODO,
@@ -95,27 +165,39 @@ export function fromCallback<TEvent extends EventObject, TInput>(
       }
 
       if (event.type === XSTATE_STOP) {
-        state.canceled = true;
+        state = {
+          ...state,
+          status: 'stopped',
+          error: undefined
+        };
 
-        if (typeof state.dispose === 'function') {
-          state.dispose();
+        if (typeof state._dispose === 'function') {
+          state._dispose();
         }
         return state;
       }
 
-      state.receivers.forEach((receiver) => receiver(event));
+      state._receivers.forEach((receiver) => receiver(event));
 
       return state;
     },
     getInitialState: (_, input) => {
       return {
-        canceled: false,
-        receivers: new Set(),
-        dispose: undefined,
-        input
+        status: 'active',
+        output: undefined,
+        error: undefined,
+        input,
+        _receivers: new Set(),
+        _dispose: undefined
       };
     },
-    getSnapshot: () => undefined,
-    getPersistedState: ({ input, canceled }) => ({ input, canceled })
+    getPersistedState: ({ _dispose, _receivers, ...rest }) => rest,
+    restoreState: (state: any) => ({
+      _receivers: new Set(),
+      _dispose: undefined,
+      ...state
+    })
   };
+
+  return logic;
 }

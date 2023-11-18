@@ -3,8 +3,8 @@ import {
   EventObject,
   ChooseBranch,
   MachineContext,
-  AnyActorContext,
-  AnyState,
+  AnyActorScope,
+  AnyMachineSnapshot,
   ActionArgs,
   ParameterizedObject,
   NoInfer,
@@ -13,10 +13,11 @@ import {
 import { evaluateGuard } from '../guards.ts';
 import { toArray } from '../utils.ts';
 
-function resolve(
-  _: AnyActorContext,
-  state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+function resolveChoose(
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
+  actionArgs: ActionArgs<any, any, any>,
+  _actionParams: ParameterizedObject['params'] | undefined,
   {
     branches
   }: {
@@ -46,14 +47,14 @@ function resolve(
 export interface ChooseAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
   _out_TGuard?: TGuard;
@@ -64,7 +65,7 @@ export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -84,7 +85,7 @@ export function choose<
 ): ChooseAction<
   TContext,
   TExpressionEvent,
-  TExpressionAction,
+  TParams,
   TEvent,
   TActor,
   TAction,
@@ -92,7 +93,8 @@ export function choose<
   TDelay
 > {
   function choose(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -102,7 +104,7 @@ export function choose<
   choose.type = 'xstate.choose';
   choose.branches = branches;
 
-  choose.resolve = resolve;
+  choose.resolve = resolveChoose;
 
   return choose;
 }

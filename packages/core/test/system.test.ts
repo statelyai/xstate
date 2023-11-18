@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { fromCallback } from '../src/actors/callback.ts';
+import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
   ActorSystem,
@@ -11,14 +11,19 @@ import {
   fromTransition,
   createActor,
   sendTo,
-  stop
+  stop,
+  Snapshot,
+  EventObject,
+  ActorRefFrom,
+  spawn,
+  AnyActorRef
 } from '../src/index.ts';
 
 describe('system', () => {
   it('should register an invoked actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }>;
+        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
       };
     }>;
 
@@ -60,11 +65,17 @@ describe('system', () => {
   it('should register a spawned actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }>;
+        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
       };
     }>;
 
     const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: CallbackActorRef<EventObject, unknown>;
+          machineRef?: ActorRefFrom<ReturnType<typeof createMachine>>;
+        };
+      },
       id: 'parent',
       context: ({ spawn }) => ({
         ref: spawn(
@@ -153,9 +164,15 @@ describe('system', () => {
   });
 
   it('should remove spawned actor from receptionist if stopped', () => {
+    const childMachine = createMachine({});
     const machine = createMachine({
+      types: {} as {
+        context: {
+          ref: ActorRefFrom<typeof childMachine>;
+        };
+      },
       context: ({ spawn }) => ({
-        ref: spawn(createMachine({}), {
+        ref: spawn(childMachine, {
           systemId: 'test'
         })
       }),
@@ -217,6 +234,45 @@ describe('system', () => {
     `);
   });
 
+  it('should cleanup stopped actors', () => {
+    const machine = createMachine({
+      types: {
+        context: {} as {
+          ref: AnyActorRef;
+        }
+      },
+      context: ({ spawn }) => ({
+        ref: spawn(
+          fromPromise(() => Promise.resolve()),
+          {
+            systemId: 'test'
+          }
+        )
+      }),
+      on: {
+        stop: {
+          actions: stop(({ context }) => context.ref)
+        },
+        start: {
+          actions: spawn(
+            fromPromise(() => Promise.resolve()),
+            {
+              systemId: 'test'
+            }
+          )
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'stop' });
+
+    expect(() => {
+      actor.send({ type: 'start' });
+    }).not.toThrow();
+  });
+
   it('should be accessible in inline custom actions', () => {
     const machine = createMachine({
       invoke: {
@@ -258,9 +314,14 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: assign(({ system }) => {
-        expect(system!.get('test')).toBeDefined();
-      })
+      initial: 'a',
+      states: {
+        a: {
+          entry: assign(({ system }) => {
+            expect(system!.get('test')).toBeDefined();
+          })
+        }
+      }
     });
 
     createActor(machine).start();
@@ -272,13 +333,18 @@ describe('system', () => {
         src: createMachine({}),
         systemId: 'test'
       },
-      entry: sendTo(
-        ({ system }) => {
-          expect(system!.get('test')).toBeDefined();
-          return system!.get('test');
-        },
-        { type: 'FOO' }
-      )
+      initial: 'a',
+      states: {
+        a: {
+          entry: sendTo(
+            ({ system }) => {
+              expect(system!.get('test')).toBeDefined();
+              return system!.get('test');
+            },
+            { type: 'FOO' }
+          )
+        }
+      }
     });
 
     createActor(machine).start();
@@ -398,5 +464,74 @@ describe('system', () => {
     const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
+  });
+
+  it('should gracefully handle re-registration of a `systemId` during a reentering transition', () => {
+    const spy = jest.fn();
+
+    let counter = 0;
+
+    const machine = createMachine({
+      initial: 'listening',
+      states: {
+        listening: {
+          invoke: {
+            systemId: 'listener',
+            src: fromCallback(({ receive }) => {
+              const localId = counter++;
+
+              receive((event) => {
+                spy(localId, event);
+              });
+
+              return () => {};
+            })
+          }
+        }
+      },
+      on: {
+        RESTART: {
+          target: '.listening'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'RESTART' });
+    actorRef.system.get('listener')!.send({ type: 'a' });
+
+    expect(spy.mock.calls).toEqual([
+      [
+        1,
+        {
+          type: 'a'
+        }
+      ]
+    ]);
+  });
+
+  it('should be able to send an event to an ancestor with a registered `systemId` from an initial entry action', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      entry: sendTo(({ system }) => system.get('myRoot'), {
+        type: 'EV'
+      })
+    });
+
+    const machine = createMachine({
+      invoke: {
+        src: child
+      },
+      on: {
+        EV: {
+          actions: spy
+        }
+      }
+    });
+    createActor(machine, { systemId: 'myRoot' }).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

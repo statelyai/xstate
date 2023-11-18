@@ -12,52 +12,38 @@ export { immerAssign as assign };
 export type ImmerAssigner<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = (
-  args: AssignArgs<
-    Draft<TContext>,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent,
-    TActor
-  >
+  args: AssignArgs<Draft<TContext>, TExpressionEvent, TEvent, TActor>,
+  params: TParams
 ) => void;
 
 function immerAssign<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject = EventObject,
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
     | undefined,
   TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor
->(
-  recipe: ImmerAssigner<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent,
-    TActor
-  >
-) {
-  return xstateAssign<
-    TContext,
-    TExpressionEvent,
-    TExpressionAction,
-    TEvent,
-    TActor
-  >(({ context, ...rest }) => {
-    return produce(
-      context,
-      (draft) =>
-        void recipe({
-          context: draft,
-          ...rest
-        } as any)
-    );
-  });
+>(recipe: ImmerAssigner<TContext, TExpressionEvent, TParams, TEvent, TActor>) {
+  return xstateAssign<TContext, TExpressionEvent, TParams, TEvent, TActor>(
+    ({ context, ...rest }, params) => {
+      return produce(
+        context,
+        (draft) =>
+          void recipe(
+            {
+              context: draft,
+              ...rest
+            } as any,
+            params
+          )
+      );
+    }
+  );
 }
 
 export interface ImmerUpdateEvent<
@@ -70,31 +56,32 @@ export interface ImmerUpdateEvent<
 
 export function createUpdater<
   TContext extends MachineContext,
-  TEvent extends ImmerUpdateEvent,
+  TExpressionEvent extends ImmerUpdateEvent,
+  TEvent extends EventObject,
   TActor extends ProvidedActor = ProvidedActor
 >(
-  type: TEvent['type'],
+  type: TExpressionEvent['type'],
   recipe: ImmerAssigner<
     TContext,
-    TEvent,
-    ParameterizedObject | undefined,
+    TExpressionEvent,
+    ParameterizedObject['params'] | undefined,
     TEvent,
     TActor
   >
 ) {
-  const update = (input: TEvent['input']): TEvent => {
+  const update = (input: TExpressionEvent['input']): TExpressionEvent => {
     return {
       type,
       input
-    } as TEvent;
+    } as TExpressionEvent;
   };
 
   return {
     update,
     action: immerAssign<
       TContext,
-      TEvent,
-      ParameterizedObject | undefined, // TODO: not sure if this is correct
+      TExpressionEvent,
+      ParameterizedObject['params'] | undefined, // TODO: not sure if this is correct
       TEvent,
       TActor
     >(recipe),

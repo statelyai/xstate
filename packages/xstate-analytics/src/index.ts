@@ -1,8 +1,8 @@
 // hello
 
-import { AnyState } from 'xstate';
+import { AnyMachineSnapshot } from 'xstate';
 
-export type StateListener = (state: AnyState) => void;
+export type StateListener = (state: AnyMachineSnapshot) => void;
 
 interface TransitionsAnalysis {
   count: number;
@@ -26,7 +26,7 @@ interface TransitionAnalysis {
   relativeWeight: number;
 }
 
-const serializeState = (state?: AnyState): string => {
+const serializeState = (state?: AnyMachineSnapshot): string => {
   if (!state) {
     return '';
   }
@@ -36,7 +36,7 @@ const serializeState = (state?: AnyState): string => {
 };
 
 interface AnalyzerOptions {
-  filter: (state: AnyState) => boolean;
+  filter: (state: AnyMachineSnapshot) => boolean;
   history?: TransitionsAnalysis;
 }
 
@@ -57,9 +57,9 @@ export function createAnalyzer(
     transitions: {}
   };
 
-  let currentState: AnyState | undefined;
+  let currentState: AnyMachineSnapshot | undefined;
 
-  return (state: AnyState) => {
+  return (state: AnyMachineSnapshot) => {
     if (!resolvedOptions.filter(state)) {
       return;
     }

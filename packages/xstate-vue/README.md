@@ -28,17 +28,7 @@ By using the global variable `XStateVue`
 2. Import the `useMachine` composition function:
 
 ```vue
-<template>
-  <button @click="send('TOGGLE')">
-    {{
-      state.value === 'inactive'
-        ? 'Click to activate'
-        : 'Active! Click to deactivate'
-    }}
-  </button>
-</template>
-
-<script>
+<script setup>
 import { useMachine } from '@xstate/vue';
 import { createMachine } from 'xstate';
 
@@ -55,14 +45,16 @@ const toggleMachine = createMachine({
   }
 });
 
-export default {
-  setup() {
-    const { state, send } = useMachine(toggleMachine);
-    return {
-      state,
-      send
-    };
-  }
-};
+const { state, send } = useMachine(toggleMachine);
 </script>
+
+<template>
+  <button @click="send('TOGGLE')">
+    {{
+      state.value === 'inactive'
+        ? 'Click to activate'
+        : 'Active! Click to deactivate'
+    }}
+  </button>
+</template>
 ```

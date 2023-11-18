@@ -1,4 +1,4 @@
-import type { State } from './State.ts';
+import { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
@@ -13,7 +13,6 @@ import {
 import type {
   DelayedTransitionDefinition,
   EventObject,
-  FinalStateNodeConfig,
   InitialTransitionDefinition,
   InvokeDefinition,
   MachineContext,
@@ -29,7 +28,8 @@ import type {
   ParameterizedObject,
   AnyStateMachine,
   AnyStateNodeConfig,
-  ProvidedActor
+  ProvidedActor,
+  NonReducibleUnknown
 } from './types.ts';
 import {
   createInvokeId,
@@ -134,7 +134,9 @@ export class StateNode<
   /**
    * The output data sent with the "xstate.done.state._id_" event if this is a final state node.
    */
-  public output?: Mapper<TContext, TEvent, any>;
+  public output?:
+    | Mapper<MachineContext, EventObject, unknown, EventObject>
+    | NonReducibleUnknown;
 
   /**
    * The order this state node appears. Corresponds to the implicit document order.
@@ -216,9 +218,7 @@ export class StateNode<
 
     this.meta = this.config.meta;
     this.output =
-      this.type === 'final'
-        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).output
-        : undefined;
+      this.type === 'final' || !this.parent ? this.config.output : undefined;
     this.tags = toArray(config.tags).slice();
   }
 
@@ -299,24 +299,11 @@ export class StateNode<
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
-
         const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
-        // TODO: resolving should not happen here
         const resolvedSrc =
-          typeof src === 'string' ? src : !('type' in src) ? resolvedId : src;
-
-        if (
-          !this.machine.implementations.actors[resolvedId] &&
-          typeof src !== 'string' &&
-          !('type' in src)
-        ) {
-          this.machine.implementations.actors = {
-            ...this.machine.implementations.actors,
-            // TODO: this should accept `src` as-is
-            [resolvedId]: src
-          };
-        }
-
+          typeof src === 'string'
+            ? src
+            : `xstate#${createInvokeId(this.id, i)}`;
         return {
           ...invokeConfig,
           src: resolvedSrc,
@@ -370,12 +357,12 @@ export class StateNode<
 
   public get initial(): InitialTransitionDefinition<TContext, TEvent> {
     return memo(this, 'initial', () =>
-      formatInitialTransition(this, this.config.initial || [])
+      formatInitialTransition(this, this.config.initial)
     );
   }
 
   public next(
-    state: State<TContext, TEvent, TODO, TODO, TODO, TODO>,
+    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;

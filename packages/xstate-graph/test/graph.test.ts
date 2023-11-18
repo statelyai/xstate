@@ -1,11 +1,11 @@
 import {
   StateNode,
   createMachine,
-  State,
   EventObject,
-  StateValue,
-  AnyState,
-  assign
+  assign,
+  fromTransition,
+  Snapshot,
+  isMachineSnapshot
 } from 'xstate';
 import {
   getStateNodes,
@@ -16,21 +16,30 @@ import {
   getSimplePaths
 } from '../src';
 import { joinPaths } from '../src/graph';
+import { createMockActorScope } from '../src/actorScope';
 
 function getPathsSnapshot(
-  paths: Array<StatePath<any, EventObject>>
-): Array<ReturnType<typeof getPathSnapshot>> {
+  paths: Array<StatePath<Snapshot<unknown>, EventObject>>
+) {
   return paths.map((path) => getPathSnapshot(path));
 }
 
-function getPathSnapshot(path: StatePath<any, any>): {
-  state: StateValue;
-  steps: Array<{ state: StateValue; eventType: string }>;
+function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
+  state: unknown;
+  steps: Array<{ state: unknown; eventType: string }>;
 } {
   return {
-    state: path.state instanceof State ? path.state.value : path.state,
+    state: isMachineSnapshot(path.state)
+      ? path.state.value
+      : 'context' in path.state
+      ? path.state.context
+      : path.state,
     steps: path.steps.map((step) => ({
-      state: step.state instanceof State ? step.state.value : step.state,
+      state: isMachineSnapshot(step.state)
+        ? step.state.value
+        : 'context' in step.state
+        ? step.state.context
+        : step.state,
       eventType: step.event.type
     }))
   };
@@ -206,9 +215,7 @@ describe('@xstate/graph', () => {
       expect(
         shortestPaths.find((path) =>
           path.state.matches(
-            lightMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            lightMachine.getInitialState(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
@@ -367,36 +374,28 @@ describe('@xstate/graph', () => {
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            lightMachine.getInitialState(createMockActorScope()).value
           )
         )
       ).toBeDefined();
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            lightMachine.getInitialState(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            equivMachine.getInitialState(createMockActorScope()).value
           )
         )!
       ).toBeDefined();
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(
-              {} as any // TODO: figure out the simulation API
-            ).value
+            equivMachine.getInitialState(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
@@ -476,15 +475,11 @@ describe('@xstate/graph', () => {
 
     it('should return a path from a specified from-state', () => {
       const path = getPathsFromEvents(lightMachine, [{ type: 'TIMER' }], {
-        fromState: lightMachine.resolveState(
-          lightMachine.resolveStateValue('yellow')
-        )
+        fromState: lightMachine.resolveState({ value: 'yellow' })
       })[0];
 
       expect(path).toBeDefined();
 
-      // TODO: types work fine in test file, but not when running test!
-      // @ts-ignore No idea why this isn't working... it's definitely a State
       expect(path.state.matches('red')).toBeTruthy();
     });
   });
@@ -518,53 +513,43 @@ describe('@xstate/graph', () => {
 });
 
 it('simple paths for transition functions', () => {
-  const a = getShortestPaths(
-    {
-      transition: (s, e) => {
-        if (e.type === 'a') {
-          return 1;
-        }
-        if (e.type === 'b' && s === 1) {
-          return 2;
-        }
-        if (e.type === 'reset') {
-          return 0;
-        }
-        return s;
-      },
-      getInitialState: () => 0
-    },
-    {
-      events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
-      serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
+  const transition = fromTransition((s, e) => {
+    if (e.type === 'a') {
+      return 1;
     }
-  );
+    if (e.type === 'b' && s === 1) {
+      return 2;
+    }
+    if (e.type === 'reset') {
+      return 0;
+    }
+    return s;
+  }, 0);
+  const a = getShortestPaths(transition, {
+    events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
+    serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
+  });
 
   expect(getPathsSnapshot(a)).toMatchSnapshot();
 });
 
 it('shortest paths for transition functions', () => {
-  const a = getSimplePaths(
-    {
-      transition: (s, e) => {
-        if (e.type === 'a') {
-          return 1;
-        }
-        if (e.type === 'b' && s === 1) {
-          return 2;
-        }
-        if (e.type === 'reset') {
-          return 0;
-        }
-        return s;
-      },
-      getInitialState: () => 0
-    },
-    {
-      events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
-      serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
+  const transition = fromTransition((s, e) => {
+    if (e.type === 'a') {
+      return 1;
     }
-  );
+    if (e.type === 'b' && s === 1) {
+      return 2;
+    }
+    if (e.type === 'reset') {
+      return 0;
+    }
+    return s;
+  }, 0);
+  const a = getSimplePaths(transition, {
+    events: [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
+    serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
+  });
 
   expect(getPathsSnapshot(a)).toMatchSnapshot();
 });
@@ -668,7 +653,7 @@ it.each([getShortestPaths, getSimplePaths])(
     });
 
     const paths = pathGetter(machine, {
-      fromState: machine.resolveState(machine.resolveStateValue('b'))
+      fromState: machine.resolveState({ value: 'b' })
     });
 
     // Instead of taking 2 steps to reach state 'b' (A, B),
@@ -720,8 +705,7 @@ describe('joinPaths()', () => {
       ]
     `);
 
-    // TODO: figure out why TS is complaining only in the test
-    expect((pathToBAndC.state as AnyState)!.matches('c')).toBeTruthy();
+    expect(pathToBAndC.state.matches('c')).toBeTruthy();
   });
 
   it('should not join two paths with mismatched source/target states', () => {

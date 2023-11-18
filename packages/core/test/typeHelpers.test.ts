@@ -9,7 +9,8 @@ import {
   StateValueFrom,
   ActorLogic,
   ActorRefFrom,
-  TagsFrom
+  TagsFrom,
+  Snapshot
 } from '../src/index.ts';
 import { TypegenMeta } from '../src/typegenTypes';
 
@@ -356,9 +357,14 @@ describe('SnapshotFrom', () => {
 
 describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on actor logic', () => {
-    const logic: ActorLogic<{ type: 'TEST' }> = {
-      transition: () => {},
-      getInitialState: () => undefined
+    const logic: ActorLogic<Snapshot<undefined>, { type: 'TEST' }> = {
+      transition: (state) => state,
+      getInitialState: () => ({
+        status: 'active',
+        output: undefined,
+        error: undefined
+      }),
+      getPersistedState: (s) => s
     };
 
     function acceptActorRef(actorRef: ActorRefFrom<typeof logic>) {

@@ -1,14 +1,14 @@
 import { render, fireEvent, waitFor } from '@testing-library/vue';
-import UseActor from './UseActor.vue';
-import UseActorSimple from './UseActorSimple.vue';
-import UseActorCreateSimple from './UseActorCreateSimple.vue';
-import UseActorComponentProp from './UseActorComponentProp.vue';
+import UseMachineWithSelector from './UseMachineWithSelector.vue';
+import UseSelectorCustomActor from './UseSelectorCustomActor.vue';
+import UseSelectorWithCustomActor2 from './UseSelectorWithCustomActor2.vue';
+import UseSelectorWithPropActor from './UseSelectorWithPropActor.vue';
 
 import { createMachine, createActor, sendParent } from 'xstate';
 
 describe('useActor composable function', () => {
   it('initial invoked actor should be immediately available', async () => {
-    const { getByTestId } = render(UseActor);
+    const { getByTestId } = render(UseMachineWithSelector);
 
     const machineStateEl = getByTestId('machine-state');
     const actorStateEl = getByTestId('actor-state');
@@ -45,7 +45,7 @@ describe('useActor composable function', () => {
 
     const serviceMachine = createActor(machine).start();
 
-    const { getByTestId } = render(UseActorComponentProp, {
+    const { getByTestId } = render(UseSelectorWithPropActor, {
       props: { actor: serviceMachine.getSnapshot().children.child }
     });
 
@@ -58,14 +58,14 @@ describe('useActor composable function', () => {
   });
 
   it('actor should provide snapshot value immediately', () => {
-    const { getByTestId } = render(UseActorSimple);
+    const { getByTestId } = render(UseSelectorCustomActor);
 
     const stateEl = getByTestId('state');
     expect(stateEl.textContent).toEqual('42');
   });
 
   it('should update snapshot value when actor changes', async () => {
-    const { getByTestId } = render(UseActorCreateSimple);
+    const { getByTestId } = render(UseSelectorWithCustomActor2);
 
     const stateEl = getByTestId('state');
     const button = getByTestId('button');

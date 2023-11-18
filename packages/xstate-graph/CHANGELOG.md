@@ -1,5 +1,27 @@
 # @xstate/graph
 
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- [#4308](https://github.com/statelyai/xstate/pull/4308) [`af032db12`](https://github.com/statelyai/xstate/commit/af032db12057415955b0bf0487edc48ba570408d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Traversing state machines that have delayed transitions will now work as expected:
+
+  ```ts
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        after: {
+          1000: 'b'
+        }
+      },
+      b: {}
+    }
+  });
+
+  const paths = getShortestPaths(machine); // works
+  ```
+
 ## 2.0.0-beta.4
 
 ### Major Changes

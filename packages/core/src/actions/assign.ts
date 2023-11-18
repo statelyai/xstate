@@ -1,12 +1,12 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
+import { cloneMachineSnapshot } from '../State.ts';
 import { Spawner, createSpawner } from '../spawn.ts';
 import type {
   ActionArgs,
-  AnyActorContext,
+  AnyActorScope,
   AnyActorRef,
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   Assigner,
   EventObject,
   LowInfer,
@@ -19,17 +19,17 @@ import type {
 export interface AssignArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
-> extends ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent> {
+> extends ActionArgs<TContext, TExpressionEvent, TEvent> {
   spawn: Spawner<TActor>;
 }
 
-function resolve(
-  actorContext: AnyActorContext,
-  state: AnyState,
-  actionArgs: ActionArgs<any, any, any, any>,
+function resolveAssign(
+  actorScope: AnyActorScope,
+  state: AnyMachineSnapshot,
+  actionArgs: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     assignment
   }: {
@@ -45,28 +45,22 @@ function resolve(
   }
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
-  const assignArgs: AssignArgs<any, any, any, any, any> = {
+  const assignArgs: AssignArgs<any, any, any, any> = {
     context: state.context,
     event: actionArgs.event,
-    action: actionArgs.action,
-    spawn: createSpawner(
-      actorContext,
-      state,
-      actionArgs.event,
-      spawnedChildren
-    ),
-    self: actorContext?.self,
-    system: actorContext?.system
+    spawn: createSpawner(actorScope, state, actionArgs.event, spawnedChildren),
+    self: actorScope?.self,
+    system: actorScope?.system
   };
   let partialUpdate: Record<string, unknown> = {};
   if (typeof assignment === 'function') {
-    partialUpdate = assignment(assignArgs);
+    partialUpdate = assignment(assignArgs, actionParams);
   } else {
     for (const key of Object.keys(assignment)) {
       const propAssignment = assignment[key];
       partialUpdate[key] =
         typeof propAssignment === 'function'
-          ? propAssignment(assignArgs)
+          ? propAssignment(assignArgs, actionParams)
           : propAssignment;
     }
   }
@@ -74,7 +68,7 @@ function resolve(
   const updatedContext = Object.assign({}, state.context, partialUpdate);
 
   return [
-    cloneState(state, {
+    cloneMachineSnapshot(state, {
       context: updatedContext,
       children: Object.keys(spawnedChildren).length
         ? {
@@ -89,11 +83,11 @@ function resolve(
 export interface AssignAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TActor?: TActor;
 }
 
@@ -105,30 +99,25 @@ export interface AssignAction<
 export function assign<
   TContext extends MachineContext,
   TExpressionEvent extends AnyEventObject = AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
     | undefined,
   TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor
 >(
   assignment:
-    | Assigner<
-        LowInfer<TContext>,
-        TExpressionEvent,
-        TExpressionAction,
-        TEvent,
-        TActor
-      >
+    | Assigner<LowInfer<TContext>, TExpressionEvent, TParams, TEvent, TActor>
     | PropertyAssigner<
         LowInfer<TContext>,
         TExpressionEvent,
-        TExpressionAction,
+        TParams,
         TEvent,
         TActor
       >
-): AssignAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TActor> {
+): AssignAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
   function assign(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -138,7 +127,7 @@ export function assign<
   assign.type = 'xstate.assign';
   assign.assignment = assignment;
 
-  assign.resolve = resolve;
+  assign.resolve = resolveAssign;
 
   return assign;
 }

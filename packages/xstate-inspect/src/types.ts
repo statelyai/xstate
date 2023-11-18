@@ -2,6 +2,7 @@ import type {
   ActorRef,
   AnyActor,
   AnyStateMachine,
+  Snapshot,
   SnapshotFrom,
   StateConfig
 } from 'xstate';
@@ -86,7 +87,10 @@ export type ParsedReceiverEvent =
     }
   | { type: 'service.event'; event: string; sessionId: string };
 
-export type InspectReceiver = ActorRef<ReceiverCommand, ParsedReceiverEvent>;
+export type InspectReceiver = ActorRef<
+  ReceiverCommand,
+  Snapshot<unknown> // TODO: this was types as `ParsedReceiverEvent` but since this is supposed to be the snapshot it doesn't look right
+>;
 
 export interface WindowReceiverOptions {
   window: Window;

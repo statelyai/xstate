@@ -132,44 +132,6 @@ describe('typegen types', () => {
     );
   });
 
-  it(`should limit event type provided to the actor's input factory`, () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: never;
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActors: {
-        myActor: 'FOO' | 'BAR';
-      };
-    }
-
-    createMachine(
-      {
-        context: { foo: 100 },
-        types: {
-          typegen: {} as TypesMeta,
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actors: {
-          myActor: {
-            src: fromPromise(() => Promise.resolve(42)),
-            input: ({ event }) => {
-              event.type === 'FOO';
-              event.type === 'BAR';
-              // @ts-expect-error
-              event.type === 'BAZ';
-              return null;
-            }
-          }
-        }
-      }
-    );
-  });
-
   it('should not allow an unknown action', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
