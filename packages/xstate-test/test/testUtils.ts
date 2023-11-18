@@ -5,10 +5,9 @@ import { TestParam, TestPath } from '../src/types';
 async function testModel<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput,
-  TPersisted
+  TInput
 >(
-  model: TestModel<TSnapshot, TEvent, TInput, TPersisted>,
+  model: TestModel<TSnapshot, TEvent, TInput>,
   params: TestParam<TSnapshot, TEvent>
 ) {
   for (const path of model.getShortestPaths()) {

@@ -1,7 +1,7 @@
 # Effects
 
 :::tip Check out our new docs!
-🆕 Find more about [effects and actions in XState](https://stately.ai/docs/xstate/actions#side-effects) in our new docs.
+🆕 Find more about [effects and actions in XState](https://stately.ai/docs/xstate-v4/xstate/actions#side-effects) in our new docs.
 :::
 
 In statecharts, "side-effects" can be grouped into two categories:

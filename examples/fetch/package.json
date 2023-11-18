@@ -12,6 +12,6 @@
   "dependencies": {
     "parcel-bundler": "^1.12.5",
     "typescript": "^4.9.5",
-    "xstate": "5.0.0-beta.13"
+    "xstate": "beta"
   }
 }

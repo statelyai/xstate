@@ -6,8 +6,7 @@ import {
   Subscription,
   AnyActorSystem,
   ActorRefFrom,
-  Snapshot,
-  HomomorphicOmit
+  Snapshot
 } from '../types';
 
 export type ObservableSnapshot<TContext, TInput> = Snapshot<undefined> & {
@@ -16,16 +15,10 @@ export type ObservableSnapshot<TContext, TInput> = Snapshot<undefined> & {
   _subscription: Subscription | undefined;
 };
 
-export type ObservablePersistedState<TContext, TInput> = HomomorphicOmit<
-  ObservableSnapshot<TContext, TInput>,
-  '_subscription'
->;
-
 export type ObservableActorLogic<TContext, TInput> = ActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
-  ObservablePersistedState<TContext, TInput>,
   AnyActorSystem
 >;
 
@@ -123,7 +116,7 @@ export function fromObservable<TContext, TInput>(
     },
     getPersistedState: ({ _subscription, ...state }) => state,
     restoreState: (state) => ({
-      ...state,
+      ...(state as any),
       _subscription: undefined
     })
   };
@@ -224,7 +217,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
       });
     },
     getPersistedState: ({ _subscription, ...state }) => state,
-    restoreState: (state) => ({
+    restoreState: (state: any) => ({
       ...state,
       _subscription: undefined
     })

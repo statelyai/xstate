@@ -54,6 +54,10 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     props: {
       children: React.ReactNode;
       options?: ActorOptions<TLogic>;
+      /**
+       * @deprecated Use `logic` instead.
+       */
+      machine?: never;
     } & (TLogic extends AnyStateMachine
       ? AreAllImplementationsAssumedToBeProvided<
           TLogic['__TResolvedTypesMeta']

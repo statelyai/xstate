@@ -4,16 +4,17 @@ import {
   fromPromise,
   sendParent,
   sendTo,
-  waitFor
+  waitFor,
+  InspectionEvent,
+  isMachineSnapshot
 } from '../src';
-import { InspectionEvent } from '../src/system';
 
 function simplifyEvent(inspectionEvent: InspectionEvent) {
   if (inspectionEvent.type === '@xstate.event') {
     return {
       type: inspectionEvent.type,
       sourceId: inspectionEvent.sourceRef?.sessionId,
-      targetId: inspectionEvent.targetRef.sessionId,
+      targetId: inspectionEvent.actorRef.sessionId,
       event: inspectionEvent.event
     };
   }
@@ -28,11 +29,9 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
     return {
       type: inspectionEvent.type,
       actorId: inspectionEvent.actorRef.sessionId,
-      snapshot:
-        typeof inspectionEvent.snapshot === 'object' &&
-        'value' in inspectionEvent.snapshot
-          ? { value: inspectionEvent.snapshot.value }
-          : inspectionEvent.snapshot,
+      snapshot: isMachineSnapshot(inspectionEvent.snapshot)
+        ? { value: inspectionEvent.snapshot.value }
+        : inspectionEvent.snapshot,
       event: inspectionEvent.event,
       status: inspectionEvent.snapshot.status
     };
@@ -329,7 +328,7 @@ describe('inspect', () => {
         {
           "event": {
             "output": 42,
-            "type": "xstate.done.actor.(machine).loading:invocation[0]",
+            "type": "xstate.done.actor.(machine).loading[0]",
           },
           "sourceId": "x:3",
           "targetId": "x:2",
@@ -379,7 +378,7 @@ describe('inspect', () => {
           "actorId": "x:2",
           "event": {
             "output": 42,
-            "type": "xstate.done.actor.(machine).loading:invocation[0]",
+            "type": "xstate.done.actor.(machine).loading[0]",
           },
           "snapshot": {
             "value": "loaded",

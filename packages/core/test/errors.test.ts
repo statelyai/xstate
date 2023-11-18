@@ -1,5 +1,4 @@
 import { createMachine, fromCallback, fromPromise, createActor } from '../src';
-import { ActorStatus } from '../src/interpreter';
 
 const cleanups: (() => void)[] = [];
 function installGlobalOnErrorHandler(handler: (ev: ErrorEvent) => void) {
@@ -50,6 +49,8 @@ describe('error handling', () => {
   });
 
   it(`doesn't crash the actor when an error is thrown in subscribe`, (done) => {
+    const spy = jest.fn();
+
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
@@ -60,27 +61,37 @@ describe('error handling', () => {
         initial: {
           on: { activate: 'active' }
         },
-        active: {}
+        active: {
+          on: {
+            do: {
+              actions: spy
+            }
+          }
+        }
       }
     });
 
-    const spy = jest.fn().mockImplementation(() => {
+    const subscriber = jest.fn().mockImplementationOnce(() => {
       throw new Error('doesnt_crash_actor_when_error_is_thrown_in_subscribe');
     });
 
     const actor = createActor(machine).start();
 
-    actor.subscribe(spy);
+    actor.subscribe(subscriber);
     actor.send({ type: 'activate' });
 
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(actor.status).toEqual(ActorStatus.Running);
+    expect(subscriber).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().status).toEqual('active');
 
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
       expect(ev.error.message).toEqual(
         'doesnt_crash_actor_when_error_is_thrown_in_subscribe'
       );
+
+      actor.send({ type: 'do' });
+      expect(spy).toHaveBeenCalledTimes(1);
+
       done();
     });
   });
@@ -424,6 +435,8 @@ describe('error handling', () => {
   });
 
   it(`handled sync errors thrown when starting an actor shouldn't crash the parent`, () => {
+    const spy = jest.fn();
+
     const machine = createMachine({
       initial: 'pending',
       states: {
@@ -435,14 +448,23 @@ describe('error handling', () => {
             onError: 'failed'
           }
         },
-        failed: {}
+        failed: {
+          on: {
+            do: {
+              actions: spy
+            }
+          }
+        }
       }
     });
 
     const actorRef = createActor(machine);
     actorRef.start();
 
-    expect(actorRef.status).toBe(ActorStatus.Running);
+    expect(actorRef.getSnapshot().status).toBe('active');
+
+    actorRef.send({ type: 'do' });
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it(`unhandled sync errors thrown when starting an actor should crash the parent`, (done) => {
@@ -452,7 +474,7 @@ describe('error handling', () => {
         pending: {
           invoke: {
             src: fromCallback(() => {
-              throw new Error('handled_sync_error_in_actor_start');
+              throw new Error('unhandled_sync_error_in_actor_start');
             })
           }
         }
@@ -462,11 +484,11 @@ describe('error handling', () => {
     const actorRef = createActor(machine);
     actorRef.start();
 
-    expect(actorRef.status).not.toBe(ActorStatus.Running);
+    expect(actorRef.getSnapshot().status).toBe('error');
 
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
-      expect(ev.error.message).toEqual('handled_sync_error_in_actor_start');
+      expect(ev.error.message).toEqual('unhandled_sync_error_in_actor_start');
       done();
     });
   });
@@ -532,7 +554,7 @@ describe('error handling', () => {
     });
   });
 
-  it(`uncaught error and an error thrown by the error listener should both be reported globally when not eveyr observer comes with an error listener`, (done) => {
+  it(`uncaught error and an error thrown by the error listener should both be reported globally when not every observer comes with an error listener`, (done) => {
     const machine = createMachine({
       initial: 'pending',
       states: {

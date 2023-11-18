@@ -11,7 +11,13 @@ import type {
   Step,
   TraversalOptions
 } from '@xstate/graph';
-import { EventObject, AnyState, ActorLogic, Snapshot } from 'xstate';
+import {
+  EventObject,
+  AnyMachineSnapshot,
+  ActorLogic,
+  Snapshot,
+  isMachineSnapshot
+} from 'xstate';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createShortestPathsGen,
@@ -32,10 +38,6 @@ import {
   simpleStringify
 } from './utils.ts';
 
-function isStateLike(state: any): state is AnyState {
-  return typeof state === 'object' && 'value' in state && 'context' in state;
-}
-
 /**
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
@@ -46,8 +48,7 @@ function isStateLike(state: any): state is AnyState {
 export class TestModel<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput,
-  TPersisted
+  TInput
 > {
   public options: TestModelOptions<TSnapshot, TEvent>;
   public defaultTraversalOptions?: TraversalOptions<TSnapshot, TEvent>;
@@ -69,7 +70,7 @@ export class TestModel<
   }
 
   constructor(
-    public logic: ActorLogic<TSnapshot, TEvent, TInput, TPersisted>,
+    public logic: ActorLogic<TSnapshot, TEvent, TInput>,
     options?: Partial<TestModelOptions<TSnapshot, TEvent>>
   ) {
     this.options = {
@@ -79,7 +80,7 @@ export class TestModel<
   }
 
   public getPaths(
-    pathGenerator: PathGenerator<TSnapshot, TEvent, TInput, TPersisted>,
+    pathGenerator: PathGenerator<TSnapshot, TEvent, TInput>,
     options?: Partial<TraversalOptions<TSnapshot, TEvent>>
   ): Array<TestPath<TSnapshot, TEvent>> {
     const paths = pathGenerator(this.logic, this.resolveOptions(options));
@@ -158,7 +159,7 @@ export class TestModel<
         this.testPath(statePath, params),
       testSync: (params: TestParam<TSnapshot, TEvent>) =>
         this.testPathSync(statePath, params),
-      description: isStateLike(statePath.state)
+      description: isMachineSnapshot(statePath.state)
         ? `Reaches ${getDescription(
             statePath.state as any
           ).trim()}: ${eventsString}`

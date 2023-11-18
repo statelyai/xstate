@@ -1,7 +1,7 @@
 import React from 'react';
 import './App.css';
 import { useMachine } from '@xstate/react';
-import { friendsMachine } from './friends.machine';
+import { friendsMachine } from './friendsMachine';
 import { Friend } from './Friend';
 
 function App() {

@@ -109,7 +109,7 @@ const inspector = inspect({
   targetWindow: window
 });
 
-// In the same window, subsribe to messages from @xstate/inspector
+// In the same window, subscribe to messages from @xstate/inspector
 createWindowReceiver({}).subscribe(console.log);
 
 // Start your machine, and all events generated are logged to the console
@@ -141,7 +141,7 @@ createWindowReceiver({}).subscribe((event) => {
   } else if (event.type === 'service.stop') {
     // Do something when a machine enters a terminal state
   } else if (event.type === 'service.event') {
-    // Do something when a machine recieves an event
+    // Do something when a machine receives an event
   } else if (event.type === 'service.state') {
     // Do something when a machine enters to a new state
     // Note: Does not handle transitional states.

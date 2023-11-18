@@ -1,5 +1,25 @@
 # @xstate/vue
 
+## 3.0.0-beta.6
+
+### Major Changes
+
+- [#4288](https://github.com/statelyai/xstate/pull/4288) [`cfdf754f8`](https://github.com/statelyai/xstate/commit/cfdf754f89b65da2eff7521fa894e151e8a30de4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useMachine(machine)` hook now returns `{ snapshot, send, service }` instead of `{ state, send, actorRef }`:
+
+  ```diff
+  const {
+  - state,
+  + snapshot,
+    send,
+  - actorRef
+  + service
+  } = useMachine(machine);
+  ```
+
+### Minor Changes
+
+- [#4288](https://github.com/statelyai/xstate/pull/4288) [`cfdf754f8`](https://github.com/statelyai/xstate/commit/cfdf754f89b65da2eff7521fa894e151e8a30de4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useInterpret(machine)` and `useSpawn(machine)` hooks have been removed; use the `useActorRef(machine)` hook instead.
+
 ## 3.0.0-beta.5
 
 ### Major Changes
