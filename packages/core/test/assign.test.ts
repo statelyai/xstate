@@ -374,7 +374,7 @@ it('test', () => {
         };
       },
       context: { count: 0 },
-      entry: createAction(({ exec, context }) => {
+      entry: createAction(({ enqueue: exec, context }) => {
         exec.assign({
           count: ({ context }) => context.count + 1
         });

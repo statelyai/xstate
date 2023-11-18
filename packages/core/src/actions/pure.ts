@@ -12,12 +12,14 @@ import {
   SingleOrArray,
   NoInfer,
   ProvidedActor,
-  ActionFunction
+  ActionFunction,
+  AnyState
 } from '../types.ts';
 import { toArray } from '../utils.ts';
 import { assign } from './assign.ts';
 import { raise } from './raise.ts';
 import { sendTo } from './send.ts';
+import { spawn } from './spawn.ts';
 
 function resolvePure(
   _: AnyActorScope,
@@ -61,6 +63,10 @@ export interface PureAction<
   _out_TDelay?: TDelay;
 }
 
+/**
+ *
+ * @deprecated Use `createAction(...)` instead
+ */
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -118,12 +124,13 @@ export function pure<
   return pure;
 }
 
-interface CreateActionExec {
+interface CreateActionEnqueuer {
   assign: (...args: Parameters<typeof assign<any, any, any, any, any>>) => void;
   raise: (...args: Parameters<typeof raise<any, any, any, any, any>>) => void;
   sendTo: (
     ...args: Parameters<typeof sendTo<any, any, any, any, any, any>>
   ) => void;
+  spawn: (...args: Parameters<typeof spawn<any, any, any, any, any>>) => void;
   action: (
     action:
       | ActionFunction<any, any, any, any, any, any, any, any>
@@ -144,18 +151,18 @@ function resolveCreateAction(
     get: ({
       context,
       event,
-      exec,
+      enqueue,
       guard
     }: {
       context: MachineContext;
       event: EventObject;
-      exec: CreateActionExec;
+      enqueue: CreateActionEnqueuer;
       guard: (guard: any) => boolean;
     }) => SingleOrArray<UnknownAction> | undefined;
   }
 ) {
   const actions: any[] = [];
-  const exec: CreateActionExec = {
+  const exec: CreateActionEnqueuer = {
     assign: (...args) => {
       actions.push(assign(...args));
     },
@@ -167,12 +174,15 @@ function resolveCreateAction(
     },
     action: (action) => {
       actions.push(action);
+    },
+    spawn: (...args) => {
+      actions.push(spawn(...args));
     }
   };
   const guard = (guard: any) => {
     return evaluateGuard(guard, state.context, args.event, state);
   };
-  get({ context: args.context, event: args.event, exec, guard });
+  get({ context: args.context, event: args.event, enqueue: exec, guard });
   return [state, undefined, actions];
 }
 
@@ -191,7 +201,7 @@ export function createAction<
   getActions: ({
     context,
     event,
-    exec
+    enqueue
   }: {
     context: TContext;
     event: TExpressionEvent;
@@ -200,7 +210,7 @@ export function createAction<
         | TGuard
         | GuardPredicate<TContext, TExpressionEvent, undefined, TGuard>
     ) => boolean;
-    exec: {
+    enqueue: {
       assign: (
         ...args: Parameters<
           typeof assign<TContext, TExpressionEvent, any, TEvent, TActor>
@@ -214,6 +224,11 @@ export function createAction<
       sendTo: (
         ...args: Parameters<
           typeof sendTo<TContext, TExpressionEvent, any, any, TEvent, TDelay>
+        >
+      ) => void;
+      spawn: (
+        ...args: Parameters<
+          typeof spawn<TContext, TExpressionEvent, any, TEvent, TActor>
         >
       ) => void;
       action: (

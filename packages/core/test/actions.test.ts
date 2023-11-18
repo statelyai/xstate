@@ -2390,7 +2390,7 @@ describe('purely defined actions', () => {
         //     params: { length: context.items.length }
         //   };
         // })
-        entry: createAction(({ exec, context }) => {
+        entry: createAction(({ enqueue: exec, context }) => {
           exec.action({
             type: 'doSomething',
             params: { length: context.items.length }
@@ -2422,7 +2422,7 @@ describe('purely defined actions', () => {
       //     };
       //   }
       // })
-      entry: createAction(({ exec, context }) => {
+      entry: createAction(({ enqueue: exec, context }) => {
         if (context.items.length > 5) {
           exec.action({
             type: 'doSomething',
@@ -2448,7 +2448,7 @@ describe('purely defined actions', () => {
         //     params: { item, index }
         //   }))
         // )
-        entry: createAction(({ exec, context }) =>
+        entry: createAction(({ enqueue: exec, context }) =>
           context.items.map((item: any, index: number) => {
             exec.action({
               type: 'doSomething',
@@ -2478,7 +2478,9 @@ describe('purely defined actions', () => {
     const machine = createMachine(
       {
         // entry: pure(() => ['SOME_ACTION'])
-        entry: createAction(({ exec }) => exec.action({ type: 'SOME_ACTION' }))
+        entry: createAction(({ enqueue: exec }) =>
+          exec.action({ type: 'SOME_ACTION' })
+        )
       },
       {
         actions: {
@@ -2500,7 +2502,9 @@ describe('purely defined actions', () => {
       //     called = true;
       //   }
       // ])
-      entry: createAction(({ exec }) => exec.action(() => (called = true)))
+      entry: createAction(({ enqueue: exec }) =>
+        exec.action(() => (called = true))
+      )
     });
 
     createActor(machine).start();
@@ -2707,7 +2711,7 @@ describe('choose', () => {
           // entry: choose([
           //   { guard: () => true, actions: assign({ answer: 42 }) }
           // ])
-          entry: createAction(({ exec }) => {
+          entry: createAction(({ enqueue: exec }) => {
             if (true) {
               exec.assign({ answer: 42 });
             }
@@ -2740,7 +2744,7 @@ describe('choose', () => {
           //     actions: [() => (executed = true), assign({ answer: 42 })]
           //   }
           // ])
-          entry: createAction(({ exec }) => {
+          entry: createAction(({ enqueue: exec }) => {
             if (true) {
               exec.action(() => (executed = true));
               exec.assign({ answer: 42 });
@@ -2775,7 +2779,7 @@ describe('choose', () => {
           //   },
           //   { guard: () => true, actions: assign({ answer: 42 }) }
           // ]),
-          entry: createAction(({ exec }) => {
+          entry: createAction(({ enqueue: exec }) => {
             if (false) {
               exec.assign({ shouldNotAppear: true });
             } else {
@@ -2810,7 +2814,7 @@ describe('choose', () => {
           //   },
           //   { actions: assign({ answer: 42 }) }
           // ])
-          entry: createAction(({ exec }) => {
+          entry: createAction(({ enqueue: exec }) => {
             if (false) {
               exec.assign({ shouldNotAppear: true });
             } else {
@@ -2865,7 +2869,7 @@ describe('choose', () => {
           //     ]
           //   }
           // ])
-          entry: createAction(({ exec }) => {
+          entry: createAction(({ enqueue: exec }) => {
             exec.assign({ firstLevel: true });
             if (true) {
               exec.assign({ secondLevel: true });
@@ -2906,7 +2910,7 @@ describe('choose', () => {
           //     actions: assign({ answer: 42 })
           //   }
           // ]),
-          entry: createAction(({ context, exec }) => {
+          entry: createAction(({ context, enqueue: exec }) => {
             if (context.counter > 100) {
               exec.assign({ answer: 42 });
             }
@@ -2948,7 +2952,7 @@ describe('choose', () => {
                 //     actions: assign({ answer: 42 })
                 //   }
                 // ])
-                createAction(({ event, exec }) => {
+                createAction(({ event, enqueue: exec }) => {
                   if (event.counter > 100) {
                     exec.assign({ answer: 42 });
                   }
@@ -2982,7 +2986,7 @@ describe('choose', () => {
         states: {
           foo: {
             // entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
-            entry: createAction(({ exec, guard }) => {
+            entry: createAction(({ enqueue: exec, guard }) => {
               if (guard({ type: 'worstGuard' })) {
                 exec.action({ type: 'revealAnswer' });
               }
@@ -3030,11 +3034,13 @@ describe('choose', () => {
           // conditionallyRevealAnswer: choose([
           //   { guard: 'worstGuard', actions: 'revealAnswer' }
           // ])
-          conditionallyRevealAnswer: createAction(({ exec, guard }) => {
-            if (guard({ type: 'worstGuard' })) {
-              exec.action({ type: 'revealAnswer' });
+          conditionallyRevealAnswer: createAction(
+            ({ enqueue: exec, guard }) => {
+              if (guard({ type: 'worstGuard' })) {
+                exec.action({ type: 'revealAnswer' });
+              }
             }
-          })
+          )
         }
       }
     );
@@ -3227,7 +3233,7 @@ describe('sendTo', () => {
       // entry: pure(({ context }) => {
       //   return [sendTo(context.child, { type: 'EVENT' })];
       // })
-      entry: createAction(({ exec }) =>
+      entry: createAction(({ enqueue: exec }) =>
         exec.action(sendTo(({ context }) => context.child, { type: 'EVENT' }))
       )
     });
@@ -3556,7 +3562,7 @@ describe('assign action order', () => {
           //     assign({ count: ({ context }) => context.count + 1 })
           //   ];
           // }),
-          createAction(({ exec }) => {
+          createAction(({ enqueue: exec }) => {
             exec.action(assign({ count: ({ context }) => context.count + 1 }));
             exec.action({ type: 'capture' });
             exec.action(assign({ count: ({ context }) => context.count + 1 }));
@@ -3665,12 +3671,12 @@ describe('types', () => {
       },
       entry: [
         // choose([{ actions: assign({ count: 31 }) }]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           exec.assign({ count: 31 });
         }),
 
         // choose([{ actions: assign({ count: 'string' }) }]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           exec.assign({
             // @ts-expect-error
             count: 'string'
@@ -3678,11 +3684,11 @@ describe('types', () => {
         }),
 
         // choose([{ actions: assign({ count: () => 31 }) }]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           exec.assign({ count: () => 31 });
         }),
         // choose([{ actions: assign({ count: () => 'string' }) }]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           exec.assign({
             // @ts-expect-error
             count: () => 'string'
@@ -3692,14 +3698,14 @@ describe('types', () => {
         // choose([
         //   { actions: assign({ count: ({ context }) => context.count + 31 }) }
         // ]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           exec.assign({ count: ({ context }) => context.count + 31 });
         }),
         // choose([
         //   // @ts-expect-error
         //   { actions: assign({ count: ({ context }) => context.text + 31 }) }
         // ]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           exec.assign({
             // @ts-expect-error
             count: ({ context }) => context.text + 31
@@ -3707,12 +3713,12 @@ describe('types', () => {
         }),
 
         // choose([{ actions: assign(() => ({ count: 31 })) }]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           exec.assign(() => ({ count: 31 }));
         }),
 
         // choose([{ actions: assign(() => ({ count: 'string' })) }]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           // @ts-expect-error
           exec.assign(() => ({
             count: 'string'
@@ -3722,7 +3728,7 @@ describe('types', () => {
         // choose([
         //   { actions: assign(({ context }) => ({ count: context.count + 31 })) }
         // ]),
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           exec.assign(({ context }) => ({ count: context.count + 31 }));
         }),
 
@@ -3730,7 +3736,7 @@ describe('types', () => {
         //   // @ts-expect-error
         //   { actions: assign(({ context }) => ({ count: context.text + 31 })) }
         // ])
-        createAction(({ exec }) => {
+        createAction(({ enqueue: exec }) => {
           // @ts-expect-error
           exec.assign(({ context }) => ({
             count: context.text + 31
@@ -3741,14 +3747,14 @@ describe('types', () => {
         say: {
           actions: [
             // choose([{ actions: assign({ text: ({ event }) => event.value }) }]),
-            createAction(({ exec }) => {
+            createAction(({ enqueue: exec }) => {
               exec.assign({ text: ({ event }) => event.value });
             }),
             // choose([
             //   // @ts-expect-error
             //   { actions: assign({ count: ({ event }) => event.value }) }
             // ]),
-            createAction(({ exec }) => {
+            createAction(({ enqueue: exec }) => {
               exec.assign({
                 // @ts-expect-error
                 count: ({ event }) => event.value
@@ -3758,14 +3764,14 @@ describe('types', () => {
             // choose([
             //   { actions: assign(({ event }) => ({ text: event.value })) }
             // ]),
-            createAction(({ exec }) => {
+            createAction(({ enqueue: exec }) => {
               exec.assign(({ event }) => ({ text: event.value }));
             }),
             // choose([
             //   // @ts-expect-error
             //   { actions: assign(({ event }) => ({ count: event.value })) }
             // ])
-            createAction(({ exec }) => {
+            createAction(({ enqueue: exec }) => {
               // @ts-expect-error
               exec.assign(({ event }) => ({
                 count: event.value
@@ -4123,7 +4129,9 @@ describe('actions', () => {
       createMachine(
         {
           // entry: pure(() => ['myAction'])
-          entry: createAction(({ exec }) => exec.action({ type: 'myAction' }))
+          entry: createAction(({ enqueue: exec }) =>
+            exec.action({ type: 'myAction' })
+          )
         },
         {
           actions: {
@@ -4146,7 +4154,9 @@ describe('actions', () => {
       createMachine(
         {
           // entry: pure(() => ['myAction'])
-          entry: createAction(({ exec }) => exec.action({ type: 'myAction' }))
+          entry: createAction(({ enqueue: exec }) =>
+            exec.action({ type: 'myAction' })
+          )
         },
         {
           actions: {
@@ -4172,7 +4182,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myPure: createAction(({ exec }) =>
+            myPure: createAction(({ enqueue: exec }) =>
               exec.action({ type: 'myAction' })
             ),
             myAction: (_, params) => {
@@ -4197,7 +4207,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myPure: createAction(({ exec }) =>
+            myPure: createAction(({ enqueue: exec }) =>
               exec.action({ type: 'myAction' })
             ),
             myAction: assign((_, params) => {
