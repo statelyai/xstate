@@ -7,7 +7,7 @@ import {
   AnyActorRef,
   AnyEventObject,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   Cast,
   DelayExpr,
   EventFrom,
@@ -26,7 +26,7 @@ import { XSTATE_ERROR } from '../constants.ts';
 
 function resolveSendTo(
   actorScope: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -123,7 +123,7 @@ function resolveSendTo(
 
 function retryResolveSendTo(
   _: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   params: {
     to: AnyActorRef;
     event: EventObject;

@@ -1,5 +1,5 @@
 import {
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   matchesState,
   StateNode,
@@ -18,8 +18,11 @@ export function testMultiTransition(
   machine: AnyStateMachine,
   fromState: string,
   eventTypes: string
-): AnyState {
-  const computeNext = (state: AnyState | string, eventType: string) => {
+): AnyMachineSnapshot {
+  const computeNext = (
+    state: AnyMachineSnapshot | string,
+    eventType: string
+  ) => {
     if (typeof state === 'string') {
       state = resolveSerializedStateValue(machine, state);
     }
@@ -33,7 +36,7 @@ export function testMultiTransition(
 
   const [firstEventType, ...restEvents] = eventTypes.split(/,\s?/);
 
-  const resultState = restEvents.reduce<AnyState>(
+  const resultState = restEvents.reduce<AnyMachineSnapshot>(
     computeNext,
     computeNext(fromState, firstEventType)
   );

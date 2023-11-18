@@ -1,5 +1,4 @@
 import isDevelopment from '#is-development';
-import { AnyActorLogic, AnyState } from './index.ts';
 import { STATE_DELIMITER, TARGETLESS_KEY } from './constants.ts';
 import type { StateNode } from './StateNode.ts';
 import type {
@@ -21,6 +20,7 @@ import type {
   AnyStateMachine,
   InvokeConfig
 } from './types.ts';
+import { isMachineSnapshot } from './State.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -61,30 +61,17 @@ export function toStatePath(stateId: string | string[]): string[] {
       return stateId;
     }
 
-    return stateId.toString().split(STATE_DELIMITER);
+    return stateId.split(STATE_DELIMITER);
   } catch (e) {
     throw new Error(`'${stateId}' is not a valid state path.`);
   }
 }
 
-export function isStateLike(state: any): state is AnyState {
-  return (
-    typeof state === 'object' &&
-    'value' in state &&
-    'context' in state &&
-    'event' in state
-  );
-}
-
 export function toStateValue(
-  stateValue: StateLike<any> | StateValue | string[]
+  stateValue: StateLike<any> | StateValue
 ): StateValue {
-  if (isStateLike(stateValue)) {
+  if (isMachineSnapshot(stateValue)) {
     return stateValue.value;
-  }
-
-  if (isArray(stateValue)) {
-    return pathToStateValue(stateValue);
   }
 
   if (typeof stateValue !== 'string') {
@@ -407,18 +394,11 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
     const [, indexStr] = src.match(/\[(\d+)\]$/)!;
     const node = machine.getStateNodeById(src.slice(7, -(indexStr.length + 2)));
     const invokeConfig = node.config.invoke!;
-    return {
-      src: (Array.isArray(invokeConfig)
+    return (
+      Array.isArray(invokeConfig)
         ? invokeConfig[indexStr as any]
         : (invokeConfig as InvokeConfig<any, any, any, any, any, any>)
-      ).src,
-      input: undefined
-    };
+    ).src;
   }
-  const referenced = machine.implementations.actors[src];
-  return referenced
-    ? 'transition' in referenced
-      ? { src: referenced, input: undefined }
-      : referenced
-    : undefined;
+  return machine.implementations.actors[src];
 }

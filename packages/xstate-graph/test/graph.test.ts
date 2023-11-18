@@ -4,7 +4,8 @@ import {
   EventObject,
   assign,
   fromTransition,
-  Snapshot
+  Snapshot,
+  isMachineSnapshot
 } from 'xstate';
 import {
   getStateNodes,
@@ -28,19 +29,17 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
   steps: Array<{ state: unknown; eventType: string }>;
 } {
   return {
-    state:
-      'machine' in path.state && 'value' in path.state
-        ? path.state.value
-        : 'context' in path.state
-        ? path.state.context
-        : path.state,
+    state: isMachineSnapshot(path.state)
+      ? path.state.value
+      : 'context' in path.state
+      ? path.state.context
+      : path.state,
     steps: path.steps.map((step) => ({
-      state:
-        'machine' in step.state && 'value' in step.state
-          ? step.state.value
-          : 'context' in step.state
-          ? step.state.context
-          : step.state,
+      state: isMachineSnapshot(step.state)
+        ? step.state.value
+        : 'context' in step.state
+        ? step.state.context
+        : step.state,
       eventType: step.event.type
     }))
   };

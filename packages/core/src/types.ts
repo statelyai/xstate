@@ -46,6 +46,7 @@ type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
+export type IsNotNever<T> = [T] extends [never] ? false : true;
 
 export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
@@ -190,9 +191,10 @@ export type NoRequiredParams<T extends ParameterizedObject> = T extends any
     : never
   : never;
 
-type ConditionalRequired<T, Condition extends boolean> = Condition extends true
-  ? Required<T>
-  : T;
+export type ConditionalRequired<
+  T,
+  Condition extends boolean
+> = Condition extends true ? Required<T> : T;
 
 export type WithDynamicParams<
   TContext extends MachineContext,
@@ -274,7 +276,7 @@ export type Actions<
   >
 >;
 
-export type StateKey = string | AnyState;
+export type StateKey = string | AnyMachineSnapshot;
 
 export interface StateValueMap {
   [key: string]: StateValue;
@@ -570,6 +572,12 @@ type DistributeActors<
          */
         src: TSrc;
 
+        /**
+         * The unique identifier for the invoked machine. If not specified, this
+         * will be the machine's own `id`, or the URL (from `src`).
+         */
+        id?: TSpecificActor['id'];
+
         // TODO: currently we do not enforce required inputs here
         // in a sense, we shouldn't - they could be provided within the `implementations` object
         // how do we verify if the required input has been provided?
@@ -622,21 +630,7 @@ type DistributeActors<
                 TDelay
               >
             >;
-      } & (TSpecificActor['id'] extends string
-        ? {
-            /**
-             * The unique identifier for the invoked machine. If not specified, this
-             * will be the machine's own `id`, or the URL (from `src`).
-             */
-            id: TSpecificActor['id'];
-          }
-        : {
-            /**
-             * The unique identifier for the invoked machine. If not specified, this
-             * will be the machine's own `id`, or the URL (from `src`).
-             */
-            id?: string;
-          })
+      } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
     >
   : never;
 
@@ -926,8 +920,10 @@ export type AnyStateNode = StateNode<any, any>;
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
-// TODO: replace with AnyMachineSnapshot
-export type AnyState = MachineSnapshot<any, any, any, any, any, any>;
+export type AnyMachineSnapshot = MachineSnapshot<any, any, any, any, any, any>;
+
+/** @deprecated use `AnyMachineSnapshot` instead */
+export type AnyState = AnyMachineSnapshot;
 
 export type AnyStateMachine = StateMachine<
   any,
@@ -1087,33 +1083,18 @@ type MachineImplementationsActions<
 };
 
 type MachineImplementationsActors<
-  TContext extends MachineContext,
+  _TContext extends MachineContext,
   TResolvedTypesMeta,
-  TEventsCausingActors = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'eventsCausingActors'
-  >,
   TIndexedActors = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActors'>,
-  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
   _TInvokeSrcNameMap = Prop<
     Prop<TResolvedTypesMeta, 'resolved'>,
     'invokeSrcNameMap'
   >
 > = {
-  // TODO: this should require `{ src, input }` for required inputs
-  [K in keyof TIndexedActors]?:
-    | Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>
-    | {
-        src: Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>;
-        input:
-          | Mapper<
-              TContext,
-              MaybeNarrowedEvent<TIndexedEvents, TEventsCausingActors, K>,
-              InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>,
-              Cast<Prop<TIndexedEvents, keyof TIndexedEvents>, EventObject>
-            >
-          | InputFrom<Cast<Prop<TIndexedActors[K], 'logic'>, AnyActorLogic>>;
-      };
+  [K in keyof TIndexedActors]?: Cast<
+    Prop<TIndexedActors[K], 'logic'>,
+    AnyActorLogic
+  >;
 };
 
 type MachineImplementationsDelays<
@@ -2287,3 +2268,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 }
 
 export type AnyActorSystem = ActorSystem<any>;
+
+export type RequiredActorOptions<TActor extends ProvidedActor> =
+  | ('id' extends keyof TActor ? 'id' : never)
+  | (undefined extends InputFrom<TActor['logic']> ? never : 'input');

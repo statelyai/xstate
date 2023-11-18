@@ -1,9 +1,7 @@
 import type { ActorRef, SnapshotFrom, EventObject, Snapshot } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
-import { deriveServiceState } from './deriveServiceState.ts';
 import { createImmutable } from './createImmutable.ts';
-import { unwrap } from 'solid-js/store';
 
 const noop = () => {
   /* ... */
@@ -30,27 +28,18 @@ export function useActor(
   );
 
   const [state, setState] = createImmutable({
-    snapshot: deriveServiceState(actorMemo().getSnapshot?.())
+    snapshot: actorMemo().getSnapshot?.()
   });
-
-  const setActorState = (
-    actorState: Snapshot<unknown>,
-    prevState?: Snapshot<unknown>
-  ) => {
-    setState({
-      snapshot: deriveServiceState(actorState, prevState)
-    });
-  };
 
   createEffect<boolean>((isInitialActor) => {
     const currentActor = actorMemo();
 
     if (!isInitialActor) {
-      setActorState(currentActor.getSnapshot?.());
+      setState({ snapshot: currentActor.getSnapshot?.() });
     }
 
     const { unsubscribe } = currentActor.subscribe({
-      next: (nextState) => setActorState(nextState, unwrap(state.snapshot)),
+      next: (nextState) => setState({ snapshot: nextState }),
       error: noop,
       complete: noop
     });

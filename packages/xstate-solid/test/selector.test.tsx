@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import {
   ActorRefFrom,
-  AnyState,
+  AnyMachineSnapshot,
   StateFrom,
   assign,
   createMachine
@@ -231,7 +231,7 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const value = (stateValue: AnyState) =>
+      const value = (stateValue: AnyMachineSnapshot) =>
         `${prop()} ${stateValue.context.count}`;
       return (
         <div data-testid="value">

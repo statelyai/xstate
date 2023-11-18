@@ -8,7 +8,7 @@ import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
   ActorRefFrom,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
   HistoryValue,
@@ -49,21 +49,17 @@ type ComputeChildren<TActor extends ProvidedActor> =
             : {})
       >;
 
-export function isStateConfig<
+export function isMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: any): state is StateConfig<TContext, TEvent> {
-  if (typeof state !== 'object' || state === null) {
-    return false;
-  }
-
-  return 'value' in state;
+>(value: unknown): value is AnyMachineSnapshot {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'machine' in value &&
+    'value' in value
+  );
 }
-
-/**
- * @deprecated Use `isStateConfig(object)`
- */
-export const isState = isStateConfig;
 
 interface MachineSnapshotBase<
   TContext extends MachineContext,
@@ -110,21 +106,39 @@ interface MachineSnapshotBase<
 
   /**
    * Whether the current state value is a subset of the given parent state value.
-   * @param parentStateValue
+   * @param testValue
    */
   matches: <
     TSV extends TResolvedTypesMeta extends TypegenEnabled
       ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
       : StateValue
   >(
-    parentStateValue: TSV
+    this: MachineSnapshotBase<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >,
+    testValue: TSV
   ) => boolean;
 
   /**
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
-  hasTag: (tag: TTag) => boolean;
+  hasTag: (
+    this: MachineSnapshotBase<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >,
+    tag: TTag
+  ) => boolean;
 
   /**
    * Determines whether sending the `event` will cause a non-forbidden transition
@@ -134,9 +148,28 @@ interface MachineSnapshotBase<
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
-  can: (event: TEvent) => boolean;
+  can: (
+    this: MachineSnapshotBase<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >,
+    event: TEvent
+  ) => boolean;
 
-  toJSON: () => unknown;
+  toJSON: (
+    this: MachineSnapshotBase<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  ) => unknown;
 }
 
 interface ActiveMachineSnapshot<
@@ -260,6 +293,73 @@ export type MachineSnapshot<
       TResolvedTypesMeta
     >;
 
+const machineSnapshotMatches = function matches(
+  this: AnyMachineSnapshot,
+  testValue: StateValue
+) {
+  return matchesState(testValue, this.value);
+};
+
+const machineSnapshotHasTag = function hasTag(
+  this: AnyMachineSnapshot,
+  tag: string
+) {
+  return this.tags.has(tag);
+};
+
+const machineSnapshotCan = function can(
+  this: AnyMachineSnapshot,
+  event: EventObject
+) {
+  if (isDevelopment && !this.machine) {
+    console.warn(
+      `state.can(...) used outside of a machine-created State object; this will always return false.`
+    );
+  }
+
+  const transitionData = this.machine.getTransitionData(this, event);
+
+  return (
+    !!transitionData?.length &&
+    // Check that at least one transition is not forbidden
+    transitionData.some((t) => t.target !== undefined || t.actions.length)
+  );
+};
+
+const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
+  const {
+    configuration,
+    tags,
+    machine,
+    nextEvents,
+    toJSON,
+    can,
+    hasTag,
+    matches,
+    ...jsonValues
+  } = this;
+  return { ...jsonValues, tags: Array.from(tags) };
+};
+
+const machineSnapshotNextEvents = function nextEvents(
+  this: AnyMachineSnapshot
+) {
+  return memo(this, 'nextEvents', () => {
+    return [
+      ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
+    ];
+  });
+};
+
+const machineSnapshotMeta = function nextEvents(this: AnyMachineSnapshot) {
+  return this.configuration.reduce((acc, stateNode) => {
+    if (stateNode.meta !== undefined) {
+      acc[stateNode.id] = stateNode.meta;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+};
+
 export function createMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -277,8 +377,8 @@ export function createMachineSnapshot<
   undefined,
   TResolvedTypesMeta
 > {
-  return {
-    status: config.status as any,
+  const snapshot = {
+    status: config.status,
     output: config.output,
     error: config.error,
     machine,
@@ -288,60 +388,30 @@ export function createMachineSnapshot<
     tags: new Set(flatten(config.configuration.map((sn) => sn.tags))),
     children: config.children as any,
     historyValue: config.historyValue || {},
-    matches(parentStateValue) {
-      return matchesState(parentStateValue as any, this.value);
-    },
-    hasTag(tag) {
-      return this.tags.has(tag);
-    },
-    can(event) {
-      if (isDevelopment && !this.machine) {
-        console.warn(
-          `state.can(...) used outside of a machine-created State object; this will always return false.`
-        );
-      }
-
-      const transitionData = this.machine.getTransitionData(this as any, event);
-
-      return (
-        !!transitionData?.length &&
-        // Check that at least one transition is not forbidden
-        transitionData.some((t) => t.target !== undefined || t.actions.length)
-      );
-    },
-    get nextEvents() {
-      return memo(this, 'nextEvents', () => {
-        return [
-          ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
-        ];
-      });
-    },
-    get meta() {
-      return this.configuration.reduce((acc, stateNode) => {
-        if (stateNode.meta !== undefined) {
-          acc[stateNode.id] = stateNode.meta;
-        }
-        return acc;
-      }, {} as Record<string, any>);
-    },
-    toJSON() {
-      const {
-        configuration,
-        tags,
-        machine,
-        nextEvents,
-        toJSON,
-        can,
-        hasTag,
-        matches,
-        ...jsonValues
-      } = this;
-      return { ...jsonValues, tags: Array.from(tags) };
-    }
+    // this one is generic in the target and it's hard to create a matching non-generic source signature
+    matches: machineSnapshotMatches as any,
+    hasTag: machineSnapshotHasTag,
+    can: machineSnapshotCan,
+    toJSON: machineSnapshotToJSON
   };
+
+  Object.defineProperties(snapshot, {
+    nextEvents: {
+      get: machineSnapshotNextEvents,
+      configurable: true,
+      enumerable: true
+    },
+    meta: {
+      get: machineSnapshotMeta,
+      configurable: true,
+      enumerable: true
+    }
+  });
+
+  return snapshot as never;
 }
 
-export function cloneMachineSnapshot<TState extends AnyState>(
+export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   state: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {

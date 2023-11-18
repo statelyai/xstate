@@ -6,38 +6,35 @@ import {
   AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   InputFrom,
   IsLiteralString,
   ProvidedActor,
   Snapshot,
-  TODO
+  TODO,
+  RequiredActorOptions,
+  IsNotNever,
+  ConditionalRequired
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
-export type SpawnOptions<
+type SpawnOptions<
   TActor extends ProvidedActor,
   TSrc extends TActor['src']
 > = TActor extends {
   src: TSrc;
 }
-  ? 'id' extends keyof TActor
-    ? [
-        options: {
-          id: TActor['id'];
-          systemId?: string;
-          input?: InputFrom<TActor['logic']>;
-          syncSnapshot?: boolean;
-        }
-      ]
-    : [
+  ? ConditionalRequired<
+      [
         options?: {
-          id?: string;
+          id?: TActor['id'];
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
-        }
-      ]
+        } & { [K in RequiredActorOptions<TActor>]: unknown }
+      ],
+      IsNotNever<RequiredActorOptions<TActor>>
+    >
   : never;
 
 export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
@@ -60,25 +57,22 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
 
 export function createSpawner(
   actorScope: AnyActorScope,
-  { machine, context }: AnyState,
+  { machine, context }: AnyMachineSnapshot,
   event: AnyEventObject,
   spawnedChildren: Record<string, AnyActorRef>
 ): Spawner<any> {
   const spawn: Spawner<any> = (src, options = {}) => {
-    const { systemId } = options;
+    const { systemId, input } = options;
     if (typeof src === 'string') {
-      const referenced = resolveReferencedActor(machine, src);
+      const logic = resolveReferencedActor(machine, src);
 
-      if (!referenced) {
+      if (!logic) {
         throw new Error(
           `Actor logic '${src}' not implemented in machine '${machine.id}'`
         );
       }
 
-      const input = 'input' in options ? options.input : referenced.input;
-
-      // TODO: this should also receive `src`
-      const actorRef = createActor(referenced.src, {
+      const actorRef = createActor(logic, {
         id: options.id,
         parent: actorScope.self,
         input:

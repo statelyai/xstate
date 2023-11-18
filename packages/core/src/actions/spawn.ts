@@ -7,7 +7,7 @@ import {
   AnyActorScope,
   AnyActorRef,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ParameterizedObject,
@@ -16,7 +16,11 @@ import {
   ProvidedActor,
   IsLiteralString,
   InputFrom,
-  UnifiedArg
+  UnifiedArg,
+  Mapper,
+  RequiredActorOptions,
+  ConditionalRequired,
+  IsNotNever
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
@@ -29,7 +33,7 @@ type ResolvableActorId<
 
 function resolveSpawn(
   actorScope: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -46,30 +50,26 @@ function resolveSpawn(
     syncSnapshot: boolean;
   }
 ) {
-  const referenced =
-    typeof src === 'string'
-      ? resolveReferencedActor(state.machine, src)
-      : { src, input: undefined };
+  const logic =
+    typeof src === 'string' ? resolveReferencedActor(state.machine, src) : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
 
   let actorRef: AnyActorRef | undefined;
 
-  if (referenced) {
-    // TODO: inline `input: undefined` should win over the referenced one
-    const configuredInput = input || referenced.input;
-    actorRef = createActor(referenced.src, {
+  if (logic) {
+    actorRef = createActor(logic, {
       id: resolvedId,
       src,
       parent: actorScope?.self,
       systemId,
       input:
-        typeof configuredInput === 'function'
-          ? configuredInput({
+        typeof input === 'function'
+          ? input({
               context: state.context,
               event: actionArgs.event,
               self: actorScope?.self
             })
-          : configuredInput
+          : input
     });
 
     if (syncSnapshot) {
@@ -138,36 +138,40 @@ export interface SpawnAction<
   _out_TActor?: TActor;
 }
 
+interface SpawnActionOptions<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor
+> {
+  id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, TActor['id']>;
+  systemId?: string;
+  input?:
+    | Mapper<TContext, TEvent, InputFrom<TActor['logic']>, TEvent>
+    | InputFrom<TActor['logic']>;
+  syncSnapshot?: boolean;
+}
+
 type DistributeActors<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
   TActor extends ProvidedActor
 > = TActor extends any
-  ? 'id' extends keyof TActor
-    ? [
+  ? ConditionalRequired<
+      [
         src: TActor['src'],
-        options: {
-          id: ResolvableActorId<
-            TContext,
-            TExpressionEvent,
-            TEvent,
-            TActor['id']
-          >;
-          systemId?: string;
-          input?: InputFrom<TActor['logic']>;
-          syncSnapshot?: boolean;
+        options?: SpawnActionOptions<
+          TContext,
+          TExpressionEvent,
+          TEvent,
+          TActor
+        > & {
+          [K in RequiredActorOptions<TActor>]: unknown;
         }
-      ]
-    : [
-        src: TActor['src'],
-        options?: {
-          id?: ResolvableActorId<TContext, TExpressionEvent, TEvent, string>;
-          systemId?: string;
-          input?: InputFrom<TActor['logic']>;
-          syncSnapshot?: boolean;
-        }
-      ]
+      ],
+      IsNotNever<RequiredActorOptions<TActor>>
+    >
   : never;
 
 type SpawnArguments<

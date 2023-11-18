@@ -548,7 +548,7 @@ export class StateMachine<
       const src = actorData.src;
 
       const logic =
-        typeof src === 'string' ? resolveReferencedActor(this, src)?.src : src;
+        typeof src === 'string' ? resolveReferencedActor(this, src) : src;
 
       if (!logic) {
         return;
