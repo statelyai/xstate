@@ -124,7 +124,7 @@ describe('rehydration', () => {
       });
 
       expect(() => {
-        machine.resolveStateValue('invalid');
+        machine.resolveState({ value: 'invalid' });
       }).toThrowError(/invalid/);
     });
 
@@ -142,7 +142,7 @@ describe('rehydration', () => {
       });
 
       expect(() => {
-        machine.resolveStateValue({ parent: 'invalid' });
+        machine.resolveState({ value: { parent: 'invalid' } });
       }).toThrowError(/invalid/);
     });
   });
