@@ -1,11 +1,11 @@
 <template>
-  <button @click="service.send({ type: 'TOGGLE' })" data-testid="button">
+  <button @click="actor.send({ type: 'TOGGLE' })" data-testid="button">
     {{ state === 'inactive' ? 'Turn on' : 'Turn off' }}
   </button>
 </template>
 
 <script lang="ts">
-import { useInterpret } from '../src/index.ts';
+import { useActorRef } from '../src/index.ts';
 import { createMachine } from 'xstate';
 
 import { defineComponent, ref } from 'vue';
@@ -27,12 +27,12 @@ const machine = createMachine({
 
 export default defineComponent({
   setup() {
-    const service = useInterpret(machine, {}, (nextState) => {
+    const actor = useActorRef(machine, {}, (nextState) => {
       state.value = nextState.value;
     });
-    const state = ref(service.getSnapshot().value);
+    const state = ref(actor.getSnapshot().value);
 
-    return { service, state };
+    return { actor, state };
   }
 });
 </script>

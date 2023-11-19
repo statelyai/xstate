@@ -1,9 +1,9 @@
 import { render, fireEvent } from '@testing-library/vue';
-import UseSpawn from './UseSpawn.vue';
+import UseActorRef2 from './UseActorRefWithTransitionLogic.vue';
 
-describe('useSpawn', () => {
+describe('useActorRef', () => {
   it('should be able to spawn an actor from actor logic', async () => {
-    const { getByTestId } = render(UseSpawn);
+    const { getByTestId } = render(UseActorRef2);
     const button = getByTestId('count');
 
     expect(button.textContent).toEqual('0');

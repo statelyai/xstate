@@ -1,5 +1,5 @@
 import { SerializationConfig, StatePath } from '@xstate/graph';
-import { AnyState, MachineContext } from 'xstate';
+import { AnyMachineSnapshot, MachineContext } from 'xstate';
 import { TestMeta, TestPathResult } from './types.ts';
 
 interface TestResultStringOptions extends SerializationConfig<any, any> {
@@ -75,7 +75,7 @@ export function formatPathTestResult(
 }
 
 export function getDescription<T, TContext extends MachineContext>(
-  state: AnyState
+  state: AnyMachineSnapshot
 ): string {
   const contextString = !Object.keys(state.context).length
     ? ''

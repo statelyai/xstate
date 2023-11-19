@@ -1,7 +1,7 @@
 import {
   EventObject,
   AnyStateMachine,
-  AnyState,
+  AnyMachineSnapshot,
   StateFrom,
   EventFrom,
   StateMachine,
@@ -20,7 +20,7 @@ import type {
   AnyStateNode,
   TraversalConfig
 } from './types.ts';
-import { createMockActorContext } from './actorContext.ts';
+import { createMockActorScope } from './actorScope.ts';
 
 function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
@@ -102,7 +102,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         })
       ) as any[];
     },
-    fromState: machine.getInitialState(createMockActorContext()) as ReturnType<
+    fromState: machine.getInitialState(createMockActorScope()) as ReturnType<
       TMachine['transition']
     >,
     ...otherOptions

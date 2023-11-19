@@ -837,7 +837,10 @@ describe('entry/exit actions', () => {
         states: {
           green: {
             on: {
-              RESTART: 'green'
+              RESTART: {
+                target: 'green',
+                reenter: true
+              }
             }
           }
         }
@@ -1009,13 +1012,52 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should exit deep descendant during a self-transition', () => {
+    it('should exit deep descendant during a default self-transition', () => {
       const m = createMachine({
         initial: 'a',
         states: {
           a: {
             on: {
               EV: 'a'
+            },
+            initial: 'a1',
+            states: {
+              a1: {
+                initial: 'a11',
+                states: {
+                  a11: {}
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = createActor(m).start();
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a1.a11',
+        'exit: a.a1',
+        'enter: a.a1',
+        'enter: a.a1.a11'
+      ]);
+    });
+
+    it('should exit deep descendant during a reentering self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: {
+                target: 'a',
+                reenter: true
+              }
             },
             initial: 'a1',
             states: {
@@ -1047,7 +1089,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    it('should reenter leaf state during its self-transition', () => {
+    it('should not reenter leaf state during its default self-transition', () => {
       const m = createMachine({
         initial: 'a',
         states: {
@@ -1057,6 +1099,36 @@ describe('entry/exit actions', () => {
               a1: {
                 on: {
                   EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = createActor(m).start();
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual([]);
+    });
+
+    it('should reenter leaf state during its reentering self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: {
+                    target: 'a1',
+                    reenter: true
+                  }
                 }
               }
             }
@@ -1949,6 +2021,41 @@ describe('initial actions', () => {
       ]
     `);
   });
+
+  it('should execute actions of the initial transition when taking a root reentering self-transition', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      id: 'root',
+      initial: {
+        target: 'a',
+        actions: spy
+      },
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      },
+      on: {
+        REENTER: {
+          target: '#root',
+          reenter: true
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'NEXT' });
+    spy.mockClear();
+
+    actorRef.send({ type: 'REENTER' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(actorRef.getSnapshot().value).toEqual('a');
+  });
 });
 
 describe('actions on invalid transition', () => {
@@ -2121,7 +2228,7 @@ describe('actions config', () => {
 });
 
 describe('action meta', () => {
-  it('should provide the original action', () => {
+  it('should provide the original params', () => {
     const spy = jest.fn();
 
     const testMachine = createMachine(
@@ -2141,8 +2248,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2151,14 +2258,11 @@ describe('action meta', () => {
     createActor(testMachine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        value: 'something'
-      }
+      value: 'something'
     });
   });
 
-  it('should provide the action in its object form even if it was configured as string', () => {
+  it('should provide undefined params when it was configured as string', () => {
     const spy = jest.fn();
 
     const testMachine = createMachine(
@@ -2173,8 +2277,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2182,9 +2286,7 @@ describe('action meta', () => {
 
     createActor(testMachine).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
   it('should provide the action with resolved params when they are dynamic', () => {
@@ -2199,8 +2301,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2209,10 +2311,7 @@ describe('action meta', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        stuff: 100
-      }
+      stuff: 100
     });
   });
 
@@ -2231,8 +2330,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          entryAction: ({ action }) => {
-            spy(action);
+          entryAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2241,10 +2340,7 @@ describe('action meta', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'entryAction',
-      params: {
-        secret: 42
-      }
+      secret: 42
     });
   });
 
@@ -2264,8 +2360,8 @@ describe('action meta', () => {
       },
       {
         actions: {
-          myAction: ({ action }) => {
-            spy(action);
+          myAction: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -2276,10 +2372,7 @@ describe('action meta', () => {
     actorRef.send({ type: 'FOO', secret: 77 });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        secret: 77
-      }
+      secret: 77
     });
   });
 });
@@ -2301,7 +2394,7 @@ describe('purely defined actions', () => {
       },
       {
         actions: {
-          doSomething: ({ action }) => spy(action.params)
+          doSomething: (_, params) => spy(params)
         }
       }
     );
@@ -2345,8 +2438,8 @@ describe('purely defined actions', () => {
       },
       {
         actions: {
-          doSomething: ({ action }) => {
-            spy(action.params);
+          doSomething: (_, params) => {
+            spy(params);
           }
         }
       }
@@ -3708,8 +3801,8 @@ describe('actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: ({ action }) => {
-          spy(action);
+        entry: (_, params) => {
+          spy(params);
         }
       })
     ).start();
@@ -3721,8 +3814,8 @@ describe('actions', () => {
     const spy = jest.fn();
     createActor(
       createMachine({
-        entry: assign(({ action }) => {
-          spy(action);
+        entry: assign((_, params) => {
+          spy(params);
           return {};
         })
       })
@@ -3738,8 +3831,8 @@ describe('actions', () => {
       createMachine({
         on: {
           FOO: {
-            actions: ({ action }) => {
-              spy(action);
+            actions: (_, params) => {
+              spy(params);
             }
           }
         }
@@ -3750,15 +3843,15 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it('should call inline transition builtin action with undefined parametrized action object', () => {
+  it('should call inline transition builtin action with undefined parameters', () => {
     const spy = jest.fn();
 
     const actorRef = createActor(
       createMachine({
         on: {
           FOO: {
-            actions: assign(({ action }) => {
-              spy(action);
+            actions: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -3770,7 +3863,7 @@ describe('actions', () => {
     expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced custom action with a parametrized action object when it's referenced using a string", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3780,18 +3873,18 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: (_, params) => {
+              spy(params);
             }
           }
         }
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with a parametrized action object when it's referenced using a string", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced using a string', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3801,8 +3894,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -3810,7 +3903,7 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({ type: 'myAction' });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
   it('should call a referenced custom action with the provided parametrized action object', () => {
@@ -3828,8 +3921,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: (_, params) => {
+              spy(params);
             }
           }
         }
@@ -3837,10 +3930,7 @@ describe('actions', () => {
     ).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        foo: 'bar'
-      }
+      foo: 'bar'
     });
   });
 
@@ -3859,8 +3949,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -3869,14 +3959,11 @@ describe('actions', () => {
     ).start();
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myAction',
-      params: {
-        foo: 'bar'
-      }
+      foo: 'bar'
     });
   });
 
-  it("should call a referenced custom action with its parametrized action object when it's referenced by an inline pure", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced by an inline pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3886,8 +3973,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: (_, params) => {
+              spy(params);
               return {};
             }
           }
@@ -3895,12 +3982,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with its parametrized action object when it's referenced by an inline pure", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced by an inline pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3910,8 +3995,8 @@ describe('actions', () => {
         },
         {
           actions: {
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -3919,12 +4004,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced custom action with its parametrized action object when it's referenced by a referenced pure", () => {
+  it('should call a referenced custom action with undefined params when it has no params and it is referenced by a referenced pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3935,8 +4018,8 @@ describe('actions', () => {
         {
           actions: {
             myPure: pure(() => ['myAction']),
-            myAction: ({ action }) => {
-              spy(action);
+            myAction: (_, params) => {
+              spy(params);
               return {};
             }
           }
@@ -3944,12 +4027,10 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
-  it("should call a referenced builtin action with its parametrized action object when it's referenced by a referenced pure", () => {
+  it('should call a referenced builtin action with undefined params when it has no params and it is referenced by a referenced pure', () => {
     const spy = jest.fn();
 
     createActor(
@@ -3960,8 +4041,8 @@ describe('actions', () => {
         {
           actions: {
             myPure: pure(() => ['myAction']),
-            myAction: assign(({ action }) => {
-              spy(action);
+            myAction: assign((_, params) => {
+              spy(params);
               return {};
             })
           }
@@ -3969,8 +4050,6 @@ describe('actions', () => {
       )
     ).start();
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myAction'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 });

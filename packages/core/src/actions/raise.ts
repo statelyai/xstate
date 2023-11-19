@@ -1,9 +1,9 @@
 import isDevelopment from '#is-development';
 import {
   ActionArgs,
-  AnyActorContext,
+  AnyActorScope,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   DelayExpr,
   EventObject,
   MachineContext,
@@ -15,9 +15,10 @@ import {
 } from '../types.ts';
 
 function resolveRaise(
-  _: AnyActorContext,
-  state: AnyState,
-  args: ActionArgs<any, any, any, any>,
+  _: AnyActorScope,
+  state: AnyMachineSnapshot,
+  args: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     event: eventOrExpr,
     id,
@@ -28,7 +29,7 @@ function resolveRaise(
       | SendExpr<
           MachineContext,
           EventObject,
-          ParameterizedObject | undefined,
+          ParameterizedObject['params'] | undefined,
           EventObject,
           EventObject
         >;
@@ -39,7 +40,7 @@ function resolveRaise(
       | DelayExpr<
           MachineContext,
           EventObject,
-          ParameterizedObject | undefined,
+          ParameterizedObject['params'] | undefined,
           EventObject
         >
       | undefined;
@@ -54,15 +55,20 @@ function resolveRaise(
     );
   }
   const resolvedEvent =
-    typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
+    typeof eventOrExpr === 'function'
+      ? eventOrExpr(args, actionParams)
+      : eventOrExpr;
 
   let resolvedDelay: number | undefined;
   if (typeof delay === 'string') {
     const configDelay = delaysMap && delaysMap[delay];
     resolvedDelay =
-      typeof configDelay === 'function' ? configDelay(args) : configDelay;
+      typeof configDelay === 'function'
+        ? configDelay(args, actionParams)
+        : configDelay;
   } else {
-    resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
+    resolvedDelay =
+      typeof delay === 'function' ? delay(args, actionParams) : delay;
   }
   if (typeof resolvedDelay !== 'number') {
     internalQueue.push(resolvedEvent);
@@ -71,7 +77,7 @@ function resolveRaise(
 }
 
 function executeRaise(
-  actorContext: AnyActorContext,
+  actorScope: AnyActorScope,
   params: {
     event: EventObject;
     id: string | undefined;
@@ -79,7 +85,7 @@ function executeRaise(
   }
 ) {
   if (typeof params.delay === 'number') {
-    (actorContext.self as AnyActor).delaySend(
+    (actorScope.self as AnyActor).delaySend(
       params as typeof params & { delay: number }
     );
     return;
@@ -89,11 +95,11 @@ function executeRaise(
 export interface RaiseAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TExpressionAction extends ParameterizedObject | undefined,
+  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TDelay extends string
 > {
-  (_: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
   _out_TEvent?: TEvent;
   _out_TDelay?: TDelay;
 }
@@ -108,30 +114,25 @@ export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject = TExpressionEvent,
-  TExpressionAction extends ParameterizedObject | undefined =
-    | ParameterizedObject
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
     | undefined,
   TDelay extends string = string
 >(
   eventOrExpr:
     | NoInfer<TEvent>
-    | SendExpr<
-        TContext,
-        TExpressionEvent,
-        TExpressionAction,
-        NoInfer<TEvent>,
-        TEvent
-      >,
+    | SendExpr<TContext, TExpressionEvent, TParams, NoInfer<TEvent>, TEvent>,
   options?: RaiseActionOptions<
     TContext,
     TExpressionEvent,
-    TExpressionAction,
+    TParams,
     NoInfer<TEvent>,
     NoInfer<TDelay>
   >
-): RaiseAction<TContext, TExpressionEvent, TExpressionAction, TEvent, TDelay> {
+): RaiseAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
   function raise(
-    _: ActionArgs<TContext, TExpressionEvent, TExpressionAction, TEvent>
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

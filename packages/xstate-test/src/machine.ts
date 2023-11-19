@@ -1,7 +1,7 @@
 import { SerializedState, serializeState } from '@xstate/graph';
 import {
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   createMachine,
   EventFrom,
@@ -23,7 +23,7 @@ import {
 import { flatten, simpleStringify } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
 
-export async function testStateFromMeta(state: AnyState) {
+export async function testStateFromMeta(state: AnyMachineSnapshot) {
   for (const id of Object.keys(state.meta)) {
     const stateNodeMeta = state.meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
@@ -130,7 +130,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   options?: Partial<
     TestModelOptions<SnapshotFrom<TMachine>, EventFrom<TMachine>>
   >
-): TestModel<SnapshotFrom<TMachine>, EventFrom<TMachine>, unknown, unknown> {
+): TestModel<SnapshotFrom<TMachine>, EventFrom<TMachine>, unknown> {
   validateMachine(machine);
 
   const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
@@ -143,8 +143,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   const testModel = new TestModel<
     SnapshotFrom<TMachine>,
     EventFrom<TMachine>,
-    unknown,
-    any
+    unknown
   >(machine as any, {
     serializeState: (state, event, prevState) => {
       // Only consider the `state` if `serializeTransition()` is opted out (empty string)

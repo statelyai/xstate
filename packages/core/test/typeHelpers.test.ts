@@ -363,7 +363,8 @@ describe('ActorRefFrom', () => {
         status: 'active',
         output: undefined,
         error: undefined
-      })
+      }),
+      getPersistedState: (s) => s
     };
 
     function acceptActorRef(actorRef: ActorRefFrom<typeof logic>) {
