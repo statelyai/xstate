@@ -371,18 +371,16 @@ describe('assign meta', () => {
 it('should type events from onDone properly', () => {
   const stringSrc = fromPromise(() => Promise.resolve('string'));
 
-  const p = setup({
+  setup({
     actors: {
       stringSrc
     },
     actions: {
-      doSomething({ params }: { params: { foo: string } }) {
+      doSomething(_, params: { foo: string }) {
         return params.foo;
       }
     }
-  });
-
-  p.createMachine({
+  }).createMachine({
     types: {
       context: {} as { data: unknown },
       events: {} as { type: 'foo'; data: string }

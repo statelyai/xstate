@@ -86,7 +86,7 @@ describe('setup()', () => {
   it('can strongly type provided actions', () => {
     const p = setup({
       actions: {
-        greet: ({ params }: { params: { name: string } }) => {
+        greet: (_, params: { name: string }) => {
           console.log(`Hello, ${params.name}!`);
         }
       }

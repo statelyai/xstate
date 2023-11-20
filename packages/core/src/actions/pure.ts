@@ -41,7 +41,7 @@ function resolvePure(
 export interface PureAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
+  TParams extends ParameterizedObject['params'] | undefined, // TODO: rmeove this, "composite" actions/guards can't specify params
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,

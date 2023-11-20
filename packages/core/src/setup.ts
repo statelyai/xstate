@@ -1,30 +1,84 @@
 import { StateMachine, TypegenDisabled, createMachine } from '.';
+import { GuardPredicate } from './guards';
 import {
   AnyActorLogic,
   MachineContext,
   AnyEventObject,
   NonReducibleUnknown,
   MachineConfig,
-  Values
+  Values,
+  ParameterizedObject,
+  ActionFunction,
+  SetupTypes,
+  DelayConfig
 } from './types';
 
+type ToParameterizedObject<
+  TParameterizedMap extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  >
+> = Values<{
+  [K in keyof TParameterizedMap & string]: {
+    type: K;
+    params: TParameterizedMap[K];
+  };
+}>;
+
+type ToProvidedActor<TActors extends Record<string, AnyActorLogic>> = Values<{
+  [K in keyof TActors & string]: {
+    src: K;
+    logic: TActors[K];
+  };
+}>;
+
 export function setup<
+  TContext extends MachineContext,
+  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
   TActors extends Record<string, AnyActorLogic>,
-  TActions extends Record<string, ({ params }: { params: any }) => void>,
-  TGuards extends Record<string, ({ params }: { params: any }) => boolean>,
-  TDelays extends Record<string, number>,
-  TTags extends string[]
+  TActions extends Record<string, ParameterizedObject['params'] | undefined>,
+  TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
+  TDelay extends string,
+  TTag extends string,
+  TInput,
+  TOutput extends NonReducibleUnknown
 >({
   actors,
   actions,
   guards,
   delays
 }: {
+  types?: SetupTypes<TContext, TEvent, TTag, TInput, TOutput>;
+
   actors?: TActors;
-  actions?: TActions;
-  guards?: TGuards;
-  delays?: TDelays;
-  tags?: TTags; // only used for types
+  actions?: {
+    [K in keyof TActions]: ActionFunction<
+      TContext,
+      TEvent,
+      TEvent,
+      TActions[K],
+      ToProvidedActor<TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay
+    >;
+  };
+  guards?: {
+    [K in keyof TGuards]: GuardPredicate<
+      TContext,
+      TEvent,
+      TGuards[K],
+      ToParameterizedObject<TGuards>
+    >;
+  };
+  delays?: {
+    [K in TDelay]: DelayConfig<
+      TContext,
+      TEvent,
+      ToParameterizedObject<TActions>['params'],
+      TEvent
+    >;
+  };
 }): {
   createMachine: <
     TContext extends MachineContext,
@@ -35,26 +89,11 @@ export function setup<
     config: MachineConfig<
       TContext,
       TEvent,
-      Values<{
-        [K in keyof TActors & string]: {
-          src: K;
-          logic: TActors[K];
-        };
-      }>,
-      Values<{
-        [K in keyof TActions & string]: {
-          type: K;
-          params: Parameters<TActions[K]>[0]['params'];
-        };
-      }>,
-      Values<{
-        [K in keyof TGuards & string]: {
-          type: K;
-          params: Parameters<TGuards[K]>[0]['params'];
-        };
-      }>,
-      keyof TDelays & string,
-      TTags[0],
+      ToProvidedActor<TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TTag,
       TInput,
       TOutput,
       TypegenDisabled
@@ -62,41 +101,23 @@ export function setup<
   ) => StateMachine<
     TContext,
     TEvent,
-    Values<{
-      [K in keyof TActors & string]: {
-        src: K;
-        logic: TActors[K];
-      };
-    }>,
-    Values<{
-      [K in keyof TActions & string]: {
-        type: K;
-        params: Parameters<TActions[K]>[0]['params'];
-      };
-    }>,
-    Values<{
-      [K in keyof TGuards & string]: {
-        type: K;
-        params: Parameters<TGuards[K]>[0]['params'];
-      };
-    }>,
-    keyof TDelays & string,
-    TTags[0],
+    ToProvidedActor<TActors>,
+    ToParameterizedObject<TActions>,
+    ToParameterizedObject<TGuards>,
+    TDelay,
+    TTag,
     TInput,
     TOutput,
-    any // ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
+    TypegenDisabled
   >;
 } {
   return {
     createMachine: (config) =>
       createMachine(config, {
-        // @ts-ignore
         actors,
-        // @ts-ignore
         actions,
-        // @ts-ignore
         guards,
         delays
-      })
+      } as any)
   };
 }
