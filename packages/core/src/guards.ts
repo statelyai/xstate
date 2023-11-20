@@ -141,17 +141,16 @@ function checkNot(
 export function not<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
   TArg
 >(
-  guard: SingleGuardArg<TContext, TExpressionEvent, TParams, TArg>
+  guard: SingleGuardArg<TContext, TExpressionEvent, unknown, TArg>
 ): GuardPredicate<
   TContext,
   TExpressionEvent,
-  TParams,
+  unknown,
   NormalizeGuardArg<NoInfer<TArg>>
 > {
-  function not(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
+  function not(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

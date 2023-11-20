@@ -148,9 +148,7 @@ describe('setup()', () => {
     });
   });
 
-  // TODO: this is not how it actually works: https://stackblitz.com/edit/js-apvycl?file=index.js
-  // we need to decide which behavior is correct and either adjust this test case or the runtime behavior
-  it('should be able to define a `not` guard that embeds an inline function guard with params', () => {
+  it('should not be able to define a `not` guard that embeds an inline function guard with params', () => {
     setup({
       types: {} as {
         // TODO: without TContext candidate here the `not` infers the outer `TContext` type variable
@@ -159,7 +157,10 @@ describe('setup()', () => {
         context: { counter: number };
       },
       guards: {
-        opposite: not((_, params: string) => true)
+        opposite: not(
+          // @ts-expect-error
+          (_, params: string) => true
+        )
       }
     });
   });

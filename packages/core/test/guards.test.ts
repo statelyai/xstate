@@ -600,6 +600,9 @@ describe('custom guards', () => {
 
     const machine = createMachine(
       {
+        context: {
+          counter: 0
+        },
         on: {
           FOO: {
             guard: {
