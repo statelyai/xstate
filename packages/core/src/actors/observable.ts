@@ -37,8 +37,8 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  *
  * @param observableCreator A function that creates an observable. It receives one argument, an object with the following properties:
  * - `input` - Data that was provided to the observable actor
- * - `system` - The actor system to which the observable actor belongs
  * - `self` - The parent actor
+ * - `system` - The actor system to which the observable actor belongs
  * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
  *
  * @example
