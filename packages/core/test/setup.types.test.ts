@@ -640,7 +640,6 @@ describe('setup()', () => {
     });
   });
 
-  // should be able to use a parameterized `assign` action with its required params in the machine
   it("should be able to use an output of specific actor in the `assign` within `invoke`'s `onDone` in the machine", () => {
     setup({
       actors: {
@@ -660,6 +659,27 @@ describe('setup()', () => {
               return {};
             }
           })
+        }
+      }
+    });
+  });
+
+  it("should be able to use an output of specific actor in the custom action within `invoke`'s `onDone` in the machine", () => {
+    setup({
+      actors: {
+        greet: fromPromise(async () => 'hello'),
+        throwDice: fromPromise(async () => Math.random())
+      }
+    }).createMachine({
+      invoke: {
+        src: 'greet',
+        onDone: {
+          actions: ({ event }) => {
+            event.output satisfies string;
+
+            // @ts-expect-error
+            event.output satisfies number;
+          }
         }
       }
     });
