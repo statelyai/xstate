@@ -81,7 +81,7 @@ export function getDescription<T, TContext extends MachineContext>(
     ? ''
     : `(${JSON.stringify(state.context)})`;
 
-  const stateStrings = state.configuration
+  const stateStrings = state._nodes
     .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
     .map(({ id, path }) => {
       const meta = state.getMeta()[id] as TestMeta<T, TContext>;

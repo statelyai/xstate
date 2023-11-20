@@ -289,7 +289,7 @@ describe('machine', () => {
       });
     });
 
-    it('should resolve the state configuration (implicit via events)', () => {
+    it('should resolve the state nodes (implicit via events)', () => {
       const resolvedState = resolveMachine.resolveState({ value: 'foo' });
 
       expect([...resolvedState.getNextEvents()].sort()).toEqual([

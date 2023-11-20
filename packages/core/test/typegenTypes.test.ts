@@ -7,7 +7,7 @@ import {
 } from '../src/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 import { fromCallback } from '../src/actors/index.ts';
-import { createMachine } from '../src/Machine.ts';
+import { createMachine } from '../src/createMachine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
 import { PromiseActorLogic } from '../src/actors/promise.ts';
 
