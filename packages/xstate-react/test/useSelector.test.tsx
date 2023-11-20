@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import {
   ActorRef,
@@ -8,7 +8,8 @@ import {
   createMachine,
   fromTransition,
   createActor,
-  StateFrom
+  StateFrom,
+  fromPromise
 } from 'xstate';
 import {
   shallowEqual,
@@ -785,5 +786,39 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
 
     expect(stateEl.textContent).toBe('42');
+  });
+
+  it('should', async () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(async () => {
+          await new Promise((r) => setTimeout(r, 100));
+          console.log('done');
+          return 42;
+        }),
+        id: 'childTest',
+        systemId: 'test'
+      }
+    });
+
+    const App = () => {
+      const actor = useActorRef(machine);
+      const system = actor.system!;
+      const test = useSelector(system, (c) => {
+        return c.context.actors.get('test');
+      });
+      const num = useSelector(test ?? createEmptyActor(), (s) => s);
+
+      return <div data-testid="count">{num}</div>;
+    };
+
+    render(<App />);
+
+    const count = screen.getByTestId('count');
+
+    // wait for count to be 42
+    await waitFor(() => {
+      expect(count.textContent).toBe('42');
+    });
   });
 });

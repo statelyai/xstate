@@ -183,6 +183,7 @@ export class Actor<
   }
 
   private _initState() {
+    this.system = this.options.parent?.system ?? createSystem();
     this._state = this.options.state
       ? this.logic.restoreState
         ? this.logic.restoreState(this.options.state, this._actorContext)
@@ -423,7 +424,9 @@ export class Actor<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = ActorStatus.Stopped;
-    this.system._unregister(this);
+    if (!this._parent) {
+      this.system._stop();
+    }
 
     return this;
   }

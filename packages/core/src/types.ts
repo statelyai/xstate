@@ -1906,6 +1906,9 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
+  /**
+   * @internal
+   */
   _parent?: ActorRef<any, any>;
   system?: ActorSystem<any>;
   status: ActorStatus;
@@ -2256,12 +2259,15 @@ export interface ActorSystemInfo {
   actors: Record<string, AnyActorRef>;
 }
 
-export interface ActorSystem<T extends ActorSystemInfo> {
+export interface ActorSystem<T extends ActorSystemInfo>
+  extends Subscribable<{ actors: Map<string, AnyActorRef | undefined> }> {
   _bookId: () => string;
   _register: (sessionId: string, actorRef: AnyActorRef) => string;
   _unregister: (actorRef: AnyActorRef) => void;
   _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  getSnapshot: () => { actors: Map<string, AnyActorRef | undefined> };
+  _stop: () => void;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
