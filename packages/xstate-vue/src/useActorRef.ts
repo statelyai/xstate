@@ -2,14 +2,10 @@ import { onBeforeUnmount, onMounted } from 'vue';
 import {
   ActorRefFrom,
   AnyActorLogic,
-  AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
-  InternalMachineImplementations,
   createActor,
   ActorOptions,
   Observer,
   SnapshotFrom,
-  StateFrom,
   Subscription,
   toObserver
 } from 'xstate';

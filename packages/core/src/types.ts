@@ -1227,10 +1227,6 @@ type GenerateGuardsImplementationsPart<
 
 export type InternalMachineImplementations<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TDelay extends string,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<
@@ -1277,10 +1273,6 @@ export type MachineImplementations<
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
-  TEvent,
-  TActor,
-  TAction,
-  TDelay,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 >;
 
@@ -1974,11 +1966,11 @@ export type MachineImplementationsFrom<
   TRequireMissingImplementations extends boolean = false
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
-  infer TEvent,
-  infer TActor,
-  infer TAction,
+  infer _TEvent,
+  infer _TActor,
+  infer _TAction,
   infer _TGuard,
-  infer TDelay,
+  infer _TDelay,
   infer _TTag,
   infer _TInput,
   infer _TOutput,
@@ -1986,10 +1978,6 @@ export type MachineImplementationsFrom<
 >
   ? InternalMachineImplementations<
       TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TDelay,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >
