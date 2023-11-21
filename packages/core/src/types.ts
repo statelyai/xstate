@@ -108,7 +108,13 @@ export interface UnifiedArg<
   event: TExpressionEvent;
   self: ActorRef<
     TEvent,
-    MachineSnapshot<TContext, TEvent, ProvidedActor, string, unknown>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      Record<string, AnyActorRef | undefined>, // TODO: this should be replaced with `TChildren`
+      string,
+      unknown
+    >
   >;
   system: ActorSystem<any>;
 }
@@ -124,6 +130,7 @@ export interface ActionArgs<
 export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
   infer _TContext,
   infer _TEvent,
+  infer _TChildren,
   infer _TActor,
   infer _TAction,
   infer _TGuard,
@@ -933,16 +940,17 @@ export type AnyMachineSnapshot = MachineSnapshot<any, any, any, any, any, any>;
 export type AnyState = AnyMachineSnapshot;
 
 export type AnyStateMachine = StateMachine<
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any, // delays
-  any // tags
+  any, // context
+  any, // event
+  any, // children
+  any, // actor
+  any, // action
+  any, // guard
+  any, // delay
+  any, // tag
+  any, // input
+  any, // output
+  any // typegen
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -1582,7 +1590,13 @@ export type Mapper<
   event: TExpressionEvent;
   self: ActorRef<
     TEvent,
-    MachineSnapshot<TContext, TEvent, ProvidedActor, string, unknown>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      Record<string, AnyActorRef>, // TODO: this should be replaced with `TChildren`
+      string,
+      unknown
+    >
   >;
 }) => TResult;
 
@@ -1659,7 +1673,19 @@ export interface StateConfig<
   status: 'active' | 'done' | 'error' | 'stopped';
   output?: any;
   error?: unknown;
-  machine?: StateMachine<TContext, TEvent, any, any, any, any, any, any, any>;
+  machine?: StateMachine<
+    TContext,
+    TEvent,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >;
 }
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
@@ -1898,7 +1924,19 @@ export interface ActorRef<
 export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<any, any, any, any, any, any, any, any, any>
+  ? R extends StateMachine<
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any
+    >
     ? R
     : R extends Promise<infer U>
     ? PromiseActorLogic<U>
@@ -1909,7 +1947,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer TContext,
       infer TEvent,
-      infer TActor,
+      infer TChildren,
+      infer _TActor,
       infer _TAction,
       infer _TGuard,
       infer _TDelay,
@@ -1923,7 +1962,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         MachineSnapshot<
           TContext,
           TEvent,
-          TActor,
+          TChildren,
           TTag,
           TOutput,
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
@@ -1953,7 +1992,8 @@ export type InterpreterFrom<
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TEvent,
-  infer TActor,
+  infer TChildren,
+  infer _TActor,
   infer _TAction,
   infer _TGuard,
   infer _TDelay,
@@ -1967,7 +2007,7 @@ export type InterpreterFrom<
         MachineSnapshot<
           TContext,
           TEvent,
-          TActor,
+          TChildren,
           TTag,
           TOutput,
           TResolvedTypesMeta
@@ -1985,6 +2025,7 @@ export type MachineImplementationsFrom<
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer _TEvent,
+  infer _TChildren,
   infer _TActor,
   infer _TAction,
   infer _TGuard,
@@ -2005,6 +2046,7 @@ export type MachineImplementationsFrom<
 export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   any, // context
   any, // event
+  any, // children
   any, // actor
   any, // action
   any, // guard
@@ -2135,6 +2177,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     : R extends StateMachine<
         infer _TContext,
         infer _TEvent,
+        infer _TChildren,
         infer _TActor,
         infer _TAction,
         infer _TGuard,
@@ -2161,6 +2204,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer _TContext,
       infer TEvent,
+      infer _TChildren,
       infer _TActor,
       infer _TAction,
       infer _TGuard,
@@ -2174,7 +2218,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     : R extends MachineSnapshot<
         infer _TContext,
         infer TEvent,
-        infer _TActor,
+        infer _TChildren,
         infer _TTag,
         infer _TOutput,
         infer _TResolvedTypesMeta
@@ -2195,6 +2239,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
       infer TContext,
       infer _TEvent,
+      infer _TChildren,
       infer _TActor,
       infer _TAction,
       infer _TGuard,
@@ -2208,7 +2253,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     : R extends MachineSnapshot<
         infer TContext,
         infer _TEvent,
-        infer _TActor,
+        infer _TChildren,
         infer _TTag,
         infer _TOutput,
         infer _TResolvedTypesMeta
@@ -2218,6 +2263,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TActorLogic extends StateMachine<
         infer TContext,
         infer _TEvent,
+        infer _TChildren,
         infer _TActor,
         infer _TAction,
         infer _TGuard,

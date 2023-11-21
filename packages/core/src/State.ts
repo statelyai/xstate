@@ -6,7 +6,6 @@ import { getStateValue } from './stateUtils.ts';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
-  ActorRefFrom,
   AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
@@ -16,37 +15,11 @@ import type {
   StateConfig,
   StateValue,
   AnyActorRef,
-  Compute,
   EventDescriptor,
   Snapshot,
   ParameterizedObject
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
-
-type ComputeConcreteChildren<TActor extends ProvidedActor> = {
-  [A in TActor as 'id' extends keyof A
-    ? A['id'] & string
-    : never]?: ActorRefFrom<A['logic']>;
-};
-
-type ComputeChildren<TActor extends ProvidedActor> =
-  // only proceed further if all configured `src`s are literal strings
-  string extends TActor['src']
-    ? // TODO: replace with UnknownActorRef~
-      // TODO: consider adding `| undefined` here
-      Record<string, AnyActorRef>
-    : Compute<
-        ComputeConcreteChildren<TActor> &
-          // check if all actors have IDs
-          (undefined extends TActor['id']
-            ? // if they don't we need to create an index signature containing all possible actor types
-              {
-                [id: string]: TActor extends any
-                  ? ActorRefFrom<TActor['logic']> | undefined
-                  : never;
-              }
-            : {})
-      >;
 
 export function isMachineSnapshot<
   TContext extends MachineContext,
@@ -63,7 +36,7 @@ export function isMachineSnapshot<
 interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
@@ -71,7 +44,8 @@ interface MachineSnapshotBase<
   machine: StateMachine<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
+    ProvidedActor,
     ParameterizedObject,
     ParameterizedObject,
     string,
@@ -94,7 +68,7 @@ interface MachineSnapshotBase<
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  children: ComputeChildren<TActor>;
+  children: TChildren;
 
   /**
    * Whether the current state value is a subset of the given parent state value.
@@ -108,7 +82,7 @@ interface MachineSnapshotBase<
     this: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -124,7 +98,7 @@ interface MachineSnapshotBase<
     this: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -144,7 +118,7 @@ interface MachineSnapshotBase<
     this: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -159,7 +133,7 @@ interface MachineSnapshotBase<
     this: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -170,7 +144,7 @@ interface MachineSnapshotBase<
     this: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -181,7 +155,7 @@ interface MachineSnapshotBase<
     this: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -192,14 +166,14 @@ interface MachineSnapshotBase<
 interface ActiveMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -212,14 +186,14 @@ interface ActiveMachineSnapshot<
 interface DoneMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -232,14 +206,14 @@ interface DoneMachineSnapshot<
 interface ErrorMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -252,14 +226,14 @@ interface ErrorMachineSnapshot<
 interface StoppedMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -272,7 +246,7 @@ interface StoppedMachineSnapshot<
 export type MachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
@@ -280,7 +254,7 @@ export type MachineSnapshot<
   | ActiveMachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -288,7 +262,7 @@ export type MachineSnapshot<
   | DoneMachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -296,7 +270,7 @@ export type MachineSnapshot<
   | ErrorMachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -304,7 +278,7 @@ export type MachineSnapshot<
   | StoppedMachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -377,7 +351,7 @@ const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
 export function createMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TResolvedTypesMeta = TypegenDisabled
 >(
@@ -386,7 +360,7 @@ export function createMachineSnapshot<
 ): MachineSnapshot<
   TContext,
   TEvent,
-  TActor,
+  TChildren,
   TTag,
   undefined,
   TResolvedTypesMeta
@@ -425,7 +399,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
 export function getPersistedState<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
@@ -433,7 +407,7 @@ export function getPersistedState<
   state: MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta

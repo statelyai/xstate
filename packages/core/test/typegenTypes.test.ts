@@ -1060,6 +1060,7 @@ describe('typegen types', () => {
         any,
         any,
         any,
+        any,
         any
       >
     ) {

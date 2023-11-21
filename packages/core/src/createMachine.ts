@@ -6,7 +6,11 @@ import {
   ProvidedActor,
   NonReducibleUnknown,
   Prop,
-  AnyEventObject
+  AnyEventObject,
+  ActorRefFrom,
+  AnyActorRef,
+  Compute,
+  Cast
 } from './types.ts';
 import {
   TypegenConstraint,
@@ -14,6 +18,31 @@ import {
   TypegenDisabled
 } from './typegenTypes.ts';
 import { StateMachine } from './StateMachine.ts';
+
+type ToConcreteChildren<TActor extends ProvidedActor> = {
+  [A in TActor as 'id' extends keyof A
+    ? A['id'] & string
+    : never]?: ActorRefFrom<A['logic']>;
+};
+
+type ToChildren<TActor extends ProvidedActor> =
+  // only proceed further if all configured `src`s are literal strings
+  string extends TActor['src']
+    ? // TODO: replace with UnknownActorRef~
+      // TODO: consider adding `| undefined` here
+      Record<string, AnyActorRef>
+    : Compute<
+        ToConcreteChildren<TActor> &
+          // check if all actors have IDs
+          (undefined extends TActor['id']
+            ? // if they don't we need to create an index signature containing all possible actor types
+              {
+                [id: string]: TActor extends any
+                  ? ActorRefFrom<TActor['logic']> | undefined
+                  : never;
+              }
+            : {})
+      >;
 
 export function createMachine<
   TContext extends MachineContext,
@@ -57,6 +86,7 @@ export function createMachine<
 ): StateMachine<
   TContext,
   TEvent,
+  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
   TActor,
   TAction,
   TGuard,
@@ -78,8 +108,17 @@ export function createMachine<
   TOutput,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
-  return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
-    config as any,
-    implementations as any
-  );
+  return new StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >(config as any, implementations as any);
 }

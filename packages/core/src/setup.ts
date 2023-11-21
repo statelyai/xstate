@@ -17,7 +17,11 @@ import {
   SetupTypes,
   DelayConfig,
   Invert,
-  IsNever
+  IsNever,
+  ActorRefFrom,
+  Compute,
+  Cast,
+  AnyActorRef
 } from './types';
 
 type ToParameterizedObject<
@@ -31,6 +35,42 @@ type ToParameterizedObject<
     params: TParameterizedMap[K];
   };
 }>;
+
+type GetConfiguredActorIds<
+  TChildrenMap extends Record<string, string>,
+  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
+> = Values<{
+  [K in keyof TActors]: K extends keyof Invert<TChildrenMap>
+    ? Invert<TChildrenMap>[K]
+    : undefined;
+}>;
+
+type ToConcreteChildren<
+  TChildrenMap extends Record<string, string>,
+  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
+> = IsNever<keyof TChildrenMap> extends true
+  ? {}
+  : {
+      [K in keyof TChildrenMap]?: ActorRefFrom<TActors[TChildrenMap[K]]>;
+    };
+
+type ToChildren<
+  TChildrenMap extends Record<string, string>,
+  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
+> = IsNever<keyof TActors> extends true
+  ? {}
+  : Compute<
+      ToConcreteChildren<TChildrenMap, TActors> &
+        undefined extends GetConfiguredActorIds<TChildrenMap, TActors>
+        ? {
+            [id: string]: Values<TActors> extends infer A
+              ? A extends any
+                ? ActorRefFrom<A> | undefined
+                : never
+              : never;
+          }
+        : {}
+    >;
 
 // TODO: explain this
 type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
@@ -124,6 +164,10 @@ export function setup<
   ) => StateMachine<
     TContext,
     TEvent,
+    Cast<
+      ToChildren<TChildrenMap, TActors>,
+      Record<string, AnyActorRef | undefined>
+    >,
     ToProvidedActor<TChildrenMap, TActors>,
     ToParameterizedObject<TActions>,
     ToParameterizedObject<TGuards>,
@@ -149,6 +193,6 @@ export function setup<
         actions,
         guards,
         delays
-      } as any)
+      } as any) as any
   };
 }

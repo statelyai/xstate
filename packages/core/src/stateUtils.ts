@@ -1706,7 +1706,7 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map((child) => stop(child)),
+    Object.values(nextState.children).map((child: any) => stop(child)),
     []
   );
 }
