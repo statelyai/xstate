@@ -44,10 +44,6 @@ export function createMachine<
   >,
   implementations?: InternalMachineImplementations<
     TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TDelay,
     ResolveTypegenMeta<
       TTypesMeta,
       TEvent,

@@ -15,6 +15,8 @@ import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
 import { InspectionEvent } from './system.js';
 
+export type Identity<T> = { [K in keyof T]: T[K] };
+
 export type HomomorphicPick<T, K extends keyof any> = {
   [P in keyof T as P & K]: T[P];
 };
@@ -51,6 +53,7 @@ export type IsNotNever<T> = [T] extends [never] ? false : true;
 export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
+export type Elements<T> = T[keyof T & `${number}`];
 export type Merge<M, N> = Omit<M, keyof N> & N;
 export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
   [E in T as E[P]]: E;
@@ -89,7 +92,7 @@ export interface AnyEventObject extends EventObject {
 
 export interface ParameterizedObject {
   type: string;
-  params?: Record<string, unknown>;
+  params?: NonReducibleUnknown;
 }
 
 export interface UnifiedArg<
@@ -186,7 +189,7 @@ export interface ChooseBranch<
 }
 
 export type NoRequiredParams<T extends ParameterizedObject> = T extends any
-  ? { type: T['type'] } extends T
+  ? undefined extends T['params']
     ? T['type']
     : never
   : never;
@@ -1224,10 +1227,6 @@ type GenerateGuardsImplementationsPart<
 
 export type InternalMachineImplementations<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TDelay extends string,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<
@@ -1274,10 +1273,6 @@ export type MachineImplementations<
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineImplementations<
   TContext,
-  TEvent,
-  TActor,
-  TAction,
-  TDelay,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 >;
 
@@ -1349,6 +1344,20 @@ export interface ProvidedActor {
   id?: string;
 }
 
+export interface SetupTypes<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TTag extends string,
+  TInput,
+  TOutput
+> {
+  context?: TContext;
+  events?: TEvent;
+  tags?: TTag;
+  input?: TInput;
+  output?: TOutput;
+}
+
 export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1360,16 +1369,11 @@ export interface MachineTypes<
   TInput,
   TOutput,
   TTypesMeta = TypegenDisabled
-> {
-  context?: TContext;
-  events?: TEvent;
+> extends SetupTypes<TContext, TEvent, TTag, TInput, TOutput> {
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
   delays?: TDelay;
-  tags?: TTag;
-  input?: TInput;
-  output?: TOutput;
   typegen?: TTypesMeta;
 }
 
@@ -1963,11 +1967,11 @@ export type MachineImplementationsFrom<
   TRequireMissingImplementations extends boolean = false
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
-  infer TEvent,
-  infer TActor,
-  infer TAction,
+  infer _TEvent,
+  infer _TActor,
+  infer _TAction,
   infer _TGuard,
-  infer TDelay,
+  infer _TDelay,
   infer _TTag,
   infer _TInput,
   infer _TOutput,
@@ -1975,10 +1979,6 @@ export type MachineImplementationsFrom<
 >
   ? InternalMachineImplementations<
       TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TDelay,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >

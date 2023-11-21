@@ -10,10 +10,6 @@ type InternalMachineOpts<
   RequireMissing extends boolean = false
 > = InternalMachineImplementations<
   TMachine['__TContext'],
-  TMachine['__TEvent'],
-  TMachine['__TActor'],
-  TMachine['__TAction'],
-  TMachine['__TDelay'],
   TMachine['__TResolvedTypesMeta'],
   RequireMissing
 >;

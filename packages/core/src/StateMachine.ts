@@ -192,10 +192,6 @@ export class StateMachine<
   public provide(
     implementations: InternalMachineImplementations<
       TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TDelay,
       TResolvedTypesMeta,
       true
     >
