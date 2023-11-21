@@ -48,27 +48,32 @@ type GetConfiguredActorIds<
 type ToConcreteChildren<
   TChildrenMap extends Record<string, string>,
   TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
-> = IsNever<keyof TChildrenMap> extends true
+> = IsNever<TChildrenMap> extends true
   ? {}
   : {
       [K in keyof TChildrenMap]?: ActorRefFrom<TActors[TChildrenMap[K]]>;
     };
+
+type ToAllActorsIndexSignature<TActors extends Record<string, AnyActorLogic>> =
+  {
+    [id: string]: Values<TActors> extends infer A
+      ? A extends any
+        ? ActorRefFrom<A> | undefined
+        : never
+      : never;
+  };
 
 type ToChildren<
   TChildrenMap extends Record<string, string>,
   TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
 > = IsNever<keyof TActors> extends true
   ? {}
+  : IsNever<TChildrenMap> extends true
+  ? ToAllActorsIndexSignature<TActors>
   : Compute<
       ToConcreteChildren<TChildrenMap, TActors> &
         (undefined extends GetConfiguredActorIds<TChildrenMap, TActors>
-          ? {
-              [id: string]: Values<TActors> extends infer A
-                ? A extends any
-                  ? ActorRefFrom<A> | undefined
-                  : never
-                : never;
-            }
+          ? ToAllActorsIndexSignature<TActors>
           : {})
     >;
 
