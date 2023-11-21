@@ -15,7 +15,9 @@ import {
   ParameterizedObject,
   ActionFunction,
   SetupTypes,
-  DelayConfig
+  DelayConfig,
+  Invert,
+  IsNever
 } from './types';
 
 type ToParameterizedObject<
@@ -30,31 +32,44 @@ type ToParameterizedObject<
   };
 }>;
 
-type ToProvidedActor<TActors extends Record<string, AnyActorLogic>> = Values<{
-  [K in keyof TActors & string]: {
+// TODO: explain this
+type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
+  IsNever<keyof TActors> extends true ? Record<string, AnyActorLogic> : TActors;
+
+// TODO: this doesn't quite restrict it to only known keys, should it?
+type ToProvidedActor<
+  TChildrenMap extends Record<string, string>,
+  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
+> = Values<{
+  [K in keyof DefaultToAnyActors<TActors> & string]: {
     src: K;
     logic: TActors[K];
+    id: IsNever<TChildrenMap> extends true
+      ? string | undefined
+      : K extends keyof Invert<TChildrenMap>
+      ? Invert<TChildrenMap>[K]
+      : string | undefined;
   };
 }>;
 
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<string, AnyActorLogic>,
+  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>,
   TActions extends Record<string, ParameterizedObject['params'] | undefined>,
   TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
   TDelay extends string,
   TTag extends string,
   TInput,
-  TOutput extends NonReducibleUnknown
+  TOutput extends NonReducibleUnknown,
+  TChildrenMap extends Record<string, string> = never
 >({
   actors,
   actions,
   guards,
   delays
 }: {
-  types?: SetupTypes<TContext, TEvent, TTag, TInput, TOutput>;
-
+  types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
   actors?: TActors;
   actions?: {
     [K in keyof TActions]: ActionFunction<
@@ -62,7 +77,7 @@ export function setup<
       TEvent,
       TEvent,
       TActions[K],
-      ToProvidedActor<TActors>,
+      ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
       TDelay
@@ -89,7 +104,7 @@ export function setup<
     config: MachineConfig<
       TContext,
       TEvent,
-      ToProvidedActor<TActors>,
+      ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
       TDelay,
@@ -99,7 +114,7 @@ export function setup<
       ResolveTypegenMeta<
         TypegenDisabled,
         TEvent,
-        ToProvidedActor<TActors>,
+        ToProvidedActor<TChildrenMap, TActors>,
         ToParameterizedObject<TActions>,
         ToParameterizedObject<TGuards>,
         TDelay,
@@ -109,7 +124,7 @@ export function setup<
   ) => StateMachine<
     TContext,
     TEvent,
-    ToProvidedActor<TActors>,
+    ToProvidedActor<TChildrenMap, TActors>,
     ToParameterizedObject<TActions>,
     ToParameterizedObject<TGuards>,
     TDelay,
@@ -119,7 +134,7 @@ export function setup<
     ResolveTypegenMeta<
       TypegenDisabled,
       TEvent,
-      ToProvidedActor<TActors>,
+      ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
       TDelay,

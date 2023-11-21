@@ -24,6 +24,10 @@ export type HomomorphicOmit<T, K extends keyof any> = {
   [P in keyof T as Exclude<P, K>]: T[P];
 };
 
+export type Invert<T extends Record<PropertyKey, PropertyKey>> = {
+  [K in keyof T as T[K]]: K;
+};
+
 export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
   T extends any ? ('params' extends keyof T ? T['params'] : undefined) : never;
 
@@ -1347,12 +1351,14 @@ export interface ProvidedActor {
 export interface SetupTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TChildrenMap extends Record<string, string>,
   TTag extends string,
   TInput,
   TOutput
 > {
   context?: TContext;
   events?: TEvent;
+  children?: TChildrenMap;
   tags?: TTag;
   input?: TInput;
   output?: TOutput;
@@ -1369,7 +1375,15 @@ export interface MachineTypes<
   TInput,
   TOutput,
   TTypesMeta = TypegenDisabled
-> extends SetupTypes<TContext, TEvent, TTag, TInput, TOutput> {
+> extends SetupTypes<
+    TContext,
+    TEvent,
+    // TODO: replace with something
+    {},
+    TTag,
+    TInput,
+    TOutput
+  > {
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
@@ -2274,5 +2288,5 @@ export interface ActorSystem<T extends ActorSystemInfo> {
 export type AnyActorSystem = ActorSystem<any>;
 
 export type RequiredActorOptions<TActor extends ProvidedActor> =
-  | ('id' extends keyof TActor ? 'id' : never)
+  | (undefined extends TActor['id'] ? never : 'id')
   | (undefined extends InputFrom<TActor['logic']> ? never : 'input');
