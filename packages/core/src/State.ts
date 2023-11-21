@@ -468,7 +468,8 @@ export function getPersistedState<
     childrenJson[id as keyof typeof childrenJson] = {
       state: child.getPersistedState(options),
       src: child.src,
-      systemId: child._systemId
+      systemId: child._systemId,
+      syncSnapshot: child._syncSnapshot
     };
   }
 

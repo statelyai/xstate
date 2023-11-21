@@ -1668,6 +1668,10 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   parent?: ActorRef<any, any>;
   /**
+   * @internal
+   */
+  syncSnapshot?: boolean;
+  /**
    * The custom `id` for referencing this service.
    */
   id?: string;
@@ -1700,10 +1704,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *
    * @see https://stately.ai/docs/persistence
    */
-  // state?:
-  //   | PersistedStateFrom<TActorLogic>
-  //   | InternalStateFrom<TActorLogic>;
-  state?: any;
+  state?: Snapshot<unknown>;
 
   /**
    * The source definition.
