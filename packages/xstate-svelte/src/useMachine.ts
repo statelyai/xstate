@@ -7,7 +7,8 @@ import {
   createActor,
   ActorOptions,
   StateFrom,
-  Actor
+  Actor,
+  ContextFrom
 } from 'xstate';
 
 type Prop<T, K> = K extends keyof T ? T[K] : never;
@@ -19,7 +20,7 @@ type RestParams<TMachine extends AnyStateMachine> =
     ? [
         options: ActorOptions<TMachine> &
           InternalMachineImplementations<
-            TMachine['__TContext'],
+            ContextFrom<TMachine>,
             TMachine['__TResolvedTypesMeta'],
             true
           >
@@ -27,7 +28,7 @@ type RestParams<TMachine extends AnyStateMachine> =
     : [
         options?: ActorOptions<TMachine> &
           InternalMachineImplementations<
-            TMachine['__TContext'],
+            ContextFrom<TMachine>,
             TMachine['__TResolvedTypesMeta']
           >
       ];
