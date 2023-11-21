@@ -611,24 +611,6 @@ export class StateMachine<
     return restoredSnapshot;
   }
 
-  /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TContext!: TContext;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TEvent!: TEvent;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TActor!: TActor;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TAction!: TAction;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TGuard!: TGuard;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TDelay!: TDelay;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TTag!: TTag;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TInput!: TInput;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TOutput!: TOutput;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

@@ -2,14 +2,15 @@ import type {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineImplementations,
-  ActorOptions
+  ActorOptions,
+  ContextFrom
 } from 'xstate';
 
 type InternalMachineOpts<
   TMachine extends AnyStateMachine,
   RequireMissing extends boolean = false
 > = InternalMachineImplementations<
-  TMachine['__TContext'],
+  ContextFrom<TMachine>,
   TMachine['__TResolvedTypesMeta'],
   RequireMissing
 >;
