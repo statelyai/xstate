@@ -32,11 +32,15 @@ type ToParameterizedObject<
   };
 }>;
 
-// TODO: explain this
 type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
+  // if `keyof TActors` is `never` then it means that both `children` and `actors` were not supplied
+  // `never` comes from the default type of the `TChildrenMap` type parameter
+  // in such a case we "replace" `TActors` with a more traditional~ constraint
+  // one that doesn't depend on `Values<TChildrenMap>`
   IsNever<keyof TActors> extends true ? Record<string, AnyActorLogic> : TActors;
 
-// TODO: this doesn't quite restrict it to only known keys, should it?
+// at the moment we allow extra actors - ones that are not specified by `children`
+// this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
   TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
