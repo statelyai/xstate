@@ -1,27 +1,23 @@
-import {
-  ResolveTypegenMeta,
-  StateMachine,
-  TypegenDisabled,
-  createMachine
-} from '.';
+import { StateMachine } from './StateMachine';
+import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
+import { ResolveTypegenMeta, TypegenDisabled } from './typegenTypes';
 import {
-  AnyActorLogic,
-  MachineContext,
-  AnyEventObject,
-  NonReducibleUnknown,
-  MachineConfig,
-  Values,
-  ParameterizedObject,
   ActionFunction,
-  SetupTypes,
+  AnyActorLogic,
+  AnyActorRef,
+  AnyEventObject,
+  Cast,
   DelayConfig,
   Invert,
   IsNever,
-  ActorRefFrom,
-  Compute,
-  Cast,
-  AnyActorRef
+  MachineConfig,
+  MachineContext,
+  NonReducibleUnknown,
+  ParameterizedObject,
+  SetupTypes,
+  ToChildren,
+  Values
 } from './types';
 
 type ToParameterizedObject<
@@ -35,47 +31,6 @@ type ToParameterizedObject<
     params: TParameterizedMap[K];
   };
 }>;
-
-type GetConfiguredActorIds<
-  TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
-> = Values<{
-  [K in keyof TActors]: K extends keyof Invert<TChildrenMap>
-    ? Invert<TChildrenMap>[K]
-    : undefined;
-}>;
-
-type ToConcreteChildren<
-  TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
-> = IsNever<TChildrenMap> extends true
-  ? {}
-  : {
-      [K in keyof TChildrenMap]?: ActorRefFrom<TActors[TChildrenMap[K]]>;
-    };
-
-type ToAllActorsIndexSignature<TActors extends Record<string, AnyActorLogic>> =
-  {
-    [id: string]: Values<TActors> extends infer A
-      ? A extends any
-        ? ActorRefFrom<A> | undefined
-        : never
-      : never;
-  };
-
-type ToChildren<
-  TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
-> = IsNever<keyof TActors> extends true
-  ? {}
-  : IsNever<TChildrenMap> extends true
-  ? ToAllActorsIndexSignature<TActors>
-  : Compute<
-      ToConcreteChildren<TChildrenMap, TActors> &
-        (undefined extends GetConfiguredActorIds<TChildrenMap, TActors>
-          ? ToAllActorsIndexSignature<TActors>
-          : {})
-    >;
 
 // TODO: explain this
 type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
@@ -170,7 +125,7 @@ export function setup<
     TContext,
     TEvent,
     Cast<
-      ToChildren<TChildrenMap, TActors>,
+      ToChildren<ToProvidedActor<TChildrenMap, TActors>>,
       Record<string, AnyActorRef | undefined>
     >,
     ToProvidedActor<TChildrenMap, TActors>,

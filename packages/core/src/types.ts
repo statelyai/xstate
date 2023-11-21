@@ -2336,3 +2336,36 @@ export type AnyActorSystem = ActorSystem<any>;
 export type RequiredActorOptions<TActor extends ProvidedActor> =
   | (undefined extends TActor['id'] ? never : 'id')
   | (undefined extends InputFrom<TActor['logic']> ? never : 'input');
+
+type ExtractLiteralString<T extends string | undefined> = T extends string
+  ? string extends T
+    ? never
+    : T
+  : never;
+
+export type ToConcreteChildren<TActor extends ProvidedActor> = {
+  [A in TActor as ExtractLiteralString<A['id']>]?: ActorRefFrom<A['logic']>;
+};
+
+export type ToChildren<TActor extends ProvidedActor> =
+  // only proceed further if all configured `src`s are literal strings
+  string extends TActor['src']
+    ? // TODO: replace `AnyActorRef` with `UnknownActorRef`~
+      // or maybe even `TActor["logic"]` since it's possible to configure `{ src: string; logic: SomeConcreteLogic }`
+      // TODO: consider adding `| undefined` here
+      Record<string, AnyActorRef>
+    : Compute<
+        ToConcreteChildren<TActor> &
+          {
+            include: {
+              [id: string]: TActor extends any
+                ? ActorRefFrom<TActor['logic']> | undefined
+                : never;
+            };
+            exclude: {};
+          }[undefined extends TActor['id'] // if not all actors have literal string IDs then we need to create an index signature containing all possible actor types
+            ? 'include'
+            : string extends TActor['id']
+            ? 'include'
+            : 'exclude']
+      >;
