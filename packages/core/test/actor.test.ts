@@ -29,6 +29,7 @@ import {
   waitFor,
   stop
 } from '../src/index.ts';
+import { setup } from '../src/setup.ts';
 
 function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
@@ -289,49 +290,42 @@ describe('spawning promises', () => {
   });
 
   it('should be able to spawn a referenced promise', (done) => {
-    const promiseMachine = createMachine(
-      {
-        types: {} as {
-          context: { promiseRef?: PromiseActorRef<string> };
-          actors: {
-            src: 'somePromise';
-            logic: PromiseActorLogic<string>;
-          };
-        },
-        id: 'promise',
-        initial: 'idle',
-        context: {
-          promiseRef: undefined
-        },
-        states: {
-          idle: {
-            entry: assign({
-              promiseRef: ({ spawn }) =>
-                spawn('somePromise', { id: 'my-promise' })
-            }),
-            on: {
-              'xstate.done.actor.my-promise': {
-                target: 'success',
-                guard: ({ event }) => event.output === 'response'
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const promiseMachine = setup({
+      actors: {
+        somePromise: fromPromise(
+          () =>
+            new Promise<string>((res) => {
+              res('response');
+            })
+        )
+      }
+    }).createMachine({
+      types: {} as {
+        context: { promiseRef?: PromiseActorRef<string> };
       },
-      {
-        actors: {
-          somePromise: fromPromise(
-            () =>
-              new Promise((res) => {
-                res('response');
-              })
-          )
+      id: 'promise',
+      initial: 'idle',
+      context: {
+        promiseRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            promiseRef: ({ spawn }) =>
+              spawn('somePromise', { id: 'my-promise' })
+          }),
+          on: {
+            'xstate.done.actor.my-promise': {
+              target: 'success',
+              guard: ({ event }) => event.output === 'response'
+            }
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const promiseService = createActor(promiseMachine);
     promiseService.subscribe({

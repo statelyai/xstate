@@ -106,11 +106,11 @@ const exampleMachine = createMachine({
 });
 
 describe('State', () => {
-  describe('.nextEvents', () => {
+  describe('.getNextEvents', () => {
     it('returns the next possible events for the current state', () => {
       const actorRef = createActor(exampleMachine);
 
-      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual(
+      expect([...actorRef.getSnapshot().getNextEvents()].sort()).toEqual(
         [
           'EXTERNAL',
           'INTERNAL',
@@ -128,7 +128,7 @@ describe('State', () => {
         foo: 'test'
       });
 
-      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual([
+      expect([...actorRef.getSnapshot().getNextEvents()].sort()).toEqual([
         'DEEP_EVENT',
         'FOO_EVENT',
         'MACHINE_EVENT'
@@ -137,7 +137,7 @@ describe('State', () => {
       const actorRef2 = createActor(exampleMachine).start();
       actorRef2.send({ type: 'TO_THREE' });
 
-      expect(actorRef2.getSnapshot().nextEvents.sort()).toEqual([
+      expect([...actorRef2.getSnapshot().getNextEvents()].sort()).toEqual([
         'MACHINE_EVENT',
         'P31',
         'P32',
@@ -153,7 +153,7 @@ describe('State', () => {
       });
       actorRef.send({ type: 'TO_THREE' });
 
-      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual([
+      expect([...actorRef.getSnapshot().getNextEvents()].sort()).toEqual([
         'MACHINE_EVENT',
         'P31',
         'P32',
@@ -172,7 +172,9 @@ describe('State', () => {
         }
       });
 
-      expect(createActor(noEventsMachine).getSnapshot().nextEvents).toEqual([]);
+      expect(
+        createActor(noEventsMachine).getSnapshot().getNextEvents()
+      ).toEqual([]);
     });
   });
 

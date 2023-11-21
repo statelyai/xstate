@@ -658,7 +658,7 @@ describe('useMachine hook', () => {
     expect(count).toEqual(1);
   });
 
-  it('nextEvents should be defined and reactive', () => {
+  it('getNextEvents should be defined and reactive', () => {
     const machine = createMachine({
       initial: 'green',
       states: {
@@ -691,7 +691,10 @@ describe('useMachine hook', () => {
             onclick={() => send({ type: 'TRANSITION' })}
           />
           <ul>
-            <For each={state.nextEvents} fallback={<li>Empty / undefined</li>}>
+            <For
+              each={state.getNextEvents()}
+              fallback={<li>Empty / undefined</li>}
+            >
               {(event, i) => <li data-testid={`event-${i()}`}>{event}</li>}
             </For>
           </ul>

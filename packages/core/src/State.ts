@@ -1,6 +1,5 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './interpreter.ts';
-import { memo } from './memo.ts';
 import type { StateNode } from './StateNode.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { getStateValue } from './stateUtils.ts';
@@ -91,18 +90,11 @@ interface MachineSnapshotBase<
   /**
    * The enabled state nodes representative of the state value.
    */
-  configuration: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<StateNode<TContext, TEvent>>;
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
   children: ComputeChildren<TActor>;
-
-  /**
-   * The next events that will cause a transition from the current state.
-   */
-  nextEvents: Array<EventDescriptor<TEvent>>;
-
-  meta: Record<string, any>;
 
   /**
    * Whether the current state value is a subset of the given parent state value.
@@ -113,7 +105,7 @@ interface MachineSnapshotBase<
       ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
       : StateValue
   >(
-    this: MachineSnapshotBase<
+    this: MachineSnapshot<
       TContext,
       TEvent,
       TActor,
@@ -125,11 +117,11 @@ interface MachineSnapshotBase<
   ) => boolean;
 
   /**
-   * Whether the current state configuration has a state node with the specified `tag`.
+   * Whether the current state nodes has a state node with the specified `tag`.
    * @param tag
    */
   hasTag: (
-    this: MachineSnapshotBase<
+    this: MachineSnapshot<
       TContext,
       TEvent,
       TActor,
@@ -149,7 +141,7 @@ interface MachineSnapshotBase<
    * @returns Whether the event will cause a transition
    */
   can: (
-    this: MachineSnapshotBase<
+    this: MachineSnapshot<
       TContext,
       TEvent,
       TActor,
@@ -160,8 +152,33 @@ interface MachineSnapshotBase<
     event: TEvent
   ) => boolean;
 
+  /**
+   * The next events that will cause a transition from the current state.
+   */
+  getNextEvents: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  ) => ReadonlyArray<EventDescriptor<TEvent>>;
+
+  getMeta: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TActor,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  ) => Record<string, any>;
+
   toJSON: (
-    this: MachineSnapshotBase<
+    this: MachineSnapshot<
       TContext,
       TEvent,
       TActor,
@@ -328,10 +345,11 @@ const machineSnapshotCan = function can(
 
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
-    configuration,
+    _nodes: nodes,
     tags,
     machine,
-    nextEvents,
+    getNextEvents,
+    getMeta,
     toJSON,
     can,
     hasTag,
@@ -341,18 +359,14 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   return { ...jsonValues, tags: Array.from(tags) };
 };
 
-const machineSnapshotNextEvents = function nextEvents(
+const machineSnapshotGetNextEvents = function getNextEvents(
   this: AnyMachineSnapshot
 ) {
-  return memo(this, 'nextEvents', () => {
-    return [
-      ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
-    ];
-  });
+  return [...new Set(flatten([...this._nodes.map((sn) => sn.ownEvents)]))];
 };
 
-const machineSnapshotMeta = function nextEvents(this: AnyMachineSnapshot) {
-  return this.configuration.reduce((acc, stateNode) => {
+const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
+  return this._nodes.reduce((acc, stateNode) => {
     if (stateNode.meta !== undefined) {
       acc[stateNode.id] = stateNode.meta;
     }
@@ -377,38 +391,25 @@ export function createMachineSnapshot<
   undefined,
   TResolvedTypesMeta
 > {
-  const snapshot = {
-    status: config.status,
+  return {
+    status: config.status as never,
     output: config.output,
     error: config.error,
     machine,
     context: config.context,
-    configuration: config.configuration,
-    value: getStateValue(machine.root, config.configuration),
-    tags: new Set(flatten(config.configuration.map((sn) => sn.tags))),
+    _nodes: config._nodes,
+    value: getStateValue(machine.root, config._nodes),
+    tags: new Set(flatten(config._nodes.map((sn) => sn.tags))),
     children: config.children as any,
     historyValue: config.historyValue || {},
     // this one is generic in the target and it's hard to create a matching non-generic source signature
     matches: machineSnapshotMatches as any,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
+    getNextEvents: machineSnapshotGetNextEvents,
+    getMeta: machineSnapshotGetMeta,
     toJSON: machineSnapshotToJSON
   };
-
-  Object.defineProperties(snapshot, {
-    nextEvents: {
-      get: machineSnapshotNextEvents,
-      configurable: true,
-      enumerable: true
-    },
-    meta: {
-      get: machineSnapshotMeta,
-      configurable: true,
-      enumerable: true
-    }
-  });
-
-  return snapshot as never;
 }
 
 export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
@@ -416,7 +417,6 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   config: Partial<StateConfig<any, any>> = {}
 ): TState {
   return createMachineSnapshot(
-    // TODO: it's wasteful that this spread triggers getters
     { ...state, ...config } as StateConfig<any, any>,
     state.machine
   ) as TState;
@@ -441,7 +441,7 @@ export function getPersistedState<
   options?: unknown
 ): Snapshot<unknown> {
   const {
-    configuration,
+    _nodes: nodes,
     tags,
     machine,
     children,
@@ -449,8 +449,9 @@ export function getPersistedState<
     can,
     hasTag,
     matches,
+    getNextEvents,
+    getMeta,
     toJSON,
-    nextEvents,
     ...jsonValues
   } = state;
 
@@ -468,7 +469,8 @@ export function getPersistedState<
     childrenJson[id as keyof typeof childrenJson] = {
       state: child.getPersistedState(options),
       src: child.src,
-      systemId: child._systemId
+      systemId: child._systemId,
+      syncSnapshot: child._syncSnapshot
     };
   }
 

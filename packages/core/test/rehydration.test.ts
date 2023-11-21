@@ -1,4 +1,10 @@
-import { createMachine, createActor, fromPromise } from '../src/index.ts';
+import { BehaviorSubject } from 'rxjs';
+import {
+  createMachine,
+  createActor,
+  fromPromise,
+  fromObservable
+} from '../src/index.ts';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -314,5 +320,48 @@ describe('rehydration', () => {
 
     actorRef2.start();
     expect(spy).toHaveBeenCalled();
+  });
+
+  it('should continue syncing snapshots', () => {
+    const subject = new BehaviorSubject(0);
+    const subjectLogic = fromObservable(() => subject);
+
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'service';
+            logic: typeof subjectLogic;
+          };
+        },
+
+        invoke: [
+          {
+            src: 'service',
+            onSnapshot: {
+              actions: [({ event }) => spy(event.snapshot.context)]
+            }
+          }
+        ]
+      },
+      {
+        actors: {
+          service: subjectLogic
+        }
+      }
+    );
+
+    createActor(machine, {
+      state: createActor(machine).getPersistedState()
+    }).start();
+
+    spy.mockClear();
+
+    subject.next(42);
+    subject.next(100);
+
+    expect(spy.mock.calls).toEqual([[42], [100]]);
   });
 });

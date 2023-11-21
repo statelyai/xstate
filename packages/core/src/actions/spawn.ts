@@ -61,6 +61,7 @@ function resolveSpawn(
       id: resolvedId,
       src,
       parent: actorScope?.self,
+      syncSnapshot,
       systemId,
       input:
         typeof input === 'function'
@@ -71,20 +72,6 @@ function resolveSpawn(
             })
           : input
     });
-
-    if (syncSnapshot) {
-      actorRef.subscribe({
-        next: (snapshot: Snapshot<unknown>) => {
-          if (snapshot.status === 'active') {
-            actorScope.self.send({
-              type: `xstate.snapshot.${id}`,
-              snapshot
-            });
-          }
-        },
-        error: () => {}
-      });
-    }
   }
 
   if (isDevelopment && !actorRef) {

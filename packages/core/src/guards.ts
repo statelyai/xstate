@@ -7,9 +7,34 @@ import type {
   AnyMachineSnapshot,
   NoRequiredParams,
   NoInfer,
-  WithDynamicParams
+  WithDynamicParams,
+  Identity,
+  Elements
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
+
+type SingleGuardArg<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TGuardArg
+> = [TGuardArg] extends [{ type: string }]
+  ? Identity<TGuardArg>
+  : [TGuardArg] extends [string]
+  ? TGuardArg
+  : GuardPredicate<TContext, TExpressionEvent, TParams, ParameterizedObject>;
+
+type NormalizeGuardArg<TGuardArg> = TGuardArg extends { type: string }
+  ? Identity<TGuardArg> & { params: unknown }
+  : TGuardArg extends string
+  ? { type: TGuardArg; params: undefined }
+  : '_out_TGuard' extends keyof TGuardArg
+  ? TGuardArg['_out_TGuard'] & ParameterizedObject
+  : never;
+
+type NormalizeGuardArgArray<TArg extends unknown[]> = Elements<{
+  [K in keyof TArg]: NormalizeGuardArg<TArg[K]>;
+}>;
 
 export type GuardPredicate<
   TContext extends MachineContext,
@@ -71,7 +96,7 @@ function checkStateIn(
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
     const target = state.machine.getStateNodeById(stateValue);
-    return state.configuration.some((sn) => sn === target);
+    return state._nodes.some((sn) => sn === target);
   }
 
   return state.matches(stateValue);
@@ -116,12 +141,16 @@ function checkNot(
 export function not<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TGuard extends ParameterizedObject
+  TArg
 >(
-  guard: Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
-): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
-  function not(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
+  guard: SingleGuardArg<TContext, TExpressionEvent, unknown, TArg>
+): GuardPredicate<
+  TContext,
+  TExpressionEvent,
+  unknown,
+  NormalizeGuardArg<NoInfer<TArg>>
+> {
+  function not(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -145,14 +174,25 @@ function checkAnd(
 export function and<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TGuard extends ParameterizedObject
+  TArg extends unknown[]
 >(
-  guards: ReadonlyArray<
-    Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
-  >
-): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
-  function and(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
+  guards: readonly [
+    ...{
+      [K in keyof TArg]: SingleGuardArg<
+        TContext,
+        TExpressionEvent,
+        unknown,
+        TArg[K]
+      >;
+    }
+  ]
+): GuardPredicate<
+  TContext,
+  TExpressionEvent,
+  unknown,
+  NormalizeGuardArgArray<NoInfer<TArg>>
+> {
+  function and(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -176,14 +216,25 @@ function checkOr(
 export function or<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TGuard extends ParameterizedObject
+  TArg extends unknown[]
 >(
-  guards: ReadonlyArray<
-    Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
-  >
-): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
-  function or(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
+  guards: readonly [
+    ...{
+      [K in keyof TArg]: SingleGuardArg<
+        TContext,
+        TExpressionEvent,
+        unknown,
+        TArg[K]
+      >;
+    }
+  ]
+): GuardPredicate<
+  TContext,
+  TExpressionEvent,
+  unknown,
+  NormalizeGuardArgArray<NoInfer<TArg>>
+> {
+  function or(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }

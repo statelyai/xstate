@@ -16,7 +16,8 @@ import {
   EventObject,
   ActorRefFrom,
   spawn,
-  AnyActorRef
+  AnyActorRef,
+  AnyStateMachine
 } from '../src/index.ts';
 
 describe('system', () => {
@@ -73,7 +74,7 @@ describe('system', () => {
       types: {} as {
         context: {
           ref: CallbackActorRef<EventObject, unknown>;
-          machineRef?: ActorRefFrom<ReturnType<typeof createMachine>>;
+          machineRef?: ActorRefFrom<AnyStateMachine>;
         };
       },
       id: 'parent',
