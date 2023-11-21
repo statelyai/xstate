@@ -684,4 +684,33 @@ describe('setup()', () => {
       }
     });
   });
+
+  it('should accept a compatible provided logic', () => {
+    setup({
+      actors: {
+        reducer: fromTransition((s) => s, { count: 42 })
+      }
+    })
+      .createMachine({})
+      .provide({
+        actors: {
+          reducer: fromTransition((s) => s, { count: 100 })
+        }
+      });
+  });
+
+  it('should not accept an incompatible provided logic', () => {
+    setup({
+      actors: {
+        reducer: fromTransition((s) => s, { count: 42 })
+      }
+    })
+      .createMachine({})
+      .provide({
+        actors: {
+          // @ts-expect-error
+          reducer: fromTransition((s) => s, '')
+        }
+      });
+  });
 });

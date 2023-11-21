@@ -1,4 +1,9 @@
-import { StateMachine, TypegenDisabled, createMachine } from '.';
+import {
+  ResolveTypegenMeta,
+  StateMachine,
+  TypegenDisabled,
+  createMachine
+} from '.';
 import { GuardPredicate } from './guards';
 import {
   AnyActorLogic,
@@ -91,7 +96,15 @@ export function setup<
       TTag,
       TInput,
       TOutput,
-      TypegenDisabled
+      ResolveTypegenMeta<
+        TypegenDisabled,
+        TEvent,
+        ToProvidedActor<TActors>,
+        ToParameterizedObject<TActions>,
+        ToParameterizedObject<TGuards>,
+        TDelay,
+        TTag
+      >
     >
   ) => StateMachine<
     TContext,
@@ -103,7 +116,15 @@ export function setup<
     TTag,
     TInput,
     TOutput,
-    TypegenDisabled
+    ResolveTypegenMeta<
+      TypegenDisabled,
+      TEvent,
+      ToProvidedActor<TActors>,
+      ToParameterizedObject<TActions>,
+      ToParameterizedObject<TGuards>,
+      TDelay,
+      TTag
+    >
   >;
 } {
   return {
