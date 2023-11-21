@@ -39,6 +39,7 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  * - `input` - Data that was provided to the observable actor
  * - `self` - The parent actor
  * - `system` - The actor system to which the observable actor belongs
+ *
  * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
  *
  * @example
