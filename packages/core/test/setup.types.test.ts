@@ -1,6 +1,7 @@
 import {
   and,
   assign,
+  createMachine,
   fromPromise,
   fromTransition,
   not,
@@ -712,5 +713,59 @@ describe('setup()', () => {
           reducer: fromTransition((s) => s, '')
         }
       });
+  });
+
+  it('should allow actors to be defined without children', () => {
+    setup({
+      actors: {
+        foo: createMachine({})
+      }
+    });
+  });
+
+  it('should allow actors to be defined with children', () => {
+    setup({
+      types: {} as {
+        children: {
+          first: 'foo';
+          second: 'bar';
+        };
+      },
+      actors: {
+        foo: createMachine({}),
+        bar: createMachine({})
+      }
+    });
+  });
+
+  it('should not allow actors to be defined without all required children', () => {
+    setup({
+      types: {} as {
+        children: {
+          first: 'foo';
+          second: 'bar';
+        };
+      },
+      // @ts-expect-error
+      actors: {
+        foo: createMachine({})
+      }
+    });
+  });
+
+  it('should allow more actors to be defined than the ones required by children', () => {
+    setup({
+      types: {} as {
+        children: {
+          first: 'foo';
+          second: 'bar';
+        };
+      },
+      actors: {
+        foo: createMachine({}),
+        bar: createMachine({}),
+        baz: createMachine({})
+      }
+    });
   });
 });
