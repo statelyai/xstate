@@ -1386,8 +1386,9 @@ export interface MachineTypes<
 > extends SetupTypes<
     TContext,
     TEvent,
-    // TODO: replace with something
-    {},
+    // in machine types we currently don't support `TChildren`
+    // and IDs can still be configured through `TActor['id']`
+    never,
     TTag,
     TInput,
     TOutput
@@ -2343,7 +2344,7 @@ type ExtractLiteralString<T extends string | undefined> = T extends string
     : T
   : never;
 
-export type ToConcreteChildren<TActor extends ProvidedActor> = {
+type ToConcreteChildren<TActor extends ProvidedActor> = {
   [A in TActor as ExtractLiteralString<A['id']>]?: ActorRefFrom<A['logic']>;
 };
 
