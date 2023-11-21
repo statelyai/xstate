@@ -80,12 +80,7 @@ export function setup<
     >;
   };
 }): {
-  createMachine: <
-    TContext extends MachineContext,
-    TEvent extends AnyEventObject,
-    TInput,
-    TOutput extends NonReducibleUnknown
-  >(
+  createMachine: (
     config: MachineConfig<
       TContext,
       TEvent,

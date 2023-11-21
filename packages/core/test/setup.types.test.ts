@@ -1,9 +1,6 @@
-import { of } from 'rxjs';
 import {
   and,
   assign,
-  createMachine,
-  fromObservable,
   fromPromise,
   fromTransition,
   not,
@@ -323,6 +320,9 @@ describe('setup()', () => {
         }))
       }
     }).createMachine({
+      context: {
+        count: 0
+      },
       entry: {
         type: 'resetTo',
         params: 0
