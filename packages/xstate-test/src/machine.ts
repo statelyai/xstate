@@ -24,8 +24,9 @@ import { flatten, simpleStringify } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
 
 export async function testStateFromMeta(state: AnyMachineSnapshot) {
-  for (const id of Object.keys(state.meta)) {
-    const stateNodeMeta = state.meta[id];
+  const meta = state.getMeta();
+  for (const id of Object.keys(meta)) {
+    const stateNodeMeta = meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
       await stateNodeMeta.test(state);
     }
@@ -158,7 +159,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     },
     stateMatcher: (state, key) => {
       return key.startsWith('#')
-        ? (state as any).configuration.includes(machine.getStateNodeById(key))
+        ? (state as any)._nodes.includes(machine.getStateNodeById(key))
         : (state as any).matches(key);
     },
     events: (state) => {
@@ -166,7 +167,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
       return flatten(
-        (state as any).nextEvents.map((eventType: string) => {
+        (state as any).getNextEvents().map((eventType: string) => {
           // @ts-ignore
           if (events.some((e) => e.type === eventType)) {
             // @ts-ignore
