@@ -108,6 +108,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   // Actor Ref
   public _parent?: ActorRef<any, any>;
+  public _syncSnapshot?: boolean;
   public ref: ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>;
   // TODO: add typings for system
   private _actorScope: ActorScope<
@@ -143,7 +144,8 @@ export class Actor<TLogic extends AnyActorLogic>
       ...options
     } as ActorOptions<TLogic> & typeof defaultOptions;
 
-    const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
+    const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
+      resolvedOptions;
 
     this.system = parent?.system ?? createSystem(this);
 
@@ -157,6 +159,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
+    this._syncSnapshot = syncSnapshot;
     this.options = resolvedOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
@@ -353,6 +356,20 @@ export class Actor<TLogic extends AnyActorLogic>
     if (this._processingStatus === ProcessingStatus.Running) {
       // Do not restart the service if it is already started
       return this;
+    }
+
+    if (this._syncSnapshot) {
+      this.subscribe({
+        next: (snapshot: Snapshot<unknown>) => {
+          if (snapshot.status === 'active') {
+            this._parent!.send({
+              type: `xstate.snapshot.${this.id}`,
+              snapshot
+            });
+          }
+        },
+        error: () => {}
+      });
     }
 
     this.system._register(this.sessionId, this);

@@ -192,10 +192,6 @@ export class StateMachine<
   public provide(
     implementations: InternalMachineImplementations<
       TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TDelay,
       TResolvedTypesMeta,
       true
     >
@@ -537,6 +533,7 @@ export class StateMachine<
       {
         src: string | AnyActorLogic;
         state: Snapshot<unknown>;
+        syncSnapshot?: boolean;
         systemId?: string;
       }
     > = (snapshot as any).children;
@@ -559,6 +556,7 @@ export class StateMachine<
       const actorRef = createActor(logic, {
         id: actorId,
         parent: _actorScope?.self,
+        syncSnapshot: actorData.syncSnapshot,
         state: actorState,
         src,
         systemId: actorData.systemId

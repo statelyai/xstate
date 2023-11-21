@@ -26,6 +26,45 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
   ObservableActorLogic<TContext, any>
 >;
 
+/**
+ * Observable actor logic is described by an observable stream of values. Actors created from observable logic (“observable actors”) can:
+ *
+ * - Emit snapshots of the observable’s emitted value
+ *
+ * The observable’s emitted value is used as its observable actor’s `context`.
+ *
+ * Sending events to observable actors will have no effect.
+ *
+ * @param observableCreator A function that creates an observable. It receives one argument, an object with the following properties:
+ * - `input` - Data that was provided to the observable actor
+ * - `self` - The parent actor
+ * - `system` - The actor system to which the observable actor belongs
+ * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
+ *
+ * @example
+ * ```ts
+ * import { fromObservable, createActor } from 'xstate'
+ * import { interval } from 'rxjs';
+ *
+ * const logic = fromObservable((obj) => interval(1000));
+ *
+ * const actor = createActor(logic);
+ *
+ * actor.subscribe((snapshot) => {
+ *   console.log(snapshot.context);
+ * });
+ *
+ * actor.start();
+ * // At every second:
+ * // Logs 0
+ * // Logs 1
+ * // Logs 2
+ * // ...
+ * ```
+ *
+ * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
+ * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
+ */
 export function fromObservable<TContext, TInput>(
   observableCreator: ({
     input,

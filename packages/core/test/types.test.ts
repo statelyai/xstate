@@ -17,7 +17,9 @@ import {
   pure,
   sendTo,
   stateIn,
-  spawn
+  spawn,
+  setup,
+  and
 } from '../src/index';
 
 function noop(_x: unknown) {
@@ -3658,7 +3660,7 @@ describe('guards', () => {
     });
   });
 
-  it('should type guard param as undefined in inline composite guard', () => {
+  it('should type guard param as unknown in inline composite guard', () => {
     createMachine({
       types: {} as {
         guards:
@@ -3670,12 +3672,17 @@ describe('guards', () => {
             }
           | { type: 'plainGuard' };
       },
+      context: {
+        counter: 0
+      },
       on: {
         EV: {
           guard: not((_, params) => {
-            ((_accept: undefined) => {})(params);
+            params satisfies unknown;
             // @ts-expect-error
-            ((_accept: 'not any') => {})(params);
+            params satisfies undefined;
+            // @ts-expect-error
+            params satisfies 'not any';
             return true;
           })
         }
@@ -3710,7 +3717,7 @@ describe('guards', () => {
     );
   });
 
-  it('should type guard params as the specific params in the provided composite guard', () => {
+  it('should not type guard params as the specific params in the provided composite guard', () => {
     createMachine(
       {
         types: {} as {
@@ -3722,14 +3729,19 @@ describe('guards', () => {
                 };
               }
             | { type: 'plainGuard' };
+        },
+        context: {
+          count: 0
         }
       },
       {
         guards: {
           isGreaterThan: not((_, params) => {
-            ((_accept: number) => {})(params.count);
+            params satisfies unknown;
             // @ts-expect-error
-            ((_accept: 'not any') => {})(guard);
+            params satisfies undefined;
+            // @ts-expect-error
+            params satisfies { count: number };
             return true;
           })
         }
