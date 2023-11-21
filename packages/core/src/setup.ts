@@ -61,15 +61,15 @@ type ToChildren<
   ? {}
   : Compute<
       ToConcreteChildren<TChildrenMap, TActors> &
-        undefined extends GetConfiguredActorIds<TChildrenMap, TActors>
-        ? {
-            [id: string]: Values<TActors> extends infer A
-              ? A extends any
-                ? ActorRefFrom<A> | undefined
-                : never
-              : never;
-          }
-        : {}
+        (undefined extends GetConfiguredActorIds<TChildrenMap, TActors>
+          ? {
+              [id: string]: Values<TActors> extends infer A
+                ? A extends any
+                  ? ActorRefFrom<A> | undefined
+                  : never
+                : never;
+            }
+          : {})
     >;
 
 // TODO: explain this
