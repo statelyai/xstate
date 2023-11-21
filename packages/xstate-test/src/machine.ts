@@ -12,7 +12,8 @@ import {
   StateValue,
   SnapshotFrom,
   MachineSnapshot,
-  ProvidedActor
+  ProvidedActor,
+  __unsafe_getAllOwnEventDescriptors
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -167,11 +168,9 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
       return flatten(
-        (state as any).getNextEvents().map((eventType: string) => {
-          // @ts-ignore
-          if (events.some((e) => e.type === eventType)) {
-            // @ts-ignore
-            return events.filter((e) => e.type === eventType);
+        __unsafe_getAllOwnEventDescriptors(state).map((eventType: string) => {
+          if (events.some((e) => (e as EventObject).type === eventType)) {
+            return events.filter((e) => (e as EventObject).type === eventType);
           }
 
           return [{ type: eventType } as any]; // TODO: fix types
