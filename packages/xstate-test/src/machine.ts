@@ -12,8 +12,8 @@ import {
   StateValue,
   SnapshotFrom,
   MachineSnapshot,
-  ProvidedActor,
-  __unsafe_getAllOwnEventDescriptors
+  __unsafe_getAllOwnEventDescriptors,
+  AnyActorRef
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -74,7 +74,7 @@ function serializeMachineTransition(
   state: MachineSnapshot<
     MachineContext,
     EventObject,
-    ProvidedActor,
+    Record<string, AnyActorRef | undefined>,
     string,
     unknown
   >,
@@ -83,7 +83,7 @@ function serializeMachineTransition(
     | MachineSnapshot<
         MachineContext,
         EventObject,
-        ProvidedActor,
+        Record<string, AnyActorRef | undefined>,
         string,
         unknown
       >

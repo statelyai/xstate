@@ -67,6 +67,7 @@ export const WILDCARD = '*';
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -88,7 +89,7 @@ export class StateMachine<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -203,6 +204,7 @@ export class StateMachine<
   ): StateMachine<
     TContext,
     TEvent,
+    TChildren,
     TActor,
     TAction,
     TGuard,
@@ -238,7 +240,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -264,7 +266,7 @@ export class StateMachine<
     ) as MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -282,7 +284,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -292,7 +294,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -326,7 +328,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -334,7 +336,14 @@ export class StateMachine<
     event: TEvent,
     actorScope: AnyActorScope
   ): Array<
-    MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
   > {
     return macrostep(state, event, actorScope).microstates as (typeof state)[];
   }
@@ -343,7 +352,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -364,7 +373,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -405,7 +414,7 @@ export class StateMachine<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -416,7 +425,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -460,7 +469,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -503,7 +512,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -519,7 +528,7 @@ export class StateMachine<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -529,7 +538,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -584,7 +593,7 @@ export class StateMachine<
     ) as MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -618,24 +627,6 @@ export class StateMachine<
     return restoredSnapshot;
   }
 
-  /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TContext!: TContext;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TEvent!: TEvent;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TActor!: TActor;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TAction!: TAction;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TGuard!: TGuard;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TDelay!: TDelay;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TTag!: TTag;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TInput!: TInput;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TOutput!: TOutput;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

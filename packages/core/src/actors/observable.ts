@@ -39,6 +39,7 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  * - `input` - Data that was provided to the observable actor
  * - `self` - The parent actor
  * - `system` - The actor system to which the observable actor belongs
+ *
  * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
  *
  * @example
@@ -164,12 +165,48 @@ export function fromObservable<TContext, TInput>(
 }
 
 /**
- * Creates event observable logic that listens to an observable
- * that delivers event objects.
+ * Creates event observable logic that listens to an observable that delivers event objects.
  *
+ * Event observable actor logic is described by an observable stream of {@link https://stately.ai/docs/transitions#event-objects | event objects}. Actors created from event observable logic (“event observable actors”) can:
  *
- * @param lazyObservable A function that creates an observable
- * @returns Event observable logic
+ * - Implicitly send events to its parent actor
+ * - Emit snapshots of its emitted event objects
+ *
+ * Sending events to event observable actors will have no effect.
+ *
+ * @param lazyObservable A function that creates an observable that delivers event objects. It receives one argument, an object with the following properties:
+ *
+ * - `input` - Data that was provided to the event observable actor
+ * - `self` - The parent actor
+ * - `system` - The actor system to which the event observable actor belongs.
+ *
+ * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
+ *
+ * @example
+ * ```ts
+ * import {
+ *   fromEventObservable,
+ *   Subscribable,
+ *   EventObject,
+ *   createMachine,
+ *   createActor
+ * } from 'xstate';
+ * import { fromEvent } from 'rxjs';
+ *
+ * const mouseClickLogic = fromEventObservable(() =>
+ *   fromEvent(document.body, 'click') as Subscribable<EventObject>
+ * );
+ *
+ * const canvasMachine = createMachine({
+ *   invoke: {
+ *     // Will send mouse `click` events to the canvas actor
+ *     src: mouseClickLogic,
+ *   }
+ * });
+ *
+ * const canvasActor = createActor(canvasMachine);
+ * canvasActor.start();
+ * ```
  */
 
 export function fromEventObservable<T extends EventObject, TInput>(

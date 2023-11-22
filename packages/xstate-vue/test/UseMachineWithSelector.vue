@@ -41,7 +41,7 @@ export default defineComponent({
   setup() {
     const { snapshot: machineState } = useMachine(machine);
 
-    const actorState = useSelector(machineState.value.children.child, s => s);
+    const actorState = useSelector(machineState.value.children.child, (s) => s);
 
     return {
       machineState,

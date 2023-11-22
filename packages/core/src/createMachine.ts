@@ -1,19 +1,22 @@
+import { StateMachine } from './StateMachine.ts';
 import {
-  MachineConfig,
-  MachineContext,
-  InternalMachineImplementations,
-  ParameterizedObject,
-  ProvidedActor,
-  NonReducibleUnknown,
-  Prop,
-  AnyEventObject
-} from './types.ts';
-import {
-  TypegenConstraint,
   ResolveTypegenMeta,
+  TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes.ts';
-import { StateMachine } from './StateMachine.ts';
+import {
+  AnyActorRef,
+  AnyEventObject,
+  Cast,
+  InternalMachineImplementations,
+  MachineConfig,
+  MachineContext,
+  NonReducibleUnknown,
+  ParameterizedObject,
+  Prop,
+  ProvidedActor,
+  ToChildren
+} from './types.ts';
 
 export function createMachine<
   TContext extends MachineContext,
@@ -57,6 +60,7 @@ export function createMachine<
 ): StateMachine<
   TContext,
   TEvent,
+  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
   TActor,
   TAction,
   TGuard,
@@ -78,8 +82,17 @@ export function createMachine<
   TOutput,
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
-  return new StateMachine<any, any, any, any, any, any, any, any, any, any>(
-    config as any,
-    implementations as any
-  );
+  return new StateMachine<
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >(config as any, implementations as any);
 }

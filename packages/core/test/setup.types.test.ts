@@ -1,6 +1,9 @@
 import {
+  ActorRefFrom,
   and,
   assign,
+  createActor,
+  createMachine,
   fromPromise,
   fromTransition,
   not,
@@ -712,5 +715,212 @@ describe('setup()', () => {
           reducer: fromTransition((s) => s, '')
         }
       });
+  });
+
+  it('should allow actors to be defined without children', () => {
+    setup({
+      actors: {
+        foo: createMachine({})
+      }
+    });
+  });
+
+  it('should allow actors to be defined with children', () => {
+    setup({
+      types: {} as {
+        children: {
+          first: 'foo';
+          second: 'bar';
+        };
+      },
+      actors: {
+        foo: createMachine({}),
+        bar: createMachine({})
+      }
+    });
+  });
+
+  it('should not allow actors to be defined without all required children', () => {
+    setup({
+      types: {} as {
+        children: {
+          first: 'foo';
+          second: 'bar';
+        };
+      },
+      // @ts-expect-error
+      actors: {
+        foo: createMachine({})
+      }
+    });
+  });
+
+  it('should allow more actors to be defined than the ones required by children', () => {
+    setup({
+      types: {} as {
+        children: {
+          first: 'foo';
+          second: 'bar';
+        };
+      },
+      actors: {
+        foo: createMachine({}),
+        bar: createMachine({}),
+        baz: createMachine({})
+      }
+    });
+  });
+
+  it('should return the correct child type on the available snapshot when the child ID for the actor was configured', () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          foo: string;
+        };
+      },
+      context: {
+        foo: ''
+      }
+    });
+
+    const machine = setup({
+      types: {} as {
+        children: {
+          someChild: 'child';
+        };
+      },
+      actors: {
+        child
+      }
+    }).createMachine({
+      invoke: {
+        id: 'someChild',
+        src: 'child'
+      }
+    });
+
+    const snapshot = createActor(machine).getSnapshot();
+    const childSnapshot = snapshot.children.someChild!.getSnapshot();
+
+    childSnapshot.context.foo satisfies string | undefined;
+    childSnapshot.context.foo satisfies string;
+    // @ts-expect-error
+    childSnapshot.context.foo satisfies '';
+    // @ts-expect-error
+    childSnapshot.context.foo satisfies number | undefined;
+  });
+
+  it('should have an optional child on the available snapshot when the child ID for the actor was configured', () => {
+    const child = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const machine = setup({
+      types: {} as {
+        children: {
+          myChild: 'child';
+        };
+      },
+      actors: {
+        child
+      }
+    }).createMachine({});
+
+    const childActor = createActor(machine).getSnapshot().children.myChild;
+
+    childActor satisfies ActorRefFrom<typeof child> | undefined;
+    // @ts-expect-error
+    childActor satisfies ActorRefFrom<typeof child>;
+  });
+
+  it('should have an optional child on the available snapshot when the child ID for the actor was not configured', () => {
+    const child = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const machine = setup({
+      actors: {
+        child
+      }
+    }).createMachine({});
+
+    const childActor = createActor(machine).getSnapshot().children.someChild;
+
+    childActor satisfies ActorRefFrom<typeof child> | undefined;
+    // @ts-expect-error
+    childActor satisfies ActorRefFrom<typeof child>;
+  });
+
+  it('should not have an index signature on the available snapshot when child IDs were configured for all actors', () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    const machine = setup({
+      types: {} as {
+        children: {
+          counter: 'child1';
+          quiz: 'child2';
+        };
+      },
+      actors: {
+        child1,
+        child2
+      }
+    }).createMachine({});
+
+    createActor(machine).getSnapshot().children.counter;
+    createActor(machine).getSnapshot().children.quiz;
+    // @ts-expect-error
+    createActor(machine).getSnapshot().children.someChild;
+  });
+
+  it('should have an index signature on the available snapshot when child IDs were configured only for some actors', () => {
+    const child1 = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    const child2 = createMachine({
+      context: {
+        answer: ''
+      }
+    });
+
+    const machine = setup({
+      types: {} as {
+        children: {
+          counter: 'child1';
+        };
+      },
+      actors: {
+        child1,
+        child2
+      }
+    }).createMachine({});
+
+    const counterActor = createActor(machine).getSnapshot().children.counter;
+    counterActor satisfies ActorRefFrom<typeof child1> | undefined;
+
+    const someActor = createActor(machine).getSnapshot().children.someChild;
+    // @ts-expect-error
+    someActor satisfies ActorRefFrom<typeof child2> | undefined;
+    someActor satisfies
+      | ActorRefFrom<typeof child1>
+      | ActorRefFrom<typeof child2>
+      | undefined;
   });
 });

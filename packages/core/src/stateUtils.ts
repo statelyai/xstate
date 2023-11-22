@@ -452,8 +452,8 @@ export function formatInitialTransition<
     typeof _target === 'string'
       ? stateNode.states[_target]
       : _target
-      ? stateNode.states[_target.target]
-      : undefined;
+        ? stateNode.states[_target.target]
+        : undefined;
   if (!resolvedTarget && _target) {
     throw new Error(
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
@@ -1525,10 +1525,10 @@ function resolveActionsAndContextWorker(
       isInline || typeof action === 'string'
         ? undefined
         : 'params' in action
-        ? typeof action.params === 'function'
-          ? action.params({ context: intermediateState.context, event })
-          : action.params
-        : undefined;
+          ? typeof action.params === 'function'
+            ? action.params({ context: intermediateState.context, event })
+            : action.params
+          : undefined;
 
     if (!('resolve' in resolvedAction)) {
       if (actorScope?.self._processingStatus === ProcessingStatus.Running) {
@@ -1706,7 +1706,7 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map((child) => stop(child)),
+    Object.values(nextState.children).map((child: any) => stop(child)),
     []
   );
 }

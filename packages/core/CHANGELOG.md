@@ -1,5 +1,70 @@
 # xstate
 
+## 5.0.0-beta.45
+
+### Minor Changes
+
+- [#4467](https://github.com/statelyai/xstate/pull/4467) [`3c71e537d`](https://github.com/statelyai/xstate/commit/3c71e537db724eee19ab857a9723f82e2ac5d8ca) Thanks [@Andarist](https://github.com/Andarist)! - The `state.configuration` property has been renamed to `state.nodes`.
+
+  ```diff
+  - state.configuration
+  + state.nodes
+  ```
+
+- [#4467](https://github.com/statelyai/xstate/pull/4467) [`3c71e537d`](https://github.com/statelyai/xstate/commit/3c71e537db724eee19ab857a9723f82e2ac5d8ca) Thanks [@Andarist](https://github.com/Andarist)! - The `state.meta` getter has been replaced with `state.getMeta()` methods:
+
+  ```diff
+  - state.meta
+  + state.getMeta()
+  ```
+
+- [#4353](https://github.com/statelyai/xstate/pull/4353) [`a3a11c84e`](https://github.com/statelyai/xstate/commit/a3a11c84e30c86afd63e47c77a46a61d926291d1) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now use the `setup({ ... }).createMachine({ ... })` function to setup implementations for `actors`, `actions`, `guards`, and `delays` that will be used in the created machine:
+
+  ```ts
+  import { setup, createMachine } from 'xstate';
+
+  const fetchUser = fromPromise(async ({ input }) => {
+    const response = await fetch(`/user/${input.id}`);
+    const user = await response.json();
+    return user;
+  });
+
+  const machine = setup({
+    actors: {
+      fetchUser
+    },
+    actions: {
+      clearUser: assign({ user: undefined })
+    },
+    guards: {
+      isUserAdmin: (_, params) => params.user.role === 'admin'
+    }
+  }).createMachine({
+    // ...
+    invoke: {
+      // Strongly typed!
+      src: 'fetchUser',
+      input: ({ context }) => ({ id: context.userId }),
+      onDone: {
+        guard: {
+          type: 'isUserAdmin',
+          params: ({ context }) => ({ user: context.user })
+        },
+        target: 'success',
+        actions: assign({ user: ({ event }) => event.output })
+      },
+      onError: {
+        target: 'failure',
+        actions: 'clearUser'
+      }
+    }
+  });
+  ```
+
+### Patch Changes
+
+- [#4476](https://github.com/statelyai/xstate/pull/4476) [`6777c328d`](https://github.com/statelyai/xstate/commit/6777c328dfcad0a6bd113ca9f2a201344911356e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `onSnapshot` not working after rehydration.
+
 ## 5.0.0-beta.44
 
 ### Major Changes

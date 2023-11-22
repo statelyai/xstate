@@ -1,7 +1,13 @@
 <template>
   <div data-testid="name">{{ name }}</div>
-  <button data-testid="sendUpper" @click="actorRef.send({ type: 'CHANGE', value: 'DAVID' })"></button>
-  <button data-testid="sendOther" @click="actorRef.send({ type: 'CHANGE', value: 'other' })"></button>
+  <button
+    data-testid="sendUpper"
+    @click="actorRef.send({ type: 'CHANGE', value: 'DAVID' })"
+  ></button>
+  <button
+    data-testid="sendOther"
+    @click="actorRef.send({ type: 'CHANGE', value: 'other' })"
+  ></button>
 </template>
 
 <script lang="ts">
