@@ -51,8 +51,8 @@ type ToProvidedActor<
     id: IsNever<TChildrenMap> extends true
       ? string | undefined
       : K extends keyof Invert<TChildrenMap>
-      ? Invert<TChildrenMap>[K]
-      : string | undefined;
+        ? Invert<TChildrenMap>[K]
+        : string | undefined;
   };
 }>;
 

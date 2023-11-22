@@ -138,7 +138,10 @@ export class Actor<TLogic extends AnyActorLogic>
    * @param logic The logic to create an actor from
    * @param options Actor options
    */
-  constructor(public logic: TLogic, options?: ActorOptions<TLogic>) {
+  constructor(
+    public logic: TLogic,
+    options?: ActorOptions<TLogic>
+  ) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options

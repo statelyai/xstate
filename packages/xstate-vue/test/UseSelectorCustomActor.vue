@@ -22,7 +22,7 @@ const simpleActor: ActorRef<any, Snapshot<undefined> & { context: number }> =
 
 export default defineComponent({
   setup() {
-    const state = useSelector(simpleActor, s => s);
+    const state = useSelector(simpleActor, (s) => s);
     return { state };
   }
 });

@@ -178,8 +178,8 @@ export class StateNode<
       (this.config.states && Object.keys(this.config.states).length
         ? 'compound'
         : this.config.history
-        ? 'history'
-        : 'atomic');
+          ? 'history'
+          : 'atomic');
     this.description = this.config.description;
 
     this.order = this.machine.idMap.size;
@@ -341,11 +341,14 @@ export class StateNode<
 
       return [...transitions]
         .flatMap(([descriptor, t]) => t.map((t) => [descriptor, t] as const))
-        .reduce((map: any, [descriptor, transition]) => {
-          map[descriptor] = map[descriptor] || [];
-          map[descriptor].push(transition);
-          return map;
-        }, {} as TransitionDefinitionMap<TContext, TEvent>);
+        .reduce(
+          (map: any, [descriptor, transition]) => {
+            map[descriptor] = map[descriptor] || [];
+            map[descriptor].push(transition);
+            return map;
+          },
+          {} as TransitionDefinitionMap<TContext, TEvent>
+        );
     });
   }
 
@@ -393,8 +396,8 @@ export class StateNode<
           typeof guard === 'string'
             ? guard
             : typeof guard === 'object'
-            ? guard.type
-            : undefined;
+              ? guard.type
+              : undefined;
         throw new Error(
           `Unable to evaluate guard ${
             guardType ? `'${guardType}' ` : ''
