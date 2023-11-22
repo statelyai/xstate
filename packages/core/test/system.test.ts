@@ -15,7 +15,7 @@ import {
   Snapshot,
   EventObject,
   ActorRefFrom,
-  spawn,
+  spawnChild,
   AnyActorRef,
   AnyStateMachine
 } from '../src/index.ts';
@@ -255,7 +255,7 @@ describe('system', () => {
           actions: stop(({ context }) => context.ref)
         },
         start: {
-          actions: spawn(
+          actions: spawnChild(
             fromPromise(() => Promise.resolve()),
             {
               systemId: 'test'

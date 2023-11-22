@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { assign, createActor, spawn } from '../src';
+import { assign, createActor, spawnChild } from '../src';
 import { createMachine } from '../src/createMachine';
 import {
   fromCallback,
@@ -285,7 +285,7 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: spawn('child', {
+        entry: spawnChild('child', {
           input: ({ self }: any) => spy(self)
         })
       },

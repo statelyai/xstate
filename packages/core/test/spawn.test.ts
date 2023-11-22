@@ -6,14 +6,14 @@ import {
   fromObservable,
   fromPromise,
   sendTo,
-  spawn
+  spawnChild
 } from '../src';
 
 describe('spawn action', () => {
   it('can spawn', () => {
     const actor = createActor(
       createMachine({
-        entry: spawn(
+        entry: spawnChild(
           fromPromise(() => Promise.resolve(42)),
           { id: 'child' }
         )
@@ -37,7 +37,7 @@ describe('spawn action', () => {
             logic: typeof fetchNum;
           }
         },
-        entry: spawn('fetchNum', { id: 'child', input: 21 })
+        entry: spawnChild('fetchNum', { id: 'child', input: 21 })
       }).provide({
         actors: { fetchNum }
       })
@@ -58,7 +58,7 @@ describe('spawn action', () => {
       },
       states: {
         idle: {
-          entry: spawn(observableLogic, {
+          entry: spawnChild(observableLogic, {
             id: 'int',
             syncSnapshot: true
           }),
@@ -101,7 +101,7 @@ describe('spawn action', () => {
         childId: 'myChild'
       },
       entry: [
-        spawn(child, { id: ({ context }) => context.childId }),
+        spawnChild(child, { id: ({ context }) => context.childId }),
         sendTo('myChild', {
           type: 'FOO'
         })

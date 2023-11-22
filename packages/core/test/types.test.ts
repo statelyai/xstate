@@ -17,7 +17,7 @@ import {
   pure,
   sendTo,
   stateIn,
-  spawn,
+  spawnChild,
   setup,
   and
 } from '../src/index';
@@ -762,7 +762,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn('other')
+        spawnChild('other')
     });
   });
 
@@ -776,7 +776,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child')
+      entry: spawnChild('child')
     });
   });
 
@@ -791,7 +791,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', { id: 'ok1' })
+      entry: spawnChild('child', { id: 'ok1' })
     });
   });
 
@@ -806,7 +806,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         id: 'child'
       })
@@ -826,7 +826,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn('child')
+        spawnChild('child')
     });
   });
 
@@ -840,7 +840,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child')
+      entry: spawnChild('child')
     });
   });
 
@@ -854,7 +854,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', { id: 'someId' })
+      entry: spawnChild('child', { id: 'someId' })
     });
   });
 
@@ -880,7 +880,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn(child2)
+        spawnChild(child2)
     });
   });
 
@@ -896,7 +896,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         input: 'hello'
       })
@@ -915,7 +915,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         input: 42
       })
     });
@@ -933,7 +933,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         input: 42
       })
     });
@@ -951,7 +951,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         input: Math.random() > 0.5 ? 'string' : 42
       })
@@ -970,7 +970,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         input: () => 'hello'
       })
@@ -989,7 +989,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         input: () => 42
       })
     });
@@ -1007,7 +1007,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
       })
@@ -1026,7 +1026,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         input: () => 'hello'
       })
     });
@@ -1053,7 +1053,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn('child1', {
+        spawnChild('child1', {
           input: 'hello'
         })
     });
@@ -1071,7 +1071,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn('child')
+        spawnChild('child')
     });
   });
 
@@ -1087,7 +1087,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child')
+      entry: spawnChild('child')
     });
   });
 });

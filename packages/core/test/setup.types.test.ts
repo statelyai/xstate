@@ -10,7 +10,7 @@ import {
   raise,
   sendTo,
   setup,
-  spawn
+  spawnChild
 } from '../src';
 
 describe('setup()', () => {
@@ -474,7 +474,7 @@ describe('setup()', () => {
         fetchUser: fromPromise(async () => ({ name: 'Andarist' }))
       },
       actions: {
-        spawnFetcher: spawn('fetchUser')
+        spawnFetcher: spawnChild('fetchUser')
       }
     });
   });
@@ -487,7 +487,7 @@ describe('setup()', () => {
       actions: {
         spawnFetcher:
           // @ts-expect-error
-          spawn('unknown')
+          spawnChild('unknown')
       }
     });
   });

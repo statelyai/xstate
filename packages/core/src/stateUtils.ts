@@ -4,7 +4,7 @@ import type { StateNode } from './StateNode.ts';
 import { raise } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
-import { spawn } from './actions/spawn.ts';
+import { spawnChild } from './actions/spawn.ts';
 import { stop } from './actions/stop.ts';
 import {
   XSTATE_INIT,
@@ -1132,7 +1132,7 @@ function enterStates(
 
     for (const invokeDef of stateNodeToEnter.invoke) {
       actions.push(
-        spawn(invokeDef.src, {
+        spawnChild(invokeDef.src, {
           ...invokeDef,
           syncSnapshot: !!invokeDef.onSnapshot
         })
