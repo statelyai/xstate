@@ -104,8 +104,8 @@ export function setup<
     >;
   };
 }): {
-  createMachine: (
-    config: MachineConfig<
+  createMachine: <
+    const TConfig extends MachineConfig<
       TContext,
       TEvent,
       ToProvidedActor<TChildrenMap, TActors>,
@@ -125,6 +125,8 @@ export function setup<
         TTag
       >
     >
+  >(
+    config: TConfig
   ) => StateMachine<
     TContext,
     TEvent,
@@ -152,11 +154,11 @@ export function setup<
 } {
   return {
     createMachine: (config) =>
-      createMachine(config, {
+      (createMachine as any)(config, {
         actors,
         actions,
         guards,
         delays
-      } as any) as any
+      })
   };
 }
