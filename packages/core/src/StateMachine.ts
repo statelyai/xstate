@@ -62,6 +62,7 @@ export const WILDCARD = '*';
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -83,7 +84,7 @@ export class StateMachine<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -198,6 +199,7 @@ export class StateMachine<
   ): StateMachine<
     TContext,
     TEvent,
+    TChildren,
     TActor,
     TAction,
     TGuard,
@@ -233,7 +235,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -259,7 +261,7 @@ export class StateMachine<
     ) as MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -277,7 +279,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -287,7 +289,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -319,7 +321,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -327,7 +329,14 @@ export class StateMachine<
     event: TEvent,
     actorScope: AnyActorScope
   ): Array<
-    MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
   > {
     return macrostep(state, event, actorScope).microstates as (typeof state)[];
   }
@@ -336,7 +345,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -357,7 +366,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -398,7 +407,7 @@ export class StateMachine<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -409,7 +418,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -453,7 +462,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -496,7 +505,7 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -512,7 +521,7 @@ export class StateMachine<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -522,7 +531,7 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -577,7 +586,7 @@ export class StateMachine<
     ) as MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
