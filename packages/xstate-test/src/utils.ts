@@ -47,15 +47,15 @@ export function formatPathTestResult(
           hasFailed
             ? formatColor('gray', stateString)
             : s.state.error
-            ? ((hasFailed = true), formatColor('redBright', stateString))
-            : formatColor('greenBright', stateString)
+              ? ((hasFailed = true), formatColor('redBright', stateString))
+              : formatColor('greenBright', stateString)
         }`;
         const eventResult = `\tEvent: ${
           hasFailed
             ? formatColor('gray', eventString)
             : s.event.error
-            ? ((hasFailed = true), formatColor('red', eventString))
-            : formatColor('green', eventString)
+              ? ((hasFailed = true), formatColor('red', eventString))
+              : formatColor('green', eventString)
         }`;
 
         return [stateResult, eventResult].join('\n');
@@ -65,8 +65,8 @@ export function formatPathTestResult(
           hasFailed
             ? formatColor('gray', targetStateString)
             : testPathResult.state.error
-            ? formatColor('red', targetStateString)
-            : formatColor('green', targetStateString)
+              ? formatColor('red', targetStateString)
+              : formatColor('green', targetStateString)
         }`
       )
       .join('\n\n');

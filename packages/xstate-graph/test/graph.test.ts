@@ -32,14 +32,14 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
     state: isMachineSnapshot(path.state)
       ? path.state.value
       : 'context' in path.state
-      ? path.state.context
-      : path.state,
+        ? path.state.context
+        : path.state,
     steps: path.steps.map((step) => ({
       state: isMachineSnapshot(step.state)
         ? step.state.value
         : 'context' in step.state
-        ? step.state.context
-        : step.state,
+          ? step.state.context
+          : step.state,
       eventType: step.event.type
     }))
   };

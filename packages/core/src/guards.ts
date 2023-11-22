@@ -21,16 +21,16 @@ type SingleGuardArg<
 > = [TGuardArg] extends [{ type: string }]
   ? Identity<TGuardArg>
   : [TGuardArg] extends [string]
-  ? TGuardArg
-  : GuardPredicate<TContext, TExpressionEvent, TParams, ParameterizedObject>;
+    ? TGuardArg
+    : GuardPredicate<TContext, TExpressionEvent, TParams, ParameterizedObject>;
 
 type NormalizeGuardArg<TGuardArg> = TGuardArg extends { type: string }
   ? Identity<TGuardArg> & { params: unknown }
   : TGuardArg extends string
-  ? { type: TGuardArg; params: undefined }
-  : '_out_TGuard' extends keyof TGuardArg
-  ? TGuardArg['_out_TGuard'] & ParameterizedObject
-  : never;
+    ? { type: TGuardArg; params: undefined }
+    : '_out_TGuard' extends keyof TGuardArg
+      ? TGuardArg['_out_TGuard'] & ParameterizedObject
+      : never;
 
 type NormalizeGuardArgArray<TArg extends unknown[]> = Elements<{
   [K in keyof TArg]: NormalizeGuardArg<TArg[K]>;
@@ -287,10 +287,10 @@ export function evaluateGuard<
     isInline || typeof guard === 'string'
       ? undefined
       : 'params' in guard
-      ? typeof guard.params === 'function'
-        ? guard.params({ context, event })
-        : guard.params
-      : undefined;
+        ? typeof guard.params === 'function'
+          ? guard.params({ context, event })
+          : guard.params
+        : undefined;
 
   if (!('check' in resolved)) {
     // the existing type of `.guards` assumes non-nullable `TExpressionGuard`
