@@ -340,12 +340,15 @@ const machineSnapshotGetNextEvents = function getNextEvents(
 };
 
 const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
-  return this._nodes.reduce((acc, stateNode) => {
-    if (stateNode.meta !== undefined) {
-      acc[stateNode.id] = stateNode.meta;
-    }
-    return acc;
-  }, {} as Record<string, any>);
+  return this._nodes.reduce(
+    (acc, stateNode) => {
+      if (stateNode.meta !== undefined) {
+        acc[stateNode.id] = stateNode.meta;
+      }
+      return acc;
+    },
+    {} as Record<string, any>
+  );
 };
 
 export function createMachineSnapshot<

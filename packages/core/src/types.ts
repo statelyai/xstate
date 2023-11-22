@@ -445,22 +445,21 @@ export type DelayedTransitions<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
-> =
-  | {
-      [K in Delay<TDelay>]?:
-        | string
-        | SingleOrArray<
-            TransitionConfig<
-              TContext,
-              TEvent,
-              TEvent,
-              TActor,
-              TAction,
-              TGuard,
-              TDelay
-            >
-          >;
-    };
+> = {
+  [K in Delay<TDelay>]?:
+    | string
+    | SingleOrArray<
+        TransitionConfig<
+          TContext,
+          TEvent,
+          TEvent,
+          TActor,
+          TAction,
+          TGuard,
+          TDelay
+        >
+      >;
+};
 
 export type StateTypes =
   | 'atomic'
@@ -538,18 +537,17 @@ export type TransitionsConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
-> =
-  | {
-      [K in EventDescriptor<TEvent>]?: TransitionConfigOrTarget<
-        TContext,
-        ExtractEvent<TEvent, K>,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay
-      >;
-    };
+> = {
+  [K in EventDescriptor<TEvent>]?: TransitionConfigOrTarget<
+    TContext,
+    ExtractEvent<TEvent, K>,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay
+  >;
+};
 
 type PartialEventDescriptor<TEventType extends string> =
   TEventType extends `${infer TLeading}.${infer TTail}`

@@ -1277,7 +1277,7 @@ describe('actors', () => {
 
   it('should not crash on child promise-like sync completion during self-initialization', () => {
     const promiseLogic = fromPromise(
-      () => ({ then: (fn: any) => fn(null) } as any)
+      () => ({ then: (fn: any) => fn(null) }) as any
     );
     const parentMachine = createMachine({
       types: {} as {

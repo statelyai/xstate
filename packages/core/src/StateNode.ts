@@ -341,11 +341,14 @@ export class StateNode<
 
       return [...transitions]
         .flatMap(([descriptor, t]) => t.map((t) => [descriptor, t] as const))
-        .reduce((map: any, [descriptor, transition]) => {
-          map[descriptor] = map[descriptor] || [];
-          map[descriptor].push(transition);
-          return map;
-        }, {} as TransitionDefinitionMap<TContext, TEvent>);
+        .reduce(
+          (map: any, [descriptor, transition]) => {
+            map[descriptor] = map[descriptor] || [];
+            map[descriptor].push(transition);
+            return map;
+          },
+          {} as TransitionDefinitionMap<TContext, TEvent>
+        );
     });
   }
 
