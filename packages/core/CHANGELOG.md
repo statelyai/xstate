@@ -1,5 +1,108 @@
 # xstate
 
+## 5.0.0-beta.45
+
+### Minor Changes
+
+- [#4467](https://github.com/statelyai/xstate/pull/4467) [`3c71e537d`](https://github.com/statelyai/xstate/commit/3c71e537db724eee19ab857a9723f82e2ac5d8ca) Thanks [@Andarist](https://github.com/Andarist)! - The `state.configuration` property has been renamed to `state.nodes`.
+
+  ```diff
+  - state.configuration
+  + state.nodes
+  ```
+
+- [#4467](https://github.com/statelyai/xstate/pull/4467) [`3c71e537d`](https://github.com/statelyai/xstate/commit/3c71e537db724eee19ab857a9723f82e2ac5d8ca) Thanks [@Andarist](https://github.com/Andarist)! - The `state.meta` getter has been replaced with `state.getMeta()` methods:
+
+  ```diff
+  - state.meta
+  + state.getMeta()
+  ```
+
+- [#4353](https://github.com/statelyai/xstate/pull/4353) [`a3a11c84e`](https://github.com/statelyai/xstate/commit/a3a11c84e30c86afd63e47c77a46a61d926291d1) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now use the `setup({ ... }).createMachine({ ... })` function to setup implementations for `actors`, `actions`, `guards`, and `delays` that will be used in the created machine:
+
+  ```ts
+  import { setup, createMachine } from 'xstate';
+
+  const fetchUser = fromPromise(async ({ input }) => {
+    const response = await fetch(`/user/${input.id}`);
+    const user = await response.json();
+    return user;
+  });
+
+  const machine = setup({
+    actors: {
+      fetchUser
+    },
+    actions: {
+      clearUser: assign({ user: undefined })
+    },
+    guards: {
+      isUserAdmin: (_, params) => params.user.role === 'admin'
+    }
+  }).createMachine({
+    // ...
+    invoke: {
+      // Strongly typed!
+      src: 'fetchUser',
+      input: ({ context }) => ({ id: context.userId }),
+      onDone: {
+        guard: {
+          type: 'isUserAdmin',
+          params: ({ context }) => ({ user: context.user })
+        },
+        target: 'success',
+        actions: assign({ user: ({ event }) => event.output })
+      },
+      onError: {
+        target: 'failure',
+        actions: 'clearUser'
+      }
+    }
+  });
+  ```
+
+### Patch Changes
+
+- [#4476](https://github.com/statelyai/xstate/pull/4476) [`6777c328d`](https://github.com/statelyai/xstate/commit/6777c328dfcad0a6bd113ca9f2a201344911356e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `onSnapshot` not working after rehydration.
+
+## 5.0.0-beta.44
+
+### Major Changes
+
+- [#4448](https://github.com/statelyai/xstate/pull/4448) [`9c4353020`](https://github.com/statelyai/xstate/commit/9c435302042be8090e78dc75fe4a9288a64dbb11) Thanks [@Andarist](https://github.com/Andarist)! - `isState`/`isStateConfig` were replaced by `isMachineSnapshot`. Similarly, `AnyState` type was deprecated and it's replaced by `AnyMachineSnapshot` type.
+
+### Patch Changes
+
+- [#4463](https://github.com/statelyai/xstate/pull/4463) [`178deadac`](https://github.com/statelyai/xstate/commit/178deadac5dc29c1b7a749936622456d98294fa5) Thanks [@Andarist](https://github.com/Andarist)! - `invoke` and `spawn` will now require `input` to be provided if the used actor requires it.
+
+- [#4464](https://github.com/statelyai/xstate/pull/4464) [`5278a9895`](https://github.com/statelyai/xstate/commit/5278a989573bc8a78bd89f5950654be6b1eaad49) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to target actors registered with `systemId` from within initial actions.
+
+## 5.0.0-beta.43
+
+### Major Changes
+
+- [#4451](https://github.com/statelyai/xstate/pull/4451) [`21f18b54b`](https://github.com/statelyai/xstate/commit/21f18b54b6badec8a34e3349d2bf360e0648abf4) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to configure `input` within the implementations object. You no longer can do this:
+
+  ```ts
+  createMachine(
+    {
+      invoke: {
+        src: 'child'
+      }
+    },
+    {
+      actors: {
+        child: {
+          src: childMachine,
+          input: 'foo'
+        }
+      }
+    }
+  );
+  ```
+
+  The `input` can only be provided within the config of the machine.
+
 ## 5.0.0-beta.42
 
 ### Major Changes

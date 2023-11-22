@@ -1,14 +1,12 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './interpreter.ts';
-import { memo } from './memo.ts';
 import type { StateNode } from './StateNode.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { getStateValue } from './stateUtils.ts';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
-  ActorRefFrom,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
   HistoryValue,
@@ -17,58 +15,28 @@ import type {
   StateConfig,
   StateValue,
   AnyActorRef,
-  Compute,
   EventDescriptor,
   Snapshot,
   ParameterizedObject
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
-type ComputeConcreteChildren<TActor extends ProvidedActor> = {
-  [A in TActor as 'id' extends keyof A
-    ? A['id'] & string
-    : never]?: ActorRefFrom<A['logic']>;
-};
-
-type ComputeChildren<TActor extends ProvidedActor> =
-  // only proceed further if all configured `src`s are literal strings
-  string extends TActor['src']
-    ? // TODO: replace with UnknownActorRef~
-      // TODO: consider adding `| undefined` here
-      Record<string, AnyActorRef>
-    : Compute<
-        ComputeConcreteChildren<TActor> &
-          // check if all actors have IDs
-          (undefined extends TActor['id']
-            ? // if they don't we need to create an index signature containing all possible actor types
-              {
-                [id: string]: TActor extends any
-                  ? ActorRefFrom<TActor['logic']> | undefined
-                  : never;
-              }
-            : {})
-      >;
-
-export function isStateConfig<
+export function isMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: any): state is StateConfig<TContext, TEvent> {
-  if (typeof state !== 'object' || state === null) {
-    return false;
-  }
-
-  return 'value' in state;
+>(value: unknown): value is AnyMachineSnapshot {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'machine' in value &&
+    'value' in value
+  );
 }
-
-/**
- * @deprecated Use `isStateConfig(object)`
- */
-export const isState = isStateConfig;
 
 interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
@@ -76,7 +44,8 @@ interface MachineSnapshotBase<
   machine: StateMachine<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
+    ProvidedActor,
     ParameterizedObject,
     ParameterizedObject,
     string,
@@ -95,36 +64,47 @@ interface MachineSnapshotBase<
   /**
    * The enabled state nodes representative of the state value.
    */
-  configuration: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<StateNode<TContext, TEvent>>;
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  children: ComputeChildren<TActor>;
-
-  /**
-   * The next events that will cause a transition from the current state.
-   */
-  nextEvents: Array<EventDescriptor<TEvent>>;
-
-  meta: Record<string, any>;
+  children: TChildren;
 
   /**
    * Whether the current state value is a subset of the given parent state value.
-   * @param parentStateValue
+   * @param testValue
    */
   matches: <
     TSV extends TResolvedTypesMeta extends TypegenEnabled
       ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
       : StateValue
   >(
-    parentStateValue: TSV
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >,
+    testValue: TSV
   ) => boolean;
 
   /**
-   * Whether the current state configuration has a state node with the specified `tag`.
+   * Whether the current state nodes has a state node with the specified `tag`.
    * @param tag
    */
-  hasTag: (tag: TTag) => boolean;
+  hasTag: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >,
+    tag: TTag
+  ) => boolean;
 
   /**
    * Determines whether sending the `event` will cause a non-forbidden transition
@@ -134,22 +114,66 @@ interface MachineSnapshotBase<
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
-  can: (event: TEvent) => boolean;
+  can: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >,
+    event: TEvent
+  ) => boolean;
 
-  toJSON: () => unknown;
+  /**
+   * The next events that will cause a transition from the current state.
+   */
+  getNextEvents: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  ) => ReadonlyArray<EventDescriptor<TEvent>>;
+
+  getMeta: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  ) => Record<string, any>;
+
+  toJSON: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
+  ) => unknown;
 }
 
 interface ActiveMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -162,14 +186,14 @@ interface ActiveMachineSnapshot<
 interface DoneMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -182,14 +206,14 @@ interface DoneMachineSnapshot<
 interface ErrorMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -202,14 +226,14 @@ interface ErrorMachineSnapshot<
 interface StoppedMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -222,7 +246,7 @@ interface StoppedMachineSnapshot<
 export type MachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
@@ -230,7 +254,7 @@ export type MachineSnapshot<
   | ActiveMachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -238,7 +262,7 @@ export type MachineSnapshot<
   | DoneMachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -246,7 +270,7 @@ export type MachineSnapshot<
   | ErrorMachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -254,16 +278,83 @@ export type MachineSnapshot<
   | StoppedMachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
     >;
 
+const machineSnapshotMatches = function matches(
+  this: AnyMachineSnapshot,
+  testValue: StateValue
+) {
+  return matchesState(testValue, this.value);
+};
+
+const machineSnapshotHasTag = function hasTag(
+  this: AnyMachineSnapshot,
+  tag: string
+) {
+  return this.tags.has(tag);
+};
+
+const machineSnapshotCan = function can(
+  this: AnyMachineSnapshot,
+  event: EventObject
+) {
+  if (isDevelopment && !this.machine) {
+    console.warn(
+      `state.can(...) used outside of a machine-created State object; this will always return false.`
+    );
+  }
+
+  const transitionData = this.machine.getTransitionData(this, event);
+
+  return (
+    !!transitionData?.length &&
+    // Check that at least one transition is not forbidden
+    transitionData.some((t) => t.target !== undefined || t.actions.length)
+  );
+};
+
+const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
+  const {
+    _nodes: nodes,
+    tags,
+    machine,
+    getNextEvents,
+    getMeta,
+    toJSON,
+    can,
+    hasTag,
+    matches,
+    ...jsonValues
+  } = this;
+  return { ...jsonValues, tags: Array.from(tags) };
+};
+
+const machineSnapshotGetNextEvents = function getNextEvents(
+  this: AnyMachineSnapshot
+) {
+  return [...new Set(flatten([...this._nodes.map((sn) => sn.ownEvents)]))];
+};
+
+const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
+  return this._nodes.reduce(
+    (acc, stateNode) => {
+      if (stateNode.meta !== undefined) {
+        acc[stateNode.id] = stateNode.meta;
+      }
+      return acc;
+    },
+    {} as Record<string, any>
+  );
+};
+
 export function createMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TResolvedTypesMeta = TypegenDisabled
 >(
@@ -272,81 +363,37 @@ export function createMachineSnapshot<
 ): MachineSnapshot<
   TContext,
   TEvent,
-  TActor,
+  TChildren,
   TTag,
   undefined,
   TResolvedTypesMeta
 > {
   return {
-    status: config.status as any,
+    status: config.status as never,
     output: config.output,
     error: config.error,
     machine,
     context: config.context,
-    configuration: config.configuration,
-    value: getStateValue(machine.root, config.configuration),
-    tags: new Set(flatten(config.configuration.map((sn) => sn.tags))),
+    _nodes: config._nodes,
+    value: getStateValue(machine.root, config._nodes),
+    tags: new Set(flatten(config._nodes.map((sn) => sn.tags))),
     children: config.children as any,
     historyValue: config.historyValue || {},
-    matches(parentStateValue) {
-      return matchesState(parentStateValue as any, this.value);
-    },
-    hasTag(tag) {
-      return this.tags.has(tag);
-    },
-    can(event) {
-      if (isDevelopment && !this.machine) {
-        console.warn(
-          `state.can(...) used outside of a machine-created State object; this will always return false.`
-        );
-      }
-
-      const transitionData = this.machine.getTransitionData(this as any, event);
-
-      return (
-        !!transitionData?.length &&
-        // Check that at least one transition is not forbidden
-        transitionData.some((t) => t.target !== undefined || t.actions.length)
-      );
-    },
-    get nextEvents() {
-      return memo(this, 'nextEvents', () => {
-        return [
-          ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
-        ];
-      });
-    },
-    get meta() {
-      return this.configuration.reduce((acc, stateNode) => {
-        if (stateNode.meta !== undefined) {
-          acc[stateNode.id] = stateNode.meta;
-        }
-        return acc;
-      }, {} as Record<string, any>);
-    },
-    toJSON() {
-      const {
-        configuration,
-        tags,
-        machine,
-        nextEvents,
-        toJSON,
-        can,
-        hasTag,
-        matches,
-        ...jsonValues
-      } = this;
-      return { ...jsonValues, tags: Array.from(tags) };
-    }
+    // this one is generic in the target and it's hard to create a matching non-generic source signature
+    matches: machineSnapshotMatches as any,
+    hasTag: machineSnapshotHasTag,
+    can: machineSnapshotCan,
+    getNextEvents: machineSnapshotGetNextEvents,
+    getMeta: machineSnapshotGetMeta,
+    toJSON: machineSnapshotToJSON
   };
 }
 
-export function cloneMachineSnapshot<TState extends AnyState>(
+export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   state: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {
   return createMachineSnapshot(
-    // TODO: it's wasteful that this spread triggers getters
     { ...state, ...config } as StateConfig<any, any>,
     state.machine
   ) as TState;
@@ -355,7 +402,7 @@ export function cloneMachineSnapshot<TState extends AnyState>(
 export function getPersistedState<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
@@ -363,7 +410,7 @@ export function getPersistedState<
   state: MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -371,7 +418,7 @@ export function getPersistedState<
   options?: unknown
 ): Snapshot<unknown> {
   const {
-    configuration,
+    _nodes: nodes,
     tags,
     machine,
     children,
@@ -379,8 +426,9 @@ export function getPersistedState<
     can,
     hasTag,
     matches,
+    getNextEvents,
+    getMeta,
     toJSON,
-    nextEvents,
     ...jsonValues
   } = state;
 
@@ -398,7 +446,8 @@ export function getPersistedState<
     childrenJson[id as keyof typeof childrenJson] = {
       state: child.getPersistedState(options),
       src: child.src,
-      systemId: child._systemId
+      systemId: child._systemId,
+      syncSnapshot: child._syncSnapshot
     };
   }
 

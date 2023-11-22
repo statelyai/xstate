@@ -755,7 +755,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('should execute actions of the initial transition of a parallel region when entering the initial state configuration of a machine', () => {
+  it('should execute actions of the initial transition of a parallel region when entering the initial state nodes of a machine', () => {
     const spy = jest.fn();
 
     const machine = createMachine({
@@ -919,7 +919,7 @@ describe('parallel states', () => {
       });
     });
 
-    it('should not overlap resolved state configuration in state resolution', () => {
+    it('should not overlap resolved state nodes in state resolution', () => {
       const machine = createMachine({
         id: 'pipeline',
         type: 'parallel',
@@ -1274,5 +1274,69 @@ describe('parallel states', () => {
       'enter: a.Mode',
       'enter: a.Mode.Demo'
     ]);
+  });
+
+  it('targetless transition on a parallel state should not enter nor exit any states', () => {
+    const machine = createMachine({
+      id: 'test',
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'disabled',
+          states: {
+            disabled: {},
+            enabled: {}
+          }
+        },
+        second: {}
+      },
+      on: {
+        MY_EVENT: {
+          actions: () => {}
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked();
+
+    actor.send({ type: 'MY_EVENT' });
+
+    expect(flushTracked()).toEqual([]);
+  });
+
+  it('targetless transition in one of the parallel regions should not enter nor exit any states', () => {
+    const machine = createMachine({
+      id: 'test',
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'disabled',
+          states: {
+            disabled: {},
+            enabled: {}
+          },
+          on: {
+            MY_EVENT: {
+              actions: () => {}
+            }
+          }
+        },
+        second: {}
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked();
+
+    actor.send({ type: 'MY_EVENT' });
+
+    expect(flushTracked()).toEqual([]);
   });
 });

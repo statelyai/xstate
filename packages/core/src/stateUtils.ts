@@ -19,7 +19,7 @@ import {
   ActionArgs,
   AnyEventObject,
   AnyHistoryValue,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayExpr,
@@ -41,21 +41,19 @@ import {
   AnyActorScope
 } from './types.ts';
 import {
-  isArray,
   resolveOutput,
   normalizeTarget,
   toArray,
   toStatePath,
-  toStateValue,
   toTransitionConfigArray
 } from './utils.ts';
 import { ProcessingStatus } from './interpreter.ts';
 
-type Configuration<
+type StateNodeIterable<
   TContext extends MachineContext,
   TE extends EventObject
 > = Iterable<StateNode<TContext, TE>>;
-type AnyConfiguration = Configuration<any, any>;
+type AnyStateNodeIterable = StateNodeIterable<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
@@ -88,20 +86,19 @@ function getProperAncestors(
   return ancestors;
 }
 
-export function getConfiguration(
+export function getAllStateNodes(
   stateNodes: Iterable<AnyStateNode>
 ): Set<AnyStateNode> {
-  const configuration = new Set(stateNodes);
-  const configurationSet = new Set(stateNodes);
+  const nodeSet = new Set(stateNodes);
 
-  const adjList = getAdjList(configurationSet);
+  const adjList = getAdjList(nodeSet);
 
   // add descendants
-  for (const s of configuration) {
+  for (const s of nodeSet) {
     // if previously active, add existing child nodes
     if (s.type === 'compound' && (!adjList.get(s) || !adjList.get(s)!.length)) {
       getInitialStateNodesWithTheirAncestors(s).forEach((sn) =>
-        configurationSet.add(sn)
+        nodeSet.add(sn)
       );
     } else {
       if (s.type === 'parallel') {
@@ -110,10 +107,10 @@ export function getConfiguration(
             continue;
           }
 
-          if (!configurationSet.has(child)) {
+          if (!nodeSet.has(child)) {
             const initialStates = getInitialStateNodesWithTheirAncestors(child);
             for (const initialStateNode of initialStates) {
-              configurationSet.add(initialStateNode);
+              nodeSet.add(initialStateNode);
             }
           }
         }
@@ -122,16 +119,16 @@ export function getConfiguration(
   }
 
   // add all ancestors
-  for (const s of configurationSet) {
+  for (const s of nodeSet) {
     let m = s.parent;
 
     while (m) {
-      configurationSet.add(m);
+      nodeSet.add(m);
       m = m.parent;
     }
   }
 
-  return configurationSet;
+  return nodeSet;
 }
 
 function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
@@ -163,10 +160,10 @@ function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
 export function getAdjList<
   TContext extends MachineContext,
   TE extends EventObject
->(configuration: Configuration<TContext, TE>): AdjList {
+>(stateNodes: StateNodeIterable<TContext, TE>): AdjList {
   const adjList: AdjList = new Map();
 
-  for (const s of configuration) {
+  for (const s of stateNodes) {
     if (!adjList.has(s)) {
       adjList.set(s, []);
     }
@@ -185,24 +182,24 @@ export function getAdjList<
 
 export function getStateValue(
   rootNode: AnyStateNode,
-  configuration: AnyConfiguration
+  stateNodes: AnyStateNodeIterable
 ): StateValue {
-  const config = getConfiguration(configuration);
+  const config = getAllStateNodes(stateNodes);
   return getValueFromAdj(rootNode, getAdjList(config));
 }
 
 export function isInFinalState(
-  configuration: Set<AnyStateNode>,
+  stateNodeSet: Set<AnyStateNode>,
   stateNode: AnyStateNode
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
-      (s) => s.type === 'final' && configuration.has(s)
+      (s) => s.type === 'final' && stateNodeSet.has(s)
     );
   }
   if (stateNode.type === 'parallel') {
     return getChildren(stateNode).every((sn) =>
-      isInFinalState(configuration, sn)
+      isInFinalState(stateNodeSet, sn)
     );
   }
 
@@ -455,8 +452,8 @@ export function formatInitialTransition<
     typeof _target === 'string'
       ? stateNode.states[_target]
       : _target
-      ? stateNode.states[_target.target]
-      : undefined;
+        ? stateNode.states[_target.target]
+        : undefined;
   if (!resolvedTarget && _target) {
     throw new Error(
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
@@ -819,7 +816,7 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
 
 export function removeConflictingTransitions(
   enabledTransitions: Array<AnyTransitionDefinition>,
-  configuration: Set<AnyStateNode>,
+  stateNodeSet: Set<AnyStateNode>,
   historyValue: AnyHistoryValue
 ): Array<AnyTransitionDefinition> {
   const filteredTransitions = new Set<AnyTransitionDefinition>();
@@ -830,8 +827,8 @@ export function removeConflictingTransitions(
     for (const t2 of filteredTransitions) {
       if (
         hasIntersection(
-          computeExitSet([t1], configuration, historyValue),
-          computeExitSet([t2], configuration, historyValue)
+          computeExitSet([t1], stateNodeSet, historyValue),
+          computeExitSet([t2], stateNodeSet, historyValue)
         )
       ) {
         if (isDescendant(t1.source, t2.source)) {
@@ -932,7 +929,7 @@ function getTransitionDomain(
 
 function computeExitSet(
   transitions: AnyTransitionDefinition[],
-  configuration: Set<AnyStateNode>,
+  stateNodeSet: Set<AnyStateNode>,
   historyValue: AnyHistoryValue
 ): Array<AnyStateNode> {
   const statesToExit = new Set<AnyStateNode>();
@@ -945,7 +942,7 @@ function computeExitSet(
         statesToExit.add(domain);
       }
 
-      for (const stateNode of configuration) {
+      for (const stateNode of stateNodeSet) {
         if (isDescendant(stateNode, domain!)) {
           statesToExit.add(stateNode);
         }
@@ -956,15 +953,15 @@ function computeExitSet(
   return [...statesToExit];
 }
 
-function areConfigurationsEqual(
-  previousConfiguration: StateNode<any, any>[],
-  nextConfigurationSet: Set<StateNode<any, any>>
+function areStateNodeCollectionsEqual(
+  prevStateNodes: StateNode<any, any>[],
+  nextStateNodeSet: Set<StateNode<any, any>>
 ) {
-  if (previousConfiguration.length !== nextConfigurationSet.size) {
+  if (prevStateNodes.length !== nextStateNodeSet.size) {
     return false;
   }
-  for (const node of previousConfiguration) {
-    if (!nextConfigurationSet.has(node)) {
+  for (const node of prevStateNodes) {
+    if (!nextStateNodeSet.has(node)) {
       return false;
     }
   }
@@ -979,21 +976,21 @@ export function microstep<
   TEvent extends EventObject
 >(
   transitions: Array<AnyTransitionDefinition>,
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   actorScope: AnyActorScope,
   event: AnyEventObject,
   isInitial: boolean,
   internalQueue: Array<AnyEventObject>
-): AnyState {
+): AnyMachineSnapshot {
   if (!transitions.length) {
     return currentState;
   }
-  const mutConfiguration = new Set(currentState.configuration);
+  const mutStateNodeSet = new Set(currentState._nodes);
   let historyValue = currentState.historyValue;
 
   const filteredTransitions = removeConflictingTransitions(
     transitions,
-    mutConfiguration,
+    mutStateNodeSet,
     historyValue
   );
 
@@ -1006,7 +1003,7 @@ export function microstep<
       event,
       actorScope,
       filteredTransitions,
-      mutConfiguration,
+      mutStateNodeSet,
       historyValue,
       internalQueue
     );
@@ -1027,20 +1024,20 @@ export function microstep<
     event,
     actorScope,
     filteredTransitions,
-    mutConfiguration,
+    mutStateNodeSet,
     internalQueue,
     historyValue,
     isInitial
   );
 
-  const nextConfiguration = [...mutConfiguration];
+  const nextStateNodes = [...mutStateNodeSet];
 
   if (nextState.status === 'done') {
     nextState = resolveActionsAndContext(
       nextState,
       event,
       actorScope,
-      nextConfiguration
+      nextStateNodes
         .sort((a, b) => b.order - a.order)
         .flatMap((state) => state.exit),
       internalQueue
@@ -1050,12 +1047,12 @@ export function microstep<
   try {
     if (
       historyValue === currentState.historyValue &&
-      areConfigurationsEqual(currentState.configuration, mutConfiguration)
+      areStateNodeCollectionsEqual(currentState._nodes, mutStateNodeSet)
     ) {
       return nextState;
     }
     return cloneMachineSnapshot(nextState, {
-      configuration: nextConfiguration,
+      _nodes: nextStateNodes,
       historyValue
     });
   } catch (e) {
@@ -1066,7 +1063,7 @@ export function microstep<
 }
 
 function getMachineOutput(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   rootNode: AnyStateNode,
@@ -1095,11 +1092,11 @@ function getMachineOutput(
 }
 
 function enterStates(
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   filteredTransitions: AnyTransitionDefinition[],
-  mutConfiguration: Set<AnyStateNode>,
+  mutStateNodeSet: Set<AnyStateNode>,
   internalQueue: AnyEventObject[],
   historyValue: HistoryValue<any, any>,
   isInitial: boolean
@@ -1127,7 +1124,7 @@ function enterStates(
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
   )) {
-    mutConfiguration.add(stateNodeToEnter);
+    mutStateNodeSet.add(stateNodeToEnter);
     const actions: UnknownAction[] = [];
 
     // Add entry actions
@@ -1181,7 +1178,7 @@ function enterStates(
       while (
         ancestorMarker?.type === 'parallel' &&
         !completedNodes.has(ancestorMarker) &&
-        isInFinalState(mutConfiguration, ancestorMarker)
+        isInFinalState(mutStateNodeSet, ancestorMarker)
       ) {
         completedNodes.add(ancestorMarker);
         internalQueue.push(createDoneStateEvent(ancestorMarker.id));
@@ -1404,18 +1401,18 @@ function addProperAncestorStatesToEnter(
 }
 
 function exitStates(
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   transitions: AnyTransitionDefinition[],
-  mutConfiguration: Set<AnyStateNode>,
+  mutStateNodeSet: Set<AnyStateNode>,
   historyValue: HistoryValue<any, any>,
   internalQueue: AnyEventObject[]
 ) {
   let nextState = currentState;
   const statesToExit = computeExitSet(
     transitions,
-    mutConfiguration,
+    mutStateNodeSet,
     historyValue
   );
 
@@ -1437,7 +1434,7 @@ function exitStates(
       }
       changedHistory ??= { ...historyValue };
       changedHistory[historyNode.id] =
-        Array.from(mutConfiguration).filter(predicate);
+        Array.from(mutStateNodeSet).filter(predicate);
     }
   }
 
@@ -1449,7 +1446,7 @@ function exitStates(
       [...s.exit, ...s.invoke.map((def) => stop(def.id))],
       internalQueue
     );
-    mutConfiguration.delete(s);
+    mutStateNodeSet.delete(s);
   }
   return [nextState, changedHistory || historyValue] as const;
 }
@@ -1458,22 +1455,26 @@ interface BuiltinAction {
   (): void;
   resolve: (
     actorScope: AnyActorScope,
-    state: AnyState,
+    state: AnyMachineSnapshot,
     actionArgs: ActionArgs<any, any, any>,
     actionParams: ParameterizedObject['params'] | undefined,
     action: unknown,
     extra: unknown
-  ) => [newState: AnyState, params: unknown, actions?: UnknownAction[]];
+  ) => [
+    newState: AnyMachineSnapshot,
+    params: unknown,
+    actions?: UnknownAction[]
+  ];
   retryResolve: (
     actorScope: AnyActorScope,
-    state: AnyState,
+    state: AnyMachineSnapshot,
     params: unknown
   ) => void;
   execute: (actorScope: AnyActorScope, params: unknown) => void;
 }
 
 function resolveActionsAndContextWorker(
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   actions: UnknownAction[],
@@ -1482,7 +1483,7 @@ function resolveActionsAndContextWorker(
     deferredActorIds: string[] | undefined;
   },
   retries: (readonly [BuiltinAction, unknown])[] | undefined
-): AnyState {
+): AnyMachineSnapshot {
   const { machine } = currentState;
   let intermediateState = currentState;
 
@@ -1524,10 +1525,10 @@ function resolveActionsAndContextWorker(
       isInline || typeof action === 'string'
         ? undefined
         : 'params' in action
-        ? typeof action.params === 'function'
-          ? action.params({ context: intermediateState.context, event })
-          : action.params
-        : undefined;
+          ? typeof action.params === 'function'
+            ? action.params({ context: intermediateState.context, event })
+            : action.params
+          : undefined;
 
     if (!('resolve' in resolvedAction)) {
       if (actorScope?.self._processingStatus === ProcessingStatus.Running) {
@@ -1582,13 +1583,13 @@ function resolveActionsAndContextWorker(
 }
 
 export function resolveActionsAndContext(
-  currentState: AnyState,
+  currentState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
   actions: UnknownAction[],
   internalQueue: AnyEventObject[],
   deferredActorIds?: string[]
-): AnyState {
+): AnyMachineSnapshot {
   const retries: (readonly [BuiltinAction, unknown])[] | undefined =
     deferredActorIds ? [] : undefined;
   const nextState = resolveActionsAndContextWorker(
@@ -1606,7 +1607,7 @@ export function resolveActionsAndContext(
 }
 
 export function macrostep(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   event: EventObject,
   actorScope: AnyActorScope,
   internalQueue: AnyEventObject[] = []
@@ -1619,7 +1620,7 @@ export function macrostep(
   }
 
   let nextState = state;
-  const states: AnyState[] = [];
+  const states: AnyMachineSnapshot[] = [];
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
@@ -1697,7 +1698,7 @@ export function macrostep(
 }
 
 function stopChildren(
-  nextState: AnyState,
+  nextState: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope
 ) {
@@ -1705,24 +1706,24 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map((child) => stop(child)),
+    Object.values(nextState.children).map((child: any) => stop(child)),
     []
   );
 }
 
 function selectTransitions(
   event: AnyEventObject,
-  nextState: AnyState
+  nextState: AnyMachineSnapshot
 ): AnyTransitionDefinition[] {
   return nextState.machine.getTransitionData(nextState as any, event);
 }
 
 function selectEventlessTransitions(
-  nextState: AnyState,
+  nextState: AnyMachineSnapshot,
   event: AnyEventObject
 ): AnyTransitionDefinition[] {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-  const atomicStates = nextState.configuration.filter(isAtomicStateNode);
+  const atomicStates = nextState._nodes.filter(isAtomicStateNode);
 
   for (const stateNode of atomicStates) {
     loop: for (const s of [stateNode].concat(
@@ -1745,7 +1746,7 @@ function selectEventlessTransitions(
 
   return removeConflictingTransitions(
     Array.from(enabledTransitionSet),
-    new Set(nextState.configuration),
+    new Set(nextState._nodes),
     nextState.historyValue
   );
 }
@@ -1759,8 +1760,8 @@ export function resolveStateValue(
   rootNode: AnyStateNode,
   stateValue: StateValue
 ): StateValue {
-  const configuration = getConfiguration(getStateNodes(rootNode, stateValue));
-  return getStateValue(rootNode, [...configuration]);
+  const allStateNodes = getAllStateNodes(getStateNodes(rootNode, stateValue));
+  return getStateValue(rootNode, [...allStateNodes]);
 }
 
 export function stateValuesEqual(

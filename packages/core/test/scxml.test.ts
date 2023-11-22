@@ -3,7 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
 import { SimulatedClock } from '../src/SimulatedClock';
-import { AnyState, AnyStateMachine, createActor } from '../src/index.ts';
+import {
+  AnyMachineSnapshot,
+  AnyStateMachine,
+  createActor
+} from '../src/index.ts';
 import { toMachine, sanitizeStateId } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
@@ -351,8 +355,8 @@ interface SCIONTest {
 
 async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    let nextState: AnyState;
-    let prevState: AnyState;
+    let nextState: AnyMachineSnapshot;
+    let prevState: AnyMachineSnapshot;
 
     const actor = createActor(machine, {
       logger: () => void 0
@@ -396,8 +400,8 @@ async function runTestToCompletion(
     scheduler: clock
   });
 
-  let nextState: AnyState = service.getSnapshot();
-  let prevState: AnyState;
+  let nextState: AnyMachineSnapshot = service.getSnapshot();
+  let prevState: AnyMachineSnapshot;
   service.subscribe((state) => {
     prevState = nextState;
     nextState = state;

@@ -1,7 +1,7 @@
 import { SerializedState, serializeState } from '@xstate/graph';
 import {
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   createMachine,
   EventFrom,
@@ -12,7 +12,7 @@ import {
   StateValue,
   SnapshotFrom,
   MachineSnapshot,
-  ProvidedActor
+  AnyActorRef
 } from 'xstate';
 import { TestModel } from './TestModel.ts';
 import {
@@ -23,9 +23,10 @@ import {
 import { flatten, simpleStringify } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
 
-export async function testStateFromMeta(state: AnyState) {
-  for (const id of Object.keys(state.meta)) {
-    const stateNodeMeta = state.meta[id];
+export async function testStateFromMeta(state: AnyMachineSnapshot) {
+  const meta = state.getMeta();
+  for (const id of Object.keys(meta)) {
+    const stateNodeMeta = meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
       await stateNodeMeta.test(state);
     }
@@ -72,7 +73,7 @@ function serializeMachineTransition(
   state: MachineSnapshot<
     MachineContext,
     EventObject,
-    ProvidedActor,
+    Record<string, AnyActorRef | undefined>,
     string,
     unknown
   >,
@@ -81,7 +82,7 @@ function serializeMachineTransition(
     | MachineSnapshot<
         MachineContext,
         EventObject,
-        ProvidedActor,
+        Record<string, AnyActorRef | undefined>,
         string,
         unknown
       >
@@ -158,7 +159,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     },
     stateMatcher: (state, key) => {
       return key.startsWith('#')
-        ? (state as any).configuration.includes(machine.getStateNodeById(key))
+        ? (state as any)._nodes.includes(machine.getStateNodeById(key))
         : (state as any).matches(key);
     },
     events: (state) => {
@@ -166,7 +167,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
       return flatten(
-        (state as any).nextEvents.map((eventType: string) => {
+        (state as any).getNextEvents().map((eventType: string) => {
           // @ts-ignore
           if (events.some((e) => e.type === eventType)) {
             // @ts-ignore

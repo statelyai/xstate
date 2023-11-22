@@ -6,7 +6,7 @@ import type {
   AnyActorScope,
   AnyActorRef,
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   Assigner,
   EventObject,
   LowInfer,
@@ -27,7 +27,7 @@ export interface AssignArgs<
 
 function resolveAssign(
   actorScope: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {

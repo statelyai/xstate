@@ -4,8 +4,8 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { createActor, ActorRef, Snapshot } from 'xstate';
-import { useActor } from '../src/index.ts';
+import { createActor, ActorRef, Snapshot, AnyActorLogic } from 'xstate';
+import { useSelector } from '../src/index.ts';
 const simpleActor: ActorRef<any, Snapshot<undefined> & { context: number }> =
   createActor({
     transition: (s) => s,
@@ -17,18 +17,12 @@ const simpleActor: ActorRef<any, Snapshot<undefined> & { context: number }> =
         context: 42
       };
     },
-    subscribe: () => {
-      return {
-        unsubscribe: () => {
-          /* ... */
-        }
-      };
-    }
-  });
+    getPersistedState: () => null as any
+  } satisfies AnyActorLogic);
 
 export default defineComponent({
   setup() {
-    const { state } = useActor(simpleActor);
+    const state = useSelector(simpleActor, (s) => s);
     return { state };
   }
 });

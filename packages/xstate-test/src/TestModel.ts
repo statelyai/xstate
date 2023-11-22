@@ -11,7 +11,13 @@ import type {
   Step,
   TraversalOptions
 } from '@xstate/graph';
-import { EventObject, AnyState, ActorLogic, Snapshot } from 'xstate';
+import {
+  EventObject,
+  AnyMachineSnapshot,
+  ActorLogic,
+  Snapshot,
+  isMachineSnapshot
+} from 'xstate';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createShortestPathsGen,
@@ -31,10 +37,6 @@ import {
   getDescription,
   simpleStringify
 } from './utils.ts';
-
-function isStateLike(state: any): state is AnyState {
-  return typeof state === 'object' && 'value' in state && 'context' in state;
-}
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -157,7 +159,7 @@ export class TestModel<
         this.testPath(statePath, params),
       testSync: (params: TestParam<TSnapshot, TEvent>) =>
         this.testPathSync(statePath, params),
-      description: isStateLike(statePath.state)
+      description: isMachineSnapshot(statePath.state)
         ? `Reaches ${getDescription(
             statePath.state as any
           ).trim()}: ${eventsString}`

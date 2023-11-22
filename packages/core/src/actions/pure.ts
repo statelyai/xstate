@@ -4,7 +4,7 @@ import {
   ActionArgs,
   UnknownAction,
   AnyActorScope,
-  AnyState,
+  AnyMachineSnapshot,
   EventObject,
   MachineContext,
   ParameterizedObject,
@@ -16,7 +16,7 @@ import { toArray } from '../utils.ts';
 
 function resolvePure(
   _: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -41,14 +41,13 @@ function resolvePure(
 export interface PureAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: unknown): void;
   _out_TEvent?: TEvent;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -59,9 +58,6 @@ export interface PureAction<
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined =
-    | ParameterizedObject['params']
-    | undefined,
   TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
@@ -89,7 +85,6 @@ export function pure<
 ): PureAction<
   TContext,
   TExpressionEvent,
-  TParams,
   TEvent,
   TActor,
   TAction,
@@ -98,7 +93,7 @@ export function pure<
 > {
   function pure(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    params: unknown
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);

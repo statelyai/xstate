@@ -4,12 +4,37 @@ import type {
   StateValue,
   MachineContext,
   ParameterizedObject,
-  AnyState,
+  AnyMachineSnapshot,
   NoRequiredParams,
   NoInfer,
-  WithDynamicParams
+  WithDynamicParams,
+  Identity,
+  Elements
 } from './types.ts';
 import { isStateId } from './stateUtils.ts';
+
+type SingleGuardArg<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TGuardArg
+> = [TGuardArg] extends [{ type: string }]
+  ? Identity<TGuardArg>
+  : [TGuardArg] extends [string]
+    ? TGuardArg
+    : GuardPredicate<TContext, TExpressionEvent, TParams, ParameterizedObject>;
+
+type NormalizeGuardArg<TGuardArg> = TGuardArg extends { type: string }
+  ? Identity<TGuardArg> & { params: unknown }
+  : TGuardArg extends string
+    ? { type: TGuardArg; params: undefined }
+    : '_out_TGuard' extends keyof TGuardArg
+      ? TGuardArg['_out_TGuard'] & ParameterizedObject
+      : never;
+
+type NormalizeGuardArgArray<TArg extends unknown[]> = Elements<{
+  [K in keyof TArg]: NormalizeGuardArg<TArg[K]>;
+}>;
 
 export type GuardPredicate<
   TContext extends MachineContext,
@@ -58,20 +83,20 @@ type UnknownInlineGuard = Guard<
 interface BuiltinGuard {
   (): boolean;
   check: (
-    state: AnyState,
+    state: AnyMachineSnapshot,
     guardArgs: GuardArgs<any, any>,
     params: unknown
   ) => boolean;
 }
 
 function checkStateIn(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   _: GuardArgs<any, any>,
   { stateValue }: { stateValue: StateValue }
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
     const target = state.machine.getStateNodeById(stateValue);
-    return state.configuration.some((sn) => sn === target);
+    return state._nodes.some((sn) => sn === target);
   }
 
   return state.matches(stateValue);
@@ -106,7 +131,7 @@ export function stateIn<
 }
 
 function checkNot(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
@@ -116,12 +141,16 @@ function checkNot(
 export function not<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TGuard extends ParameterizedObject
+  TArg
 >(
-  guard: Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
-): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
-  function not(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
+  guard: SingleGuardArg<TContext, TExpressionEvent, unknown, TArg>
+): GuardPredicate<
+  TContext,
+  TExpressionEvent,
+  unknown,
+  NormalizeGuardArg<NoInfer<TArg>>
+> {
+  function not(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -135,7 +164,7 @@ export function not<
 }
 
 function checkAnd(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
@@ -145,14 +174,25 @@ function checkAnd(
 export function and<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TGuard extends ParameterizedObject
+  TArg extends unknown[]
 >(
-  guards: ReadonlyArray<
-    Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
-  >
-): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
-  function and(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
+  guards: readonly [
+    ...{
+      [K in keyof TArg]: SingleGuardArg<
+        TContext,
+        TExpressionEvent,
+        unknown,
+        TArg[K]
+      >;
+    }
+  ]
+): GuardPredicate<
+  TContext,
+  TExpressionEvent,
+  unknown,
+  NormalizeGuardArgArray<NoInfer<TArg>>
+> {
+  function and(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -166,7 +206,7 @@ export function and<
 }
 
 function checkOr(
-  state: AnyState,
+  state: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
@@ -176,14 +216,25 @@ function checkOr(
 export function or<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TGuard extends ParameterizedObject
+  TArg extends unknown[]
 >(
-  guards: ReadonlyArray<
-    Guard<TContext, TExpressionEvent, TParams, NoInfer<TGuard>>
-  >
-): GuardPredicate<TContext, TExpressionEvent, TParams, TGuard> {
-  function or(args: GuardArgs<TContext, TExpressionEvent>, params: TParams) {
+  guards: readonly [
+    ...{
+      [K in keyof TArg]: SingleGuardArg<
+        TContext,
+        TExpressionEvent,
+        unknown,
+        TArg[K]
+      >;
+    }
+  ]
+): GuardPredicate<
+  TContext,
+  TExpressionEvent,
+  unknown,
+  NormalizeGuardArgArray<NoInfer<TArg>>
+> {
+  function or(args: GuardArgs<TContext, TExpressionEvent>, params: unknown) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -204,7 +255,7 @@ export function evaluateGuard<
   guard: UnknownGuard | UnknownInlineGuard,
   context: TContext,
   event: TExpressionEvent,
-  state: AnyState
+  state: AnyMachineSnapshot
 ): boolean {
   const { machine } = state;
   const isInline = typeof guard === 'function';
@@ -236,10 +287,10 @@ export function evaluateGuard<
     isInline || typeof guard === 'string'
       ? undefined
       : 'params' in guard
-      ? typeof guard.params === 'function'
-        ? guard.params({ context, event })
-        : guard.params
-      : undefined;
+        ? typeof guard.params === 'function'
+          ? guard.params({ context, event })
+          : guard.params
+        : undefined;
 
   if (!('check' in resolved)) {
     // the existing type of `.guards` assumes non-nullable `TExpressionGuard`

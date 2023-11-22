@@ -3,7 +3,7 @@ import {
   ActionArgs,
   AnyActorScope,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   DelayExpr,
   EventObject,
   MachineContext,
@@ -16,7 +16,7 @@ import {
 
 function resolveRaise(
   actorCtx: AnyActorScope,
-  state: AnyState,
+  state: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {

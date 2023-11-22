@@ -14,7 +14,10 @@ import {
   stop,
   Snapshot,
   EventObject,
-  ActorRefFrom
+  ActorRefFrom,
+  spawn,
+  AnyActorRef,
+  AnyStateMachine
 } from '../src/index.ts';
 
 describe('system', () => {
@@ -71,7 +74,7 @@ describe('system', () => {
       types: {} as {
         context: {
           ref: CallbackActorRef<EventObject, unknown>;
-          machineRef?: ActorRefFrom<ReturnType<typeof createMachine>>;
+          machineRef?: ActorRefFrom<AnyStateMachine>;
         };
       },
       id: 'parent',
@@ -230,6 +233,45 @@ describe('system', () => {
         ],
       ]
     `);
+  });
+
+  it('should cleanup stopped actors', () => {
+    const machine = createMachine({
+      types: {
+        context: {} as {
+          ref: AnyActorRef;
+        }
+      },
+      context: ({ spawn }) => ({
+        ref: spawn(
+          fromPromise(() => Promise.resolve()),
+          {
+            systemId: 'test'
+          }
+        )
+      }),
+      on: {
+        stop: {
+          actions: stop(({ context }) => context.ref)
+        },
+        start: {
+          actions: spawn(
+            fromPromise(() => Promise.resolve()),
+            {
+              systemId: 'test'
+            }
+          )
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'stop' });
+
+    expect(() => {
+      actor.send({ type: 'start' });
+    }).not.toThrow();
   });
 
   it('should be accessible in inline custom actions', () => {
@@ -468,5 +510,29 @@ describe('system', () => {
         }
       ]
     ]);
+  });
+
+  it('should be able to send an event to an ancestor with a registered `systemId` from an initial entry action', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      entry: sendTo(({ system }) => system.get('myRoot'), {
+        type: 'EV'
+      })
+    });
+
+    const machine = createMachine({
+      invoke: {
+        src: child
+      },
+      on: {
+        EV: {
+          actions: spy
+        }
+      }
+    });
+    createActor(machine, { systemId: 'myRoot' }).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

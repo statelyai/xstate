@@ -114,6 +114,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   // Actor Ref
   public _parent?: ActorRef<any, any>;
+  public _syncSnapshot?: boolean;
   public ref: ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>;
   // TODO: add typings for system
   private _actorScope: ActorScope<
@@ -143,13 +144,16 @@ export class Actor<TLogic extends AnyActorLogic>
    * @param logic The logic to create an actor from
    * @param options Actor options
    */
-  constructor(public logic: TLogic, options?: ActorOptions<TLogic>) {
+  constructor(
+    public logic: TLogic,
+    options?: ActorOptions<TLogic>
+  ) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
     } as ActorOptions<TLogic> & typeof defaultOptions;
 
-    const { scheduler, logger, parent, id, systemId, inspect } =
+    const { scheduler, logger, parent, syncSnapshot, id, systemId, inspect } =
       resolvedOptions;
 
     this.system =
@@ -167,6 +171,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this._parent = parent;
+    this._syncSnapshot = syncSnapshot;
     this.options = resolvedOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
@@ -196,11 +201,16 @@ export class Actor<TLogic extends AnyActorLogic>
       type: '@xstate.actor',
       actorRef: this
     });
-    this._initState(options?.state);
 
-    if (systemId && (this._state as any).status === 'active') {
+    if (systemId) {
       this._systemId = systemId;
       this.system._set(systemId, this);
+    }
+
+    this._initState(options?.state);
+
+    if (systemId && (this._state as any).status !== 'active') {
+      this.system._unregister(this);
     }
   }
 
@@ -358,6 +368,20 @@ export class Actor<TLogic extends AnyActorLogic>
     if (this._processingStatus === ProcessingStatus.Running) {
       // Do not restart the service if it is already started
       return this;
+    }
+
+    if (this._syncSnapshot) {
+      this.subscribe({
+        next: (snapshot: Snapshot<unknown>) => {
+          if (snapshot.status === 'active') {
+            this._parent!.send({
+              type: `xstate.snapshot.${this.id}`,
+              snapshot
+            });
+          }
+        },
+        error: () => {}
+      });
     }
 
     this.system._register(this.sessionId, this);
