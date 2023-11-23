@@ -15,5 +15,5 @@ export {
   sendTo,
   type SendToAction
 } from './actions/send.ts';
-export { stopChild, type StopAction } from './actions/stopChild.ts';
+export { stop, stopChild, type StopAction } from './actions/stopChild.ts';
 export { spawnChild, type SpawnAction } from './actions/spawn.ts';

@@ -88,7 +88,7 @@ export interface StopAction<
 }
 
 /**
- * Stops an actor.
+ * Stops a child actor.
  *
  * @param actorRef The actor to stop.
  */
@@ -117,3 +117,12 @@ export function stopChild<
 
   return stop;
 }
+
+/**
+ * Stops a child actor.
+ *
+ * Deprecated: use `stopChild(...)` instead.
+ *
+ * @deprecated Use `stopChild(...)` instead
+ */
+export const stop = stopChild;
