@@ -749,7 +749,7 @@ describe('interpreter', () => {
   });
 });
 
-describe('spawn action', () => {
+describe('spawnChild action', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
