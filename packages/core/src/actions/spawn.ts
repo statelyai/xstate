@@ -199,7 +199,7 @@ export function spawnChild<
     }
   }
 
-  spawnChild.type = 'xstate.spawn';
+  spawnChild.type = 'xstate.spawnChild';
   spawnChild.id = id;
   spawnChild.systemId = systemId;
   spawnChild.src = src;
