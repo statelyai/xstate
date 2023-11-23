@@ -1,7 +1,7 @@
 export * from './actions.ts';
 export * from './actors/index.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
-export { type Spawner } from './spawnChild.ts';
+export { type Spawner } from './spawn.ts';
 export { StateMachine } from './StateMachine.ts';
 export { getStateNodes } from './stateUtils.ts';
 export * from './typegenTypes.ts';

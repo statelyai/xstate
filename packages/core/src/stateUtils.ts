@@ -4,7 +4,7 @@ import type { StateNode } from './StateNode.ts';
 import { raise } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
-import { spawnChild } from './actions/spawn.ts';
+import { spawnChild } from './actions/spawnChild.ts';
 import { stopChild } from './actions/stopChild.ts';
 import {
   XSTATE_INIT,
