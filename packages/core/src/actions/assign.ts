@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
-import { Spawner, createSpawner } from '../spawn.ts';
+import { Spawner, createSpawner } from '../spawnChild.ts';
 import type {
   ActionArgs,
   AnyActorScope,

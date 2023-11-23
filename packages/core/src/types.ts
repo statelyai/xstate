@@ -11,7 +11,7 @@ import {
 } from './typegenTypes.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
-import { Spawner } from './spawn.ts';
+import { Spawner } from './spawnChild.ts';
 import { AssignArgs } from './actions/assign.ts';
 import { InspectionEvent } from './system.js';
 
