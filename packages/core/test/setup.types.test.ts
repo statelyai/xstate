@@ -468,7 +468,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should accept a `spawn` action that tries to spawn a known actor', () => {
+  it('should accept a `spawnChild` action that tries to spawn a known actor', () => {
     setup({
       actors: {
         fetchUser: fromPromise(async () => ({ name: 'Andarist' }))
@@ -479,7 +479,7 @@ describe('setup()', () => {
     });
   });
 
-  it('should not accept a `spawn` action that tries to spawn an unknown actor', () => {
+  it('should not accept a `spawnChild` action that tries to spawn an unknown actor', () => {
     setup({
       actors: {
         fetchUser: fromPromise(async () => ({ name: 'Andarist' }))
