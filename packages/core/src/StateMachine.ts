@@ -560,13 +560,11 @@ export class StateMachine<
         return;
       }
 
-      const actorState = logic.restoreState?.(childState, _actorScope);
-
       const actorRef = createActor(logic, {
         id: actorId,
         parent: _actorScope?.self,
         syncSnapshot: actorData.syncSnapshot,
-        state: actorState,
+        state: childState,
         src,
         systemId: actorData.systemId
       });
