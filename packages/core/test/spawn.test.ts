@@ -9,7 +9,7 @@ import {
   spawnChild
 } from '../src';
 
-describe('spawn action', () => {
+describe('spawnChild action', () => {
   it('can spawn', () => {
     const actor = createActor(
       createMachine({
