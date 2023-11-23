@@ -11,7 +11,7 @@ import {
   fromTransition,
   createActor,
   sendTo,
-  stop,
+  stopChild,
   Snapshot,
   EventObject,
   ActorRefFrom,
@@ -179,7 +179,7 @@ describe('system', () => {
       }),
       on: {
         toggle: {
-          actions: stop(({ context }) => context.ref)
+          actions: stopChild(({ context }) => context.ref)
         }
       }
     });
@@ -252,7 +252,7 @@ describe('system', () => {
       }),
       on: {
         stop: {
-          actions: stop(({ context }) => context.ref)
+          actions: stopChild(({ context }) => context.ref)
         },
         start: {
           actions: spawnChild(

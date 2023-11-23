@@ -6,7 +6,7 @@ import {
   sendTo,
   waitFor
 } from '../src/index.ts';
-import { raise, sendParent, stop } from '../src/actions.ts';
+import { raise, sendParent, stopChild } from '../src/actions.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 

@@ -1,7 +1,7 @@
 import { from } from 'rxjs';
 import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
-import { stop } from '../src/actions/stop';
+import { stopChild } from '../src/actions/stopChild';
 import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
@@ -146,7 +146,7 @@ describe('stop', () => {
       },
       on: {
         FOO: {
-          actions: stop(({ event }) => {
+          actions: stopChild(({ event }) => {
             ((_arg: 'FOO') => {})(event.type);
             // @ts-expect-error
             ((_arg: 'BAR') => {})(event.type);
@@ -2525,7 +2525,7 @@ describe('actions', () => {
         count: 0,
         childRef: spawn(childMachine)
       }),
-      entry: stop(({ context }) => {
+      entry: stopChild(({ context }) => {
         ((_accept: number) => {})(context.count);
         // @ts-expect-error
         ((_accept: "ain't any") => {})(context.count);
@@ -2555,7 +2555,7 @@ describe('actions', () => {
       }),
       on: {
         FOO: {
-          actions: stop(({ context }) => {
+          actions: stopChild(({ context }) => {
             ((_accept: number) => {})(context.count);
             // @ts-expect-error
             ((_accept: "ain't any") => {})(context.count);
@@ -2576,7 +2576,7 @@ describe('actions', () => {
       context: {
         count: 0
       },
-      entry: stop(
+      entry: stopChild(
         // @ts-expect-error
         ({ context }) => {
           return context.count;
@@ -2602,13 +2602,13 @@ describe('actions', () => {
         promiseRef: spawn(fromPromise(() => Promise.resolve('foo')))
       }),
       entry: [
-        stop(({ context }) => {
+        stopChild(({ context }) => {
           ((_accept: number) => {})(context.count);
           // @ts-expect-error
           ((_accept: "ain't any") => {})(context.count);
           return context.childRef;
         }),
-        stop(({ context }) => {
+        stopChild(({ context }) => {
           ((_accept: number) => {})(context.count);
           // @ts-expect-error
           ((_accept: "ain't any") => {})(context.count);

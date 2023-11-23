@@ -92,7 +92,7 @@ export interface StopAction<
  *
  * @param actorRef The actor to stop.
  */
-export function stop<
+export function stopChild<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
@@ -109,7 +109,7 @@ export function stop<
     }
   }
 
-  stop.type = 'xstate.stop';
+  stop.type = 'xstate.stopChild';
   stop.actorRef = actorRef;
 
   stop.resolve = resolveStop;

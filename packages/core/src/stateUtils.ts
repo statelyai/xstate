@@ -5,7 +5,7 @@ import { raise } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
 import { spawnChild } from './actions/spawn.ts';
-import { stop } from './actions/stop.ts';
+import { stopChild } from './actions/stopChild.ts';
 import {
   XSTATE_INIT,
   NULL_EVENT,
@@ -1443,7 +1443,7 @@ function exitStates(
       nextState,
       event,
       actorScope,
-      [...s.exit, ...s.invoke.map((def) => stop(def.id))],
+      [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
       internalQueue
     );
     mutStateNodeSet.delete(s);
@@ -1706,7 +1706,7 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map((child: any) => stop(child)),
+    Object.values(nextState.children).map((child: any) => stopChild(child)),
     []
   );
 }
