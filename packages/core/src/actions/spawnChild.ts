@@ -178,7 +178,7 @@ type SpawnArguments<
       }
     ];
 
-export function spawn<
+export function spawnChild<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined,
@@ -190,7 +190,7 @@ export function spawn<
     { id, systemId, input, syncSnapshot = false } = {} as any
   ]: SpawnArguments<TContext, TExpressionEvent, TEvent, TActor>
 ): SpawnAction<TContext, TExpressionEvent, TParams, TEvent, TActor> {
-  function spawn(
+  function spawnChild(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
   ) {
@@ -199,15 +199,15 @@ export function spawn<
     }
   }
 
-  spawn.type = 'xstate.spawn';
-  spawn.id = id;
-  spawn.systemId = systemId;
-  spawn.src = src;
-  spawn.input = input;
-  spawn.syncSnapshot = syncSnapshot;
+  spawnChild.type = 'xstate.spawnChild';
+  spawnChild.id = id;
+  spawnChild.systemId = systemId;
+  spawnChild.src = src;
+  spawnChild.input = input;
+  spawnChild.syncSnapshot = syncSnapshot;
 
-  spawn.resolve = resolveSpawn;
-  spawn.execute = executeSpawn;
+  spawnChild.resolve = resolveSpawn;
+  spawnChild.execute = executeSpawn;
 
-  return spawn;
+  return spawnChild;
 }

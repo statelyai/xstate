@@ -4,8 +4,8 @@ import type { StateNode } from './StateNode.ts';
 import { raise } from './actions.ts';
 import { createAfterEvent, createDoneStateEvent } from './eventUtils.ts';
 import { cancel } from './actions/cancel.ts';
-import { spawn } from './actions/spawn.ts';
-import { stop } from './actions/stop.ts';
+import { spawnChild } from './actions/spawnChild.ts';
+import { stopChild } from './actions/stopChild.ts';
 import {
   XSTATE_INIT,
   NULL_EVENT,
@@ -1132,7 +1132,7 @@ function enterStates(
 
     for (const invokeDef of stateNodeToEnter.invoke) {
       actions.push(
-        spawn(invokeDef.src, {
+        spawnChild(invokeDef.src, {
           ...invokeDef,
           syncSnapshot: !!invokeDef.onSnapshot
         })
@@ -1443,7 +1443,7 @@ function exitStates(
       nextState,
       event,
       actorScope,
-      [...s.exit, ...s.invoke.map((def) => stop(def.id))],
+      [...s.exit, ...s.invoke.map((def) => stopChild(def.id))],
       internalQueue
     );
     mutStateNodeSet.delete(s);
@@ -1706,7 +1706,7 @@ function stopChildren(
     nextState,
     event,
     actorScope,
-    Object.values(nextState.children).map((child: any) => stop(child)),
+    Object.values(nextState.children).map((child: any) => stopChild(child)),
     []
   );
 }

@@ -27,7 +27,7 @@ import {
   createActor,
   createMachine,
   waitFor,
-  stop
+  stopChild
 } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
 
@@ -1433,7 +1433,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(({ context }) => {
+                stopChild(({ context }) => {
                   return context.actorRef;
                 }),
                 assign({
@@ -1500,7 +1500,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(({ context }) => context.actorRef),
+                stopChild(({ context }) => context.actorRef),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1565,7 +1565,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop('my_name'),
+                stopChild('my_name'),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1630,7 +1630,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(() => 'my_name'),
+                stopChild(() => 'my_name'),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
