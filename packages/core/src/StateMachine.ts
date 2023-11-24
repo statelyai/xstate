@@ -52,7 +52,12 @@ import type {
   AnyActorLogic,
   HistoryValue
 } from './types.ts';
-import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
+import {
+  flatten,
+  getAllOwnEventDescriptors,
+  isErrorActorEvent,
+  resolveReferencedActor
+} from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
 import isDevelopment from '#is-development';
 
@@ -297,7 +302,9 @@ export class StateMachine<
     // TODO: handle error events in a better way
     if (
       isErrorActorEvent(event) &&
-      !state.getNextEvents().some((nextEvent) => nextEvent === event.type)
+      !getAllOwnEventDescriptors(state).some(
+        (nextEvent) => nextEvent === event.type
+      )
     ) {
       return cloneMachineSnapshot(state, {
         status: 'error',
@@ -560,13 +567,11 @@ export class StateMachine<
         return;
       }
 
-      const actorState = logic.restoreState?.(childState, _actorScope);
-
       const actorRef = createActor(logic, {
         id: actorId,
         parent: _actorScope?.self,
         syncSnapshot: actorData.syncSnapshot,
-        state: actorState,
+        state: childState,
         src,
         systemId: actorData.systemId
       });

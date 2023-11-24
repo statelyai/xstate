@@ -8,7 +8,8 @@ import {
   AnyActorLogic,
   SnapshotFrom,
   EventFromLogic,
-  Snapshot
+  Snapshot,
+  __unsafe_getAllOwnEventDescriptors
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -91,7 +92,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
       const events =
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
       return flatten(
-        state.getNextEvents().map((type) => {
+        __unsafe_getAllOwnEventDescriptors(state).map((type) => {
           const matchingEvents = events.filter(
             (ev) => (ev as any).type === type
           );

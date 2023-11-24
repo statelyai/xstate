@@ -126,20 +126,6 @@ interface MachineSnapshotBase<
     event: TEvent
   ) => boolean;
 
-  /**
-   * The next events that will cause a transition from the current state.
-   */
-  getNextEvents: (
-    this: MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >
-  ) => ReadonlyArray<EventDescriptor<TEvent>>;
-
   getMeta: (
     this: MachineSnapshot<
       TContext,
@@ -322,7 +308,6 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
     _nodes: nodes,
     tags,
     machine,
-    getNextEvents,
     getMeta,
     toJSON,
     can,
@@ -331,12 +316,6 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
     ...jsonValues
   } = this;
   return { ...jsonValues, tags: Array.from(tags) };
-};
-
-const machineSnapshotGetNextEvents = function getNextEvents(
-  this: AnyMachineSnapshot
-) {
-  return [...new Set(flatten([...this._nodes.map((sn) => sn.ownEvents)]))];
 };
 
 const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
@@ -383,7 +362,6 @@ export function createMachineSnapshot<
     matches: machineSnapshotMatches as any,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
-    getNextEvents: machineSnapshotGetNextEvents,
     getMeta: machineSnapshotGetMeta,
     toJSON: machineSnapshotToJSON
   };
@@ -426,7 +404,6 @@ export function getPersistedState<
     can,
     hasTag,
     matches,
-    getNextEvents,
     getMeta,
     toJSON,
     ...jsonValues

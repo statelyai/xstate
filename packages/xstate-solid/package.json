@@ -49,7 +49,7 @@
   },
   "peerDependencies": {
     "solid-js": "^1.6.0",
-    "xstate": "^5.0.0-beta.45"
+    "xstate": "^5.0.0-beta.46"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -59,6 +59,6 @@
   "devDependencies": {
     "solid-js": "^1.7.6",
     "solid-testing-library": "^0.3.0",
-    "xstate": "5.0.0-beta.45"
+    "xstate": "5.0.0-beta.46"
   }
 }
