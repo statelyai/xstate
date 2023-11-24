@@ -52,7 +52,12 @@ import type {
   AnyActorLogic,
   HistoryValue
 } from './types.ts';
-import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
+import {
+  flatten,
+  getAllOwnEventDescriptors,
+  isErrorActorEvent,
+  resolveReferencedActor
+} from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
 import isDevelopment from '#is-development';
 
@@ -297,7 +302,9 @@ export class StateMachine<
     // TODO: handle error events in a better way
     if (
       isErrorActorEvent(event) &&
-      !state.getNextEvents().some((nextEvent) => nextEvent === event.type)
+      !getAllOwnEventDescriptors(state).some(
+        (nextEvent) => nextEvent === event.type
+      )
     ) {
       return cloneMachineSnapshot(state, {
         status: 'error',

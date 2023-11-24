@@ -18,9 +18,10 @@ import type {
   AnyTransitionConfig,
   NonReducibleUnknown,
   AnyStateMachine,
-  InvokeConfig
+  InvokeConfig,
+  AnyMachineSnapshot
 } from './types.ts';
-import { isMachineSnapshot } from './State.ts';
+import { MachineSnapshot, isMachineSnapshot } from './State.ts';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -401,4 +402,8 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
     ).src;
   }
   return machine.implementations.actors[src];
+}
+
+export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
+  return [...new Set(flatten([...snapshot._nodes.map((sn) => sn.ownEvents)]))];
 }

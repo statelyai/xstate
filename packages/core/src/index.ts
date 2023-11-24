@@ -12,7 +12,12 @@ import { createMachine } from './createMachine.ts';
 export { type MachineSnapshot, isMachineSnapshot } from './State.ts';
 import { StateNode } from './StateNode.ts';
 // TODO: decide from where those should be exported
-export { matchesState, pathToStateValue, toObserver } from './utils.ts';
+export {
+  matchesState,
+  pathToStateValue,
+  toObserver,
+  getAllOwnEventDescriptors as __unsafe_getAllOwnEventDescriptors
+} from './utils.ts';
 export {
   Actor,
   createActor,
