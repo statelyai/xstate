@@ -1,5 +1,33 @@
 # xstate
 
+## 5.0.0-beta.47
+
+### Minor Changes
+
+- [#4488](https://github.com/statelyai/xstate/pull/4488) [`9ca3c3dcf`](https://github.com/statelyai/xstate/commit/9ca3c3dcf25aba67aab5b6390766c273e9eba766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `spawn(...)` action creator has been renamed to `spawnChild(...)` to avoid confusion.
+
+  ```ts
+  import { spawnChild, assign } from 'xstate';
+
+  const childMachine = createMachine({
+    on: {
+      someEvent: {
+        actions: [
+          // spawnChild(...) instead of spawn(...)
+          spawnChild('someSrc'),
+
+          // spawn() is used inside of assign()
+          assign({
+            anotherRef: ({ spawn }) => spawn('anotherSrc')
+          })
+        ]
+      }
+    }
+  });
+  ```
+
+- [#4488](https://github.com/statelyai/xstate/pull/4488) [`9ca3c3dcf`](https://github.com/statelyai/xstate/commit/9ca3c3dcf25aba67aab5b6390766c273e9eba766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `stop(...)` action creator is renamed to `stopChild(...)`, to make it clear that only child actors may be stopped from the parent actor.
+
 ## 5.0.0-beta.45
 
 ### Minor Changes
