@@ -45,7 +45,8 @@ import {
   normalizeTarget,
   toArray,
   toStatePath,
-  toTransitionConfigArray
+  toTransitionConfigArray,
+  isErrorActorEvent
 } from './utils.ts';
 import { ProcessingStatus } from './interpreter.ts';
 
@@ -1643,7 +1644,25 @@ export function macrostep(
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
   if (nextEvent.type !== XSTATE_INIT) {
-    const transitions = selectTransitions(nextEvent, nextState);
+    const currentEvent = nextEvent;
+    const isErr = isErrorActorEvent(currentEvent);
+
+    const transitions = selectTransitions(currentEvent, nextState);
+
+    if (isErr && !transitions.length) {
+      // TODO: we should likely only allow transitions selected by very explicit descriptors
+      // `*` shouldn't be matched, likely `xstate.error.*` shouldnt be either
+      // what about `xstate.error.actor.*`? what about `xstate.error.actor.todo.*`?
+      nextState = cloneMachineSnapshot<typeof state>(state, {
+        status: 'error',
+        error: currentEvent.data
+      });
+      states.push(nextState);
+      return {
+        state: nextState,
+        microstates: states
+      };
+    }
     nextState = microstep(
       transitions,
       state,

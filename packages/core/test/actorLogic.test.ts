@@ -185,13 +185,13 @@ describe('promise logic (fromPromise)', () => {
       createdPromises++;
       return Promise.reject(createdPromises);
     });
-    const actor = createActor(promiseLogic);
-    actor.subscribe({ error: function preventUnhandledErrorListener() {} });
-    actor.start();
+    const actorRef = createActor(promiseLogic);
+    actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
+    actorRef.start();
 
     await new Promise((res) => setTimeout(res, 5));
 
-    const rejectedPersistedState = actor.getPersistedState();
+    const rejectedPersistedState = actorRef.getPersistedState();
     expect(rejectedPersistedState).toMatchInlineSnapshot(`
       {
         "error": 1,
@@ -202,9 +202,11 @@ describe('promise logic (fromPromise)', () => {
     `);
     expect(createdPromises).toBe(1);
 
-    createActor(promiseLogic, {
+    const actorRef2 = createActor(promiseLogic, {
       state: rejectedPersistedState
-    }).start();
+    });
+    actorRef2.subscribe({ error: function preventUnhandledErrorListener() {} });
+    actorRef2.start();
 
     expect(createdPromises).toBe(1);
   });
@@ -347,19 +349,24 @@ describe('observable logic (fromObservable)', () => {
     expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('should reject (observer .error)', (done) => {
-    const actor = createActor(fromObservable(() => throwError(() => 'Error')));
+  it('should reject (observer .error)', () => {
+    const actor = createActor(
+      fromObservable(() => throwError(() => 'Observable error.'))
+    );
     const spy = jest.fn();
 
     actor.subscribe({
-      next: (snapshot) => spy(snapshot.error),
-      error: () => {
-        done();
-      }
+      error: spy
     });
 
     actor.start();
-    expect(spy).toHaveBeenCalledWith('Error');
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          "Observable error.",
+        ],
+      ]
+    `);
   });
 
   it('should complete (observer .complete)', () => {

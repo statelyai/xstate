@@ -1906,8 +1906,7 @@ export interface ActorRef<
   /** @internal */
   _send: (event: TEvent) => void;
   send: (event: TEvent) => void;
-  // TODO: should this be optional?
-  start?: () => void;
+  start: () => void;
   getSnapshot: () => TSnapshot;
   getPersistedState: () => Snapshot<unknown>;
   stop: () => void;
