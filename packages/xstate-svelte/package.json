@@ -45,7 +45,7 @@
   },
   "peerDependencies": {
     "svelte": "^3.24.1 || ^4",
-    "xstate": "^5.0.0-beta.45"
+    "xstate": "^5.0.0-beta.46"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -60,6 +60,6 @@
     "svelte-check": "^3.2.0",
     "svelte-jester": "^2.3.2",
     "svelte-preprocess": "^5.0.0",
-    "xstate": "5.0.0-beta.45"
+    "xstate": "5.0.0-beta.46"
   }
 }
