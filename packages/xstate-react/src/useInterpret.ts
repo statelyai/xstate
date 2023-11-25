@@ -75,46 +75,45 @@ export function useIdleInterpreter(
   // This mutation assignment is safe because the service instance is only used
   // in one place -- this hook's caller.
   useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.actions, actions);
-    Object.assign(service.machine.options.guards, guards);
-    Object.assign(service.machine.options.activities, activities);
-    Object.assign(service.machine.options.services, services);
-    Object.assign(service.machine.options.delays, delays);
+    Object.assign(service.machine.options.actions!, actions);
+    Object.assign(service.machine.options.guards!, guards);
+    Object.assign(service.machine.options.activities!, activities);
+    Object.assign(service.machine.options.services!, services);
+    Object.assign(service.machine.options.delays!, delays);
   }, [actions, guards, activities, services, delays]);
 
   return service as any;
 }
 
-type RestParams<
-  TMachine extends AnyStateMachine
-> = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
-> extends false
-  ? [
-      options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >,
-      observerOrListener?:
-        | Observer<StateFrom<TMachine>>
-        | ((value: StateFrom<TMachine>) => void)
-    ]
-  : [
-      options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >,
-      observerOrListener?:
-        | Observer<StateFrom<TMachine>>
-        | ((value: StateFrom<TMachine>) => void)
-    ];
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: InterpreterOptions &
+          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+          InternalMachineOptions<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TMachine>>
+          | ((value: StateFrom<TMachine>) => void)
+      ]
+    : [
+        options?: InterpreterOptions &
+          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+          InternalMachineOptions<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta']
+          >,
+        observerOrListener?:
+          | Observer<StateFrom<TMachine>>
+          | ((value: StateFrom<TMachine>) => void)
+      ];
 
 export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,

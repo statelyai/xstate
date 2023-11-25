@@ -1,5 +1,158 @@
 # @xstate/test
 
+## 1.0.0-alpha.1
+
+### Patch Changes
+
+- [#3864](https://github.com/statelyai/xstate/pull/3864) [`59f3a8e`](https://github.com/statelyai/xstate/commit/59f3a8e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Event cases are now specified as an array of event objects, instead of an object with event types as keys and event object payloads as values:
+
+  ```diff
+  const shortestPaths = getShortestPaths(someMachine, {
+  - eventCases: {
+  -   click: [{ x: 10, y: 10 }, { x: 20, y: 20 }]
+  - }
+  + events: [
+  +   { type: 'click', x: 10, y: 10 },
+  +   { type: 'click', x: 20, y: 20 }
+  + ]
+  });
+  ```
+
+- Updated dependencies [[`59f3a8ece`](https://github.com/statelyai/xstate/commit/59f3a8ecee83ec838040de1920b527c8bf6a803e)]:
+  - @xstate/graph@2.0.0-alpha.1
+
+## 1.0.0-alpha.0
+
+### Major Changes
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock), [@davidkpiano](https://github.com/davidkpiano)! - Substantially simplified how paths and plans work in `TestModel`. Changed `getShortestPlans` and `getSimplePlans` to `getShortestPaths` and `getSimplePaths`. These functions now return an array of paths, instead of an array of plans which contain paths.
+
+  Also added `getPaths`, which defaults to `getShortestPaths`. This can be passed a `pathGenerator` to customize how paths are generated.
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock)! - Moved event cases out of `events`, and into their own attribute called `eventCases`:
+
+  ```ts
+  const model = createTestModel(machine, {
+    eventCases: {
+      CHOOSE_CURRENCY: [
+        {
+          currency: 'GBP'
+        },
+        {
+          currency: 'USD'
+        }
+      ]
+    }
+  });
+
+  model.getPaths().forEach((path) => {
+    it(path.description, async () => {
+      await path.test({
+        events: {
+          CHOOSE_CURRENCY: ({ event }) => {
+            console.log(event.currency);
+          }
+        }
+      });
+    });
+  });
+  ```
+
+  `eventCases` will also now always produce a new path, instead of only creating a path for the first case which matches.
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Removed `.testCoverage()`, and instead made `getPlans`, `getShortestPlans` and `getSimplePlans` cover all states and transitions enabled by event cases by default.
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added validation on `createTestModel` to ensure that you don't include invalid machine configuration in your test machine. Invalid machine configs include `invoke`, `after`, and any actions with a `delay`.
+
+  Added `createTestMachine`, which provides a slimmed-down API for creating machines which removes these types from the config type signature.
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `getShortestPaths()` and `getPaths()` will now traverse all _transitions_ by default, not just all events.
+
+  Take this machine:
+
+  ```ts
+  const machine = createTestMachine({
+    initial: 'toggledOn',
+    states: {
+      toggledOn: {
+        on: {
+          TOGGLE: 'toggledOff'
+        }
+      },
+      toggledOff: {
+        on: {
+          TOGGLE: 'toggledOn'
+        }
+      }
+    }
+  });
+  ```
+
+  In `@xstate/test` version 0.x, this would run this path by default:
+
+  ```txt
+  toggledOn -> TOGGLE -> toggledOff
+  ```
+
+  This is because it satisfies two conditions:
+
+  1. Covers all states
+  2. Covers all events
+
+  But this a complete test - it doesn't test if going from `toggledOff` to `toggledOn` works.
+
+  Now, we seek to cover all transitions by default. So the path would be:
+
+  ```txt
+  toggledOn -> TOGGLE -> toggledOff -> TOGGLE -> toggledOn
+  ```
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock), [@davidkpiano](https://github.com/davidkpiano)! - Moved `events` from `createTestModel` to `path.test`.
+
+  Old:
+
+  ```ts
+  const model = createTestModel(machine, {
+    events: {}
+  });
+  ```
+
+  New:
+
+  ```ts
+  const paths = model.getPaths().forEach((path) => {
+    path.test({
+      events: {}
+    });
+  });
+  ```
+
+  This allows for easier usage of per-test mocks and per-test context.
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock), [@davidkpiano](https://github.com/davidkpiano)! - Added `states` to `path.test()`:
+
+  ```ts
+  const paths = model.getPaths().forEach((path) => {
+    path.test({
+      states: {
+        myState: () => {},
+        'myState.deep': () => {}
+      }
+    });
+  });
+  ```
+
+  This allows you to define your tests outside of your machine, keeping the machine itself easy to read.
+
+### Minor Changes
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock), [@davidkpiano](https://github.com/davidkpiano)! - Added `path.testSync(...)` to allow for testing paths in sync-only environments, such as Cypress.
+
+### Patch Changes
+
+- Updated dependencies [[`ae673e443`](https://github.com/statelyai/xstate/commit/ae673e443aab1e42e26fbe16ea1e9dab784d99be), [`ae673e443`](https://github.com/statelyai/xstate/commit/ae673e443aab1e42e26fbe16ea1e9dab784d99be)]:
+  - @xstate/graph@2.0.0-alpha.0
+
 ## 0.5.1
 
 ### Patch Changes

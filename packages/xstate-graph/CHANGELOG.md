@@ -1,5 +1,39 @@
 # @xstate/graph
 
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- [#3992](https://github.com/statelyai/xstate/pull/3992) [`fc076d82f`](https://github.com/statelyai/xstate/commit/fc076d82f4646c3285455c33200d84f804c17f36) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed an internal import to not import from `xstate/src`
+
+## 2.0.0-alpha.1
+
+### Patch Changes
+
+- [#3864](https://github.com/statelyai/xstate/pull/3864) [`59f3a8e`](https://github.com/statelyai/xstate/commit/59f3a8e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Event cases are now specified as an array of event objects, instead of an object with event types as keys and event object payloads as values:
+
+  ```diff
+  const shortestPaths = getShortestPaths(someMachine, {
+  - eventCases: {
+  -   click: [{ x: 10, y: 10 }, { x: 20, y: 20 }]
+  - }
+  + events: [
+  +   { type: 'click', x: 10, y: 10 },
+  +   { type: 'click', x: 20, y: 20 }
+  + ]
+  });
+  ```
+
+## 2.0.0-alpha.0
+
+### Major Changes
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Renamed `getAdjacencyMap` to `getValueAdjacencyMap`.
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Changed `getSimplePaths` to `getSimplePlans`, and `getShortestPaths` to `getShortestPlans`. Both of these functions can be passed a machine, and return `StatePlan[]`.
+
+  Added functions `traverseSimplePlans`, `traverseShortestPlans`,`traverseShortestPlansFromTo`, `traverseSimplePlansTo` and `traverseSimplePlansFromTo`, which can be passed a `Behavior` and return `StatePlan[]`.
+
 ## 1.4.2
 
 ### Patch Changes

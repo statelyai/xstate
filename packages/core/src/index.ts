@@ -26,9 +26,16 @@ export {
   mapState,
   actions,
   assign,
+  cancel,
   send,
+  sendTo,
   sendParent,
   sendUpdate,
+  raise,
+  log,
+  pure,
+  choose,
+  stop,
   forwardTo,
   interpret,
   Interpreter,
@@ -41,7 +48,21 @@ export {
   t
 };
 
-const { assign, send, sendParent, sendUpdate, forwardTo, doneInvoke } = actions;
+const {
+  assign,
+  cancel,
+  send,
+  sendTo,
+  sendParent,
+  sendUpdate,
+  forwardTo,
+  doneInvoke,
+  raise,
+  log,
+  pure,
+  choose,
+  stop
+} = actions;
 
 declare global {
   interface SymbolConstructor {

@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js"
+  },
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../xstate-fsm"
+    }
+  ]
+}

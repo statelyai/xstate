@@ -1,7 +1,9 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import {
+  ActorRef,
   ActorRefFrom,
+  AnyState,
   assign,
   createMachine,
   interpret,
@@ -9,8 +11,14 @@ import {
   StateFrom,
   toActorRef
 } from 'xstate';
-import { useInterpret, useMachine, useSelector } from '../src';
+import { shallowEqual, useInterpret, useMachine, useSelector } from '../src';
 import { describeEachReactMode } from './utils';
+
+const originalConsoleError = console.error;
+
+afterEach(() => {
+  console.error = originalConsoleError;
+});
 
 describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('only rerenders for selected values', () => {
@@ -137,6 +145,89 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     expect(nameEl.textContent).toEqual('DAVID');
   });
 
+  it('should work with the shallowEqual comparison function', () => {
+    const machine = createMachine<{ user: { name: string } }>({
+      initial: 'active',
+      context: {
+        user: { name: 'david' }
+      },
+      states: {
+        active: {}
+      },
+      on: {
+        'change.same': {
+          // New object reference
+          actions: assign({ user: { name: 'david' } })
+        },
+        'change.other': {
+          // New object reference
+          actions: assign({ user: { name: 'other' } })
+        }
+      }
+    });
+
+    const App = () => {
+      const service = useInterpret(machine);
+      const [userChanges, setUserChanges] = React.useState(0);
+      const user = useSelector(
+        service,
+        (state) => state.context.user,
+        shallowEqual
+      );
+      const prevUser = React.useRef(user);
+
+      React.useEffect(() => {
+        if (user !== prevUser.current) {
+          setUserChanges((c) => c + 1);
+        }
+        prevUser.current = user;
+      }, [user]);
+
+      return (
+        <>
+          <div data-testid="name">{user.name}</div>
+          <div data-testid="changes">{userChanges}</div>
+          <button
+            data-testid="sendSame"
+            onClick={() => service.send({ type: 'change.same' })}
+          ></button>
+          <button
+            data-testid="sendOther"
+            onClick={() => service.send({ type: 'change.other' })}
+          ></button>
+        </>
+      );
+    };
+
+    render(<App />);
+    const nameEl = screen.getByTestId('name');
+    const changesEl = screen.getByTestId('changes');
+    const sendSameButton = screen.getByTestId('sendSame');
+    const sendOtherButton = screen.getByTestId('sendOther');
+
+    expect(nameEl.textContent).toEqual('david');
+
+    // unchanged due to comparison function
+    fireEvent.click(sendSameButton);
+    expect(nameEl.textContent).toEqual('david');
+    expect(changesEl.textContent).toEqual('0');
+
+    // changed
+    fireEvent.click(sendOtherButton);
+    expect(nameEl.textContent).toEqual('other');
+    expect(changesEl.textContent).toEqual('1');
+
+    // changed
+    fireEvent.click(sendSameButton);
+    expect(nameEl.textContent).toEqual('david');
+    expect(changesEl.textContent).toEqual('2');
+
+    // unchanged due to comparison function
+    fireEvent.click(sendSameButton);
+    expect(nameEl.textContent).toEqual('david');
+    expect(changesEl.textContent).toEqual('2');
+  });
+
   it('should work with selecting values from initially spawned actors', () => {
     const childMachine = createMachine<{ count: number }>({
       context: {
@@ -204,7 +295,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const parentMachine = createMachine({
       schema: {
         context: {} as {
-          childActor: ActorRefFrom<ReturnType<typeof createActor>>;
+          childActor: ActorRef<any, any>;
         }
       },
       entry: assign({
@@ -213,8 +304,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const identitySelector = (value: any) => value;
-    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
-      actor.latestValue;
+    const getSnapshot = (actor: ActorRef<any, any>) =>
+      (actor as any).latestValue;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
@@ -343,7 +434,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const parentMachine = createMachine({
       schema: {
         context: {} as {
-          childActor: ActorRefFrom<ReturnType<typeof createActor>>;
+          childActor: ActorRef<any, any>;
         }
       },
       entry: assign({
@@ -352,8 +443,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const identitySelector = (value: any) => value;
-    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
-      actor.latestValue;
+    const getSnapshot = (actor: ActorRef<any, any>) =>
+      (actor as any).latestValue;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
@@ -480,5 +571,56 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     expect(renders).toBe(suiteKey === 'strict' ? 2 : 1);
+  });
+
+  it('should compute a stable snapshot internally when selecting from uninitialized service', () => {
+    const child = createMachine({});
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: child
+      }
+    });
+
+    const snapshots: AnyState[] = [];
+
+    function App() {
+      const service = useInterpret(machine);
+      useSelector(service, (state) => {
+        snapshots.push(state);
+        return state.children.child;
+      });
+      return null;
+    }
+
+    console.error = jest.fn();
+    render(<App />);
+
+    const [snapshot1] = snapshots;
+    expect(snapshots.every((s) => s === snapshot1));
+    expect(console.error).toHaveBeenCalledTimes(0);
+  });
+
+  it(`shouldn't interfere with spawning actors that are part of the initial state of an actor`, () => {
+    let called = false;
+    const child = createMachine({
+      entry: () => (called = true)
+    });
+    const machine = createMachine({
+      context: () => ({
+        childRef: spawn(child)
+      })
+    });
+
+    function App() {
+      const service = useInterpret(machine);
+      useSelector(service, () => {});
+      expect(called).toBe(false);
+      return null;
+    }
+
+    render(<App />);
+
+    expect(called).toBe(true);
   });
 });

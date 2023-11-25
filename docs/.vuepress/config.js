@@ -1,3 +1,11 @@
+const { slugify } = require('@vuepress/shared-utils');
+
+// TODO: remove once https://github.com/vuejs/vuepress/issues/1985 will be fixed
+function slugifyWithBadges(str) {
+  // remove badges and use original slugify function
+  return slugify(str.replace(/<Badge[^>]*\/>/, ''));
+}
+
 module.exports = {
   title: 'XState Docs',
   base: '/docs/',
@@ -20,7 +28,7 @@ module.exports = {
     }
   },
   markdown: {
-    toc: { includeLevel: [2, 3] }
+    toc: { includeLevel: [2, 3], slugify: slugifyWithBadges }
   },
   head: [
     ['script', { src: 'https://plausible.io/js/plausible.js', defer: 'defer' }]
@@ -157,6 +165,7 @@ module.exports = {
           {
             title: '新闻和有用地址',
             children: [
+              ['https://statelyai.canny.io', 'Roadmap'],
               '/updates/',
               [
                 'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
@@ -284,6 +293,7 @@ module.exports = {
           {
             title: 'Actualités et liens utiles',
             children: [
+              ['https://statelyai.canny.io', 'Roadmap'],
               '/fr/updates/',
               [
                 'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
@@ -407,7 +417,7 @@ module.exports = {
       {
         title: 'News and Useful Links',
         children: [
-          '/roadmap/',
+          ['https://statelyai.canny.io', 'Roadmap'],
           '/updates/',
           [
             'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',

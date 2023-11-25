@@ -54,11 +54,11 @@ const optionsMachine = createMachine({
 
 By default, relative targets are [internal transitions](./transitions.md#internal-transitions), which means the parent state will _not_ exit and reenter. You can make relative targets external transitions by specifying `internal: false`:
 
-```js {4}
+```js {5}
 // ...
 on: {
   SELECT_FIRST: {
-    target: { target: '.first' },
+    target: '.first',
     internal: false // external transition, will exit/reenter parent state node
   }
 }

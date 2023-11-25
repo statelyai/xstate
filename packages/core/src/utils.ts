@@ -23,8 +23,12 @@ import {
   GuardMeta,
   InvokeSourceDefinition,
   Observer,
-  Behavior
+  Behavior,
+  RaiseActionObject,
+  SendActionObject,
+  SpecialTargets
 } from './types';
+import * as actionTypes from './actionTypes';
 import {
   STATE_DELIMITER,
   DEFAULT_GUARD_TYPE,
@@ -34,7 +38,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
-import { AnyStateMachine } from '.';
+import { ActionObject, AnyStateMachine } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -89,7 +93,7 @@ export function getActionType(action: Action<any, any>): ActionType {
       ? `${action}`
       : isFunction(action)
       ? action.name
-      : action.type;
+      : (action as any).type;
   } catch (e) {
     throw new Error(
       'Actions must be strings or objects with a string action.type property.'
@@ -211,17 +215,17 @@ export function mapFilterValues<T, P>(
  * Retrieves a value at the given path.
  * @param props The deep path to the prop of the desired value
  */
-export const path = <T extends Record<string, any>>(props: string[]): any => (
-  object: T
-): any => {
-  let result: T = object;
+export const path =
+  <T extends Record<string, any>>(props: string[]): any =>
+  (object: T): any => {
+    let result: T = object;
 
-  for (const prop of props) {
-    result = result[prop as keyof typeof result];
-  }
+    for (const prop of props) {
+      result = result[prop as keyof typeof result];
+    }
 
-  return result;
-};
+    return result;
+  };
 
 /**
  * Retrieves a value at the given path via the nested accessor prop.
@@ -699,23 +703,45 @@ export function toInvokeSource(
 }
 
 export function toObserver<T>(
-  nextHandler: Observer<T> | ((value: T) => void),
+  nextHandler?: Partial<Observer<T>> | ((value: T) => void),
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
 ): Observer<T> {
-  if (typeof nextHandler === 'object') {
-    return nextHandler;
-  }
-
-  const noop = () => void 0;
+  const noop = () => {};
+  const isObserver = typeof nextHandler === 'object';
+  const self = isObserver ? nextHandler : null;
 
   return {
-    next: nextHandler,
-    error: errorHandler || noop,
-    complete: completionHandler || noop
+    next: ((isObserver ? nextHandler.next : nextHandler) || noop).bind(self),
+    error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
+    complete: (
+      (isObserver ? nextHandler.complete : completionHandler) || noop
+    ).bind(self)
   };
 }
 
 export function createInvokeId(stateNodeId: string, index: number): string {
   return `${stateNodeId}:invocation[${index}]`;
+}
+
+export function isRaisableAction<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject
+>(
+  action: ActionObject<TContext, TExpressionEvent, TEvent>
+): action is
+  | RaiseActionObject<TContext, TExpressionEvent, TEvent>
+  | SendActionObject<TContext, TExpressionEvent, TEvent> {
+  return (
+    (action.type === actionTypes.raise ||
+      (action.type === actionTypes.send &&
+        (action as SendActionObject<TContext, TExpressionEvent, TEvent>).to ===
+          SpecialTargets.Internal)) &&
+    typeof (
+      action as
+        | RaiseActionObject<TContext, TExpressionEvent, TEvent>
+        | SendActionObject<TContext, TExpressionEvent, TEvent>
+    ).delay !== 'number'
+  );
 }

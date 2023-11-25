@@ -1,5 +1,26 @@
 # Actions
 
+::: warning
+<Badge text="4.33+" />
+
+It is advised to configure `predictableActionArguments: true` at the top-level of your machine config, like this:
+
+```js
+createMachine({
+  predictableActionArguments: true
+  // ...
+});
+```
+
+This flag is an opt into some fixed behaviors that will be the default in v5. With this flag:
+
+- XState will always call an action with the event directly responsible for the related transition,
+- you also automatically opt-into [`preserveActionOrder`](https://xstate.js.org/docs/guides/context.html#action-order).
+
+Please be aware that you might not be able to use `state` from the `meta` argument when using this flag.
+
+:::
+
 Actions are fire-and-forget [effects](./effects.md). They can be declared in three ways:
 
 - `entry` actions are executed upon entering a state
@@ -7,6 +28,10 @@ Actions are fire-and-forget [effects](./effects.md). They can be declared in thr
 - transition actions are executed when a transition is taken
 
 To learn more, read about [actions in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
+
+:::tip Check out our new docs!
+🆕 Find our [actions in XState explainer](https://stately.ai/docs/actions/) in our new docs, along with a [no-code introduction to actions in statecharts and the Stately Studio](https://stately.ai/docs/actions#entry-and-exit-actions).
+:::
 
 ## API
 
@@ -193,6 +218,26 @@ entry: send({ type: 'SOME_EVENT' });
 
 ## Send action
 
+::: warning
+
+The `send(...)` action creator is deprecated in favor of the `sendTo(...)` action creator:
+
+```diff
+-send({ type: 'EVENT' }, { to: 'someActor' });
++sendTo('someActor', { type: 'EVENT' });
+```
+
+For sending events to self, `raise(...)` should be used:
+
+```diff
+-send({ type: 'EVENT' });
++raise({ type: 'EVENT' });
+```
+
+The `send(...)` action creator will be removed in XState v5.0.
+
+:::
+
 The `send(event)` action creator creates a special “send” action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue, which means the event is sent on the next “step” of the interpreter.
 
 | Argument   | Type                                       | Description                                               |
@@ -340,8 +385,7 @@ The `raise()` action creator queues an event to the statechart, in the internal 
 | `event`  | string or event object | The event to raise. |
 
 ```js
-import { createMachine, actions } from 'xstate';
-const { raise } = actions;
+import { createMachine, raise } from 'xstate';
 
 const raiseActionDemo = createMachine({
   id: 'raisedmo',
@@ -679,7 +723,7 @@ const machine = createMachine({
 
 A [self-transition](./transitions.md#self-transitions) is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
 
-- An internal transition will _not_ exit and reenter itself, so the state node's `entry` and `exit` actions will not be executed again.
+- An internal transition will _neither_ exit nor reenter itself, so the state node's `entry` and `exit` actions will not be executed again.
   - Internal transitions are indicated with `{ internal: true }`, or by leaving the `target` as `undefined`.
   - Actions defined on the transition's `actions` property will be executed.
 - An external transition _will_ exit and reenter itself, so the state node's `entry` and `exit` actions will be executed again.

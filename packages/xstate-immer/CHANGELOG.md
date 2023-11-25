@@ -1,5 +1,17 @@
 # @xstate/immer
 
+## 0.3.3
+
+### Patch Changes
+
+- [#4030](https://github.com/statelyai/xstate/pull/4030) [`bcb811587`](https://github.com/statelyai/xstate/commit/bcb81158746dbf0ff9d586f6d7a3e548794bef3b) Thanks [@SimeonC](https://github.com/SimeonC)! - Bump immer peer dependency to allow v10
+
+## 0.3.2
+
+### Patch Changes
+
+- [#3832](https://github.com/statelyai/xstate/pull/3832) [`1a94f0de0`](https://github.com/statelyai/xstate/commit/1a94f0de083e2daef8867504bfca598827b88041) Thanks [@Andarist](https://github.com/Andarist)! - Fixed inference for the event types within `assign` used in typegen-baked `createMachine`.
+
 ## 0.3.1
 
 ### Patch Changes

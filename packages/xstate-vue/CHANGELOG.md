@@ -15,7 +15,7 @@
 
   When using hooks from `@xstate/vue` it's recommended to skip providing explicit generics to them. Note that that generics list has changed since v1 and we now only accept a single generic, `TMachine`.
 
-* [#3083](https://github.com/statelyai/xstate/pull/3083) [`bc592582a`](https://github.com/statelyai/xstate/commit/bc592582a8b486ca3a6277ca9a9c922590572346) Thanks [@Andarist](https://github.com/Andarist)! - Removed already deprecated `useService` from `@xstate/vue`. You can replace its usage with `useActor`.
+- [#3083](https://github.com/statelyai/xstate/pull/3083) [`bc592582a`](https://github.com/statelyai/xstate/commit/bc592582a8b486ca3a6277ca9a9c922590572346) Thanks [@Andarist](https://github.com/Andarist)! - Removed already deprecated `useService` from `@xstate/vue`. You can replace its usage with `useActor`.
 
 ### Patch Changes
 
@@ -122,7 +122,10 @@
   export default {
     props: ['someActor'],
     setup(props) {
-      const count = useSelector(props.someActor, state => state.context.count);
+      const count = useSelector(
+        props.someActor,
+        (state) => state.context.count
+      );
       // ...
       return { count };
     }
@@ -147,7 +150,7 @@
   });
   ```
 
-* [`bfe42972`](https://github.com/statelyai/xstate/commit/bfe42972cf624b990a280244e12e5976e5bd3048) [#1991](https://github.com/statelyai/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Fixed the UMD build by externalizing XState & Vue correctly.
+- [`bfe42972`](https://github.com/statelyai/xstate/commit/bfe42972cf624b990a280244e12e5976e5bd3048) [#1991](https://github.com/statelyai/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Fixed the UMD build by externalizing XState & Vue correctly.
 
 - [`4346cabc`](https://github.com/statelyai/xstate/commit/4346cabc42963211b471f214056db4d4f7e85539) [#1991](https://github.com/statelyai/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Added new `useInterpret`, which is a low-level composable that interprets the `machine` and returns the `service`:
 
@@ -157,7 +160,7 @@
   export default defineComponent({
     setup() {
       const state = ref();
-      const service = useInterpret(machine, {}, nextState => {
+      const service = useInterpret(machine, {}, (nextState) => {
         state.value = nextState.value;
       });
       return { service, state };
@@ -165,7 +168,7 @@
   });
   ```
 
-* [`012ef363`](https://github.com/statelyai/xstate/commit/012ef3635cc06d8e5199cb85326b4b372714ca89) [#1991](https://github.com/statelyai/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Added a proper ESM file using the`"module"` field in the `package.json`. It helps bundlers to automatically pick this over a file authored using CommonJS and allows them to apply some optimizations easier.
+- [`012ef363`](https://github.com/statelyai/xstate/commit/012ef3635cc06d8e5199cb85326b4b372714ca89) [#1991](https://github.com/statelyai/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Added a proper ESM file using the`"module"` field in the `package.json`. It helps bundlers to automatically pick this over a file authored using CommonJS and allows them to apply some optimizations easier.
 
 ## 0.4.0
 

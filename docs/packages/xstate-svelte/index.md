@@ -283,7 +283,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 </script>
 
 {#if $state.value === 'idle'}
-  <button on:click={() => send('FETCH', { query: 'something' })}>
+  <button on:click={() => send({ type: 'FETCH', query: 'something' })}>
     Search for something
   </button>
 {:else if $state.value === 'loading'}

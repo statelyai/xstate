@@ -1,7 +1,11 @@
 <p align="center">
   <a href="https://xstate.js.org">
   <br />
-  <img src="https://user-images.githubusercontent.com/1093738/101672561-06aa7480-3a24-11eb-89d1-787fa7112138.png" alt="XState" width="150"/>
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-white-nobg.svg">
+    <img alt="XState logotype" src="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-black-nobg.svg" width="200">
+  </picture>
   <br />
     <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
@@ -14,9 +18,9 @@
 
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
-📖 [Read the documentation](https://xstate.js.org/docs)
+### ✨ Create state machines visually → [state.new](https://state.new)
 
-💙 [Explore our catalogue of examples](https://xstate-catalogue.com/)
+📖 [Read the documentation](https://stately.ai/docs)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
@@ -24,7 +28,7 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
 
-💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
+💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
 ## Packages
 
@@ -34,6 +38,7 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 - [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
 - [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
 - [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
+- [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid) - Solid hooks and utilities for using XState in Solid applications
 - [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
 - [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - Inspection utilities for XState
 
@@ -58,7 +63,7 @@ npm install xstate
 ```js
 import { createMachine, interpret } from 'xstate';
 
-// Stateless machine definition
+// State machine definition
 // machine.transition(...) is a pure function used by the interpreter.
 const toggleMachine = createMachine({
   id: 'toggle',
@@ -70,78 +75,17 @@ const toggleMachine = createMachine({
 });
 
 // Machine instance with internal state
-const toggleService = interpret(toggleMachine)
-  .onTransition((state) => console.log(state.value))
-  .start();
-// => 'inactive'
+const toggleActor = interpret(toggleMachine);
+toggleActor.subscribe((state) => console.log(state.value));
+toggleActor.start();
+// => logs 'inactive'
 
-toggleService.send('TOGGLE');
-// => 'active'
+toggleActor.send({ type: 'TOGGLE' });
+// => logs 'active'
 
-toggleService.send('TOGGLE');
-// => 'inactive'
+toggleActor.send({ type: 'TOGGLE' });
+// => logs 'inactive'
 ```
-
-## Promise example
-
-[📉 See the visualization on stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
-
-<details>
-<summary>See the code</summary>
-
-```js
-import { createMachine, interpret, assign } from 'xstate';
-
-const fetchMachine = createMachine({
-  id: 'Dog API',
-  initial: 'idle',
-  context: {
-    dog: null
-  },
-  states: {
-    idle: {
-      on: {
-        FETCH: 'loading'
-      }
-    },
-    loading: {
-      invoke: {
-        id: 'fetchDog',
-        src: (context, event) =>
-          fetch('https://dog.ceo/api/breeds/image/random').then((data) =>
-            data.json()
-          ),
-        onDone: {
-          target: 'resolved',
-          actions: assign({
-            dog: (_, event) => event.data
-          })
-        },
-        onError: 'rejected'
-      },
-      on: {
-        CANCEL: 'idle'
-      }
-    },
-    resolved: {
-      type: 'final'
-    },
-    rejected: {
-      on: {
-        FETCH: 'loading'
-      }
-    }
-  }
-});
-
-const dogService = interpret(fetchMachine)
-  .onTransition((state) => console.log(state.value))
-  .start();
-
-dogService.send('FETCH');
-```
-
-</details>
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -213,7 +157,9 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, 'TIMER').value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 
 // => 'yellow'
 ```
@@ -272,12 +218,14 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, 'TIMER').value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 // => {
 //   red: 'walk'
 // }
 
-lightMachine.transition('red.walk', 'PED_TIMER').value;
+lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 // => {
 //   red: 'wait'
 // }
@@ -287,15 +235,18 @@ lightMachine.transition('red.walk', 'PED_TIMER').value;
 
 ```js
 // ...
-const waitState = lightMachine.transition({ red: 'walk' }, 'PED_TIMER').value;
+const waitState = lightMachine.transition(
+  { red: 'walk' },
+  { type: 'PED_TIMER' }
+).value;
 
 // => { red: 'wait' }
 
-lightMachine.transition(waitState, 'PED_TIMER').value;
+lightMachine.transition(waitState, { type: 'PED_TIMER' }).value;
 
 // => { red: 'stop' }
 
-lightMachine.transition({ red: 'stop' }, 'TIMER').value;
+lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value;
 
 // => 'green'
 ```
@@ -364,7 +315,9 @@ const wordMachine = createMachine({
   }
 });
 
-const boldState = wordMachine.transition('bold.off', 'TOGGLE_BOLD').value;
+const boldState = wordMachine.transition('bold.off', {
+  type: 'TOGGLE_BOLD'
+}).value;
 
 // {
 //   bold: 'on',
@@ -380,7 +333,7 @@ const nextState = wordMachine.transition(
     underline: 'on',
     list: 'bullets'
   },
-  'TOGGLE_ITALICS'
+  { type: 'TOGGLE_ITALICS' }
 ).value;
 
 // {
@@ -420,24 +373,34 @@ const paymentMachine = createMachine({
   }
 });
 
-const checkState = paymentMachine.transition('method.cash', 'SWITCH_CHECK');
+const checkState = paymentMachine.transition('method.cash', {
+  type: 'SWITCH_CHECK'
+});
 
 // => State {
 //   value: { method: 'check' },
 //   history: State { ... }
 // }
 
-const reviewState = paymentMachine.transition(checkState, 'NEXT');
+const reviewState = paymentMachine.transition(checkState, { type: 'NEXT' });
 
 // => State {
 //   value: 'review',
 //   history: State { ... }
 // }
 
-const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
+const previousState = paymentMachine.transition(reviewState, {
+  type: 'PREVIOUS'
+}).value;
 
 // => { method: 'check' }
 ```
+
+## Sponsors
+
+Special thanks to the sponsors who support this open-source project:
+
+<a href="https://transloadit.com/"><img src="https://assets.transloadit.com/assets/images/logo-v2.svg" alt="Transloadit logo" width="200" /><br />Transloadit</a>
 
 ## SemVer Policy
 

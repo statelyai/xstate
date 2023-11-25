@@ -1,5 +1,9 @@
 # History
 
+:::tip Check out our new docs!
+🆕 Find more about [parent and child states in XState](https://stately.ai/docs/history-states) as well as a [no-code introduction to history states](https://stately.ai/docs/history-states#using-history-states-in-stately-studio).
+:::
+
 A history [state node](./statenodes.md) is a special kind of state node that, when reached, tells the machine to go to the last state value of that region. There's two types of history states:
 
 - `'shallow'`, which specifies only the top-level history value, or

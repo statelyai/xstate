@@ -25,6 +25,7 @@ export {
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
+const WILDCARD = '*';
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
@@ -130,7 +131,7 @@ function handleActions<
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
+  TState extends Typestate<TContext> = Typestate<TContext>
 >(
   fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
   implementations: {
@@ -180,20 +181,33 @@ export function createMachine<
         );
       }
 
+      if (!IS_PRODUCTION && eventObject.type === WILDCARD) {
+        throw new Error(
+          `An event cannot have the wildcard type ('${WILDCARD}')`
+        );
+      }
+
       if (stateConfig.on) {
         const transitions: Array<
-          StateMachine.Transition<TContext, TEvent>
+          StateMachine.Transition<TContext, TEvent, TState['value']>
         > = toArray(stateConfig.on[eventObject.type]);
+
+        if (WILDCARD in stateConfig.on) {
+          transitions.push(...toArray(stateConfig.on[WILDCARD]));
+        }
 
         for (const transition of transitions) {
           if (transition === undefined) {
             return createUnchangedState(value, context);
           }
 
-          const { target, actions = [], cond = () => true } =
-            typeof transition === 'string'
-              ? { target: transition }
-              : transition;
+          const {
+            target,
+            actions = [],
+            cond = () => true
+          } = typeof transition === 'string'
+            ? { target: transition }
+            : transition;
 
           const isTargetless = target === undefined;
 
@@ -209,11 +223,12 @@ export function createMachine<
           }
 
           if (cond(context, eventObject)) {
-            const allActions = (isTargetless
-              ? toArray(actions)
-              : ([] as any[])
-                  .concat(stateConfig.exit, actions, nextStateConfig.entry)
-                  .filter((a) => a)
+            const allActions = (
+              isTargetless
+                ? toArray(actions)
+                : ([] as any[])
+                    .concat(stateConfig.exit, actions, nextStateConfig.entry)
+                    .filter((a) => a)
             ).map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
               toActionObject(action, (machine as any)._options.actions)
             );

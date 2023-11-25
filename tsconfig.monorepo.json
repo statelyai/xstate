@@ -23,6 +23,9 @@
       "path": "./packages/xstate-vue"
     },
     {
+      "path": "./packages/xstate-solid"
+    },
+    {
       "path": "./packages/xstate-svelte"
     },
     {

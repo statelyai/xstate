@@ -15,12 +15,16 @@ export const isLeafNode = (
   stateNode: StateNode<any, any, any, any, any, any>
 ) => stateNode.type === 'atomic' || stateNode.type === 'final';
 
+export function getAllChildren<TC, TE extends EventObject>(
+  stateNode: StateNode<TC, any, TE>
+): Array<StateNode<TC, any, TE>> {
+  return Object.keys(stateNode.states).map((key) => stateNode.states[key]);
+}
+
 export function getChildren<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
 ): Array<StateNode<TC, any, TE>> {
-  return Object.keys(stateNode.states)
-    .map((key) => stateNode.states[key])
-    .filter((sn) => sn.type !== 'history');
+  return getAllChildren(stateNode).filter((sn) => sn.type !== 'history');
 }
 
 export function getAllStateNodes<TC, TE extends EventObject>(

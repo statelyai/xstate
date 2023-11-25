@@ -385,18 +385,6 @@ someService.onTransition((state) => {
 });
 ```
 
-```js
-someService.onTransition((state) => {
-  const { someRef } = state.context;
-
-  console.log(someRef.state);
-  // => State {
-  //   value: ...,
-  //   context: ...
-  // }
-});
-```
-
 ::: warning
 默认情况下，`sync` 设置为 `false`。 当禁用`sync`时，永远不要读取演员的`.state`； 否则，你最终将引用陈旧的状态。
 :::

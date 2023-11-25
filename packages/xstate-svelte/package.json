@@ -1,6 +1,6 @@
 {
   "name": "@xstate/svelte",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "description": "XState tools for Svelte",
   "keywords": [
     "state",
@@ -39,15 +39,15 @@
     "build": "tsc && tsc --outDir es --module esnext",
     "test": "jest",
     "prepare": "npm run build",
-    "svelte-check": "svelte-check"
+    "svelte-check": "svelte-check --workspace test"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^2.0.0",
-    "svelte": "^3.24.1",
-    "xstate": "^4.31.0"
+    "@xstate/fsm": "^2.1.0",
+    "svelte": "^3.24.1 || ^4",
+    "xstate": "^4.38.3"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -69,7 +69,7 @@
     "svelte-jester": "^1.1.2",
     "svelte-preprocess": "^4.0.10",
     "ts-jest": "^26.5.6",
-    "typescript": "^4.5.2",
+    "typescript": "^4.8.4",
     "xstate": "*"
   }
 }

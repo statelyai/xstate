@@ -193,6 +193,26 @@ entry: send({ type: 'SOME_EVENT' });
 
 ## Send action
 
+::: warning
+
+The `send(...)` action creator is deprecated in favor of the `sendTo(...)` action creator:
+
+```diff
+-send({ type: 'EVENT' }, { to: 'someActor' });
++sendTo('someActor', { type: 'EVENT' });
+```
+
+For sending events to self, `raise(...)` should be used:
+
+```diff
+-send({ type: 'EVENT' });
++raise({ type: 'EVENT' });
+```
+
+The `send(...)` action creator will be removed in XState v5.0.
+
+:::
+
 The `send(event)` action creator creates a special “send” action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue, which means the event is sent on the next “step” of the interpreter.
 
 | Argument   | Type                                       | Description                                               |
@@ -340,8 +360,7 @@ The `raise()` action creator queues an event to the statechart, in the internal 
 | `event`  | string or event object | The event to raise. |
 
 ```js
-import { createMachine, actions } from 'xstate';
-const { raise } = actions;
+import { createMachine, raise } from 'xstate';
 
 const raiseActionDemo = createMachine({
   id: 'raisedmo',

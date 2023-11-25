@@ -7,14 +7,16 @@ import {
   assign,
   send,
   sendParent,
-  EventObject,
   StateValue,
   AnyEventObject,
   createMachine,
-  AnyState
+  AnyState,
+  InterpreterStatus,
+  ActorRefFrom,
+  ActorRef
 } from '../src';
 import { State } from '../src/State';
-import { log, actionTypes, raise, stop } from '../src/actions';
+import { log, actionTypes, raise, stop, sendTo } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -368,10 +370,12 @@ describe('interpreter', () => {
             onEntry: send('FINISH', {
               delay: (ctx, _, { _event }) =>
                 ctx.initialDelay +
-                (_event.data as Extract<
-                  DelayExpMachineEvents,
-                  { type: 'ACTIVATE' }
-                >).wait
+                (
+                  _event.data as Extract<
+                    DelayExpMachineEvents,
+                    { type: 'ACTIVATE' }
+                  >
+                ).wait
             }),
             on: {
               FINISH: 'finished'
@@ -433,10 +437,7 @@ describe('interpreter', () => {
               }
             },
             c: {
-              onEntry: send(
-                { type: 'FIRE_DELAY', value: 200 },
-                { delay: 20 }
-              ) as EventObject,
+              onEntry: send({ type: 'FIRE_DELAY', value: 200 }, { delay: 20 }),
               on: {
                 FIRE_DELAY: 'd'
               }
@@ -830,7 +831,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       },
       on: {
         PING_CHILD: {
-          actions: [send('PING', { to: 'child' }), logAction]
+          actions: [sendTo('child', 'PING'), logAction]
         },
         '*': {
           actions: [logAction]
@@ -1750,6 +1751,46 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.send('INC');
       service.send('INC');
     });
+
+    it('should call complete() once a final state is reached', () => {
+      const completeCb = jest.fn();
+
+      const service = interpret(
+        createMachine({
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                NEXT: 'done'
+              }
+            },
+            done: { type: 'final' }
+          }
+        })
+      ).start();
+
+      service.subscribe({
+        complete: completeCb
+      });
+
+      service.send({ type: 'NEXT' });
+
+      expect(completeCb).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call complete() once the interpreter is stopped', () => {
+      const completeCb = jest.fn();
+
+      const service = interpret(createMachine({})).start();
+
+      service.subscribe({
+        complete: completeCb
+      });
+
+      service.stop();
+
+      expect(completeCb).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('services', () => {
@@ -1957,10 +1998,14 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const parentMachine = createMachine<any>({
+      const parentMachine = createMachine({
         id: 'form',
         initial: 'present',
-        context: {},
+        context: {} as {
+          machineRef: ActorRefFrom<typeof childMachine>;
+          promiseRef: ActorRefFrom<Promise<unknown>>;
+          observableRef: ActorRef<any, any>;
+        },
         entry: assign({
           machineRef: () => spawn(childMachine, 'machineChild'),
           promiseRef: () =>
@@ -1978,10 +2023,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
               NEXT: {
                 target: 'gone',
                 actions: [
-                  // TODO: type these correctly in TContext
-                  stop((ctx) => (ctx as any).machineRef),
-                  stop((ctx) => (ctx as any).promiseRef),
-                  stop((ctx) => (ctx as any).observableRef)
+                  stop((ctx) => ctx.machineRef),
+                  stop((ctx) => ctx.promiseRef),
+                  stop((ctx) => ctx.observableRef)
                 ]
               }
             }
@@ -2009,6 +2053,27 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
           service.send('NEXT');
         }
+      });
+    });
+  });
+
+  describe('.onDone(...)', () => {
+    it('should call an onDone callback immediately if the service is already done', (done) => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      expect(service.status).toBe(InterpreterStatus.Stopped);
+
+      service.onDone(() => {
+        done();
       });
     });
   });

@@ -40,6 +40,10 @@ __examples/
 src/invoke.ts
 *.tsbuildinfo
 
+# JetBrains IDE's
+.idea
+.fleet
+
 # Documentation
 docs-src/
 netlify/

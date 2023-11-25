@@ -15,6 +15,9 @@ import {
   ModelCreators
 } from './model.types';
 
+/**
+ * @deprecated Use [Typegen](https://stately.ai/blog/introducing-typescript-typegen-for-xstate) instead.
+ */
 export function createModel<
   TContext,
   TEvent extends EventObject,

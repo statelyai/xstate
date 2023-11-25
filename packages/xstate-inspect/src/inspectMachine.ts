@@ -35,6 +35,7 @@ export function createInspectMachine(
     },
     InspectMachineEvent
   >({
+    predictableActionArguments: true,
     initial: 'pendingConnection',
     context: {
       client: undefined

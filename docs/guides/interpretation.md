@@ -1,5 +1,9 @@
 # Interpreting Machines
 
+:::tip Check out our new docs!
+🆕 Find more about [creating actors using XState](https://stately.ai/docs/actors#creating-actors) in our new docs.
+:::
+
 While a state machine/statechart with a pure `.transition()` function is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:
 
 - Keep track of the current state, and persist it
@@ -248,7 +252,7 @@ The following options can be passed into the interpreter as the 2nd argument (`i
   - See [Executing Actions](#executing-actions) for customizing this behavior.
 - `deferEvents` (boolean) <Badge text="4.4+"/> - Signifies whether events sent to an uninitialized service (i.e., prior to calling `service.start()`) should be deferred until the service is initialized. Defaults to `true`.
   - If `false`, events sent to an uninitialized service will throw an error.
-- `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/zalmoxisus/redux-devtools-extension). Defaults to `false`.
+- `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/reduxjs/redux-devtools). Defaults to `false`.
 - `logger` - Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log` method.
 - `clock` - Specifies the [clock interface for delayed actions](./delays.md#interpretation). Defaults to the native `setTimeout` and `clearTimeout` functions.
 

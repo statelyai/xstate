@@ -2,10 +2,12 @@ import {
   assign,
   ContextFrom,
   createMachine,
+  EmittedFrom,
   EventFrom,
   interpret,
   MachineOptionsFrom,
-  StateValueFrom
+  StateValueFrom,
+  TagsFrom
 } from '../src';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -366,5 +368,99 @@ describe('StateValueFrom', () => {
     function matches(_value: StateValueFrom<typeof machine>) {}
 
     matches('just anything');
+  });
+});
+
+describe('EmittedFrom', () => {
+  it('should return state type from a service that has concrete event type', () => {
+    const service = interpret(
+      createMachine({
+        schema: {
+          events: {} as { type: 'FOO' }
+        }
+      })
+    );
+
+    function acceptState(_state: EmittedFrom<typeof service>) {}
+
+    acceptState(service.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a service created based on a model without any concrete events', () => {
+    const service = interpret(
+      createModel(
+        {},
+        {
+          // this empty obj is important for this test case
+        }
+      ).createMachine({})
+    );
+
+    function acceptState(_state: EmittedFrom<typeof service>) {}
+
+    acceptState(service.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a machine without context', () => {
+    const machine = createMachine({});
+
+    function acceptState(_state: EmittedFrom<typeof machine>) {}
+
+    acceptState(machine.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a machine with context', () => {
+    const machine = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    function acceptState(_state: EmittedFrom<typeof machine>) {}
+
+    acceptState(machine.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+});
+
+describe('tags', () => {
+  it('derives tags from StateMachine when typegen is enabled', () => {
+    interface TypesMeta extends TypegenMeta {
+      tags: 'a' | 'b' | 'c';
+    }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta
+    });
+
+    type Tags = TagsFrom<typeof machine>;
+
+    const acceptTag = (_tag: Tags) => {};
+
+    acceptTag('a');
+    acceptTag('b');
+    acceptTag('c');
+    // @ts-expect-error d is not a valid tag
+    acceptTag('d');
+  });
+
+  it('derives string from StateMachine without typegen', () => {
+    const machine = createMachine({});
+
+    type Tags = TagsFrom<typeof machine>;
+
+    const acceptTag = (_tag: Tags) => {};
+
+    acceptTag('a');
+    acceptTag('b');
+    acceptTag('c');
+    // d is a valid tag, as is any string
+    acceptTag('d');
   });
 });

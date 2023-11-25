@@ -1,5 +1,9 @@
 # Invoking Services
 
+:::tip Check out our new docs!
+🆕 Our [section on actors in XState](https://stately.ai/docs/actors) has explainers and examples for promises, callbacks, observables, actions, and actors.
+:::
+
 [:rocket: Quick Reference](#quick-reference)
 
 Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://www.brianstorti.com/the-actor-model/), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other "actors" (such as Promises or other machines) and react to them.
@@ -131,15 +135,16 @@ The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` 
 If a Promise rejects, the `onError` transition will be taken with a `{ type: 'error.platform' }` event. The error data is available on the event's `data` property:
 
 ```js
-const search = (context, event) => new Promise((resolve, reject) => {
-  if (!event.query.length) {
-    return reject('No query specified');
-    // or:
-    // throw new Error('No query specified');
-  }
+const search = (context, event) =>
+  new Promise((resolve, reject) => {
+    if (!event.query.length) {
+      return reject('No query specified');
+      // or:
+      // throw new Error('No query specified');
+    }
 
-  return resolve(getSearchResults(event.query));
-});
+    return resolve(getSearchResults(event.query));
+  });
 
 // ...
 const searchMachine = createMachine({
@@ -147,7 +152,7 @@ const searchMachine = createMachine({
   initial: 'idle',
   context: {
     results: undefined,
-    errorMessage: undefined,
+    errorMessage: undefined
   },
   states: {
     idle: {
@@ -157,7 +162,7 @@ const searchMachine = createMachine({
     },
     searching: {
       invoke: {
-        id: 'search'
+        id: 'search',
         src: search,
         onError: {
           target: 'failure',
@@ -446,9 +451,9 @@ const secretMachine = createMachine({
     },
     reveal: {
       type: 'final',
-      data: {
-        secret: (context, event) => context.secret
-      }
+      data: (context, event) => ({
+        secret: context.secret
+      })
     }
   }
 });

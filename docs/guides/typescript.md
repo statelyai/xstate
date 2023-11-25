@@ -49,6 +49,9 @@ const machine = createMachine({
     events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
   },
   initial: 'a',
+  context: {
+    value: '',
+  },
   states: {
     a: {
       on: {
@@ -73,6 +76,9 @@ const machine = createMachine({
   schema: {
     context: {} as { value: string },
     events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
+  },
+  context: {
+    value: '',
   },
   initial: 'a',
   states: {

@@ -1,8 +1,15 @@
 # Usage with Svelte
 
-XState integrates great with Svelte, and especially [Svelte stores!](https://svelte.dev/docs#svelte_store)
+This guides you through setting up XState in a Svelte project. For new Svelte or SvelteKit projects, we recommend using [Vite](https://vitejs.dev/guide/) as your build tool, and we’ve tailored this documentation to such projects. If you're working on an older project that relies on Rollup, please refer to the [Legacy Svelte projects based on Rollup section](#legacy-svelte-projects-based-on-rollup) below.
 
-The only gotcha is that you'll need this extra package.
+## Svelte projects based on Vite
+
+XState integrates great with Svelte & SvelteKit, and especially [Svelte stores](https://svelte.dev/docs#svelte_store). We recommend the official `@xstate/svelte` package to get the most out of XState and Svelte.
+
+- Find installation details and example usage in the new docs on the [xstate svelte package](https://stately.ai/docs/xstate-svelte).
+- Check out a [template](https://stately.ai/docs/templates) to get started quickly with a minimal project.
+
+## Legacy Svelte projects based on Rollup
 
 ```js
 npm install @rollup/plugin-replace --save-dev

@@ -1,5 +1,9 @@
 # Effects
 
+:::tip Check out our new docs!
+🆕 Find more about [effects and actions in XState](https://stately.ai/docs/xstate-v4/xstate/actions#side-effects) in our new docs.
+:::
+
 In statecharts, "side-effects" can be grouped into two categories:
 
 **"Fire-and-forget" effects**, which execute a synchronous side-effect with no events sent back to the statechart, or _send an event synchronously_ back to the statechart:

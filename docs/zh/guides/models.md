@@ -1,5 +1,11 @@
 # 模型 Models
 
+::: warning
+
+The `createModel(...)` function is deprecated and will be removed in XState version 5. It is recommended to use [Typegen](https://stately.ai/blog/introducing-typescript-typegen-for-xstate) instead.
+
+:::
+
 在 XState 中，你可以使用 `createModel(...)` 在外部对状态机的 `context` 和 `events` 进行建模。 这提供了一种强类型`context` 和`events` 的便捷方式，以及未来事件创建、分配和其他实现细节的帮助。
 
 使用 `createModel(...)` 是 _完全可选的_，旨在改善开发人员体验。 使用它的主要原因是：

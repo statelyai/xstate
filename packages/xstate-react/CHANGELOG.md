@@ -1,12 +1,114 @@
 # Changelog
 
+## 3.2.2
+
+### Patch Changes
+
+- [#3919](https://github.com/statelyai/xstate/pull/3919) [`6665f0a32`](https://github.com/statelyai/xstate/commit/6665f0a32327407e8fec12240383f211094d929c) Thanks [@c-w](https://github.com/c-w)! - Updated the allowed range for the `use-isomorphic-layout-effect` dependency.
+
+## 3.2.1
+
+### Patch Changes
+
+- [#3829](https://github.com/statelyai/xstate/pull/3829) [`c110c429d`](https://github.com/statelyai/xstate/commit/c110c429d33cb724242ff65136de3ebe408eab97) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility of the generated TS types for `createActorContext` with pre-4.7.
+
+## 3.2.0
+
+### Minor Changes
+
+- [#3814](https://github.com/statelyai/xstate/pull/3814) [`494203b3d`](https://github.com/statelyai/xstate/commit/494203b3dc358807e96cf1368f1347ff8e1d14e3) Thanks [@Andarist](https://github.com/Andarist)! - The `Provider` from `createActorContext(...)` now accepts the `options={{...}}` prop that takes the same object as the second argument to the `useMachine(machine, options)` hook.
+
+  These options are no longer passed as the second argument to the `createActorContext(machine)` function:
+
+  ```diff
+
+  -const SomeContext = createActorContext(someMachine,
+  -  { actions: { ... } });
+  +const SomeContext = createActorContext(someMachine);
+
+  // ...
+
+  -<SomeContext.Provider>
+  +<SomeContext.Provider options={{ actions: { ... } }}>
+
+  // ...
+  ```
+
+## 3.1.2
+
+### Patch Changes
+
+- [#3804](https://github.com/statelyai/xstate/pull/3804) [`b53856d28`](https://github.com/statelyai/xstate/commit/b53856d28da4ecbba7d4393f72aa38894fd523d9) Thanks [@farskid](https://github.com/farskid)! - Interpreter options can now be specified in the second argument of createActorContext(machine, options).
+
+## 3.1.1
+
+### Patch Changes
+
+- [#3799](https://github.com/statelyai/xstate/pull/3799) [`51d254692`](https://github.com/statelyai/xstate/commit/51d254692c2d267c24c65fc5802461540c012393) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused the internally used `useSyncExternalStore` to warn about the computed snapshot not being cached when a not-started machine servive was passed to `useActor`.
+
+## 3.1.0
+
+### Minor Changes
+
+- [#3778](https://github.com/statelyai/xstate/pull/3778) [`f12248b23`](https://github.com/statelyai/xstate/commit/f12248b2379e4e554d69a238019216feea5211f6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createActorContext(...)` helper has been introduced to make global actors easier to use with React. It outputs a React Context object with the following properties:
+
+  - `.Provider` - The React Context provider
+  - `.useActor(...)` - A hook that can be used to get the current state and send events to the actor
+  - `.useSelector(...)` - A hook that can be used to select some derived state from the actor's state
+  - `.useActorRef()` - A hook that can be used to get a reference to the actor that can be passed to other components
+
+  Usage:
+
+  ```jsx
+  import { createActorContext } from '@xstate/react';
+  import { someMachine } from './someMachine';
+
+  // Create a React Context object that will interpret the machine
+  const SomeContext = createActorContext(someMachine);
+
+  function SomeComponent() {
+    // Get the current state and `send` function
+    const [state, send] = SomeContext.useActor();
+
+    // Or select some derived state
+    const someValue = SomeContext.useSelector((state) => state.context.someValue);
+
+    // Or get a reference to the actor
+    const actorRef = SomeContext.useActorRef();
+
+    return (/* ... */);
+  }
+
+  function App() {
+    return (
+      <SomeContext.Provider>
+        <SomeComponent />
+      </SomeContext.Provider>
+    );
+  }
+  ```
+
+## 3.0.2
+
+### Patch Changes
+
+- [#3752](https://github.com/statelyai/xstate/pull/3752) [`4190c3fd6`](https://github.com/statelyai/xstate/commit/4190c3fd6d9bb6e7fca5c01cc1722f40e7e63399) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Computing the initial state is now consistent with `useMachine` and `useActor`, avoiding stale initial state problems with nested machines
+
+## 3.0.1
+
+### Patch Changes
+
+- [#3456](https://github.com/statelyai/xstate/pull/3456) [`131d429ab`](https://github.com/statelyai/xstate/commit/131d429ab350aaca371c4c7974829c621a50c024) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `shallowEqual` helper comparator function.
+
+- [#3500](https://github.com/statelyai/xstate/pull/3500) [`0dfc6d92f`](https://github.com/statelyai/xstate/commit/0dfc6d92f6950b3eb78e0693ae3b0abe5751bf42) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `useSelector` always computing fresh snapshots internally for uninitialized services. This avoids the internal `useSyncExternalStore` from warning about the snapshot value not being cached properly.
+
 ## 3.0.0
 
 ### Major Changes
 
 - [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - This package now accepts React 18 as a peer dep and the implementation has been rewritten to use [`use-sync-external-store`](https://www.npmjs.com/package/use-sync-external-store) package. This doesn't break compatibility with older versions of React since we are using the shim to keep compatibility with those older versions.
 
-* [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `asEffect` and `asLayoutEffect` action creators were removed. They were not fitting the React model that well and could lead to issues as their existence suggested that they are easy to use.
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `asEffect` and `asLayoutEffect` action creators were removed. They were not fitting the React model that well and could lead to issues as their existence suggested that they are easy to use.
 
   To execute actions at those exact times you can always either just call your stuff directly from those effects or send events to the machine from those effects and execute explicit actions in response to said events.
 
@@ -16,11 +118,11 @@
 
 - [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - In v2 we have changed signatures of `useMachine` and `useInterpret`. Instead of accepting a list of generics they now only support a single generic: `TMachine`. This change, erroneously, was only introduced to types targeting TS@4.x but the types targeting previous TS releases were still using the older signatures. This has now been fixed and users of older TS versions should now be able to leverage typegen with `@xstate/react`.
 
-* [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `useMachine` for `xstate` now correctly rerenders with the initial state when the internal service is being restarted. This might happen during Fast Refresh and now you shouldn't be able to observe this stale state that didn't match the actual state of the service.
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `useMachine` for `xstate` now correctly rerenders with the initial state when the internal service is being restarted. This might happen during Fast Refresh and now you shouldn't be able to observe this stale state that didn't match the actual state of the service.
 
 - [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `useMachine` for `@xstate/fsm` now starts the service in an effect. This avoids side-effects in render and improves the compatibility with `StrictMode`.
 
-* [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - Implementations given to `useMachine` targeting `@xstate/fsm` are now updated in a layout effect. This avoid some stale closure problems for actions that are executed in response to events sent from layout effects.
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - Implementations given to `useMachine` targeting `@xstate/fsm` are now updated in a layout effect. This avoid some stale closure problems for actions that are executed in response to events sent from layout effects.
 
 * Updated dependencies [[`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf), [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf)]:
   - @xstate/fsm@2.0.0
@@ -39,7 +141,7 @@
 
   When using hooks from `@xstate/react` it's recommended to skip providing explicit generics to them. Note that that generics list has changed since v1 and we now only accept a single generic, `TMachine`.
 
-* [#2674](https://github.com/statelyai/xstate/pull/2674) [`ab919d300`](https://github.com/statelyai/xstate/commit/ab919d300f6d2b78871d3399ec58a697c4268d9b) Thanks [@Andarist](https://github.com/Andarist)! - Removed already deprecated `useService` from `@xstate/react`. You can replace its usage with `useActor`.
+- [#2674](https://github.com/statelyai/xstate/pull/2674) [`ab919d300`](https://github.com/statelyai/xstate/commit/ab919d300f6d2b78871d3399ec58a697c4268d9b) Thanks [@Andarist](https://github.com/Andarist)! - Removed already deprecated `useService` from `@xstate/react`. You can replace its usage with `useActor`.
 
 ### Patch Changes
 
@@ -57,7 +159,7 @@
 
 - [#2736](https://github.com/statelyai/xstate/pull/2736) [`2246ae051`](https://github.com/statelyai/xstate/commit/2246ae051663f261b4750d7adba57f008ec28f1d) Thanks [@Andarist](https://github.com/Andarist), [@davidkpiano](https://github.com/statelyai), [@VanTanev](https://github.com/VanTanev)! - The `useSelector(...)` hook now works as expected when the `actor` passed in changes. The hook will properly subscribe to the new `actor` and select the desired value. See [#2702](https://github.com/statelyai/xstate/issues/2702)
 
-* [#2685](https://github.com/statelyai/xstate/pull/2685) [`469268d39`](https://github.com/statelyai/xstate/commit/469268d39fbc23996599773adfc4ca824b48585f) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Fixed a regression with a development-only warning not being shown when a machine reference is updated during the hook lifecycle. This usually happens when machine options are dependent on external values and they're passed via `withConfig`.
+- [#2685](https://github.com/statelyai/xstate/pull/2685) [`469268d39`](https://github.com/statelyai/xstate/commit/469268d39fbc23996599773adfc4ca824b48585f) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Fixed a regression with a development-only warning not being shown when a machine reference is updated during the hook lifecycle. This usually happens when machine options are dependent on external values and they're passed via `withConfig`.
 
   ```js
   const machine = createMachine({
@@ -105,7 +207,7 @@
   Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
 
   ```tsx
-  const Modal = props => {
+  const Modal = (props) => {
     useMachine(modalMachine, {
       guards: {
         isModalOpen: () => props.isOpen
@@ -119,7 +221,7 @@
   This is not true of actions/services. This will work as expected:
 
   ```tsx
-  const Modal = props => {
+  const Modal = (props) => {
     useMachine(modalMachine, {
       actions: {
         consoleLogModalOpen: () => {
@@ -251,7 +353,7 @@
 
 - [`b076b253`](https://github.com/statelyai/xstate/commit/b076b25364224874f62e8065892be40dfbb28030) [#1947](https://github.com/statelyai/xstate/pull/1947) Thanks [@lukekarrys](https://github.com/lukekarrys)! - Fix typing of the service returned from the fsm useMachine hook by passing it Typestate
 
-* [`9b5dc784`](https://github.com/statelyai/xstate/commit/9b5dc7843c44f50bcca0ffccb843b3d50cef6ddc) [#1950](https://github.com/statelyai/xstate/pull/1950) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `toObserver` being internally imported from `xstate/lib/utils` which has broken UMD build and the declared peer dep contract.
+- [`9b5dc784`](https://github.com/statelyai/xstate/commit/9b5dc7843c44f50bcca0ffccb843b3d50cef6ddc) [#1950](https://github.com/statelyai/xstate/pull/1950) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `toObserver` being internally imported from `xstate/lib/utils` which has broken UMD build and the declared peer dep contract.
 
 ## 1.3.0
 
@@ -270,13 +372,13 @@
   };
   ```
 
-* [`577ae023`](https://github.com/statelyai/xstate/commit/577ae02384926b49e876011c4393f212b49066f8) [#1915](https://github.com/statelyai/xstate/pull/1915) Thanks [@davidkpiano](https://github.com/statelyai)! - New hook: `useSelector(actor, selector)`, which subscribes to `actor` and returns the selected state derived from `selector(snapshot)`:
+- [`577ae023`](https://github.com/statelyai/xstate/commit/577ae02384926b49e876011c4393f212b49066f8) [#1915](https://github.com/statelyai/xstate/pull/1915) Thanks [@davidkpiano](https://github.com/statelyai)! - New hook: `useSelector(actor, selector)`, which subscribes to `actor` and returns the selected state derived from `selector(snapshot)`:
 
   ```js
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, state => state.context.count);
+    const count = useSelector(someActor, (state) => state.context.count);
 
     // ...
   };
@@ -354,7 +456,7 @@
 
 - [`c7927083`](https://github.com/statelyai/xstate/commit/c7927083a651e3c51952ade2ffda793df0391bf6) [#1516](https://github.com/statelyai/xstate/pull/1516) Thanks [@davidkpiano](https://github.com/statelyai)! - The `send` function returned from the `useService()` now can take two arguments (an event type and payload), to match the behavior of `@xstate/react` version 0.x.
 
-* [`db77623a`](https://github.com/statelyai/xstate/commit/db77623a48955d762cffa9b624f438220add5eed) [#1516](https://github.com/statelyai/xstate/pull/1516) Thanks [@davidkpiano](https://github.com/statelyai)! - The `send` value returned from the `useService()` hook will now accept a payload, which matches the signature of the `send` value returned from the `useMachine()` hook:
+- [`db77623a`](https://github.com/statelyai/xstate/commit/db77623a48955d762cffa9b624f438220add5eed) [#1516](https://github.com/statelyai/xstate/pull/1516) Thanks [@davidkpiano](https://github.com/statelyai)! - The `send` value returned from the `useService()` hook will now accept a payload, which matches the signature of the `send` value returned from the `useMachine()` hook:
 
   ```js
   const [state, send] = useService(someService);
@@ -370,7 +472,7 @@
 
 - [`93f6db02`](https://github.com/statelyai/xstate/commit/93f6db02a2d56ec997198ddef0af3d7730bb79bb) [#1594](https://github.com/statelyai/xstate/pull/1594) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with internal `setState` in `useService` being called with 2 arguments instead of 1.
 
-* [`72b0880e`](https://github.com/statelyai/xstate/commit/72b0880e6444ae009adca72088872bb5c0760ce3) [#1504](https://github.com/statelyai/xstate/pull/1504) Thanks [@Andarist](https://github.com/Andarist)! - Fixed issue with `useService` returning an initial state for services in their final states.
+- [`72b0880e`](https://github.com/statelyai/xstate/commit/72b0880e6444ae009adca72088872bb5c0760ce3) [#1504](https://github.com/statelyai/xstate/pull/1504) Thanks [@Andarist](https://github.com/Andarist)! - Fixed issue with `useService` returning an initial state for services in their final states.
 
 ## 1.0.1
 
@@ -397,7 +499,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]

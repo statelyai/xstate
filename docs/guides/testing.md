@@ -4,6 +4,10 @@ In general, testing state machines and statecharts should be done by testing the
 
 > Given a **current state**, when some **sequence of events** occurs, the system under test should be in **a certain state** and/or exhibit a specific **output**.
 
+:::tip Check out our new docs!
+🆕 Find more about [model-based testing using XState](https://stately.ai/docs/xstate-v4/xstate/model-based-testing/intro) in our new docs.
+:::
+
 This follows [behavior-driven development (BDD)](https://en.wikipedia.org/wiki/Behavior-driven_development) and [black-box testing](https://en.wikipedia.org/wiki/Black-box_testing) strategies. The internal workings of a machine should not be directly tested; rather, the observed behavior should be tested instead. This makes testing machines closer to integration or end-to-end (E2E) tests than unit tests.
 
 ## Testing pure logic

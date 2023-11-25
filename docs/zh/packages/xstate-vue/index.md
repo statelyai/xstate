@@ -101,7 +101,7 @@ _Since 0.5.0_
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist.
 
 ```js
 import { useActor } from '@xstate/vue';
@@ -176,7 +176,7 @@ _Since 0.6.0_
 - `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
 - `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
 - `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
 
 ```js
 import { useSelector } from '@xstate/vue';
@@ -256,7 +256,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 ```vue
 <template>
   <template v-if="state.value === 'idle'">
-    <button @click="send('FETCH', { query: 'something' })">
+    <button @click="send({ type: 'FETCH', query: 'something' })">
       Search for something
     </button>
   </template>

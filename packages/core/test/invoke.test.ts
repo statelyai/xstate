@@ -19,7 +19,8 @@ import {
   doneInvoke,
   escalate,
   forwardTo,
-  raise
+  raise,
+  sendTo
 } from '../src/actions';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
@@ -676,7 +677,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: sendTo('foo-child', 'NEXT'),
             on: { NEXT: 'two' }
           },
           two: {
@@ -709,7 +710,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: sendTo('foo-child', 'NEXT'),
             on: { NEXT: 'two' }
           },
           two: {
@@ -735,7 +736,7 @@ describe('invoke', () => {
               id: 'foo-child',
               src: subMachine
             },
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: sendTo('foo-child', 'NEXT'),
             on: { NEXT: 'two' }
           },
           two: {
@@ -775,7 +776,7 @@ describe('invoke', () => {
               src: doneSubMachine,
               onDone: 'two'
             },
-            entry: send('NEXT', { to: 'foo-child' })
+            entry: sendTo('foo-child', 'NEXT')
           },
           two: {
             on: { NEXT: 'three' }
@@ -888,6 +889,34 @@ describe('invoke', () => {
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
       done();
+    });
+
+    it('should stop a child actor when reaching a final state', () => {
+      let actorStopped = false;
+
+      const machine = createMachine({
+        id: 'machine',
+        invoke: {
+          src: () => () => () => (actorStopped = true)
+        },
+        initial: 'running',
+        states: {
+          running: {
+            on: {
+              finished: 'complete'
+            }
+          },
+          complete: { type: 'final' }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      service.send({
+        type: 'finished'
+      });
+
+      expect(actorStopped).toBe(true);
     });
 
     it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
@@ -1629,7 +1658,7 @@ describe('invoke', () => {
                 });
               }
             },
-            entry: send('PING', { to: 'child' }),
+            entry: sendTo('child', 'PING'),
             on: {
               PONG: 'done'
             }
@@ -1830,7 +1859,9 @@ describe('invoke', () => {
         JSON.stringify(waitingState);
       }).not.toThrow();
 
-      expect(typeof waitingState.actions[0].activity!.src).toBe('string');
+      expect(typeof (waitingState.actions[0] as any).activity!.src).toBe(
+        'string'
+      );
     });
 
     it('should throw error if unhandled (sync)', () => {
@@ -1943,7 +1974,7 @@ describe('invoke', () => {
             },
             on: {
               STOPCHILD: {
-                actions: send('STOP', { to: 'invoked.child' })
+                actions: sendTo('invoked.child', 'STOP')
               }
             }
           },
@@ -2180,7 +2211,7 @@ describe('invoke', () => {
         initial: 'waiting',
         states: {
           waiting: {
-            entry: send('PING', { to: 'ponger' }),
+            entry: sendTo('ponger', 'PING'),
             invoke: {
               id: 'ponger',
               src: () => pongBehavior
@@ -2309,7 +2340,7 @@ describe('invoke', () => {
                 src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
-              entry: send('PING', { to: 'pong' }),
+              entry: sendTo('pong', 'PING'),
               on: {
                 PONG: 'innerSuccess'
               }

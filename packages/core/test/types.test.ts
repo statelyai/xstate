@@ -8,7 +8,7 @@ import {
   spawn,
   ActorRefFrom
 } from '../src/index';
-import { raise } from '../src/actions';
+import { raise, stop, log } from '../src/actions';
 import { createModel } from '../src/model';
 
 function noop(_x: unknown) {
@@ -211,87 +211,151 @@ describe('Nested parallel stateSchema', () => {
 });
 
 describe('Raise events', () => {
-  it('should work with all the ways to raise events', () => {
-    interface GreetingStateSchema {
-      states: {
-        pending: {};
-        morning: {};
-        lunchTime: {};
-        afternoon: {};
-        evening: {};
-        night: {};
-      };
-    }
+  // TODO: will be removed in v5
+  it('should accept a valid simple event type', () => {
+    interface Context {}
 
-    type GreetingEvent =
-      | { type: 'DECIDE'; aloha?: boolean }
-      | { type: 'MORNING' }
-      | { type: 'LUNCH_TIME' }
-      | { type: 'AFTERNOON' }
-      | { type: 'EVENING' }
-      | { type: 'NIGHT' }
-      | { type: 'ALOHA' };
+    type Events = { type: 'FOO' } | { type: 'BAR' };
 
-    interface GreetingContext {
-      hour: number;
-    }
+    createMachine<Context, Events>({
+      entry: raise('FOO')
+    });
+  });
 
-    const greetingContext: GreetingContext = { hour: 10 };
+  // TODO: will be removed in v5
+  it('should reject an invalid simple event type', () => {
+    interface Context {}
 
-    const raiseGreetingMachine = Machine<
-      GreetingContext,
-      GreetingStateSchema,
-      GreetingEvent
-    >({
-      key: 'greeting',
-      context: greetingContext,
-      initial: 'pending',
-      states: {
-        pending: {
-          on: {
-            DECIDE: [
-              {
-                actions: raise({
-                  type: 'ALOHA'
-                }) as any /* TODO: FIX */,
-                cond: (_ctx, ev) => !!ev.aloha
-              },
-              {
-                actions: raise({
-                  type: 'MORNING'
-                }) as any /* TODO: FIX */,
-                cond: (ctx) => ctx.hour < 12
-              },
-              {
-                actions: raise({
-                  type: 'AFTERNOON'
-                }) as any /* TODO: FIX */,
-                cond: (ctx) => ctx.hour < 18
-              },
-              {
-                actions: raise({ type: 'EVENING' }) as any /* TODO: FIX */,
-                cond: (ctx) => ctx.hour < 22
-              }
-            ]
-          }
-        },
-        morning: {},
-        lunchTime: {},
-        afternoon: {},
-        evening: {},
-        night: {}
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      // @ts-expect-error
+      entry: raise('UNKNOWN')
+    });
+  });
+
+  it('should accept a valid event type', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      entry: raise({
+        type: 'FOO'
+      })
+    });
+  });
+
+  it('should reject an invalid event type', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      entry: raise({
+        // @ts-expect-error
+        type: 'UNKNOWN'
+      })
+    });
+  });
+
+  it('should provide a narrowed down expression event type when used as a transition action', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      schema: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       on: {
-        MORNING: '.morning',
-        LUNCH_TIME: '.lunchTime',
-        AFTERNOON: '.afternoon',
-        EVENING: '.evening',
-        NIGHT: '.night'
+        FOO: {
+          actions: raise((_ctx, ev) => {
+            ((_arg: 'FOO') => {})(ev.type);
+            // @ts-expect-error
+            ((_arg: 'BAR') => {})(ev.type);
+
+            return {
+              type: 'BAR'
+            };
+          })
+        }
       }
     });
+  });
 
-    noop(raiseGreetingMachine);
-    expect(true).toBeTruthy();
+  it('should accept a valid event type returned from an expression', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      schema: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      entry: raise(() => ({
+        type: 'BAR'
+      }))
+    });
+  });
+
+  it('should reject an invalid event type returned from an expression', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      schema: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      // @ts-expect-error
+      entry: raise(() => ({
+        type: 'UNKNOWN'
+      }))
+    });
+  });
+});
+
+describe('log', () => {
+  it('should narrow down the event type in the expression', () => {
+    createMachine({
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      on: {
+        FOO: {
+          actions: log((_ctx, ev) => {
+            ((_arg: 'FOO') => {})(ev.type);
+            // @ts-expect-error
+            ((_arg: 'BAR') => {})(ev.type);
+          })
+        }
+      }
+    });
+  });
+});
+
+describe('stop', () => {
+  it('should narrow down the event type in the expression', () => {
+    createMachine({
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      on: {
+        FOO: {
+          actions: stop((_ctx, ev) => {
+            ((_arg: 'FOO') => {})(ev.type);
+            // @ts-expect-error
+            ((_arg: 'BAR') => {})(ev.type);
+
+            return 'fakeId';
+          })
+        }
+      }
+    });
   });
 });
 
@@ -440,7 +504,7 @@ describe('context', () => {
   });
 
   it('should work with generic context', () => {
-    function createMachineWithExtras<TContext>(
+    function createMachineWithExtras<TContext extends {}>(
       context: TContext
     ): StateMachine<TContext, any, any> {
       return createMachine({ context });
@@ -472,7 +536,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: raise('FOO')
+      entry: raise<any, any, any>('FOO')
     });
 
     const service = interpret(machine).start();
@@ -499,7 +563,7 @@ describe('events', () => {
     service.send({ type: 'UNKNOWN' });
   });
 
-  it('event type should be inferrable from a simple state machine typr', () => {
+  it('event type should be inferrable from a simple state machine type', () => {
     const toggleMachine = createMachine<
       {
         count: number;
@@ -665,6 +729,269 @@ describe('spawn', () => {
 
     createParent({
       spawnChild: () => spawn(createChild())
+    });
+  });
+});
+
+describe('service-targets', () => {
+  it('should work with a service that uses strings for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: () => new Promise((resolve) => resolve(1)),
+        onDone: ['a', 'b']
+      },
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('should work with a service that uses TransitionConfigs for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: () => new Promise((resolve) => resolve(1)),
+        onDone: [{ target: 'a' }, { target: 'b' }]
+      },
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('should work with a service that uses a string for one target and a TransitionConfig for another', () => {
+    const machine = createMachine({
+      invoke: {
+        src: () => new Promise((resolve) => resolve(1)),
+        onDone: [{ target: 'a' }, 'b']
+      },
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+});
+
+describe('actions', () => {
+  it('context should get inferred for builtin actions used as an entry action', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      context: {
+        count: 0
+      },
+      entry: assign((ctx) => {
+        ((_accept: number) => {})(ctx.count);
+        // @ts-expect-error
+        ((_accept: "ain't any") => {})(ctx.count);
+        return {};
+      })
+    });
+  });
+
+  it('context should get inferred for builtin actions used as a transition action', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      context: {
+        count: 0
+      },
+      on: {
+        FOO: {
+          actions: assign((ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: "ain't any") => {})(ctx.count);
+            return {};
+          })
+        }
+      }
+    });
+  });
+
+  it('context should get inferred for a builtin action within an array of entry actions', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      entry: [
+        'foo',
+        assign((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return {};
+        })
+      ]
+    });
+  });
+
+  it('context should get inferred for a builtin action within an array of transition actions', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      on: {
+        FOO: {
+          actions: [
+            'foo',
+            assign((ctx) => {
+              ((_accept: number) => {})(ctx.count);
+              // @ts-expect-error
+              ((_accept: "ain't any") => {})(ctx.count);
+              return {};
+            })
+          ]
+        }
+      }
+    });
+  });
+
+  it('context should get inferred for a stop action used as an entry action', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+        }
+      },
+      entry: stop((ctx) => {
+        ((_accept: number) => {})(ctx.count);
+        // @ts-expect-error
+        ((_accept: "ain't any") => {})(ctx.count);
+        return ctx.childRef;
+      })
+    });
+  });
+
+  it('context should get inferred for a stop action used as a transition action', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+        }
+      },
+      on: {
+        FOO: {
+          actions: stop((ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: "ain't any") => {})(ctx.count);
+            return ctx.childRef;
+          })
+        }
+      }
+    });
+  });
+
+  it('should report an error when the stop action returns an invalid actor ref', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        }
+      },
+      entry: stop(
+        // @ts-expect-error
+        (ctx) => {
+          return ctx.count;
+        }
+      )
+    });
+  });
+
+  it('context should get inferred for a stop actions within an array of entry actions', () => {
+    const childMachine = createMachine({});
+
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          childRef: ActorRefFrom<typeof childMachine>;
+          promiseRef: ActorRefFrom<Promise<string>>;
+        }
+      },
+      entry: [
+        stop((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return ctx.childRef;
+        }),
+        stop((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return ctx.promiseRef;
+        })
+      ]
+    });
+  });
+
+  it('should accept assign with partial static object', () => {
+    createMachine({
+      schema: {
+        events: {} as {
+          type: 'TOGGLE';
+        },
+        context: {} as {
+          count: number;
+          mode: 'foo' | 'bar' | null;
+        }
+      },
+      context: {
+        count: 0,
+        mode: null
+      },
+      entry: assign({ mode: 'foo' })
+    });
+  });
+
+  it("should provide context to single prop updater in assign when it's mixed with a static value for another prop", () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+          skip: boolean;
+        },
+        events: {} as {
+          type: 'TOGGLE';
+        }
+      },
+      context: {
+        count: 0,
+        skip: true
+      },
+      entry: assign({
+        count: (context) => context.count + 1,
+        skip: true
+      })
     });
   });
 });

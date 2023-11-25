@@ -1,0 +1,74 @@
+{
+  "name": "@xstate/solid",
+  "version": "0.1.3",
+  "description": "XState tools for SolidJS",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "solidjs",
+    "store"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-solid#readme",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "es/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "dist/**/*.js",
+    "es/**/*.js",
+    "es/**/*.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "scripts": {
+    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
+    "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
+    "test": "jest",
+    "prepare": "npm run build"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "@xstate/fsm": "^2.1.0",
+    "solid-js": "^1.6.0",
+    "xstate": "^4.38.3"
+  },
+  "peerDependenciesMeta": {
+    "@xstate/fsm": {
+      "optional": true
+    },
+    "xstate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@babel/core": "^7.10.5",
+    "@babel/preset-env": "^7.10.5",
+    "@babel/preset-typescript": "^7.10.5",
+    "@types/jest": "^24.0.23",
+    "@xstate/fsm": "2.1.0",
+    "babel-jest": "^26.6.3",
+    "babel-preset-solid": "^1.6.0",
+    "jest": "^26.6.3",
+    "lerna-alias": "3.0.3-0",
+    "rollup": "^2.69.0",
+    "rollup-plugin-terser": "^5.1.2",
+    "rollup-plugin-typescript2": "^0.30.0",
+    "solid-jest": "^0.1.1",
+    "solid-js": "^1.6.0",
+    "solid-testing-library": "^0.3.0",
+    "typescript": "^4.8.4",
+    "xstate": "4.38.3"
+  }
+}

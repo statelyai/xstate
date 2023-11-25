@@ -262,7 +262,7 @@ describe('delayed transitions', () => {
 
       expect(sendActions.length).toBe(1);
 
-      expect(sendActions[0].delay).toEqual(1000);
+      expect((sendActions as any)[0].delay).toEqual(1000);
     });
 
     it('should evaluate the expression (string) to determine the delay', () => {
@@ -278,7 +278,7 @@ describe('delayed transitions', () => {
 
       expect(sendActions.length).toBe(1);
 
-      expect(sendActions[0].delay).toEqual(1000 + 500);
+      expect((sendActions as any)[0].delay).toEqual(1000 + 500);
     });
 
     it('should set delay to undefined if expression not found', () => {
@@ -294,7 +294,7 @@ describe('delayed transitions', () => {
 
       expect(sendActions.length).toBe(1);
 
-      expect(sendActions[0].delay).toEqual(undefined);
+      expect((sendActions as any)[0].delay).toEqual(undefined);
     });
   });
 });

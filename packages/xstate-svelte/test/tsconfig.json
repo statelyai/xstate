@@ -3,5 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "types": ["jest"]
-  }
+  },
+  "references": [
+    {
+      "path": ".."
+    }
+  ]
 }

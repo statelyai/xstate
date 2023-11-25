@@ -26,44 +26,41 @@ describe('@xstate/fsm', () => {
         context: LightContext & { go: false };
       };
 
-  const lightConfig: StateMachine.Config<
-    LightContext,
-    LightEvent,
-    LightState
-  > = {
-    id: 'light',
-    initial: 'green',
-    context: { count: 0, foo: 'bar', go: true },
-    states: {
-      green: {
-        entry: 'enterGreen',
-        exit: [
-          'exitGreen',
-          assign({ count: (ctx) => ctx.count + 1 }),
-          assign({ count: (ctx) => ctx.count + 1 }),
-          assign<LightContext>({ foo: 'static' }),
-          assign({ foo: (ctx) => ctx.foo + '++' })
-        ],
-        on: {
-          TIMER: {
-            target: 'yellow',
-            actions: ['g-y 1', 'g-y 2']
+  const lightConfig: StateMachine.Config<LightContext, LightEvent, LightState> =
+    {
+      id: 'light',
+      initial: 'green',
+      context: { count: 0, foo: 'bar', go: true },
+      states: {
+        green: {
+          entry: 'enterGreen',
+          exit: [
+            'exitGreen',
+            assign({ count: (ctx) => ctx.count + 1 }),
+            assign({ count: (ctx) => ctx.count + 1 }),
+            assign<LightContext>({ foo: 'static' }),
+            assign({ foo: (ctx) => ctx.foo + '++' })
+          ],
+          on: {
+            TIMER: {
+              target: 'yellow',
+              actions: ['g-y 1', 'g-y 2']
+            }
           }
-        }
-      },
-      yellow: {
-        entry: assign<LightContext>({ go: false }),
-        on: {
-          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-          EMERGENCY: {
-            target: 'red',
-            cond: (ctx, e) => ctx.count + e.value === 2
+        },
+        yellow: {
+          entry: assign<LightContext>({ go: false }),
+          on: {
+            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+            EMERGENCY: {
+              target: 'red',
+              cond: (ctx, e) => ctx.count + e.value === 2
+            }
           }
-        }
-      },
-      red: {}
-    }
-  };
+        },
+        red: {}
+      }
+    };
   const lightFSM = createMachine<LightContext, LightEvent, LightState>(
     lightConfig
   );
@@ -132,6 +129,68 @@ describe('@xstate/fsm', () => {
     const nextState = lightFSM.transition('green', 'FAKE' as any);
     expect(nextState.value).toBe('green');
     expect(nextState.actions).toEqual([]);
+  });
+
+  describe('when a wildcard transition is defined', () => {
+    type Event = { type: 'event' };
+    type State =
+      | { value: 'pass'; context: {} }
+      | { value: 'fail'; context: {} };
+    it('should not use a wildcard when an unguarded transition matches', () => {
+      const machine = createMachine<{}, Event, State>({
+        initial: 'fail',
+        states: { fail: { on: { event: 'pass', '*': 'fail' } }, pass: {} }
+      });
+      const nextState = machine.transition(machine.initialState, 'event');
+      expect(nextState.value).toBe('pass');
+    });
+
+    it('should not use a wildcard when a guarded transition matches', () => {
+      const machine = createMachine<{}, Event, State>({
+        initial: 'fail',
+        states: {
+          fail: {
+            on: { event: { target: 'pass', cond: () => true }, '*': 'fail' }
+          },
+          pass: {}
+        }
+      });
+      const nextState = machine.transition(machine.initialState, 'event');
+      expect(nextState.value).toBe('pass');
+    });
+
+    it('should use a wildcard when no guarded transition matches', () => {
+      const machine = createMachine<{}, Event, State>({
+        initial: 'fail',
+        states: {
+          fail: {
+            on: { event: { target: 'fail', cond: () => false }, '*': 'pass' }
+          },
+          pass: {}
+        }
+      });
+      const nextState = machine.transition(machine.initialState, 'event');
+      expect(nextState.value).toBe('pass');
+    });
+
+    it('should use a wildcard when no transition matches', () => {
+      const machine = createMachine<{}, Event, State>({
+        initial: 'fail',
+        states: { fail: { on: { event: 'fail', '*': 'pass' } }, pass: {} }
+      });
+      const nextState = machine.transition(machine.initialState, 'FAKE' as any);
+      expect(nextState.value).toBe('pass');
+    });
+
+    it("should throw an error when an event's type is the wildcard", () => {
+      const machine = createMachine<{}, Event, State>({
+        initial: 'fail',
+        states: { pass: {}, fail: {} }
+      });
+      expect(() => machine.transition('fail', '*' as any)).toThrow(
+        /wildcard type/
+      );
+    });
   });
 
   it('should throw an error for undefined states', () => {

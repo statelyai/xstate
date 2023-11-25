@@ -6,10 +6,10 @@
     "serve": "vite preview"
   },
   "devDependencies": {
-    "typescript": "^4.3.2",
-    "vite": "^2.3.7"
+    "typescript": "^4.7.4",
+    "vite": "^2.9.13"
   },
   "dependencies": {
-    "xstate": "^4.20.0"
+    "xstate": "^4.32.1"
   }
 }

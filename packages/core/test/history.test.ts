@@ -120,6 +120,46 @@ describe('history states', () => {
 
     expect(service.state.value).toEqual({ idle: 'absent' });
   });
+
+  it('should reenter persisted state during external transition targeting a history state', () => {
+    const actual: string[] = [];
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            REENTER: '#b_hist'
+          },
+          initial: 'a1',
+          states: {
+            a1: {
+              on: {
+                NEXT: 'a2'
+              }
+            },
+            a2: {
+              entry: () => actual.push('a2 entered'),
+              exit: () => actual.push('a2 exited')
+            },
+            a3: {
+              type: 'history',
+              id: 'b_hist'
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'NEXT' });
+
+    actual.length = 0;
+    service.send({ type: 'REENTER' });
+
+    expect(actual).toEqual(['a2 exited', 'a2 entered']);
+  });
 });
 
 describe('deep history states', () => {

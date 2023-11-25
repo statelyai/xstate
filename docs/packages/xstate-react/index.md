@@ -86,7 +86,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
   );
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -102,7 +102,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes fro
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist.
 
 ```js
 const [state, send] = useActor(someSpawnedActor);
@@ -127,7 +127,7 @@ _Since 1.3.0_
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 - `observer` (optional) - an observer or listener that listens to state updates:
   - an observer (e.g., `{ next: (state) => {/* ... */} }`)
   - or a listener (e.g., `(state) => {/* ... */}`)
@@ -178,7 +178,7 @@ _Since 1.3.0_
 - `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
 - `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
 - `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
 
 ```js
 import { useSelector } from '@xstate/react';
@@ -208,6 +208,125 @@ const App = ({ service }) => {
 };
 ```
 
+### `createActorContext(machine)`
+
+_Since 3.1.0_
+
+Returns a [React Context object](https://beta.reactjs.org/learn/passing-data-deeply-with-context) that interprets the `machine` and makes the interpreted actor available through React Context. There are helper methods for accessing state and the actor ref.
+
+**Arguments**
+
+- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
+
+**Returns**
+
+Returns a React Context object that contains the following properties:
+
+- `Provider` - a React Context Provider component with the following props:
+  - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) that must be of the same type as the machine passed to `createActorContext(...)`
+- `useActor()` - a React hook that returns a tuple of `[state, send]` from the React Context
+- `useSelector(selector, compare?)` - a React hook that takes in a `selector` function and optional `compare` function and returns the selected value from the actor snapshot
+- `useActorRef()` - a React hook that returns the actor ref of the interpreted `machine`
+
+Creating a React Context for the actor and providing it in app scope:
+
+```js
+import { createActorContext } from '@xstate/react';
+import { someMachine } from '../path/to/someMachine';
+
+const SomeMachineContext = createActorContext(someMachine);
+
+function App() {
+  return (
+    <SomeMachineContext.Provider>
+      <SomeComponent />
+    </SomeMachineContext.Provider>
+  );
+}
+```
+
+Consuming the actor in a component:
+
+```js
+import { SomeMachineContext } from '../path/to/SomeMachineContext';
+
+function SomeComponent() {
+  // Read full snapshot and get `send` function from `useActor()`
+  const [state, send] = SomeMachineContext.useActor();
+
+  // Or derive a specific value from the snapshot with `useSelector()`
+  const count = SomeMachineContext.useSelector((state) => state.context.count);
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => send('INCREMENT')}>Increment</button>
+    </div>
+  );
+}
+```
+
+Reading the actor ref:
+
+```js
+import { SomeMachineContext } from '../path/to/SomeMachineContext';
+
+function SomeComponent() {
+  const actorRef = SomeMachineContext.useActorRef();
+
+  return (
+    <div>
+      <button onClick={() => actorRef.send('INCREMENT')}>Increment</button>
+    </div>
+  );
+}
+```
+
+Providing a similar machine:
+
+```js
+import { SomeMachineContext } from '../path/to/SomeMachineContext';
+import { someMachine } from '../path/to/someMachine';
+
+function SomeComponent() {
+  return (
+    <SomeMachineContext.Provider
+      machine={() =>
+        someMachine.withConfig({
+          /* ... */
+        })
+      }
+    >
+      <SomeOtherComponent />
+    </SomeMachineContext.Provider>
+  );
+}
+```
+
+### Shallow comparison
+
+The default comparison is a strict reference comparison (`===`). If your selector returns non-primitive values, such as objects or arrays, you should keep this in mind and either return the same reference, or provide a shallow or deep comparator.
+
+The `shallowEqual(...)` comparator function is available for shallow comparison:
+
+```js
+import { useSelector, shallowEqual } from '@xstate/react';
+
+// ...
+
+const selectUser = (state) => state.context.user;
+
+const App = ({ service }) => {
+  // shallowEqual comparator is needed to compare the object, whose
+  // reference might change despite the shallow object values being equal
+  const user = useSelector(service, selectUser, shallowEqual);
+
+  // ...
+};
+```
+
+:::
+
 With `useInterpret(...)`:
 
 ```js
@@ -216,7 +335,7 @@ import { someMachine } from '../path/to/someMachine';
 
 const selectCount = (state) => state.context.count;
 
-const App = ({ service }) => {
+const App = () => {
   const service = useInterpret(someMachine);
   const count = useSelector(service, selectCount);
 
@@ -224,53 +343,7 @@ const App = ({ service }) => {
 };
 ```
 
-### `asEffect(action)`
-
-Ensures that the `action` is executed as an effect in `useEffect`, rather than being immediately executed.
-
-**Arguments**
-
-- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
-
-**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useEffect`.
-
-**Example**
-
-```jsx
-const machine = createMachine({
-  initial: 'focused',
-  states: {
-    focused: {
-      entry: 'focus'
-    }
-  }
-});
-
-const Input = () => {
-  const inputRef = useRef(null);
-  const [state, send] = useMachine(machine, {
-    actions: {
-      focus: asEffect((context, event) => {
-        inputRef.current && inputRef.current.focus();
-      })
-    }
-  });
-
-  return <input ref={inputRef} />;
-};
-```
-
-### `asLayoutEffect(action)`
-
-Ensures that the `action` is executed as an effect in `useLayoutEffect`, rather than being immediately executed.
-
-**Arguments**
-
-- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
-
-**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useLayoutEffect`.
-
-### `useMachine(machine)` with `@xstate/fsm`
+### `useMachine(machine, options?)` with `@xstate/fsm`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
@@ -411,7 +484,7 @@ const Fetcher = ({ onResolve }) => {
   switch (state.value) {
     case 'idle':
       return (
-        <button onClick={() => send('FETCH', { query: 'something' })}>
+        <button onClick={() => send({ type: 'FETCH', query: 'something' })}>
           Search for something
         </button>
       );
