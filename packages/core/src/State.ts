@@ -18,7 +18,8 @@ import type {
   ParameterizedObject,
   IsAny,
   StateConfig2,
-  StateValueFrom2
+  StateValueFrom2,
+  Prop
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
@@ -86,9 +87,11 @@ interface MachineSnapshotBase<
       TOutput,
       TResolvedTypesMeta
     >,
-    testValue: IsAny<TConfig> extends true
-      ? StateValue
-      : StateValueFrom2<TConfig>
+    testValue: TResolvedTypesMeta extends TypegenEnabled
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
+      : IsAny<TConfig> extends true
+        ? StateValue
+        : StateValueFrom2<TConfig>
   ) => boolean;
 
   /**
