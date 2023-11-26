@@ -565,27 +565,6 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system._relay(undefined, this, event);
   }
 
-  /**
-   * TODO: figure out a way to do this within the machine
-   * @internal
-   */
-  public delaySend(params: {
-    event: EventObject;
-    id: string | undefined;
-    delay: number;
-    to?: AnyActorRef;
-  }): void {
-    const { event, id = Math.random().toString(), delay } = params;
-    const timerId = Math.random().toString();
-    this.system.scheduler.schedule({
-      delay,
-      event,
-      id,
-      source: this,
-      target: params.to ?? this
-    });
-  }
-
   private attachDevTools(): void {
     const { devTools } = this.options;
     if (devTools) {

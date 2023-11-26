@@ -85,9 +85,12 @@ function executeRaise(
   }
 ) {
   if (typeof params.delay === 'number') {
-    (actorScope.self as AnyActor).delaySend(
-      params as typeof params & { delay: number }
-    );
+    actorScope.system.scheduler.schedule({
+      ...params,
+      source: actorScope.self,
+      target: params.to ?? actorScope.self,
+      id: params.id ?? Math.random().toString()
+    });
     return;
   }
 }
