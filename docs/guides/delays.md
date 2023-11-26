@@ -3,7 +3,7 @@
 Delays and timeouts can be handled declaratively with statecharts. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#delayed-transitions).
 
 :::tip Check out our new docs!
-🆕 Find more about [delayed (after) transitions in XState](https://stately.ai/docs/xstate/transitions-and-choices/after) as well as a [no-code introduction to delayed transitions](https://stately.ai/docs/transitions-and-events/delayed-transitions) in our new docs.
+🆕 Find more about [delayed (after) transitions in XState](https://stately.ai/docs/delayed-transitions) as well as a [no-code introduction to delayed transitions](https://stately.ai/docs/delayed-transitions#using-delayed-transitions-in-stately-studio) in our new docs.
 :::
 
 ## Delayed transitions

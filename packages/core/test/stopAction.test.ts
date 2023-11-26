@@ -3,7 +3,7 @@ import {
   createActor,
   createMachine,
   fromPromise,
-  stop
+  stopChild
 } from '../src/index.ts';
 
 describe('stop() action creator', () => {
@@ -25,7 +25,7 @@ describe('stop() action creator', () => {
       },
       on: {
         stopAll: {
-          actions: stop(({ context }) => context.actors)
+          actions: stopChild(({ context }) => context.actors)
         }
       }
     });

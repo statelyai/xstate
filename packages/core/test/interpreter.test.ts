@@ -5,15 +5,13 @@ import {
   sendParent,
   StateValue,
   createMachine,
-  ActorStatus,
   ActorRefFrom,
   ActorRef,
   cancel,
   raise,
-  stop,
+  stopChild,
   log
 } from '../src/index.ts';
-import { State } from '../src/State';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
@@ -382,6 +380,9 @@ describe('interpreter', () => {
       const clock = new SimulatedClock();
       const letterMachine = createMachine(
         {
+          types: {} as {
+            events: { type: 'FIRE_DELAY'; value: number };
+          },
           id: 'letter',
           context: {
             delay: 100
@@ -389,12 +390,9 @@ describe('interpreter', () => {
           initial: 'a',
           states: {
             a: {
-              after: [
-                {
-                  delay: ({ context }) => context.delay,
-                  target: 'b'
-                }
-              ]
+              after: {
+                delayA: 'b'
+              }
             },
             b: {
               after: {
@@ -408,21 +406,12 @@ describe('interpreter', () => {
               }
             },
             d: {
-              after: [
-                {
-                  delay: ({ context, event }) =>
-                    context.delay + (event as any).value,
-                  target: 'e'
-                }
-              ]
+              after: {
+                delayD: 'e'
+              }
             },
             e: {
-              after: [
-                {
-                  delay: 'someDelay',
-                  target: 'f'
-                }
-              ]
+              after: { someDelay: 'f' }
             },
             f: {
               type: 'final'
@@ -433,7 +422,9 @@ describe('interpreter', () => {
           delays: {
             someDelay: ({ context }) => {
               return context.delay + 50;
-            }
+            },
+            delayA: ({ context }) => context.delay,
+            delayD: ({ context, event }) => context.delay + (event as any).value
           }
         }
       );
@@ -1062,7 +1053,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: State.from('bar', undefined, machine)
+        state: machine.resolveState({ value: 'bar' })
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1079,7 +1070,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveStateValue('bar')
+        state: machine.resolveState({ value: 'bar' })
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1102,7 +1093,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveStateValue('foo')
+        state: machine.resolveState({ value: 'foo' })
       });
 
       expect(actor.getSnapshot().matches({ foo: 'one' })).toBeTruthy();
@@ -1311,7 +1302,10 @@ describe('interpreter', () => {
           after: {
             10: {
               target: 'active',
-              actions: assign({ count: ({ context }) => context.count + 1 })
+              reenter: true,
+              actions: assign({
+                count: ({ context }) => context.count + 1
+              })
             }
           },
           always: {
@@ -1716,9 +1710,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop(({ context }) => context.machineRef),
-                  stop(({ context }) => context.promiseRef),
-                  stop(({ context }) => context.observableRef)
+                  stopChild(({ context }) => context.machineRef),
+                  stopChild(({ context }) => context.promiseRef),
+                  stopChild(({ context }) => context.observableRef)
                 ]
               }
             }
@@ -1797,7 +1791,8 @@ describe('interpreter', () => {
 
     const service = createActor(machine).start();
 
-    expect(service.status).toBe(ActorStatus.Stopped);
+    expect(service.getSnapshot().status).toBe('done');
+
     service.subscribe({
       complete: () => {
         done();

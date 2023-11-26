@@ -3,9 +3,10 @@ import {
   assign,
   createMachine,
   createActor,
-  sendTo
+  sendTo,
+  waitFor
 } from '../src/index.ts';
-import { raise, sendParent, stop } from '../src/actions.ts';
+import { raise, sendParent, stopChild } from '../src/actions.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 
@@ -364,18 +365,7 @@ describe('predictableExec', () => {
     expect(service.getSnapshot().value).toBe('done');
   });
 
-  // TODO: if we allow this by flipping [...invokes, ...entry] to [...entry, ...invokes]
-  // then we end up with a different problem, we no longer have the ability to target the invoked actor with entry send:
-  //
-  // invoke: { id: 'a', src: actor },
-  // entry: send('EVENT', { to: 'a' })
-  //
-  // this seems to be even a worse problem. It's likely that we will have to remove this test case and document it as a breaking change.
-  // in v4 we are actually deferring sends till the end of the entry block:
-  // https://github.com/statelyai/xstate/blob/aad4991b4eb04faf979a0c8a027a5bcf861f34b3/packages/core/src/actions.ts#L703-L704
-  //
-  // should this be implemented in v5 as well?
-  it.skip('should create invoke based on context updated by entry actions of the same state', () => {
+  it('should create invoke based on context updated by entry actions of the same state', (done) => {
     const machine = createMachine({
       context: {
         updated: false
@@ -392,6 +382,7 @@ describe('predictableExec', () => {
           invoke: {
             src: fromPromise(({ input }) => {
               expect(input.updated).toBe(true);
+              done();
               return Promise.resolve();
             }),
             input: ({ context }: any) => ({
@@ -402,8 +393,8 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = createActor(machine).start();
-    service.send({ type: 'NEXT' });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
   });
 
   it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
@@ -424,11 +415,14 @@ describe('predictableExec', () => {
           entry: sendTo('myChild', { type: 'KNOCK_KNOCK' }),
           invoke: {
             id: 'myChild',
-            src: fromCallback(({ receive }) => {
-              receive((event) => {
-                received = event;
-              });
-              return () => {};
+            src: createMachine({
+              on: {
+                '*': {
+                  actions: ({ event }) => {
+                    received = event;
+                  }
+                }
+              }
             })
           }
         }

@@ -1,5 +1,5 @@
 import { fromCallback, createActor } from '../src/index.ts';
-import { createMachine } from '../src/Machine.ts';
+import { createMachine } from '../src/createMachine.ts';
 
 describe('deterministic machine', () => {
   const lightMachine = createMachine({
@@ -63,14 +63,14 @@ describe('deterministic machine', () => {
 
   describe('machine.transition()', () => {
     it('should properly transition states based on event-like object', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('green'),
+          lightMachine.resolveState({ value: 'green' }),
           {
             type: 'TIMER'
           },
-          actorContext
+          actorScope
         ).value
       ).toEqual('yellow');
     });
@@ -99,23 +99,23 @@ describe('deterministic machine', () => {
     });
 
     it('should throw an error if not given an event', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(() =>
         lightMachine.transition(
-          testMachine.resolveStateValue('red'),
+          testMachine.resolveState({ value: 'red' }),
           undefined as any,
-          actorContext
+          actorScope
         )
       ).toThrow();
     });
 
     it('should transition to nested states as target', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         testMachine.transition(
-          testMachine.resolveStateValue('a'),
+          testMachine.resolveState({ value: 'a' }),
           { type: 'T' },
-          actorContext
+          actorScope
         ).value
       ).toEqual({
         b: 'b1'
@@ -123,47 +123,47 @@ describe('deterministic machine', () => {
     });
 
     it('should throw an error for transitions from invalid states', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(() =>
         testMachine.transition(
-          testMachine.resolveStateValue('fake'),
+          testMachine.resolveState({ value: 'fake' }),
           { type: 'T' },
-          actorContext
+          actorScope
         )
       ).toThrow();
     });
 
     it('should throw an error for transitions from invalid substates', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(() =>
         testMachine.transition(
-          testMachine.resolveStateValue('a.fake'),
+          testMachine.resolveState({ value: 'a.fake' }),
           {
             type: 'T'
           },
-          actorContext
+          actorScope
         )
       ).toThrow();
     });
 
     it('should use the machine.initialState when an undefined state is given', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.getInitialState(actorContext),
+          lightMachine.getInitialState(actorScope),
           { type: 'TIMER' },
-          actorContext
+          actorScope
         ).value
       ).toEqual('yellow');
     });
 
     it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.getInitialState(actorContext),
+          lightMachine.getInitialState(actorScope),
           { type: 'TIMER' },
-          actorContext
+          actorScope
         ).value
       ).toEqual('yellow');
     });
@@ -172,25 +172,25 @@ describe('deterministic machine', () => {
   // TODO: figure out the simulation API
   describe('machine.transition() with nested states', () => {
     it('should properly transition a nested state', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue({ red: 'walk' }),
+          lightMachine.resolveState({ value: { red: 'walk' } }),
           { type: 'PED_COUNTDOWN' },
-          actorContext
+          actorScope
         ).value
       ).toEqual({ red: 'wait' });
     });
 
     it('should transition from initial nested states', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('red'),
+          lightMachine.resolveState({ value: 'red' }),
           {
             type: 'PED_COUNTDOWN'
           },
-          actorContext
+          actorScope
         ).value
       ).toEqual({
         red: 'wait'
@@ -198,14 +198,14 @@ describe('deterministic machine', () => {
     });
 
     it('should transition from deep initial nested states', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('red'),
+          lightMachine.resolveState({ value: 'red' }),
           {
             type: 'PED_COUNTDOWN'
           },
-          actorContext
+          actorScope
         ).value
       ).toEqual({
         red: 'wait'
@@ -213,12 +213,12 @@ describe('deterministic machine', () => {
     });
 
     it('should bubble up events that nested states cannot handle', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue({ red: 'stop' }),
+          lightMachine.resolveState({ value: { red: 'stop' } }),
           { type: 'TIMER' },
-          actorContext
+          actorScope
         ).value
       ).toEqual('green');
     });
@@ -252,14 +252,14 @@ describe('deterministic machine', () => {
     });
 
     it('should transition to the deepest initial state', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.resolveStateValue('yellow'),
+          lightMachine.resolveState({ value: 'yellow' }),
           {
             type: 'TIMER'
           },
-          actorContext
+          actorScope
         ).value
       ).toEqual({
         red: 'walk'
@@ -267,20 +267,20 @@ describe('deterministic machine', () => {
     });
 
     it('should return the same state if no transition occurs', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       const initialState = lightMachine.transition(
-        lightMachine.getInitialState(actorContext),
+        lightMachine.getInitialState(actorScope),
         {
           type: 'NOTHING'
         },
-        actorContext
+        actorScope
       );
       const nextState = lightMachine.transition(
         initialState,
         {
           type: 'NOTHING'
         },
-        actorContext
+        actorScope
       );
 
       expect(initialState.value).toEqual(nextState.value);
@@ -311,12 +311,12 @@ describe('deterministic machine', () => {
     );
 
     it('should work with substate nodes that have the same key', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         machine.transition(
-          machine.getInitialState(actorContext),
+          machine.getInitialState(actorScope),
           { type: 'NEXT' },
-          actorContext
+          actorScope
         ).value
       ).toEqual('test');
     });
@@ -324,12 +324,12 @@ describe('deterministic machine', () => {
 
   describe('forbidden events', () => {
     it('undefined transitions should forbid events', () => {
-      const actorContext = null as any; // TODO: figure out the simulation API
+      const actorScope = null as any; // TODO: figure out the simulation API
 
       const walkState = lightMachine.transition(
-        lightMachine.resolveStateValue({ red: 'walk' }),
+        lightMachine.resolveState({ value: { red: 'walk' } }),
         { type: 'TIMER' },
-        actorContext
+        actorScope
       );
 
       expect(walkState.value).toEqual({ red: 'walk' });

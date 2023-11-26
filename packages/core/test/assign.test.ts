@@ -1,4 +1,10 @@
-import { assign, createMachine, createActor } from '../src/index.ts';
+import {
+  assign,
+  createMachine,
+  createActor,
+  fromPromise
+} from '../src/index.ts';
+import { setup } from '../src/setup.ts';
 
 interface CounterContext {
   count: number;
@@ -295,8 +301,8 @@ describe('assign meta', () => {
       },
       {
         actions: {
-          inc: assign(({ context, action }) => ({
-            count: context.count + action.params.by
+          inc: assign(({ context }, params) => ({
+            count: context.count + params.by
           }))
         }
       }
@@ -307,7 +313,7 @@ describe('assign meta', () => {
     expect(actor.getSnapshot().context.count).toEqual(11);
   });
 
-  it('should provide the parametrized action to the partial assigner', () => {
+  it('should provide the action parameters to the partial assigner', () => {
     const machine = createMachine(
       {
         types: {} as {
@@ -322,7 +328,7 @@ describe('assign meta', () => {
       {
         actions: {
           inc: assign({
-            count: ({ context, action }) => context.count + action.params.by
+            count: ({ context }, params) => context.count + params.by
           })
         }
       }
@@ -333,7 +339,7 @@ describe('assign meta', () => {
     expect(actor.getSnapshot().context.count).toEqual(11);
   });
 
-  it('a parameterized action that resolves to assign() should be provided the original action in the action meta', (done) => {
+  it('a parameterized action that resolves to assign() should be provided the params', (done) => {
     const machine = createMachine(
       {
         on: {
@@ -347,8 +353,8 @@ describe('assign meta', () => {
       },
       {
         actions: {
-          inc: assign(({ context, action }) => {
-            expect(action).toEqual({ type: 'inc', params: { value: 5 } });
+          inc: assign(({ context }, params) => {
+            expect(params).toEqual({ value: 5 });
             done();
             return context;
           })

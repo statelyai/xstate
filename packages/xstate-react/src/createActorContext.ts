@@ -16,6 +16,7 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
   TMachine extends StateMachine<
     infer TContext,
     infer TEvent,
+    infer TChildren,
     infer TActor,
     infer TAction,
     infer TGuard,
@@ -28,6 +29,7 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
     ? StateMachine<
         TContext,
         TEvent,
+        TChildren,
         TActor,
         TAction,
         TGuard,
@@ -54,6 +56,10 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     props: {
       children: React.ReactNode;
       options?: ActorOptions<TLogic>;
+      /**
+       * @deprecated Use `logic` instead.
+       */
+      machine?: never;
     } & (TLogic extends AnyStateMachine
       ? AreAllImplementationsAssumedToBeProvided<
           TLogic['__TResolvedTypesMeta']

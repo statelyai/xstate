@@ -58,9 +58,8 @@ for (const peerPkg of ['xstate']) {
       continue;
     }
     const pkgJsonCopy = { ...dependentPkg.packageJson };
-    pkgJsonCopy.peerDependencies[
-      peerPkg
-    ] = `^${peerPkgChange.packageJson.version}`;
+    pkgJsonCopy.peerDependencies[peerPkg] =
+      `^${peerPkgChange.packageJson.version}`;
     fs.writeFileSync(
       path.join(dependentPkg.dir, 'package.json'),
       JSON.stringify(pkgJsonCopy, null, 2) + '\n'
