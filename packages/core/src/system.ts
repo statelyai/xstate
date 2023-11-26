@@ -67,8 +67,10 @@ export function createSystem<T extends ActorSystemInfo>(
 
       target._send(event);
     },
-    scheduler: createScheduler(options?.clock)
+    scheduler: null as any
   };
+
+  system.scheduler = createScheduler(options?.clock, system);
 
   return system;
 }

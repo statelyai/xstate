@@ -585,6 +585,7 @@ export class Actor<TLogic extends AnyActorLogic>
       delay,
       event,
       id,
+      source: this,
       target: params.to ?? this
     });
 

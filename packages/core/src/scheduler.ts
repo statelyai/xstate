@@ -1,4 +1,4 @@
-import { AnyActorRef, EventObject } from '.';
+import { ActorSystem, AnyActorRef, AnyActorSystem, EventObject } from '.';
 
 interface ScheduledEvent {
   id: string;
@@ -19,6 +19,7 @@ export interface Scheduler {
     id: string;
     event: EventObject;
     delay: number;
+    source: AnyActorRef;
     target: AnyActorRef;
   }): void;
   cancel(id: string): void;
@@ -32,7 +33,8 @@ export function createScheduler(
     clearTimeout: (id) => {
       return clearTimeout(id);
     }
-  }
+  },
+  system: AnyActorSystem
 ): Scheduler {
   const scheduledEvents: { [id: string]: ScheduledEvent } = {};
   const timerMap: { [id: string]: number } = {};
@@ -43,6 +45,7 @@ export function createScheduler(
       id: string;
       event: EventObject;
       delay: number;
+      source: AnyActorRef;
       target: AnyActorRef;
     }) => {
       const scheduledEvent: ScheduledEvent = {
@@ -52,7 +55,7 @@ export function createScheduler(
       scheduledEvents[data.id] = scheduledEvent;
 
       const timeout = clock.setTimeout(() => {
-        data.target.send(data.event);
+        system._relay(data.source, data.target, data.event);
         delete scheduledEvents[data.id];
       }, data.delay);
 
