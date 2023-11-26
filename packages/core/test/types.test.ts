@@ -4413,4 +4413,27 @@ describe('self', () => {
       })
     });
   });
+
+  it('should work with this case that was not working before', () => {
+    function init() {
+      return { foo: 'bar' };
+    }
+
+    setup({}).createMachine({
+      types: {
+        events: {} as { type: 'RESTART' },
+        context: {} as ReturnType<typeof init>
+      },
+      context: init,
+      states: {
+        foo: {
+          on: {
+            RESTART: {
+              actions: assign({})
+            }
+          }
+        }
+      }
+    });
+  });
 });
