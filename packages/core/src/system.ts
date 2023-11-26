@@ -1,3 +1,4 @@
+import { Clock, createScheduler } from './scheduler.ts';
 import {
   AnyEventObject,
   ActorSystem,
@@ -9,7 +10,8 @@ import {
 
 let idCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
-  rootActor: AnyActorRef
+  rootActor: AnyActorRef,
+  options?: { clock?: Clock }
 ): ActorSystem<T> {
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
@@ -64,7 +66,8 @@ export function createSystem<T extends ActorSystemInfo>(
       });
 
       target._send(event);
-    }
+    },
+    scheduler: createScheduler(options?.clock)
   };
 
   return system;

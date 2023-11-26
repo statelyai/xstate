@@ -34,6 +34,7 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+import { Clock } from './scheduler.ts';
 
 export const $$ACTOR_TYPE = 1;
 
@@ -47,11 +48,6 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 
 export type Listener = () => void;
 export type ErrorListener = (error: any) => void;
-
-export interface Clock {
-  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
-  clearTimeout(id: any): void;
-}
 
 // those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
 export enum ProcessingStatus {
@@ -150,7 +146,7 @@ export class Actor<TLogic extends AnyActorLogic>
     const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
       resolvedOptions;
 
-    this.system = parent?.system ?? createSystem(this);
+    this.system = parent?.system ?? createSystem(this, { clock });
 
     if (inspect && !parent) {
       // Always inspect at the system-level
@@ -523,7 +519,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
     // Cancel all delayed events
     for (const key of Object.keys(this.delayedEventsMap)) {
-      this.clock.clearTimeout(this.delayedEventsMap[key]);
+      this.system.scheduler.cancel(key);
     }
 
     // TODO: mailbox.reset
@@ -583,14 +579,14 @@ export class Actor<TLogic extends AnyActorLogic>
     delay: number;
     to?: AnyActorRef;
   }): void {
-    const { event, id, delay } = params;
-    const timerId = this.clock.setTimeout(() => {
-      this.system._relay(
-        this,
-        params.to ?? this,
-        event as EventFromLogic<TLogic>
-      );
-    }, delay);
+    const { event, id = Math.random().toString(), delay } = params;
+    const timerId = Math.random().toString();
+    this.system.scheduler.schedule({
+      delay,
+      event,
+      id,
+      target: params.to ?? this
+    });
 
     // TODO: consider the rehydration story here
     if (id) {
@@ -602,8 +598,9 @@ export class Actor<TLogic extends AnyActorLogic>
    * TODO: figure out a way to do this within the machine
    * @internal
    */
-  public cancel(sendId: string | number): void {
-    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
+  public cancel(sendId: string): void {
+    this.system.scheduler.cancel(sendId);
+    // this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
 

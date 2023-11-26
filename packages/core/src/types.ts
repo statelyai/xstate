@@ -1,6 +1,6 @@
 import type { StateNode } from './StateNode.ts';
 import type { MachineSnapshot } from './State.ts';
-import type { Clock, Actor, ProcessingStatus } from './interpreter.ts';
+import type { Actor, ProcessingStatus } from './interpreter.ts';
 import type { StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
@@ -14,6 +14,7 @@ import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
 import { InspectionEvent } from './system.js';
+import { Clock, Scheduler } from './scheduler.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -2328,6 +2329,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     target: AnyActorRef,
     event: AnyEventObject
   ) => void;
+  scheduler: Scheduler;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
