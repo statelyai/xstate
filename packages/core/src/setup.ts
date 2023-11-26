@@ -149,7 +149,8 @@ export function setup<
       ToParameterizedObject<TGuards>,
       TDelay,
       TTag
-    >
+    >,
+    TConfig
   >;
 } {
   return {

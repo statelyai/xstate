@@ -2173,25 +2173,11 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TSnapshot
     : R extends Actor<infer TLogic>
       ? SnapshotFrom<TLogic>
-      : R extends StateMachine<
-            infer _TContext,
-            infer _TEvent,
-            infer _TChildren,
-            infer _TActor,
-            infer _TAction,
-            infer _TGuard,
-            infer _TDelay,
-            infer _TTag,
-            infer _TInput,
-            infer _TOutput,
-            infer _TResolvedTypesMeta
-          >
-        ? StateFrom<R>
-        : R extends ActorLogic<any, any, any, any>
-          ? ReturnType<R['transition']>
-          : R extends ActorScope<infer TSnapshot, infer _, infer __>
-            ? TSnapshot
-            : never
+      : R extends ActorLogic<any, any, any, any>
+        ? ReturnType<R['transition']>
+        : R extends ActorScope<infer TSnapshot, infer _, infer __>
+          ? TSnapshot
+          : never
   : never;
 
 export type EventFromLogic<TLogic extends ActorLogic<any, any, any, any>> =
@@ -2368,3 +2354,40 @@ export type ToChildren<TActor extends ProvidedActor> =
               ? 'include'
               : 'exclude']
       >;
+
+export type StateConfig2 = {
+  states?: {
+    [K: string]: StateConfig2;
+  };
+};
+
+export type StateValueFromConfig<TConfig extends StateConfig2> =
+  TConfig['states'] extends Record<string, any>
+    ?
+        | keyof TConfig['states']
+        | {
+            [K in keyof TConfig['states']]?: StateValueFromConfig<
+              TConfig['states'][K]
+            >;
+          }
+    : never;
+
+export type StateValueFrom2<T extends StateConfig2> = IsAny<T> extends true
+  ? StateValue
+  : T extends {
+        states: Record<infer S, any>;
+      }
+    ?
+        | S
+        | (T extends { type: 'history' }
+            ? never
+            : T extends { type: 'parallel' }
+              ? {
+                  [K in S]: StateValueFrom2<T['states'][K]>;
+                }
+              : Values<{
+                  [K in S]: {
+                    [key in K]: StateValueFrom2<T['states'][K]>;
+                  };
+                }>)
+    : { [key: string]: never };

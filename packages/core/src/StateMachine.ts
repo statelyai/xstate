@@ -50,7 +50,8 @@ import type {
   SnapshotFrom,
   Snapshot,
   AnyActorLogic,
-  HistoryValue
+  HistoryValue,
+  StateConfig2
 } from './types.ts';
 import {
   flatten,
@@ -83,7 +84,8 @@ export class StateMachine<
     TGuard,
     TDelay,
     TTag
-  >
+  >,
+  TConfig extends StateConfig2 = any
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -287,7 +289,8 @@ export class StateMachine<
       TChildren,
       TTag,
       TOutput,
-      TResolvedTypesMeta
+      TResolvedTypesMeta,
+      TConfig
     >,
     event: TEvent,
     actorScope: ActorScope<typeof state, TEvent>
@@ -297,7 +300,8 @@ export class StateMachine<
     TChildren,
     TTag,
     TOutput,
-    TResolvedTypesMeta
+    TResolvedTypesMeta,
+    TConfig
   > {
     // TODO: handle error events in a better way
     if (
