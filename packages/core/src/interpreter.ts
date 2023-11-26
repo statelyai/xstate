@@ -94,8 +94,6 @@ export class Actor<TLogic extends AnyActorLogic>
     this._process.bind(this)
   );
 
-  private delayedEventsMap: Record<string, unknown> = {};
-
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
   private logger: (...args: any[]) => void;
 
@@ -518,9 +516,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     // Cancel all delayed events
-    for (const key of Object.keys(this.delayedEventsMap)) {
-      this.system.scheduler.cancel(key);
-    }
+    this.system.scheduler.cancelAll(this);
 
     // TODO: mailbox.reset
     this.mailbox.clear();
@@ -588,11 +584,6 @@ export class Actor<TLogic extends AnyActorLogic>
       source: this,
       target: params.to ?? this
     });
-
-    // TODO: consider the rehydration story here
-    if (id) {
-      this.delayedEventsMap[id] = timerId;
-    }
   }
 
   private attachDevTools(): void {

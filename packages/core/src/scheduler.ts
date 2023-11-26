@@ -1,10 +1,11 @@
-import { ActorSystem, AnyActorRef, AnyActorSystem, EventObject } from '.';
+import { AnyActorRef, AnyActorSystem, EventObject } from '.';
 
 interface ScheduledEvent {
   id: string;
   event: EventObject;
   startedAt: number; // timestamp
   delay: number;
+  source: AnyActorRef;
   target: AnyActorRef;
 }
 
@@ -23,6 +24,7 @@ export interface Scheduler {
     target: AnyActorRef;
   }): void;
   cancel(id: string): void;
+  cancelAll(actorRef: AnyActorRef): void;
 }
 
 export function createScheduler(
@@ -68,6 +70,21 @@ export function createScheduler(
       }
       delete timerMap[id];
       delete scheduledEvents[id];
+    },
+    /**
+     * Called when the actorRef is unregistered
+     */
+    cancelAll: (actorRef) => {
+      for (const id in scheduledEvents) {
+        if (scheduledEvents[id].source === actorRef) {
+          const timeout = timerMap[id];
+          if (timeout !== undefined) {
+            clock.clearTimeout(timeout);
+          }
+          delete timerMap[id];
+          delete scheduledEvents[id];
+        }
+      }
     }
   };
 }
