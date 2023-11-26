@@ -15,11 +15,6 @@ import { fireEvent, render, screen, waitFor } from 'solid-testing-library';
 import {
   Actor,
   ActorLogicFrom,
-  ActorStatus,
-  EventObject,
-  MachineContext,
-  PersistedMachineState,
-  ProvidedActor,
   assign,
   createActor,
   createMachine,
@@ -170,20 +165,6 @@ describe('useMachine hook', () => {
       if (!(service instanceof Actor)) {
         throw new Error('service not instance of Interpreter');
       }
-
-      return null;
-    };
-
-    render(() => <Test />);
-  });
-
-  it('should provide options for the service', () => {
-    const Test = () => {
-      const [, , service] = useMachine(fetchMachine, {
-        execute: false
-      });
-
-      expect(service.options.execute).toBe(false);
 
       return null;
     };
@@ -673,129 +654,6 @@ describe('useMachine hook', () => {
     expect(count).toEqual(1);
   });
 
-  it('nextEvents should be defined and reactive', () => {
-    const machine = createMachine({
-      initial: 'green',
-      states: {
-        green: {
-          on: {
-            TRANSITION: 'yellow'
-          }
-        },
-        yellow: {
-          on: {
-            TRANSITION: 'red',
-            BACK_TRANSITION: 'green'
-          }
-        },
-        red: {
-          on: {
-            TRANSITION: 'green'
-          }
-        }
-      }
-    });
-
-    const App = () => {
-      const [state, send] = useMachine(machine);
-
-      return (
-        <div>
-          <button
-            data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
-          />
-          <ul>
-            <For each={state.nextEvents} fallback={<li>Empty / undefined</li>}>
-              {(event, i) => <li data-testid={`event-${i()}`}>{event}</li>}
-            </For>
-          </ul>
-        </div>
-      );
-    };
-
-    render(() => <App />);
-    const transitionBtn = screen.getByTestId('transition-button');
-
-    // Green
-    expect(screen.getByTestId('event-0')).toBeTruthy();
-    expect(screen.queryByTestId('event-1')).not.toBeTruthy();
-    transitionBtn.click();
-
-    // Yellow
-    expect(screen.getByTestId('event-0')).toBeTruthy();
-    expect(screen.getByTestId('event-1')).toBeTruthy();
-    transitionBtn.click();
-
-    // Red
-    expect(screen.getByTestId('event-0')).toBeTruthy();
-    expect(screen.queryByTestId('event-1')).not.toBeTruthy();
-  });
-
-  it('should be reactive to toStrings method calls', () => {
-    const machine = createMachine({
-      initial: 'green',
-      states: {
-        green: {
-          on: {
-            TRANSITION: 'yellow'
-          }
-        },
-        yellow: {
-          on: {
-            TRANSITION: 'red'
-          }
-        },
-        red: {
-          on: {
-            TRANSITION: 'green'
-          }
-        }
-      }
-    });
-
-    const App = () => {
-      const [state, send] = useMachine(machine);
-      const [toStrings, setToStrings] = createSignal(state.toStrings());
-      createEffect(
-        on(
-          () => state.value,
-          () => {
-            setToStrings(state.toStrings());
-          }
-        )
-      );
-      return (
-        <div>
-          <button
-            data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
-          />
-          <div data-testid="to-strings">{JSON.stringify(toStrings())}</div>
-        </div>
-      );
-    };
-
-    render(() => <App />);
-    const toStringsEl = screen.getByTestId('to-strings');
-    const transitionBtn = screen.getByTestId('transition-button');
-
-    // Green
-    expect(toStringsEl.textContent).toEqual('["green"]');
-    transitionBtn.click();
-
-    // Yellow
-    expect(toStringsEl.textContent).toEqual('["yellow"]');
-    transitionBtn.click();
-
-    // Red
-    expect(toStringsEl.textContent).toEqual('["red"]');
-    transitionBtn.click();
-
-    // Green
-    expect(toStringsEl.textContent).toEqual('["green"]');
-  });
-
   it('should be reactive to toJSON method calls', () => {
     const machine = createMachine({
       initial: 'green',
@@ -835,7 +693,7 @@ describe('useMachine hook', () => {
             data-testid="transition-button"
             onclick={() => send({ type: 'TRANSITION' })}
           />
-          <div data-testid="to-json">{toJson().value.toString()}</div>
+          <div data-testid="to-json">{(toJson() as any).value.toString()}</div>
         </div>
       );
     };
@@ -1488,7 +1346,7 @@ describe('useMachine hook', () => {
     });
     const Display = () => {
       onCleanup(() => {
-        expect(service.status).toBe(ActorStatus.Stopped);
+        expect(service.getSnapshot().status).toBe('stopped');
         done();
       });
       const [state, , service] = useMachine(machine);

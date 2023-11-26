@@ -26,9 +26,10 @@ import {
   Subscribable,
   createActor,
   createMachine,
-  stop,
-  waitFor
+  waitFor,
+  stopChild
 } from '../src/index.ts';
+import { setup } from '../src/setup.ts';
 
 function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
@@ -289,49 +290,42 @@ describe('spawning promises', () => {
   });
 
   it('should be able to spawn a referenced promise', (done) => {
-    const promiseMachine = createMachine(
-      {
-        types: {} as {
-          context: { promiseRef?: PromiseActorRef<string> };
-          actors: {
-            src: 'somePromise';
-            logic: PromiseActorLogic<string>;
-          };
-        },
-        id: 'promise',
-        initial: 'idle',
-        context: {
-          promiseRef: undefined
-        },
-        states: {
-          idle: {
-            entry: assign({
-              promiseRef: ({ spawn }) =>
-                spawn('somePromise', { id: 'my-promise' })
-            }),
-            on: {
-              'xstate.done.actor.my-promise': {
-                target: 'success',
-                guard: ({ event }) => event.output === 'response'
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const promiseMachine = setup({
+      actors: {
+        somePromise: fromPromise(
+          () =>
+            new Promise<string>((res) => {
+              res('response');
+            })
+        )
+      }
+    }).createMachine({
+      types: {} as {
+        context: { promiseRef?: PromiseActorRef<string> };
       },
-      {
-        actors: {
-          somePromise: fromPromise(
-            () =>
-              new Promise((res) => {
-                res('response');
-              })
-          )
+      id: 'promise',
+      initial: 'idle',
+      context: {
+        promiseRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            promiseRef: ({ spawn }) =>
+              spawn('somePromise', { id: 'my-promise' })
+          }),
+          on: {
+            'xstate.done.actor.my-promise': {
+              target: 'success',
+              guard: ({ event }) => event.output === 'response'
+            }
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const promiseService = createActor(promiseMachine);
     promiseService.subscribe({
@@ -843,7 +837,7 @@ describe('actors', () => {
     let spawnCounter = 0;
 
     interface TestContext {
-      promise?: ActorRefFrom<Promise<string>>;
+      promise?: ActorRefFrom<PromiseActorLogic<string>>;
     }
 
     const child = createMachine({
@@ -1036,7 +1030,9 @@ describe('actors', () => {
     it('should work with a promise logic (fulfill)', (done) => {
       const countMachine = createMachine({
         types: {} as {
-          context: { count: ActorRefFrom<Promise<number>> | undefined };
+          context: {
+            count: ActorRefFrom<PromiseActorLogic<number>> | undefined;
+          };
         },
         context: {
           count: undefined
@@ -1081,7 +1077,9 @@ describe('actors', () => {
     it('should work with a promise logic (reject)', (done) => {
       const errorMessage = 'An error occurred';
       const countMachine = createMachine({
-        types: {} as { context: { count: ActorRefFrom<Promise<number>> } },
+        types: {} as {
+          context: { count: ActorRefFrom<PromiseActorLogic<number>> };
+        },
         context: ({ spawn }) => ({
           count: spawn(
             fromPromise(
@@ -1133,7 +1131,8 @@ describe('actors', () => {
           status: 'active',
           output: undefined,
           error: undefined
-        })
+        }),
+        getPersistedState: (s) => s
       };
 
       const pingMachine = createMachine({
@@ -1278,7 +1277,7 @@ describe('actors', () => {
 
   it('should not crash on child promise-like sync completion during self-initialization', () => {
     const promiseLogic = fromPromise(
-      () => ({ then: (fn: any) => fn(null) } as any)
+      () => ({ then: (fn: any) => fn(null) }) as any
     );
     const parentMachine = createMachine({
       types: {} as {
@@ -1434,7 +1433,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(({ context }) => {
+                stopChild(({ context }) => {
                   return context.actorRef;
                 }),
                 assign({
@@ -1501,7 +1500,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(({ context }) => context.actorRef),
+                stopChild(({ context }) => context.actorRef),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1566,7 +1565,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop('my_name'),
+                stopChild('my_name'),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1631,7 +1630,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(() => 'my_name'),
+                stopChild(() => 'my_name'),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;

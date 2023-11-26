@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   xstate:
-    specifier: 5.0.0-beta.13
-    version: 5.0.0-beta.13
+    specifier: beta
+    version: 5.0.0-beta.40
 
 devDependencies:
   typescript:
@@ -321,6 +321,6 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /xstate@5.0.0-beta.13:
-    resolution: {integrity: sha512-cv27Y9t6xJimBZ/FBFe6Vjegai/3Gv6INFQcdsiNGrFuXXjP7IMwjytOIxL6VhlDasXcoofWQoPy95v2d284ow==}
+  /xstate@5.0.0-beta.40:
+    resolution: {integrity: sha512-q3tGXbfaHC785Eol2YFU3NmYfRy3XIA/pN2m2rK2oHY5t70SCUO0TvmLqxheE5sB4yJI+47U6XX7pdCtCVA3hg==}
     dev: false

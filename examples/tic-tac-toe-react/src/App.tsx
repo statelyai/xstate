@@ -1,6 +1,6 @@
 import { useMachine } from '@xstate/react';
 import React from 'react';
-import { ticTacToeMachine } from './ticTacToe.machine';
+import { ticTacToeMachine } from './ticTacToeMachine';
 import './styles.css';
 
 function range(start: number, end: number) {

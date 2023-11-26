@@ -5,10 +5,10 @@ import {
   ActorRefFrom,
   AnyActorLogic,
   ActorOptions,
-  ActorStatus,
   SnapshotFrom
 } from 'xstate';
-import { useIdleInterpreter } from './useActorRef.ts';
+import { useIdleActor } from './useActorRef.ts';
+import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -25,7 +25,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     );
   }
 
-  const actorRef = useIdleInterpreter(logic, options as any);
+  const actorRef = useIdleActor(logic, options as any);
 
   const getSnapshot = useCallback(() => {
     return actorRef.getSnapshot();
@@ -49,9 +49,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      actorRef.stop();
-      actorRef.status = ActorStatus.NotStarted;
-      (actorRef as any)._initState();
+      stopRootWithRehydration(actorRef);
     };
   }, [actorRef]);
 

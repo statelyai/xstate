@@ -59,7 +59,7 @@ export function createSystem<T extends ActorSystemInfo>(
       system._sendInspectionEvent({
         type: '@xstate.event',
         sourceRef: source,
-        targetRef: target,
+        actorRef: target,
         event
       });
 
@@ -71,11 +71,17 @@ export function createSystem<T extends ActorSystemInfo>(
 }
 export interface BaseInspectionEventProperties {
   rootId: string; // the session ID of the root
+  /**
+   * The relevant actorRef for the inspection event.
+   * - For snapshot events, this is the `actorRef` of the snapshot.
+   * - For event events, this is the target `actorRef` (recipient of event).
+   * - For actor events, this is the `actorRef` of the registered actor.
+   */
+  actorRef: AnyActorRef;
 }
 
 export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   type: '@xstate.snapshot';
-  actorRef: AnyActorRef; // Only available locally
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;
 }
@@ -86,13 +92,11 @@ export interface InspectedEventEvent extends BaseInspectionEventProperties {
   // - root init events
   // - events sent from external (non-actor) sources
   sourceRef: AnyActorRef | undefined;
-  targetRef: AnyActorRef; // Session ID, required
   event: AnyEventObject; // { type: string, ... }
 }
 
 export interface InspectedActorEvent extends BaseInspectionEventProperties {
   type: '@xstate.actor';
-  actorRef: AnyActorRef;
 }
 
 export type InspectionEvent =

@@ -45,7 +45,7 @@
   },
   "peerDependencies": {
     "svelte": "^3.24.1 || ^4",
-    "xstate": "^5.0.0-beta.34"
+    "xstate": "^5.0.0-beta.47"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -55,11 +55,11 @@
   "devDependencies": {
     "@testing-library/svelte": "^3.2.2",
     "@tsconfig/svelte": "^5.0.2",
-    "@types/jest": "^29.5.1",
+    "@types/jest": "^29.5.10",
     "svelte": "^3.55.1",
     "svelte-check": "^3.2.0",
     "svelte-jester": "^2.3.2",
     "svelte-preprocess": "^5.0.0",
-    "xstate": "5.0.0-beta.34"
+    "xstate": "5.0.0-beta.47"
   }
 }

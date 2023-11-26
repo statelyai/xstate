@@ -1,3 +1,4 @@
+import { BehaviorSubject } from 'rxjs';
 import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
@@ -5,16 +6,15 @@ import {
   Actor,
   ActorLogicFrom,
   ActorRef,
-  ActorRefFrom,
   DoneActorEvent,
-  PersistedMachineState,
+  Snapshot,
   StateFrom,
   assign,
   createActor,
   createMachine,
   raise
 } from 'xstate';
-import { fromCallback, fromPromise } from 'xstate/actors';
+import { fromCallback, fromObservable, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
@@ -84,7 +84,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: PersistedMachineState<any, any, any, any, any, any>;
+    persistedState?: Snapshot<unknown>;
   }> = ({
     onFetch = () => {
       return new Promise((res) => res('some data'));
@@ -118,7 +118,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     }
   };
 
-  it('should work with the useMachine hook', async () => {
+  it('should work with the useActor hook', async () => {
     render(<Fetcher onFetch={() => new Promise((res) => res('fake data'))} />);
     const button = screen.getByText('Fetch');
     fireEvent.click(button);
@@ -128,7 +128,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     expect(dataEl.textContent).toBe('fake data');
   });
 
-  it('should work with the useMachine hook (rehydrated state)', async () => {
+  it('should work with the useActor hook (rehydrated state)', async () => {
     render(
       <Fetcher
         onFetch={() => new Promise((res) => res('fake data'))}
@@ -463,14 +463,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     render(<App />);
 
-    expect(rerenders).toBe(
-      suiteKey === 'strict'
-        ? // it's rendered twice for the each state
-          // and the machine gets currently completely restarted in a double-invoked strict effect
-          // so we get a new state from that restarted machine (and thus 2 additional strict renders) and we end up with 4
-          4
-        : 1
-    );
+    expect(rerenders).toBe(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('should maintain the same reference for objects created when resolving initial state', () => {
@@ -522,20 +515,12 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     const { getByRole } = render(<App />);
 
-    expect(effectsFired).toBe(
-      suiteKey === 'strict'
-        ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
-          // atm it's 3 cause we the double-invoked effect sees the initial value
-          // but the 3rd call comes from the restarted machine (that happens because of the strict effects)
-          // the second effect with `service.start()` doesn't have a way to change what another effect in the same "effect batch" sees
-          3
-        : 1
-    );
+    expect(effectsFired).toBe(suiteKey === 'strict' ? 2 : 1);
 
     const button = getByRole('button');
     fireEvent.click(button);
 
-    expect(effectsFired).toBe(suiteKey === 'strict' ? 3 : 1);
+    expect(effectsFired).toBe(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('should successfully spawn actors from the lazily declared context', () => {
@@ -855,25 +840,34 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          invoke: {
-            id: 'test',
-            src: childMachine,
-            input: { value: 42 }
+    const machine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'child';
+            logic: typeof childMachine;
+            id: 'test';
+          };
+        },
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              src: 'child',
+              id: 'test',
+              input: { value: 42 }
+            }
           }
         }
+      },
+      {
+        actors: { child: childMachine }
       }
-    });
+    );
 
     const Test = () => {
       const [state] = useActor(machine);
-      const childState = useSelector(
-        state.children.test as ActorRefFrom<typeof childMachine>, // TODO: introduce typing for this in machine types
-        (s) => s
-      );
+      const childState = useSelector(state.children.test!, (s) => s);
 
       expect(childState.context.value).toBe(42);
 
@@ -1000,12 +994,37 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     render(<App />);
 
-    expect(spy).toHaveBeenCalledTimes(
-      suiteKey === 'strict'
-        ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
-          // but we don't rehydrate child actors right now, we just recreate the initial state and that leads to an extra render with strict effects
-          3
-        : 1
-    );
+    expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
+  });
+
+  it('should work with `onSnapshot`', () => {
+    const subject = new BehaviorSubject(0);
+
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      invoke: [
+        {
+          src: fromObservable(() => subject),
+          onSnapshot: {
+            actions: [({ event }) => spy((event.snapshot as any).context)]
+          }
+        }
+      ]
+    });
+
+    const App = () => {
+      useActor(machine);
+      return null;
+    };
+
+    render(<App />);
+
+    spy.mockClear();
+
+    subject.next(42);
+    subject.next(100);
+
+    expect(spy.mock.calls).toEqual([[42], [100]]);
   });
 });

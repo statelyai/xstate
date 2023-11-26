@@ -1,4 +1,4 @@
-import type { State } from './State.ts';
+import { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
 import { evaluateGuard } from './guards.ts';
@@ -119,13 +119,15 @@ export class StateNode<
   public machine: StateMachine<
     TContext,
     TEvent,
-    any, // actors
+    any, // children
+    any, // actor
+    any, // action
+    any, // guard
+    any, // delay
+    any, // tag
     any, // input
-    TODO, // output
-    TODO, // guards
-    TODO, // delays
-    TODO, // tags
-    TODO // types meta
+    any, // output
+    any // typegen
   >;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
@@ -176,8 +178,8 @@ export class StateNode<
       (this.config.states && Object.keys(this.config.states).length
         ? 'compound'
         : this.config.history
-        ? 'history'
-        : 'atomic');
+          ? 'history'
+          : 'atomic');
     this.description = this.config.description;
 
     this.order = this.machine.idMap.size;
@@ -299,24 +301,11 @@ export class StateNode<
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
-
         const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
-        // TODO: resolving should not happen here
         const resolvedSrc =
-          typeof src === 'string' ? src : !('type' in src) ? resolvedId : src;
-
-        if (
-          !this.machine.implementations.actors[resolvedId] &&
-          typeof src !== 'string' &&
-          !('type' in src)
-        ) {
-          this.machine.implementations.actors = {
-            ...this.machine.implementations.actors,
-            // TODO: this should accept `src` as-is
-            [resolvedId]: src
-          };
-        }
-
+          typeof src === 'string'
+            ? src
+            : `xstate#${createInvokeId(this.id, i)}`;
         return {
           ...invokeConfig,
           src: resolvedSrc,
@@ -352,11 +341,14 @@ export class StateNode<
 
       return [...transitions]
         .flatMap(([descriptor, t]) => t.map((t) => [descriptor, t] as const))
-        .reduce((map: any, [descriptor, transition]) => {
-          map[descriptor] = map[descriptor] || [];
-          map[descriptor].push(transition);
-          return map;
-        }, {} as TransitionDefinitionMap<TContext, TEvent>);
+        .reduce(
+          (map: any, [descriptor, transition]) => {
+            map[descriptor] = map[descriptor] || [];
+            map[descriptor].push(transition);
+            return map;
+          },
+          {} as TransitionDefinitionMap<TContext, TEvent>
+        );
     });
   }
 
@@ -370,12 +362,12 @@ export class StateNode<
 
   public get initial(): InitialTransitionDefinition<TContext, TEvent> {
     return memo(this, 'initial', () =>
-      formatInitialTransition(this, this.config.initial || [])
+      formatInitialTransition(this, this.config.initial)
     );
   }
 
   public next(
-    state: State<TContext, TEvent, TODO, TODO, TODO>,
+    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
@@ -404,8 +396,8 @@ export class StateNode<
           typeof guard === 'string'
             ? guard
             : typeof guard === 'object'
-            ? guard.type
-            : undefined;
+              ? guard.type
+              : undefined;
         throw new Error(
           `Unable to evaluate guard ${
             guardType ? `'${guardType}' ` : ''

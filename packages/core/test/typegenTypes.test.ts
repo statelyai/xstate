@@ -7,7 +7,7 @@ import {
 } from '../src/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 import { fromCallback } from '../src/actors/index.ts';
-import { createMachine } from '../src/Machine.ts';
+import { createMachine } from '../src/createMachine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
 import { PromiseActorLogic } from '../src/actors/promise.ts';
 
@@ -126,44 +126,6 @@ describe('typegen types', () => {
             event.type === 'BAZ';
 
             return true;
-          }
-        }
-      }
-    );
-  });
-
-  it(`should limit event type provided to the actor's input factory`, () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: never;
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActors: {
-        myActor: 'FOO' | 'BAR';
-      };
-    }
-
-    createMachine(
-      {
-        context: { foo: 100 },
-        types: {
-          typegen: {} as TypesMeta,
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actors: {
-          myActor: {
-            src: fromPromise(() => Promise.resolve(42)),
-            input: ({ event }) => {
-              event.type === 'FOO';
-              event.type === 'BAR';
-              // @ts-expect-error
-              event.type === 'BAZ';
-              return null;
-            }
           }
         }
       }
@@ -1091,6 +1053,7 @@ describe('typegen types', () => {
       machine: StateMachine<
         TContext,
         TEvent,
+        any,
         any,
         any,
         any,

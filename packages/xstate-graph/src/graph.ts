@@ -1,14 +1,15 @@
 import {
   EventObject,
   AnyStateMachine,
-  AnyState,
+  AnyMachineSnapshot,
   StateFrom,
   EventFrom,
   StateMachine,
   AnyActorLogic,
   SnapshotFrom,
   EventFromLogic,
-  Snapshot
+  Snapshot,
+  __unsafe_getAllOwnEventDescriptors
 } from 'xstate';
 import type {
   SerializedEvent,
@@ -20,7 +21,7 @@ import type {
   AnyStateNode,
   TraversalConfig
 } from './types.ts';
-import { createMockActorContext } from './actorContext.ts';
+import { createMockActorScope } from './actorScope.ts';
 
 function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
@@ -91,7 +92,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
       const events =
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
       return flatten(
-        state.nextEvents.map((type) => {
+        __unsafe_getAllOwnEventDescriptors(state).map((type) => {
           const matchingEvents = events.filter(
             (ev) => (ev as any).type === type
           );
@@ -102,7 +103,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         })
       ) as any[];
     },
-    fromState: machine.getInitialState(createMockActorContext()) as ReturnType<
+    fromState: machine.getInitialState(createMockActorScope()) as ReturnType<
       TMachine['transition']
     >,
     ...otherOptions

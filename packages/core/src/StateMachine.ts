@@ -1,12 +1,16 @@
 import { assign } from './actions.ts';
 import { createInitEvent } from './eventUtils.ts';
 import { STATE_DELIMITER } from './constants.ts';
-import { cloneState, getPersistedState, State } from './State.ts';
+import {
+  cloneMachineSnapshot,
+  createMachineSnapshot,
+  getPersistedState,
+  MachineSnapshot
+} from './State.ts';
 import { StateNode } from './StateNode.ts';
 import {
-  getConfiguration,
+  getAllStateNodes,
   getStateNodeByPath,
-  getInitialConfiguration,
   getStateNodes,
   isInFinalState,
   isStateId,
@@ -24,7 +28,7 @@ import type {
   TypegenDisabled
 } from './typegenTypes.ts';
 import type {
-  ActorContext,
+  ActorScope,
   ActorLogic,
   EventObject,
   InternalMachineImplementations,
@@ -33,59 +37,37 @@ import type {
   MachineImplementationsSimplified,
   MachineTypes,
   NoInfer,
-  StateConfig,
   StateMachineDefinition,
   StateValue,
   TransitionDefinition,
-  PersistedMachineState,
   ParameterizedObject,
-  AnyActorContext,
+  AnyActorScope,
   AnyEventObject,
   ProvidedActor,
   AnyActorRef,
   Equals,
   TODO,
-  SnapshotFrom
+  SnapshotFrom,
+  Snapshot,
+  AnyActorLogic,
+  HistoryValue
 } from './types.ts';
-import { isErrorActorEvent, resolveReferencedActor } from './utils.ts';
+import {
+  flatten,
+  getAllOwnEventDescriptors,
+  isErrorActorEvent,
+  resolveReferencedActor
+} from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
 import isDevelopment from '#is-development';
 
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
 
-export type MachineSnapshot<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TTag extends string,
-  TOutput,
-  TResolvedTypesMeta = TypegenDisabled
-> =
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
-      status: 'active';
-      output: undefined;
-      error: undefined;
-    })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
-      status: 'done';
-      output: TOutput;
-      error: undefined;
-    })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
-      status: 'error';
-      output: undefined;
-      error: unknown;
-    })
-  | (State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta> & {
-      status: 'stopped';
-      output: undefined;
-      error: undefined;
-    });
-
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -107,21 +89,13 @@ export class StateMachine<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
       >,
       TEvent,
       TInput,
-      PersistedMachineState<
-        TContext,
-        TEvent,
-        TActor,
-        TTag,
-        TOutput,
-        TResolvedTypesMeta
-      >,
       TODO
     >
 {
@@ -188,7 +162,6 @@ export class StateMachine<
     this.getInitialState = this.getInitialState.bind(this);
     this.restoreState = this.restoreState.bind(this);
     this.start = this.start.bind(this);
-    this.getPersistedState = this.getPersistedState.bind(this);
 
     this.root = new StateNode(config, {
       _key: this.id,
@@ -225,16 +198,13 @@ export class StateMachine<
   public provide(
     implementations: InternalMachineImplementations<
       TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TDelay,
       TResolvedTypesMeta,
       true
     >
   ): StateMachine<
     TContext,
     TEvent,
+    TChildren,
     TActor,
     TAction,
     TGuard,
@@ -256,55 +226,51 @@ export class StateMachine<
     });
   }
 
-  /**
-   * Resolves the given `state` to a new `State` instance relative to this machine.
-   *
-   * This ensures that `.nextEvents` represent the correct values.
-   *
-   * @param state The state to resolve
-   */
   public resolveState(
-    state: State<TContext, TEvent, TActor, TTag, TResolvedTypesMeta>
+    config: {
+      value: StateValue;
+      context?: TContext;
+      historyValue?: HistoryValue<TContext, TEvent>;
+      status?: 'active' | 'done' | 'error' | 'stopped';
+      output?: TOutput;
+      error?: unknown;
+    } & (Equals<TContext, MachineContext> extends false
+      ? { context: unknown }
+      : {})
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
   > {
-    const configurationSet = getConfiguration(
-      getStateNodes(this.root, state.value)
+    const resolvedStateValue = resolveStateValue(this.root, config.value);
+    const nodeSet = getAllStateNodes(
+      getStateNodes(this.root, resolvedStateValue)
     );
-    const configuration = Array.from(configurationSet);
-    return this.createState({
-      ...(state as any),
-      value: resolveStateValue(this.root, state.value),
-      configuration,
-      status: isInFinalState(configurationSet, this.root)
-        ? 'done'
-        : state.status
-    });
-  }
 
-  public resolveStateValue(
-    stateValue: StateValue,
-    ...[context]: Equals<TContext, MachineContext> extends true
-      ? []
-      : [TContext]
-  ): MachineSnapshot<
-    TContext,
-    TEvent,
-    TActor,
-    TTag,
-    TOutput,
-    TResolvedTypesMeta
-  > {
-    const resolvedStateValue = resolveStateValue(this.root, stateValue);
-
-    return this.resolveState(
-      State.from(resolvedStateValue, context, this) as any
-    );
+    return createMachineSnapshot(
+      {
+        _nodes: [...nodeSet],
+        context: config.context || ({} as TContext),
+        children: {},
+        status: isInFinalState(nodeSet, this.root)
+          ? 'done'
+          : config.status || 'active',
+        output: config.output,
+        error: config.error,
+        historyValue: config.historyValue
+      },
+      this
+    ) as MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >;
   }
 
   /**
@@ -318,17 +284,17 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
     >,
     event: TEvent,
-    actorCtx: ActorContext<typeof state, TEvent>
+    actorScope: ActorScope<typeof state, TEvent>
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -336,15 +302,17 @@ export class StateMachine<
     // TODO: handle error events in a better way
     if (
       isErrorActorEvent(event) &&
-      !state.nextEvents.some((nextEvent) => nextEvent === event.type)
+      !getAllOwnEventDescriptors(state).some(
+        (nextEvent) => nextEvent === event.type
+      )
     ) {
-      return cloneState(state, {
+      return cloneMachineSnapshot(state, {
         status: 'error',
         error: event.data
       });
     }
 
-    const { state: nextState } = macrostep(state, event, actorCtx);
+    const { state: nextState } = macrostep(state, event, actorScope);
 
     return nextState as typeof state;
   }
@@ -360,24 +328,31 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
     >,
     event: TEvent,
-    actorCtx: AnyActorContext
+    actorScope: AnyActorScope
   ): Array<
-    MachineSnapshot<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >
   > {
-    return macrostep(state, event, actorCtx).microstates as (typeof state)[];
+    return macrostep(state, event, actorScope).microstates as (typeof state)[];
   }
 
   public getTransitionData(
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -392,50 +367,54 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: AnyActorContext,
-    initEvent: any
+    actorScope: AnyActorScope,
+    initEvent: any,
+    internalQueue: AnyEventObject[]
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
   > {
     const { context } = this.config;
 
-    const preInitial = this.resolveState(
-      this.createState({
-        value: {}, // TODO: this is computed in state constructor
+    const preInitial = createMachineSnapshot(
+      {
         context:
           typeof context !== 'function' && context ? context : ({} as TContext),
-        meta: undefined,
-        configuration: getInitialConfiguration(this.root),
+        _nodes: [this.root],
         children: {},
         status: 'active'
-      })
+      },
+      this
     );
 
     if (typeof context === 'function') {
       const assignment = ({ spawn, event }: any) =>
         context({ spawn, input: event.input });
-      return resolveActionsAndContext(preInitial, initEvent, actorCtx, [
-        assign(assignment)
-      ]) as SnapshotFrom<this>;
+      return resolveActionsAndContext(
+        preInitial,
+        initEvent,
+        actorScope,
+        [assign(assignment)],
+        internalQueue
+      ) as SnapshotFrom<this>;
     }
 
-    return preInitial;
+    return preInitial as SnapshotFrom<this>;
   }
 
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx: ActorContext<
+    actorScope: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -446,14 +425,18 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
-
-    const preInitialState = this.getPreInitialState(actorCtx, initEvent);
+    const internalQueue: AnyEventObject[] = [];
+    const preInitialState = this.getPreInitialState(
+      actorScope,
+      initEvent,
+      internalQueue
+    );
     const nextState = microstep(
       [
         {
@@ -466,15 +449,17 @@ export class StateMachine<
         }
       ],
       preInitialState,
-      actorCtx,
+      actorScope,
       initEvent,
-      true
+      true,
+      internalQueue
     );
 
     const { state: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
-      actorCtx
+      actorScope,
+      internalQueue
     );
 
     return macroState as SnapshotFrom<this>;
@@ -484,17 +469,19 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
     >
   ): void {
-    Object.values(state.children).forEach((child: any) => {
-      if (child.status === 0) {
-        child.start();
+    Object.values(state.children as Record<string, AnyActorRef>).forEach(
+      (child: any) => {
+        if (child.getSnapshot().status === 'active') {
+          child.start();
+        }
       }
-    });
+    );
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
@@ -525,64 +512,23 @@ export class StateMachine<
     state: MachineSnapshot<
       TContext,
       TEvent,
-      TActor,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >
-  ): PersistedMachineState<
-    TContext,
-    TEvent,
-    TActor,
-    TTag,
-    TOutput,
-    TResolvedTypesMeta
-  > {
-    return getPersistedState(state);
-  }
-  public getOutput(
-    state: State<TContext, TEvent, TActor, TTag, TOutput, TResolvedTypesMeta>
-  ) {
-    return state.output;
-  }
-  public createState(
-    stateConfig:
-      | MachineSnapshot<
-          TContext,
-          TEvent,
-          TActor,
-          TTag,
-          TOutput,
-          TResolvedTypesMeta
-        >
-      | StateConfig<TContext, TEvent>
-  ): MachineSnapshot<
-    TContext,
-    TEvent,
-    TActor,
-    TTag,
-    TOutput,
-    TResolvedTypesMeta
-  > {
-    return stateConfig instanceof State
-      ? (stateConfig as any)
-      : new State(stateConfig, this);
-  }
-
-  public restoreState(
-    snapshot: PersistedMachineState<
-      TContext,
-      TEvent,
-      TActor,
+      TChildren,
       TTag,
       TOutput,
       TResolvedTypesMeta
     >,
-    _actorCtx: ActorContext<
+    options?: unknown
+  ) {
+    return getPersistedState(state, options);
+  }
+
+  public restoreState(
+    snapshot: Snapshot<unknown>,
+    _actorScope: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
-        TActor,
+        TChildren,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -592,41 +538,64 @@ export class StateMachine<
   ): MachineSnapshot<
     TContext,
     TEvent,
-    TActor,
+    TChildren,
     TTag,
     TOutput,
     TResolvedTypesMeta
   > {
     const children: Record<string, AnyActorRef> = {};
+    const snapshotChildren: Record<
+      string,
+      {
+        src: string | AnyActorLogic;
+        state: Snapshot<unknown>;
+        syncSnapshot?: boolean;
+        systemId?: string;
+      }
+    > = (snapshot as any).children;
 
-    Object.keys(snapshot.children).forEach((actorId) => {
+    Object.keys(snapshotChildren).forEach((actorId) => {
       const actorData =
-        snapshot.children[actorId as keyof typeof snapshot.children];
+        snapshotChildren[actorId as keyof typeof snapshotChildren];
       const childState = actorData.state;
       const src = actorData.src;
 
-      const logic = src
-        ? resolveReferencedActor(this.implementations.actors[src])?.src
-        : undefined;
+      const logic =
+        typeof src === 'string' ? resolveReferencedActor(this, src) : src;
 
       if (!logic) {
         return;
       }
 
-      const actorState = logic.restoreState?.(childState, _actorCtx);
-
       const actorRef = createActor(logic, {
         id: actorId,
-        parent: _actorCtx?.self,
-        state: actorState
+        parent: _actorScope?.self,
+        syncSnapshot: actorData.syncSnapshot,
+        state: childState,
+        src,
+        systemId: actorData.systemId
       });
 
       children[actorId] = actorRef;
     });
 
-    const restoredSnapshot = this.createState(
-      new State({ ...snapshot, children }, this) as any
-    );
+    const restoredSnapshot = createMachineSnapshot(
+      {
+        ...(snapshot as any),
+        children,
+        _nodes: Array.from(
+          getAllStateNodes(getStateNodes(this.root, (snapshot as any).value))
+        )
+      },
+      this
+    ) as MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TTag,
+      TOutput,
+      TResolvedTypesMeta
+    >;
 
     let seen = new Set();
 
@@ -656,24 +625,6 @@ export class StateMachine<
     return restoredSnapshot;
   }
 
-  /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TContext!: TContext;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TEvent!: TEvent;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TActor!: TActor;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TAction!: TAction;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TGuard!: TGuard;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TDelay!: TDelay;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TTag!: TTag;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TInput!: TInput;
-  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
-  __TOutput!: TOutput;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

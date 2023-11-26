@@ -1,17 +1,20 @@
 import { createErrorActorEvent } from './eventUtils.ts';
-import { ActorStatus, createActor } from './interpreter.ts';
+import { ProcessingStatus, createActor } from './interpreter.ts';
 import {
   ActorRefFrom,
-  AnyActorContext,
+  AnyActorScope,
   AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   InputFrom,
   IsLiteralString,
   ProvidedActor,
   Snapshot,
-  TODO
+  TODO,
+  RequiredActorOptions,
+  IsNotNever,
+  ConditionalRequired
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 
@@ -21,23 +24,17 @@ type SpawnOptions<
 > = TActor extends {
   src: TSrc;
 }
-  ? 'id' extends keyof TActor
-    ? [
-        options: {
-          id: TActor['id'];
-          systemId?: string;
-          input?: InputFrom<TActor['logic']>;
-          syncSnapshot?: boolean;
-        }
-      ]
-    : [
+  ? ConditionalRequired<
+      [
         options?: {
-          id?: string;
+          id?: TActor['id'];
           systemId?: string;
           input?: InputFrom<TActor['logic']>;
           syncSnapshot?: boolean;
-        }
-      ]
+        } & { [K in RequiredActorOptions<TActor>]: unknown }
+      ],
+      IsNotNever<RequiredActorOptions<TActor>>
+    >
   : never;
 
 export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
@@ -59,85 +56,50 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
     ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
 
 export function createSpawner(
-  actorContext: AnyActorContext,
-  { machine, context }: AnyState,
+  actorScope: AnyActorScope,
+  { machine, context }: AnyMachineSnapshot,
   event: AnyEventObject,
   spawnedChildren: Record<string, AnyActorRef>
 ): Spawner<any> {
   const spawn: Spawner<any> = (src, options = {}) => {
-    const { systemId } = options;
+    const { systemId, input } = options;
     if (typeof src === 'string') {
-      const referenced = resolveReferencedActor(
-        machine.implementations.actors[src]
-      );
+      const logic = resolveReferencedActor(machine, src);
 
-      if (!referenced) {
+      if (!logic) {
         throw new Error(
           `Actor logic '${src}' not implemented in machine '${machine.id}'`
         );
       }
 
-      const input = 'input' in options ? options.input : referenced.input;
-
-      // TODO: this should also receive `src`
-      const actorRef = createActor(referenced.src, {
+      const actorRef = createActor(logic, {
         id: options.id,
-        parent: actorContext.self,
+        parent: actorScope.self,
+        syncSnapshot: options.syncSnapshot,
         input:
           typeof input === 'function'
             ? input({
                 context,
                 event,
-                self: actorContext.self
+                self: actorScope.self
               })
             : input,
         src,
         systemId
       }) as any;
+
       spawnedChildren[actorRef.id] = actorRef;
 
-      if (options.syncSnapshot) {
-        actorRef.subscribe({
-          next: (snapshot: Snapshot<unknown>) => {
-            if (snapshot.status === 'active') {
-              actorContext.self.send({
-                type: `xstate.snapshot.${actorRef.id}`,
-                snapshot
-              });
-            }
-          },
-          error: () => {
-            /* TODO */
-          }
-        });
-      }
       return actorRef;
     } else {
-      // TODO: this should also receive `src`
       const actorRef = createActor(src, {
         id: options.id,
-        parent: actorContext.self,
+        parent: actorScope.self,
+        syncSnapshot: options.syncSnapshot,
         input: options.input,
-        src: undefined,
+        src,
         systemId
       });
-
-      if (options.syncSnapshot) {
-        actorRef.subscribe({
-          next: (snapshot: Snapshot<unknown>) => {
-            if (snapshot.status === 'active') {
-              actorContext.self.send({
-                type: `xstate.snapshot.${actorRef.id}`,
-                snapshot,
-                id: actorRef.id
-              });
-            }
-          },
-          error: () => {
-            /* TODO */
-          }
-        });
-      }
 
       return actorRef;
     }
@@ -145,14 +107,14 @@ export function createSpawner(
   return (src, options) => {
     const actorRef = spawn(src, options) as TODO; // TODO: fix types
     spawnedChildren[actorRef.id] = actorRef;
-    actorContext.defer(() => {
-      if (actorRef.status === ActorStatus.Stopped) {
+    actorScope.defer(() => {
+      if (actorRef._processingStatus === ProcessingStatus.Stopped) {
         return;
       }
       try {
         actorRef.start?.();
       } catch (err) {
-        actorContext.self.send(createErrorActorEvent(actorRef.id, err));
+        actorScope.self.send(createErrorActorEvent(actorRef.id, err));
         return;
       }
     });

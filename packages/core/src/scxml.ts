@@ -513,13 +513,19 @@ function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
       };
     });
 
+    const resolvedInitial = initial && String(initial).split(' ');
+
+    if (resolvedInitial && resolvedInitial.length > 1) {
+      throw new Error(
+        `Multiple initial states are not supported ("${String(initial)}").`
+      );
+    }
+
     return {
       id: sanitizeStateId(id),
-      ...(initial
+      ...(resolvedInitial
         ? {
-            initial: String(initial)
-              .split(' ')
-              .map((id) => `#${sanitizeStateId(id)}`)
+            initial: sanitizeStateId(resolvedInitial[0])
           }
         : undefined),
       ...(parallel ? { type: 'parallel' } : undefined),
@@ -552,22 +558,25 @@ function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
   const context = dataModelEl
     ? dataModelEl
         .elements!.filter((element) => element.name === 'data')
-        .reduce((acc, element) => {
-          const { src, expr, id } = element.attributes!;
-          if (src) {
-            throw new Error(
-              "Conversion of `src` attribute on datamodel's <data> elements is not supported."
-            );
-          }
+        .reduce(
+          (acc, element) => {
+            const { src, expr, id } = element.attributes!;
+            if (src) {
+              throw new Error(
+                "Conversion of `src` attribute on datamodel's <data> elements is not supported."
+              );
+            }
 
-          if (expr === '_sessionid') {
-            acc[id!] = undefined;
-          } else {
-            acc[id!] = eval(`(${expr})`);
-          }
+            if (expr === '_sessionid') {
+              acc[id!] = undefined;
+            } else {
+              acc[id!] = eval(`(${expr})`);
+            }
 
-          return acc;
-        }, {} as Record<string, unknown>)
+            return acc;
+          },
+          {} as Record<string, unknown>
+        )
     : undefined;
 
   const machine = createMachine({
