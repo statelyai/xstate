@@ -108,6 +108,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   // Actor Ref
   public _parent?: ActorRef<any, any>;
+  public _syncSnapshot?: boolean;
   public ref: ActorRef<EventFromLogic<TLogic>, SnapshotFrom<TLogic>>;
   // TODO: add typings for system
   private _actorScope: ActorScope<
@@ -137,13 +138,17 @@ export class Actor<TLogic extends AnyActorLogic>
    * @param logic The logic to create an actor from
    * @param options Actor options
    */
-  constructor(public logic: TLogic, options?: ActorOptions<TLogic>) {
+  constructor(
+    public logic: TLogic,
+    options?: ActorOptions<TLogic>
+  ) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
     } as ActorOptions<TLogic> & typeof defaultOptions;
 
-    const { clock, logger, parent, id, systemId, inspect } = resolvedOptions;
+    const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
+      resolvedOptions;
 
     this.system = parent?.system ?? createSystem(this);
 
@@ -157,6 +162,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
+    this._syncSnapshot = syncSnapshot;
     this.options = resolvedOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
@@ -353,6 +359,20 @@ export class Actor<TLogic extends AnyActorLogic>
     if (this._processingStatus === ProcessingStatus.Running) {
       // Do not restart the service if it is already started
       return this;
+    }
+
+    if (this._syncSnapshot) {
+      this.subscribe({
+        next: (snapshot: Snapshot<unknown>) => {
+          if (snapshot.status === 'active') {
+            this._parent!.send({
+              type: `xstate.snapshot.${this.id}`,
+              snapshot
+            });
+          }
+        },
+        error: () => {}
+      });
     }
 
     this.system._register(this.sessionId, this);
@@ -644,11 +664,41 @@ export class Actor<TLogic extends AnyActorLogic>
 }
 
 /**
- * Creates a new `ActorRef` instance for the given machine with the provided options, if any.
+ * Creates a new actor instance for the given actor logic with the provided options, if any.
  *
- * @param machine The machine to create an actor from
- * @param options `ActorRef` options
+ * @remarks
+ * When you create an actor from actor logic via `createActor(logic)`, you implicitly create an actor system where the created actor is the root actor.
+ * Any actors spawned from this root actor and its descendants are part of that actor system.
+ *
+ * @example
+ * ```ts
+ * import { createActor } from 'xstate';
+ * import { someActorLogic } from './someActorLogic.ts';
+ *
+ * // Creating the actor, which implicitly creates an actor system with itself as the root actor
+ * const actor = createActor(someActorLogic);
+ *
+ * actor.subscribe((snapshot) => {
+ *   console.log(snapshot);
+ * });
+ *
+ * // Actors must be started by calling `actor.start()`, which will also start the actor system.
+ * actor.start();
+ *
+ * // Actors can receive events
+ * actor.send({ type: 'someEvent' });
+ *
+ * // You can stop root actors by calling `actor.stop()`, which will also stop the actor system and all actors in that system.
+ * actor.stop();
+ * ```
+ *
+ * @param logic - The actor logic to create an actor from. For a state machine actor logic creator, see {@link createMachine}. Other actor logic creators include {@link fromCallback}, {@link fromEventObservable}, {@link fromObservable}, {@link fromPromise}, and {@link fromTransition}.
+ * @param options - Actor options
  */
+export function createActor<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options?: ActorOptions<TLogic>
+): Actor<TLogic>;
 export function createActor<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
@@ -657,10 +707,6 @@ export function createActor<TMachine extends AnyStateMachine>(
     : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
   options?: ActorOptions<TMachine>
 ): Actor<TMachine>;
-export function createActor<TLogic extends AnyActorLogic>(
-  logic: TLogic,
-  options?: ActorOptions<TLogic>
-): Actor<TLogic>;
 export function createActor(logic: any, options?: ActorOptions<any>): any {
   const interpreter = new Actor(logic, options);
 

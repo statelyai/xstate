@@ -289,12 +289,6 @@ describe('machine', () => {
       });
     });
 
-    it('should resolve the state configuration (implicit via events)', () => {
-      const resolvedState = resolveMachine.resolveState({ value: 'foo' });
-
-      expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
-    });
-
     it('should resolve `status: done`', () => {
       const machine = createMachine({
         initial: 'foo',

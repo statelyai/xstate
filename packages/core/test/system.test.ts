@@ -11,12 +11,13 @@ import {
   fromTransition,
   createActor,
   sendTo,
-  stop,
+  stopChild,
   Snapshot,
   EventObject,
   ActorRefFrom,
-  spawn,
-  AnyActorRef
+  spawnChild,
+  AnyActorRef,
+  AnyStateMachine
 } from '../src/index.ts';
 
 describe('system', () => {
@@ -73,7 +74,7 @@ describe('system', () => {
       types: {} as {
         context: {
           ref: CallbackActorRef<EventObject, unknown>;
-          machineRef?: ActorRefFrom<ReturnType<typeof createMachine>>;
+          machineRef?: ActorRefFrom<AnyStateMachine>;
         };
       },
       id: 'parent',
@@ -178,7 +179,7 @@ describe('system', () => {
       }),
       on: {
         toggle: {
-          actions: stop(({ context }) => context.ref)
+          actions: stopChild(({ context }) => context.ref)
         }
       }
     });
@@ -251,10 +252,10 @@ describe('system', () => {
       }),
       on: {
         stop: {
-          actions: stop(({ context }) => context.ref)
+          actions: stopChild(({ context }) => context.ref)
         },
         start: {
-          actions: spawn(
+          actions: spawnChild(
             fromPromise(() => Promise.resolve()),
             {
               systemId: 'test'
