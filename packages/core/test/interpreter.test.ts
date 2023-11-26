@@ -979,6 +979,26 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       }
     });
+
+    const orphanMachine = Machine<Ctx>({
+      id: 'orphan',
+      initial: 'start',
+      context: {
+        password: ''
+      },
+      states: {
+        start: {
+          onEntry: sendParent((ctx) => ({
+            type: 'NEXT',
+            password: ctx.password
+          })),
+          always: 'finish'
+        },
+        finish: {
+          type: 'final'
+        }
+      }
+    });
     // Ctx, any, Events, any
     const parentMachine = createMachine<Ctx, Events>({
       id: 'parent',
@@ -1012,6 +1032,15 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
             expect(state.children).toHaveProperty('child');
             expect(typeof state.children.child.send).toBe('function');
           }
+        })
+        .onDone(() => done())
+        .start();
+    });
+
+    it('should not error if the childMachine uses sendParent when not invoked within a parent machine', (done) => {
+      interpret(orphanMachine)
+        .onTransition((state) => {
+          expect(state.matches('finish')).toBe(true);
         })
         .onDone(() => done())
         .start();

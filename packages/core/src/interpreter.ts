@@ -845,8 +845,7 @@ export class Interpreter<
     to: string | number | ActorRef<any>,
     immediate: boolean
   ) => {
-    const isParent =
-      this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
+    const isParent = to === SpecialTargets.Parent || this?.parent?.id === to;
     const target = isParent
       ? this.parent
       : isString(to)
