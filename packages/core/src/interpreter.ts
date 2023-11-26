@@ -595,16 +595,6 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
 
-  /**
-   * TODO: figure out a way to do this within the machine
-   * @internal
-   */
-  public cancel(sendId: string): void {
-    this.system.scheduler.cancel(sendId);
-    // this.clock.clearTimeout(this.delayedEventsMap[sendId]);
-    delete this.delayedEventsMap[sendId];
-  }
-
   private attachDevTools(): void {
     const { devTools } = this.options;
     if (devTools) {
