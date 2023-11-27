@@ -454,7 +454,7 @@ describe('transient states (eventless transitions)', () => {
     expect(() => actorRef.start()).not.toThrow();
   });
 
-  it('should not be taken even in absence of other transitions', () => {
+  it('should be taken even in absence of other transitions', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -462,29 +462,6 @@ describe('transient states (eventless transitions)', () => {
           always: {
             target: 'b',
             guard: ({ event }) => event.type === 'WHATEVER'
-          }
-        },
-        b: {}
-      }
-    });
-    const actorRef = createActor(machine).start();
-
-    actorRef.send({ type: 'WHATEVER' });
-
-    expect(actorRef.getSnapshot().value).toBe('a');
-  });
-
-  it('should be taken if there is a wildcard transition', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          always: {
-            target: 'b',
-            guard: ({ event }) => event.type === 'WHATEVER'
-          },
-          on: {
-            '*': {}
           }
         },
         b: {}
@@ -497,38 +474,31 @@ describe('transient states (eventless transitions)', () => {
     expect(actorRef.getSnapshot().value).toBe('b');
   });
 
-  it('should select subsequent always transitions after selecting a regular transition', () => {
-    let shouldMatch = false;
-
+  it('should select subsequent transient transitions even in absence of other transitions', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
         a: {
-          on: {
-            FOO: 'b'
+          always: {
+            target: 'b',
+            guard: ({ event }) => event.type === 'WHATEVER'
           }
         },
         b: {
           always: {
             target: 'c',
-            guard: ({ event }) => event.type === 'FOO'
+            guard: () => true
           }
         },
-        c: {
-          always: {
-            target: 'd',
-            guard: ({ event }) => event.type === 'FOO'
-          }
-        },
-        d: {}
+        c: {}
       }
     });
 
     const actorRef = createActor(machine).start();
 
-    actorRef.send({ type: 'FOO' });
+    actorRef.send({ type: 'WHATEVER' });
 
-    expect(actorRef.getSnapshot().value).toBe('d');
+    expect(actorRef.getSnapshot().value).toBe('c');
   });
 
   it('events that trigger eventless transitions should be preserved in guards', () => {
