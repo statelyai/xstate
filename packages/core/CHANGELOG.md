@@ -28,6 +28,37 @@
 
 - [#4488](https://github.com/statelyai/xstate/pull/4488) [`9ca3c3dcf`](https://github.com/statelyai/xstate/commit/9ca3c3dcf25aba67aab5b6390766c273e9eba766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `stop(...)` action creator is renamed to `stopChild(...)`, to make it clear that only child actors may be stopped from the parent actor.
 
+## 5.0.0-beta.46
+
+### Major Changes
+
+- [#4478](https://github.com/statelyai/xstate/pull/4478) [`384f0ffc7`](https://github.com/statelyai/xstate/commit/384f0ffc712a36846d97b58195eeaa71edbc67f5) Thanks [@Andarist](https://github.com/Andarist)! - Removed `MachineSnapshot['nextEvents']`.
+
+### Minor Changes
+
+- [#4480](https://github.com/statelyai/xstate/pull/4480) [`3e610a1f3`](https://github.com/statelyai/xstate/commit/3e610a1f3b2a56e58fd1f68fe41f5f7beed31fd8) Thanks [@Andarist](https://github.com/Andarist)! - Children IDs in combination with `setup` can now be typed using `types.children`:
+
+  ```ts
+  const machine = setup({
+    types: {} as {
+      children: {
+        myId: 'actorKey';
+      };
+    },
+    actors: {
+      actorKey: child
+    }
+  }).createMachine({});
+
+  const actorRef = createActor(machine).start();
+
+  actorRef.getSnapshot().children.myId; // ActorRefFrom<typeof child> | undefined
+  ```
+
+### Patch Changes
+
+- [#4491](https://github.com/statelyai/xstate/pull/4491) [`c0025c3ce`](https://github.com/statelyai/xstate/commit/c0025c3ceb9a18c7588dc303f71b3de9378258a5) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with actors deep in the tree failing to rehydrate.
+
 ## 5.0.0-beta.45
 
 ### Minor Changes
