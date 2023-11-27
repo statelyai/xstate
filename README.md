@@ -82,7 +82,7 @@ const toggleMachine = createMachine({
     inactive: { on: { TOGGLE: 'active' } },
     active: {
       entry: assign({ count: ({ context }) => context.count + 1 }),
-      on: { TOGGLE: 'inactive' } }
+      on: { TOGGLE: 'inactive' }
     }
   }
 });
@@ -93,10 +93,10 @@ toggleActor.subscribe((state) => console.log(state.value, state.context));
 toggleActor.start();
 // => logs 'inactive', { count: 0 }
 
-toggleService.send({ type: 'TOGGLE' });
+toggleActor.send({ type: 'TOGGLE' });
 // => logs 'active', { count: 1 }
 
-toggleService.send({ type: 'TOGGLE' });
+toggleActor.send({ type: 'TOGGLE' });
 // => logs 'inactive', { count: 1 }
 ```
 

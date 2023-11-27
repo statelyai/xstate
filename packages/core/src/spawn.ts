@@ -75,6 +75,7 @@ export function createSpawner(
       const actorRef = createActor(logic, {
         id: options.id,
         parent: actorScope.self,
+        syncSnapshot: options.syncSnapshot,
         input:
           typeof input === 'function'
             ? input({
@@ -86,45 +87,19 @@ export function createSpawner(
         src,
         systemId
       }) as any;
+
       spawnedChildren[actorRef.id] = actorRef;
 
-      if (options.syncSnapshot) {
-        actorRef.subscribe({
-          next: (snapshot: Snapshot<unknown>) => {
-            if (snapshot.status === 'active') {
-              actorScope.self.send({
-                type: `xstate.snapshot.${actorRef.id}`,
-                snapshot
-              });
-            }
-          },
-          error: () => {}
-        });
-      }
       return actorRef;
     } else {
       const actorRef = createActor(src, {
         id: options.id,
         parent: actorScope.self,
+        syncSnapshot: options.syncSnapshot,
         input: options.input,
         src,
         systemId
       });
-
-      if (options.syncSnapshot) {
-        actorRef.subscribe({
-          next: (snapshot: Snapshot<unknown>) => {
-            if (snapshot.status === 'active') {
-              actorScope.self.send({
-                type: `xstate.snapshot.${actorRef.id}`,
-                snapshot,
-                id: actorRef.id
-              });
-            }
-          },
-          error: () => {}
-        });
-      }
 
       return actorRef;
     }

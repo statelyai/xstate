@@ -9,7 +9,7 @@ import {
   ActorRef,
   cancel,
   raise,
-  stop,
+  stopChild,
   log
 } from '../src/index.ts';
 import { isObservable } from '../src/utils';
@@ -1710,9 +1710,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop(({ context }) => context.machineRef),
-                  stop(({ context }) => context.promiseRef),
-                  stop(({ context }) => context.observableRef)
+                  stopChild(({ context }) => context.machineRef),
+                  stopChild(({ context }) => context.promiseRef),
+                  stopChild(({ context }) => context.observableRef)
                 ]
               }
             }

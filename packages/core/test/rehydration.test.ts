@@ -1,4 +1,12 @@
-import { createMachine, createActor, fromPromise } from '../src/index.ts';
+import { BehaviorSubject } from 'rxjs';
+import {
+  createMachine,
+  createActor,
+  fromPromise,
+  fromObservable,
+  assign,
+  sendTo
+} from '../src/index.ts';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -314,5 +322,116 @@ describe('rehydration', () => {
 
     actorRef2.start();
     expect(spy).toHaveBeenCalled();
+  });
+
+  it('should continue syncing snapshots', () => {
+    const subject = new BehaviorSubject(0);
+    const subjectLogic = fromObservable(() => subject);
+
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'service';
+            logic: typeof subjectLogic;
+          };
+        },
+
+        invoke: [
+          {
+            src: 'service',
+            onSnapshot: {
+              actions: [({ event }) => spy(event.snapshot.context)]
+            }
+          }
+        ]
+      },
+      {
+        actors: {
+          service: subjectLogic
+        }
+      }
+    );
+
+    createActor(machine, {
+      state: createActor(machine).getPersistedState()
+    }).start();
+
+    spy.mockClear();
+
+    subject.next(42);
+    subject.next(100);
+
+    expect(spy.mock.calls).toEqual([[42], [100]]);
+  });
+
+  it('should be able to rehydrate an actor deep in the tree', () => {
+    const grandchild = createMachine({
+      context: {
+        count: 0
+      },
+      on: {
+        INC: {
+          actions: assign({
+            count: ({ context }) => context.count + 1
+          })
+        }
+      }
+    });
+    const child = createMachine(
+      {
+        invoke: {
+          src: 'grandchild',
+          id: 'grandchild'
+        },
+        on: {
+          INC: {
+            actions: sendTo('grandchild', {
+              type: 'INC'
+            })
+          }
+        }
+      },
+      {
+        actors: {
+          grandchild
+        }
+      }
+    );
+    const machine = createMachine(
+      {
+        invoke: {
+          src: 'child',
+          id: 'child'
+        },
+        on: {
+          INC: {
+            actions: sendTo('child', {
+              type: 'INC'
+            })
+          }
+        }
+      },
+      {
+        actors: {
+          child
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'INC' });
+
+    const persistedState = actorRef.getPersistedState();
+    const actorRef2 = createActor(machine, { state: persistedState });
+
+    expect(
+      actorRef2
+        .getSnapshot()
+        .children.child.getSnapshot()
+        .children.grandchild.getSnapshot().context.count
+    ).toBe(1);
   });
 });

@@ -1,3 +1,4 @@
+import { BehaviorSubject } from 'rxjs';
 import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import {
   createMachine,
   raise
 } from 'xstate';
-import { fromCallback, fromPromise } from 'xstate/actors';
+import { fromCallback, fromObservable, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
@@ -994,5 +995,36 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     render(<App />);
 
     expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
+  });
+
+  it('should work with `onSnapshot`', () => {
+    const subject = new BehaviorSubject(0);
+
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      invoke: [
+        {
+          src: fromObservable(() => subject),
+          onSnapshot: {
+            actions: [({ event }) => spy((event.snapshot as any).context)]
+          }
+        }
+      ]
+    });
+
+    const App = () => {
+      useActor(machine);
+      return null;
+    };
+
+    render(<App />);
+
+    spy.mockClear();
+
+    subject.next(42);
+    subject.next(100);
+
+    expect(spy.mock.calls).toEqual([[42], [100]]);
   });
 });

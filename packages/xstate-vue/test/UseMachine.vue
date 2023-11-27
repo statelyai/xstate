@@ -58,14 +58,16 @@ export default defineComponent({
     const onFetch = () =>
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
-    const { snapshot, send, actorRef } = useMachine(fetchMachine.provide({
-      actors: {
-        fetchData: fromPromise(onFetch)
-      },
-    }), {
-      state: persistedState,
-
-    });
+    const { snapshot, send, actorRef } = useMachine(
+      fetchMachine.provide({
+        actors: {
+          fetchData: fromPromise(onFetch)
+        }
+      }),
+      {
+        state: persistedState
+      }
+    );
     return { snapshot, send, actorRef };
   }
 });

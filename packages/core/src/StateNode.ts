@@ -119,13 +119,15 @@ export class StateNode<
   public machine: StateMachine<
     TContext,
     TEvent,
-    any, // actors
+    any, // children
+    any, // actor
+    any, // action
+    any, // guard
+    any, // delay
+    any, // tag
     any, // input
-    TODO, // output
-    TODO, // guards
-    TODO, // delays
-    TODO, // tags
-    TODO // types meta
+    any, // output
+    any // typegen
   >;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
@@ -176,8 +178,8 @@ export class StateNode<
       (this.config.states && Object.keys(this.config.states).length
         ? 'compound'
         : this.config.history
-        ? 'history'
-        : 'atomic');
+          ? 'history'
+          : 'atomic');
     this.description = this.config.description;
 
     this.order = this.machine.idMap.size;
@@ -339,11 +341,14 @@ export class StateNode<
 
       return [...transitions]
         .flatMap(([descriptor, t]) => t.map((t) => [descriptor, t] as const))
-        .reduce((map: any, [descriptor, transition]) => {
-          map[descriptor] = map[descriptor] || [];
-          map[descriptor].push(transition);
-          return map;
-        }, {} as TransitionDefinitionMap<TContext, TEvent>);
+        .reduce(
+          (map: any, [descriptor, transition]) => {
+            map[descriptor] = map[descriptor] || [];
+            map[descriptor].push(transition);
+            return map;
+          },
+          {} as TransitionDefinitionMap<TContext, TEvent>
+        );
     });
   }
 
@@ -391,8 +396,8 @@ export class StateNode<
           typeof guard === 'string'
             ? guard
             : typeof guard === 'object'
-            ? guard.type
-            : undefined;
+              ? guard.type
+              : undefined;
         throw new Error(
           `Unable to evaluate guard ${
             guardType ? `'${guardType}' ` : ''

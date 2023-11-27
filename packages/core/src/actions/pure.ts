@@ -19,7 +19,7 @@ import { toArray } from '../utils.ts';
 import { assign } from './assign.ts';
 import { raise } from './raise.ts';
 import { sendTo } from './send.ts';
-import { spawn } from './spawn.ts';
+import { spawnChild } from './spawnChild.ts';
 
 function resolvePure(
   _: AnyActorScope,
@@ -48,14 +48,13 @@ function resolvePure(
 export interface PureAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: unknown): void;
   _out_TEvent?: TEvent;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
@@ -70,9 +69,6 @@ export interface PureAction<
 export function pure<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined =
-    | ParameterizedObject['params']
-    | undefined,
   TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
@@ -100,7 +96,6 @@ export function pure<
 ): PureAction<
   TContext,
   TExpressionEvent,
-  TParams,
   TEvent,
   TActor,
   TAction,
@@ -109,7 +104,7 @@ export function pure<
 > {
   function pure(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    params: unknown
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -130,7 +125,9 @@ interface CreateActionEnqueuer {
   sendTo: (
     ...args: Parameters<typeof sendTo<any, any, any, any, any, any>>
   ) => void;
-  spawn: (...args: Parameters<typeof spawn<any, any, any, any, any>>) => void;
+  spawn: (
+    ...args: Parameters<typeof spawnChild<any, any, any, any, any>>
+  ) => void;
   action: (
     action:
       | ActionFunction<any, any, any, any, any, any, any, any>
@@ -176,7 +173,7 @@ function resolveCreateAction(
       actions.push(action);
     },
     spawn: (...args) => {
-      actions.push(spawn(...args));
+      actions.push(spawnChild(...args));
     }
   };
   const guard = (guard: any) => {
@@ -228,7 +225,7 @@ export function createAction<
       ) => void;
       spawn: (
         ...args: Parameters<
-          typeof spawn<TContext, TExpressionEvent, any, TEvent, TActor>
+          typeof spawnChild<TContext, TExpressionEvent, any, TEvent, TActor>
         >
       ) => void;
       action: (
@@ -250,7 +247,6 @@ export function createAction<
 ): PureAction<
   TContext,
   TExpressionEvent,
-  TParams,
   TEvent,
   TActor,
   TAction,
@@ -271,5 +267,6 @@ export function createAction<
 
   createAction.resolve = resolveCreateAction;
 
+  // TODO: fix this type
   return createAction;
 }
