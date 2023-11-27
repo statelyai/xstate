@@ -23,11 +23,22 @@
         "import": "./dist/xstate-vue.cjs.mjs",
         "default": "./dist/xstate-vue.cjs.js"
       },
+      "development": {
+        "module": "./dist/xstate-vue.development.esm.js",
+        "import": "./dist/xstate-vue.development.cjs.mjs",
+        "default": "./dist/xstate-vue.development.cjs.js"
+      },
       "module": "./dist/xstate-vue.esm.js",
       "import": "./dist/xstate-vue.cjs.mjs",
       "default": "./dist/xstate-vue.cjs.js"
     },
     "./package.json": "./package.json"
+  },
+  "imports": {
+    "#is-development": {
+      "development": "./src/true.ts",
+      "default": "./src/false.ts"
+    }
   },
   "sideEffects": false,
   "files": [

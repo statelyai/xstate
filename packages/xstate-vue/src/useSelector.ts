@@ -1,4 +1,4 @@
-import { shallowRef, Ref, isRef, watch } from 'vue';
+import { Ref, isRef, shallowRef, watch } from 'vue';
 import { ActorRef, SnapshotFrom } from 'xstate';
 
 function defaultCompare<T>(a: T, b: T) {
@@ -23,7 +23,6 @@ export function useSelector<TActor extends ActorRef<any, any>, T>(
     }
   };
 
-  // TODO: add test for actor changing
   watch(
     actorRefRef,
     (newActor, _, onCleanup) => {
