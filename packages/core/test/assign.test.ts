@@ -1,11 +1,10 @@
-import { createAction } from '../src/actions/pure.ts';
+import { enqueueActions } from '../src/actions/pure.ts';
 import {
   assign,
   createMachine,
   createActor,
   fromPromise
 } from '../src/index.ts';
-import { setup } from '../src/setup.ts';
 
 interface CounterContext {
   count: number;
@@ -380,23 +379,23 @@ it('test', () => {
         };
       },
       context: { count: 0 },
-      entry: createAction(({ enqueue: exec, context }) => {
-        exec.assign({
+      entry: enqueueActions(({ enqueue, context }) => {
+        enqueue.assign({
           count: ({ context }) => context.count + 1
         });
 
-        exec.assign({
+        enqueue.assign({
           count: ({ context }) => context.count + 1
         });
 
         // Should still be 0
         if (context.count === 0) {
-          exec.raise({
+          enqueue.raise({
             type: 'raised'
           });
         }
 
-        exec.action({
+        enqueue.action({
           type: 'greet',
           params: {
             message: 'hello'

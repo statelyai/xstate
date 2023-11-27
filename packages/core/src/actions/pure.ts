@@ -183,7 +183,7 @@ function resolveCreateAction(
   return [state, undefined, actions];
 }
 
-export function createAction<
+export function enqueueActions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TParams extends ParameterizedObject['params'] | undefined =
@@ -253,7 +253,7 @@ export function createAction<
   TGuard,
   TDelay
 > {
-  function createAction(
+  function enqueueActions(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
     params: TParams
   ) {
@@ -262,11 +262,11 @@ export function createAction<
     }
   }
 
-  createAction.type = 'xstate.action';
-  createAction.get = getActions;
+  enqueueActions.type = 'xstate.action';
+  enqueueActions.get = getActions;
 
-  createAction.resolve = resolveCreateAction;
+  enqueueActions.resolve = resolveCreateAction;
 
   // TODO: fix this type
-  return createAction;
+  return enqueueActions;
 }
