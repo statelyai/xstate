@@ -7,7 +7,7 @@ import {
   raise,
   sendParent,
   sendTo,
-  stop
+  stopChild
 } from '../src/actions.ts';
 import {
   ActorRefFrom,
@@ -1554,7 +1554,7 @@ describe('entry/exit actions', () => {
         }),
         on: {
           STOP_CHILD: {
-            actions: stop(({ context }) => context.child)
+            actions: stopChild(({ context }) => context.child)
           },
           EXIT: {
             actions: () => {

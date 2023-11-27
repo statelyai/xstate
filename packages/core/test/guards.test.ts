@@ -594,6 +594,212 @@ describe('custom guards', () => {
       secret: 77
     });
   });
+
+  it('should call a referenced `not` guard that embeds an inline function guard with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: {
+          counter: 0
+        },
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: not((_, params) => {
+            spy(params);
+            return true;
+          })
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call a string guard referenced by referenced `not` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: not('other')
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call an object guard referenced by referenced `not` with its own params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: not({
+            type: 'other',
+            params: 42
+          })
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(42);
+  });
+
+  it('should call an inline function guard embedded in referenced `and` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: () => true,
+          myGuard: and([
+            'other',
+            (_, params) => {
+              spy(params);
+              return true;
+            }
+          ])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call a string guard referenced by referenced `and` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: and(['other', (_, params) => true])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call an object guard referenced by referenced `and` with its own params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: and([
+            {
+              type: 'other',
+              params: 42
+            },
+            (_, params) => true
+          ])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(42);
+  });
 });
 
 describe('referencing guards', () => {

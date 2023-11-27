@@ -558,22 +558,25 @@ function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
   const context = dataModelEl
     ? dataModelEl
         .elements!.filter((element) => element.name === 'data')
-        .reduce((acc, element) => {
-          const { src, expr, id } = element.attributes!;
-          if (src) {
-            throw new Error(
-              "Conversion of `src` attribute on datamodel's <data> elements is not supported."
-            );
-          }
+        .reduce(
+          (acc, element) => {
+            const { src, expr, id } = element.attributes!;
+            if (src) {
+              throw new Error(
+                "Conversion of `src` attribute on datamodel's <data> elements is not supported."
+              );
+            }
 
-          if (expr === '_sessionid') {
-            acc[id!] = undefined;
-          } else {
-            acc[id!] = eval(`(${expr})`);
-          }
+            if (expr === '_sessionid') {
+              acc[id!] = undefined;
+            } else {
+              acc[id!] = eval(`(${expr})`);
+            }
 
-          return acc;
-        }, {} as Record<string, unknown>)
+            return acc;
+          },
+          {} as Record<string, unknown>
+        )
     : undefined;
 
   const machine = createMachine({

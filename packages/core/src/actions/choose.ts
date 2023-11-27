@@ -47,14 +47,13 @@ function resolveChoose(
 export interface ChooseAction<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
   TEvent extends EventObject,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string
 > {
-  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: unknown): void;
   _out_TActor?: TActor;
   _out_TAction?: TAction;
   _out_TGuard?: TGuard;
@@ -65,7 +64,6 @@ export function choose<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
@@ -85,7 +83,6 @@ export function choose<
 ): ChooseAction<
   TContext,
   TExpressionEvent,
-  TParams,
   TEvent,
   TActor,
   TAction,
@@ -94,7 +91,7 @@ export function choose<
 > {
   function choose(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    params: unknown
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
