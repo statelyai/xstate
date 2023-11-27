@@ -1,14 +1,14 @@
+import { Ref } from 'vue';
 import {
+  ActorOptions,
   ActorRefFrom,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   EventFrom,
-  ActorOptions,
   MissingImplementationsError,
   SnapshotFrom
 } from 'xstate';
 import { useActor } from './useActor.ts';
-import { Ref } from 'vue';
 
 /**
  * @alias useActor
