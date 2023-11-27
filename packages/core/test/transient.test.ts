@@ -474,6 +474,29 @@ describe('transient states (eventless transitions)', () => {
     expect(actorRef.getSnapshot().value).toBe('a');
   });
 
+  it('should be taken if there is a wildcard transition', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b',
+            guard: ({ event }) => event.type === 'WHATEVER'
+          },
+          on: {
+            '*': {}
+          }
+        },
+        b: {}
+      }
+    });
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'WHATEVER' });
+
+    expect(actorRef.getSnapshot().value).toBe('b');
+  });
+
   it('should select subsequent always transitions after selecting a regular transition', () => {
     let shouldMatch = false;
 
