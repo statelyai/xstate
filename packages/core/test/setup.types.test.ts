@@ -926,13 +926,9 @@ describe('setup()', () => {
 
   it('should accept `assign` when no actor and children types are provided', () => {
     setup({}).createMachine({
-      states: {
-        foo: {
-          on: {
-            RESTART: {
-              actions: assign({})
-            }
-          }
+      on: {
+        RESTART: {
+          actions: assign({})
         }
       }
     });
