@@ -1,5 +1,11 @@
 # xstate
 
+## 5.0.0-beta.48
+
+### Patch Changes
+
+- [#4499](https://github.com/statelyai/xstate/pull/4499) [`c9908b7fb`](https://github.com/statelyai/xstate/commit/c9908b7fbc393999122388f5bf437511fe5cfadc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed the `TActor` type passed down by `setup` in absence of provided actors.
+
 ## 5.0.0-beta.47
 
 ### Minor Changes
