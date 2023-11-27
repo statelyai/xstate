@@ -64,7 +64,7 @@ export interface PureAction<
 
 /**
  *
- * @deprecated Use `createAction(...)` instead
+ * @deprecated Use `enqueueActions(...)` instead
  */
 export function pure<
   TContext extends MachineContext,
@@ -119,7 +119,7 @@ export function pure<
   return pure;
 }
 
-interface CreateActionEnqueuer {
+interface ActionEnqueuer {
   assign: (...args: Parameters<typeof assign<any, any, any, any, any>>) => void;
   raise: (...args: Parameters<typeof raise<any, any, any, any, any>>) => void;
   sendTo: (
@@ -137,7 +137,7 @@ interface CreateActionEnqueuer {
   ) => void;
 }
 
-function resolveCreateAction(
+function resolveEnqueueActions(
   _: AnyActorScope,
   state: AnyState,
   args: ActionArgs<any, any, any>,
@@ -153,13 +153,13 @@ function resolveCreateAction(
     }: {
       context: MachineContext;
       event: EventObject;
-      enqueue: CreateActionEnqueuer;
+      enqueue: ActionEnqueuer;
       guard: (guard: any) => boolean;
     }) => SingleOrArray<UnknownAction> | undefined;
   }
 ) {
   const actions: any[] = [];
-  const exec: CreateActionEnqueuer = {
+  const exec: ActionEnqueuer = {
     assign: (...args) => {
       actions.push(assign(...args));
     },
@@ -265,7 +265,7 @@ export function enqueueActions<
   enqueueActions.type = 'xstate.action';
   enqueueActions.get = getActions;
 
-  enqueueActions.resolve = resolveCreateAction;
+  enqueueActions.resolve = resolveEnqueueActions;
 
   // TODO: fix this type
   return enqueueActions;
