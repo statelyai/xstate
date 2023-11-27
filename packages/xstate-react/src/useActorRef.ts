@@ -13,7 +13,7 @@ import {
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { stopRootWithRehydration } from './stopRootWithRehydration';
 
-export function useIdleActor(
+export function useIdleActorRef(
   logic: AnyActorLogic,
   options: Partial<ActorOptions<AnyActorLogic>>
 ): AnyActor {
@@ -50,7 +50,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)
 ): ActorRefFrom<TLogic> {
-  const actorRef = useIdleActor(machine, options);
+  const actorRef = useIdleActorRef(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {

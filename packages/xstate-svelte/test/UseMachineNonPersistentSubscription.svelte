@@ -18,13 +18,13 @@
     }
   });
 
-  const { state, send } = useMachine(machine);
+  const { snapshot, send } = useMachine(machine);
 </script>
 
 <div>
   <button type="button" on:click={() => (visible = !visible)}>Toggle</button>
   {#if visible}
     <!-- inlined version of this doesn't unsubscribe from the store when the content gets hidden, so we need to keep this in a separate component  -->
-    <UseMachineNonPersistentSubscriptionChild {send} {state} />
+    <UseMachineNonPersistentSubscriptionChild {send} {snapshot} />
   {/if}
 </div>
