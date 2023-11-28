@@ -21,10 +21,6 @@ export interface TypegenEnabled {
 }
 export interface TypegenMeta extends TypegenEnabled {
   /**
-   * Allows you to specify all the results of state.matches
-   */
-  matchesStates: string | {};
-  /**
    * Allows you to specify all tags used by the machine
    */
   tags: string;

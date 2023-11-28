@@ -252,82 +252,6 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow valid string `matches`', () => {
-    interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'b' | 'c';
-    }
-
-    const machine = createMachine({
-      context: { foo: 100 },
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      },
-      initial: 'a',
-      states: {
-        a: {}
-      }
-    });
-
-    createActor(machine).getSnapshot().matches('a');
-  });
-
-  it('should allow valid object `matches`', () => {
-    interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | { a: 'b' } | { a: 'c' };
-    }
-
-    const machine = createMachine({
-      types: { typegen: {} as TypesMeta },
-      context: { foo: 100 },
-      initial: 'a',
-      states: {
-        a: {}
-      }
-    });
-
-    createActor(machine).getSnapshot().matches({ a: 'c' });
-  });
-
-  it('should not allow invalid string `matches`', () => {
-    interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'b' | 'c';
-    }
-
-    const machine = createMachine({
-      context: { foo: 100 },
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      },
-      initial: 'a',
-      states: {
-        a: {}
-      }
-    });
-
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches('d');
-  });
-
-  it('should not allow invalid object `matches`', () => {
-    interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | { a: 'b' } | { a: 'c' };
-    }
-
-    const machine = createMachine({
-      types: { typegen: {} as TypesMeta },
-      context: { foo: 100 },
-      initial: 'a',
-      states: {
-        a: {}
-      }
-    });
-
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches({ a: 'd' });
-  });
-
   it('should allow a valid tag with `hasTag`', () => {
     interface TypesMeta extends TypegenMeta {
       tags: 'a' | 'b' | 'c';
@@ -993,55 +917,6 @@ describe('typegen types', () => {
   //     }
   //   );
   // });
-
-  it("shouldn't end up with `any` context after calling `state.matches`", () => {
-    interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'b' | 'c';
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        context: {} as {
-          foo: string;
-        }
-      },
-      context: {
-        foo: 'bar'
-      }
-    });
-
-    const state = createActor(machine).getSnapshot();
-
-    if (state.matches('a')) {
-      // @ts-expect-error
-      state.context.val;
-    }
-  });
-
-  it("shouldn't end up with `never` within a branch after two `state.matches` calls", () => {
-    interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'a.b';
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        context: {} as {
-          foo: string;
-        }
-      },
-      context: {
-        foo: 'bar'
-      }
-    });
-
-    const state = createActor(machine).getSnapshot();
-
-    if (state.matches('a') && state.matches('a.b')) {
-      ((_accept: string) => {})(state.context.foo);
-    }
-  });
 
   it('should be possible to pass typegen-less machines to functions expecting a machine argument that do not utilize the typegen information', () => {
     const machine = createMachine({});

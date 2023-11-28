@@ -284,35 +284,6 @@ describe('MachineImplementationsFrom', () => {
   });
 });
 
-describe('StateValueFrom', () => {
-  it('should return possible state values from a typegened machine', () => {
-    interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'b' | 'c';
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta
-      }
-    });
-
-    function matches(_value: StateValueFrom<typeof machine>) {}
-
-    matches('a');
-    matches('b');
-    // @ts-expect-error
-    matches('unknown');
-  });
-
-  it('should return any from a typegenless machine', () => {
-    const machine = createMachine({});
-
-    function matches(_value: StateValueFrom<typeof machine>) {}
-
-    matches('just anything');
-  });
-});
-
 describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
     const service = createActor(
