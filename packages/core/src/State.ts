@@ -377,8 +377,7 @@ export function createMachineSnapshot<
     tags: new Set(flatten(config._nodes.map((sn) => sn.tags))),
     children: config.children as any,
     historyValue: config.historyValue || {},
-    // this one is generic in the target and it's hard to create a matching non-generic source signature
-    matches: machineSnapshotMatches as any,
+    matches: machineSnapshotMatches,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
     getMeta: machineSnapshotGetMeta,
