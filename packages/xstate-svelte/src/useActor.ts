@@ -11,7 +11,7 @@ import { useActorRef } from './useActorRef';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options: ActorOptions<TLogic>
+  options?: ActorOptions<TLogic>
 ): {
   snapshot: Readable<SnapshotFrom<TLogic>>;
   send: (event: EventFrom<TLogic>) => void;
