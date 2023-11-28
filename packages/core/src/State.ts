@@ -15,12 +15,19 @@ import type {
   StateValue,
   AnyActorRef,
   Snapshot,
-  ParameterizedObject
+  ParameterizedObject,
+  Cast
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
-// TODO: fix this
-type ToTestStateValue<TStateValue extends StateValue> = any;
+type ToTestStateValue<TStateValue extends StateValue> =
+  TStateValue extends string
+    ? TStateValue
+    : {
+        [K in keyof TStateValue]?:
+          | ToTestStateValue<Cast<TStateValue[K], StateValue>>
+          | keyof TStateValue[K];
+      };
 
 export function isMachineSnapshot<
   TContext extends MachineContext,
