@@ -16,6 +16,7 @@ import {
   NonReducibleUnknown,
   ParameterizedObject,
   SetupTypes,
+  StateSchema,
   ToChildren,
   Values
 } from './types';
@@ -55,6 +56,24 @@ type ToProvidedActor<
         : string | undefined;
   };
 }>;
+
+type ToStateValue<T extends StateSchema> = T extends {
+  states: Record<infer S, any>;
+}
+  ?
+      | S
+      | (T extends { type: 'history' }
+          ? never
+          : T extends { type: 'parallel' }
+            ? {
+                [K in S]: ToStateValue<T['states'][K]>;
+              }
+            : Values<{
+                [K in S]: {
+                  [key in K]: ToStateValue<T['states'][K]>;
+                };
+              }>)
+  : { [key: string]: never };
 
 export function setup<
   TContext extends MachineContext,
@@ -138,6 +157,7 @@ export function setup<
     ToParameterizedObject<TActions>,
     ToParameterizedObject<TGuards>,
     TDelay,
+    ToStateValue<TConfig>,
     TTag,
     TInput,
     TOutput,
@@ -149,8 +169,7 @@ export function setup<
       ToParameterizedObject<TGuards>,
       TDelay,
       TTag
-    >,
-    TConfig
+    >
   >;
 } {
   return {

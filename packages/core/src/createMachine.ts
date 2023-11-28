@@ -15,6 +15,7 @@ import {
   ParameterizedObject,
   Prop,
   ProvidedActor,
+  StateValue,
   ToChildren
 } from './types.ts';
 
@@ -65,6 +66,7 @@ export function createMachine<
   TAction,
   TGuard,
   TDelay,
+  StateValue,
   Prop<
     ResolveTypegenMeta<
       TTypesMeta,
@@ -83,6 +85,7 @@ export function createMachine<
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
   return new StateMachine<
+    any,
     any,
     any,
     any,
