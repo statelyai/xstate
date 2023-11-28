@@ -1067,6 +1067,7 @@ describe('setup()', () => {
 
   it('should type the snapshot state value of a statechart with nested compound states', () => {
     const machine = setup({}).createMachine({
+      initial: 'a',
       states: {
         a: {},
         b: {
