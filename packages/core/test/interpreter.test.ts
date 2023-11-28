@@ -45,7 +45,7 @@ const lightMachine = createMachine({
   }
 });
 
-describe('interpreter', () => {
+describe('actor', () => {
   describe('initial state', () => {
     it('.getSnapshot returns the initial state', () => {
       const machine = createMachine({
@@ -660,7 +660,7 @@ describe('interpreter', () => {
     });
   });
 
-  it('should not throw an error if an event is sent to an uninitialized interpreter', () => {
+  it('should not throw an error if an event is sent to an uninitialized actor', () => {
     const actorRef = createActor(lightMachine);
 
     expect(() => actorRef.send({ type: 'SOME_EVENT' })).not.toThrow();
@@ -703,7 +703,7 @@ describe('interpreter', () => {
     deferService.start();
   });
 
-  it('should throw an error if initial state sent to interpreter is invalid', () => {
+  it('should throw an error if initial state sent to actor is invalid', () => {
     const invalidMachine = {
       id: 'fetchMachine',
       initial: 'create',
@@ -740,7 +740,7 @@ describe('interpreter', () => {
 
     service.stop();
     try {
-      service.send({ type: 'TIMER' }); // red if interpreter is not stopped
+      service.send({ type: 'TIMER' }); // red if actor is not stopped
     } catch (e) {
       expect(service.getSnapshot().value).toEqual('yellow');
     }
@@ -1172,7 +1172,7 @@ describe('interpreter', () => {
       }, 10);
     });
 
-    it('stopping a not-started interpreter should not crash', () => {
+    it('stopping a not-started actor should not crash', () => {
       const service = createActor(
         createMachine({
           initial: 'a',
@@ -1427,7 +1427,7 @@ describe('interpreter', () => {
       expect(completeCb).toHaveBeenCalledTimes(1);
     });
 
-    it('should call complete() once the interpreter is stopped', () => {
+    it('should call complete() once the actor is stopped', () => {
       const completeCb = jest.fn();
 
       const service = createActor(createMachine({})).start();

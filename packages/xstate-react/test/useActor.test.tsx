@@ -162,7 +162,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [, , service] = useActor(fetchMachine);
 
       if (!(service instanceof Actor)) {
-        throw new Error('service not instance of Interpreter');
+        throw new Error('service not instance of Actor');
       }
 
       return null;

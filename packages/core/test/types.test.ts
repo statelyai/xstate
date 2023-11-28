@@ -727,7 +727,7 @@ describe('events', () => {
   });
 });
 
-describe('interpreter', () => {
+describe('actor types', () => {
   it('should be convertible to Rx observable', () => {
     const s = createActor(
       createMachine({

@@ -1478,7 +1478,7 @@ describe('entry/exit actions', () => {
       expect(childSpy).not.toHaveBeenCalled();
     });
 
-    it('an exit action executed when an interpreter reaches its final state should be called with the last received event', () => {
+    it('an exit action executed when an actor reaches its final state should be called with the last received event', () => {
       let receivedEvent;
       const machine = createMachine({
         initial: 'a',
@@ -1504,7 +1504,7 @@ describe('entry/exit actions', () => {
     });
 
     // https://github.com/statelyai/xstate/issues/2880
-    it('stopping an interpreter that receives events from its children exit handlers should not throw', () => {
+    it('stopping an actor that receives events from its children exit handlers should not throw', () => {
       const child = createMachine({
         id: 'child',
         initial: 'idle',
@@ -1522,10 +1522,10 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const interpreter = createActor(parent);
-      interpreter.start();
+      const actor = createActor(parent);
+      actor.start();
 
-      expect(() => interpreter.stop()).not.toThrow();
+      expect(() => actor.stop()).not.toThrow();
     });
 
     // TODO: determine if the sendParent action should execute when the child actor is stopped.
@@ -1564,8 +1564,8 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const interpreter = createActor(parent).start();
-      interpreter.send({ type: 'STOP_CHILD' });
+      const actor = createActor(parent).start();
+      actor.send({ type: 'STOP_CHILD' });
     });
 
     it('sent events from exit handlers of a done child should be received by the parent ', () => {
@@ -1609,8 +1609,8 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const interpreter = createActor(parent).start();
-      interpreter.send({ type: 'FINISH_CHILD' });
+      const actor = createActor(parent).start();
+      actor.send({ type: 'FINISH_CHILD' });
 
       expect(eventReceived).toBe(true);
     });
@@ -1652,8 +1652,8 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const interpreter = createActor(parent).start();
-      interpreter.send({ type: 'NEXT' });
+      const actor = createActor(parent).start();
+      actor.send({ type: 'NEXT' });
 
       expect(spy).not.toHaveBeenCalled();
     });
@@ -1703,8 +1703,8 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const interpreter = createActor(parent).start();
-      interpreter.send({ type: 'NEXT' });
+      const actor = createActor(parent).start();
+      actor.send({ type: 'NEXT' });
 
       expect(spy).toHaveBeenCalledTimes(1);
     });
@@ -1725,11 +1725,11 @@ describe('entry/exit actions', () => {
         })
       });
 
-      const interpreter = createActor(parent).start();
-      interpreter.stop();
+      const actor = createActor(parent).start();
+      actor.stop();
     });
 
-    it('should note execute referenced custom actions correctly when stopping an interpreter', () => {
+    it('should note execute referenced custom actions correctly when stopping an actor', () => {
       const spy = jest.fn();
       const parent = createMachine(
         {
@@ -1744,13 +1744,13 @@ describe('entry/exit actions', () => {
         }
       );
 
-      const interpreter = createActor(parent).start();
-      interpreter.stop();
+      const actor = createActor(parent).start();
+      actor.stop();
 
       expect(spy).not.toHaveBeenCalled();
     });
 
-    it('should not execute builtin actions when stopping an interpreter', () => {
+    it('should not execute builtin actions when stopping an actor', () => {
       const machine = createMachine(
         {
           context: {
@@ -1778,13 +1778,13 @@ describe('entry/exit actions', () => {
         }
       );
 
-      const interpreter = createActor(machine).start();
-      interpreter.stop();
+      const actor = createActor(machine).start();
+      actor.stop();
 
-      expect(interpreter.getSnapshot().context.executedAssigns).toEqual([]);
+      expect(actor.getSnapshot().context.executedAssigns).toEqual([]);
     });
 
-    it('should clear all scheduled events when the interpreter gets stopped', () => {
+    it('should clear all scheduled events when the actor gets stopped', () => {
       const machine = createMachine({
         on: {
           INITIALIZE_SYNC_SEQUENCE: {

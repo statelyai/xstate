@@ -1,7 +1,7 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
-import { ProcessingStatus, createActor } from '../interpreter.ts';
+import { ProcessingStatus, createActor } from '../Actor.ts';
 import {
   ActionArgs,
   AnyActorScope,

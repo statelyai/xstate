@@ -1,4 +1,4 @@
-import { ActorRef, assign, createMachine, Interpreter } from 'xstate';
+import { ActorRef, assign, createMachine } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { stringifyState } from './serialize.ts';
 

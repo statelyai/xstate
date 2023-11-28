@@ -6,8 +6,8 @@ import { createImmutable } from './createImmutable.ts';
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
-  TInterpreter = Actor<TMachine>
-> = [SnapshotFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
+  TActor = Actor<TMachine>
+> = [SnapshotFrom<TMachine>, Prop<TActor, 'send'>, TActor];
 
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,

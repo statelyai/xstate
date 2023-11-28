@@ -56,7 +56,7 @@ describe('useMachine function', () => {
     expect(dataEl.textContent).toBe('persisted data');
   });
 
-  it("should not stop the interpreter even if subscribers' count go temporarily to zero", async () => {
+  it("should not stop the actor even if subscribers' count go temporarily to zero", async () => {
     const { findByText, getByTestId } = render(
       UseMachineNonPersistentSubscription
     );

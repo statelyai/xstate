@@ -731,7 +731,7 @@ describe('spawning event observables', () => {
 });
 
 describe('communicating with spawned actors', () => {
-  it('should treat an interpreter as an actor', (done) => {
+  it('should treat an actor as an actor', (done) => {
     const existingMachine = createMachine({
       types: {
         events: {} as {

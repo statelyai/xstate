@@ -115,7 +115,7 @@ describe('EventFrom', () => {
     });
   });
 
-  it('should return events for an interpreter', () => {
+  it('should return events for an actor', () => {
     const machine = createMachine({
       types: {
         events: {} as
@@ -127,14 +127,14 @@ describe('EventFrom', () => {
 
     const service = createActor(machine);
 
-    type InterpreterEvent = EventFrom<typeof service>;
+    type ActorEvent = EventFrom<typeof service>;
 
-    const acceptInterpreterEvent = (_event: InterpreterEvent) => {};
+    const acceptActorEvent = (_event: ActorEvent) => {};
 
-    acceptInterpreterEvent({ type: 'UPDATE_NAME', value: 'test' });
-    acceptInterpreterEvent({ type: 'UPDATE_AGE', value: 12 });
-    acceptInterpreterEvent({ type: 'ANOTHER_EVENT' });
-    acceptInterpreterEvent({
+    acceptActorEvent({ type: 'UPDATE_NAME', value: 'test' });
+    acceptActorEvent({ type: 'UPDATE_AGE', value: 12 });
+    acceptActorEvent({ type: 'ANOTHER_EVENT' });
+    acceptActorEvent({
       // @ts-expect-error
       type: 'UNKNOWN_EVENT'
     });

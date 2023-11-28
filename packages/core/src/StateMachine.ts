@@ -58,7 +58,7 @@ import {
   isErrorActorEvent,
   resolveReferencedActor
 } from './utils.ts';
-import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
+import { $$ACTOR_TYPE, createActor } from './Actor.ts';
 import isDevelopment from '#is-development';
 
 export const STATE_IDENTIFIER = '#';

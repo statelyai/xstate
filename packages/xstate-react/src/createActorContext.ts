@@ -45,7 +45,7 @@ type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
 
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
-  interpreterOptions?: ActorOptions<TLogic>
+  actorOptions?: ActorOptions<TLogic>
 ): {
   useSelector: <T>(
     selector: (snapshot: SnapshotFrom<TLogic>) => T,
@@ -81,7 +81,7 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     children,
     logic: providedLogic = actorLogic,
     machine,
-    options: providedOptions = interpreterOptions
+    options: providedOptions = actorOptions
   }: {
     children: React.ReactNode;
     logic: TLogic;

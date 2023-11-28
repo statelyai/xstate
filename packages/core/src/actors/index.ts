@@ -1,4 +1,4 @@
-import { createActor } from '../interpreter.ts';
+import { createActor } from '../Actor.ts';
 import type { ActorRef, AnyEventObject, Snapshot } from '../types.ts';
 import { fromTransition } from './transition.ts';
 export { fromCallback, type CallbackActorLogic } from './callback.ts';

@@ -195,7 +195,7 @@ describe('machine', () => {
       expect(createActor(createMachine({})).getSnapshot().context).toEqual({});
     });
 
-    it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
+    it('should lazily create context for all actor instances created from the same machine template created by `provide`', () => {
       const machine = createMachine({
         types: {} as { context: { foo: { prop: string } } },
         context: () => ({

@@ -266,7 +266,7 @@ describe('createActorContext', () => {
     checkConsoleErrorOutputForMissingProvider();
   });
 
-  it('should be able to pass interpreter options to the provider', () => {
+  it('should be able to pass actor options to the provider', () => {
     const someMachine = createMachine({
       initial: 'a',
       states: {

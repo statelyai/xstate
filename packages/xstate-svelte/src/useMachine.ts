@@ -35,18 +35,18 @@ type RestParams<TMachine extends AnyStateMachine> =
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
-  TInterpreter = Actor<TMachine>
+  TActor = Actor<TMachine>
 > = {
   state: Readable<StateFrom<TMachine>>;
-  send: Prop<TInterpreter, 'send'>;
-  service: TInterpreter;
+  send: Prop<TActor, 'send'>;
+  service: TActor;
 };
 
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  const { guards, actions, actors, delays, ...interpreterOptions } = options;
+  const { guards, actions, actors, delays, ...actorOptions } = options;
 
   const machineConfig = {
     guards,
@@ -57,7 +57,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const resolvedMachine = machine.provide(machineConfig as any);
 
-  const service = createActor(resolvedMachine, interpreterOptions).start();
+  const service = createActor(resolvedMachine, actorOptions).start();
 
   onDestroy(() => service.stop());
 

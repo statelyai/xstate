@@ -1,6 +1,6 @@
 import type { StateNode } from './StateNode.ts';
 import type { MachineSnapshot } from './State.ts';
-import type { Clock, Actor, ProcessingStatus } from './interpreter.ts';
+import type { Clock, Actor, ProcessingStatus } from './Actor.ts';
 import type { StateMachine } from './StateMachine.ts';
 import {
   TypegenDisabled,
@@ -826,7 +826,7 @@ export interface StateNodeConfig<
     | undefined;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
-   * The delayed transitions are taken after the specified delay in an interpreter.
+   * The delayed transitions are taken after the specified delay in an actor.
    */
   after?: DelayedTransitions<TContext, TEvent, TActor, TAction, TGuard, TDelay>;
 

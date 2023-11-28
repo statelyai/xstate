@@ -706,13 +706,13 @@ export function createActor<TLogic extends AnyActorLogic>(
   options?: ActorOptions<TLogic>
 ): Actor<TLogic>;
 export function createActor(logic: any, options?: ActorOptions<any>): any {
-  const interpreter = new Actor(logic, options);
+  const actor = new Actor(logic, options);
 
-  return interpreter;
+  return actor;
 }
 
 /**
- * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ * Creates a new Actor instance for the given machine with the provided options, if any.
  *
  * @deprecated Use `createActor` instead
  */

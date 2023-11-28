@@ -47,7 +47,7 @@ import {
   toStatePath,
   toTransitionConfigArray
 } from './utils.ts';
-import { ProcessingStatus } from './interpreter.ts';
+import { ProcessingStatus } from './Actor.ts';
 
 type StateNodeIterable<
   TContext extends MachineContext,

@@ -8,7 +8,7 @@ export function createService<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): Actor<TMachine> {
-  const { guards, actions, actors, delays, ...interpreterOptions } = options;
+  const { guards, actions, actors, delays, ...actorOptions } = options;
 
   const machineConfig = {
     guards,
@@ -19,7 +19,7 @@ export function createService<TMachine extends AnyStateMachine>(
 
   const machineWithConfig = machine.provide(machineConfig as any);
 
-  const service = createActor(machineWithConfig, interpreterOptions);
+  const service = createActor(machineWithConfig, actorOptions);
 
   if (!isServer) {
     service.start();

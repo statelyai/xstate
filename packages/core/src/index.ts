@@ -7,7 +7,7 @@ export { getStateNodes } from './stateUtils.ts';
 export * from './typegenTypes.ts';
 export * from './types.ts';
 export { waitFor } from './waitFor.ts';
-import { Actor, createActor, interpret, Interpreter } from './interpreter.ts';
+import { Actor, createActor, interpret, Interpreter } from './Actor.ts';
 import { createMachine } from './createMachine.ts';
 export { type MachineSnapshot, isMachineSnapshot } from './State.ts';
 import { StateNode } from './StateNode.ts';
