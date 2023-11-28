@@ -209,6 +209,9 @@ export function fromObservable<TContext, TInput>(
  * ```
  */
 
+const errorEventType = '$$xstate.error';
+const completeEventType = '$$xstate.complete';
+
 export function fromEventObservable<T extends EventObject, TInput>(
   lazyObservable: ({
     input,
@@ -219,9 +222,6 @@ export function fromEventObservable<T extends EventObject, TInput>(
     self: ObservableActorRef<T>;
   }) => Subscribable<T>
 ): ObservableActorLogic<T, TInput> {
-  const errorEventType = '$$xstate.error';
-  const completeEventType = '$$xstate.complete';
-
   // TODO: event types
   const logic: ObservableActorLogic<T, TInput> = {
     config: lazyObservable,
