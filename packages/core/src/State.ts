@@ -16,18 +16,21 @@ import type {
   AnyActorRef,
   Snapshot,
   ParameterizedObject,
-  Cast
+  Cast,
+  IsNever
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
 
 type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
     ? TStateValue
-    : {
-        [K in keyof TStateValue]?:
-          | ToTestStateValue<Cast<TStateValue[K], StateValue>>
-          | keyof TStateValue[K];
-      };
+    : IsNever<keyof TStateValue> extends true
+      ? never
+      : {
+          [K in keyof TStateValue]?:
+            | ToTestStateValue<Cast<TStateValue[K], StateValue>>
+            | keyof TStateValue[K];
+        };
 
 export function isMachineSnapshot<
   TContext extends MachineContext,
@@ -384,7 +387,7 @@ export function createMachineSnapshot<
     tags: new Set(flatten(config._nodes.map((sn) => sn.tags))),
     children: config.children as any,
     historyValue: config.historyValue || {},
-    matches: machineSnapshotMatches,
+    matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
     getMeta: machineSnapshotGetMeta,
