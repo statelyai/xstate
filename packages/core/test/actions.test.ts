@@ -2982,8 +2982,8 @@ describe('choose', () => {
         states: {
           foo: {
             // entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
-            entry: enqueueActions(({ enqueue, guard }) => {
-              if (guard({ type: 'worstGuard' })) {
+            entry: enqueueActions(({ enqueue, check }) => {
+              if (check({ type: 'worstGuard' })) {
                 enqueue({ type: 'revealAnswer' });
               }
             })
@@ -3030,8 +3030,8 @@ describe('choose', () => {
           // conditionallyRevealAnswer: choose([
           //   { guard: 'worstGuard', actions: 'revealAnswer' }
           // ])
-          conditionallyRevealAnswer: enqueueActions(({ enqueue, guard }) => {
-            if (guard({ type: 'worstGuard' })) {
+          conditionallyRevealAnswer: enqueueActions(({ enqueue, check }) => {
+            if (check({ type: 'worstGuard' })) {
               enqueue({ type: 'revealAnswer' });
             }
           })

@@ -90,7 +90,7 @@ function resolveEnqueueActions(
       context,
       event,
       enqueue,
-      guard
+      check
     }: {
       context: MachineContext;
       event: EventObject;
@@ -103,7 +103,7 @@ function resolveEnqueueActions(
         ParameterizedObject,
         string
       >;
-      guard: (
+      check: (
         guard: Guard<
           MachineContext,
           EventObject,
@@ -143,7 +143,7 @@ function resolveEnqueueActions(
     context: args.context,
     event: args.event,
     enqueue,
-    guard: (guard) => evaluateGuard(guard, state.context, args.event, state)
+    check: (guard) => evaluateGuard(guard, state.context, args.event, state)
   });
 
   return [state, undefined, actions];
@@ -179,12 +179,12 @@ export function enqueueActions<
   collect: ({
     context,
     event,
-    guard,
+    check,
     enqueue
   }: {
     context: TContext;
     event: TExpressionEvent;
-    guard: (
+    check: (
       guard: Guard<TContext, TExpressionEvent, undefined, TGuard>
     ) => boolean;
     enqueue: ActionEnqueuer<

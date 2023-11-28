@@ -3168,8 +3168,8 @@ describe('choose', () => {
           //     guard: 'plainGuard'
           //   }
           // ])
-          foo: enqueueActions(({ enqueue, guard }) => {
-            if (guard({ type: 'plainGuard' })) {
+          foo: enqueueActions(({ enqueue, check }) => {
+            if (check({ type: 'plainGuard' })) {
               enqueue(() => {});
             }
           })
@@ -3201,9 +3201,9 @@ describe('choose', () => {
           //     guard: 'other' as const
           //   }
           // ])
-          foo: enqueueActions(({ enqueue, guard }) => {
+          foo: enqueueActions(({ enqueue, check }) => {
             if (
-              guard({
+              check({
                 // @ts-expect-error
                 type: 'other'
               })
@@ -3239,9 +3239,9 @@ describe('choose', () => {
       //     }
       //   }
       // ])
-      entry: enqueueActions(({ enqueue, guard }) => {
+      entry: enqueueActions(({ enqueue, check }) => {
         if (
-          guard((_, params) => {
+          check((_, params) => {
             ((_accept: undefined) => {})(params);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params);
@@ -3281,9 +3281,9 @@ describe('choose', () => {
           //     }
           //   }
           // ])
-          someGuard: enqueueActions(({ enqueue, guard }) => {
+          someGuard: enqueueActions(({ enqueue, check }) => {
             if (
-              guard((_, params) => {
+              check((_, params) => {
                 ((_accept: undefined) => {})(params);
                 // @ts-expect-error
                 ((_accept: 'not any') => {})(params);
