@@ -45,11 +45,15 @@ type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
+  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>,
+  TResolvedActors extends Record<
+    string,
+    AnyActorLogic
+  > = DefaultToAnyActors<TActors>
 > = Values<{
-  [K in keyof DefaultToAnyActors<TActors> & string]: {
+  [K in keyof TResolvedActors & string]: {
     src: K;
-    logic: TActors[K];
+    logic: TResolvedActors[K];
     id: IsNever<TChildrenMap> extends true
       ? string | undefined
       : K extends keyof Invert<TChildrenMap>

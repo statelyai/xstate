@@ -1,15 +1,13 @@
+import { fromCallback, fromPromise } from '../src/actors/index.ts';
+import { PromiseActorLogic } from '../src/actors/promise.ts';
+import { createMachine } from '../src/createMachine.ts';
 import {
-  ActorLogic,
   assign,
   createActor,
   MachineContext,
   StateMachine
 } from '../src/index.ts';
-import { fromPromise } from '../src/actors/index.ts';
-import { fromCallback } from '../src/actors/index.ts';
-import { createMachine } from '../src/createMachine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
-import { PromiseActorLogic } from '../src/actors/promise.ts';
 
 describe('typegen types', () => {
   it('should not require implementations when creating machine using `createMachine`', () => {
@@ -255,6 +253,12 @@ describe('typegen types', () => {
   it('should allow a valid tag with `hasTag`', () => {
     interface TypesMeta extends TypegenMeta {
       tags: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -275,6 +279,12 @@ describe('typegen types', () => {
   it('should not allow an invalid tag with `hasTag`', () => {
     interface TypesMeta extends TypegenMeta {
       tags: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -289,8 +299,10 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().hasTag('d');
+    createActor(machine).getSnapshot().hasTag(
+      // @ts-expect-error
+      'd'
+    );
   });
 
   it('`withConfig` should require all missing implementations ', () => {
@@ -373,8 +385,7 @@ describe('typegen types', () => {
       }
     });
 
-    // TODO: rethink this; should probably be done as a linter rule instead
-    // @x-ts-expect-error
+    // @ts-expect-error
     createActor(machine);
   });
 

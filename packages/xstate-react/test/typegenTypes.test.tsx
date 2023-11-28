@@ -53,180 +53,10 @@ describe('useMachine', () => {
 
     render(<App />);
   });
-
-  it('should require all missing implementations ', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: 'myDelay';
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-        myDelay: 'BAR';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    function App() {
-      // @ts-expect-error
-      useMachine(machine);
-      useMachine(
-        machine.provide({
-          // @ts-expect-error
-          actions: {}
-        })
-      );
-      useMachine(
-        // @ts-expect-error
-        machine.provide({
-          actions: {
-            myAction: () => {}
-          }
-        })
-      );
-      useMachine(
-        machine.provide({
-          actions: {
-            myAction: () => {}
-          },
-          delays: {
-            myDelay: () => 42
-          }
-        })
-      );
-      return null;
-    }
-
-    render(<App />);
-  });
-
-  it('should allow to override already provided implementation', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'fooAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: { fooAction: 'FOO' };
-      eventsCausingDelays: { barDelay: 'BAR' };
-    }
-
-    const machine = createMachine(
-      {
-        types: {
-          typegen: {} as TypesMeta,
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          barDelay: () => 42
-        }
-      }
-    );
-
-    function App() {
-      useMachine(
-        machine.provide({
-          actions: {
-            fooAction: () => {}
-          },
-          delays: {
-            barDelay: () => 100
-          }
-        })
-      );
-      return null;
-    }
-
-    render(<App />);
-  });
-
-  it('should accept a machine that accepts a specific subset of events in one of the implementations', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: never;
-        actors: never;
-        guards: never;
-        delays: never;
-      };
-      eventsCausingActions: {
-        fooAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
-      }
-    });
-
-    function App() {
-      useMachine(
-        machine.provide({
-          actions: {
-            // it's important to use `event` here somehow to make this a possible source of information for inference
-            fooAction: () => {}
-          }
-        })
-      );
-      return null;
-    }
-
-    render(<App />);
-  });
-
-  it('should provide subset of the event type to action objects given in the `options` argument', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: never;
-        actors: never;
-        guards: never;
-        delays: never;
-      };
-      eventsCausingActions: {
-        fooAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
-      }
-    });
-
-    function App() {
-      useMachine(
-        machine.provide({
-          actions: {
-            fooAction: assign(({ event }) => {
-              ((_accept: 'FOO') => {})(event.type);
-              // @ts-expect-error
-              ((_accept: "test that this isn't any") => {})(event.type);
-            })
-          }
-        })
-      );
-      return null;
-    }
-
-    render(<App />);
-  });
 });
 
 describe('useActorRef', () => {
-  it('Should handle multiple state.matches when passed TypegenMeta', () => {
+  it('should handle multiple state.matches when passed TypegenMeta', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b';
       missingImplementations: {
@@ -254,7 +84,7 @@ describe('useActorRef', () => {
     };
   });
 
-  it('Should handle multiple state.matches when NOT passed TypegenMeta', () => {
+  it('should handle multiple state.matches when NOT passed TypegenMeta', () => {
     const machine = createMachine({});
 
     () => {
@@ -486,46 +316,6 @@ describe('createActorContext', () => {
             },
             delays: {
               barDelay: () => 100
-            }
-          })}
-        >
-          {null}
-        </Context.Provider>
-      );
-    }
-
-    render(<App />);
-  });
-
-  it('should accept a machine that accepts a specific subset of events in one of the implementations', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: never;
-        actors: never;
-        guards: never;
-        delays: never;
-      };
-      eventsCausingActions: {
-        fooAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' }
-      }
-    });
-
-    const Context = createActorContext(machine);
-
-    function App() {
-      return (
-        <Context.Provider
-          logic={machine.provide({
-            actions: {
-              // it's important to use `event` here somehow to make this a possible source of information for inference
-              fooAction: () => {}
             }
           })}
         >

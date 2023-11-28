@@ -1100,4 +1100,14 @@ describe('setup()', () => {
     snapshot.value satisfies ExpectedType;
     ({}) as ExpectedType satisfies typeof snapshot.value;
   });
+
+  it('should accept `assign` when no actor and children types are provided', () => {
+    setup({}).createMachine({
+      on: {
+        RESTART: {
+          actions: assign({})
+        }
+      }
+    });
+  });
 });
