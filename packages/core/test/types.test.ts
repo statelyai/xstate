@@ -4488,7 +4488,7 @@ describe('state value', () => {
 
     actor.getSnapshot().matches({ red: 'walk' });
 
-    actor.getSnapshot().matches({ red: { wait: {} } });
+    actor.getSnapshot().matches({ red: 'wait' });
 
     actor.getSnapshot().matches({
       // @ts-expect-error
@@ -4496,8 +4496,8 @@ describe('state value', () => {
     });
 
     actor.getSnapshot().matches({
+      // @ts-expect-error
       red: {
-        // @ts-expect-error
         walk: 'invalid'
       }
     });

@@ -16,7 +16,6 @@ import type {
   AnyActorRef,
   Snapshot,
   ParameterizedObject,
-  Cast,
   IsNever
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
@@ -28,7 +27,7 @@ type ToTestStateValue<TStateValue extends StateValue> =
       ? never
       : {
           [K in keyof TStateValue]?:
-            | ToTestStateValue<Cast<TStateValue[K], StateValue>>
+            | ToTestStateValue<NonNullable<TStateValue[K]>>
             | keyof TStateValue[K];
         };
 
