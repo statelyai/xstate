@@ -51,7 +51,7 @@ import type {
   Snapshot,
   AnyActorLogic,
   HistoryValue,
-  StateConfig2
+  StateSchema
 } from './types.ts';
 import {
   flatten,
@@ -85,7 +85,7 @@ export class StateMachine<
     TDelay,
     TTag
   >,
-  TConfig extends StateConfig2 = any
+  TConfig extends StateSchema = any
 > implements
     ActorLogic<
       MachineSnapshot<

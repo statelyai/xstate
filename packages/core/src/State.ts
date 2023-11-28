@@ -17,8 +17,8 @@ import type {
   Snapshot,
   ParameterizedObject,
   IsAny,
-  StateConfig2,
-  StateValueFrom2,
+  StateSchema,
+  ToStateValue,
   Prop
 } from './types.ts';
 import { flatten, matchesState } from './utils.ts';
@@ -42,7 +42,7 @@ interface MachineSnapshotBase<
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled,
-  TConfig extends StateConfig2 = any
+  TConfig extends StateSchema = any
 > {
   machine: StateMachine<
     TContext,
@@ -59,7 +59,7 @@ interface MachineSnapshotBase<
   >;
   tags: Set<string>;
   // value: StateValue;
-  value: IsAny<TConfig> extends true ? StateValue : StateValueFrom2<TConfig>;
+  value: IsAny<TConfig> extends true ? StateValue : ToStateValue<TConfig>;
   status: 'active' | 'done' | 'error' | 'stopped';
   error: unknown;
   context: TContext;
@@ -91,7 +91,7 @@ interface MachineSnapshotBase<
       ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
       : IsAny<TConfig> extends true
         ? StateValue
-        : StateValueFrom2<TConfig>
+        : ToStateValue<TConfig>
   ) => boolean;
 
   /**
@@ -160,7 +160,7 @@ interface ActiveMachineSnapshot<
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled,
-  TConfig extends StateConfig2 = any
+  TConfig extends StateSchema = any
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -182,7 +182,7 @@ interface DoneMachineSnapshot<
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled,
-  TConfig extends StateConfig2 = any
+  TConfig extends StateSchema = any
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -204,7 +204,7 @@ interface ErrorMachineSnapshot<
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled,
-  TConfig extends StateConfig2 = any
+  TConfig extends StateSchema = any
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -226,7 +226,7 @@ interface StoppedMachineSnapshot<
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled,
-  TConfig extends StateConfig2 = any
+  TConfig extends StateSchema = any
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
@@ -248,7 +248,7 @@ export type MachineSnapshot<
   TTag extends string,
   TOutput,
   TResolvedTypesMeta = TypegenDisabled,
-  TConfig extends StateConfig2 = any
+  TConfig extends StateSchema = any
 > =
   | ActiveMachineSnapshot<
       TContext,

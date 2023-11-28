@@ -2173,7 +2173,7 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TSnapshot
     : R extends Actor<infer TLogic>
       ? SnapshotFrom<TLogic>
-      : R extends ActorLogic<any, any, any, any>
+      : R extends ActorLogic<infer _, infer __, infer ___, infer ____>
         ? ReturnType<R['transition']>
         : R extends ActorScope<infer TSnapshot, infer _, infer __>
           ? TSnapshot
@@ -2355,39 +2355,26 @@ export type ToChildren<TActor extends ProvidedActor> =
               : 'exclude']
       >;
 
-export type StateConfig2 = {
+export type StateSchema = {
   states?: {
-    [K: string]: StateConfig2;
+    [K: string]: StateSchema;
   };
 };
 
-export type StateValueFromConfig<TConfig extends StateConfig2> =
-  TConfig['states'] extends Record<string, any>
-    ?
-        | keyof TConfig['states']
-        | {
-            [K in keyof TConfig['states']]?: StateValueFromConfig<
-              TConfig['states'][K]
-            >;
-          }
-    : never;
-
-export type StateValueFrom2<T extends StateConfig2> = IsAny<T> extends true
-  ? StateValue
-  : T extends {
-        states: Record<infer S, any>;
-      }
-    ?
-        | S
-        | (T extends { type: 'history' }
-            ? never
-            : T extends { type: 'parallel' }
-              ? {
-                  [K in S]: StateValueFrom2<T['states'][K]>;
-                }
-              : Values<{
-                  [K in S]: {
-                    [key in K]: StateValueFrom2<T['states'][K]>;
-                  };
-                }>)
-    : { [key: string]: never };
+export type ToStateValue<T extends StateSchema> = T extends {
+  states: Record<infer S, any>;
+}
+  ?
+      | S
+      | (T extends { type: 'history' }
+          ? never
+          : T extends { type: 'parallel' }
+            ? {
+                [K in S]: ToStateValue<T['states'][K]>;
+              }
+            : Values<{
+                [K in S]: {
+                  [key in K]: ToStateValue<T['states'][K]>;
+                };
+              }>)
+  : { [key: string]: never };
