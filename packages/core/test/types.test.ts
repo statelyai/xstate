@@ -4421,6 +4421,7 @@ describe('state value', () => {
 
     const actor = createActor(machine).start();
 
+    // @ts-expect-error
     actor.getSnapshot().matches({});
 
     // @ts-expect-error
@@ -4442,14 +4443,17 @@ describe('state value', () => {
 
     actor.getSnapshot().matches('green');
 
+    // @ts-expect-error
     actor.getSnapshot().matches({ green: {} });
 
     actor.getSnapshot().matches('yellow');
 
+    // @ts-expect-error
     actor.getSnapshot().matches({ yellow: {} });
 
     actor.getSnapshot().matches('red');
 
+    // @ts-expect-error
     actor.getSnapshot().matches({ red: {} });
 
     // @ts-expect-error
