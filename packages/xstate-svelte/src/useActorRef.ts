@@ -5,7 +5,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: ActorOptions<TLogic>
 ): ActorRefFrom<TLogic> {
-  const actorRef = createActor(logic, options).start();
+  const actorRef = createActor(logic as any, options).start();
   onDestroy(() => actorRef.stop());
   return actorRef as any;
 }
