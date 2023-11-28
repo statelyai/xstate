@@ -8,6 +8,7 @@ import {
   AnyActorRef,
   AnyEventObject,
   Cast,
+  ConditionalRequired,
   DelayConfig,
   Invert,
   IsNever,
@@ -57,23 +58,42 @@ type ToProvidedActor<
   };
 }>;
 
+type _GroupStateKeys<
+  T extends StateSchema,
+  S extends keyof T['states']
+> = S extends any
+  ? T['states'][S] extends { type: 'history' }
+    ? [never, never]
+    : T extends { type: 'parallel' }
+      ? [S, never]
+      : 'states' extends keyof T['states'][S]
+        ? [S, never]
+        : [never, S]
+  : never;
+
+type GroupStateKeys<T extends StateSchema, S extends keyof T['states']> = {
+  nonLeaf: _GroupStateKeys<T, S & string>[0];
+  leaf: _GroupStateKeys<T, S & string>[1];
+};
+
 type ToStateValue<T extends StateSchema> = T extends {
   states: Record<infer S, any>;
 }
-  ?
-      | S
-      | (T extends { type: 'history' }
-          ? never
-          : T extends { type: 'parallel' }
-            ? {
-                [K in S]: ToStateValue<T['states'][K]>;
-              }
-            : Values<{
-                [K in S]: {
-                  [key in K]: ToStateValue<T['states'][K]>;
-                };
-              }>)
-  : { [key: string]: never };
+  ? IsNever<S> extends true
+    ? {}
+    :
+        | GroupStateKeys<T, S>['leaf']
+        | (IsNever<GroupStateKeys<T, S>['nonLeaf']> extends false
+            ? ConditionalRequired<
+                {
+                  [K in GroupStateKeys<T, S>['nonLeaf']]?: ToStateValue<
+                    T['states'][K]
+                  >;
+                },
+                T extends { type: 'parallel' } ? true : false
+              >
+            : never)
+  : {};
 
 export function setup<
   TContext extends MachineContext,

@@ -3,7 +3,7 @@ import { $$ACTOR_TYPE } from './interpreter.ts';
 import type { StateNode } from './StateNode.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { getStateValue } from './stateUtils.ts';
-import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
+import { TypegenDisabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
   AnyMachineSnapshot,

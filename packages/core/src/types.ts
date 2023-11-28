@@ -2375,7 +2375,5 @@ export type ToChildren<TActor extends ProvidedActor> =
       >;
 
 export type StateSchema = {
-  states?: {
-    [K: string]: StateSchema;
-  };
+  states?: Record<string, StateSchema>;
 };
