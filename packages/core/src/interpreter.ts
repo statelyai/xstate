@@ -696,17 +696,15 @@ export class Actor<TLogic extends AnyActorLogic>
  * @param options - Actor options
  */
 export function createActor<TLogic extends AnyActorLogic>(
-  logic: TLogic,
+  logic: TLogic extends AnyStateMachine
+    ? AreAllImplementationsAssumedToBeProvided<
+        TLogic['__TResolvedTypesMeta']
+      > extends true
+      ? TLogic
+      : MissingImplementationsError<TLogic['__TResolvedTypesMeta']>
+    : TLogic,
   options?: ActorOptions<TLogic>
 ): Actor<TLogic>;
-export function createActor<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options?: ActorOptions<TMachine>
-): Actor<TMachine>;
 export function createActor(logic: any, options?: ActorOptions<any>): any {
   const interpreter = new Actor(logic, options);
 
