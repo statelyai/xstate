@@ -186,9 +186,6 @@ function resolveEnqueueActions(
 export function enqueueActions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined =
-    | ParameterizedObject['params']
-    | undefined,
   TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
@@ -255,7 +252,7 @@ export function enqueueActions<
 > {
   function enqueueActions(
     args: ActionArgs<TContext, TExpressionEvent, TEvent>,
-    params: TParams
+    params: unknown
   ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
@@ -267,6 +264,5 @@ export function enqueueActions<
 
   enqueueActions.resolve = resolveEnqueueActions;
 
-  // TODO: fix this type
   return enqueueActions;
 }
