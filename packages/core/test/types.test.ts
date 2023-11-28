@@ -12,14 +12,12 @@ import {
   assign,
   createActor,
   createMachine,
+  enqueueActions,
   not,
   sendTo,
-  stateIn,
   spawnChild,
-  setup,
-  and
-} from '../src/index';
-import { enqueueActions } from '../src/actions/pure';
+  stateIn
+} from '../src/index.ts';
 
 function noop(_x: unknown) {
   return;
@@ -2959,7 +2957,7 @@ describe('choose', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action({
+          enqueue({
             type: 'greet',
             params: {
               name: 'Anders',
@@ -2991,7 +2989,7 @@ describe('choose', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action({
+          enqueue({
             type: 'greet',
             // @ts-expect-error
             params: {}
@@ -3017,7 +3015,7 @@ describe('choose', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action({
+          enqueue({
             // @ts-expect-error
             type: 'other' as const
           });
@@ -3039,7 +3037,7 @@ describe('choose', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action({ type: 'poke' });
+          enqueue({ type: 'poke' });
         }
       })
     });
@@ -3060,7 +3058,7 @@ describe('choose', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action({ type: 'poke' });
+          enqueue({ type: 'poke' });
         }
       })
     });
@@ -3089,13 +3087,13 @@ describe('choose', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action({
+          enqueue({
             type: 'greet',
             params: {
               name: 'Anders'
             }
           });
-          enqueue.action({
+          enqueue({
             type: 'poke'
           });
         }
@@ -3118,7 +3116,7 @@ describe('choose', () => {
       // ] as const)
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action({
+          enqueue({
             type: 'poke'
           });
         }
@@ -3141,7 +3139,7 @@ describe('choose', () => {
           //   }
           // ])
           foo: enqueueActions(({ enqueue }) => {
-            enqueue.action(() => {});
+            enqueue(() => {});
           })
         }
       }
@@ -3172,7 +3170,7 @@ describe('choose', () => {
           // ])
           foo: enqueueActions(({ enqueue, guard }) => {
             if (guard({ type: 'plainGuard' })) {
-              enqueue.action(() => {});
+              enqueue(() => {});
             }
           })
         }
@@ -3210,7 +3208,7 @@ describe('choose', () => {
                 type: 'other'
               })
             ) {
-              enqueue.action(() => {});
+              enqueue(() => {});
             }
           })
         }
@@ -3250,7 +3248,7 @@ describe('choose', () => {
             return true;
           })
         ) {
-          enqueue.action({ type: 'someAction' });
+          enqueue({ type: 'someAction' });
         }
       })
     });
@@ -3292,7 +3290,7 @@ describe('choose', () => {
                 return true;
               })
             ) {
-              enqueue.action({ type: 'someAction' });
+              enqueue({ type: 'someAction' });
             }
           })
         }
@@ -3318,7 +3316,7 @@ describe('pure', () => {
       //   ];
       // })
       entry: enqueueActions(({ enqueue }) => {
-        enqueue.action({
+        enqueue({
           type: 'greet', // string doesn't widen ;-)
           params: {
             name: 'Anders'
@@ -3340,7 +3338,7 @@ describe('pure', () => {
       //   };
       // })
       entry: enqueueActions(({ enqueue }) => {
-        enqueue.action({
+        enqueue({
           // @ts-expect-error
           type: 'other'
         });
@@ -3367,13 +3365,13 @@ describe('pure', () => {
       //   ];
       // })
       entry: enqueueActions(({ enqueue }) => {
-        enqueue.action({
+        enqueue({
           type: 'greet',
           params: {
             name: 'Anders'
           }
         });
-        enqueue.action({
+        enqueue({
           type: 'poke'
         });
       })
@@ -3393,7 +3391,7 @@ describe('pure', () => {
       //   ] as const;
       // })
       entry: enqueueActions(({ enqueue }) => {
-        enqueue.action({
+        enqueue({
           type: 'poke'
         });
       })
@@ -3409,7 +3407,7 @@ describe('pure', () => {
       //   return [() => {}];
       // })
       entry: enqueueActions(({ enqueue }) => {
-        enqueue.action(() => {});
+        enqueue(() => {});
       })
     });
   });
@@ -3423,7 +3421,7 @@ describe('pure', () => {
       //   return 'poke' as const;
       // })
       entry: enqueueActions(({ enqueue }) => {
-        enqueue.action({ type: 'poke' });
+        enqueue({ type: 'poke' });
       })
     });
   });
@@ -3437,7 +3435,7 @@ describe('pure', () => {
       //   return 'poke' as const;
       // })
       entry: enqueueActions(({ enqueue }) => {
-        enqueue.action({ type: 'poke' });
+        enqueue({ type: 'poke' });
       })
     });
   });
@@ -4236,7 +4234,7 @@ describe('delays', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action(raise({ type: 'FOO' }, { delay: 100 }));
+          enqueue(raise({ type: 'FOO' }, { delay: 100 }));
         }
       })
     });
@@ -4255,7 +4253,7 @@ describe('delays', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action(raise({ type: 'FOO' }, { delay: 'one minute' }));
+          enqueue(raise({ type: 'FOO' }, { delay: 'one minute' }));
         }
       })
     });
@@ -4280,7 +4278,7 @@ describe('delays', () => {
       // ])
       entry: enqueueActions(({ enqueue }) => {
         if (true) {
-          enqueue.action(
+          enqueue(
             raise(
               { type: 'FOO' },
               {

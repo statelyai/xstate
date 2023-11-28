@@ -5,7 +5,8 @@ import {
   raise,
   sendParent,
   sendTo,
-  stopChild
+  stopChild,
+  enqueueActions
 } from '../src/actions.ts';
 import {
   ActorRefFrom,
@@ -16,7 +17,6 @@ import {
 } from '../src/index.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import { trackEntries } from './utils.ts';
-import { enqueueActions } from '../src/actions/pure.ts';
 
 const originalConsoleLog = console.log;
 
@@ -2391,7 +2391,7 @@ describe('purely defined actions', () => {
         //   };
         // })
         entry: enqueueActions(({ enqueue, context }) => {
-          enqueue.action({
+          enqueue({
             type: 'doSomething',
             params: { length: context.items.length }
           });
@@ -2424,7 +2424,7 @@ describe('purely defined actions', () => {
       // })
       entry: enqueueActions(({ enqueue, context }) => {
         if (context.items.length > 5) {
-          enqueue.action({
+          enqueue({
             type: 'doSomething',
             params: { length: context.items.length }
           });
@@ -2450,7 +2450,7 @@ describe('purely defined actions', () => {
         // )
         entry: enqueueActions(({ enqueue, context }) =>
           context.items.map((item: any, index: number) => {
-            enqueue.action({
+            enqueue({
               type: 'doSomething',
               params: { item, index }
             });
@@ -2478,9 +2478,7 @@ describe('purely defined actions', () => {
     const machine = createMachine(
       {
         // entry: pure(() => ['SOME_ACTION'])
-        entry: enqueueActions(({ enqueue }) =>
-          enqueue.action({ type: 'SOME_ACTION' })
-        )
+        entry: enqueueActions(({ enqueue }) => enqueue({ type: 'SOME_ACTION' }))
       },
       {
         actions: {
@@ -2502,9 +2500,7 @@ describe('purely defined actions', () => {
       //     called = true;
       //   }
       // ])
-      entry: enqueueActions(({ enqueue }) =>
-        enqueue.action(() => (called = true))
-      )
+      entry: enqueueActions(({ enqueue }) => enqueue(() => (called = true)))
     });
 
     createActor(machine).start();
@@ -2746,7 +2742,7 @@ describe('choose', () => {
           // ])
           entry: enqueueActions(({ enqueue }) => {
             if (true) {
-              enqueue.action(() => (executed = true));
+              enqueue(() => (executed = true));
               enqueue.assign({ answer: 42 });
             }
           })
@@ -2988,7 +2984,7 @@ describe('choose', () => {
             // entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
             entry: enqueueActions(({ enqueue, guard }) => {
               if (guard({ type: 'worstGuard' })) {
-                enqueue.action({ type: 'revealAnswer' });
+                enqueue({ type: 'revealAnswer' });
               }
             })
           }
@@ -3036,7 +3032,7 @@ describe('choose', () => {
           // ])
           conditionallyRevealAnswer: enqueueActions(({ enqueue, guard }) => {
             if (guard({ type: 'worstGuard' })) {
-              enqueue.action({ type: 'revealAnswer' });
+              enqueue({ type: 'revealAnswer' });
             }
           })
         }
@@ -3232,9 +3228,7 @@ describe('sendTo', () => {
       //   return [sendTo(context.child, { type: 'EVENT' })];
       // })
       entry: enqueueActions(({ enqueue }) =>
-        enqueue.action(
-          sendTo(({ context }) => context.child, { type: 'EVENT' })
-        )
+        enqueue(sendTo(({ context }) => context.child, { type: 'EVENT' }))
       )
     });
 
@@ -3563,13 +3557,9 @@ describe('assign action order', () => {
           //   ];
           // }),
           enqueueActions(({ enqueue }) => {
-            enqueue.action(
-              assign({ count: ({ context }) => context.count + 1 })
-            );
-            enqueue.action({ type: 'capture' });
-            enqueue.action(
-              assign({ count: ({ context }) => context.count + 1 })
-            );
+            enqueue(assign({ count: ({ context }) => context.count + 1 }));
+            enqueue({ type: 'capture' });
+            enqueue(assign({ count: ({ context }) => context.count + 1 }));
           }),
           ({ context }) => captured.push(context.count) // 2
         ]
@@ -4133,9 +4123,7 @@ describe('actions', () => {
       createMachine(
         {
           // entry: pure(() => ['myAction'])
-          entry: enqueueActions(({ enqueue }) =>
-            enqueue.action({ type: 'myAction' })
-          )
+          entry: enqueueActions(({ enqueue }) => enqueue({ type: 'myAction' }))
         },
         {
           actions: {
@@ -4158,9 +4146,7 @@ describe('actions', () => {
       createMachine(
         {
           // entry: pure(() => ['myAction'])
-          entry: enqueueActions(({ enqueue }) =>
-            enqueue.action({ type: 'myAction' })
-          )
+          entry: enqueueActions(({ enqueue }) => enqueue({ type: 'myAction' }))
         },
         {
           actions: {
@@ -4187,7 +4173,7 @@ describe('actions', () => {
         {
           actions: {
             myPure: enqueueActions(({ enqueue }) =>
-              enqueue.action({ type: 'myAction' })
+              enqueue({ type: 'myAction' })
             ),
             myAction: (_, params) => {
               spy(params);
@@ -4212,7 +4198,7 @@ describe('actions', () => {
         {
           actions: {
             myPure: enqueueActions(({ enqueue }) =>
-              enqueue.action({ type: 'myAction' })
+              enqueue({ type: 'myAction' })
             ),
             myAction: assign((_, params) => {
               spy(params);

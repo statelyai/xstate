@@ -1,9 +1,8 @@
-import { enqueueActions } from '../src/actions/pure.ts';
 import {
   assign,
-  createMachine,
   createActor,
-  fromPromise
+  createMachine,
+  enqueueActions
 } from '../src/index.ts';
 
 interface CounterContext {
@@ -395,7 +394,7 @@ it('test', () => {
           });
         }
 
-        enqueue.action({
+        enqueue({
           type: 'greet',
           params: {
             message: 'hello'
