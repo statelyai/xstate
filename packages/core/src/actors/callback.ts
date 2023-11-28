@@ -12,8 +12,8 @@ import { XSTATE_STOP } from '../constants.ts';
 
 type CallbackSnapshot<TInput, TEvent> = Snapshot<undefined> & {
   input: TInput;
-  _receivers: Set<(e: TEvent) => void> | undefined;
-  _dispose: (() => void) | void;
+  // _receivers: Set<(e: TEvent) => void> | undefined;
+  // _dispose: (() => void) | void;
 };
 
 export type CallbackActorLogic<
@@ -134,8 +134,9 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
 ): CallbackActorLogic<TEvent, TInput> {
   const logic: CallbackActorLogic<TEvent, TInput> = {
     config: invokeCallback,
-    start: (state, { self, system }) => {
-      state._dispose = invokeCallback({
+    start: (state, actorScope) => {
+      const { self, system } = actorScope;
+      actorScope._dispose = invokeCallback({
         input: state.input,
         system,
         self,
@@ -148,11 +149,13 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
           }
         },
         receive: (listener) => {
-          (state._receivers ?? (state._receivers = new Set())).add(listener);
+          (actorScope._receivers ?? (actorScope._receivers = new Set())).add(
+            listener
+          );
         }
       });
     },
-    transition: (state, event) => {
+    transition: (state, event, actorScope) => {
       if (event.type === XSTATE_STOP) {
         state = {
           ...state,
@@ -160,13 +163,13 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
           error: undefined
         };
 
-        if (typeof state._dispose === 'function') {
-          state._dispose();
+        if (typeof actorScope._dispose === 'function') {
+          actorScope._dispose();
         }
         return state;
       }
 
-      state._receivers?.forEach((receiver) => receiver(event));
+      actorScope._receivers?.forEach((receiver) => receiver(event));
 
       return state;
     },
@@ -175,12 +178,12 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
         status: 'active',
         output: undefined,
         error: undefined,
-        input,
-        _receivers: new Set(),
-        _dispose: undefined
+        input
+        // _receivers: new Set(),
+        // _dispose: undefined
       };
     },
-    getPersistedState: ({ _dispose, _receivers, ...rest }) => rest,
+    getPersistedState: (state) => state,
     restoreState: (state: any) => state
   };
 
