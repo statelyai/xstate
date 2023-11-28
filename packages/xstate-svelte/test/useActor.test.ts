@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { createActor, createMachine } from 'xstate';
-import UseMachine from './UseMachine.svelte';
-import UseMachineNonPersistentSubscription from './UseMachineNonPersistentSubscription.svelte';
+import UseActor from './UseActor.svelte';
+import UseActorNonPersistentSubscription from './UseActorNonPersistentSubscription.svelte';
 import { fetchMachine } from './fetchMachine.ts';
 
 const actorRef = createActor(
@@ -27,9 +27,9 @@ const persistedFetchStateConfig = JSON.parse(
   JSON.stringify(persistedFetchState)
 );
 
-describe('useMachine function', () => {
+describe('useActor', () => {
   it('should work with a component', async () => {
-    const { getByText, findByText, getByTestId } = render(UseMachine);
+    const { getByText, findByText, getByTestId } = render(UseActor);
     const button = getByText('Fetch');
     await fireEvent.click(button);
     await findByText('Loading...');
@@ -39,7 +39,7 @@ describe('useMachine function', () => {
   });
 
   it('should work with a component with rehydrated state', async () => {
-    const { findByText, getByTestId } = render(UseMachine, {
+    const { findByText, getByTestId } = render(UseActor, {
       persistedState: persistedFetchState
     });
     await findByText(/Success/);
@@ -48,7 +48,7 @@ describe('useMachine function', () => {
   });
 
   it('should work with a component with rehydrated state config', async () => {
-    const { findByText, getByTestId } = render(UseMachine, {
+    const { findByText, getByTestId } = render(UseActor, {
       persistedState: persistedFetchStateConfig
     });
     await findByText(/Success/);
@@ -58,7 +58,7 @@ describe('useMachine function', () => {
 
   it("should not stop the interpreter even if subscribers' count go temporarily to zero", async () => {
     const { findByText, getByTestId } = render(
-      UseMachineNonPersistentSubscription
+      UseActorNonPersistentSubscription
     );
     let incButton = await findByText(/Increment/);
 

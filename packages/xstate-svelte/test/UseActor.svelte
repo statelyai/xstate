@@ -1,7 +1,7 @@
 <script lang="ts">
   export let persistedState: AnyMachineSnapshot | undefined = undefined;
 
-  import { useMachine } from '@xstate/svelte';
+  import { useActor } from '@xstate/svelte';
   import { fetchMachine } from './fetchMachine.ts';
   import type { AnyMachineSnapshot } from 'xstate';
   import { fromPromise } from 'xstate/actors';
@@ -9,7 +9,7 @@
   const onFetch = () =>
     new Promise<string>((res) => setTimeout(() => res('some data'), 50));
 
-  const { snapshot, send } = useMachine(
+  const { snapshot, send } = useActor(
     fetchMachine.provide({
       actors: {
         fetchData: fromPromise(onFetch)
