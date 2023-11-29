@@ -3,7 +3,7 @@ lockfileVersion: '6.0'
 dependencies:
   '@xstate/react':
     specifier: 4.0.0-beta.11
-    version: registry.npmjs.org/@xstate/react@4.0.0-beta.11(@types/react@18.2.39)(react@18.2.0)(xstate@5.0.0-beta.48)
+    version: registry.npmjs.org/@xstate/react@4.0.0-beta.11(@types/react@18.2.39)(react@18.2.0)(xstate@5.0.0-beta.49)
   react:
     specifier: ^18.2.0
     version: registry.npmjs.org/react@18.2.0
@@ -11,8 +11,8 @@ dependencies:
     specifier: ^18.2.0
     version: registry.npmjs.org/react-dom@18.2.0(react@18.2.0)
   xstate:
-    specifier: 5.0.0-beta.48
-    version: registry.npmjs.org/xstate@5.0.0-beta.48
+    specifier: 5.0.0-beta.49
+    version: registry.npmjs.org/xstate@5.0.0-beta.49
 
 devDependencies:
   '@types/react':
@@ -638,7 +638,7 @@ packages:
       - supports-color
     dev: true
 
-  registry.npmjs.org/@xstate/react@4.0.0-beta.11(@types/react@18.2.39)(react@18.2.0)(xstate@5.0.0-beta.48):
+  registry.npmjs.org/@xstate/react@4.0.0-beta.11(@types/react@18.2.39)(react@18.2.0)(xstate@5.0.0-beta.49):
     resolution: {integrity: sha512-qjV7cr8pkeNCZOmxjy+HuJmWV1liyR5nkLQhKz0+Ugxnz/D/Pmp9forPFrHno6UqH2Q2lVFUnLLpocihhK/Znw==, registry: https://registry.npmjs.com/, tarball: https://registry.npmjs.org/@xstate/react/-/react-4.0.0-beta.11.tgz}
     id: registry.npmjs.org/@xstate/react/4.0.0-beta.11
     name: '@xstate/react'
@@ -653,7 +653,7 @@ packages:
       react: registry.npmjs.org/react@18.2.0
       use-isomorphic-layout-effect: registry.npmjs.org/use-isomorphic-layout-effect@1.1.2(@types/react@18.2.39)(react@18.2.0)
       use-sync-external-store: registry.npmjs.org/use-sync-external-store@1.2.0(react@18.2.0)
-      xstate: registry.npmjs.org/xstate@5.0.0-beta.48
+      xstate: registry.npmjs.org/xstate@5.0.0-beta.49
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -1066,10 +1066,10 @@ packages:
       fsevents: registry.npmjs.org/fsevents@2.3.3
     dev: true
 
-  registry.npmjs.org/xstate@5.0.0-beta.48:
-    resolution: {integrity: sha512-L+JKsauxeuGg3KS732bCXhh9mBIj32s595R3bWH8TQqxZztPOw+eM80x8YgWxF5LJYU/cc1BoZpCG/D+UoX5wg==, registry: https://registry.npmjs.com/, tarball: https://registry.npmjs.org/xstate/-/xstate-5.0.0-beta.48.tgz}
+  registry.npmjs.org/xstate@5.0.0-beta.49:
+    resolution: {integrity: sha512-lSK2/sqQ/jT44F07rLbBa01c7fVA1hE2BZeRL3xcsoZmje5/U1eHH6TA9p28ycukefENmtarwuj2U+k3TdPoSg==, registry: https://registry.npmjs.com/, tarball: https://registry.npmjs.org/xstate/-/xstate-5.0.0-beta.49.tgz}
     name: xstate
-    version: 5.0.0-beta.48
+    version: 5.0.0-beta.49
     dev: false
 
   registry.npmjs.org/yallist@3.1.1:

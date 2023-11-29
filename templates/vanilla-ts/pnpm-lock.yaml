@@ -2,8 +2,8 @@ lockfileVersion: '6.0'
 
 dependencies:
   xstate:
-    specifier: 5.0.0-beta.48
-    version: registry.npmjs.org/xstate@5.0.0-beta.48
+    specifier: 5.0.0-beta.49
+    version: registry.npmjs.org/xstate@5.0.0-beta.49
 
 devDependencies:
   typescript:
@@ -370,8 +370,8 @@ packages:
     dev: true
     optional: true
 
-  registry.npmjs.org/xstate@5.0.0-beta.48:
-    resolution: {integrity: sha512-L+JKsauxeuGg3KS732bCXhh9mBIj32s595R3bWH8TQqxZztPOw+eM80x8YgWxF5LJYU/cc1BoZpCG/D+UoX5wg==, registry: https://registry.npmjs.com/, tarball: https://registry.npmjs.org/xstate/-/xstate-5.0.0-beta.48.tgz}
+  registry.npmjs.org/xstate@5.0.0-beta.49:
+    resolution: {integrity: sha512-lSK2/sqQ/jT44F07rLbBa01c7fVA1hE2BZeRL3xcsoZmje5/U1eHH6TA9p28ycukefENmtarwuj2U+k3TdPoSg==, registry: https://registry.npmjs.com/, tarball: https://registry.npmjs.org/xstate/-/xstate-5.0.0-beta.49.tgz}
     name: xstate
-    version: 5.0.0-beta.48
+    version: 5.0.0-beta.49
     dev: false
