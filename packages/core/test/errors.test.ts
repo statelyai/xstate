@@ -742,6 +742,8 @@ describe('error handling', () => {
       })
     });
 
+    const errorSpy = jest.fn();
+
     const actorRef = createActor(machine);
 
     const snapshot = actorRef.getSnapshot();
@@ -750,12 +752,18 @@ describe('error handling', () => {
       `[Error: error_thrown_when_resolving_initial_entry_action]`
     );
 
-    // TODO: figure out what to do with those lines and assertions related to them
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
 
-    // actorRef.subscribe({
-    //   error: errorSpy
-    // });
-    // actorRef.start();
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: error_thrown_when_resolving_initial_entry_action],
+        ],
+      ]
+    `);
   });
 
   it('error thrown by a custom entry action when transitioning should error the actor', () => {

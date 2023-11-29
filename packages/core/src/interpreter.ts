@@ -213,9 +213,9 @@ export class Actor<TLogic extends AnyActorLogic>
           : persistedState
         : this.logic.getInitialState(this._actorScope, this.options?.input);
     } catch (err) {
-      // TODO: if we get here then it means that we assign a value to this._state that is not of the correct type
+      // if we get here then it means that we assign a value to this._state that is not of the correct type
       // we can't get the true `TSnapshot & { status: 'error'; }`, it's impossible
-      // should the error snapshot's type to always be a minimalistic one to reflect the reality?
+      // so right now this is a lie of sorts
       this._state = {
         status: 'error',
         output: undefined,
@@ -263,7 +263,12 @@ export class Actor<TLogic extends AnyActorLogic>
         }
         break;
       case 'done':
-        // it's disputable if `next` observers should be notified about done snapsots
+        // next observers are meant to be notified about done snapshots
+        // this can be seen as something that is different from how observable work
+        // but with observables `complete` callback is called without any arguments
+        // it's more ergonomic for XState to treat a done snapshot as a "next" value
+        // and the completion event as something that is separate,
+        // something that merely follows emitting that done snapshot
         for (const observer of this.observers) {
           try {
             observer.next?.(snapshot);

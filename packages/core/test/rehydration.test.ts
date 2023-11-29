@@ -7,10 +7,7 @@ import {
   assign,
   sendTo
 } from '../src/index.ts';
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { sleep } from '@xstate-repo/jest-utils';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {

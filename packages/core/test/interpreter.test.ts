@@ -703,8 +703,7 @@ describe('interpreter', () => {
     deferService.start();
   });
 
-  // TODO: figure out how to rewrite this test case or revert some changes
-  it.skip('should throw an error if initial state sent to interpreter is invalid', () => {
+  it('should throw an error if initial state sent to interpreter is invalid', () => {
     const invalidMachine = {
       id: 'fetchMachine',
       initial: 'create',
@@ -723,10 +722,11 @@ describe('interpreter', () => {
       }
     };
 
-    expect(() => {
-      createActor(createMachine(invalidMachine)).start();
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Initial state node "create" not found on parent state node #fetchMachine"`
+    const snapshot = createActor(createMachine(invalidMachine)).getSnapshot();
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: Initial state node "create" not found on parent state node #fetchMachine]`
     );
   });
 
@@ -749,7 +749,7 @@ describe('interpreter', () => {
     expect(console.warn).toMatchMockCallsInlineSnapshot(`
       [
         [
-          "Event "TIMER" was sent to stopped actor "x:26 (x:26)". This actor has already reached its final state, and will not transition.
+          "Event "TIMER" was sent to stopped actor "x:27 (x:27)". This actor has already reached its final state, and will not transition.
       Event: {"type":"TIMER"}",
         ],
       ]
@@ -1164,7 +1164,7 @@ describe('interpreter', () => {
         expect(console.warn).toMatchMockCallsInlineSnapshot(`
           [
             [
-              "Event "TRIGGER" was sent to stopped actor "x:42 (x:42)". This actor has already reached its final state, and will not transition.
+              "Event "TRIGGER" was sent to stopped actor "x:43 (x:43)". This actor has already reached its final state, and will not transition.
           Event: {"type":"TRIGGER"}",
             ],
           ]

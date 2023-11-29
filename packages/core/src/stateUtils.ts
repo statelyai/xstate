@@ -1652,7 +1652,7 @@ export function macrostep(
     if (isErr && !transitions.length) {
       // TODO: we should likely only allow transitions selected by very explicit descriptors
       // `*` shouldn't be matched, likely `xstate.error.*` shouldnt be either
-      // what about `xstate.error.actor.*`? what about `xstate.error.actor.todo.*`?
+      // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
       nextState = cloneMachineSnapshot<typeof state>(state, {
         status: 'error',
         error: currentEvent.data

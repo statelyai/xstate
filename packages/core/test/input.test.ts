@@ -41,8 +41,7 @@ describe('input', () => {
     createActor(machine, { input: { greeting: 'hello' } }).start();
   });
 
-  // TODO: rewrite this test to reflect the current behavior better
-  it.skip('should throw if input is expected but not provided', () => {
+  it('should error if input is expected but not provided', () => {
     const machine = createMachine({
       types: {} as {
         input: { greeting: string };
@@ -53,22 +52,9 @@ describe('input', () => {
       }
     });
 
-    expect(() => {
-      createActor(machine).start();
-    }).toThrowError(/Cannot read properties of undefined/);
-  });
+    const snapshot = createActor(machine).getSnapshot();
 
-  // TODO: rewrite this test to reflect the current behavior better
-  it('should not throw if input is not expected and not provided', () => {
-    const machine = createMachine({
-      context: () => {
-        return { count: 42 };
-      }
-    });
-
-    expect(() => {
-      createActor(machine).start();
-    }).not.toThrowError();
+    expect(snapshot.status).toBe('error');
   });
 
   it('should be a type error if input is not expected yet provided', () => {
