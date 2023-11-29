@@ -1,5 +1,12 @@
-import { createMachine, fromCallback, fromPromise, createActor } from '../src';
 import { sleep } from '@xstate-repo/jest-utils';
+import {
+  assign,
+  createActor,
+  createMachine,
+  fromCallback,
+  fromPromise,
+  fromTransition
+} from '../src';
 
 const cleanups: (() => void)[] = [];
 function installGlobalOnErrorHandler(handler: (ev: ErrorEvent) => void) {
@@ -346,7 +353,7 @@ describe('error handling', () => {
     const actorRef = createActor(machine);
     const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
     childActorRef.subscribe({
-      error: () => {}
+      error: function preventUnhandledErrorListener() {}
     });
     childActorRef.subscribe(() => {});
     actorRef.start();
@@ -379,10 +386,10 @@ describe('error handling', () => {
     const actorRef = createActor(machine);
     const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
     childActorRef.subscribe({
-      error: () => {}
+      error: function preventUnhandledErrorListener() {}
     });
     childActorRef.subscribe({
-      error: () => {}
+      error: function preventUnhandledErrorListener() {}
     });
     actorRef.start();
 
@@ -412,7 +419,7 @@ describe('error handling', () => {
     const actorRef = createActor(machine);
     const childActorRef = Object.values(actorRef.getSnapshot().children)[0];
     childActorRef.subscribe({
-      error: () => {}
+      error: function preventUnhandledErrorListener() {}
     });
     childActorRef.subscribe({});
     actorRef.start();
@@ -644,7 +651,7 @@ describe('error handling', () => {
 
     const actorRef = createActor(machine);
     actorRef.subscribe({
-      error: () => {}
+      error: function preventUnhandledErrorListener() {}
     });
     actorRef.subscribe(() => {});
     actorRef.start();
@@ -697,5 +704,192 @@ describe('error handling', () => {
         done();
       }
     });
+  });
+
+  it('error thrown in initial custom entry action should error the actor', () => {
+    const machine = createMachine({
+      entry: () => {
+        throw new Error('error_thrown_in_initial_entry_action');
+      }
+    });
+
+    const errorSpy = jest.fn();
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: error_thrown_in_initial_entry_action]`
+    );
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: error_thrown_in_initial_entry_action],
+        ],
+      ]
+    `);
+  });
+
+  it('error thrown when resolving initial builtin entry action should error the actor immediately', () => {
+    const machine = createMachine({
+      entry: assign(() => {
+        throw new Error('error_thrown_when_resolving_initial_entry_action');
+      })
+    });
+
+    const errorSpy = jest.fn();
+
+    const actorRef = createActor(machine);
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: error_thrown_when_resolving_initial_entry_action]`
+    );
+
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: error_thrown_when_resolving_initial_entry_action],
+        ],
+      ]
+    `);
+  });
+
+  it('error thrown by a custom entry action when transitioning should error the actor', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: () => {
+            throw new Error(
+              'error_thrown_in_a_custom_entry_action_when_transitioning'
+            );
+          }
+        }
+      }
+    });
+
+    const errorSpy = jest.fn();
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+    actorRef.send({ type: 'NEXT' });
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: error_thrown_in_a_custom_entry_action_when_transitioning]`
+    );
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: error_thrown_in_a_custom_entry_action_when_transitioning],
+        ],
+      ]
+    `);
+  });
+
+  it(`shouldn't execute deferred initial actions that come after an action that errors`, () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      entry: [
+        () => {
+          throw new Error('error_thrown_in_initial_entry_action');
+        },
+        spy
+      ]
+    });
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
+    actorRef.start();
+
+    expect(spy).toHaveBeenCalledTimes(0);
+  });
+
+  it('should error the parent on errored initial state of a child', async () => {
+    const immediateFailure = fromTransition((_) => undefined, undefined);
+    immediateFailure.getInitialState = () => ({
+      status: 'error',
+      output: undefined,
+      error: 'immediate error!',
+      context: undefined
+    });
+
+    const machine = createMachine(
+      {
+        invoke: {
+          src: 'failure'
+        }
+      },
+      {
+        actors: {
+          failure: immediateFailure
+        }
+      }
+    );
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
+    actorRef.start();
+
+    const snapshot = actorRef.getSnapshot();
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toBe('immediate error!');
+  });
+
+  it('should error when a guard throws when transitioning', () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              guard: () => {
+                throw new Error('error_thrown_in_guard_when_transitioning');
+              },
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: spy
+    });
+    actorRef.start();
+    actorRef.send({ type: 'NEXT' });
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(`
+      [Error: Unable to evaluate guard in transition for event 'NEXT' in state node '(machine).a':
+      error_thrown_in_guard_when_transitioning]
+    `);
   });
 });

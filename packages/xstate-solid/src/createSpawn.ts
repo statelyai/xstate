@@ -16,7 +16,7 @@ export function createSpawn<
   const actorRef = createActor(logic);
 
   if (!isServer) {
-    actorRef.start?.();
+    actorRef.start();
     onCleanup(() => actorRef!.stop?.());
   }
 

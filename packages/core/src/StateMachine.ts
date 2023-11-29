@@ -2,7 +2,6 @@ import { assign } from './actions.ts';
 import { createInitEvent } from './eventUtils.ts';
 import { STATE_DELIMITER } from './constants.ts';
 import {
-  cloneMachineSnapshot,
   createMachineSnapshot,
   getPersistedState,
   MachineSnapshot
@@ -53,11 +52,7 @@ import type {
   HistoryValue,
   StateSchema
 } from './types.ts';
-import {
-  getAllOwnEventDescriptors,
-  isErrorActorEvent,
-  resolveReferencedActor
-} from './utils.ts';
+import { resolveReferencedActor } from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
 import isDevelopment from '#is-development';
 
@@ -292,22 +287,7 @@ export class StateMachine<
     TOutput,
     TResolvedTypesMeta
   > {
-    // TODO: handle error events in a better way
-    if (
-      isErrorActorEvent(event) &&
-      !getAllOwnEventDescriptors(snapshot).some(
-        (nextEvent) => nextEvent === event.type
-      )
-    ) {
-      return cloneMachineSnapshot(snapshot, {
-        status: 'error',
-        error: event.data
-      });
-    }
-
-    const { state: nextState } = macrostep(snapshot, event, actorScope);
-
-    return nextState as typeof snapshot;
+    return macrostep(snapshot, event, actorScope).state as typeof snapshot;
   }
 
   /**
