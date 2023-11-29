@@ -10,7 +10,7 @@ import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
  */
 export function createAfterEvent(delayRef: number | string, id?: string) {
   const idSuffix = id ? `#${id}` : '';
-  return { type: `xstate.after(${delayRef})${idSuffix}` } as const;
+  return { type: `xstate.after.${delayRef}.${idSuffix}` } as const;
 }
 
 /**
