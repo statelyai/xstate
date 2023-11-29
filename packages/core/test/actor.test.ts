@@ -30,10 +30,7 @@ import {
   stopChild
 } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
-
-function sleep(ms: number) {
-  return new Promise((res) => setTimeout(res, ms));
-}
+import { sleep } from '@xstate-repo/jest-utils';
 
 describe('spawning machines', () => {
   const context = {

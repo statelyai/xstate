@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { XSTATE_STOP } from '../constants.ts';
 
-type CallbackSnapshot<TInput, TEvent> = Snapshot<undefined> & {
+export type CallbackSnapshot<TInput, TEvent> = Snapshot<undefined> & {
   input: TInput;
   _receivers: Set<(e: TEvent) => void>;
   _dispose: (() => void) | void;

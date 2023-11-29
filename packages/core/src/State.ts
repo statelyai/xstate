@@ -18,7 +18,7 @@ import type {
   ParameterizedObject,
   IsNever
 } from './types.ts';
-import { flatten, matchesState } from './utils.ts';
+import { matchesState } from './utils.ts';
 
 type ToTestStateValue<TStateValue extends StateValue> =
   TStateValue extends string
@@ -385,7 +385,7 @@ export function createMachineSnapshot<
     context: config.context,
     _nodes: config._nodes,
     value: getStateValue(machine.root, config._nodes) as never,
-    tags: new Set(flatten(config._nodes.map((sn) => sn.tags))),
+    tags: new Set(config._nodes.flatMap((sn) => sn.tags)),
     children: config.children as any,
     historyValue: config.historyValue || {},
     matches: machineSnapshotMatches as never,

@@ -54,7 +54,6 @@ import type {
   StateSchema
 } from './types.ts';
 import {
-  flatten,
   getAllOwnEventDescriptors,
   isErrorActorEvent,
   resolveReferencedActor
