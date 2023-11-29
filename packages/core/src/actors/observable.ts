@@ -6,20 +6,27 @@ import {
   Subscription,
   AnyActorSystem,
   ActorRefFrom,
-  Snapshot
+  Snapshot,
+  NonReducibleUnknown
 } from '../types';
 
 const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';
 const XSTATE_OBSERVABLE_ERROR = 'xstate.observable.error';
 const XSTATE_OBSERVABLE_COMPLETE = 'xstate.observable.complete';
 
-export type ObservableSnapshot<TContext, TInput> = Snapshot<undefined> & {
+export type ObservableSnapshot<
+  TContext,
+  TInput extends NonReducibleUnknown
+> = Snapshot<undefined> & {
   context: TContext | undefined;
   input: TInput | undefined;
   _subscription: Subscription | undefined;
 };
 
-export type ObservableActorLogic<TContext, TInput> = ActorLogic<
+export type ObservableActorLogic<
+  TContext,
+  TInput extends NonReducibleUnknown
+> = ActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
@@ -70,7 +77,7 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
  * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
  */
-export function fromObservable<TContext, TInput>(
+export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
   observableCreator: ({
     input,
     system
@@ -214,7 +221,10 @@ export function fromObservable<TContext, TInput>(
  * canvasActor.start();
  * ```
  */
-export function fromEventObservable<T extends EventObject, TInput>(
+export function fromEventObservable<
+  T extends EventObject,
+  TInput extends NonReducibleUnknown
+>(
   lazyObservable: ({
     input,
     system
