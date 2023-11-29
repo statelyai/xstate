@@ -5,7 +5,8 @@ import {
   createMachine,
   createActor,
   AnyActorLogic,
-  Snapshot
+  Snapshot,
+  ActorLogic
 } from '../src/index.ts';
 import {
   fromCallback,
@@ -970,5 +971,42 @@ describe('composable actor logic', () => {
         done();
       }
     });
+  });
+
+  it('higher-level logic should work', () => {
+    const logged: any[] = [];
+    function withLogging<T extends ActorLogic<any, any>>(actorLogic: T) {
+      const enhancedLogic: T = {
+        ...actorLogic,
+        transition: (state, event, actorCtx) => {
+          logged.push(event.type);
+          return actorLogic.transition(state, event, actorCtx);
+        }
+      };
+
+      return enhancedLogic;
+    }
+
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: { next: 'working' }
+        },
+        working: {
+          on: { more: 'done' }
+        },
+        done: {}
+      }
+    });
+
+    const actor = createActor(withLogging(machine)).start();
+
+    actor.send({ type: 'next' });
+    actor.send({ type: 'more' });
+
+    expect(logged).toEqual(['next', 'more']);
+
+    expect(actor.getSnapshot().value).toBe('done');
   });
 });
