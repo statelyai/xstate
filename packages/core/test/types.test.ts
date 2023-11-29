@@ -1,7 +1,7 @@
 import { from } from 'rxjs';
 import { log } from '../src/actions/log';
 import { raise } from '../src/actions/raise';
-import { stop } from '../src/actions/stop';
+import { stopChild } from '../src/actions/stopChild';
 import { PromiseActorLogic, fromCallback, fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
@@ -17,7 +17,7 @@ import {
   pure,
   sendTo,
   stateIn,
-  spawn,
+  spawnChild,
   setup,
   and
 } from '../src/index';
@@ -146,7 +146,7 @@ describe('stop', () => {
       },
       on: {
         FOO: {
-          actions: stop(({ event }) => {
+          actions: stopChild(({ event }) => {
             ((_arg: 'FOO') => {})(event.type);
             // @ts-expect-error
             ((_arg: 'BAR') => {})(event.type);
@@ -749,7 +749,7 @@ describe('interpreter', () => {
   });
 });
 
-describe('spawn action', () => {
+describe('spawnChild action', () => {
   it('should reject actor outside of the defined ones at usage site', () => {
     const child = fromPromise(() => Promise.resolve('foo'));
 
@@ -762,7 +762,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn('other')
+        spawnChild('other')
     });
   });
 
@@ -776,7 +776,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child')
+      entry: spawnChild('child')
     });
   });
 
@@ -791,7 +791,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', { id: 'ok1' })
+      entry: spawnChild('child', { id: 'ok1' })
     });
   });
 
@@ -806,7 +806,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         id: 'child'
       })
@@ -826,7 +826,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn('child')
+        spawnChild('child')
     });
   });
 
@@ -840,7 +840,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child')
+      entry: spawnChild('child')
     });
   });
 
@@ -854,7 +854,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', { id: 'someId' })
+      entry: spawnChild('child', { id: 'someId' })
     });
   });
 
@@ -880,7 +880,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn(child2)
+        spawnChild(child2)
     });
   });
 
@@ -896,7 +896,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         input: 'hello'
       })
@@ -915,7 +915,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         input: 42
       })
     });
@@ -933,7 +933,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         input: 42
       })
     });
@@ -951,7 +951,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         input: Math.random() > 0.5 ? 'string' : 42
       })
@@ -970,7 +970,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         input: () => 'hello'
       })
@@ -989,7 +989,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         input: () => 42
       })
     });
@@ -1007,7 +1007,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         // @ts-expect-error
         input: () => (Math.random() > 0.5 ? 42 : 'hello')
       })
@@ -1026,7 +1026,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child', {
+      entry: spawnChild('child', {
         input: () => 'hello'
       })
     });
@@ -1053,7 +1053,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn('child1', {
+        spawnChild('child1', {
           input: 'hello'
         })
     });
@@ -1071,7 +1071,7 @@ describe('spawn action', () => {
       },
       entry:
         // @ts-expect-error
-        spawn('child')
+        spawnChild('child')
     });
   });
 
@@ -1087,7 +1087,7 @@ describe('spawn action', () => {
           logic: typeof child;
         };
       },
-      entry: spawn('child')
+      entry: spawnChild('child')
     });
   });
 });
@@ -2525,7 +2525,7 @@ describe('actions', () => {
         count: 0,
         childRef: spawn(childMachine)
       }),
-      entry: stop(({ context }) => {
+      entry: stopChild(({ context }) => {
         ((_accept: number) => {})(context.count);
         // @ts-expect-error
         ((_accept: "ain't any") => {})(context.count);
@@ -2555,7 +2555,7 @@ describe('actions', () => {
       }),
       on: {
         FOO: {
-          actions: stop(({ context }) => {
+          actions: stopChild(({ context }) => {
             ((_accept: number) => {})(context.count);
             // @ts-expect-error
             ((_accept: "ain't any") => {})(context.count);
@@ -2576,7 +2576,7 @@ describe('actions', () => {
       context: {
         count: 0
       },
-      entry: stop(
+      entry: stopChild(
         // @ts-expect-error
         ({ context }) => {
           return context.count;
@@ -2602,13 +2602,13 @@ describe('actions', () => {
         promiseRef: spawn(fromPromise(() => Promise.resolve('foo')))
       }),
       entry: [
-        stop(({ context }) => {
+        stopChild(({ context }) => {
           ((_accept: number) => {})(context.count);
           // @ts-expect-error
           ((_accept: "ain't any") => {})(context.count);
           return context.childRef;
         }),
-        stop(({ context }) => {
+        stopChild(({ context }) => {
           ((_accept: number) => {})(context.count);
           // @ts-expect-error
           ((_accept: "ain't any") => {})(context.count);

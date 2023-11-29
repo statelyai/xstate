@@ -27,13 +27,10 @@ import {
   createActor,
   createMachine,
   waitFor,
-  stop
+  stopChild
 } from '../src/index.ts';
 import { setup } from '../src/setup.ts';
-
-function sleep(ms: number) {
-  return new Promise((res) => setTimeout(res, ms));
-}
+import { sleep } from '@xstate-repo/jest-utils';
 
 describe('spawning machines', () => {
   const context = {
@@ -1433,7 +1430,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(({ context }) => {
+                stopChild(({ context }) => {
                   return context.actorRef;
                 }),
                 assign({
@@ -1500,7 +1497,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(({ context }) => context.actorRef),
+                stopChild(({ context }) => context.actorRef),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1565,7 +1562,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop('my_name'),
+                stopChild('my_name'),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1630,7 +1627,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(() => 'my_name'),
+                stopChild(() => 'my_name'),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;

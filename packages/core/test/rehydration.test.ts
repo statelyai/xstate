@@ -497,7 +497,7 @@ describe('rehydration', () => {
 
     const persistedState = actorRef.getPersistedState();
     const actorRef2 = createActor(machine, { state: persistedState });
-    
+
     expect(
       actorRef2
         .getSnapshot()

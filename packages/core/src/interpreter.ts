@@ -713,21 +713,45 @@ export class Actor<TLogic extends AnyActorLogic>
 }
 
 /**
- * Creates a new `ActorRef` instance for the given machine with the provided options, if any.
+ * Creates a new actor instance for the given actor logic with the provided options, if any.
  *
- * @param machine The machine to create an actor from
- * @param options `ActorRef` options
+ * @remarks
+ * When you create an actor from actor logic via `createActor(logic)`, you implicitly create an actor system where the created actor is the root actor.
+ * Any actors spawned from this root actor and its descendants are part of that actor system.
+ *
+ * @example
+ * ```ts
+ * import { createActor } from 'xstate';
+ * import { someActorLogic } from './someActorLogic.ts';
+ *
+ * // Creating the actor, which implicitly creates an actor system with itself as the root actor
+ * const actor = createActor(someActorLogic);
+ *
+ * actor.subscribe((snapshot) => {
+ *   console.log(snapshot);
+ * });
+ *
+ * // Actors must be started by calling `actor.start()`, which will also start the actor system.
+ * actor.start();
+ *
+ * // Actors can receive events
+ * actor.send({ type: 'someEvent' });
+ *
+ * // You can stop root actors by calling `actor.stop()`, which will also stop the actor system and all actors in that system.
+ * actor.stop();
+ * ```
+ *
+ * @param logic - The actor logic to create an actor from. For a state machine actor logic creator, see {@link createMachine}. Other actor logic creators include {@link fromCallback}, {@link fromEventObservable}, {@link fromObservable}, {@link fromPromise}, and {@link fromTransition}.
+ * @param options - Actor options
  */
-export function createActor<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
-  options?: ActorOptions<TMachine>
-): Actor<TMachine>;
 export function createActor<TLogic extends AnyActorLogic>(
-  logic: TLogic,
+  logic: TLogic extends AnyStateMachine
+    ? AreAllImplementationsAssumedToBeProvided<
+        TLogic['__TResolvedTypesMeta']
+      > extends true
+      ? TLogic
+      : MissingImplementationsError<TLogic['__TResolvedTypesMeta']>
+    : TLogic,
   options?: ActorOptions<TLogic>
 ): Actor<TLogic>;
 export function createActor(logic: any, options?: ActorOptions<any>): any {

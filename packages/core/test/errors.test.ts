@@ -1,9 +1,10 @@
+import { sleep } from '@xstate-repo/jest-utils';
 import {
+  assign,
+  createActor,
   createMachine,
   fromCallback,
   fromPromise,
-  createActor,
-  assign,
   fromTransition
 } from '../src';
 
@@ -172,14 +173,18 @@ describe('error handling', () => {
     });
   });
 
-  it('unhandled rejections when starting a child actor should be reported globally', (done) => {
+  it('unhandled rejection of a promise actor should be reported globally in absence of error listener', (done) => {
     const machine = createMachine({
       initial: 'pending',
       states: {
         pending: {
           invoke: {
             src: fromPromise(() =>
-              Promise.reject(new Error('unhandled_rejection_in_actor_start'))
+              Promise.reject(
+                new Error(
+                  'unhandled_rejection_in_promise_actor_without_error_listener'
+                )
+              )
             ),
             onDone: 'success'
           }
@@ -194,9 +199,108 @@ describe('error handling', () => {
 
     installGlobalOnErrorHandler((ev) => {
       ev.preventDefault();
-      expect(ev.error.message).toEqual('unhandled_rejection_in_actor_start');
+      expect(ev.error.message).toEqual(
+        'unhandled_rejection_in_promise_actor_without_error_listener'
+      );
       done();
     });
+  });
+
+  it('unhandled rejection of a promise actor should be reported to the existing error listener of its parent', async () => {
+    const errorSpy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            src: fromPromise(() =>
+              Promise.reject(
+                new Error(
+                  'unhandled_rejection_in_promise_actor_with_parent_listener'
+                )
+              )
+            ),
+            onDone: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    await sleep(0);
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: unhandled_rejection_in_promise_actor_with_parent_listener],
+        ],
+      ]
+    `);
+  });
+
+  it('unhandled rejection of a promise actor should be reported to the existing error listener of its grandparent', async () => {
+    const errorSpy = jest.fn();
+
+    const child = createMachine({
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            src: fromPromise(() =>
+              Promise.reject(
+                new Error(
+                  'unhandled_rejection_in_promise_actor_with_grandparent_listener'
+                )
+              )
+            ),
+            onDone: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const machine = createMachine({
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            src: child,
+            onDone: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    await sleep(0);
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: unhandled_rejection_in_promise_actor_with_grandparent_listener],
+        ],
+      ]
+    `);
   });
 
   it('handled sync errors thrown when starting a child actor should not be reported globally', (done) => {
