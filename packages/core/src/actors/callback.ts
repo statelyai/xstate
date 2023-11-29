@@ -5,26 +5,29 @@ import {
   AnyEventObject,
   ActorSystem,
   ActorRefFrom,
-  TODO,
-  Snapshot
+  Snapshot,
+  AnyActorRef
 } from '../types';
 import { XSTATE_STOP } from '../constants.ts';
 
-type CallbackSnapshot<TInput, TEvent> = Snapshot<undefined> & {
+interface CallbackInstanceState<TEvent extends EventObject> {
+  receivers: Set<(e: TEvent) => void> | undefined;
+  dispose: (() => void) | void;
+}
+
+const instanceStates = /* #__PURE__ */ new WeakMap<
+  AnyActorRef,
+  CallbackInstanceState<any>
+>();
+
+type CallbackSnapshot<TInput> = Snapshot<undefined> & {
   input: TInput;
-  // _receivers: Set<(e: TEvent) => void> | undefined;
-  // _dispose: (() => void) | void;
 };
 
 export type CallbackActorLogic<
   TEvent extends EventObject,
   TInput = unknown
-> = ActorLogic<
-  CallbackSnapshot<TInput, TEvent>,
-  TEvent,
-  TInput,
-  ActorSystem<any>
->;
+> = ActorLogic<CallbackSnapshot<TInput>, TEvent, TInput, ActorSystem<any>>;
 
 export type CallbackActorRef<
   TEvent extends EventObject,
@@ -136,7 +139,15 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
     config: invokeCallback,
     start: (state, actorScope) => {
       const { self, system } = actorScope;
-      actorScope._dispose = invokeCallback({
+
+      const callbackState: CallbackInstanceState<TEvent> = {
+        receivers: undefined,
+        dispose: undefined
+      };
+
+      instanceStates.set(self, callbackState);
+
+      callbackState.dispose = invokeCallback({
         input: state.input,
         system,
         self,
@@ -149,13 +160,16 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
           }
         },
         receive: (listener) => {
-          (actorScope._receivers ?? (actorScope._receivers = new Set())).add(
-            listener
-          );
+          callbackState.receivers ??= new Set();
+          callbackState.receivers.add(listener);
         }
       });
     },
     transition: (state, event, actorScope) => {
+      const callbackState: CallbackInstanceState<TEvent> = instanceStates.get(
+        actorScope.self
+      )!;
+
       if (event.type === XSTATE_STOP) {
         state = {
           ...state,
@@ -163,13 +177,11 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
           error: undefined
         };
 
-        if (typeof actorScope._dispose === 'function') {
-          actorScope._dispose();
-        }
+        callbackState.dispose?.();
         return state;
       }
 
-      actorScope._receivers?.forEach((receiver) => receiver(event));
+      callbackState.receivers?.forEach((receiver) => receiver(event));
 
       return state;
     },
@@ -179,8 +191,6 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
         output: undefined,
         error: undefined,
         input
-        // _receivers: new Set(),
-        // _dispose: undefined
       };
     },
     getPersistedState: (state) => state,
