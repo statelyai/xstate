@@ -25,11 +25,13 @@ type ToTestStateValue<TStateValue extends StateValue> =
     ? TStateValue
     : IsNever<keyof TStateValue> extends true
       ? never
-      : {
-          [K in keyof TStateValue]?:
-            | ToTestStateValue<NonNullable<TStateValue[K]>>
-            | keyof TStateValue[K];
-        };
+      :
+          | keyof TStateValue
+          | {
+              [K in keyof TStateValue]?: ToTestStateValue<
+                NonNullable<TStateValue[K]>
+              >;
+            };
 
 export function isMachineSnapshot<
   TContext extends MachineContext,

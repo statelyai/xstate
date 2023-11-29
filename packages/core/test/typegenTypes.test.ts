@@ -1089,7 +1089,7 @@ describe('typegen types', () => {
 
     const state = createActor(machine).getSnapshot();
 
-    if (state.matches('a') && state.matches('a.b')) {
+    if (state.matches('a') && state.matches({ a: 'b' })) {
       ((_accept: string) => {})(state.context.foo);
     }
   });

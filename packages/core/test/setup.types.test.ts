@@ -1111,4 +1111,245 @@ describe('setup()', () => {
       }
     });
   });
+
+  it('should not allow matching against any value when the machine has no states', () => {
+    const machine = setup({}).createMachine({});
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches(
+      // @ts-expect-error
+      {}
+    );
+    snapshot.matches(
+      // @ts-expect-error
+      'pending'
+    );
+    snapshot.matches(
+      // @ts-expect-error
+      {
+        foo: 'pending'
+      }
+    );
+  });
+
+  it('should allow matching against a valid string value of a simple FSM', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches('green');
+    snapshot.matches('yellow');
+    snapshot.matches('red');
+  });
+
+  it('should not allow matching against a invalid string value of a simple FSM', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches(
+      // @ts-expect-error
+      'orange'
+    );
+  });
+
+  it('should not allow matching against an empty object value of a simple FSM', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches(
+      // @ts-expect-error
+      {}
+    );
+  });
+
+  it('should not allow matching against an object value with a key that is a valid value of a simple FSM', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {},
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches(
+      // @ts-expect-error
+      {
+        green: {}
+      }
+    );
+  });
+
+  it('should allow matching against valid top state keys of a statechart with nested compound states', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {}
+          }
+        },
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches('green');
+    snapshot.matches('yellow');
+    snapshot.matches('red');
+  });
+
+  it('should not allow matching against an invalid top state key of a statechart with nested compound states', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {}
+          }
+        },
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches(
+      // @ts-expect-error
+      'orange'
+    );
+  });
+
+  it('should allow matching against a valid full object value of a statechart with nested compound states', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {}
+          }
+        },
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches({
+      green: 'wait'
+    });
+  });
+
+  it('should allow matching against a valid non-full object value of a statechart with nested compound states', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          initial: 'walk',
+          states: {
+            walk: {
+              initial: 'steady',
+              states: {
+                steady: {},
+                slowingDown: {}
+              }
+            },
+            wait: {}
+          }
+        },
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches({
+      green: 'wait'
+    });
+  });
+
+  it('should not allow matching against a invalid object value of a statechart with nested compound states', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {}
+          }
+        },
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches({
+      // @ts-expect-error
+      green: 'invalid'
+    });
+  });
+
+  it('should not allow matching against a invalid object value with self-key at value position', () => {
+    const machine = setup({}).createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {}
+          }
+        },
+        yellow: {},
+        red: {}
+      }
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    snapshot.matches({
+      // @ts-expect-error
+      green: 'green'
+    });
+  });
 });
