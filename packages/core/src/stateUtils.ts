@@ -751,7 +751,7 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+  state: MachineSnapshot<TContext, TEvent, any, any, any, any, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node

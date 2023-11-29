@@ -304,9 +304,9 @@ describe('typegen types', () => {
       matchesStates: 'a' | 'b' | 'c';
       missingImplementations: {
         actions: never;
+        actors: never;
         delays: never;
         guards: never;
-        actors: never;
       };
     }
 
@@ -333,9 +333,9 @@ describe('typegen types', () => {
       matchesStates: 'a' | { a: 'b' } | { a: 'c' };
       missingImplementations: {
         actions: never;
+        actors: never;
         delays: never;
         guards: never;
-        actors: never;
       };
     }
 
@@ -1066,7 +1066,7 @@ describe('typegen types', () => {
 
   it("shouldn't end up with `never` within a branch after two `state.matches` calls", () => {
     interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'a.b';
+      matchesStates: 'a' | 'a.b' | { a?: 'b' };
       missingImplementations: {
         actions: never;
         delays: never;
@@ -1089,7 +1089,7 @@ describe('typegen types', () => {
 
     const state = createActor(machine).getSnapshot();
 
-    if (state.matches('a') && state.matches('a.b')) {
+    if (state.matches('a') && state.matches({ a: 'b' })) {
       ((_accept: string) => {})(state.context.foo);
     }
   });
