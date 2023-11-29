@@ -302,6 +302,12 @@ describe('typegen types', () => {
   it('should not allow invalid string `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        delays: never;
+        guards: never;
+      };
     }
 
     const machine = createMachine({
@@ -316,13 +322,21 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches('d');
+    createActor(machine).getSnapshot().matches(
+      // @ts-expect-error
+      'd'
+    );
   });
 
   it('should not allow invalid object `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | { a: 'b' } | { a: 'c' };
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        delays: never;
+        guards: never;
+      };
     }
 
     const machine = createMachine({
@@ -334,8 +348,10 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches({ a: 'd' });
+    createActor(machine).getSnapshot().matches({
+      // @ts-expect-error
+      a: 'd'
+    });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
