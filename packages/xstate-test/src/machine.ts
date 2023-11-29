@@ -75,6 +75,7 @@ function serializeMachineTransition(
     MachineContext,
     EventObject,
     Record<string, AnyActorRef | undefined>,
+    StateValue,
     string,
     unknown
   >,
@@ -84,6 +85,7 @@ function serializeMachineTransition(
         MachineContext,
         EventObject,
         Record<string, AnyActorRef | undefined>,
+        StateValue,
         string,
         unknown
       >

@@ -253,6 +253,12 @@ describe('typegen types', () => {
   it('should allow valid string `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -273,6 +279,12 @@ describe('typegen types', () => {
   it('should allow valid object `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | { a: 'b' } | { a: 'c' };
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -1008,6 +1020,12 @@ describe('typegen types', () => {
   it("shouldn't end up with `any` context after calling `state.matches`", () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -1032,7 +1050,13 @@ describe('typegen types', () => {
 
   it("shouldn't end up with `never` within a branch after two `state.matches` calls", () => {
     interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'a.b';
+      matchesStates: 'a' | 'a.b' | { a?: 'b' };
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
