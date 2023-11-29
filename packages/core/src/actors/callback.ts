@@ -20,7 +20,7 @@ const instanceStates = /* #__PURE__ */ new WeakMap<
   CallbackInstanceState<any>
 >();
 
-type CallbackSnapshot<TInput> = Snapshot<undefined> & {
+export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
   input: TInput;
 };
 

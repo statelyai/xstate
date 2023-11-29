@@ -53,7 +53,6 @@ import type {
   HistoryValue
 } from './types.ts';
 import {
-  flatten,
   getAllOwnEventDescriptors,
   isErrorActorEvent,
   resolveReferencedActor

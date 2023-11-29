@@ -17,7 +17,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)
 ): ActorRefFrom<TLogic> {
-  const actorRef = createActor(actorLogic, options);
+  const actorRef = createActor(actorLogic as any, options);
 
   let sub: Subscription;
   onMounted(() => {

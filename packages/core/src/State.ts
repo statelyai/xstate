@@ -19,7 +19,7 @@ import type {
   Snapshot,
   ParameterizedObject
 } from './types.ts';
-import { flatten, matchesState } from './utils.ts';
+import { matchesState } from './utils.ts';
 
 export function isMachineSnapshot<
   TContext extends MachineContext,
@@ -355,7 +355,7 @@ export function createMachineSnapshot<
     context: config.context,
     _nodes: config._nodes,
     value: getStateValue(machine.root, config._nodes),
-    tags: new Set(flatten(config._nodes.map((sn) => sn.tags))),
+    tags: new Set(config._nodes.flatMap((sn) => sn.tags)),
     children: config.children as any,
     historyValue: config.historyValue || {},
     // this one is generic in the target and it's hard to create a matching non-generic source signature
