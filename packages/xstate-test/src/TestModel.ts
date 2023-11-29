@@ -12,7 +12,7 @@ import type {
   Step,
   TraversalOptions
 } from '@xstate/graph';
-import { EventObject } from 'xstate';
+import { EventObject, State } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
 import { createShortestPathsGen, createSimplePathsGen } from './pathGenerators';
@@ -34,7 +34,7 @@ import { formatPathTestResult, getDescription, simpleStringify } from './utils';
  * The test model is used to generate test paths, which are used to
  * verify that states in the model are reachable in the SUT.
  */
-export class TestModel<TState, TEvent extends EventObject> {
+export class TestModel<TState extends State<any>, TEvent extends EventObject> {
   public options: TestModelOptions<TState, TEvent>;
   public defaultTraversalOptions?: TraversalOptions<TState, TEvent>;
   public getDefaultOptions(): TestModelOptions<TState, TEvent> {
@@ -311,6 +311,10 @@ export class TestModel<TState, TEvent extends EventObject> {
     options?: Partial<TestModelOptions<TState, TEvent>>
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
+
+    for (const tag of state.tags) {
+      await params.tags?.[tag](state);
+    }
 
     const stateTestKeys = this.getStateTestKeys(params, state, resolvedOptions);
 
