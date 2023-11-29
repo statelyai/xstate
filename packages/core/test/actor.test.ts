@@ -392,6 +392,44 @@ describe('spawning callbacks', () => {
     callbackService.start();
     callbackService.send({ type: 'START_CB' });
   });
+
+  it('should not deliver events sent to the parent after the callback actor gets stopped', () => {
+    const spy = jest.fn();
+
+    let sendToParent: () => void;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: fromCallback(({ sendBack }) => {
+              sendToParent = () =>
+                sendBack({
+                  type: 'FROM_CALLBACK'
+                });
+            })
+          },
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      },
+      on: {
+        FROM_CALLBACK: {
+          actions: spy
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    sendToParent!();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
 });
 
 describe('spawning observables', () => {
