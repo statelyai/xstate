@@ -82,7 +82,7 @@ const toggleMachine = createMachine({
     inactive: { on: { TOGGLE: 'active' } },
     active: {
       entry: assign({ count: ({ context }) => context.count + 1 }),
-      on: { TOGGLE: 'inactive' } 
+      on: { TOGGLE: 'inactive' }
     }
   }
 });

@@ -1,8 +1,16 @@
-import { render, fireEvent } from '@testing-library/vue';
+import { fireEvent, render } from '@testing-library/vue';
 import UseSelector from './UseSelector.vue';
+import useSelectorActorChange from './UseSelectorActorChange.vue';
 import useSelectorCustomFn from './UseSelectorCustomFn.vue';
+import UseSelectorWithTransitionLogic from './UseSelectorWithTransitionLogic.vue';
 
 describe('useSelector', () => {
+  it('actor should provide snapshot value immediately', () => {
+    const { getByTestId } = render(UseSelectorWithTransitionLogic);
+
+    expect(getByTestId('selected').textContent).toEqual('42');
+  });
+
   it('only rerenders for selected values', async () => {
     const { getByTestId, emitted } = render(UseSelector);
 
@@ -45,5 +53,14 @@ describe('useSelector', () => {
     await fireEvent.click(sendUpperButton);
 
     expect(nameEl.textContent).toEqual('DAVID');
+  });
+
+  it('should render snapshot state when actor changes', async () => {
+    const { getByTestId, container } = render(useSelectorActorChange);
+    expect(container.textContent).toEqual('foo');
+
+    await fireEvent.click(getByTestId('changeActor'));
+
+    expect(container.textContent).toEqual('bar');
   });
 });

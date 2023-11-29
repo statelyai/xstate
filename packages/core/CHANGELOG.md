@@ -1,5 +1,23 @@
 # xstate
 
+## 5.0.0-beta.49
+
+### Minor Changes
+
+- [#4509](https://github.com/statelyai/xstate/pull/4509) [`560415283`](https://github.com/statelyai/xstate/commit/5604152835f099bbdfbe8d1734e7afbe93c50d72) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Refactor callback logic to not send self-event
+
+- [#4498](https://github.com/statelyai/xstate/pull/4498) [`02e14f6`](https://github.com/statelyai/xstate/commit/02e14f66cfff88003a99902a91335aba8fc10801) Thanks [@Andarist](https://github.com/Andarist), [@davidkpiano](https://github.com/davidkpiano)! - State values and `snapshot.matches()` argument are now strongly-typed when using the `setup` API.
+
+### Patch Changes
+
+- [#4516](https://github.com/statelyai/xstate/pull/4516) [`daf532b2f`](https://github.com/statelyai/xstate/commit/daf532b2f2ec634ec9d7c0afe25bdf1b7adb54fd) Thanks [@Andarist](https://github.com/Andarist)! - Export all TS snapshot types to fix type portability errors that could be reported when generating declaration files for files depending on `xstate`.
+
+## 5.0.0-beta.48
+
+### Patch Changes
+
+- [#4499](https://github.com/statelyai/xstate/pull/4499) [`c9908b7fb`](https://github.com/statelyai/xstate/commit/c9908b7fbc393999122388f5bf437511fe5cfadc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed the `TActor` type passed down by `setup` in absence of provided actors.
+
 ## 5.0.0-beta.47
 
 ### Minor Changes
@@ -27,6 +45,37 @@
   ```
 
 - [#4488](https://github.com/statelyai/xstate/pull/4488) [`9ca3c3dcf`](https://github.com/statelyai/xstate/commit/9ca3c3dcf25aba67aab5b6390766c273e9eba766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `stop(...)` action creator is renamed to `stopChild(...)`, to make it clear that only child actors may be stopped from the parent actor.
+
+## 5.0.0-beta.46
+
+### Major Changes
+
+- [#4478](https://github.com/statelyai/xstate/pull/4478) [`384f0ffc7`](https://github.com/statelyai/xstate/commit/384f0ffc712a36846d97b58195eeaa71edbc67f5) Thanks [@Andarist](https://github.com/Andarist)! - Removed `MachineSnapshot['nextEvents']`.
+
+### Minor Changes
+
+- [#4480](https://github.com/statelyai/xstate/pull/4480) [`3e610a1f3`](https://github.com/statelyai/xstate/commit/3e610a1f3b2a56e58fd1f68fe41f5f7beed31fd8) Thanks [@Andarist](https://github.com/Andarist)! - Children IDs in combination with `setup` can now be typed using `types.children`:
+
+  ```ts
+  const machine = setup({
+    types: {} as {
+      children: {
+        myId: 'actorKey';
+      };
+    },
+    actors: {
+      actorKey: child
+    }
+  }).createMachine({});
+
+  const actorRef = createActor(machine).start();
+
+  actorRef.getSnapshot().children.myId; // ActorRefFrom<typeof child> | undefined
+  ```
+
+### Patch Changes
+
+- [#4491](https://github.com/statelyai/xstate/pull/4491) [`c0025c3ce`](https://github.com/statelyai/xstate/commit/c0025c3ceb9a18c7588dc303f71b3de9378258a5) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with actors deep in the tree failing to rehydrate.
 
 ## 5.0.0-beta.45
 

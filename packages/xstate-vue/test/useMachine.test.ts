@@ -3,7 +3,7 @@ import { PromiseActorLogic, assign, createActor, createMachine } from 'xstate';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
 import UseMachine from './UseMachine.vue';
 
-describe('useMachine composition function', () => {
+describe('useMachine', () => {
   const context = {
     data: undefined
   };

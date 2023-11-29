@@ -722,10 +722,11 @@ describe('interpreter', () => {
       }
     };
 
-    expect(() => {
-      createActor(createMachine(invalidMachine)).start();
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Initial state node "create" not found on parent state node #fetchMachine"`
+    const snapshot = createActor(createMachine(invalidMachine)).getSnapshot();
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: Initial state node "create" not found on parent state node #fetchMachine]`
     );
   });
 

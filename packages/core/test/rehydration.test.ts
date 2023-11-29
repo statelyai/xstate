@@ -7,6 +7,7 @@ import {
   assign,
   sendTo
 } from '../src/index.ts';
+import { sleep } from '@xstate-repo/jest-utils';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -322,6 +323,73 @@ describe('rehydration', () => {
 
     actorRef2.start();
     expect(spy).toHaveBeenCalled();
+  });
+
+  it('should error on a rehydrated error state', async () => {
+    const machine = createMachine(
+      {
+        invoke: {
+          src: 'failure'
+        }
+      },
+      {
+        actors: {
+          failure: fromPromise(() => Promise.reject(new Error('failure')))
+        }
+      }
+    );
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
+    actorRef.start();
+
+    // wait a macrotask for the microtask related to the promise to be processed
+    await sleep(0);
+
+    const persistedState = actorRef.getPersistedState();
+
+    const spy = jest.fn();
+    const actorRef2 = createActor(machine, { state: persistedState });
+    actorRef2.subscribe({
+      error: spy
+    });
+    actorRef2.start();
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        invoke: {
+          src: 'failure',
+          onError: {
+            actions: spy
+          }
+        }
+      },
+      {
+        actors: {
+          failure: fromPromise(() => Promise.reject(new Error('failure')))
+        }
+      }
+    );
+
+    const actorRef = createActor(machine);
+    actorRef.start();
+
+    // wait a macrotask for the microtask related to the promise to be processed
+    await sleep(0);
+
+    const persistedState = actorRef.getPersistedState();
+    spy.mockClear();
+
+    const actorRef2 = createActor(machine, { state: persistedState });
+    actorRef2.start();
+
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('should continue syncing snapshots', () => {

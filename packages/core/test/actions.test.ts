@@ -3185,7 +3185,7 @@ describe('sendTo', () => {
     service.send({ type: 'EVENT', value: 'foo' });
   });
 
-  it('should throw if given a string', () => {
+  it('should error if given a string', () => {
     const machine = createMachine({
       invoke: {
         id: 'child',
@@ -3194,11 +3194,21 @@ describe('sendTo', () => {
       entry: sendTo('child', 'a string')
     });
 
-    expect(() => {
-      createActor(machine).start();
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Only event objects may be used with sendTo; use sendTo({ type: "a string" }) instead"`
-    );
+    const errorSpy = jest.fn();
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Only event objects may be used with sendTo; use sendTo({ type: "a string" }) instead],
+        ],
+      ]
+    `);
   });
 });
 
@@ -3410,7 +3420,7 @@ describe('raise', () => {
     }, 10);
   });
 
-  it('should throw if given a string', () => {
+  it('should error if given a string', () => {
     const machine = createMachine({
       entry: raise(
         // @ts-ignore
@@ -3418,11 +3428,21 @@ describe('raise', () => {
       )
     });
 
-    expect(() => {
-      createActor(machine).start();
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Only event objects may be used with raise; use raise({ type: "a string" }) instead"`
-    );
+    const errorSpy = jest.fn();
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Only event objects may be used with raise; use raise({ type: "a string" }) instead],
+        ],
+      ]
+    `);
   });
 });
 

@@ -8,6 +8,7 @@ import {
   AnyActorRef,
   AnyEventObject,
   Cast,
+  ConditionalRequired,
   DelayConfig,
   Invert,
   IsNever,
@@ -16,6 +17,7 @@ import {
   NonReducibleUnknown,
   ParameterizedObject,
   SetupTypes,
+  StateSchema,
   ToChildren,
   Values
 } from './types';
@@ -43,11 +45,15 @@ type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
+  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>,
+  TResolvedActors extends Record<
+    string,
+    AnyActorLogic
+  > = DefaultToAnyActors<TActors>
 > = Values<{
-  [K in keyof DefaultToAnyActors<TActors> & string]: {
+  [K in keyof TResolvedActors & string]: {
     src: K;
-    logic: TActors[K];
+    logic: TResolvedActors[K];
     id: IsNever<TChildrenMap> extends true
       ? string | undefined
       : K extends keyof Invert<TChildrenMap>
@@ -55,6 +61,43 @@ type ToProvidedActor<
         : string | undefined;
   };
 }>;
+
+type _GroupStateKeys<
+  T extends StateSchema,
+  S extends keyof T['states']
+> = S extends any
+  ? T['states'][S] extends { type: 'history' }
+    ? [never, never]
+    : T extends { type: 'parallel' }
+      ? [S, never]
+      : 'states' extends keyof T['states'][S]
+        ? [S, never]
+        : [never, S]
+  : never;
+
+type GroupStateKeys<T extends StateSchema, S extends keyof T['states']> = {
+  nonLeaf: _GroupStateKeys<T, S & string>[0];
+  leaf: _GroupStateKeys<T, S & string>[1];
+};
+
+type ToStateValue<T extends StateSchema> = T extends {
+  states: Record<infer S, any>;
+}
+  ? IsNever<S> extends true
+    ? {}
+    :
+        | GroupStateKeys<T, S>['leaf']
+        | (IsNever<GroupStateKeys<T, S>['nonLeaf']> extends false
+            ? ConditionalRequired<
+                {
+                  [K in GroupStateKeys<T, S>['nonLeaf']]?: ToStateValue<
+                    T['states'][K]
+                  >;
+                },
+                T extends { type: 'parallel' } ? true : false
+              >
+            : never)
+  : {};
 
 export function setup<
   TContext extends MachineContext,
@@ -138,6 +181,7 @@ export function setup<
     ToParameterizedObject<TActions>,
     ToParameterizedObject<TGuards>,
     TDelay,
+    ToStateValue<TConfig>,
     TTag,
     TInput,
     TOutput,

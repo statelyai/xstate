@@ -95,62 +95,61 @@ describe('machine', () => {
   });
 
   describe('machine.provide', () => {
-    it('should override guards and actions', () => {
+    it('should override an action', () => {
+      const originalEntry = jest.fn();
+      const overridenEntry = jest.fn();
+
       const machine = createMachine(
         {
-          initial: 'foo',
-          context: {
-            foo: 'bar'
-          },
-          states: {
-            foo: {
-              entry: 'entryAction',
-              on: {
-                EVENT: {
-                  target: 'bar',
-                  guard: 'someCondition'
-                }
-              }
-            },
-            bar: {}
-          }
+          entry: 'entryAction'
         },
         {
           actions: {
-            entryAction: () => {
-              throw new Error('original entry');
-            }
-          },
-          guards: {
-            someCondition: () => false
+            entryAction: originalEntry
           }
         }
       );
-      let shouldThrow = true;
       const differentMachine = machine.provide({
         actions: {
-          entryAction: () => {
-            if (shouldThrow) {
-              throw new Error('new entry');
+          entryAction: overridenEntry
+        }
+      });
+
+      createActor(differentMachine).start();
+
+      expect(originalEntry).toHaveBeenCalledTimes(0);
+      expect(overridenEntry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should override a guard', () => {
+      const originalGuard = jest.fn().mockImplementation(() => true);
+      const overridenGuard = jest.fn().mockImplementation(() => true);
+
+      const machine = createMachine(
+        {
+          on: {
+            EVENT: {
+              guard: 'someCondition',
+              actions: () => {}
             }
           }
         },
-        guards: { someCondition: () => true }
+        {
+          guards: {
+            someCondition: originalGuard
+          }
+        }
+      );
+
+      const differentMachine = machine.provide({
+        guards: { someCondition: overridenGuard }
       });
 
-      expect(createActor(differentMachine).getSnapshot().context).toEqual({
-        foo: 'bar'
-      });
-
-      expect(() => {
-        createActor(differentMachine).start();
-      }).toThrowErrorMatchingInlineSnapshot(`"new entry"`);
-
-      shouldThrow = false;
       const actorRef = createActor(differentMachine).start();
       actorRef.send({ type: 'EVENT' });
 
-      expect(actorRef.getSnapshot().value).toEqual('bar');
+      expect(originalGuard).toHaveBeenCalledTimes(0);
+      expect(overridenGuard).toHaveBeenCalledTimes(1);
     });
 
     it('should not override context if not defined', () => {
