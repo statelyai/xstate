@@ -21,7 +21,7 @@ import {
   TestMachineOptions,
   TestModelOptions
 } from './types.ts';
-import { flatten, simpleStringify } from './utils.ts';
+import { simpleStringify } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
 
 export async function testStateFromMeta(state: AnyMachineSnapshot) {
@@ -75,6 +75,7 @@ function serializeMachineTransition(
     MachineContext,
     EventObject,
     Record<string, AnyActorRef | undefined>,
+    StateValue,
     string,
     unknown
   >,
@@ -84,6 +85,7 @@ function serializeMachineTransition(
         MachineContext,
         EventObject,
         Record<string, AnyActorRef | undefined>,
+        StateValue,
         string,
         unknown
       >
@@ -167,14 +169,14 @@ export function createTestModel<TMachine extends AnyStateMachine>(
       const events =
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
-      return flatten(
-        __unsafe_getAllOwnEventDescriptors(state).map((eventType: string) => {
+      return __unsafe_getAllOwnEventDescriptors(state).flatMap(
+        (eventType: string) => {
           if (events.some((e) => (e as EventObject).type === eventType)) {
             return events.filter((e) => (e as EventObject).type === eventType);
           }
 
           return [{ type: eventType } as any]; // TODO: fix types
-        })
+        }
       );
     },
     ...otherOptions

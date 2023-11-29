@@ -174,28 +174,22 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
     return [[stateValue]];
   }
 
-  const result = flatten(
-    Object.keys(stateValue).map((key) => {
-      const subStateValue = stateValue[key];
+  const result = Object.keys(stateValue).flatMap((key) => {
+    const subStateValue = stateValue[key];
 
-      if (
-        typeof subStateValue !== 'string' &&
-        (!subStateValue || !Object.keys(subStateValue).length)
-      ) {
-        return [[key]];
-      }
+    if (
+      typeof subStateValue !== 'string' &&
+      (!subStateValue || !Object.keys(subStateValue).length)
+    ) {
+      return [[key]];
+    }
 
-      return toStatePaths(stateValue[key]).map((subPath) => {
-        return [key].concat(subPath);
-      });
-    })
-  );
+    return toStatePaths(stateValue[key]).map((subPath) => {
+      return [key].concat(subPath);
+    });
+  });
 
   return result;
-}
-
-export function flatten<T>(array: Array<T | T[]>): T[] {
-  return ([] as T[]).concat(...array);
 }
 
 export function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
@@ -405,5 +399,5 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
 }
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
-  return [...new Set(flatten([...snapshot._nodes.map((sn) => sn.ownEvents)]))];
+  return [...new Set([...snapshot._nodes.flatMap((sn) => sn.ownEvents)])];
 }

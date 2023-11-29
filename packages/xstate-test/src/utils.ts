@@ -104,7 +104,3 @@ export function getDescription<T, TContext extends MachineContext>(
     ` ${contextString}`.trim()
   );
 }
-
-export function flatten<T>(array: Array<T | T[]>): T[] {
-  return ([] as T[]).concat(...array);
-}

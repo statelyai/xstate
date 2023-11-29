@@ -1,5 +1,17 @@
 # xstate
 
+## 5.0.0-beta.49
+
+### Minor Changes
+
+- [#4509](https://github.com/statelyai/xstate/pull/4509) [`560415283`](https://github.com/statelyai/xstate/commit/5604152835f099bbdfbe8d1734e7afbe93c50d72) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Refactor callback logic to not send self-event
+
+- [#4498](https://github.com/statelyai/xstate/pull/4498) [`02e14f6`](https://github.com/statelyai/xstate/commit/02e14f66cfff88003a99902a91335aba8fc10801) Thanks [@Andarist](https://github.com/Andarist), [@davidkpiano](https://github.com/davidkpiano)! - State values and `snapshot.matches()` argument are now strongly-typed when using the `setup` API.
+
+### Patch Changes
+
+- [#4516](https://github.com/statelyai/xstate/pull/4516) [`daf532b2f`](https://github.com/statelyai/xstate/commit/daf532b2f2ec634ec9d7c0afe25bdf1b7adb54fd) Thanks [@Andarist](https://github.com/Andarist)! - Export all TS snapshot types to fix type portability errors that could be reported when generating declaration files for files depending on `xstate`.
+
 ## 5.0.0-beta.48
 
 ### Patch Changes

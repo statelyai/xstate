@@ -50,10 +50,10 @@ import type {
   SnapshotFrom,
   Snapshot,
   AnyActorLogic,
-  HistoryValue
+  HistoryValue,
+  StateSchema
 } from './types.ts';
 import {
-  flatten,
   getAllOwnEventDescriptors,
   isErrorActorEvent,
   resolveReferencedActor
@@ -72,6 +72,7 @@ export class StateMachine<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
+  TStateValue extends StateValue,
   TTag extends string,
   TInput,
   TOutput,
@@ -90,6 +91,7 @@ export class StateMachine<
         TContext,
         TEvent,
         TChildren,
+        TStateValue,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -105,19 +107,6 @@ export class StateMachine<
   public version?: string;
 
   public implementations: MachineImplementationsSimplified<TContext, TEvent>;
-
-  public types: MachineTypes<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TResolvedTypesMeta
-  >;
 
   public __xstatenode: true = true;
 
@@ -156,7 +145,6 @@ export class StateMachine<
       guards: implementations?.guards ?? {}
     };
     this.version = this.config.version;
-    this.types = this.config.types ?? ({} as any as this['types']);
 
     this.transition = this.transition.bind(this);
     this.getInitialState = this.getInitialState.bind(this);
@@ -209,6 +197,7 @@ export class StateMachine<
     TAction,
     TGuard,
     TDelay,
+    TStateValue,
     TTag,
     TInput,
     TOutput,
@@ -241,6 +230,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
+    TStateValue,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -267,6 +257,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
+      TStateValue,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -274,27 +265,29 @@ export class StateMachine<
   }
 
   /**
-   * Determines the next state given the current `state` and received `event`.
+   * Determines the next snapshot given the current `snapshot` and received `event`.
    * Calculates a full macrostep from all microsteps.
    *
-   * @param state The current State instance or state value
+   * @param snapshot The current snapshot
    * @param event The received event
    */
   public transition(
-    state: MachineSnapshot<
+    snapshot: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
+      TStateValue,
       TTag,
       TOutput,
       TResolvedTypesMeta
     >,
     event: TEvent,
-    actorScope: ActorScope<typeof state, TEvent>
+    actorScope: ActorScope<typeof snapshot, TEvent>
   ): MachineSnapshot<
     TContext,
     TEvent,
     TChildren,
+    TStateValue,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -302,19 +295,19 @@ export class StateMachine<
     // TODO: handle error events in a better way
     if (
       isErrorActorEvent(event) &&
-      !getAllOwnEventDescriptors(state).some(
+      !getAllOwnEventDescriptors(snapshot).some(
         (nextEvent) => nextEvent === event.type
       )
     ) {
-      return cloneMachineSnapshot(state, {
+      return cloneMachineSnapshot(snapshot, {
         status: 'error',
         error: event.data
       });
     }
 
-    const { state: nextState } = macrostep(state, event, actorScope);
+    const { state: nextState } = macrostep(snapshot, event, actorScope);
 
-    return nextState as typeof state;
+    return nextState as typeof snapshot;
   }
 
   /**
@@ -329,6 +322,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
+      TStateValue,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -340,6 +334,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
+      TStateValue,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -349,17 +344,18 @@ export class StateMachine<
   }
 
   public getTransitionData(
-    state: MachineSnapshot<
+    snapshot: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
+      TStateValue,
       TTag,
       TOutput,
       TResolvedTypesMeta
     >,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    return transitionNode(this.root, state.value, state, event) || [];
+    return transitionNode(this.root, snapshot.value, snapshot, event) || [];
   }
 
   /**
@@ -374,6 +370,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
+    TStateValue,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -415,6 +412,7 @@ export class StateMachine<
         TContext,
         TEvent,
         TChildren,
+        TStateValue,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -426,6 +424,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
+    TStateValue,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -470,6 +469,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
+      TStateValue,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -513,6 +513,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
+      TStateValue,
       TTag,
       TOutput,
       TResolvedTypesMeta
@@ -529,6 +530,7 @@ export class StateMachine<
         TContext,
         TEvent,
         TChildren,
+        TStateValue,
         TTag,
         TOutput,
         TResolvedTypesMeta
@@ -539,6 +541,7 @@ export class StateMachine<
     TContext,
     TEvent,
     TChildren,
+    TStateValue,
     TTag,
     TOutput,
     TResolvedTypesMeta
@@ -592,6 +595,7 @@ export class StateMachine<
       TContext,
       TEvent,
       TChildren,
+      TStateValue,
       TTag,
       TOutput,
       TResolvedTypesMeta
