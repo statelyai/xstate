@@ -186,10 +186,10 @@ actor.send({ type: 'TIMER' });
 </td>
 <td>
 
-<a href="https://stately.ai/viz/2ac5915f-789a-493f-86d3-a8ec079773f4" title="Finite states">
+<a href="https://stately.ai/registry/editor/fa443471-b416-4014-8e6f-12417863e4d4?mode=design&machineId=27e86036-f2f7-40f1-9d1e-66ce6e1accc0" title="Finite states">
   <img src="https://github.com/statelyai/xstate/assets/1093738/36d4b6b5-e3d0-4c19-9f41-2e3425ceac88" alt="Finite states" width="400" />
   <br />
-  <small>Open in Stately Viz</small>
+  Open in Stately Studio
 </a>
 <br />
 
@@ -269,10 +269,10 @@ actor.send({ type: 'PED_TIMER' });
 
 </td>
 <td>
-<a href="https://stately.ai/viz/d3aeda4f-7f8e-44df-bdf9-dd3cdafb3312" title="Hierarchical states">
+<a href="https://stately.ai/registry/editor/fa443471-b416-4014-8e6f-12417863e4d4?mode=design&machineId=30dffcdd-16c2-49e2-bfc6-a674057cb271" title="Hierarchical states">
   <img src="https://github.com/statelyai/xstate/assets/1093738/32b0692b-1c29-4469-b5e3-03146e3ef249" alt="Hierarchical states" width="400" />
   <br />
-  <small>Open in Stately Viz</small>
+  Open in Stately Studio
 </a>
 <br />
 </td>
@@ -387,10 +387,10 @@ actor.send({ type: 'TOGGLE_ITALICS' });
 
 </td>
 <td>
-<a href="https://stately.ai/viz/9eb9c189-254d-4c87-827a-fab0c2f71508" title="Parallel states">
+<a href="https://stately.ai/registry/editor/fa443471-b416-4014-8e6f-12417863e4d4?mode=design&machineId=980f50d8-e1ff-4441-8c8b-afe41c1610f2" title="Parallel states">
   <img src="https://github.com/statelyai/xstate/assets/1093738/3b1989c0-f4a9-4653-baf2-4df3a40e91a6" alt="Parallel states" width="400" />
   <br />
-  <small>Open in Stately Viz</small>
+  Open in Stately Studio
 </a>
 </td>
 </tr>
@@ -464,10 +464,10 @@ actor.send({ type: 'PREVIOUS' });
 
 </td>
 <td>
-<a href="https://stately.ai/viz/33fd92e1-f9e6-49e6-bdeb-cef9e60195ec" title="History states">
+<a href="https://stately.ai/registry/editor/fa443471-b416-4014-8e6f-12417863e4d4?mode=design&machineId=d1a9bb95-db97-4af3-b38b-71b005c643d3" title="History states">
   <img src="https://github.com/statelyai/xstate/assets/1093738/1be5c495-d560-4660-94f2-5341efbf7128" alt="History state" width="400" />
   <br />
-  <small>Open in Stately Viz</small>
+  Open in Stately Studio
 </a>
 </td>
 </tr>
