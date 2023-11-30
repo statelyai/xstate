@@ -2,13 +2,13 @@ lockfileVersion: '6.0'
 
 dependencies:
   xstate:
-    specifier: 5.0.0-beta.49
-    version: registry.npmjs.org/xstate@5.0.0-beta.49
+    specifier: 5.0.0-beta.53
+    version: registry.npmjs.org/xstate@5.0.0-beta.53
 
 devDependencies:
   typescript:
-    specifier: ^4.9.5
-    version: 4.9.5
+    specifier: ^5.3.2
+    version: registry.npmjs.org/typescript@5.3.2
   vite:
     specifier: ^4.5.0
     version: 4.5.0
@@ -75,12 +75,6 @@ packages:
   /source-map-js@1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
     engines: {node: '>=0.10.0'}
-    dev: true
-
-  /typescript@4.9.5:
-    resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==}
-    engines: {node: '>=4.2.0'}
-    hasBin: true
     dev: true
 
   /vite@4.5.0:
@@ -370,8 +364,16 @@ packages:
     dev: true
     optional: true
 
-  registry.npmjs.org/xstate@5.0.0-beta.49:
-    resolution: {integrity: sha512-lSK2/sqQ/jT44F07rLbBa01c7fVA1hE2BZeRL3xcsoZmje5/U1eHH6TA9p28ycukefENmtarwuj2U+k3TdPoSg==, registry: https://registry.npmjs.com/, tarball: https://registry.npmjs.org/xstate/-/xstate-5.0.0-beta.49.tgz}
+  registry.npmjs.org/typescript@5.3.2:
+    resolution: {integrity: sha512-6l+RyNy7oAHDfxC4FzSJcz9vnjTKxrLpDG5M2Vu4SHRVNg6xzqZp6LYSR9zjqQTu8DU/f5xwxUdADOkbrIX2gQ==, registry: https://registry.npmjs.com/, tarball: https://registry.npmjs.org/typescript/-/typescript-5.3.2.tgz}
+    name: typescript
+    version: 5.3.2
+    engines: {node: '>=14.17'}
+    hasBin: true
+    dev: true
+
+  registry.npmjs.org/xstate@5.0.0-beta.53:
+    resolution: {integrity: sha512-ioa28EXhKUPzaEyvPM9Sg1V0mQpp2EC45TgbpCbQeH54Qg4tIamHFf3ed/V3UQ8IAzZN0Ba4gvlEsUdG2HOn4Q==, registry: https://registry.npmjs.com/, tarball: https://registry.npmjs.org/xstate/-/xstate-5.0.0-beta.53.tgz}
     name: xstate
-    version: 5.0.0-beta.49
+    version: 5.0.0-beta.53
     dev: false
