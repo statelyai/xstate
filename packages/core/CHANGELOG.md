@@ -1,5 +1,25 @@
 # xstate
 
+## 5.0.0-beta.53
+
+### Minor Changes
+
+- [#4533](https://github.com/statelyai/xstate/pull/4533) [`2495aa21d`](https://github.com/statelyai/xstate/commit/2495aa21d87f63d8aa543135a53420ee6cc97d51) Thanks [@Andarist](https://github.com/Andarist)! - The `state` option of `createActor(...)` has been renamed to `snapshot`:
+
+  ```diff
+  createActor(machine, {
+  - state: someState
+  + snapshot: someState
+  })
+  ```
+
+  Likewise, the `.getPersistedState()` method has been renamed to `.getPersistedSnapshot()`:
+
+  ```diff
+  -actor.getPersistedState()
+  +actor.getPersistedSnapshot()
+  ```
+
 ## 5.0.0-beta.52
 
 ### Major Changes
