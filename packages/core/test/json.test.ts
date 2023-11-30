@@ -157,7 +157,7 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "eventType": "xstate.done.actor.0.#active",
+          "eventType": "xstate.done.actor.0.active",
           "guard": undefined,
           "reenter": false,
           "source": "#active",
@@ -168,7 +168,7 @@ describe('json', () => {
         },
         {
           "actions": [],
-          "eventType": "xstate.error.actor.0.#active",
+          "eventType": "xstate.error.actor.0.active",
           "guard": undefined,
           "reenter": false,
           "source": "#active",
