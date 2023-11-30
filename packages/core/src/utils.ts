@@ -385,7 +385,7 @@ export function createInvokeId(stateNodeId: string, index: number): string {
 }
 
 export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
-  if (src.startsWith('xstate.source')) {
+  if (src.startsWith('xstate.')) {
     const [, indexStr, nodeId] = src.match(/^xstate\.source\.(\d+)\.#(.*)/)!;
     const node = machine.getStateNodeById(nodeId);
     const invokeConfig = node.config.invoke!;
