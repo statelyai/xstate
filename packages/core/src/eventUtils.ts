@@ -9,7 +9,7 @@ import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
  * @param id The state node ID where this event is handled
  */
 export function createAfterEvent(delayRef: number | string, id: string) {
-  return { type: `xstate.after.${delayRef}.#${id}` } as const;
+  return { type: `xstate.after.${delayRef}.${id}` } as const;
 }
 
 /**

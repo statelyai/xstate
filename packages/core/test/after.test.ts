@@ -50,7 +50,7 @@ describe('delayed transitions', () => {
 
     expect([...transitions.keys()]).toMatchInlineSnapshot(`
       [
-        "xstate.after.1000.#light.green",
+        "xstate.after.1000.light.green",
       ]
     `);
   });
