@@ -10,7 +10,7 @@ export {
   type EnqueueActionsAction
 } from './actions/enqueueActions.ts';
 export { log, type LogAction } from './actions/log.ts';
-export { pure, type PureAction } from './actions/pure.ts';
+export { pure } from './actions/pure.ts';
 export { raise, type RaiseAction } from './actions/raise.ts';
 export {
   escalate,
