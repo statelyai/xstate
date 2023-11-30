@@ -301,11 +301,11 @@ export class StateNode<
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invokeConfig, i) => {
         const { src, systemId } = invokeConfig;
-        const resolvedId = invokeConfig.id || createInvokeId(this.id, i);
+        const resolvedId = invokeConfig.id ?? createInvokeId(this.id, i);
         const resolvedSrc =
           typeof src === 'string'
             ? src
-            : `xstate#${createInvokeId(this.id, i)}`;
+            : `xstate.invoke.${createInvokeId(this.id, i)}`;
         return {
           ...invokeConfig,
           src: resolvedSrc,
