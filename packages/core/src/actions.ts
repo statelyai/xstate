@@ -11,7 +11,6 @@ export {
 export { log, type LogAction } from './actions/log.ts';
 export { raise, type RaiseAction } from './actions/raise.ts';
 export {
-  escalate,
   forwardTo,
   sendParent,
   sendTo,
