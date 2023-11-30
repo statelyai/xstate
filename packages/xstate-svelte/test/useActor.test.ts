@@ -21,7 +21,7 @@ const actorRef = createActor(
 ).start();
 actorRef.send({ type: 'FETCH' });
 
-const persistedFetchState = actorRef.getPersistedState();
+const persistedFetchState = actorRef.getPersistedSnapshot();
 
 const persistedFetchStateConfig = JSON.parse(
   JSON.stringify(persistedFetchState)

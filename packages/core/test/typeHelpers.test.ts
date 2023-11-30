@@ -364,7 +364,7 @@ describe('ActorRefFrom', () => {
         output: undefined,
         error: undefined
       }),
-      getPersistedState: (s) => s
+      getPersistedSnapshot: (s) => s
     };
 
     function acceptActorRef(actorRef: ActorRefFrom<typeof logic>) {

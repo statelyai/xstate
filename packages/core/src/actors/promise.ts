@@ -177,8 +177,8 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         input
       };
     },
-    getPersistedState: (snapshot) => snapshot,
-    restoreState: (snapshot: any) => snapshot
+    getPersistedSnapshot: (snapshot) => snapshot,
+    restoreSnapshot: (snapshot: any) => snapshot
   };
 
   return logic;

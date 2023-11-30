@@ -128,7 +128,7 @@ export function fromTransition<
             : initialContext
       };
     },
-    getPersistedState: (snapshot) => snapshot,
-    restoreState: (snapshot: any) => snapshot
+    getPersistedSnapshot: (snapshot) => snapshot,
+    restoreSnapshot: (snapshot: any) => snapshot
   };
 }

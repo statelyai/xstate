@@ -3,7 +3,7 @@ import { createInitEvent } from './eventUtils.ts';
 import { STATE_DELIMITER } from './constants.ts';
 import {
   createMachineSnapshot,
-  getPersistedState,
+  getPersistedSnapshot,
   MachineSnapshot
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
@@ -143,7 +143,7 @@ export class StateMachine<
 
     this.transition = this.transition.bind(this);
     this.getInitialState = this.getInitialState.bind(this);
-    this.restoreState = this.restoreState.bind(this);
+    this.restoreSnapshot = this.restoreSnapshot.bind(this);
     this.start = this.start.bind(this);
 
     this.root = new StateNode(config, {
@@ -489,7 +489,7 @@ export class StateMachine<
     return this.definition;
   }
 
-  public getPersistedState(
+  public getPersistedSnapshot(
     snapshot: MachineSnapshot<
       TContext,
       TEvent,
@@ -501,10 +501,10 @@ export class StateMachine<
     >,
     options?: unknown
   ) {
-    return getPersistedState(snapshot, options);
+    return getPersistedSnapshot(snapshot, options);
   }
 
-  public restoreState(
+  public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     _actorScope: ActorScope<
       MachineSnapshot<
@@ -532,7 +532,7 @@ export class StateMachine<
       string,
       {
         src: string | AnyActorLogic;
-        state: Snapshot<unknown>;
+        snapshot: Snapshot<unknown>;
         syncSnapshot?: boolean;
         systemId?: string;
       }
@@ -541,7 +541,7 @@ export class StateMachine<
     Object.keys(snapshotChildren).forEach((actorId) => {
       const actorData =
         snapshotChildren[actorId as keyof typeof snapshotChildren];
-      const childState = actorData.state;
+      const childState = actorData.snapshot;
       const src = actorData.src;
 
       const logic =
@@ -555,7 +555,7 @@ export class StateMachine<
         id: actorId,
         parent: _actorScope?.self,
         syncSnapshot: actorData.syncSnapshot,
-        state: childState,
+        snapshot: childState,
         src,
         systemId: actorData.systemId
       });

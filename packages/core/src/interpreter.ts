@@ -82,7 +82,7 @@ export class Actor<TLogic extends AnyActorLogic>
   /**
    * The current internal state of the actor.
    */
-  private _state!: SnapshotFrom<TLogic>;
+  private _snapshot!: SnapshotFrom<TLogic>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -198,25 +198,25 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system._set(systemId, this);
     }
 
-    this._initState(options?.state);
+    this._initState(options?.snapshot);
 
-    if (systemId && (this._state as any).status !== 'active') {
+    if (systemId && (this._snapshot as any).status !== 'active') {
       this.system._unregister(this);
     }
   }
 
   private _initState(persistedState?: Snapshot<unknown>) {
     try {
-      this._state = persistedState
-        ? this.logic.restoreState
-          ? this.logic.restoreState(persistedState, this._actorScope)
+      this._snapshot = persistedState
+        ? this.logic.restoreSnapshot
+          ? this.logic.restoreSnapshot(persistedState, this._actorScope)
           : persistedState
         : this.logic.getInitialState(this._actorScope, this.options?.input);
     } catch (err) {
-      // if we get here then it means that we assign a value to this._state that is not of the correct type
+      // if we get here then it means that we assign a value to this._snapshot that is not of the correct type
       // we can't get the true `TSnapshot & { status: 'error'; }`, it's impossible
       // so right now this is a lie of sorts
-      this._state = {
+      this._snapshot = {
         status: 'error',
         output: undefined,
         error: err
@@ -229,7 +229,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   private update(snapshot: SnapshotFrom<TLogic>, event: EventObject): void {
     // Update state
-    this._state = snapshot;
+    this._snapshot = snapshot;
 
     // Execute deferred effects
     let deferredFn: (typeof this._deferred)[number] | undefined;
@@ -244,7 +244,7 @@ export class Actor<TLogic extends AnyActorLogic>
         // no "builtin deferred" should actually throw an error since they are either safe
         // or the control flow is passed through the mailbox and errors should be caught by the `_process` used by the mailbox
         this._deferred.length = 0;
-        this._state = {
+        this._snapshot = {
           ...(snapshot as any),
           status: 'error',
           error: err
@@ -252,7 +252,7 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     }
 
-    switch ((this._state as any).status) {
+    switch ((this._snapshot as any).status) {
       case 'active':
         for (const observer of this.observers) {
           try {
@@ -281,7 +281,7 @@ export class Actor<TLogic extends AnyActorLogic>
         this._complete();
         this._doneEvent = createDoneActorEvent(
           this.id,
-          (this._state as any).output
+          (this._snapshot as any).output
         );
         if (this._parent) {
           this.system._relay(this, this._parent, this._doneEvent);
@@ -289,7 +289,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
         break;
       case 'error':
-        this._error((this._state as any).error);
+        this._error((this._snapshot as any).error);
         break;
     }
     this.system._sendInspectionEvent({
@@ -423,29 +423,29 @@ export class Actor<TLogic extends AnyActorLogic>
       event: initEvent
     });
 
-    const status = (this._state as any).status;
+    const status = (this._snapshot as any).status;
 
     switch (status) {
       case 'done':
         // a state machine can be "done" upon initialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
         this.update(
-          this._state,
+          this._snapshot,
           initEvent as unknown as EventFromLogic<TLogic>
         );
         // TODO: rethink cleanup of observers, mailbox, etc
         return this;
       case 'error':
-        this._error((this._state as any).error);
+        this._error((this._snapshot as any).error);
         return this;
     }
 
     if (this.logic.start) {
       try {
-        this.logic.start(this._state, this._actorScope);
+        this.logic.start(this._snapshot, this._actorScope);
       } catch (err) {
-        this._state = {
-          ...(this._state as any),
+        this._snapshot = {
+          ...(this._snapshot as any),
           status: 'error',
           error: err
         };
@@ -457,7 +457,7 @@ export class Actor<TLogic extends AnyActorLogic>
     // TODO: this notifies all subscribers but usually this is redundant
     // there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(this._state, initEvent as unknown as EventFromLogic<TLogic>);
+    this.update(this._snapshot, initEvent as unknown as EventFromLogic<TLogic>);
 
     if (this.options.devTools) {
       this.attachDevTools();
@@ -472,7 +472,11 @@ export class Actor<TLogic extends AnyActorLogic>
     let nextState;
     let caughtError;
     try {
-      nextState = this.logic.transition(this._state, event, this._actorScope);
+      nextState = this.logic.transition(
+        this._snapshot,
+        event,
+        this._actorScope
+      );
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
       caughtError = { err };
@@ -481,8 +485,8 @@ export class Actor<TLogic extends AnyActorLogic>
     if (caughtError) {
       const { err } = caughtError;
 
-      this._state = {
-        ...(this._state as any),
+      this._snapshot = {
+        ...(this._snapshot as any),
         status: 'error',
         error: err
       };
@@ -689,9 +693,9 @@ export class Actor<TLogic extends AnyActorLogic>
    *
    * @see https://stately.ai/docs/persistence
    */
-  public getPersistedState(): Snapshot<unknown>;
-  public getPersistedState(options?: unknown): Snapshot<unknown> {
-    return this.logic.getPersistedState(this._state, options);
+  public getPersistedSnapshot(): Snapshot<unknown>;
+  public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
+    return this.logic.getPersistedSnapshot(this._snapshot, options);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
@@ -710,10 +714,10 @@ export class Actor<TLogic extends AnyActorLogic>
    * Note that some actors, such as callback actors generated with `fromCallback`, will not emit snapshots.
    *
    * @see {@link Actor.subscribe} to subscribe to an actor’s snapshot values.
-   * @see {@link Actor.getPersistedState} to persist the internal state of an actor (which is more than just a snapshot).
+   * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
   public getSnapshot(): SnapshotFrom<TLogic> {
-    return this._state;
+    return this._snapshot;
   }
 }
 

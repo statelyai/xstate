@@ -1758,11 +1758,11 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Actions from machine actors will not be re-executed, because they are assumed to have been already executed.
    * However, invocations will be restarted, and spawned actors will be restored recursively.
    *
-   * Can be generated with {@link Actor.getPersistedState}.
+   * Can be generated with {@link Actor.getPersistedSnapshot}.
    *
    * @see https://stately.ai/docs/persistence
    */
-  state?: Snapshot<unknown>;
+  snapshot?: Snapshot<unknown>;
 
   /**
    * The source definition.
@@ -1920,7 +1920,7 @@ export interface ActorRef<
   send: (event: TEvent) => void;
   start: () => void;
   getSnapshot: () => TSnapshot;
-  getPersistedState: () => Snapshot<unknown>;
+  getPersistedSnapshot: () => Snapshot<unknown>;
   stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
@@ -2153,12 +2153,12 @@ export interface ActorLogic<
   ) => TSnapshot;
   /**
    * Called when Actor is created to restore the internal state of the actor given a persisted state.
-   * The persisted state can be created by `getPersistedState`.
+   * The persisted state can be created by `getPersistedSnapshot`.
    * @param persistedState - The persisted state to restore from.
    * @param actorScope - The actor scope.
    * @returns The restored state.
    */
-  restoreState?: (
+  restoreSnapshot?: (
     persistedState: Snapshot<unknown>,
     actorScope: ActorScope<TSnapshot, TEvent>
   ) => TSnapshot;
@@ -2173,11 +2173,11 @@ export interface ActorLogic<
   ) => void;
   /**
    * Obtains the internal state of the actor in a representation which can be be persisted.
-   * The persisted state can be restored by `restoreState`.
+   * The persisted state can be restored by `restoreSnapshot`.
    * @param snapshot - The current state.
    * @returns The a representation of the internal state to be persisted.
    */
-  getPersistedState: (
+  getPersistedSnapshot: (
     snapshot: TSnapshot,
     options?: unknown
   ) => Snapshot<unknown>;

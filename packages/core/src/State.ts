@@ -406,7 +406,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   ) as TState;
 }
 
-export function getPersistedState<
+export function getPersistedSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -452,7 +452,7 @@ export function getPersistedState<
       throw new Error('An inline child actor cannot be persisted.');
     }
     childrenJson[id as keyof typeof childrenJson] = {
-      state: child.getPersistedState(options),
+      snapshot: child.getPersistedSnapshot(options),
       src: child.src,
       systemId: child._systemId,
       syncSnapshot: child._syncSnapshot
