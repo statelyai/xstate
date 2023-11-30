@@ -1,10 +1,9 @@
 import {
   assign,
-  createMachine,
   createActor,
-  fromPromise
+  createMachine,
+  enqueueActions
 } from '../src/index.ts';
-import { setup } from '../src/setup.ts';
 
 interface CounterContext {
   count: number;
