@@ -1,5 +1,49 @@
 # xstate
 
+## 5.0.0-beta.52
+
+### Major Changes
+
+- [#4531](https://github.com/statelyai/xstate/pull/4531) [`a5b198340`](https://github.com/statelyai/xstate/commit/a5b198340ea6225e21177852816c95fb054c21c7) Thanks [@Andarist](https://github.com/Andarist)! - The order of type parameters in `ActorRef` has been changed from from `ActorRef<TEvent, TSnapshot>` to `ActorRef<TSnapshot, TEvent>` for consistency with other types.
+
+- [#4529](https://github.com/statelyai/xstate/pull/4529) [`43843ea26`](https://github.com/statelyai/xstate/commit/43843ea260e38c487fbbb9b56df291ded0d2c5a0) Thanks [@Andarist](https://github.com/Andarist)! - The `pure()` and `choose()` action creators have been removed, in favor of the more flexible `enqueueActions()` action creator:
+
+  ```ts
+  entry: [
+    // pure(() => {
+    //   return [
+    //     'action1',
+    //     'action2'
+    //   ]
+    // }),
+    enqueueActions(({ enqueue }) => {
+      enqueue('action1');
+      enqueue('action2');
+    })
+  ];
+  ```
+
+  ```ts
+  entry: [
+    // choose([
+    //   {
+    //     guard: 'someGuard',
+    //     actions: ['action1', 'action2']
+    //   }
+    // ]),
+    enqueueActions(({ enqueue, check }) => {
+      if (check('someGuard')) {
+        enqueue('action1');
+        enqueue('action2');
+      }
+    })
+  ];
+  ```
+
+### Minor Changes
+
+- [#4521](https://github.com/statelyai/xstate/pull/4521) [`355e89627`](https://github.com/statelyai/xstate/commit/355e896278ed05ded56afa2b66fbbed75d8d1c71) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The event type of internal `after` events changed from `xstate.after(1000)#some.state.id` to `xstate.after.1000.some.state.id` for consistency.
+
 ## 5.0.0-beta.51
 
 ### Minor Changes

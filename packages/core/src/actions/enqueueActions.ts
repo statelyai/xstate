@@ -173,7 +173,6 @@ export function enqueueActions<
   TEvent extends EventObject = TExpressionEvent,
   TActor extends ProvidedActor = ProvidedActor,
   TAction extends ParameterizedObject = ParameterizedObject,
-  // `TGuard` is only required by `choose`, if we remove `choose` then we can remove this whole type parameter
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string
 >(

@@ -3041,7 +3041,7 @@ describe('invoke', () => {
               onDone: {
                 guard: ({ event }) => {
                   // invoke ID should not be 'someSrc'
-                  const expectedType = 'xstate.done.actor.(machine).a[0]';
+                  const expectedType = 'xstate.done.actor.0.(machine).a';
                   expect(event.type).toEqual(expectedType);
                   return event.type === expectedType;
                 },
@@ -3108,7 +3108,7 @@ describe('invoke', () => {
       );
 
       expect(
-        createActor(machine).getSnapshot().children['machine.a[0]']
+        createActor(machine).getSnapshot().children['0.machine.a']
       ).toBeDefined();
     }
   );
@@ -3222,8 +3222,8 @@ describe('invoke', () => {
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
     setTimeout(() => {
       expect(actual).toEqual([
-        'xstate.done.actor.(machine).first.fetch[0]',
-        'xstate.done.actor.(machine).second.fetch[0]'
+        'xstate.done.actor.0.(machine).first.fetch',
+        'xstate.done.actor.0.(machine).second.fetch'
       ]);
       done();
     }, 100);
@@ -3402,7 +3402,7 @@ describe('invoke', () => {
       types: {} as {
         events: {
           type: 'PING';
-          origin: ActorRef<{ type: 'PONG' }, Snapshot<unknown>>;
+          origin: ActorRef<Snapshot<unknown>, { type: 'PONG' }>;
         };
       },
       on: {
