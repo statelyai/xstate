@@ -10,14 +10,15 @@ import {
   Spawner,
   StateMachine,
   assign,
+  choose,
   createActor,
   createMachine,
-  enqueueActions,
   not,
+  pure,
   sendTo,
   spawnChild,
   stateIn
-} from '../src/index.ts';
+} from '../src/index';
 
 function noop(_x: unknown) {
   return;
@@ -2942,31 +2943,19 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: [
-      //       {
-      //         type: 'greet',
-      //         params: {
-      //           name: 'Anders'
-      //         }
-      //       }
-      //     ]
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue({
-            type: 'greet',
-            params: {
-              name: 'Anders',
-              // @ts-expect-error
-              foo: 'bar'
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet',
+              params: {
+                name: 'Anders'
+              }
             }
-          });
+          ]
         }
-      })
+      ])
     });
   });
 
@@ -2975,27 +2964,18 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: [
-      //       {
-      //         type: 'greet',
-      //         // @ts-expect-error
-      //         params: {}
-      //       }
-      //     ]
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue({
-            type: 'greet',
-            // @ts-expect-error
-            params: {}
-          });
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet',
+              // @ts-expect-error
+              params: {}
+            }
+          ]
         }
-      })
+      ])
     });
   });
 
@@ -3004,23 +2984,15 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     // @ts-expect-error
-      //     actions: {
-      //       type: 'other' as const
-      //     }
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue({
-            // @ts-expect-error
+      entry: choose([
+        {
+          guard: () => true,
+          // @ts-expect-error
+          actions: {
             type: 'other' as const
-          });
+          }
         }
-      })
+      ])
     });
   });
 
@@ -3029,17 +3001,12 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: 'poke'
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue({ type: 'poke' });
+      entry: choose([
+        {
+          guard: () => true,
+          actions: 'poke'
         }
-      })
+      ])
     });
   });
 
@@ -3048,19 +3015,14 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: {
-      //       type: 'poke'
-      //     }
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue({ type: 'poke' });
+      entry: choose([
+        {
+          guard: () => true,
+          actions: {
+            type: 'poke'
+          }
         }
-      })
+      ])
     });
   });
 
@@ -3069,35 +3031,22 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: [
-      //       {
-      //         type: 'greet',
-      //         params: {
-      //           name: 'Anders'
-      //         }
-      //       },
-      //       {
-      //         type: 'poke'
-      //       }
-      //     ]
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue({
-            type: 'greet',
-            params: {
-              name: 'Anders'
+      entry: choose([
+        {
+          guard: () => true,
+          actions: [
+            {
+              type: 'greet',
+              params: {
+                name: 'Anders'
+              }
+            },
+            {
+              type: 'poke'
             }
-          });
-          enqueue({
-            type: 'poke'
-          });
+          ]
         }
-      })
+      ])
     });
   });
 
@@ -3106,21 +3055,14 @@ describe('choose', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: {
-      //       type: 'poke'
-      //     }
-      //   }
-      // ] as const)
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue({
+      entry: choose([
+        {
+          guard: () => true,
+          actions: {
             type: 'poke'
-          });
+          }
         }
-      })
+      ] as const)
     });
   });
 
@@ -3133,14 +3075,11 @@ describe('choose', () => {
       },
       {
         actions: {
-          // foo: choose([
-          //   {
-          //     actions: () => {}
-          //   }
-          // ])
-          foo: enqueueActions(({ enqueue }) => {
-            enqueue(() => {});
-          })
+          foo: choose([
+            {
+              actions: () => {}
+            }
+          ])
         }
       }
     );
@@ -3162,17 +3101,12 @@ describe('choose', () => {
       },
       {
         actions: {
-          // foo: choose([
-          //   {
-          //     actions: () => {},
-          //     guard: 'plainGuard'
-          //   }
-          // ])
-          foo: enqueueActions(({ enqueue, check }) => {
-            if (check({ type: 'plainGuard' })) {
-              enqueue(() => {});
+          foo: choose([
+            {
+              actions: () => {},
+              guard: 'plainGuard'
             }
-          })
+          ])
         }
       }
     );
@@ -3194,23 +3128,13 @@ describe('choose', () => {
       },
       {
         actions: {
-          // foo: choose([
-          //   {
-          //     actions: () => {},
-          //     // @ts-expect-error
-          //     guard: 'other' as const
-          //   }
-          // ])
-          foo: enqueueActions(({ enqueue, check }) => {
-            if (
-              check({
-                // @ts-expect-error
-                type: 'other'
-              })
-            ) {
-              enqueue(() => {});
+          foo: choose([
+            {
+              actions: () => {},
+              // @ts-expect-error
+              guard: 'other' as const
             }
-          })
+          ])
         }
       }
     );
@@ -3228,29 +3152,17 @@ describe('choose', () => {
             }
           | { type: 'plainGuard' }
       },
-      // entry: choose([
-      //   {
-      //     actions: 'someAction',
-      //     guard: (_, params) => {
-      //       ((_accept: undefined) => {})(params);
-      //       // @ts-expect-error
-      //       ((_accept: 'not any') => {})(params);
-      //       return true;
-      //     }
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue, check }) => {
-        if (
-          check((_, params) => {
+      entry: choose([
+        {
+          actions: 'someAction',
+          guard: (_, params) => {
             ((_accept: undefined) => {})(params);
             // @ts-expect-error
             ((_accept: 'not any') => {})(params);
             return true;
-          })
-        ) {
-          enqueue({ type: 'someAction' });
+          }
         }
-      })
+      ])
     });
   });
 
@@ -3270,29 +3182,17 @@ describe('choose', () => {
       },
       {
         actions: {
-          // someGuard: choose([
-          //   {
-          //     actions: 'someAction',
-          //     guard: (_, params) => {
-          //       ((_accept: undefined) => {})(params);
-          //       // @ts-expect-error
-          //       ((_accept: 'not any') => {})(params);
-          //       return true;
-          //     }
-          //   }
-          // ])
-          someGuard: enqueueActions(({ enqueue, check }) => {
-            if (
-              check((_, params) => {
+          someGuard: choose([
+            {
+              actions: 'someAction',
+              guard: (_, params) => {
                 ((_accept: undefined) => {})(params);
                 // @ts-expect-error
                 ((_accept: 'not any') => {})(params);
                 return true;
-              })
-            ) {
-              enqueue({ type: 'someAction' });
+              }
             }
-          })
+          ])
         }
       }
     );
@@ -3305,23 +3205,15 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: pure(() => {
-      //   return [
-      //     {
-      //       type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
-      //       params: {
-      //         name: 'Anders'
-      //       }
-      //     }
-      //   ];
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue({
-          type: 'greet', // string doesn't widen ;-)
-          params: {
-            name: 'Anders'
+      entry: pure(() => {
+        return [
+          {
+            type: 'greet' as const, // contextual type isn't helping here and string widens so we need `as const`
+            params: {
+              name: 'Anders'
+            }
           }
-        });
+        ];
       })
     });
   });
@@ -3331,17 +3223,11 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // @x-ts-expect-error
-      // entry: pure(() => {
-      //   return {
-      //     type: 'other'
-      //   };
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue({
-          // @ts-expect-error
+      // @ts-expect-error
+      entry: pure(() => {
+        return {
           type: 'other'
-        });
+        };
       })
     });
   });
@@ -3351,29 +3237,18 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: pure(() => {
-      //   return [
-      //     {
-      //       type: 'greet' as const,
-      //       params: {
-      //         name: 'Anders'
-      //       }
-      //     },
-      //     {
-      //       type: 'poke' as const
-      //     }
-      //   ];
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue({
-          type: 'greet',
-          params: {
-            name: 'Anders'
+      entry: pure(() => {
+        return [
+          {
+            type: 'greet' as const,
+            params: {
+              name: 'Anders'
+            }
+          },
+          {
+            type: 'poke' as const
           }
-        });
-        enqueue({
-          type: 'poke'
-        });
+        ];
       })
     });
   });
@@ -3383,17 +3258,12 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: pure(() => {
-      //   return [
-      //     {
-      //       type: 'poke'
-      //     }
-      //   ] as const;
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue({
-          type: 'poke'
-        });
+      entry: pure(() => {
+        return [
+          {
+            type: 'poke'
+          }
+        ] as const;
       })
     });
   });
@@ -3403,11 +3273,8 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: pure(() => {
-      //   return [() => {}];
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue(() => {});
+      entry: pure(() => {
+        return [() => {}];
       })
     });
   });
@@ -3417,11 +3284,8 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: pure(() => {
-      //   return 'poke' as const;
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue({ type: 'poke' });
+      entry: pure(() => {
+        return 'poke' as const;
       })
     });
   });
@@ -3431,11 +3295,8 @@ describe('pure', () => {
       types: {} as {
         actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
       },
-      // entry: pure(() => {
-      //   return 'poke' as const;
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue({ type: 'poke' });
+      entry: pure(() => {
+        return ['poke' as const];
       })
     });
   });
@@ -3453,11 +3314,8 @@ describe('pure', () => {
       },
       on: {
         SOMETHING: {
-          // actions: pure(({ context }) => {
-          //   return raise({ type: 'SOMETHING_ELSE' });
-          // })
-          actions: enqueueActions(({ enqueue }) => {
-            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          actions: pure(({ context }) => {
+            return raise({ type: 'SOMETHING_ELSE' });
           })
         }
       }
@@ -3478,14 +3336,8 @@ describe('pure', () => {
       on: {
         SOMETHING: {
           actions: [
-            // pure(({ context }) => {
-            //   return raise({
-            //     // @ts-expect-error
-            //     type: 'OTHER'
-            //   });
-            // })
-            enqueueActions(({ enqueue }) => {
-              enqueue.raise({
+            pure(({ context }) => {
+              return raise({
                 // @ts-expect-error
                 type: 'OTHER'
               });
@@ -4226,17 +4078,12 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: raise({ type: 'FOO' }, { delay: 100 })
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue(raise({ type: 'FOO' }, { delay: 100 }));
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise({ type: 'FOO' }, { delay: 100 })
         }
-      })
+      ])
     });
   });
 
@@ -4245,17 +4092,12 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: raise({ type: 'FOO' }, { delay: 'one minute' })
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue(raise({ type: 'FOO' }, { delay: 'one minute' }));
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise({ type: 'FOO' }, { delay: 'one minute' })
         }
-      })
+      ])
     });
   });
 
@@ -4264,31 +4106,18 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      // entry: choose([
-      //   {
-      //     guard: () => true,
-      //     actions: raise(
-      //       { type: 'FOO' },
-      //       {
-      //         // @ts-expect-error
-      //         delay: 'unknown delay'
-      //       }
-      //     )
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => {
-        if (true) {
-          enqueue(
-            raise(
-              { type: 'FOO' },
-              {
-                // @ts-expect-error
-                delay: 'unknown delay'
-              }
-            )
-          );
+      entry: choose([
+        {
+          guard: () => true,
+          actions: raise(
+            { type: 'FOO' },
+            {
+              // @ts-expect-error
+              delay: 'unknown delay'
+            }
+          )
         }
-      })
+      ])
     });
   });
 
@@ -4297,11 +4126,8 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      // entry: pure(() => {
-      //   return raise({ type: 'FOO' }, { delay: 100 });
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue.raise({ type: 'FOO' }, { delay: 100 });
+      entry: pure(() => {
+        return raise({ type: 'FOO' }, { delay: 100 });
       })
     });
   });
@@ -4311,11 +4137,8 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      // entry: pure(() => {
-      //   return raise({ type: 'FOO' }, { delay: 'one minute' });
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue.raise({ type: 'FOO' }, { delay: 'one minute' });
+      entry: pure(() => {
+        return raise({ type: 'FOO' }, { delay: 'one minute' });
       })
     });
   });
@@ -4325,17 +4148,8 @@ describe('delays', () => {
       types: {} as {
         delays: 'one second' | 'one minute';
       },
-      // entry: pure(() => {
-      //   return raise(
-      //     { type: 'FOO' },
-      //     {
-      //       // @ts-expect-error
-      //       delay: 'unknown delay'
-      //     }
-      //   );
-      // })
-      entry: enqueueActions(({ enqueue }) => {
-        enqueue.raise(
+      entry: pure(() => {
+        return raise(
           { type: 'FOO' },
           {
             // @ts-expect-error

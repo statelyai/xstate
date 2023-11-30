@@ -1,21 +1,23 @@
-import { ActorRef, EventObject } from '../src/index.ts';
 import {
   cancel,
+  choose,
   log,
+  pure,
   raise,
   sendParent,
   sendTo,
-  stopChild,
-  enqueueActions
+  stopChild
 } from '../src/actions.ts';
-import {
-  ActorRefFrom,
-  assign,
-  createMachine,
-  forwardTo,
-  createActor
-} from '../src/index.ts';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
+import {
+  ActorRef,
+  ActorRefFrom,
+  EventObject,
+  assign,
+  createActor,
+  createMachine,
+  forwardTo
+} from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
 const originalConsoleLog = console.log;
@@ -2384,17 +2386,11 @@ describe('purely defined actions', () => {
         context: {
           items: [{ id: 1 }, { id: 2 }, { id: 3 }]
         },
-        // entry: pure(({ context }) => {
-        //   return {
-        //     type: 'doSomething',
-        //     params: { length: context.items.length }
-        //   };
-        // })
-        entry: enqueueActions(({ enqueue, context }) => {
-          enqueue({
+        entry: pure(({ context }) => {
+          return {
             type: 'doSomething',
             params: { length: context.items.length }
-          });
+          };
         })
       },
       {
@@ -2414,20 +2410,12 @@ describe('purely defined actions', () => {
       context: {
         items: [{ id: 1 }, { id: 2 }, { id: 3 }]
       },
-      // entry: pure(({ context }) => {
-      //   if (context.items.length > 5) {
-      //     return {
-      //       type: 'doSomething',
-      //       params: { length: context.items.length }
-      //     };
-      //   }
-      // })
-      entry: enqueueActions(({ enqueue, context }) => {
+      entry: pure(({ context }) => {
         if (context.items.length > 5) {
-          enqueue({
+          return {
             type: 'doSomething',
             params: { length: context.items.length }
-          });
+          };
         }
       })
     });
@@ -2442,19 +2430,11 @@ describe('purely defined actions', () => {
         context: {
           items: [{ id: 1 }, { id: 2 }, { id: 3 }]
         },
-        // entry: pure(({ context }) =>
-        //   context.items.map((item: any, index: number) => ({
-        //     type: 'doSomething',
-        //     params: { item, index }
-        //   }))
-        // )
-        entry: enqueueActions(({ enqueue, context }) =>
-          context.items.map((item: any, index: number) => {
-            enqueue({
-              type: 'doSomething',
-              params: { item, index }
-            });
-          })
+        entry: pure(({ context }) =>
+          context.items.map((item: any, index: number) => ({
+            type: 'doSomething',
+            params: { item, index }
+          }))
         )
       },
       {
@@ -2477,8 +2457,7 @@ describe('purely defined actions', () => {
     const spy = jest.fn();
     const machine = createMachine(
       {
-        // entry: pure(() => ['SOME_ACTION'])
-        entry: enqueueActions(({ enqueue }) => enqueue({ type: 'SOME_ACTION' }))
+        entry: pure(() => ['SOME_ACTION'])
       },
       {
         actions: {
@@ -2495,12 +2474,11 @@ describe('purely defined actions', () => {
   it('should allow function actions in pure', () => {
     let called = false;
     const machine = createMachine({
-      // entry: pure(() => [
-      //   () => {
-      //     called = true;
-      //   }
-      // ])
-      entry: enqueueActions(({ enqueue }) => enqueue(() => (called = true)))
+      entry: pure(() => [
+        () => {
+          called = true;
+        }
+      ])
     });
 
     createActor(machine).start();
@@ -2704,14 +2682,9 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          // entry: choose([
-          //   { guard: () => true, actions: assign({ answer: 42 }) }
-          // ])
-          entry: enqueueActions(({ enqueue }) => {
-            if (true) {
-              enqueue.assign({ answer: 42 });
-            }
-          })
+          entry: choose([
+            { guard: () => true, actions: assign({ answer: 42 }) }
+          ])
         }
       }
     });
@@ -2734,18 +2707,12 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          // entry: choose([
-          //   {
-          //     guard: () => true,
-          //     actions: [() => (executed = true), assign({ answer: 42 })]
-          //   }
-          // ])
-          entry: enqueueActions(({ enqueue }) => {
-            if (true) {
-              enqueue(() => (executed = true));
-              enqueue.assign({ answer: 42 });
+          entry: choose([
+            {
+              guard: () => true,
+              actions: [() => (executed = true), assign({ answer: 42 })]
             }
-          })
+          ])
         }
       }
     });
@@ -2768,20 +2735,13 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          // entry: choose([
-          //   {
-          //     guard: () => false,
-          //     actions: assign({ shouldNotAppear: true })
-          //   },
-          //   { guard: () => true, actions: assign({ answer: 42 }) }
-          // ]),
-          entry: enqueueActions(({ enqueue }) => {
-            if (false) {
-              enqueue.assign({ shouldNotAppear: true });
-            } else {
-              enqueue.assign({ answer: 42 });
-            }
-          })
+          entry: choose([
+            {
+              guard: () => false,
+              actions: assign({ shouldNotAppear: true })
+            },
+            { guard: () => true, actions: assign({ answer: 42 }) }
+          ])
         }
       }
     });
@@ -2803,20 +2763,13 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          // entry: choose([
-          //   {
-          //     guard: () => false,
-          //     actions: assign({ shouldNotAppear: true })
-          //   },
-          //   { actions: assign({ answer: 42 }) }
-          // ])
-          entry: enqueueActions(({ enqueue }) => {
-            if (false) {
-              enqueue.assign({ shouldNotAppear: true });
-            } else {
-              enqueue.assign({ answer: 42 });
-            }
-          })
+          entry: choose([
+            {
+              guard: () => false,
+              actions: assign({ shouldNotAppear: true })
+            },
+            { actions: assign({ answer: 42 }) }
+          ])
         }
       }
     });
@@ -2843,37 +2796,28 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          // entry: choose([
-          //   {
-          //     guard: () => true,
-          //     actions: [
-          //       assign({ firstLevel: true }),
-          //       choose([
-          //         {
-          //           guard: () => true,
-          //           actions: [
-          //             assign({ secondLevel: true }),
-          //             choose([
-          //               {
-          //                 guard: () => true,
-          //                 actions: [assign({ thirdLevel: true })]
-          //               }
-          //             ])
-          //           ]
-          //         }
-          //       ])
-          //     ]
-          //   }
-          // ])
-          entry: enqueueActions(({ enqueue }) => {
-            enqueue.assign({ firstLevel: true });
-            if (true) {
-              enqueue.assign({ secondLevel: true });
-              if (true) {
-                enqueue.assign({ thirdLevel: true });
-              }
+          entry: choose([
+            {
+              guard: () => true,
+              actions: [
+                assign({ firstLevel: true }),
+                choose([
+                  {
+                    guard: () => true,
+                    actions: [
+                      assign({ secondLevel: true }),
+                      choose([
+                        {
+                          guard: () => true,
+                          actions: [assign({ thirdLevel: true })]
+                        }
+                      ])
+                    ]
+                  }
+                ])
+              ]
             }
-          })
+          ])
         }
       }
     });
@@ -2900,17 +2844,12 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          // entry: choose([
-          //   {
-          //     guard: ({ context }) => context.counter > 100,
-          //     actions: assign({ answer: 42 })
-          //   }
-          // ]),
-          entry: enqueueActions(({ context, enqueue }) => {
-            if (context.counter > 100) {
-              enqueue.assign({ answer: 42 });
+          entry: choose([
+            {
+              guard: ({ context }) => context.counter > 100,
+              actions: assign({ answer: 42 })
             }
-          })
+          ])
         }
       }
     });
@@ -2941,18 +2880,12 @@ describe('choose', () => {
           on: {
             NEXT: {
               target: 'bar',
-              actions:
-                // choose([
-                //   {
-                //     guard: ({ event }) => event.counter > 100,
-                //     actions: assign({ answer: 42 })
-                //   }
-                // ])
-                enqueueActions(({ event, enqueue }) => {
-                  if (event.counter > 100) {
-                    enqueue.assign({ answer: 42 });
-                  }
-                })
+              actions: choose([
+                {
+                  guard: ({ event }) => event.counter > 100,
+                  actions: assign({ answer: 42 })
+                }
+              ])
             }
           }
         },
@@ -2972,21 +2905,12 @@ describe('choose', () => {
 
     const machine = createMachine(
       {
-        types: {} as {
-          context: Ctx;
-          guards: { type: 'worstGuard' };
-          actions: { type: 'revealAnswer' };
-        },
+        types: {} as { context: Ctx },
         context: {},
         initial: 'foo',
         states: {
           foo: {
-            // entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
-            entry: enqueueActions(({ enqueue, check }) => {
-              if (check({ type: 'worstGuard' })) {
-                enqueue({ type: 'revealAnswer' });
-              }
-            })
+            entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
           }
         }
       },
@@ -3027,14 +2951,9 @@ describe('choose', () => {
         },
         actions: {
           revealAnswer: assign({ answer: 42 }),
-          // conditionallyRevealAnswer: choose([
-          //   { guard: 'worstGuard', actions: 'revealAnswer' }
-          // ])
-          conditionallyRevealAnswer: enqueueActions(({ enqueue, check }) => {
-            if (check({ type: 'worstGuard' })) {
-              enqueue({ type: 'revealAnswer' });
-            }
-          })
+          conditionallyRevealAnswer: choose([
+            { guard: 'worstGuard', actions: 'revealAnswer' }
+          ])
         }
       }
     );
@@ -3224,12 +3143,9 @@ describe('sendTo', () => {
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
-      // entry: pure(({ context }) => {
-      //   return [sendTo(context.child, { type: 'EVENT' })];
-      // })
-      entry: enqueueActions(({ enqueue }) =>
-        enqueue(sendTo(({ context }) => context.child, { type: 'EVENT' }))
-      )
+      entry: pure(({ context }) => {
+        return [sendTo(context.child, { type: 'EVENT' })];
+      })
     });
 
     createActor(parentMachine).start();
@@ -3569,17 +3485,12 @@ describe('assign action order', () => {
         context: { count: 0 },
         entry: [
           ({ context }) => captured.push(context.count), // 0
-          // pure(() => {
-          //   return [
-          //     assign({ count: ({ context }) => context.count + 1 }),
-          //     { type: 'capture' }, // 1
-          //     assign({ count: ({ context }) => context.count + 1 })
-          //   ];
-          // }),
-          enqueueActions(({ enqueue }) => {
-            enqueue(assign({ count: ({ context }) => context.count + 1 }));
-            enqueue({ type: 'capture' });
-            enqueue(assign({ count: ({ context }) => context.count + 1 }));
+          pure(() => {
+            return [
+              assign({ count: ({ context }) => context.count + 1 }),
+              { type: 'capture' }, // 1
+              assign({ count: ({ context }) => context.count + 1 })
+            ];
           }),
           ({ context }) => captured.push(context.count) // 2
         ]
@@ -3684,113 +3595,50 @@ describe('types', () => {
         text: 'hello'
       },
       entry: [
-        // choose([{ actions: assign({ count: 31 }) }]),
-        enqueueActions(({ enqueue }) => {
-          enqueue.assign({ count: 31 });
-        }),
+        choose([{ actions: assign({ count: 31 }) }]),
+        // @ts-expect-error
+        choose([{ actions: assign({ count: 'string' }) }]),
 
-        // choose([{ actions: assign({ count: 'string' }) }]),
-        enqueueActions(({ enqueue }) => {
-          enqueue.assign({
-            // @ts-expect-error
-            count: 'string'
-          });
-        }),
+        choose([{ actions: assign({ count: () => 31 }) }]),
+        // @ts-expect-error
+        choose([{ actions: assign({ count: () => 'string' }) }]),
 
-        // choose([{ actions: assign({ count: () => 31 }) }]),
-        enqueueActions(({ enqueue }) => {
-          enqueue.assign({ count: () => 31 });
-        }),
-        // choose([{ actions: assign({ count: () => 'string' }) }]),
-        enqueueActions(({ enqueue }) => {
-          enqueue.assign({
-            // @ts-expect-error
-            count: () => 'string'
-          });
-        }),
-
-        // choose([
-        //   { actions: assign({ count: ({ context }) => context.count + 31 }) }
-        // ]),
-        enqueueActions(({ enqueue }) => {
-          enqueue.assign({ count: ({ context }) => context.count + 31 });
-        }),
-        // choose([
-        //   // @ts-expect-error
-        //   { actions: assign({ count: ({ context }) => context.text + 31 }) }
-        // ]),
-        enqueueActions(({ enqueue }) => {
-          enqueue.assign({
-            // @ts-expect-error
-            count: ({ context }) => context.text + 31
-          });
-        }),
-
-        // choose([{ actions: assign(() => ({ count: 31 })) }]),
-        enqueueActions(({ enqueue }) => {
-          enqueue.assign(() => ({ count: 31 }));
-        }),
-
-        // choose([{ actions: assign(() => ({ count: 'string' })) }]),
-        enqueueActions(({ enqueue }) => {
+        choose([
+          { actions: assign({ count: ({ context }) => context.count + 31 }) }
+        ]),
+        choose([
           // @ts-expect-error
-          enqueue.assign(() => ({
-            count: 'string'
-          }));
-        }),
+          { actions: assign({ count: ({ context }) => context.text + 31 }) }
+        ]),
 
-        // choose([
-        //   { actions: assign(({ context }) => ({ count: context.count + 31 })) }
-        // ]),
-        enqueueActions(({ enqueue }) => {
-          enqueue.assign(({ context }) => ({ count: context.count + 31 }));
-        }),
+        choose([{ actions: assign(() => ({ count: 31 })) }]),
+        // @ts-expect-error
+        choose([{ actions: assign(() => ({ count: 'string' })) }]),
 
-        // choose([
-        //   // @ts-expect-error
-        //   { actions: assign(({ context }) => ({ count: context.text + 31 })) }
-        // ])
-        enqueueActions(({ enqueue }) => {
+        choose([
+          { actions: assign(({ context }) => ({ count: context.count + 31 })) }
+        ]),
+        choose([
           // @ts-expect-error
-          enqueue.assign(({ context }) => ({
-            count: context.text + 31
-          }));
-        })
+          { actions: assign(({ context }) => ({ count: context.text + 31 })) }
+        ])
       ],
       on: {
         say: {
           actions: [
-            // choose([{ actions: assign({ text: ({ event }) => event.value }) }]),
-            enqueueActions(({ enqueue }) => {
-              enqueue.assign({ text: ({ event }) => event.value });
-            }),
-            // choose([
-            //   // @ts-expect-error
-            //   { actions: assign({ count: ({ event }) => event.value }) }
-            // ]),
-            enqueueActions(({ enqueue }) => {
-              enqueue.assign({
-                // @ts-expect-error
-                count: ({ event }) => event.value
-              });
-            }),
-
-            // choose([
-            //   { actions: assign(({ event }) => ({ text: event.value })) }
-            // ]),
-            enqueueActions(({ enqueue }) => {
-              enqueue.assign(({ event }) => ({ text: event.value }));
-            }),
-            // choose([
-            //   // @ts-expect-error
-            //   { actions: assign(({ event }) => ({ count: event.value })) }
-            // ])
-            enqueueActions(({ enqueue }) => {
+            choose([{ actions: assign({ text: ({ event }) => event.value }) }]),
+            choose([
               // @ts-expect-error
-              enqueue.assign(({ event }) => ({
-                count: event.value
-              }));
-            })
+              { actions: assign({ count: ({ event }) => event.value }) }
+            ]),
+
+            choose([
+              { actions: assign(({ event }) => ({ text: event.value })) }
+            ]),
+            choose([
+              // @ts-expect-error
+              { actions: assign(({ event }) => ({ count: event.value })) }
+            ])
           ]
         }
       }
@@ -4142,8 +3990,7 @@ describe('actions', () => {
     createActor(
       createMachine(
         {
-          // entry: pure(() => ['myAction'])
-          entry: enqueueActions(({ enqueue }) => enqueue({ type: 'myAction' }))
+          entry: pure(() => ['myAction'])
         },
         {
           actions: {
@@ -4165,8 +4012,7 @@ describe('actions', () => {
     createActor(
       createMachine(
         {
-          // entry: pure(() => ['myAction'])
-          entry: enqueueActions(({ enqueue }) => enqueue({ type: 'myAction' }))
+          entry: pure(() => ['myAction'])
         },
         {
           actions: {
@@ -4192,9 +4038,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myPure: enqueueActions(({ enqueue }) =>
-              enqueue({ type: 'myAction' })
-            ),
+            myPure: pure(() => ['myAction']),
             myAction: (_, params) => {
               spy(params);
               return {};
@@ -4217,9 +4061,7 @@ describe('actions', () => {
         },
         {
           actions: {
-            myPure: enqueueActions(({ enqueue }) =>
-              enqueue({ type: 'myAction' })
-            ),
+            myPure: pure(() => ['myAction']),
             myAction: assign((_, params) => {
               spy(params);
               return {};
