@@ -75,16 +75,16 @@ export function formatPathTestResult(
 }
 
 export function getDescription<T, TContext extends MachineContext>(
-  state: AnyMachineSnapshot
+  snapshot: AnyMachineSnapshot
 ): string {
-  const contextString = !Object.keys(state.context).length
+  const contextString = !Object.keys(snapshot.context).length
     ? ''
-    : `(${JSON.stringify(state.context)})`;
+    : `(${JSON.stringify(snapshot.context)})`;
 
-  const stateStrings = state._nodes
+  const stateStrings = snapshot._nodes
     .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
     .map(({ id, path }) => {
-      const meta = state.getMeta()[id] as TestMeta<T, TContext>;
+      const meta = snapshot.getMeta()[id] as TestMeta<T, TContext>;
       if (!meta) {
         return `"${path.join('.')}"`;
       }
@@ -92,10 +92,10 @@ export function getDescription<T, TContext extends MachineContext>(
       const { description } = meta;
 
       if (typeof description === 'function') {
-        return description(state);
+        return description(snapshot);
       }
 
-      return description ? `"${description}"` : JSON.stringify(state.value);
+      return description ? `"${description}"` : JSON.stringify(snapshot.value);
     });
 
   return (

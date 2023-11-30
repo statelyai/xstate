@@ -15,7 +15,7 @@ import { toArray } from '../utils.ts';
 
 function resolveChoose(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -37,11 +37,16 @@ function resolveChoose(
   const matchedActions = branches.find((condition) => {
     return (
       !condition.guard ||
-      evaluateGuard(condition.guard, state.context, actionArgs.event, state)
+      evaluateGuard(
+        condition.guard,
+        snapshot.context,
+        actionArgs.event,
+        snapshot
+      )
     );
   })?.actions;
 
-  return [state, undefined, toArray(matchedActions)];
+  return [snapshot, undefined, toArray(matchedActions)];
 }
 
 export interface ChooseAction<

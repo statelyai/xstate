@@ -2,7 +2,7 @@
 
 import { AnyMachineSnapshot } from 'xstate';
 
-export type StateListener = (state: AnyMachineSnapshot) => void;
+export type StateListener = (snapshot: AnyMachineSnapshot) => void;
 
 interface TransitionsAnalysis {
   count: number;
@@ -36,7 +36,7 @@ const serializeState = (state?: AnyMachineSnapshot): string => {
 };
 
 interface AnalyzerOptions {
-  filter: (state: AnyMachineSnapshot) => boolean;
+  filter: (snapshot: AnyMachineSnapshot) => boolean;
   history?: TransitionsAnalysis;
 }
 
@@ -57,15 +57,15 @@ export function createAnalyzer(
     transitions: {}
   };
 
-  let currentState: AnyMachineSnapshot | undefined;
+  let currentSnapshot: AnyMachineSnapshot | undefined;
 
-  return (state: AnyMachineSnapshot) => {
-    if (!resolvedOptions.filter(state)) {
+  return (snapshot: AnyMachineSnapshot) => {
+    if (!resolvedOptions.filter(snapshot)) {
       return;
     }
 
-    const stateSerial = serializeState(state);
-    const prevState = currentState;
+    const stateSerial = serializeState(snapshot);
+    const prevState = currentSnapshot;
     const prevStateSerial = serializeState(prevState);
     const eventSerial = JSON.stringify({
       type: 'string' // TODO: replace with real event when we land on the new inspection API
@@ -110,6 +110,6 @@ export function createAnalyzer(
 
     callback(analysis);
 
-    currentState = state;
+    currentSnapshot = snapshot;
   };
 }

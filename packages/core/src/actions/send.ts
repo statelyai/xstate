@@ -26,7 +26,7 @@ import { XSTATE_ERROR } from '../constants.ts';
 
 function resolveSendTo(
   actorScope: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -65,7 +65,7 @@ function resolveSendTo(
   },
   extra: { deferredActorIds: string[] | undefined }
 ) {
-  const delaysMap = state.machine.implementations.delays;
+  const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
@@ -100,15 +100,15 @@ function resolveSendTo(
     } else if (resolvedTarget.startsWith('#_')) {
       // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
       // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
-      targetActorRef = state.children[resolvedTarget.slice(2)];
+      targetActorRef = snapshot.children[resolvedTarget.slice(2)];
     } else {
       targetActorRef = extra.deferredActorIds?.includes(resolvedTarget)
         ? resolvedTarget
-        : state.children[resolvedTarget];
+        : snapshot.children[resolvedTarget];
     }
     if (!targetActorRef) {
       throw new Error(
-        `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
+        `Unable to send event to actor '${resolvedTarget}' from machine '${snapshot.machine.id}'.`
       );
     }
   } else {
@@ -116,14 +116,14 @@ function resolveSendTo(
   }
 
   return [
-    state,
+    snapshot,
     { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
   ];
 }
 
 function retryResolveSendTo(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   params: {
     to: AnyActorRef;
     event: EventObject;
@@ -132,7 +132,7 @@ function retryResolveSendTo(
   }
 ) {
   if (typeof params.to === 'string') {
-    params.to = state.children[params.to];
+    params.to = snapshot.children[params.to];
   }
 }
 
@@ -227,7 +227,7 @@ export function sendTo<
     }
   }
 
-  sendTo.type = 'xstate.sendTo';
+  sendTo.type = 'xsnapshot.sendTo';
   sendTo.to = to;
   sendTo.event = eventOrExpr;
   sendTo.id = options?.id;

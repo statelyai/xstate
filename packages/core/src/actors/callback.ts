@@ -197,8 +197,8 @@ export function fromCallback<
         input
       };
     },
-    getPersistedState: (state) => state,
-    restoreState: (state: any) => state
+    getPersistedState: (snapshot) => snapshot,
+    restoreState: (snapshot: any) => snapshot
   };
 
   return logic;

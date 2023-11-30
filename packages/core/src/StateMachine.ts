@@ -287,7 +287,7 @@ export class StateMachine<
     TOutput,
     TResolvedTypesMeta
   > {
-    return macrostep(snapshot, event, actorScope).state as typeof snapshot;
+    return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
 
   /**
@@ -298,7 +298,7 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: MachineSnapshot<
+    snapshot: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
@@ -320,7 +320,8 @@ export class StateMachine<
       TResolvedTypesMeta
     >
   > {
-    return macrostep(state, event, actorScope).microstates as (typeof state)[];
+    return macrostep(snapshot, event, actorScope)
+      .microstates as (typeof snapshot)[];
   }
 
   public getTransitionData(
@@ -434,7 +435,7 @@ export class StateMachine<
       internalQueue
     );
 
-    const { state: macroState } = macrostep(
+    const { snapshot: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
       actorScope,
@@ -445,7 +446,7 @@ export class StateMachine<
   }
 
   public start(
-    state: MachineSnapshot<
+    snapshot: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
@@ -455,7 +456,7 @@ export class StateMachine<
       TResolvedTypesMeta
     >
   ): void {
-    Object.values(state.children as Record<string, AnyActorRef>).forEach(
+    Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
       (child: any) => {
         if (child.getSnapshot().status === 'active') {
           child.start();
@@ -489,7 +490,7 @@ export class StateMachine<
   }
 
   public getPersistedState(
-    state: MachineSnapshot<
+    snapshot: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
@@ -500,7 +501,7 @@ export class StateMachine<
     >,
     options?: unknown
   ) {
-    return getPersistedState(state, options);
+    return getPersistedState(snapshot, options);
   }
 
   public restoreState(

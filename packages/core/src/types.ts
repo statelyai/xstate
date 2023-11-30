@@ -2131,7 +2131,7 @@ export interface ActorLogic<
   /**
    * Transition function that processes the current state and an incoming message
    * to produce a new state.
-   * @param state - The current state.
+   * @param snapshot - The current state.
    * @param message - The incoming message.
    * @param ctx - The actor scope.
    * @returns The new state.
@@ -2164,17 +2164,23 @@ export interface ActorLogic<
   ) => TSnapshot;
   /**
    * Called when the actor is started.
-   * @param state - The starting state.
+   * @param snapshot - The starting state.
    * @param actorScope - The actor scope.
    */
-  start?: (state: TSnapshot, actorScope: ActorScope<TSnapshot, TEvent>) => void;
+  start?: (
+    snapshot: TSnapshot,
+    actorScope: ActorScope<TSnapshot, TEvent>
+  ) => void;
   /**
    * Obtains the internal state of the actor in a representation which can be be persisted.
    * The persisted state can be restored by `restoreState`.
-   * @param state - The current state.
+   * @param snapshot - The current state.
    * @returns The a representation of the internal state to be persisted.
    */
-  getPersistedState: (state: TSnapshot, options?: unknown) => Snapshot<unknown>;
+  getPersistedState: (
+    snapshot: TSnapshot,
+    options?: unknown
+  ) => Snapshot<unknown>;
 }
 
 export type AnyActorLogic = ActorLogic<

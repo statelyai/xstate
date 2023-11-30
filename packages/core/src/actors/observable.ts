@@ -307,9 +307,9 @@ export function fromEventObservable<
         }
       });
     },
-    getPersistedState: ({ _subscription, ...state }) => state,
-    restoreState: (state: any) => ({
-      ...state,
+    getPersistedState: ({ _subscription, ...snapshot }) => snapshot,
+    restoreState: (snapshot: any) => ({
+      ...snapshot,
       _subscription: undefined
     })
   };

@@ -38,7 +38,7 @@ import { toObserver } from './utils.ts';
 export const $$ACTOR_TYPE = 1;
 
 export type SnapshotListener<TLogic extends AnyActorLogic> = (
-  state: SnapshotFrom<TLogic>
+  snapshot: SnapshotFrom<TLogic>
 ) => void;
 
 export type EventListener<TEvent extends EventObject = EventObject> = (
@@ -350,13 +350,13 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public subscribe(observer: Observer<SnapshotFrom<TLogic>>): Subscription;
   public subscribe(
-    nextListener?: (state: SnapshotFrom<TLogic>) => void,
+    nextListener?: (snapshot: SnapshotFrom<TLogic>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: SnapshotFrom<TLogic>) => void)
+      | ((snapshot: SnapshotFrom<TLogic>) => void)
       | Observer<SnapshotFrom<TLogic>>,
     errorListener?: (error: any) => void,
     completeListener?: () => void

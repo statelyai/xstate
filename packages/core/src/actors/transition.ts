@@ -91,7 +91,7 @@ export function fromTransition<
   TInput extends NonReducibleUnknown
 >(
   transition: (
-    state: TContext,
+    snapshot: TContext,
     event: TEvent,
     actorScope: ActorScope<TransitionSnapshot<TContext>, TEvent, TSystem>
   ) => TContext,
@@ -107,10 +107,14 @@ export function fromTransition<
 ): TransitionActorLogic<TContext, TEvent, TInput> {
   return {
     config: transition,
-    transition: (state, event, actorScope) => {
+    transition: (snapshot, event, actorScope) => {
       return {
-        ...state,
-        context: transition(state.context, event as TEvent, actorScope as any)
+        ...snapshot,
+        context: transition(
+          snapshot.context,
+          event as TEvent,
+          actorScope as any
+        )
       };
     },
     getInitialState: (_, input) => {
@@ -124,7 +128,7 @@ export function fromTransition<
             : initialContext
       };
     },
-    getPersistedState: (state) => state,
-    restoreState: (state: any) => state
+    getPersistedState: (snapshot) => snapshot,
+    restoreState: (snapshot: any) => snapshot
   };
 }

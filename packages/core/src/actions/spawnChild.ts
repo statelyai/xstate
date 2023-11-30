@@ -32,7 +32,7 @@ type ResolvableActorId<
 
 function resolveSpawn(
   actorScope: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -50,7 +50,9 @@ function resolveSpawn(
   }
 ) {
   const logic =
-    typeof src === 'string' ? resolveReferencedActor(state.machine, src) : src;
+    typeof src === 'string'
+      ? resolveReferencedActor(snapshot.machine, src)
+      : src;
   const resolvedId = typeof id === 'function' ? id(actionArgs) : id;
 
   let actorRef: AnyActorRef | undefined;
@@ -65,7 +67,7 @@ function resolveSpawn(
       input:
         typeof input === 'function'
           ? input({
-              context: state.context,
+              context: snapshot.context,
               event: actionArgs.event,
               self: actorScope?.self
             })
@@ -79,9 +81,9 @@ function resolveSpawn(
     );
   }
   return [
-    cloneMachineSnapshot(state, {
+    cloneMachineSnapshot(snapshot, {
       children: {
-        ...state.children,
+        ...snapshot.children,
         [resolvedId]: actorRef!
       }
     }),
@@ -193,7 +195,7 @@ export function spawnChild<
     }
   }
 
-  spawnChild.type = 'xstate.spawnChild';
+  spawnChild.type = 'snapshot.spawnChild';
   spawnChild.id = id;
   spawnChild.systemId = systemId;
   spawnChild.src = src;

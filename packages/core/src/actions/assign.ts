@@ -27,7 +27,7 @@ export interface AssignArgs<
 
 function resolveAssign(
   actorScope: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -38,7 +38,7 @@ function resolveAssign(
       | PropertyAssigner<any, any, any, any, any>;
   }
 ) {
-  if (!state.context) {
+  if (!snapshot.context) {
     throw new Error(
       'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
     );
@@ -46,9 +46,14 @@ function resolveAssign(
   const spawnedChildren: Record<string, AnyActorRef> = {};
 
   const assignArgs: AssignArgs<any, any, any, any> = {
-    context: state.context,
+    context: snapshot.context,
     event: actionArgs.event,
-    spawn: createSpawner(actorScope, state, actionArgs.event, spawnedChildren),
+    spawn: createSpawner(
+      actorScope,
+      snapshot,
+      actionArgs.event,
+      spawnedChildren
+    ),
     self: actorScope?.self,
     system: actorScope?.system
   };
@@ -65,17 +70,17 @@ function resolveAssign(
     }
   }
 
-  const updatedContext = Object.assign({}, state.context, partialUpdate);
+  const updatedContext = Object.assign({}, snapshot.context, partialUpdate);
 
   return [
-    cloneMachineSnapshot(state, {
+    cloneMachineSnapshot(snapshot, {
       context: updatedContext,
       children: Object.keys(spawnedChildren).length
         ? {
-            ...state.children,
+            ...snapshot.children,
             ...spawnedChildren
           }
-        : state.children
+        : snapshot.children
     })
   ];
 }
