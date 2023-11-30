@@ -7,7 +7,7 @@ import {
   ActorOptions,
   SnapshotFrom
 } from 'xstate';
-import { useIdleActor } from './useActorRef.ts';
+import { useIdleActorRef } from './useActorRef.ts';
 import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
@@ -25,7 +25,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     );
   }
 
-  const actorRef = useIdleActor(logic, options as any);
+  const actorRef = useIdleActorRef(logic, options as any);
 
   const getSnapshot = useCallback(() => {
     return actorRef.getSnapshot();

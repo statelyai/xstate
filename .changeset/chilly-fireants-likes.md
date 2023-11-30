@@ -1,5 +1,5 @@
 ---
-'@xstate/vue': major
+'@xstate/svelte': major
 ---
 
 The `useMachine(machine)` hook now returns `{ snapshot, send, actorRef }` instead of `{ state, send, service }`:
