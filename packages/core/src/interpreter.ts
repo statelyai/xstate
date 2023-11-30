@@ -198,7 +198,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system._set(systemId, this);
     }
 
-    this._initState(options?.snapshot);
+    this._initState(options?.snapshot ?? options?.state);
 
     if (systemId && (this._snapshot as any).status !== 'active') {
       this.system._unregister(this);

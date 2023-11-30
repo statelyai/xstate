@@ -1765,6 +1765,11 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   snapshot?: Snapshot<unknown>;
 
   /**
+   * @deprecated Use `snapshot` instead.
+   */
+  state?: Snapshot<unknown>;
+
+  /**
    * The source definition.
    */
   src?: string | AnyActorLogic;
