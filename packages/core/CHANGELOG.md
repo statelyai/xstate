@@ -1,5 +1,15 @@
 # xstate
 
+## 5.0.0-beta.50
+
+### Major Changes
+
+- [#4492](https://github.com/statelyai/xstate/pull/4492) [`63d923857`](https://github.com/statelyai/xstate/commit/63d923857592437dc174518ba02e061082f629cf) Thanks [@Andarist](https://github.com/Andarist)! - All errors caught while executing the actor should now consistently include the error in its `snapshot.error` and should be reported to the closest `error` listener.
+
+### Patch Changes
+
+- [#4523](https://github.com/statelyai/xstate/pull/4523) [`e21e3f959`](https://github.com/statelyai/xstate/commit/e21e3f959971efbe1add5646a0adef04cf913524) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with contextual parameters in input factories of input-less actors
+
 ## 5.0.0-beta.49
 
 ### Minor Changes
