@@ -4,15 +4,15 @@
 
 ### Major Changes
 
-- [#4288](https://github.com/statelyai/xstate/pull/4288) [`cfdf754f8`](https://github.com/statelyai/xstate/commit/cfdf754f89b65da2eff7521fa894e151e8a30de4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useMachine(machine)` hook now returns `{ snapshot, send, service }` instead of `{ state, send, actorRef }`:
+- [#4288](https://github.com/statelyai/xstate/pull/4288) [`cfdf754f8`](https://github.com/statelyai/xstate/commit/cfdf754f89b65da2eff7521fa894e151e8a30de4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useMachine(machine)` hook now returns `{ snapshot, send, actorRef }` instead of `{ state, send, service }`:
 
   ```diff
   const {
   - state,
   + snapshot,
     send,
-  - actorRef
-  + service
+  - service
+  + actorRef
   } = useMachine(machine);
   ```
 

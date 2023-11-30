@@ -104,12 +104,7 @@ function executeSpawn(
     if (actorRef._processingStatus === ProcessingStatus.Stopped) {
       return;
     }
-    try {
-      actorRef.start?.();
-    } catch (err) {
-      (actorScope.self as AnyActor).send(createErrorActorEvent(id, err));
-      return;
-    }
+    actorRef.start();
   });
 }
 

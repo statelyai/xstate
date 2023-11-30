@@ -1,30 +1,32 @@
-import { assign, createMachine } from 'xstate';
+import { assign, setup } from 'xstate';
 
-const types = {
-  context: {} as { feedback: string },
-  events: {} as
-    | {
-        type: 'feedback.good';
-      }
-    | {
-        type: 'feedback.bad';
-      }
-    | {
-        type: 'feedback.update';
-        value: string;
-      }
-    | { type: 'submit' }
-    | {
-        type: 'close';
-      }
-    | { type: 'back' }
-    | { type: 'restart' }
-};
-
-export const feedbackMachine = createMachine({
+export const feedbackMachine = setup({
+  types: {
+    context: {} as { feedback: string },
+    events: {} as
+      | {
+          type: 'feedback.good';
+        }
+      | {
+          type: 'feedback.bad';
+        }
+      | {
+          type: 'feedback.update';
+          value: string;
+        }
+      | { type: 'submit' }
+      | {
+          type: 'close';
+        }
+      | { type: 'back' }
+      | { type: 'restart' }
+  },
+  guards: {
+    feedbackValid: ({ context }) => context.feedback.length > 0
+  }
+}).createMachine({
   id: 'feedback',
   initial: 'prompt',
-  types,
   context: {
     feedback: ''
   },
@@ -44,7 +46,7 @@ export const feedbackMachine = createMachine({
         },
         back: { target: 'prompt' },
         submit: {
-          guard: ({ context }) => context.feedback.length > 0,
+          guard: 'feedbackValid',
           target: 'thanks'
         }
       }

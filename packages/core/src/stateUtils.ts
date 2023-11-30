@@ -45,7 +45,8 @@ import {
   normalizeTarget,
   toArray,
   toStatePath,
-  toTransitionConfigArray
+  toTransitionConfigArray,
+  isErrorActorEvent
 } from './utils.ts';
 import { ProcessingStatus } from './interpreter.ts';
 
@@ -279,21 +280,8 @@ export function getDelayedTransitions(
     return [];
   }
 
-  const mutateEntryExit = (
-    delay:
-      | string
-      | number
-      | DelayExpr<
-          MachineContext,
-          EventObject,
-          ParameterizedObject['params'] | undefined,
-          EventObject
-        >,
-    i: number
-  ) => {
-    const delayRef =
-      typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
-    const afterEvent = createAfterEvent(delayRef, stateNode.id);
+  const mutateEntryExit = (delay: string | number, i: number) => {
+    const afterEvent = createAfterEvent(delay, stateNode.id);
     const eventType = afterEvent.type;
     stateNode.entry.push(raise(afterEvent, { id: eventType, delay }));
     stateNode.exit.push(cancel(eventType));
@@ -306,7 +294,7 @@ export function getDelayedTransitions(
       typeof configTransition === 'string'
         ? { target: configTransition }
         : configTransition;
-    const resolvedDelay = !isNaN(+delay) ? +delay : delay;
+    const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
     const eventType = mutateEntryExit(resolvedDelay, i);
     return toArray(resolvedTransition).map((transition) => ({
       ...transition,
@@ -750,7 +738,7 @@ export function transitionNode<
 >(
   stateNode: AnyStateNode,
   stateValue: StateValue,
-  state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+  state: MachineSnapshot<TContext, TEvent, any, any, any, any, any>,
   event: TEvent
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
@@ -1643,7 +1631,25 @@ export function macrostep(
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
   if (nextEvent.type !== XSTATE_INIT) {
-    const transitions = selectTransitions(nextEvent, nextState);
+    const currentEvent = nextEvent;
+    const isErr = isErrorActorEvent(currentEvent);
+
+    const transitions = selectTransitions(currentEvent, nextState);
+
+    if (isErr && !transitions.length) {
+      // TODO: we should likely only allow transitions selected by very explicit descriptors
+      // `*` shouldn't be matched, likely `xstate.error.*` shouldnt be either
+      // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
+      nextState = cloneMachineSnapshot<typeof state>(state, {
+        status: 'error',
+        error: currentEvent.data
+      });
+      states.push(nextState);
+      return {
+        state: nextState,
+        microstates: states
+      };
+    }
     nextState = microstep(
       transitions,
       state,

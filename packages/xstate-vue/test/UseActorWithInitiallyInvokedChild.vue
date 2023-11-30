@@ -1,14 +1,14 @@
 <template>
-  <div data-testid="machine-state">
-    {{ machineState.value }}
+  <div data-testid="machine-snapshot">
+    {{ machineSnapshot.value }}
   </div>
-  <div data-testid="actor-state">
-    {{ actorState.value }}
+  <div data-testid="actor-snapshot">
+    {{ actorSnapshot.value }}
   </div>
 </template>
 
 <script lang="ts">
-import { useMachine, useSelector } from '../src/index.ts';
+import { useActor, useSelector } from '../src/index.ts';
 import { createMachine, sendParent } from 'xstate';
 import { defineComponent } from 'vue';
 
@@ -39,13 +39,15 @@ const machine = createMachine({
 
 export default defineComponent({
   setup() {
-    const { snapshot: machineState } = useMachine(machine);
-
-    const actorState = useSelector(machineState.value.children.child, (s) => s);
+    const { snapshot: machineSnapshot } = useActor(machine);
+    const actorSnapshot = useSelector(
+      machineSnapshot.value.children.child,
+      (s) => s
+    );
 
     return {
-      machineState,
-      actorState
+      machineSnapshot,
+      actorSnapshot
     };
   }
 });

@@ -12,7 +12,6 @@ import {
   stopChild,
   log
 } from '../src/index.ts';
-import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
@@ -722,10 +721,11 @@ describe('interpreter', () => {
       }
     };
 
-    expect(() => {
-      createActor(createMachine(invalidMachine)).start();
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Initial state node "create" not found on parent state node #fetchMachine"`
+    const snapshot = createActor(createMachine(invalidMachine)).getSnapshot();
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: Initial state node "create" not found on parent state node #fetchMachine]`
     );
   });
 
@@ -1323,7 +1323,7 @@ describe('interpreter', () => {
       let count: number;
       const intervalService = createActor(intervalMachine).start();
 
-      expect(isObservable(intervalService)).toBeTruthy();
+      expect(typeof intervalService.subscribe === 'function').toBeTruthy();
 
       intervalService.subscribe(
         (state) => (count = state.context.count),

@@ -1,10 +1,10 @@
 <script>
   export let send;
-  export let state;
+  export let snapshot;
 </script>
 
 <div>
-  <div data-testid="count">{$state.context.count}</div>
+  <div data-testid="count">{$snapshot.context.count}</div>
   <button
     type="button"
     on:click={() => {
