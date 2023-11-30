@@ -20,10 +20,7 @@ XState is a state management and orchestration solution for JavaScript and TypeS
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
-### ✨ Create state machines visually → [state.new](https://state.new)
-
-> [!NOTE]
-> ℹ️ This is the branch for **XState v5 beta** and related packages. View the XState v4 branch [here](https://github.com/statelyai/xstate/tree/main).
+### ✨ Create state machines visually in Stately Studio → [state.new](https://state.new)
 
 ---
 
@@ -54,8 +51,10 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 Get started by forking one of these templates on CodeSandbox:
 
-- [XState Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/vanilla-ts) - TypeScript, no framework
-- [XState + React Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/react-ts) - TypeScript
+| Template                                                                                                        |                          |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| [XState Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/vanilla-ts)       | TypeScript, no framework |
+| [XState + React Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/react-ts) | TypeScript, React        |
 
 ## Super quick start
 
