@@ -12,7 +12,7 @@ export function createSpawn<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput
->(logic: ActorLogic<TSnapshot, TEvent, TInput>): ActorRef<TEvent, TSnapshot> {
+>(logic: ActorLogic<TSnapshot, TEvent, TInput>): ActorRef<TSnapshot, TEvent> {
   const actorRef = createActor(logic);
 
   if (!isServer) {

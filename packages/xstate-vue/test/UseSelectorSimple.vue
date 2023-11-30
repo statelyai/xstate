@@ -6,7 +6,7 @@
 import { defineComponent } from 'vue';
 import { createActor, ActorRef } from 'xstate';
 import { useSelector } from '../src/index.ts';
-const simpleActor: ActorRef<any, number> = createActor({
+const simpleActor: ActorRef<number, any> = createActor({
   transition: (s) => s,
   getSnapshot: () => 42,
   getInitialState: () => 42,

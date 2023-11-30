@@ -3402,7 +3402,7 @@ describe('invoke', () => {
       types: {} as {
         events: {
           type: 'PING';
-          origin: ActorRef<{ type: 'PONG' }, Snapshot<unknown>>;
+          origin: ActorRef<Snapshot<unknown>, { type: 'PONG' }>;
         };
       },
       on: {

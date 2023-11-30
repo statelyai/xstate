@@ -78,7 +78,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ActorRef<PingPongEvent, Snapshot<unknown>>;
+    server?: ActorRef<Snapshot<unknown>, PingPongEvent>;
   }
 
   const clientMachine = createMachine({

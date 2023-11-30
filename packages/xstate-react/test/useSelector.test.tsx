@@ -721,12 +721,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should work with a null actor', () => {
     const Child = (props: {
-      actor: ActorRef<any, TransitionSnapshot<{ count: number }>> | undefined;
+      actor: ActorRef<TransitionSnapshot<{ count: number }>, any> | undefined;
     }) => {
       const state = useSelector<
         ActorRef<
-          AnyEventObject,
-          Snapshot<undefined> & { context?: { count: number } }
+          Snapshot<undefined> & { context?: { count: number } },
+          AnyEventObject
         >,
         Snapshot<undefined> & { context?: { count: number } }
       >(props.actor ?? createEmptyActor(), (s) => s);
@@ -742,7 +742,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     const App = () => {
       const [actor, setActor] =
-        React.useState<ActorRef<any, TransitionSnapshot<{ count: number }>>>();
+        React.useState<ActorRef<TransitionSnapshot<{ count: number }>, any>>();
 
       return (
         <>
