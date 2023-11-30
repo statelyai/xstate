@@ -1,6 +1,6 @@
 import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import { escalate, forwardTo, raise, sendTo } from '../src/actions.ts';
+import { forwardTo, raise, sendTo } from '../src/actions.ts';
 import {
   PromiseActorLogic,
   fromCallback,
@@ -2842,96 +2842,6 @@ describe('invoke', () => {
       service.start();
 
       expect(actorStartedCount).toBe(1);
-    });
-  });
-
-  describe('error handling', () => {
-    it('handles escalated errors', (done) => {
-      const child = createMachine({
-        initial: 'die',
-
-        states: {
-          die: {
-            entry: [escalate('oops')]
-          }
-        }
-      });
-
-      const parent = createMachine({
-        initial: 'one',
-
-        states: {
-          one: {
-            invoke: {
-              id: 'child',
-              src: child,
-              onError: {
-                target: 'two',
-                guard: ({ event }) => event.data === 'oops'
-              }
-            }
-          },
-          two: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actor = createActor(parent);
-      actor.subscribe({
-        complete: () => {
-          done();
-        }
-      });
-      actor.start();
-    });
-
-    it('handles escalated errors as an expression', (done) => {
-      interface ChildContext {
-        id: number;
-      }
-
-      const child = createMachine({
-        types: {} as { context: ChildContext },
-        initial: 'die',
-        context: { id: 42 },
-        states: {
-          die: {
-            entry: escalate(({ context }) => context.id)
-          }
-        }
-      });
-
-      const parent = createMachine({
-        initial: 'one',
-
-        states: {
-          one: {
-            invoke: {
-              id: 'child',
-              src: child,
-              onError: {
-                target: 'two',
-                guard: ({ event }) => {
-                  expect(event.data).toEqual(42);
-                  return true;
-                }
-              }
-            }
-          },
-          two: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actor = createActor(parent);
-      actor.subscribe({
-        complete: () => {
-          done();
-        }
-      });
-      actor.start();
     });
   });
 
