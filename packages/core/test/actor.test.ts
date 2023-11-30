@@ -1167,7 +1167,7 @@ describe('actors', () => {
           output: undefined,
           error: undefined
         }),
-        getPersistedState: (s) => s
+        getPersistedSnapshot: (s) => s
       };
 
       const pingMachine = createMachine({
@@ -1404,10 +1404,10 @@ describe('actors', () => {
     });
 
     const actor = createActor(machine).start();
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
 
     createActor(machine, {
-      state: persistedState
+      snapshot: persistedState
     }).start();
 
     // Will be 2 if the observable is resubscribed
@@ -1427,10 +1427,10 @@ describe('actors', () => {
     });
 
     const actor = createActor(machine).start();
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
 
     createActor(machine, {
-      state: persistedState
+      snapshot: persistedState
     }).start();
 
     // Will be 2 if the event observable is resubscribed

@@ -80,7 +80,7 @@ interface ActionEnqueuer<
 
 function resolveEnqueueActions(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -143,10 +143,11 @@ function resolveEnqueueActions(
     context: args.context,
     event: args.event,
     enqueue,
-    check: (guard) => evaluateGuard(guard, state.context, args.event, state)
+    check: (guard) =>
+      evaluateGuard(guard, snapshot.context, args.event, snapshot)
   });
 
-  return [state, undefined, actions];
+  return [snapshot, undefined, actions];
 }
 
 export interface EnqueueActionsAction<

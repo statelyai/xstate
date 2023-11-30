@@ -57,7 +57,7 @@ describe('useMachine', () => {
   ).start();
   actorRef.send({ type: 'FETCH' });
 
-  const persistedFetchState = actorRef.getPersistedState();
+  const persistedFetchState = actorRef.getPersistedSnapshot();
 
   it('should work with a component ', async () => {
     const { getByText, getByTestId } = render(UseMachine as any);

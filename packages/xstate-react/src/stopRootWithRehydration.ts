@@ -30,6 +30,6 @@ export function stopRootWithRehydration(actorRef: AnyActorRef) {
   actorRef.stop();
   persistedSnapshots.forEach(([ref, snapshot]) => {
     (ref as any)._processingStatus = 0;
-    (ref as any)._state = snapshot;
+    (ref as any)._snapshot = snapshot;
   });
 }

@@ -368,7 +368,7 @@ export class StateNode<
   }
 
   public next(
-    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+    snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;
@@ -384,14 +384,19 @@ export class StateNode<
 
     for (const candidate of candidates) {
       const { guard } = candidate;
-      const resolvedContext = state.context;
+      const resolvedContext = snapshot.context;
 
       let guardPassed = false;
 
       try {
         guardPassed =
           !guard ||
-          evaluateGuard<TContext, TEvent>(guard, resolvedContext, event, state);
+          evaluateGuard<TContext, TEvent>(
+            guard,
+            resolvedContext,
+            event,
+            snapshot
+          );
       } catch (err: any) {
         const guardType =
           typeof guard === 'string'

@@ -23,14 +23,14 @@ type ResolvableSendId<
 
 function resolveCancel(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   actionArgs: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   { sendId }: { sendId: ResolvableSendId<any, any, any, any> }
 ) {
   const resolvedSendId =
     typeof sendId === 'function' ? sendId(actionArgs, actionParams) : sendId;
-  return [state, resolvedSendId];
+  return [snapshot, resolvedSendId];
 }
 
 function executeCancel(actorScope: AnyActorScope, resolvedSendId: string) {

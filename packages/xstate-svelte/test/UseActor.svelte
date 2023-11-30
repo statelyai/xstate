@@ -16,7 +16,7 @@
       }
     }),
     {
-      state: persistedState
+      snapshot: persistedState
     }
   );
 </script>

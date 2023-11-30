@@ -3,7 +3,7 @@ import { createInitEvent } from './eventUtils.ts';
 import { STATE_DELIMITER } from './constants.ts';
 import {
   createMachineSnapshot,
-  getPersistedState,
+  getPersistedSnapshot,
   MachineSnapshot
 } from './State.ts';
 import { StateNode } from './StateNode.ts';
@@ -144,7 +144,7 @@ export class StateMachine<
 
     this.transition = this.transition.bind(this);
     this.getInitialState = this.getInitialState.bind(this);
-    this.restoreState = this.restoreState.bind(this);
+    this.restoreSnapshot = this.restoreSnapshot.bind(this);
     this.start = this.start.bind(this);
 
     this.root = new StateNode(config, {
@@ -288,7 +288,7 @@ export class StateMachine<
     TOutput,
     TResolvedTypesMeta
   > {
-    return macrostep(snapshot, event, actorScope).state as typeof snapshot;
+    return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
 
   /**
@@ -299,7 +299,7 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: MachineSnapshot<
+    snapshot: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
@@ -321,7 +321,8 @@ export class StateMachine<
       TResolvedTypesMeta
     >
   > {
-    return macrostep(state, event, actorScope).microstates as (typeof state)[];
+    return macrostep(snapshot, event, actorScope)
+      .microstates as (typeof snapshot)[];
   }
 
   public getTransitionData(
@@ -435,7 +436,7 @@ export class StateMachine<
       internalQueue
     );
 
-    const { state: macroState } = macrostep(
+    const { snapshot: macroState } = macrostep(
       nextState,
       initEvent as AnyEventObject,
       actorScope,
@@ -446,7 +447,7 @@ export class StateMachine<
   }
 
   public start(
-    state: MachineSnapshot<
+    snapshot: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
@@ -456,7 +457,7 @@ export class StateMachine<
       TResolvedTypesMeta
     >
   ): void {
-    Object.values(state.children as Record<string, AnyActorRef>).forEach(
+    Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
       (child: any) => {
         if (child.getSnapshot().status === 'active') {
           child.start();
@@ -489,8 +490,8 @@ export class StateMachine<
     return this.definition;
   }
 
-  public getPersistedState(
-    state: MachineSnapshot<
+  public getPersistedSnapshot(
+    snapshot: MachineSnapshot<
       TContext,
       TEvent,
       TChildren,
@@ -501,10 +502,10 @@ export class StateMachine<
     >,
     options?: unknown
   ) {
-    return getPersistedState(state, options);
+    return getPersistedSnapshot(snapshot, options);
   }
 
-  public restoreState(
+  public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     _actorScope: ActorScope<
       MachineSnapshot<
@@ -532,7 +533,7 @@ export class StateMachine<
       string,
       {
         src: string | AnyActorLogic;
-        state: Snapshot<unknown>;
+        snapshot: Snapshot<unknown>;
         syncSnapshot?: boolean;
         systemId?: string;
       }
@@ -541,7 +542,7 @@ export class StateMachine<
     Object.keys(snapshotChildren).forEach((actorId) => {
       const actorData =
         snapshotChildren[actorId as keyof typeof snapshotChildren];
-      const childState = actorData.state;
+      const childState = actorData.snapshot;
       const src = actorData.src;
 
       const logic =
@@ -555,7 +556,7 @@ export class StateMachine<
         id: actorId,
         parent: _actorScope?.self,
         syncSnapshot: actorData.syncSnapshot,
-        state: childState,
+        snapshot: childState,
         src,
         systemId: actorData.systemId
       });

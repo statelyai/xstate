@@ -167,8 +167,8 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
         }
       });
     },
-    getPersistedState: ({ _subscription, ...state }) => state,
-    restoreState: (state) => ({
+    getPersistedSnapshot: ({ _subscription, ...state }) => state,
+    restoreSnapshot: (state) => ({
       ...(state as any),
       _subscription: undefined
     })
@@ -307,9 +307,9 @@ export function fromEventObservable<
         }
       });
     },
-    getPersistedState: ({ _subscription, ...state }) => state,
-    restoreState: (state: any) => ({
-      ...state,
+    getPersistedSnapshot: ({ _subscription, ...snapshot }) => snapshot,
+    restoreSnapshot: (snapshot: any) => ({
+      ...snapshot,
       _subscription: undefined
     })
   };

@@ -25,7 +25,7 @@ export function useIdleActorRef(
   if (logic.config !== currentConfig) {
     const newActorRef = createActor(logic, {
       ...options,
-      state: (actorRef.getPersistedState as any)({
+      snapshot: (actorRef.getPersistedSnapshot as any)({
         __unsafeAllowInlineActors: true
       })
     });

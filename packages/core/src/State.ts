@@ -397,16 +397,16 @@ export function createMachineSnapshot<
 }
 
 export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
-  state: TState,
+  snapshot: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {
   return createMachineSnapshot(
-    { ...state, ...config } as StateConfig<any, any>,
-    state.machine
+    { ...snapshot, ...config } as StateConfig<any, any>,
+    snapshot.machine
   ) as TState;
 }
 
-export function getPersistedState<
+export function getPersistedSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -415,7 +415,7 @@ export function getPersistedState<
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 >(
-  state: MachineSnapshot<
+  snapshot: MachineSnapshot<
     TContext,
     TEvent,
     TChildren,
@@ -438,7 +438,7 @@ export function getPersistedState<
     getMeta,
     toJSON,
     ...jsonValues
-  } = state;
+  } = snapshot;
 
   const childrenJson: Record<string, unknown> = {};
 
@@ -452,7 +452,7 @@ export function getPersistedState<
       throw new Error('An inline child actor cannot be persisted.');
     }
     childrenJson[id as keyof typeof childrenJson] = {
-      state: child.getPersistedState(options),
+      snapshot: child.getPersistedSnapshot(options),
       src: child.src,
       systemId: child._systemId,
       syncSnapshot: child._syncSnapshot
