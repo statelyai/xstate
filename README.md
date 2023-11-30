@@ -63,7 +63,7 @@ Get started by forking one of these templates on CodeSandbox:
 npm install xstate
 ```
 
-```js
+```ts
 import { createMachine, createActor, assign } from 'xstate';
 
 // State machine
@@ -132,7 +132,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 <td>
 
 ```js
-import { createMachine } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -156,13 +156,17 @@ const lightMachine = createMachine({
   }
 });
 
-const currentState = 'green';
+const actor = createActor(lightMachine);
 
-const nextState = lightMachine.transition(currentState, {
-  type: 'TIMER'
-}).value;
+actor.subscribe((state) => {
+  console.log(state.value);
+});
 
-// => 'yellow'
+actor.start();
+// logs 'green'
+
+actor.send({ type: 'TIMER' });
+// logs 'yellow'
 ```
 
 <table>
@@ -202,7 +206,7 @@ const nextState = lightMachine.transition(currentState, {
 <td>
 
 ```js
-import { createMachine } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -244,19 +248,23 @@ const lightMachine = createMachine({
   }
 });
 
-const currentState = 'yellow';
+const actor = createActor(lightMachine);
 
-const nextState = lightMachine.transition(currentState, {
-  type: 'TIMER'
-}).value;
-// => {
-//   red: 'walk'
-// }
+actor.subscribe((state) => {
+  console.log(state.value);
+});
 
-lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
-// => {
-//   red: 'wait'
-// }
+actor.start();
+// logs 'green'
+
+actor.send({ type: 'TIMER' });
+// logs 'yellow'
+
+actor.send({ type: 'TIMER' });
+// logs { red: 'walk' }
+
+actor.send({ type: 'PED_TIMER' });
+// logs { red: 'wait' }
 ```
 
 </td>
@@ -280,7 +288,9 @@ lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 <tr>
 <td>
 
-```js
+```ts
+import { createMachine, createActor } from 'xstate';
+
 const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
@@ -335,32 +345,34 @@ const wordMachine = createMachine({
   }
 });
 
-const boldState = wordMachine.transition('bold.off', {
-  type: 'TOGGLE_BOLD'
-}).value;
+const actor = createActor(wordMachine);
 
-// {
+actor.subscribe((state) => {
+  console.log(state.value);
+});
+
+actor.start();
+// logs {
+//   bold: 'off',
+//   italics: 'off',
+//   underline: 'off',
+//   list: 'none'
+// }
+
+actor.send({ type: 'TOGGLE_BOLD' });
+// logs {
 //   bold: 'on',
 //   italics: 'off',
 //   underline: 'off',
 //   list: 'none'
 // }
 
-const nextState = wordMachine.transition(
-  {
-    bold: 'off',
-    italics: 'off',
-    underline: 'on',
-    list: 'bullets'
-  },
-  { type: 'TOGGLE_ITALICS' }
-).value;
-
-// {
-//   bold: 'off',
+actor.send({ type: 'TOGGLE_ITALICS' });
+// logs {
+//   bold: 'on',
 //   italics: 'on',
-//   underline: 'on',
-//   list: 'bullets'
+//   underline: 'off',
+//   list: 'none'
 // }
 ```
 
@@ -385,6 +397,8 @@ const nextState = wordMachine.transition(
 <td>
 
 ```js
+import { createMachine, createActor } from 'xstate';
+
 const paymentMachine = createMachine({
   id: 'payment',
   initial: 'method',
@@ -404,27 +418,31 @@ const paymentMachine = createMachine({
   }
 });
 
-const checkState = paymentMachine.transition('method.cash', {
-  type: 'SWITCH_CHECK'
+const actor = createActor(paymentMachine);
+
+actor.subscribe((state) => {
+  console.log(state.value);
 });
 
-// => State {
+actor.start();
+// logs {
+//   value: { method: 'cash' },
+// }
+
+actor.send({ type: 'SWITCH_CHECK' });
+// logs {
 //   value: { method: 'check' },
-//   history: State { ... }
 // }
 
-const reviewState = paymentMachine.transition(checkState, { type: 'NEXT' });
-
-// => State {
+actor.send({ type: 'NEXT' });
+// logs {
 //   value: 'review',
-//   history: State { ... }
 // }
 
-const previousState = paymentMachine.transition(reviewState, {
-  type: 'PREVIOUS'
-}).value;
-
-// => { method: 'check' }
+actor.send({ type: 'PREVIOUS' });
+// logs {
+//   value: { method: 'check' },
+// }
 ```
 
 </td>
