@@ -24,7 +24,7 @@ describe('system', () => {
   it('should register an invoked actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
+        receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
       };
     }>;
 
@@ -66,7 +66,7 @@ describe('system', () => {
   it('should register a spawned actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
+        receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
       };
     }>;
 

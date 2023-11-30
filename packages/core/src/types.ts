@@ -107,7 +107,6 @@ export interface UnifiedArg<
   context: TContext;
   event: TExpressionEvent;
   self: ActorRef<
-    TEvent,
     MachineSnapshot<
       TContext,
       TEvent,
@@ -115,7 +114,8 @@ export interface UnifiedArg<
       StateValue,
       string,
       unknown
-    >
+    >,
+    TEvent
   >;
   system: ActorSystem<any>;
 }
@@ -1599,7 +1599,6 @@ export type Mapper<
   context: TContext;
   event: TExpressionEvent;
   self: ActorRef<
-    TEvent,
     MachineSnapshot<
       TContext,
       TEvent,
@@ -1607,7 +1606,8 @@ export type Mapper<
       StateValue,
       string,
       unknown
-    >
+    >,
+    TEvent
   >;
 }) => TResult;
 
@@ -1906,8 +1906,8 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 }
 
 export interface ActorRef<
-  TEvent extends EventObject,
-  TSnapshot extends Snapshot<unknown>
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
   /**
@@ -1969,7 +1969,6 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TResolvedTypesMeta
     >
     ? ActorRef<
-        TEvent,
         MachineSnapshot<
           TContext,
           TEvent,
@@ -1980,7 +1979,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
             : TResolvedTypesMeta
-        >
+        >,
+        TEvent
       >
     : R extends Promise<infer U>
       ? ActorRefFrom<PromiseActorLogic<U>>
@@ -1990,7 +1990,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TInput,
             infer _TSystem
           >
-        ? ActorRef<TEvent, TSnapshot>
+        ? ActorRef<TSnapshot, TEvent>
         : never
   : never;
 
@@ -2079,7 +2079,7 @@ export interface ActorScope<
   TEvent extends EventObject,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
-  self: ActorRef<TEvent, TSnapshot>;
+  self: ActorRef<TSnapshot, TEvent>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
@@ -2192,7 +2192,7 @@ export type UnknownActorLogic = ActorLogic<
 >;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TSnapshot>
+  ? R extends ActorRef<infer TSnapshot, infer _>
     ? TSnapshot
     : R extends Actor<infer TLogic>
       ? SnapshotFrom<TLogic>
@@ -2233,7 +2233,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
           infer _TResolvedTypesMeta
         >
       ? TEvent
-      : R extends ActorRef<infer TEvent, infer _>
+      : R extends ActorRef<infer _, infer TEvent>
         ? TEvent
         : never
   : never;
