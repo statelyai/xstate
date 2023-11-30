@@ -1,5 +1,4 @@
 ---
-'@xstate/analytics': minor
 '@xstate/immer': minor
 '@xstate/inspect': minor
 '@xstate/svelte': minor

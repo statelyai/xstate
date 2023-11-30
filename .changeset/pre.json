@@ -3,7 +3,6 @@
   "tag": "beta",
   "initialVersions": {
     "xstate": "4.7.3",
-    "@xstate/analytics": "0.0.1",
     "@xstate/graph": "1.0.0",
     "@xstate/immer": "0.0.1",
     "@xstate/react": "1.0.0-rc.0",

@@ -6,7 +6,6 @@
   "access": "public",
   "baseBranch": "main",
   "ignore": [
-    "@xstate/analytics",
     "@xstate/immer",
     "@xstate/inspect",
     "@xstate/solid",
