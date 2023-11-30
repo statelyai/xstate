@@ -19,6 +19,7 @@ import {
   SetupTypes,
   StateSchema,
   ToChildren,
+  UnknownActorLogic,
   Values
 } from './types';
 
@@ -102,7 +103,7 @@ type ToStateValue<T extends StateSchema> = T extends {
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>,
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
   TActions extends Record<string, ParameterizedObject['params'] | undefined>,
   TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
   TDelay extends string,
