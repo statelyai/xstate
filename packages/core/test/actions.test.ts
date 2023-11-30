@@ -1,6 +1,7 @@
 import {
   cancel,
   choose,
+  enqueueActions,
   log,
   pure,
   raise,
@@ -2664,6 +2665,254 @@ describe('log()', () => {
         [
           "expr label",
           "expr 42",
+        ],
+      ]
+    `);
+  });
+});
+
+describe('enqueueActions', () => {
+  it('should execute a simple referenced action', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: enqueueActions(({ enqueue }) => {
+          enqueue('someAction');
+        })
+      },
+      {
+        actions: {
+          someAction: spy
+        }
+      }
+    );
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute multiple different referenced actions', () => {
+    const spy1 = jest.fn();
+    const spy2 = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: enqueueActions(({ enqueue }) => {
+          enqueue('someAction');
+          enqueue('otherAction');
+        })
+      },
+      {
+        actions: {
+          someAction: spy1,
+          otherAction: spy2
+        }
+      }
+    );
+
+    createActor(machine).start();
+
+    expect(spy1).toHaveBeenCalledTimes(1);
+    expect(spy2).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute multiple same referenced actions', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: enqueueActions(({ enqueue }) => {
+          enqueue('someAction');
+          enqueue('someAction');
+        })
+      },
+      {
+        actions: {
+          someAction: spy
+        }
+      }
+    );
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('should execute a parameterized action', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        entry: enqueueActions(({ enqueue }) => {
+          enqueue({
+            type: 'someAction',
+            params: { answer: 42 }
+          });
+        })
+      },
+      {
+        actions: {
+          someAction: (_, params) => spy(params)
+        }
+      }
+    );
+
+    createActor(machine).start();
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          {
+            "answer": 42,
+          },
+        ],
+      ]
+    `);
+  });
+
+  it('should execute a function', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue(spy);
+      })
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute a builtin action using its own action creator', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      on: {
+        FOO: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue(
+              raise({
+                type: 'RAISED'
+              })
+            );
+          })
+        },
+        RAISED: {
+          actions: spy
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute a builtin action using its bound action creator', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      on: {
+        FOO: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue.raise({
+              type: 'RAISED'
+            });
+          })
+        },
+        RAISED: {
+          actions: spy
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should execute assigns when resolving the initial snapshot', () => {
+    const machine = createMachine({
+      context: {
+        count: 0
+      },
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue.assign({
+          count: 42
+        });
+      })
+    });
+
+    const snapshot = createActor(machine).getSnapshot();
+
+    expect(snapshot.context).toEqual({ count: 42 });
+  });
+
+  it('should be able to check a simple referenced guard', () => {
+    const spy = jest.fn().mockImplementation(() => true);
+    const machine = createMachine(
+      {
+        context: {
+          count: 0
+        },
+        entry: enqueueActions(({ check }) => {
+          check('alwaysTrue');
+        })
+      },
+      {
+        guards: {
+          alwaysTrue: spy
+        }
+      }
+    );
+
+    createActor(machine);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be able to check a parameterized guard', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: {
+          count: 0
+        },
+        entry: enqueueActions(({ check }) => {
+          check({
+            type: 'alwaysTrue',
+            params: {
+              max: 100
+            }
+          });
+        })
+      },
+      {
+        guards: {
+          alwaysTrue: (_, params) => {
+            spy(params);
+            return true;
+          }
+        }
+      }
+    );
+
+    createActor(machine);
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          {
+            "max": 100,
+          },
         ],
       ]
     `);
