@@ -2123,7 +2123,7 @@ export type Snapshot<TOutput> =
 export interface ActorLogic<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput = unknown,
+  TInput = NonReducibleUnknown,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   /** The initial setup/configuration used to create the actor logic. */
@@ -2137,7 +2137,7 @@ export interface ActorLogic<
    * @returns The new state.
    */
   transition: (
-    state: TSnapshot,
+    snapshot: TSnapshot,
     message: TEvent,
     ctx: ActorScope<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
@@ -2182,6 +2182,13 @@ export type AnyActorLogic = ActorLogic<
   any, // event
   any, // input
   any // system
+>;
+
+export type UnknownActorLogic = ActorLogic<
+  any, // this is invariant and it's hard to figure out a better default than `any`
+  EventObject,
+  NonReducibleUnknown,
+  ActorSystem<any>
 >;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
