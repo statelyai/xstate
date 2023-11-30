@@ -13,6 +13,7 @@ import {
   choose,
   createActor,
   createMachine,
+  enqueueActions,
   not,
   pure,
   sendTo,
@@ -2937,6 +2938,322 @@ describe('actions', () => {
   });
 });
 
+describe('enqueueActions', () => {
+  it('should be able to enqueue a defined parametrized action with required params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue({
+          type: 'greet',
+          params: {
+            name: 'Anders'
+          }
+        });
+      })
+    });
+  });
+
+  it('should not allow to enqueue a defined parametrized action without all of its required params', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue({
+          type: 'greet',
+          // @ts-expect-error
+          params: {}
+        });
+      })
+    });
+  });
+
+  it('should not be possible to enqueue a parametrized action outside of the defined ones', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue(
+          // @ts-expect-error
+          {
+            type: 'other'
+          }
+        );
+      })
+    });
+  });
+
+  it('should be possible to enqueue a parametrized action with no required params using a string', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue('poke');
+      })
+    });
+  });
+
+  it('should be possible to enqueue a parametrized action with no required params using an object', () => {
+    createMachine({
+      types: {} as {
+        actions: { type: 'greet'; params: { name: string } } | { type: 'poke' };
+      },
+      entry: enqueueActions(({ enqueue }) => {
+        enqueue({ type: 'poke' });
+      })
+    });
+  });
+
+  it('should be able to enqueue an inline custom action', () => {
+    createMachine(
+      {
+        types: {
+          actions: {} as { type: 'foo' } | { type: 'bar' }
+        }
+      },
+      {
+        actions: {
+          foo: enqueueActions(({ enqueue }) => {
+            enqueue(() => {});
+          })
+        }
+      }
+    );
+  });
+
+  it('should allow a defined simple guard to be checked', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: enqueueActions(({ check }) => {
+            check('plainGuard');
+          })
+        }
+      }
+    );
+  });
+
+  it('should allow a defined parametrized guard to be checked', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: enqueueActions(({ check }) => {
+            check({
+              type: 'isGreaterThan',
+              params: {
+                count: 10
+              }
+            });
+          })
+        }
+      }
+    );
+  });
+
+  it('should not allow a guard outside of the defined ones to be checked', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: enqueueActions(({ check }) => {
+            check(
+              // @ts-expect-error
+              'other'
+            );
+          })
+        }
+      }
+    );
+  });
+
+  it('should type guard params as undefined in inline custom guard when enqueueActions is used in the config', () => {
+    createMachine({
+      types: {
+        guards: {} as
+          | {
+              type: 'isGreaterThan';
+              params: {
+                count: number;
+              };
+            }
+          | { type: 'plainGuard' }
+      },
+      entry: enqueueActions(({ check }) => {
+        check((_, params) => {
+          params satisfies undefined;
+          undefined satisfies typeof params;
+          // @ts-expect-error
+          params satisfies 'not any';
+
+          return true;
+        });
+      })
+    });
+  });
+
+  it('should type guard params as undefined in inline custom guard when enqueueActions is used in the implementations', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          someGuard: enqueueActions(({ check }) => {
+            check((_, params) => {
+              params satisfies undefined;
+              undefined satisfies typeof params;
+              // @ts-expect-error
+              params satisfies 'not any';
+
+              return true;
+            });
+          })
+        }
+      }
+    );
+  });
+
+  it('should be able to enqueue `raise` using its own action creator in a transition with one of the other accepted event types', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      on: {
+        SOMETHING: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue(raise({ type: 'SOMETHING_ELSE' }));
+          })
+        }
+      }
+    });
+  });
+
+  it('should be able to enqueue `raise` using its bound action creator in a transition with one of the other accepted event types', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      on: {
+        SOMETHING: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue.raise({ type: 'SOMETHING_ELSE' });
+          })
+        }
+      }
+    });
+  });
+
+  it('should not be able to enqueue `raise` using its own action creator in a transition with an event type that is not defined', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      on: {
+        SOMETHING: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue(
+              raise({
+                // @ts-expect-error
+                type: 'OTHER'
+              })
+            );
+          })
+        }
+      }
+    });
+  });
+
+  it('should not be able to enqueue `raise` using its bound action creator in a transition with an event type that is not defined', () => {
+    createMachine({
+      types: {} as {
+        events:
+          | {
+              type: 'SOMETHING';
+            }
+          | {
+              type: 'SOMETHING_ELSE';
+            };
+      },
+      on: {
+        SOMETHING: {
+          actions: enqueueActions(({ enqueue }) => {
+            enqueue.raise({
+              // @ts-expect-error
+              type: 'OTHER'
+            });
+          })
+        }
+      }
+    });
+  });
+});
+
 describe('choose', () => {
   it('should be able to use a defined parametrized action with required params', () => {
     createMachine({
@@ -2989,7 +3306,7 @@ describe('choose', () => {
           guard: () => true,
           // @ts-expect-error
           actions: {
-            type: 'other' as const
+            type: 'other'
           }
         }
       ])
@@ -3085,7 +3402,7 @@ describe('choose', () => {
     );
   });
 
-  it('should allow a defined parametrized guard to be used as its guard', () => {
+  it('should allow a defined simple guard to be used as its guard', () => {
     createMachine(
       {
         types: {
@@ -3105,6 +3422,38 @@ describe('choose', () => {
             {
               actions: () => {},
               guard: 'plainGuard'
+            }
+          ])
+        }
+      }
+    );
+  });
+
+  it('should allow a defined parametrized guard to be used as its guard', () => {
+    createMachine(
+      {
+        types: {
+          guards: {} as
+            | {
+                type: 'isGreaterThan';
+                params: {
+                  count: number;
+                };
+              }
+            | { type: 'plainGuard' }
+        }
+      },
+      {
+        actions: {
+          foo: choose([
+            {
+              actions: () => {},
+              guard: {
+                type: 'isGreaterThan',
+                params: {
+                  count: 10
+                }
+              }
             }
           ])
         }
@@ -3132,7 +3481,7 @@ describe('choose', () => {
             {
               actions: () => {},
               // @ts-expect-error
-              guard: 'other' as const
+              guard: 'other'
             }
           ])
         }
@@ -3156,9 +3505,10 @@ describe('choose', () => {
         {
           actions: 'someAction',
           guard: (_, params) => {
-            ((_accept: undefined) => {})(params);
+            params satisfies undefined;
+            undefined satisfies typeof params;
             // @ts-expect-error
-            ((_accept: 'not any') => {})(params);
+            params satisfies 'not any';
             return true;
           }
         }
@@ -3186,9 +3536,11 @@ describe('choose', () => {
             {
               actions: 'someAction',
               guard: (_, params) => {
-                ((_accept: undefined) => {})(params);
+                params satisfies undefined;
+                undefined satisfies typeof params;
                 // @ts-expect-error
-                ((_accept: 'not any') => {})(params);
+                params satisfies 'not any';
+
                 return true;
               }
             }
