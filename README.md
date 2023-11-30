@@ -332,13 +332,22 @@ const wordMachine = createMachine({
       initial: 'none',
       states: {
         none: {
-          on: { BULLETS: 'bullets', NUMBERS: 'numbers' }
+          on: {
+            BULLETS: 'bullets',
+            NUMBERS: 'numbers'
+          }
         },
         bullets: {
-          on: { NONE: 'none', NUMBERS: 'numbers' }
+          on: {
+            NONE: 'none',
+            NUMBERS: 'numbers'
+          }
         },
         numbers: {
-          on: { BULLETS: 'bullets', NONE: 'none' }
+          on: {
+            BULLETS: 'bullets',
+            NONE: 'none'
+          }
         }
       }
     }
@@ -406,8 +415,16 @@ const paymentMachine = createMachine({
     method: {
       initial: 'cash',
       states: {
-        cash: { on: { SWITCH_CHECK: 'check' } },
-        check: { on: { SWITCH_CASH: 'cash' } },
+        cash: {
+          on: {
+            SWITCH_CHECK: 'check'
+          }
+        },
+        check: {
+          on: {
+            SWITCH_CASH: 'cash'
+          }
+        },
         hist: { type: 'history' }
       },
       on: { NEXT: 'review' }
