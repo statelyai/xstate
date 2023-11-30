@@ -117,7 +117,7 @@ export function raise<
   TParams extends ParameterizedObject['params'] | undefined =
     | ParameterizedObject['params']
     | undefined,
-  TDelay extends string = string
+  TDelay extends string = never
 >(
   eventOrExpr:
     | NoInfer<TEvent>

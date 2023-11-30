@@ -35,26 +35,15 @@ type ToParameterizedObject<
   };
 }>;
 
-type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
-  // if `keyof TActors` is `never` then it means that both `children` and `actors` were not supplied
-  // `never` comes from the default type of the `TChildrenMap` type parameter
-  // in such a case we "replace" `TActors` with a more traditional~ constraint
-  // one that doesn't depend on `Values<TChildrenMap>`
-  IsNever<keyof TActors> extends true ? Record<string, AnyActorLogic> : TActors;
-
 // at the moment we allow extra actors - ones that are not specified by `children`
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>,
-  TResolvedActors extends Record<
-    string,
-    AnyActorLogic
-  > = DefaultToAnyActors<TActors>
+  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
 > = Values<{
-  [K in keyof TResolvedActors & string]: {
+  [K in keyof TActors & string]: {
     src: K;
-    logic: TResolvedActors[K];
+    logic: TActors[K];
     id: IsNever<TChildrenMap> extends true
       ? string | undefined
       : K extends keyof Invert<TChildrenMap>
@@ -103,14 +92,20 @@ type ToStateValue<T extends StateSchema> = T extends {
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
-  TActions extends Record<string, ParameterizedObject['params'] | undefined>,
-  TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
-  TDelay extends string,
   TTag extends string,
   TInput,
   TOutput extends NonReducibleUnknown,
-  TChildrenMap extends Record<string, string> = never
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>, // this should have a default too but its keys depend on `TChildrenMap` and `= {}` doesn't work with that
+  TChildrenMap extends Record<string, string> = never,
+  TActions extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  > = {},
+  TGuards extends Record<
+    string,
+    ParameterizedObject['params'] | undefined
+  > = {},
+  TDelays extends Record<string, unknown> = {}
 >({
   actors,
   actions,
@@ -128,7 +123,7 @@ export function setup<
       ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
-      TDelay
+      keyof TDelays & string
     >;
   };
   guards?: {
@@ -140,7 +135,7 @@ export function setup<
     >;
   };
   delays?: {
-    [K in TDelay]: DelayConfig<
+    [K in keyof TDelays]: DelayConfig<
       TContext,
       TEvent,
       ToParameterizedObject<TActions>['params'],
@@ -155,7 +150,7 @@ export function setup<
       ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
-      TDelay,
+      keyof TDelays & string,
       TTag,
       TInput,
       TOutput,
@@ -165,7 +160,7 @@ export function setup<
         ToProvidedActor<TChildrenMap, TActors>,
         ToParameterizedObject<TActions>,
         ToParameterizedObject<TGuards>,
-        TDelay,
+        keyof TDelays & string,
         TTag
       >
     >
@@ -181,7 +176,7 @@ export function setup<
     ToProvidedActor<TChildrenMap, TActors>,
     ToParameterizedObject<TActions>,
     ToParameterizedObject<TGuards>,
-    TDelay,
+    keyof TDelays & string,
     ToStateValue<TConfig>,
     TTag,
     TInput,
@@ -192,7 +187,7 @@ export function setup<
       ToProvidedActor<TChildrenMap, TActors>,
       ToParameterizedObject<TActions>,
       ToParameterizedObject<TGuards>,
-      TDelay,
+      keyof TDelays & string,
       TTag
     >
   >;
