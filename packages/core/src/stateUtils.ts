@@ -280,21 +280,8 @@ export function getDelayedTransitions(
     return [];
   }
 
-  const mutateEntryExit = (
-    delay:
-      | string
-      | number
-      | DelayExpr<
-          MachineContext,
-          EventObject,
-          ParameterizedObject['params'] | undefined,
-          EventObject
-        >,
-    i: number
-  ) => {
-    const delayRef =
-      typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
-    const afterEvent = createAfterEvent(delayRef, stateNode.id);
+  const mutateEntryExit = (delay: string | number, i: number) => {
+    const afterEvent = createAfterEvent(delay, stateNode.id);
     const eventType = afterEvent.type;
     stateNode.entry.push(raise(afterEvent, { id: eventType, delay }));
     stateNode.exit.push(cancel(eventType));
@@ -307,7 +294,7 @@ export function getDelayedTransitions(
       typeof configTransition === 'string'
         ? { target: configTransition }
         : configTransition;
-    const resolvedDelay = !isNaN(+delay) ? +delay : delay;
+    const resolvedDelay = Number.isNaN(+delay) ? delay : +delay;
     const eventType = mutateEntryExit(resolvedDelay, i);
     return toArray(resolvedTransition).map((transition) => ({
       ...transition,

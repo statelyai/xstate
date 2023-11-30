@@ -12,7 +12,6 @@ import {
   MachineContext,
   ParameterizedObject,
   AnyActorLogic,
-  Snapshot,
   ProvidedActor,
   IsLiteralString,
   InputFrom,

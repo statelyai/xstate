@@ -1,11 +1,12 @@
+import { XSTATE_STOP } from '../constants';
 import {
   ActorLogic,
   ActorRefFrom,
   ActorSystem,
   AnyActorSystem,
+  NonReducibleUnknown,
   Snapshot
 } from '../types';
-import { XSTATE_STOP } from '../constants';
 
 export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
@@ -82,8 +83,7 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  * // }
  * ```
  */
-export function fromPromise<TOutput, TInput = unknown>(
-  // TODO: add types
+export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
   promiseCreator: ({
     input,
     system
