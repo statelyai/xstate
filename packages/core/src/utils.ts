@@ -381,21 +381,22 @@ export function toObserver<T>(
 }
 
 export function createInvokeId(stateNodeId: string, index: number): string {
-  return `${index}.#${stateNodeId}`;
+  return `${index}.${stateNodeId}`;
 }
 
 export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
-  if (src.startsWith('xstate.source')) {
-    const [, indexStr, nodeId] = src.match(/^xstate\.source\.(\d+)\.#(.*)/)!;
-    const node = machine.getStateNodeById(nodeId);
-    const invokeConfig = node.config.invoke!;
-    return (
-      Array.isArray(invokeConfig)
-        ? invokeConfig[indexStr as any]
-        : (invokeConfig as InvokeConfig<any, any, any, any, any, any>)
-    ).src;
+  const match = src.match(/^xstate\.invoke\.(\d+)\.(.*)/)!;
+  if (!match) {
+    return machine.implementations.actors[src];
   }
-  return machine.implementations.actors[src];
+  const [, indexStr, nodeId] = match;
+  const node = machine.getStateNodeById(nodeId);
+  const invokeConfig = node.config.invoke!;
+  return (
+    Array.isArray(invokeConfig)
+      ? invokeConfig[indexStr as any]
+      : (invokeConfig as InvokeConfig<any, any, any, any, any, any>)
+  ).src;
 }
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {

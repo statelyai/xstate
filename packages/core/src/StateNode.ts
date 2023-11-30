@@ -305,7 +305,7 @@ export class StateNode<
         const resolvedSrc =
           typeof src === 'string'
             ? src
-            : `xstate.source.${createInvokeId(this.id, i)}`;
+            : `xstate.invoke.${createInvokeId(this.id, i)}`;
         return {
           ...invokeConfig,
           src: resolvedSrc,
