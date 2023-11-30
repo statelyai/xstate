@@ -50,7 +50,8 @@ import type {
   Snapshot,
   AnyActorLogic,
   HistoryValue,
-  StateSchema
+  StateSchema,
+  EventDescriptor
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
 import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
@@ -112,7 +113,7 @@ export class StateMachine<
   public id: string;
 
   public states: StateNode<TContext, TEvent>['states'];
-  public events: Array<TEvent['type']>;
+  public events: Array<EventDescriptor<TEvent>>;
 
   constructor(
     /**

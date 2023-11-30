@@ -29,7 +29,8 @@ import type {
   AnyStateMachine,
   AnyStateNodeConfig,
   ProvidedActor,
-  NonReducibleUnknown
+  NonReducibleUnknown,
+  EventDescriptor
 } from './types.ts';
 import {
   createInvokeId,
@@ -420,7 +421,7 @@ export class StateNode<
   /**
    * All the event types accepted by this state node and its descendants.
    */
-  public get events(): Array<TEvent['type']> {
+  public get events(): Array<EventDescriptor<TEvent>> {
     return memo(this, 'events', () => {
       const { states } = this;
       const events = new Set(this.ownEvents);
@@ -445,7 +446,7 @@ export class StateNode<
    *
    * Excludes any inert events.
    */
-  public get ownEvents(): Array<TEvent['type']> {
+  public get ownEvents(): Array<EventDescriptor<TEvent>> {
     const events = new Set(
       [...this.transitions.keys()].filter((descriptor) => {
         return this.transitions
