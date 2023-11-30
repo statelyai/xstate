@@ -293,7 +293,9 @@ export function getDelayedTransitions(
     i: number
   ) => {
     const delayRef =
-      typeof delay === 'function' ? `${stateNode.id}:delay[${i}]` : delay;
+      typeof delay === 'function'
+        ? `xstate.delay.${i}.#${stateNode.id}`
+        : delay;
     const afterEvent = createAfterEvent(delayRef, stateNode.id);
     const eventType = afterEvent.type;
     stateNode.entry.push(raise(afterEvent, { id: eventType, delay }));

@@ -328,7 +328,7 @@ describe('inspect', () => {
         {
           "event": {
             "output": 42,
-            "type": "xstate.done.actor.(machine).loading[0]",
+            "type": "xstate.done.actor.0.#(machine).loading",
           },
           "sourceId": "x:3",
           "targetId": "x:2",
@@ -378,7 +378,7 @@ describe('inspect', () => {
           "actorId": "x:2",
           "event": {
             "output": 42,
-            "type": "xstate.done.actor.(machine).loading[0]",
+            "type": "xstate.done.actor.0.#(machine).loading",
           },
           "snapshot": {
             "value": "loaded",

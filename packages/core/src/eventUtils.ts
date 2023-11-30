@@ -8,9 +8,8 @@ import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
  * @param delayRef The delay in milliseconds
  * @param id The state node ID where this event is handled
  */
-export function createAfterEvent(delayRef: number | string, id?: string) {
-  const idSuffix = id ? `#${id}` : '';
-  return { type: `xstate.after.${delayRef}.${idSuffix}` } as const;
+export function createAfterEvent(delayRef: number | string, id: string) {
+  return { type: `xstate.after.${delayRef}.#${id}` } as const;
 }
 
 /**

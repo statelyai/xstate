@@ -381,13 +381,13 @@ export function toObserver<T>(
 }
 
 export function createInvokeId(stateNodeId: string, index: number): string {
-  return `${stateNodeId}[${index}]`;
+  return `${index}.#${stateNodeId}`;
 }
 
 export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
-  if (src.startsWith('xstate#')) {
-    const [, indexStr] = src.match(/\[(\d+)\]$/)!;
-    const node = machine.getStateNodeById(src.slice(7, -(indexStr.length + 2)));
+  if (src.startsWith('xstate.source')) {
+    const [, indexStr, nodeId] = src.match(/^xstate\.source\.(\d+)\.#(.*)/)!;
+    const node = machine.getStateNodeById(nodeId);
     const invokeConfig = node.config.invoke!;
     return (
       Array.isArray(invokeConfig)
