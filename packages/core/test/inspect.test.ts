@@ -319,7 +319,7 @@ describe('inspect', () => {
         {
           "event": {
             "data": 42,
-            "type": "$$xstate.resolve",
+            "type": "xstate.promise.resolve",
           },
           "sourceId": "x:3",
           "targetId": "x:3",
@@ -390,7 +390,7 @@ describe('inspect', () => {
           "actorId": "x:3",
           "event": {
             "data": 42,
-            "type": "$$xstate.resolve",
+            "type": "xstate.promise.resolve",
           },
           "snapshot": {
             "error": undefined,

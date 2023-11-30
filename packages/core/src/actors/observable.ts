@@ -6,16 +6,27 @@ import {
   Subscription,
   AnyActorSystem,
   ActorRefFrom,
-  Snapshot
+  Snapshot,
+  NonReducibleUnknown
 } from '../types';
 
-export type ObservableSnapshot<TContext, TInput> = Snapshot<undefined> & {
+const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';
+const XSTATE_OBSERVABLE_ERROR = 'xstate.observable.error';
+const XSTATE_OBSERVABLE_COMPLETE = 'xstate.observable.complete';
+
+export type ObservableSnapshot<
+  TContext,
+  TInput extends NonReducibleUnknown
+> = Snapshot<undefined> & {
   context: TContext | undefined;
   input: TInput | undefined;
   _subscription: Subscription | undefined;
 };
 
-export type ObservableActorLogic<TContext, TInput> = ActorLogic<
+export type ObservableActorLogic<
+  TContext,
+  TInput extends NonReducibleUnknown
+> = ActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
@@ -66,7 +77,7 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
  * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
  * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
  */
-export function fromObservable<TContext, TInput>(
+export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
   observableCreator: ({
     input,
     system
@@ -76,10 +87,6 @@ export function fromObservable<TContext, TInput>(
     self: ObservableActorRef<TContext>;
   }) => Subscribable<TContext>
 ): ObservableActorLogic<TContext, TInput> {
-  const nextEventType = '$$xstate.next';
-  const errorEventType = '$$xstate.error';
-  const completeEventType = '$$xstate.complete';
-
   // TODO: add event types
   const logic: ObservableActorLogic<TContext, TInput> = {
     config: observableCreator,
@@ -89,14 +96,14 @@ export function fromObservable<TContext, TInput>(
       }
 
       switch (event.type) {
-        case nextEventType: {
+        case XSTATE_OBSERVABLE_NEXT: {
           const newSnapshot = {
             ...snapshot,
             context: event.data as TContext
           };
           return newSnapshot;
         }
-        case errorEventType:
+        case XSTATE_OBSERVABLE_ERROR:
           return {
             ...snapshot,
             status: 'error',
@@ -104,7 +111,7 @@ export function fromObservable<TContext, TInput>(
             input: undefined,
             _subscription: undefined
           };
-        case completeEventType:
+        case XSTATE_OBSERVABLE_COMPLETE:
           return {
             ...snapshot,
             status: 'done',
@@ -144,13 +151,19 @@ export function fromObservable<TContext, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          system._relay(self, self, { type: nextEventType, data: value });
+          system._relay(self, self, {
+            type: XSTATE_OBSERVABLE_NEXT,
+            data: value
+          });
         },
         error: (err) => {
-          system._relay(self, self, { type: errorEventType, data: err });
+          system._relay(self, self, {
+            type: XSTATE_OBSERVABLE_ERROR,
+            data: err
+          });
         },
         complete: () => {
-          system._relay(self, self, { type: completeEventType });
+          system._relay(self, self, { type: XSTATE_OBSERVABLE_COMPLETE });
         }
       });
     },
@@ -208,8 +221,10 @@ export function fromObservable<TContext, TInput>(
  * canvasActor.start();
  * ```
  */
-
-export function fromEventObservable<T extends EventObject, TInput>(
+export function fromEventObservable<
+  T extends EventObject,
+  TInput extends NonReducibleUnknown
+>(
   lazyObservable: ({
     input,
     system
@@ -219,9 +234,6 @@ export function fromEventObservable<T extends EventObject, TInput>(
     self: ObservableActorRef<T>;
   }) => Subscribable<T>
 ): ObservableActorLogic<T, TInput> {
-  const errorEventType = '$$xstate.error';
-  const completeEventType = '$$xstate.complete';
-
   // TODO: event types
   const logic: ObservableActorLogic<T, TInput> = {
     config: lazyObservable,
@@ -231,7 +243,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
       }
 
       switch (event.type) {
-        case errorEventType:
+        case XSTATE_OBSERVABLE_ERROR:
           return {
             ...state,
             status: 'error',
@@ -239,7 +251,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
             input: undefined,
             _subscription: undefined
           };
-        case completeEventType:
+        case XSTATE_OBSERVABLE_COMPLETE:
           return {
             ...state,
             status: 'done',
@@ -285,10 +297,13 @@ export function fromEventObservable<T extends EventObject, TInput>(
           }
         },
         error: (err) => {
-          system._relay(self, self, { type: errorEventType, data: err });
+          system._relay(self, self, {
+            type: XSTATE_OBSERVABLE_ERROR,
+            data: err
+          });
         },
         complete: () => {
-          system._relay(self, self, { type: completeEventType });
+          system._relay(self, self, { type: XSTATE_OBSERVABLE_COMPLETE });
         }
       });
     },
