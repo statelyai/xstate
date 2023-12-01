@@ -1,5 +1,79 @@
 # Changelog
 
+## 4.0.0
+
+### Major Changes
+
+- d3d6149c7: Removed the ability to pass a factory function as argument to `useMachine` and `useInterpret`.
+- d3d6149c7: `useActorRef` is introduced, which returns an `ActorRef` from actor logic:
+
+  ```ts
+  const actorRef = useActorRef(machine, { ... });
+  const anotherActorRef = useActorRef(fromPromise(...));
+  ```
+
+  ~~`useMachine`~~ is deprecated in favor of `useActor`, which works with machines and any other kind of logic
+
+  ```diff
+  -const [state, send] = useMachine(machine);
+  +const [state, send] = useActor(machine);
+  const [state, send] = useActor(fromTransition(...));
+  ```
+
+  ~~`useSpawn`~~ is removed in favor of `useActorRef`
+
+  ````diff
+  -const actorRef = useSpawn(machine);
+  +const actorRef = useActorRef(machine);
+
+  The previous use of `useActor(actorRef)` is now replaced with just using the `actorRef` directly, and with `useSelector`:
+
+  ```diff
+  -const [state, send] = useActor(actorRef);
+  +const state = useSelector(actorRef, s => s);
+  // actorRef.send(...)
+  ````
+
+- d3d6149c7: The `options` prop has been added (back) to the `Context.Provider` component returned from `createActorContext`:
+
+  ```tsx
+  const SomeContext = createActorContext(someMachine);
+
+  // ...
+
+  <SomeContext.Provider options={{ input: 42 }}>
+    {/* ... */}
+  </SomeContext.Provider>;
+  ```
+
+- d3d6149c7: `useActor` has been removed from the created actor context, you should be able to replace its usage with `MyCtx.useSelector` and `MyCtx.useActorRef`.
+- d3d6149c7: FSM-related functions have been removed.
+- d3d6149c7: Implementations for machines on `useMachine` and `useInterpret` hooks should go directly on the machine via `machine.provide(...)`, and are no longer allowed to be passed in as options.
+
+  ```diff
+  -const [state, send] = useMachine(machine, {
+  -  actions: {
+  -    // ...
+  -  }
+  -});
+  +const [state, send] = useMachine(machine.provide({
+  +  actions: {
+  +    // ...
+  +  }
+  +}));
+  ```
+
+  `@xstate/react` will detect that the machine's config is still the same, and will not produce the "machine has changed" warning.
+
+- d3d6149c7: Removed `getSnapshot` parameter from hooks. It is expected that the received `actorRef` has to have a `getSnapshot` method on it that can be used internally.
+
+### Minor Changes
+
+- d3d6149c7: `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+- d3d6149c7: The `useMachine` function is aliased to `useActor`.
+- d3d6149c7: Fast refresh now works as expected for most use-cases.
+- d3d6149c7: The `observerOrListener` argument has been removed from the 3rd argument of `createActorContext(logic, options)`.
+
 ## 4.0.0-beta.11
 
 ### Minor Changes
