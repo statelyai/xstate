@@ -117,7 +117,7 @@ export function fromTransition<
         )
       };
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,

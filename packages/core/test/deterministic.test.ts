@@ -150,7 +150,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.getInitialState(actorScope),
+          lightMachine.getInitialSnapshot(actorScope),
           { type: 'TIMER' },
           actorScope
         ).value
@@ -161,7 +161,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         lightMachine.transition(
-          lightMachine.getInitialState(actorScope),
+          lightMachine.getInitialSnapshot(actorScope),
           { type: 'TIMER' },
           actorScope
         ).value
@@ -269,7 +269,7 @@ describe('deterministic machine', () => {
     it('should return the same state if no transition occurs', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       const initialState = lightMachine.transition(
-        lightMachine.getInitialState(actorScope),
+        lightMachine.getInitialSnapshot(actorScope),
         {
           type: 'NOTHING'
         },
@@ -314,7 +314,7 @@ describe('deterministic machine', () => {
       const actorScope = null as any; // TODO: figure out the simulation API
       expect(
         machine.transition(
-          machine.getInitialState(actorScope),
+          machine.getInitialSnapshot(actorScope),
           { type: 'NEXT' },
           actorScope
         ).value

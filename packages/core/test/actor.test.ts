@@ -1162,7 +1162,7 @@ describe('actors', () => {
 
           return state;
         },
-        getInitialState: () => ({
+        getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined

@@ -169,7 +169,7 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
         }
       );
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,

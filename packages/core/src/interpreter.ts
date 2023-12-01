@@ -211,7 +211,7 @@ export class Actor<TLogic extends AnyActorLogic>
         ? this.logic.restoreSnapshot
           ? this.logic.restoreSnapshot(persistedState, this._actorScope)
           : persistedState
-        : this.logic.getInitialState(this._actorScope, this.options?.input);
+        : this.logic.getInitialSnapshot(this._actorScope, this.options?.input);
     } catch (err) {
       // if we get here then it means that we assign a value to this._snapshot that is not of the correct type
       // we can't get the true `TSnapshot & { status: 'error'; }`, it's impossible
