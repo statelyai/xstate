@@ -28,8 +28,8 @@
 
 - d3d6149c7: - The third argument of `machine.transition(state, event)` has been removed. The `context` should always be given as part of the `state`.
 
-  - There is a new method: `machine.microstep(state, event)` which returns the resulting intermediate `State` object that represents a single microstep being taken when transitioning from `state` via the `event`. This is the `State` that does not take into account transient transitions nor raised events, and is useful for debugging.
-  - The `state.events` property has been removed from the `State` object, and is replaced internally by `state._internalQueue`, which represents raised events to be processed in a macrostep loop. The `state._internalQueue` property should be considered internal (not used in normal development).
+  - There is a new method: `machine.microstep(snapshot, event)` which returns the resulting intermediate `MachineSnapshot` object that represents a single microstep being taken when transitioning from `snapshot` via the `event`. This is the `MachineSnapshot` that does not take into account transient transitions nor raised events, and is useful for debugging.
+  - The `state.events` property has been removed from the `State` object
   - The `state.historyValue` property now more closely represents the original SCXML algorithm, and is a mapping of state node IDs to their historic descendent state nodes. This is used for resolving history states, and should be considered internal.
   - The `stateNode.isTransient` property is removed from `StateNode`.
   - The `.initial` property of a state node config object can now contain executable content (i.e., actions):
@@ -100,7 +100,7 @@
 
   If `context` is `undefined`, it will now default to an empty object `{}`.
 
-- d3d6149c7: Actors are now always part of a "system", which is a collection of actors that can communicate with each other. Systems are implicitly created, and can be used to get and set references to any actor in the system via the `key` prop:
+- d3d6149c7: Actors are now always part of a "system", which is a collection of actors that can communicate with each other. Systems are implicitly created, and can be used to get and set references to any actor in the system via the `systemId` prop:
 
   ```js
   const machine = createMachine({
@@ -108,7 +108,7 @@
     invoke: {
       src: emailMachine,
       // Registers `emailMachine` as `emailer` on the system
-      key: 'emailer'
+      systemId: 'emailer'
     }
   });
   ```
@@ -117,7 +117,8 @@
   const machine = createMachine({
     // ...
     entry: assign({
-      emailer: (ctx, ev, { spawn }) => spawn(emailMachine, { key: 'emailer' })
+      emailer: (ctx, ev, { spawn }) =>
+        spawn(emailMachine, { systemId: 'emailer' })
     })
   });
   ```
@@ -136,22 +137,22 @@
   });
   ```
 
-  Each top-level `interpret(...)` call creates a separate implicit system. In this example example, `actor1` and `actor2` are part of different systems and are unrelated:
+  Each top-level `createActor(...)` call creates a separate implicit system. In this example example, `actor1` and `actor2` are part of different systems and are unrelated:
 
   ```js
   // Implicit system
-  const actor1 = interpret(machine).start();
+  const actor1 = createActor(machine).start();
 
   // Another implicit system
-  const actor2 = interpret(machine).start();
+  const actor2 = createActor(machine).start();
   ```
 
 - d3d6149c7: `external` property on transitions has been renamed to `reenter`
-- d3d6149c7: The `interpreter.onStop(...)` method has been removed. Use an observer instead via `interpreter.subscribe({ complete() { ... } })` instead.
+- d3d6149c7: The `interpreter.onStop(...)` method has been removed. Use an observer instead via `actorRef.subscribe({ complete() { ... } })` instead.
 - d3d6149c7: Removed `MachineSnapshot['nextEvents']`.
 - d3d6149c7: Renamed `machine.withConfig(...)` to `machine.provide(...)`.
-- d3d6149c7: Removed third parameter (context) from Machine's transition method. If you want to transition with a particular context value you should create appropriate `State` using `State.from`. So instead of this - `machine.transition('green', { type: 'TIMER' }, { elapsed: 100 })`, you should do this - `machine.transition(State.from('green', { elapsed: 100 }), { type: 'TIMER' })`.
-- d3d6149c7: Sending a string event to `actor.send('some string')` will now throw a proper error message.
+- d3d6149c7: Removed third parameter (context) from Machine's transition method. If you want to transition with a particular context value you should create appropriate `MachineSnapshot` using `machine.resolveState`. So instead of this - `machine.transition('green', { type: 'TIMER' }, { elapsed: 100 })`, you should do this - `machine.transition(machine.resolveState({ value: 'green', context: { elapsed: 100 } }), { type: 'TIMER' })`.
+- d3d6149c7: Sending a string event to `actorRef.send('some string')` will now throw a proper error message.
 - d3d6149c7: The `self` actor reference is now available in all action metas. This makes it easier to reference the "self" `ActorRef` so that actions such as `sendTo` can include it in the event payload:
 
   ```ts
@@ -191,24 +192,24 @@
   }
   ```
 
-- d3d6149c7: Restoring persisted state is now done by passing the state into the `state: ...` property of the `interpret` options argument:
+- d3d6149c7: Restoring persisted state is now done by passing the state into the `snapshot: ...` property of the `createActor` options argument:
 
   ```diff
   -interpret(machine).start(state);
-  +interpret(machine, { state }).start();
+  +createActor(machine, { snapshot }).start();
   ```
 
-  The persisted state is obtained from an actor by calling `actor.getPersistedState()`:
+  The persisted snapshot is obtained from an actor by calling `actor.getPersistedSnapshot()`:
 
   ```ts
-  const actor = interpret(machine).start();
+  const actor = createActor(machine).start();
 
-  const persistedState = actor.getPersistedState();
+  const persistedSnapshot = actor.getPersistedSnapshot();
 
   // ...
 
-  const restoredActor = interpret(machine, {
-    state: persistedState
+  const restoredActor = createActor(machine, {
+    snapshot: persistedSnapshot
   }).start();
   ```
 
@@ -217,10 +218,10 @@
   - Dev tools integration has been simplified, and Redux dev tools support is no longer the default. It can be included from `xstate/devTools/redux`:
 
   ```js
-  import { interpret } from 'xstate';
+  import { createActor } from 'xstate';
   import { createReduxDevTools } from 'xstate/devTools/redux';
 
-  const service = interpret(someMachine, {
+  const service = createActor(someMachine, {
     devTools: createReduxDevTools({
       // Redux Dev Tools options
     })
@@ -230,35 +231,35 @@
   By default, dev tools are attached to the global `window.__xstate__` object:
 
   ```js
-  const service = interpret(someMachine, {
+  const service = createActor(someMachine, {
     devTools: true // attaches via window.__xstate__.register(service)
   });
   ```
 
-  And creating your own custom dev tools adapter is a function that takes in the `service`:
+  And creating your own custom dev tools adapter is a function that takes in the `actorRef`:
 
   ```js
-  const myCustomDevTools = (service) => {
-    console.log('Got a service!');
+  const myCustomDevTools = (actorRef) => {
+    console.log('Got a actorRef!');
 
-    service.subscribe((state) => {
+    actorRef.subscribe((state) => {
       // ...
     });
   };
 
-  const service = interpret(someMachine, {
+  const actorRef = createActor(someMachine, {
     devTools: myCustomDevTools
   });
   ```
 
   - These handlers have been removed, as they are redundant and can all be accomplished with `.onTransition(...)` and/or `.subscribe(...)`:
 
-    - `service.onEvent()`
-    - `service.onSend()`
-    - `service.onChange()`
+    - `actorRef.onEvent()`
+    - `actorRef.onSend()`
+    - `actorRef.onChange()`
 
-  - The `service.send(...)` method no longer returns the next state. It is a `void` function (fire-and-forget).
-  - The `service.sender(...)` method has been removed as redundant. Use `service.send(...)` instead.
+  - The `actorRef.send(...)` method no longer returns the next state. It is a `void` function (fire-and-forget).
+  - The `actorRef.sender(...)` method has been removed as redundant. Use `actorRef.send(...)` instead.
 
 - d3d6149c7: The output data on final states is now specified as `.output` instead of `.data`:
 
@@ -285,8 +286,6 @@
 
   The state nodes will not show the machine's `version` on them - the `version` property is only available on the root machine node.
 
-  The `machine.withContext({...})` method now permits providing partial context, instead of the entire machine context.
-
 - d3d6149c7: The `in: ...` property for transitions is removed and replaced with guards. It is recommended to use `stateIn()` and `not(stateIn())` guard creators instead:
 
   ```diff
@@ -297,13 +296,13 @@
     SOME_EVENT: {
       target: 'somewhere',
   -   in: '#someState'
-  +   cond: stateIn('#someState')
+  +   guard: stateIn('#someState')
     }
   }
   // ...
   ```
 
-- d3d6149c7: Removed `Interpreter['status']` from publicly available properties.
+- d3d6149c7: Removed `Actor['status']` from publicly available properties.
 - d3d6149c7: All builtin action creators (`assign`, `sendTo`, etc) are now returning _functions_. They exact shape of those is considered an implementation detail of XState and users are meant to only pass around the returned values.
 - d3d6149c7: Autoforwarding events is no longer supported and the `autoForward` property has been removed.
 
@@ -375,7 +374,7 @@
   });
   ```
 
-- d3d6149c7: The `.send(...)` method on `interpreter.send(...)` now requires the first argument (the event to send) to be an _object_; that is, either:
+- d3d6149c7: The `.send(...)` method on `actorRef.send(...)` now requires the first argument (the event to send) to be an _object_; that is, either:
 
   - an event object (e.g. `{ type: 'someEvent' }`)
   - an SCXML event object.
@@ -383,11 +382,11 @@
   The second argument (payload) is no longer supported, and should instead be included within the object:
 
   ```diff
-  -actor.send('SOME_EVENT')
-  +actor.send({ type: 'SOME_EVENT' })
+  -actorRef.send('SOME_EVENT')
+  +actorRef.send({ type: 'SOME_EVENT' })
 
-  -actor.send('EVENT', { some: 'payload' })
-  +actor.send({ type: 'EVENT', some: 'payload' })
+  -actorRef.send('EVENT', { some: 'payload' })
+  +actorRef.send({ type: 'EVENT', some: 'payload' })
   ```
 
 - d3d6149c7: Actions and guards that follow eventless transitions will now receive the event that triggered the transition instead of a "null" event (`{ type: '' }`), which no longer exists:
@@ -404,7 +403,7 @@
       always: 'c'
     },
     c: {
-      entry: [(_, event) => {
+      entry: [({ event }) => {
         // event.type is now "SOME_EVENT", not ""
       }]
     }
@@ -428,7 +427,7 @@
   });
   ```
 
-- d3d6149c7: Reading the initial state from an actor via `actor.initialState` is removed. Use `actor.getInitialState()` instead.
+- d3d6149c7: Reading the initial state from an actor via `actorRef.initialState` is removed. Use `actorRef.getSnapshot()` instead.
 - d3d6149c7: `machine.initialState` has been removed, you can use `machine.getInitialState(...)` instead
 - d3d6149c7: Target resolution improvements: targeting sibling nodes from the root is no longer valid, since the root node has no siblings:
 
@@ -447,7 +446,7 @@
   });
   ```
 
-- d3d6149c7: The `interpret(...)` function now accepts `input` in the second argument, which passes input data in the `"xstate.init"` event:
+- d3d6149c7: The `createActor(...)` function now accepts `input` in the second argument, which passes input data in the `"xstate.init"` event:
 
   ```js
   const greetMachine = createMachine({
@@ -461,17 +460,17 @@
     // ...
   });
 
-  const actor = interpret(greetMachine, {
+  const actor = createActor(greetMachine, {
     // Pass input data to the machine
     input: { name: 'David' }
   }).start();
   ```
 
-- d3d6149c7: Invoked actors can now be deeply persisted and restored. When the persisted state of an actor is obtained via `actor.getPersistedState()`, the states of all invoked actors are also persisted, if possible. This state can be restored by passing the persisted state into the `state: ...` property of the `interpret` options argument:
+- d3d6149c7: Invoked actors can now be deeply persisted and restored. When the persisted state of an actor is obtained via `actorRef.getPersistedSnapshot()`, the states of all invoked actors are also persisted, if possible. This state can be restored by passing the persisted state into the `snapshot: ...` property of the `createActor` options argument:
 
   ```diff
-  -interpret(machine).start(state);
-  +interpret(machine, { state }).start();
+  -createActor(machine).start(state);
+  +createActor(machine, { snapshot }).start();
   ```
 
 - d3d6149c7: Atomic and parallel states should no longer be reentered when the transition target doesn't escape them. You can get the reentering behavior by configuring `reenter: true` for the transition.
@@ -499,7 +498,7 @@
   })
   ```
 
-  The `stateIn(...)` and `stateNotIn(...)` guards also can be used the same way as `state.matches(...)`:
+  The `stateIn(...)` and `stateNotIn(...)` guards also can be used the same way as `snapshot.matches(...)`:
 
   ```js
   // ...
@@ -513,13 +512,7 @@
 
   An error will now be thrown if the `assign(...)` action is executed when the `context` is `undefined`. Previously, there was only a warning.
 
-  ***
-
-  The SCXML event `error.execution` will be raised if assignment in an `assign(...)` action fails.
-
-  ***
-
-  Error events raised by the machine will be _thrown_ if there are no error listeners registered on a service via `service.onError(...)`.
+  Error events raised by the machine will be _thrown_ if there are no error listeners registered on an actor via `actorRef.subscribe({ error: () => {} })`.
 
 - d3d6149c7: Action/actor/delay/guard arguments are now consolidated into a single object argument. This is a breaking change for all of those things that are called with arguments.
 
@@ -551,7 +544,7 @@
   +invoke: { src: 'myActor' }
   ```
 
-- d3d6149c7: `machine.transition(...)` and `machine.getInitialState(...)` require now an `actorContext` argument
+- d3d6149c7: `machine.transition(...)` and `machine.getInitialState(...)` require now an `actorScope` argument
 - d3d6149c7: All events automatically generated by XState will now be prefixed by `xstate.`. Naming scheme changed slightly as well, for example `done.invoke.*` events became `xstate.done.actor.*` events.
 - d3d6149c7: The `escalate()` action is removed. Just throw an error normally.
 - d3d6149c7: The `actor.onTransition(...)` method has been removed in favor of `.subscribe(...)`
@@ -564,20 +557,20 @@
   +actor.start();
   ```
 
-- d3d6149c7: Observing an actor via `actor.subscribe(...)` no longer immediately receives the current snapshot. Instead, the current snapshot can be read from `actor.getSnapshot()`, and observers will receive snapshots only when a transition in the actor occurs.
+- d3d6149c7: Observing an actor via `actorRef.subscribe(...)` no longer immediately receives the current snapshot. Instead, the current snapshot can be read from `actorRef.getSnapshot()`, and observers will receive snapshots only when a transition in the actor occurs.
 
   ```ts
-  const actor = interpret(machine);
-  actor.start();
+  const actorRef = createActor(machine);
+  actorRef.start();
 
   // Late subscription; will not receive the current snapshot
-  actor.subscribe((state) => {
+  actorRef.subscribe((state) => {
     // Only called when the actor transitions
     console.log(state);
   });
 
   // Instead, current snapshot can be read at any time
-  console.log(actor.getSnapshot());
+  console.log(actorRef.getSnapshot());
   ```
 
 - d3d6149c7: Actors can no longer be stopped directly by calling ~~`actor.stop()`~~. They can only be stopped from its parent internally (which might happen when you use `stop` action or automatically when a machine leaves the invoking state). The root actor can still be stopped since it has no parent.
@@ -656,18 +649,18 @@
   Storing previous state should now be done explicitly:
 
   ```js
-  let previousState;
+  let previousSnapshot;
 
-  const service = interpret(someMachine)
-    .onTransition((state) => {
-      // previousState represents the last state here
+  const actorRef = createActor(someMachine);
+  actorRef.subscribe((snapshot) => {
+    // previousSnapshot represents the last snapshot here
 
-      // ...
+    // ...
 
-      // update the previous state at the end
-      previousState = state;
-    })
-    .start();
+    // update the previous snapshot at the end
+    previousSnapshot = snapshot;
+  });
+  actorRef.start();
   ```
 
 - d3d6149c7: All errors caught while executing the actor should now consistently include the error in its `snapshot.error` and should be reported to the closest `error` listener.
