@@ -1642,7 +1642,7 @@ export function macrostep(
       // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
       nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
         status: 'error',
-        error: currentEvent.data
+        error: currentEvent.error
       });
       states.push(nextSnapshot);
       return {

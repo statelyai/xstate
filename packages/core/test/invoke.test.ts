@@ -1655,7 +1655,8 @@ describe('invoke', () => {
                 target: 'failed',
                 guard: ({ event }) => {
                   return (
-                    event.data instanceof Error && event.data.message === 'test'
+                    event.error instanceof Error &&
+                    event.error.message === 'test'
                   );
                 }
               }
@@ -1997,10 +1998,10 @@ describe('invoke', () => {
               onError: {
                 target: 'success',
                 guard: ({ context, event }) => {
-                  expect((event.data as any).message).toEqual('some error');
+                  expect((event.error as any).message).toEqual('some error');
                   return (
                     context.count === 4 &&
-                    (event.data as any).message === 'some error'
+                    (event.error as any).message === 'some error'
                   );
                 }
               }
@@ -2186,10 +2187,10 @@ describe('invoke', () => {
               onError: {
                 target: 'success',
                 guard: ({ context, event }) => {
-                  expect((event.data as any).message).toEqual('some error');
+                  expect((event.error as any).message).toEqual('some error');
                   return (
                     context.count === 4 &&
-                    (event.data as any).message === 'some error'
+                    (event.error as any).message === 'some error'
                   );
                 }
               }
