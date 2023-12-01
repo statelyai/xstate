@@ -202,7 +202,7 @@ describe('output', () => {
       }
     });
 
-    const state = machine.getInitialState(null as any);
+    const state = machine.getInitialSnapshot(null as any);
 
     ((_accept: number | undefined) => {})(state.output);
     // @ts-expect-error

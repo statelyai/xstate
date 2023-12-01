@@ -34,7 +34,7 @@ export function getAdjacencyMap<
   >;
   const fromState =
     customFromState ??
-    logic.getInitialState(
+    logic.getInitialSnapshot(
       actorScope,
       // TODO: fix this
       undefined as TInput

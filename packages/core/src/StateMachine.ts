@@ -143,7 +143,7 @@ export class StateMachine<
     this.version = this.config.version;
 
     this.transition = this.transition.bind(this);
-    this.getInitialState = this.getInitialState.bind(this);
+    this.getInitialSnapshot = this.getInitialSnapshot.bind(this);
     this.restoreSnapshot = this.restoreSnapshot.bind(this);
     this.start = this.start.bind(this);
 
@@ -388,7 +388,7 @@ export class StateMachine<
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
-  public getInitialState(
+  public getInitialSnapshot(
     actorScope: ActorScope<
       MachineSnapshot<
         TContext,

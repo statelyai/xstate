@@ -95,7 +95,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         return [{ type }];
       }) as any[];
     },
-    fromState: machine.getInitialState(createMockActorScope()) as ReturnType<
+    fromState: machine.getInitialSnapshot(createMockActorScope()) as ReturnType<
       TMachine['transition']
     >,
     ...otherOptions

@@ -359,7 +359,7 @@ describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on actor logic', () => {
     const logic: ActorLogic<Snapshot<undefined>, { type: 'TEST' }> = {
       transition: (state) => state,
-      getInitialState: () => ({
+      getInitialSnapshot: () => ({
         status: 'active',
         output: undefined,
         error: undefined
