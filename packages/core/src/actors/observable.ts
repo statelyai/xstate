@@ -130,7 +130,7 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
           return snapshot;
       }
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,
@@ -270,7 +270,7 @@ export function fromEventObservable<
           return state;
       }
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,

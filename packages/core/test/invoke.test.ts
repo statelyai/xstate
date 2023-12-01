@@ -2261,7 +2261,7 @@ describe('invoke', () => {
           }
           return state;
         },
-        getInitialState: () => ({
+        getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined,
@@ -2303,7 +2303,7 @@ describe('invoke', () => {
 
           return state;
         },
-        getInitialState: () => ({
+        getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined

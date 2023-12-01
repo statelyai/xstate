@@ -829,7 +829,7 @@ describe('error handling', () => {
 
   it('should error the parent on errored initial state of a child', async () => {
     const immediateFailure = fromTransition((_) => undefined, undefined);
-    immediateFailure.getInitialState = () => ({
+    immediateFailure.getInitialSnapshot = () => ({
       status: 'error',
       output: undefined,
       error: 'immediate error!',

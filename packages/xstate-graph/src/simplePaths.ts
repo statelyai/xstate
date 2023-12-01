@@ -34,7 +34,8 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   const resolvedOptions = resolveTraversalOptions(logic, options);
   const actorScope = createMockActorScope();
   const fromState =
-    resolvedOptions.fromState ?? logic.getInitialState(actorScope, undefined);
+    resolvedOptions.fromState ??
+    logic.getInitialSnapshot(actorScope, undefined);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;

@@ -189,7 +189,7 @@ export function fromCallback<
 
       return state;
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,

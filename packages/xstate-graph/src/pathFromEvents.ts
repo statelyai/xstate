@@ -53,7 +53,7 @@ export function getPathsFromEvents<
   >;
   const fromState =
     resolvedOptions.fromState ??
-    logic.getInitialState(
+    logic.getInitialSnapshot(
       actorScope,
       // TODO: fix this
       undefined as TInput

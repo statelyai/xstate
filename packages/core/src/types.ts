@@ -2152,7 +2152,7 @@ export interface ActorLogic<
    * @param input - The input for the initial state.
    * @returns The initial state.
    */
-  getInitialState: (
+  getInitialSnapshot: (
     actorScope: ActorScope<TSnapshot, TEvent, TSystem>,
     input: TInput
   ) => TSnapshot;
