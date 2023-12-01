@@ -4,7 +4,7 @@
 
 ### Major Changes
 
-- d3d6149c7: The `useMachine(machine)` hook now returns `{ snapshot, send, actorRef }` instead of `{ state, send, service }`:
+- [#4507](https://github.com/statelyai/xstate/pull/4507) [`9ea542c34`](https://github.com/statelyai/xstate/commit/9ea542c346f7028ca77ae56ce1fe285372fa4cab) Thanks [@Andarist](https://github.com/Andarist)! - The `useMachine(machine)` hook now returns `{ snapshot, send, actorRef }` instead of `{ state, send, service }`:
 
   ```diff
   const {
@@ -16,12 +16,12 @@
   } = useMachine(machine);
   ```
 
-- d3d6149c7: FSM-related functions have been removed.
+- [#4265](https://github.com/statelyai/xstate/pull/4265) [`1153b3f9a`](https://github.com/statelyai/xstate/commit/1153b3f9a95b4d76ff5408be8bd03a66f884b9cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - FSM-related functions have been removed.
 
 ### Minor Changes
 
-- d3d6149c7: `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
-- d3d6149c7: The `useActorRef(logic)` and `useActor(logic)` hooks have been added.
+- [#3727](https://github.com/statelyai/xstate/pull/3727) [`5fb3c683d`](https://github.com/statelyai/xstate/commit/5fb3c683d9a9bdc06637b3a13a5b575059aebadd) Thanks [@Andarist](https://github.com/Andarist)! - `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+- [#4507](https://github.com/statelyai/xstate/pull/4507) [`9ea542c34`](https://github.com/statelyai/xstate/commit/9ea542c346f7028ca77ae56ce1fe285372fa4cab) Thanks [@Andarist](https://github.com/Andarist)! - The `useActorRef(logic)` and `useActor(logic)` hooks have been added.
 
 ## 2.1.0
 
