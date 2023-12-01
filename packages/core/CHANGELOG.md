@@ -1,5 +1,26 @@
 # xstate
 
+## 5.0.0-beta.54
+
+### Major Changes
+
+- [#4535](https://github.com/statelyai/xstate/pull/4535) [`6a9fa1f11`](https://github.com/statelyai/xstate/commit/6a9fa1f11864e42a986822f407a136a92ae6567c) Thanks [@Andarist](https://github.com/Andarist)! - The `escalate()` action is removed. Just throw an error normally.
+
+- [#4539](https://github.com/statelyai/xstate/pull/4539) [`a2a377f47`](https://github.com/statelyai/xstate/commit/a2a377f47ac8832dc099bab61281e4a0b6005542) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The error event (`type: 'xstate.error.*'`) now has the error data on the `event.error` instead of `event.data`:
+
+  ```diff
+  // ...
+  invoke: {
+    src: 'someSrc',
+    onError: {
+      actions: ({ event }) => {
+  -     event.data;
+  +     event.error;
+      }
+    }
+  }
+  ```
+
 ## 5.0.0-beta.53
 
 ### Minor Changes
