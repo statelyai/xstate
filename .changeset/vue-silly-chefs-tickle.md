@@ -1,6 +1,5 @@
 ---
-'@xstate/solid': minor
-'@xstate/svelte': major
+'@xstate/vue': major
 ---
 
 FSM-related functions have been removed.

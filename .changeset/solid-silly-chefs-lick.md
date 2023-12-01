@@ -1,6 +1,5 @@
 ---
-'@xstate/react': major
-'@xstate/vue': major
+'@xstate/solid': minor
 ---
 
 FSM-related functions have been removed.

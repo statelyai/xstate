@@ -2,10 +2,10 @@
 'xstate': minor
 ---
 
-You can now `spawn(...)` actors directly outside of `assign(...)` action creators:
+You can now `spawnChild(...)` actors directly outside of `assign(...)` action creators:
 
 ```ts
-import { createMachine, spawn } from 'xstate';
+import { createMachine, spawnChild } from 'xstate';
 
 const listenerMachine = createMachine({
   // ...
@@ -15,7 +15,7 @@ const parentMachine = createMachine({
   // ...
   on: {
     'listener.create': {
-      entry: spawn(listenerMachine, { id: 'listener' })
+      entry: spawnChild(listenerMachine, { id: 'listener' })
     }
   }
   // ...
