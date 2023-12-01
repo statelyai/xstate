@@ -7,9 +7,10 @@
   "baseBranch": "main",
   "ignore": [
     "@xstate/immer",
+    "@xstate/graph",
     "@xstate/inspect",
     "@xstate/solid",
-    "@xstate/svelte"
+    "@xstate/test"
   ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true,

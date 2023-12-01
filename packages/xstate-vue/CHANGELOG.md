@@ -1,5 +1,29 @@
 # @xstate/vue
 
+## 3.0.0
+
+### Major Changes
+
+- [#4288](https://github.com/statelyai/xstate/pull/4288) [`cfdf754f8`](https://github.com/statelyai/xstate/commit/cfdf754f89b65da2eff7521fa894e151e8a30de4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useMachine(machine)` hook now returns `{ snapshot, send, actorRef }` instead of `{ state, send, service }`:
+
+  ```diff
+  const {
+  - state,
+  + snapshot,
+    send,
+  - service
+  + actorRef
+  } = useMachine(machine);
+  ```
+
+- [#3148](https://github.com/statelyai/xstate/pull/3148) [`7a68cbb61`](https://github.com/statelyai/xstate/commit/7a68cbb615afb6556c83868535dae67af366a117) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Removed `getSnapshot` parameter from composables. It is expected that the received `actorRef` has to have a `getSnapshot` method on it that can be used internally.
+- [#4265](https://github.com/statelyai/xstate/pull/4265) [`1153b3f9a`](https://github.com/statelyai/xstate/commit/1153b3f9a95b4d76ff5408be8bd03a66f884b9cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - FSM-related functions have been removed.
+
+### Minor Changes
+
+- [#3727](https://github.com/statelyai/xstate/pull/3727) [`5fb3c683d`](https://github.com/statelyai/xstate/commit/5fb3c683d9a9bdc06637b3a13a5b575059aebadd) Thanks [@Andarist](https://github.com/Andarist)! - `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+- [#4288](https://github.com/statelyai/xstate/pull/4288) [`cfdf754f8`](https://github.com/statelyai/xstate/commit/cfdf754f89b65da2eff7521fa894e151e8a30de4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useInterpret(machine)` and `useSpawn(machine)` hooks have been removed; use the `useActorRef(machine)` hook instead.
+
 ## 3.0.0-beta.6
 
 ### Major Changes
