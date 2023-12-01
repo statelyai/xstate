@@ -58,11 +58,11 @@ service.start();
 
 ## Configuration
 
-* `url` *(optional)* - The endpoint that the Inspector sends events to. Default: https://stately.ai/viz?inspect
-* `iframe` *(optional)* - The iframe that loads the provided URL. If iframe is set to `false`, then a new tab is opened instead.
-* `devTools` *(optional)* - Allows custom implementation for lifecycle hooks.
-* `serialize` *(optional)* - A custom serializer for messages sent to the URL endpoint. Useful for sanitizing sensitive information, such as credentials, from leaving your application.
-* `targetWindow` *(optional)* - Provide a pre-existing window location that will be used instead of opening a new window etc. When using this option, you must still provide the `url` value due to security checks in browser APIs, and the `iframe` option is ignored in such a case.
+- `url` _(optional)_ - The endpoint that the Inspector sends events to. Default: https://stately.ai/viz?inspect
+- `iframe` _(optional)_ - The iframe that loads the provided URL. If iframe is set to `false`, then a new tab is opened instead.
+- `devTools` _(optional)_ - Allows custom implementation for lifecycle hooks.
+- `serialize` _(optional)_ - A custom serializer for messages sent to the URL endpoint. Useful for sanitizing sensitive information, such as credentials, from leaving your application.
+- `targetWindow` _(optional)_ - Provide a pre-existing window location that will be used instead of opening a new window etc. When using this option, you must still provide the `url` value due to security checks in browser APIs, and the `iframe` option is ignored in such a case.
 
 ### Examples
 
@@ -70,25 +70,25 @@ service.start();
 
 When is this useful?
 
-* Remove sensitive items, such as `credentials`
-* Add additional custom handling
+- Remove sensitive items, such as `credentials`
+- Add additional custom handling
 
 ```typescript
 // Remove credentials from being forwarded
 inspect({
   serialize: (key: string, value: any) => {
-    return key === "credentials" && typeof value === "object" ? {} : value;
-  },
+    return key === 'credentials' && typeof value === 'object' ? {} : value;
+  }
 });
 
 // Add a custom local log
 inspect({
   serialize: (key: string, value: any) => {
-    if (key === "ready") {
-      console.log("Detected ready key");
+    if (key === 'ready') {
+      console.log('Detected ready key');
     }
     return value;
-  },
+  }
 });
 ```
 
@@ -96,13 +96,12 @@ inspect({
 
 When is this useful?
 
-* Allows you to quickly see all events and transitions for your machines
-* No need to add manual `console.log` statements to your machine definitions
-
+- Allows you to quickly see all events and transitions for your machines
+- No need to add manual `console.log` statements to your machine definitions
 
 ```typescript
 // The URL and port of your local project (ex. Vite, Webpack, etc).
-const url = "http://127.0.0.1:5174/"
+const url = 'http://127.0.0.1:5174/';
 
 const inspector = inspect({
   url,
@@ -110,24 +109,22 @@ const inspector = inspect({
   targetWindow: window
 });
 
-// In the same window, subsribe to messages from @xstate/inspector
+// In the same window, subscribe to messages from @xstate/inspector
 createWindowReceiver({}).subscribe(console.log);
 
 // Start your machine, and all events generated are logged to the console
 interpret(machine, { devTools: true }).start({});
-
 ```
 
 ### Send events to a separate, locally hosted tool
 
 When is this useful?
 
-* Forward messages to a custom endpoint, that you can then listen to and add custom handling for messages
-
+- Forward messages to a custom endpoint, that you can then listen to and add custom handling for messages
 
 ```typescript
 // In your client application
-const url = "http://127.0.0.1:8443/"
+const url = 'http://127.0.0.1:8443/';
 const targetWindow = window.open(url);
 
 const inspector = inspect({
@@ -137,19 +134,15 @@ const inspector = inspect({
   targetWindow
 });
 
-
 // In the second, hosted application
 createWindowReceiver({}).subscribe((event) => {
-  if (event.type === "service.register") {
+  if (event.type === 'service.register') {
     // Do something when a new machine is started
-
-  } else if (event.type === "service.stop") {
+  } else if (event.type === 'service.stop') {
     // Do something when a machine enters a terminal state
-
-  } else if (event.type === "service.event") {
-    // Do something when a machine recieves an event
-
-  } else if (event.type === "service.state") {
+  } else if (event.type === 'service.event') {
+    // Do something when a machine receives an event
+  } else if (event.type === 'service.state') {
     // Do something when a machine enters to a new state
     // Note: Does not handle transitional states.
   }

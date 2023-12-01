@@ -255,7 +255,6 @@ const inactiveState = machine.initialState;
 inactiveState.can({ type: 'TOGGLE' }); // true
 inactiveState.can({ type: 'DO_SOMETHING' }); // false
 
-// Also takes in full event objects:
 inactiveState.can({
   type: 'DO_SOMETHING',
   data: 42

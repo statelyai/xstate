@@ -207,7 +207,7 @@ const someMachine = createMachine({
 
 ## Spawning Promises
 
-Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'done.invoke.<ID>'` action with the promise response as the `data` property in the payload:
+Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'xstate.done.actor.<ID>'` action with the promise response as the `data` property in the payload:
 
 ```js {11}
 // Returns a promise
@@ -318,7 +318,7 @@ const remoteMachine = createMachine({
     online: {
       after: {
         1000: {
-          actions: sendParent('REMOTE.ONLINE')
+          actions: sendParent({ type: 'REMOTE.ONLINE' })
         }
       }
     }

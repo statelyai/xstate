@@ -1,20 +1,21 @@
-import { onMounted, onBeforeUnmount, shallowRef } from 'vue';
-import { ActorRef, Subscribable } from 'xstate';
-import { defaultGetSnapshot } from './useActor';
+import { Ref, isRef, shallowRef, watch } from 'vue';
+import { ActorRef, SnapshotFrom } from 'xstate';
 
-const defaultCompare = (a, b) => a === b;
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
+}
 
-export function useSelector<
-  TActor extends ActorRef<any, any>,
-  T,
-  TEmitted = TActor extends Subscribable<infer Emitted> ? Emitted : never
->(
-  actor: TActor,
-  selector: (emitted: TEmitted) => T,
-  compare: (a: T, b: T) => boolean = defaultCompare,
-  getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
+const noop = () => {
+  /* ... */
+};
+
+export function useSelector<TActor extends ActorRef<any, any>, T>(
+  actor: TActor | Ref<TActor>,
+  selector: (snapshot: SnapshotFrom<TActor>) => T,
+  compare: (a: T, b: T) => boolean = defaultCompare
 ) {
-  const selected = shallowRef(selector(getSnapshot(actor)));
+  const actorRefRef = isRef(actor) ? actor : shallowRef(actor);
+  const selected = shallowRef(selector(actorRefRef.value.getSnapshot()));
 
   const updateSelectedIfChanged = (nextSelected: T) => {
     if (!compare(selected.value, nextSelected)) {
@@ -22,19 +23,23 @@ export function useSelector<
     }
   };
 
-  let sub;
-  onMounted(() => {
-    const initialSelected = selector(getSnapshot(actor));
-    updateSelectedIfChanged(initialSelected);
-    sub = actor.subscribe((emitted) => {
-      const nextSelected = selector(emitted);
-      updateSelectedIfChanged(nextSelected);
-    });
-  });
-
-  onBeforeUnmount(() => {
-    sub?.unsubscribe();
-  });
+  watch(
+    actorRefRef,
+    (newActor, _, onCleanup) => {
+      selected.value = selector(newActor.getSnapshot());
+      const { unsubscribe } = newActor.subscribe({
+        next: (emitted) => {
+          updateSelectedIfChanged(selector(emitted));
+        },
+        error: noop,
+        complete: noop
+      });
+      onCleanup(() => unsubscribe());
+    },
+    {
+      immediate: true
+    }
+  );
 
   return selected;
 }

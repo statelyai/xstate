@@ -1,44 +1,67 @@
+import { StatePath, Step, TraversalOptions } from '@xstate/graph';
 import {
-  SimpleBehavior,
-  StatePath,
-  Step,
-  TraversalOptions
-} from '@xstate/graph';
-import {
-  BaseActionObject,
   EventObject,
   MachineConfig,
-  MachineOptions,
-  MachineSchema,
-  ServiceMap,
-  State,
+  MachineTypes,
   StateNodeConfig,
-  StateSchema,
   TransitionConfig,
   TypegenConstraint,
   TypegenDisabled,
-  ExtractEvent
+  ExtractEvent,
+  MachineImplementations,
+  MachineContext,
+  ActorLogic,
+  ParameterizedObject,
+  Snapshot,
+  MachineSnapshot
 } from 'xstate';
 
-export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
-  TraversalOptions<TState, TEvent> & {
-    pathGenerator?: PathGenerator<TState, TEvent>;
+type TODO = any;
+
+export type GetPathsOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TInput
+> = Partial<
+  TraversalOptions<TSnapshot, TEvent> & {
+    pathGenerator?: PathGenerator<TSnapshot, TEvent, TInput>;
   }
 >;
 
 export interface TestMachineConfig<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
-  TTypesMeta = TypegenDisabled
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
-  context?: MachineConfig<TContext, StateSchema, TEvent>['context'];
-  schema?: MachineSchema<TContext, TEvent, ServiceMap>;
-  tsTypes?: TTypesMeta;
+  context?: MachineConfig<TContext, TEvent>['context'];
+  types?: MachineTypes<
+    TContext,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO, // delays
+    TODO, // tags
+    TTypesMeta
+  >;
 }
 
-export interface TestStateNodeConfig<TContext, TEvent extends EventObject>
-  extends Pick<
-    StateNodeConfig<TContext, StateSchema, TEvent>,
+export interface TestStateNodeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> extends Pick<
+    StateNodeConfig<
+      TContext,
+      TEvent,
+      TODO,
+      TODO,
+      ParameterizedObject,
+      TODO,
+      TODO,
+      TODO
+    >,
     | 'type'
     | 'history'
     | 'on'
@@ -47,7 +70,7 @@ export interface TestStateNodeConfig<TContext, TEvent extends EventObject>
     | 'exit'
     | 'meta'
     | 'always'
-    | 'data'
+    | 'output'
     | 'id'
     | 'tags'
     | 'description'
@@ -57,17 +80,33 @@ export interface TestStateNodeConfig<TContext, TEvent extends EventObject>
 }
 
 export type TestMachineOptions<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
-> = Pick<
-  MachineOptions<TContext, TEvent, BaseActionObject, ServiceMap, TTypesMeta>,
-  'actions' | 'guards'
+> = Partial<
+  Pick<
+    MachineImplementations<
+      TContext,
+      TEvent,
+      any,
+      ParameterizedObject,
+      ParameterizedObject,
+      string,
+      string,
+      TTypesMeta
+    >,
+    'actions' | 'guards'
+  >
 >;
 
-export interface TestMeta<T, TContext> {
-  test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
-  description?: string | ((state: State<TContext, any>) => string);
+export interface TestMeta<T, TContext extends MachineContext> {
+  test?: (
+    testContext: T,
+    state: MachineSnapshot<TContext, any, any, any, any, any>
+  ) => Promise<void> | void;
+  description?:
+    | string
+    | ((state: MachineSnapshot<TContext, any, any, any, any, any>) => string);
   skip?: boolean;
 }
 interface TestStateResult {
@@ -81,27 +120,32 @@ export interface TestStepResult {
   };
 }
 
-export interface TestParam<TState, TEvent extends EventObject> {
+export interface TestParam<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
   states?: {
-    [key: string]: (state: TState) => void | Promise<void>;
+    [key: string]: (state: TSnapshot) => void | Promise<void>;
   };
   events?: {
     [TEventType in TEvent['type']]?: EventExecutor<
-      TState,
-      ExtractEvent<TEvent, TEventType>
+      TSnapshot,
+      { type: ExtractEvent<TEvent, TEventType>['type'] }
     >;
   };
 }
 
-export interface TestPath<TState, TEvent extends EventObject>
-  extends StatePath<TState, TEvent> {
+export interface TestPath<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> extends StatePath<TSnapshot, TEvent> {
   description: string;
   /**
    * Tests and executes each step in `steps` sequentially, and then
    * tests the postcondition that the `state` is reached.
    */
-  test: (params: TestParam<TState, TEvent>) => Promise<TestPathResult>;
-  testSync: (params: TestParam<TState, TEvent>) => TestPathResult;
+  test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
+  testSync: (params: TestParam<TSnapshot, TEvent>) => TestPathResult;
 }
 export interface TestPathResult {
   steps: TestStepResult[];
@@ -113,34 +157,40 @@ export type StatePredicate<TState> = (state: TState) => boolean;
  * Executes an effect using the `testContext` and `event`
  * that triggers the represented `event`.
  */
-export type EventExecutor<TState, TEvent extends EventObject> = (
-  step: Step<TState, TEvent>
-) => Promise<any> | void;
+export type EventExecutor<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> = (step: Step<TSnapshot, TEvent>) => Promise<any> | void;
 
-export interface TestModelOptions<TState, TEvent extends EventObject>
-  extends TraversalOptions<TState, TEvent> {
-  stateMatcher: (state: TState, stateKey: string) => boolean;
+export interface TestModelOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> extends TraversalOptions<TSnapshot, TEvent> {
+  stateMatcher: (state: TSnapshot, stateKey: string) => boolean;
   logger: {
     log: (msg: string) => void;
     error: (msg: string) => void;
   };
   serializeTransition: (
-    state: TState,
+    state: TSnapshot,
     event: TEvent | undefined,
-    prevState?: TState
+    prevState?: TSnapshot
   ) => string;
 }
 
 export interface TestTransitionConfig<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
-> extends TransitionConfig<TContext, TEvent> {
-  test?: (state: State<TContext, TEvent>, testContext: TTestContext) => void;
+> extends TransitionConfig<TContext, TEvent, TEvent, TODO, TODO, TODO, string> {
+  test?: (
+    state: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+    testContext: TTestContext
+  ) => void;
 }
 
-export type TestTransitionsConfigMap<
-  TContext,
+export type TestTransitionsConfig<
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
 > = {
@@ -151,7 +201,11 @@ export type TestTransitionsConfigMap<
         | string;
 };
 
-export type PathGenerator<TState, TEvent extends EventObject> = (
-  behavior: SimpleBehavior<TState, TEvent>,
-  options: TraversalOptions<TState, TEvent>
-) => Array<StatePath<TState, TEvent>>;
+export type PathGenerator<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TInput
+> = (
+  behavior: ActorLogic<TSnapshot, TEvent, TInput>,
+  options: TraversalOptions<TSnapshot, TEvent>
+) => Array<StatePath<TSnapshot, TEvent>>;

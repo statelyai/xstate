@@ -4,9 +4,9 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Jest All",
+      "name": "Jest Current File",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": ["--runInBand"],
+      "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "disableOptimisticBPs": true,
@@ -17,9 +17,15 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Jest Current File",
+      "name": "Jest Current File (no timeout)",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": ["${file}", "--config", "jest.config.js", "--no-cache"],
+      "args": [
+        "${file}",
+        "--config",
+        "jest.config.js",
+        "--no-cache",
+        "--testTimeout=2147483647"
+      ],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "disableOptimisticBPs": true,

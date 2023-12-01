@@ -1,76 +1,48 @@
-import { ActorRef, EventObject, Sender } from 'xstate';
-import { shallowRef, isRef, watch, Ref } from 'vue';
+import isDevelopment from '#is-development';
+import { Ref } from 'vue';
+import {
+  ActorOptions,
+  ActorRefFrom,
+  AnyActorLogic,
+  EventFrom,
+  Snapshot,
+  SnapshotFrom
+} from 'xstate';
+import { useActorRef } from './useActorRef.ts';
+import { useSelector } from './useSelector.ts';
 
-export function isActorWithState<T extends ActorRef<any>>(
-  actorRef: T
-): actorRef is T & { state: any } {
-  return 'state' in actorRef;
-}
-
-type EmittedFromActorRef<
-  TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
-
-const noop = () => {
-  /* ... */
-};
-
-export function defaultGetSnapshot<TEmitted>(
-  actorRef: ActorRef<any, TEmitted>
-): TEmitted | undefined {
-  return 'getSnapshot' in actorRef
-    ? actorRef.getSnapshot()
-    : isActorWithState(actorRef)
-    ? actorRef.state
-    : undefined;
-}
-
-export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: TActor | Ref<TActor>,
-  getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
+export function useActor<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  options: ActorOptions<TLogic>
 ): {
-  state: Ref<EmittedFromActorRef<TActor>>;
-  send: TActor['send'];
+  snapshot: Ref<SnapshotFrom<TLogic>>;
+  send: (event: EventFrom<TLogic>) => void;
+  actorRef: ActorRefFrom<TLogic>;
 };
-
-export function useActor<TEvent extends EventObject, TEmitted>(
-  actorRef: ActorRef<TEvent, TEmitted> | Ref<ActorRef<TEvent, TEmitted>>,
-  getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
-): { state: Ref<TEmitted>; send: Sender<TEvent> };
-
 export function useActor(
-  actorRef:
-    | ActorRef<EventObject, unknown>
-    | Ref<ActorRef<EventObject, unknown>>,
-  getSnapshot: (
-    actor: ActorRef<EventObject, unknown>
-  ) => unknown = defaultGetSnapshot
-): {
-  state: Ref<unknown>;
-  send: Sender<EventObject>;
-} {
-  const actorRefRef = isRef(actorRef) ? actorRef : shallowRef(actorRef);
-  const state = shallowRef(getSnapshot(actorRefRef.value));
+  actorLogic: AnyActorLogic,
+  options: ActorOptions<AnyActorLogic> = {}
+) {
+  if (
+    isDevelopment &&
+    'send' in actorLogic &&
+    typeof actorLogic.send === 'function'
+  ) {
+    throw new Error(
+      `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
+    );
+  }
 
-  const send: Sender<EventObject> = (event: EventObject) => {
-    actorRefRef.value.send(event);
+  function listener(nextSnapshot: Snapshot<unknown>) {
+    snapshot.value = nextSnapshot;
+  }
+
+  const actorRef = useActorRef(actorLogic, options, listener);
+  const snapshot = useSelector(actorRef, (s) => s);
+
+  return {
+    snapshot,
+    send: actorRef.send,
+    actorRef: actorRef
   };
-
-  watch(
-    actorRefRef,
-    (newActor, _, onCleanup) => {
-      state.value = getSnapshot(newActor);
-      const { unsubscribe } = newActor.subscribe({
-        next: (emitted) => (state.value = emitted),
-        error: noop,
-        complete: noop
-      });
-      onCleanup(() => unsubscribe());
-    },
-    {
-      immediate: true
-    }
-  );
-
-  return { state, send };
 }

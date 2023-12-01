@@ -33,13 +33,13 @@ const counterService = interpret(counterMachine)
   .start();
 // => 0
 
-counterService.send('INC');
+counterService.send({ type: 'INC' });
 // => 1
 
-counterService.send('INC');
+counterService.send({ type: 'INC' });
 // => 2
 
-counterService.send('DEC');
+counterService.send({ type: 'DEC' });
 // => 1
 ```
 
@@ -77,9 +77,9 @@ const counterMachine = createMachine({
 // ...
 
 // Supposons que le valeur du contexte était { count: 9 }
-counterService.send('INC');
+counterService.send({ type: 'INC' });
 // => 10
 
-counterService.send('INC'); // Pas de transition !
+counterService.send({ type: 'INC' }); // Pas de transition !
 // => 10
 ```

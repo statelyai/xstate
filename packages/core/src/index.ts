@@ -1,68 +1,40 @@
-import * as actions from './actions';
-import { Actor, toActorRef } from './Actor';
-import {
-  interpret,
-  Interpreter,
-  InterpreterStatus,
-  spawn
-} from './interpreter';
-import { createMachine, Machine } from './Machine';
-import { mapState } from './mapState';
-import { matchState } from './match';
-import { createSchema, t } from './schema';
-import { State } from './State';
-import { StateNode } from './StateNode';
-export { spawnBehavior } from './behaviors';
-export { XStateDevInterface } from './devTools';
-export * from './typegenTypes';
-export * from './types';
-export { matchesState, toEventObject, toObserver, toSCXMLEvent } from './utils';
+export * from './actions.ts';
+export * from './actors/index.ts';
+export { SimulatedClock } from './SimulatedClock.ts';
+export { type Spawner } from './spawn.ts';
+export { StateMachine } from './StateMachine.ts';
+export { getStateNodes } from './stateUtils.ts';
+export * from './typegenTypes.ts';
+export * from './types.ts';
+export { waitFor } from './waitFor.ts';
+import { Actor, createActor, interpret, Interpreter } from './interpreter.ts';
+import { createMachine } from './createMachine.ts';
+export { type MachineSnapshot, isMachineSnapshot } from './State.ts';
+import { StateNode } from './StateNode.ts';
+// TODO: decide from where those should be exported
+export {
+  matchesState,
+  pathToStateValue,
+  toObserver,
+  getAllOwnEventDescriptors as __unsafe_getAllOwnEventDescriptors
+} from './utils.ts';
 export {
   Actor,
-  toActorRef,
-  Machine,
-  StateNode,
-  State,
-  mapState,
-  actions,
-  assign,
-  cancel,
-  send,
-  sendTo,
-  sendParent,
-  sendUpdate,
-  raise,
-  log,
-  pure,
-  choose,
-  stop,
-  forwardTo,
-  interpret,
-  Interpreter,
-  InterpreterStatus,
-  matchState,
-  spawn,
-  doneInvoke,
+  createActor,
   createMachine,
-  createSchema,
-  t
+  interpret,
+  StateNode,
+  type Interpreter
 };
+export type {
+  InspectedActorEvent,
+  InspectedEventEvent,
+  InspectedSnapshotEvent,
+  InspectionEvent
+} from './system.ts';
 
-const {
-  assign,
-  cancel,
-  send,
-  sendTo,
-  sendParent,
-  sendUpdate,
-  forwardTo,
-  doneInvoke,
-  raise,
-  log,
-  pure,
-  choose,
-  stop
-} = actions;
+export { and, not, or, stateIn } from './guards.ts';
+export { setup } from './setup.ts';
 
 declare global {
   interface SymbolConstructor {

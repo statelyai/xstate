@@ -1,6 +1,3 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
 import { useMachine } from '@xstate/react';
 import { timerMachine } from './timerMachine';
@@ -34,7 +31,7 @@ function App() {
             type: 'minute'
           })
         }
-        disabled={!can('minute')}
+        disabled={!can({ type: 'minute' })}
       >
         min
       </button>
@@ -44,7 +41,7 @@ function App() {
             type: 'second'
           })
         }
-        disabled={!can('second')}
+        disabled={!can({ type: 'second' })}
       >
         sec
       </button>
@@ -54,7 +51,7 @@ function App() {
             type: 'reset'
           })
         }
-        disabled={!can('reset')}
+        disabled={!can({ type: 'reset' })}
       >
         reset
       </button>
@@ -64,7 +61,7 @@ function App() {
             type: 'start'
           })
         }
-        disabled={!can('start')}
+        disabled={!can({ type: 'start' })}
       >
         start
       </button>
@@ -74,7 +71,7 @@ function App() {
             type: 'stop'
           })
         }
-        disabled={!can('stop')}
+        disabled={!can({ type: 'stop' })}
       >
         stop
       </button>

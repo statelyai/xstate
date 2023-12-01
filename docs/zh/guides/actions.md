@@ -373,7 +373,7 @@ const raiseActionDemo = createMachine({
         RAISE: {
           target: 'middle',
           // 立即为“middle”调用 NEXT 事件
-          actions: raise('NEXT')
+          actions: raise({ type: 'NEXT' })
         }
       }
     },
@@ -560,7 +560,7 @@ const loggingMachine = createMachine({
   }
 });
 
-const endState = loggingMachine.transition('start', 'FINISH');
+const endState = loggingMachine.transition('start', { type: 'FINISH' });
 
 endState.actions;
 // [

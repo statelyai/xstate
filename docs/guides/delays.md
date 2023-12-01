@@ -249,9 +249,9 @@ const dynamicDelayMachine = createMachine({
   }
 });
 
-const dynamicDelayService = interpret(dynamicDelayMachine)
-  .onDone(() => console.log('done!'))
-  .start();
+const dynamicDelayService = interpret(dynamicDelayMachine);
+dynamicDelayService.subscribe({ complete: () => console.log('done!') });
+dynamicDelayService.start();
 
 dynamicDelayService.send({
   type: 'ACTIVATE',
@@ -316,8 +316,8 @@ The `after: ...` property does not introduce anything new to statechart semantic
 states: {
   green: {
     entry: [
-      send(after(1000, 'light.green'), { delay: 1000 }),
-      send(after(2000, 'light.green'), { delay: 2000 })
+      send({ type: after(1000, 'light.green') }, { delay: 1000 }),
+      send({ type: after(2000, 'light.green') }, { delay: 2000 })
     ],
     onExit: [
       cancel(after(1000, 'light.green')),

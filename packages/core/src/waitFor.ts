@@ -1,17 +1,18 @@
-import { ActorRef, EmittedFrom } from '.';
+import isDevelopment from '#is-development';
+import { ActorRef, SnapshotFrom, Subscription } from './types.ts';
 
 interface WaitForOptions {
   /**
    * How long to wait before rejecting, if no emitted
    * state satisfies the predicate.
    *
-   * @default 10_000 (10 seconds)
+   * @defaultValue 10_000 (10 seconds)
    */
   timeout: number;
 }
 
 const defaultWaitForOptions: WaitForOptions = {
-  timeout: 10_000 // 10 seconds
+  timeout: Infinity // much more than 10 seconds
 };
 
 /**
@@ -37,16 +38,16 @@ const defaultWaitForOptions: WaitForOptions = {
  */
 export function waitFor<TActorRef extends ActorRef<any, any>>(
   actorRef: TActorRef,
-  predicate: (emitted: EmittedFrom<TActorRef>) => boolean,
+  predicate: (emitted: SnapshotFrom<TActorRef>) => boolean,
   options?: Partial<WaitForOptions>
-): Promise<EmittedFrom<TActorRef>> {
+): Promise<SnapshotFrom<TActorRef>> {
   const resolvedOptions: WaitForOptions = {
     ...defaultWaitForOptions,
     ...options
   };
   return new Promise((res, rej) => {
     let done = false;
-    if (process.env.NODE_ENV !== 'production' && resolvedOptions.timeout < 0) {
+    if (isDevelopment && resolvedOptions.timeout < 0) {
       console.error(
         '`timeout` passed to `waitFor` is negative and it will reject its internal promise immediately.'
       );
@@ -55,7 +56,7 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
       resolvedOptions.timeout === Infinity
         ? undefined
         : setTimeout(() => {
-            sub.unsubscribe();
+            sub!.unsubscribe();
             rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
           }, resolvedOptions.timeout);
 
@@ -65,13 +66,23 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
       sub?.unsubscribe();
     };
 
-    const sub = actorRef.subscribe({
-      next: (emitted) => {
-        if (predicate(emitted)) {
-          dispose();
-          res(emitted);
-        }
-      },
+    function checkEmitted(emitted: SnapshotFrom<TActorRef>) {
+      if (predicate(emitted)) {
+        dispose();
+        res(emitted);
+      }
+    }
+
+    let sub: Subscription | undefined; // avoid TDZ when disposing synchronously
+
+    // See if the current snapshot already matches the predicate
+    checkEmitted(actorRef.getSnapshot());
+    if (done) {
+      return;
+    }
+
+    sub = actorRef.subscribe({
+      next: checkEmitted,
       error: (err) => {
         dispose();
         rej(err);

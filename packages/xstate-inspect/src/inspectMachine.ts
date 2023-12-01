@@ -1,27 +1,22 @@
-import {
-  createMachine,
-  assign,
-  SCXML,
-  ActorRef,
-  Interpreter,
-  XStateDevInterface
-} from 'xstate';
-import { stringifyMachine, stringifyState } from './serialize';
+import { ActorRef, assign, createMachine, Interpreter } from 'xstate';
+import { XStateDevInterface } from 'xstate/dev';
+import { stringifyState } from './serialize.ts';
 
-import { ReceiverEvent, Replacer } from './types';
+import { ReceiverEvent, Replacer } from './types.ts';
+import { stringify } from './utils.ts';
 
 export type InspectMachineEvent =
   | ReceiverEvent
   | { type: 'unload' }
   | { type: 'disconnect' }
   | { type: 'xstate.event'; event: string; service: string }
-  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any>, 'send'> };
+  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any, any>, 'send'> };
 
 export function createInspectMachine(
-  devTools: XStateDevInterface = globalThis.__xstate__,
+  devTools: XStateDevInterface = (globalThis as any).__xstate__,
   options?: { serialize?: Replacer | undefined }
 ) {
-  const serviceMap = new Map<string, Interpreter<any, any, any>>();
+  const serviceMap = new Map<string, ActorRef<any, any>>();
 
   // Listen for services being registered and index them
   // by their sessionId for quicker lookup
@@ -29,13 +24,13 @@ export function createInspectMachine(
     serviceMap.set(service.sessionId, service);
   });
 
-  return createMachine<
-    {
-      client?: Pick<ActorRef<any>, 'send'>;
+  return createMachine({
+    types: {} as {
+      context: {
+        client?: Pick<ActorRef<any, any>, 'send'>;
+      };
+      events: InspectMachineEvent;
     },
-    InspectMachineEvent
-  >({
-    predictableActionArguments: true,
     initial: 'pendingConnection',
     context: {
       client: undefined
@@ -45,28 +40,29 @@ export function createInspectMachine(
       connected: {
         on: {
           'service.state': {
-            actions: (ctx, e) => ctx.client!.send(e)
+            actions: ({ context, event }) => context.client!.send(event)
           },
           'service.event': {
-            actions: (ctx, e) => ctx.client!.send(e)
+            actions: ({ context, event }) => context.client!.send(event)
           },
           'service.register': {
-            actions: (ctx, e) => ctx.client!.send(e)
+            actions: ({ context, event }) => context.client!.send(event)
           },
           'service.stop': {
-            actions: (ctx, e) => ctx.client!.send(e)
+            actions: ({ context, event }) => context.client!.send(event)
           },
           'xstate.event': {
-            actions: (_, e) => {
+            actions: ({ event: e }) => {
               const { event } = e;
-              const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
-              const service = serviceMap.get(scxmlEventObject.origin!);
-              service?.send(scxmlEventObject);
+              const parsedEvent = JSON.parse(event);
+              // TODO: figure out a different mechanism
+              const service = serviceMap.get(parsedEvent.origin?.id!);
+              service?.send(parsedEvent);
             }
           },
           unload: {
-            actions: (ctx) => {
-              ctx.client!.send({ type: 'xstate.disconnect' });
+            actions: ({ context }) => {
+              context.client!.send({ type: 'xstate.disconnect' });
             }
           },
           disconnect: 'disconnected'
@@ -84,18 +80,15 @@ export function createInspectMachine(
         target: '.connected',
         actions: [
           assign({
-            client: (
-              _,
-              e: InspectMachineEvent & { type: 'xstate.inspecting' }
-            ) => e.client
+            client: ({ event }) => event.client
           }),
-          (ctx) => {
+          ({ context }) => {
             devTools.services.forEach((service) => {
-              ctx.client?.send({
+              context.client?.send({
                 type: 'service.register',
-                machine: stringifyMachine(service.machine, options?.serialize),
+                machine: stringify(service.logic, options?.serialize),
                 state: stringifyState(
-                  service.state || service.initialState,
+                  service.getSnapshot(),
                   options?.serialize
                 ),
                 sessionId: service.sessionId

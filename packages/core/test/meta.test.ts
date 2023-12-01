@@ -1,4 +1,4 @@
-import { createMachine, interpret, Machine } from '../src/index';
+import { createMachine, createActor } from '../src/index.ts';
 
 describe('state meta data', () => {
   const pedestrianStates = {
@@ -9,27 +9,27 @@ describe('state meta data', () => {
         on: {
           PED_COUNTDOWN: 'wait'
         },
-        onEntry: 'enter_walk',
-        onExit: 'exit_walk'
+        entry: 'enter_walk',
+        exit: 'exit_walk'
       },
       wait: {
         meta: { waitData: 'wait data' },
         on: {
           PED_COUNTDOWN: 'stop'
         },
-        onEntry: 'enter_wait',
-        onExit: 'exit_wait'
+        entry: 'enter_wait',
+        exit: 'exit_wait'
       },
       stop: {
         meta: { stopData: 'stop data' },
-        onEntry: 'enter_stop',
-        onExit: 'exit_stop'
+        entry: 'enter_stop',
+        exit: 'exit_stop'
       }
     }
   };
 
-  const lightMachine = Machine({
-    key: 'light',
+  const lightMachine = createMachine({
+    id: 'light',
     initial: 'green',
     states: {
       green: {
@@ -39,8 +39,8 @@ describe('state meta data', () => {
           POWER_OUTAGE: 'red',
           NOTHING: 'green'
         },
-        onEntry: 'enter_green',
-        onExit: 'exit_green'
+        entry: 'enter_green',
+        exit: 'exit_green'
       },
       yellow: {
         meta: { yellowData: 'yellow data' },
@@ -48,8 +48,8 @@ describe('state meta data', () => {
           TIMER: 'red',
           POWER_OUTAGE: 'red'
         },
-        onEntry: 'enter_yellow',
-        onExit: 'exit_yellow'
+        entry: 'enter_yellow',
+        exit: 'exit_yellow'
       },
       red: {
         meta: {
@@ -65,26 +65,32 @@ describe('state meta data', () => {
           POWER_OUTAGE: 'red',
           NOTHING: 'red'
         },
-        onEntry: 'enter_red',
-        onExit: 'exit_red',
+        entry: 'enter_red',
+        exit: 'exit_red',
         ...pedestrianStates
       }
     }
   });
 
   it('states should aggregate meta data', () => {
-    const yellowState = lightMachine.transition('green', 'TIMER');
-    expect(yellowState.meta).toEqual({
+    const actorRef = createActor(lightMachine).start();
+    actorRef.send({ type: 'TIMER' });
+    const yellowState = actorRef.getSnapshot();
+
+    expect(yellowState.getMeta()).toEqual({
       'light.yellow': {
         yellowData: 'yellow data'
       }
     });
-    expect('light.green' in yellowState.meta).toBeFalsy();
-    expect('light' in yellowState.meta).toBeFalsy();
+    expect('light.green' in yellowState.getMeta()).toBeFalsy();
+    expect('light' in yellowState.getMeta()).toBeFalsy();
   });
 
   it('states should aggregate meta data (deep)', () => {
-    expect(lightMachine.transition('yellow', 'TIMER').meta).toEqual({
+    const actorRef = createActor(lightMachine).start();
+    actorRef.send({ type: 'TIMER' });
+    actorRef.send({ type: 'TIMER' });
+    expect(actorRef.getSnapshot().getMeta()).toEqual({
       'light.red': {
         redData: {
           nested: {
@@ -100,7 +106,7 @@ describe('state meta data', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/1105
-  it('services started from a persisted state should calculate meta data', (done) => {
+  it('services started from a persisted state should calculate meta data', () => {
     const machine = createMachine({
       id: 'test',
       initial: 'first',
@@ -118,46 +124,16 @@ describe('state meta data', () => {
       }
     });
 
-    const service = interpret(machine).onTransition((state) => {
-      expect(state.meta).toEqual({
-        'test.second': {
-          name: 'second state'
-        }
-      });
-      done();
+    const actor = createActor(machine, {
+      snapshot: machine.resolveState({ value: 'second' })
     });
-    service.start('second');
-  });
-});
+    actor.start();
 
-describe('transition meta data', () => {
-  it('should show meta data in transitions', () => {
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: {
-            EVENT: {
-              target: 'active',
-              meta: {
-                description: 'Going from inactive to active'
-              }
-            }
-          }
-        },
-        active: {}
+    expect(actor.getSnapshot().getMeta()).toEqual({
+      'test.second': {
+        name: 'second state'
       }
     });
-
-    const nextState = machine.transition(undefined, 'EVENT');
-
-    expect(nextState.transitions.map((t) => t.meta)).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "description": "Going from inactive to active",
-        },
-      ]
-    `);
   });
 });
 
@@ -186,6 +162,6 @@ describe('transition description', () => {
       }
     });
 
-    expect(machine.on['EVENT'][0].description).toEqual('This is a test');
+    expect(machine.root.on['EVENT'][0].description).toEqual('This is a test');
   });
 });

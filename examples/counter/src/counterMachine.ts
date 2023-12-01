@@ -8,12 +8,12 @@ export const counterMachine = createMachine({
   on: {
     increment: {
       actions: assign({
-        count: (context) => context.count + 1
+        count: ({ context }) => context.count + 1
       })
     },
     decrement: {
       actions: assign({
-        count: (context) => context.count - 1
+        count: ({ context }) => context.count - 1
       })
     }
   }

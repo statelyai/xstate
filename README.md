@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://xstate.js.org">
+  <a href="https://stately.ai/docs">
   <br />
 
   <picture>
@@ -16,9 +16,16 @@
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
-JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
+XState is a state management and orchestration solution for JavaScript and TypeScript apps.
+
+It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
 ### ✨ Create state machines visually → [state.new](https://state.new)
+
+> [!NOTE]
+> ℹ️ This is the branch for **XState v5 beta** and related packages. View the XState v4 branch [here](https://github.com/statelyai/xstate/tree/main).
+
+---
 
 📖 [Read the documentation](https://stately.ai/docs)
 
@@ -26,21 +33,22 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
 
-📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
+📑 Inspired by the [SCXML specification](https://www.w3.org/TR/scxml/)
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
 ## Packages
 
-- 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
-- [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
-- [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
-- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
-- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
-- [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid) - Solid hooks and utilities for using XState in Solid applications
-- [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
-- [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - Inspection utilities for XState
+| Package                                                                                       | Description                                                                  |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 🤖 `xstate`                                                                                   | Core finite state machine and statecharts library + interpreter              |
+| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/next/packages/xstate-graph)     | Graph traversal utilities for XState                                         |
+| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/next/packages/xstate-react)     | React hooks and utilities for using XState in React applications             |
+| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/next/packages/xstate-vue)         | Vue composition functions and utilities for using XState in Vue applications |
+| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/next/packages/xstate-svelte)   | Svelte utilities for using XState in Svelte applications                     |
+| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/next/packages/xstate-solid)     | Solid hooks and utilities for using XState in Solid applications             |
+| [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/next/packages/xstate-test)       | Model-Based-Testing utilities (using XState) for testing any software        |
+| [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/next/packages/xstate-inspect) | Inspection utilities for XState                                              |
 
 ## Templates
 
@@ -61,30 +69,35 @@ npm install xstate
 ```
 
 ```js
-import { createMachine, interpret } from 'xstate';
+import { createMachine, createActor, assign } from 'xstate';
 
-// State machine definition
-// machine.transition(...) is a pure function used by the interpreter.
+// State machine
 const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
+  context: {
+    count: 0
+  },
   states: {
     inactive: { on: { TOGGLE: 'active' } },
-    active: { on: { TOGGLE: 'inactive' } }
+    active: {
+      entry: assign({ count: ({ context }) => context.count + 1 }),
+      on: { TOGGLE: 'inactive' }
+    }
   }
 });
 
-// Machine instance with internal state
-const toggleActor = interpret(toggleMachine);
-toggleActor.subscribe((state) => console.log(state.value));
+// Actor (instance of the machine logic, like a store)
+const toggleActor = createActor(toggleMachine);
+toggleActor.subscribe((state) => console.log(state.value, state.context));
 toggleActor.start();
-// => logs 'inactive'
+// => logs 'inactive', { count: 0 }
 
 toggleActor.send({ type: 'TOGGLE' });
-// => logs 'active'
+// => logs 'active', { count: 1 }
 
 toggleActor.send({ type: 'TOGGLE' });
-// => logs 'inactive'
+// => logs 'inactive', { count: 1 }
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -400,7 +413,13 @@ const previousState = paymentMachine.transition(reviewState, {
 
 Special thanks to the sponsors who support this open-source project:
 
-<a href="https://transloadit.com/"><img src="https://assets.transloadit.com/assets/images/logo-v2.svg" alt="Transloadit logo" width="200" /><br />Transloadit</a>
+<a href="https://transloadit.com/?utm_source=xstate&utm_medium=referral&utm_campaign=sponsorship&utm_content=github">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg">
+    <img src="https://assets.transloadit.com/assets/images/sponsorships/logo-default.svg" alt="Transloadit Logo">
+  </picture>
+</a>
 
 ## SemVer Policy
 

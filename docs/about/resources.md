@@ -43,7 +43,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 ## Articles
 
-- [Building iOS Stopwatch functionality using XState](https://blog.lakbychance.com/building-ios-stopwatch-functionality-using-xstate) by [Lakshya Thakur](https://hashnode.com/@lakbychance) 2022-07-31 
+- [Building iOS Stopwatch functionality using XState](https://blog.lakbychance.com/building-ios-stopwatch-functionality-using-xstate) by [Lakshya Thakur](https://hashnode.com/@lakbychance) 2022-07-31
 - [Using State Machines in Front-End Development](https://blog.picnic.nl/using-state-machines-in-front-end-development-c875ea1d5322) by [Danielle Richter](https://medium.com/@danielle.richter) 2021-10-27
 - [Quick post: Modeling a video player with XState](https://dev.to/matiasfha/quick-post-modeling-a-video-player-with-xstate-eko) by [Matías Hernández Arellano](https://twitter.com/cafe_contech) on 2021-10-25
 - [Getting Started with XState, React and Typescript (Part 2)](https://moduscreate.com/blog/getting-started-with-xstate-react-and-typescript-part-2/) by [Santiago Kent](https://twitter.com/moduscreate) on 2021-10-18

@@ -23,7 +23,6 @@
 ## 包
 
 - 🤖 `xstate` - 有限状态机和状态图核心库 + 解释器
-- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - 最小有限状态机库
 - [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - XState 的图遍历实用工具包
 - [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - 在 React 应用中使用 XState 的 React Hooks 和实用工具包
 - [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - 在 Vue 应用中使用 XState 的 Vue 组合函数和实用工具包
@@ -209,8 +208,9 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
-  .value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 
 // => 'yellow'
 ```
@@ -264,8 +264,9 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
-  .value;
+const nextState = lightMachine.transition(currentState, {
+  type: 'TIMER'
+}).value;
 // => {
 //   red: 'walk'
 // }
@@ -378,8 +379,9 @@ const wordMachine = createMachine({
   }
 });
 
-const boldState = wordMachine.transition('bold.off', { type: 'TOGGLE_BOLD' })
-  .value;
+const boldState = wordMachine.transition('bold.off', {
+  type: 'TOGGLE_BOLD'
+}).value;
 
 // {
 //   bold: 'on',

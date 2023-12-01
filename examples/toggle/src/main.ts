@@ -17,8 +17,8 @@ const toggleActor = interpret(toggleMachine).start();
 const toggleButton = document.querySelector<HTMLButtonElement>('#toggle')!;
 const outputEl = document.querySelector<HTMLDivElement>('#output')!;
 
-toggleActor.subscribe((state) => {
-  outputEl.innerHTML = state.value === 'active' ? 'Active' : 'Inactive';
+toggleActor.subscribe((snapshot) => {
+  outputEl.innerHTML = snapshot.value === 'active' ? 'Active' : 'Inactive';
 });
 
 toggleButton?.addEventListener('click', () => {

@@ -9,10 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@xstate/react": "^3.2.1",
+    "@xstate/react": "beta",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "xstate": "^4.37.0"
+    "xstate": "beta"
   },
   "devDependencies": {
     "@types/react": "^18.0.28",

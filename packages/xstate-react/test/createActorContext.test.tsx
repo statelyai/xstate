@@ -1,6 +1,5 @@
-import * as React from 'react';
-import { createMachine, assign } from 'xstate';
-import { fireEvent, screen, render } from '@testing-library/react';
+import { createMachine, assign, fromPromise, Snapshot } from 'xstate';
+import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
 const originalConsoleError = console.error;
@@ -11,11 +10,11 @@ afterEach(() => {
 
 function checkConsoleErrorOutputForMissingProvider() {
   expect(console.error).toHaveBeenCalledTimes(3);
-  expect((console.error as any).mock.calls[0][0].split('\n')[0]).toBe(
-    `Error: Uncaught [Error: You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component.]`
+  expect((console.error as any).mock.calls[0][0].message.split('\n')[0]).toBe(
+    `Uncaught [Error: You used a hook from \"ActorProvider\" but it's not inside a <ActorProvider> component.]`
   );
-  expect((console.error as any).mock.calls[1][0].split('\n')[0]).toBe(
-    `Error: Uncaught [Error: You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component.]`
+  expect((console.error as any).mock.calls[1][0].message.split('\n')[0]).toBe(
+    `Uncaught [Error: You used a hook from \"ActorProvider\" but it's not inside a <ActorProvider> component.]`
   );
   expect((console.error as any).mock.calls[2][0].split('\n')[0]).toBe(
     `The above error occurred in the <App> component:`
@@ -23,33 +22,6 @@ function checkConsoleErrorOutputForMissingProvider() {
 }
 
 describe('createActorContext', () => {
-  it('should work with useActor', () => {
-    const someMachine = createMachine({
-      initial: 'a',
-      states: { a: {} }
-    });
-
-    const SomeContext = createActorContext(someMachine);
-
-    const Component = () => {
-      const [state] = SomeContext.useActor();
-
-      return <div data-testid="value">{state.value}</div>;
-    };
-
-    const App = () => {
-      return (
-        <SomeContext.Provider>
-          <Component />
-        </SomeContext.Provider>
-      );
-    };
-
-    render(<App />);
-
-    expect(screen.getByTestId('value').textContent).toBe('a');
-  });
-
   it('should work with useSelector', () => {
     const someMachine = createMachine({
       initial: 'a',
@@ -93,12 +65,16 @@ describe('createActorContext', () => {
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const [state, send] = SomeContext.useActor();
+      const actorRef = SomeContext.useActorRef();
+      const state = SomeContext.useSelector((s) => s);
 
       return (
         <>
           <div data-testid="value">{state.value}</div>
-          <button data-testid="next" onClick={() => send({ type: 'NEXT' })}>
+          <button
+            data-testid="next"
+            onClick={() => actorRef.send({ type: 'NEXT' })}
+          >
             Next
           </button>
         </>
@@ -138,15 +114,15 @@ describe('createActorContext', () => {
       },
       on: {
         INC: {
-          actions: assign<MachineContext>((ctx) => ({
+          actions: assign<MachineContext>(({ context }) => ({
             obj: {
-              counter: ctx.obj.counter + 1
+              counter: context.obj.counter + 1
             }
           }))
         },
         PUSH: {
-          actions: assign<MachineContext>((ctx) => ({
-            arr: [...ctx.arr, Math.random().toString(36).slice(2)]
+          actions: assign<MachineContext>(({ context }) => ({
+            arr: [...context.arr, Math.random().toString(36).slice(2)]
           }))
         }
       }
@@ -231,11 +207,12 @@ describe('createActorContext', () => {
   });
 
   it('should work with a provided machine', () => {
-    const someMachine = createMachine({
-      context: { count: 0 }
-    });
+    const createSomeMachine = (context: { count: number }) =>
+      createMachine({
+        context
+      });
 
-    const SomeContext = createActorContext(someMachine);
+    const SomeContext = createActorContext(createSomeMachine({ count: 0 }));
 
     const Component = () => {
       const actor = SomeContext.useActorRef();
@@ -244,11 +221,11 @@ describe('createActorContext', () => {
       return <div data-testid="value">{count}</div>;
     };
 
+    const otherMachine = createSomeMachine({ count: 42 });
+
     const App = () => {
       return (
-        <SomeContext.Provider
-          machine={() => someMachine.withContext({ count: 42 })}
-        >
+        <SomeContext.Provider logic={otherMachine}>
           <Component />
         </SomeContext.Provider>
       );
@@ -269,22 +246,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from \\"ActorProvider((machine))\\" but it's not inside a <ActorProvider((machine))> component."`
-    );
-    checkConsoleErrorOutputForMissingProvider();
-  });
-
-  it('useActor should throw when the actor was not provided', () => {
-    console.error = jest.fn();
-    const SomeContext = createActorContext(createMachine({}));
-
-    const App = () => {
-      SomeContext.useActor();
-      return null;
-    };
-
-    expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from \\"ActorProvider((machine))\\" but it's not inside a <ActorProvider((machine))> component."`
+      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
@@ -299,7 +261,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used a hook from \\"ActorProvider((machine))\\" but it's not inside a <ActorProvider((machine))> component."`
+      `"You used a hook from "ActorProvider" but it's not inside a <ActorProvider> component."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
@@ -323,12 +285,11 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          machine={someMachine}
-          options={{
+          logic={someMachine.provide({
             actions: {
               testAction: stubFn
             }
-          }}
+          })}
         >
           <Component />
         </SomeContext.Provider>
@@ -338,5 +299,175 @@ describe('createActorContext', () => {
     render(<App />);
 
     expect(stubFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('should work with other types of logic', async () => {
+    const PromiseContext = createActorContext(
+      fromPromise(() => Promise.resolve(42))
+    );
+
+    const Component = () => {
+      const value = PromiseContext.useSelector((data) => data);
+
+      return <div data-testid="value">{value.output}</div>;
+    };
+
+    const App = () => {
+      return (
+        <PromiseContext.Provider>
+          <Component />
+        </PromiseContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('value').textContent).toBe('42');
+    });
+  });
+
+  it("should preserve machine's identity when swapping options using in-render `.provide`", () => {
+    const someMachine = createMachine({
+      context: { count: 0 },
+      on: {
+        inc: {
+          actions: assign({ count: ({ context }) => context.count + 1 })
+        }
+      }
+    });
+    const stubFn = jest.fn();
+    const SomeContext = createActorContext(someMachine);
+
+    const Component = () => {
+      const { send } = SomeContext.useActorRef();
+      const count = SomeContext.useSelector((state) => state.context.count);
+      return (
+        <>
+          <span data-testid="count">{count}</span>
+          <button data-testid="button" onClick={() => send({ type: 'inc' })}>
+            Inc
+          </button>
+        </>
+      );
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider
+          logic={someMachine.provide({
+            actions: {
+              testAction: stubFn
+            }
+          })}
+        >
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    fireEvent.click(screen.getByTestId('button'));
+
+    expect(screen.getByTestId('count').textContent).toBe('1');
+
+    fireEvent.click(screen.getByTestId('button'));
+
+    expect(screen.getByTestId('count').textContent).toBe('2');
+  });
+
+  it('options can be passed to the provider', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            next: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+    const SomeContext = createActorContext(machine);
+    let persistedState: Snapshot<unknown> | undefined = undefined;
+
+    const Component = () => {
+      const actorRef = SomeContext.useActorRef();
+      const state = SomeContext.useSelector((state) => state);
+
+      persistedState = actorRef.getPersistedSnapshot();
+
+      return (
+        <div
+          data-testid="value"
+          onClick={() => {
+            actorRef.send({ type: 'next' });
+          }}
+        >
+          {state.value}
+        </div>
+      );
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider options={{ snapshot: persistedState }}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    const { unmount } = render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('a');
+
+    fireEvent.click(screen.getByTestId('value'));
+
+    // Ensure that the state machine without restored state functions as normal
+    expect(screen.getByTestId('value').textContent).toBe('b');
+
+    // unrender app
+    unmount();
+
+    // At this point, `state` should be `{ value: 'b' }`
+
+    // re-render app
+    render(<App />);
+
+    // Ensure that the state machine is restored to the persisted state
+    expect(screen.getByTestId('value').textContent).toBe('b');
+  });
+
+  it('input can be passed to the provider', () => {
+    const SomeContext = createActorContext(
+      createMachine({
+        types: {} as {
+          context: { doubled: number };
+        },
+        context: ({ input }: { input: number }) => ({
+          doubled: input * 2
+        })
+      })
+    );
+
+    const Component = () => {
+      const doubled = SomeContext.useSelector((state) => state.context.doubled);
+
+      return <div data-testid="value">{doubled}</div>;
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider options={{ input: 42 }}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('84');
   });
 });

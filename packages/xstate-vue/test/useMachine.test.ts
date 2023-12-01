@@ -1,14 +1,20 @@
-import { render, fireEvent, waitFor } from '@testing-library/vue';
-import UseMachine from './UseMachine.vue';
+import { fireEvent, render, waitFor } from '@testing-library/vue';
+import { PromiseActorLogic, assign, createActor, createMachine } from 'xstate';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
-import { createMachine, assign, doneInvoke } from 'xstate';
+import UseMachine from './UseMachine.vue';
 
-describe('useMachine composition function', () => {
+describe('useMachine', () => {
   const context = {
     data: undefined
   };
-  const fetchMachine = createMachine<typeof context>({
+  const fetchMachine = createMachine({
     id: 'fetch',
+    types: {} as {
+      actors: {
+        src: 'fetchData';
+        logic: PromiseActorLogic<string>;
+      };
+    },
     initial: 'idle',
     context,
     states: {
@@ -22,9 +28,9 @@ describe('useMachine composition function', () => {
           onDone: {
             target: 'success',
             actions: assign({
-              data: (_, e) => e.data
+              data: ({ event }) => event.output
             }),
-            cond: (_, e) => e.data.length
+            guard: ({ event }) => !!event.output.length
           }
         }
       },
@@ -34,10 +40,25 @@ describe('useMachine composition function', () => {
     }
   });
 
-  const persistedFetchState = fetchMachine.transition(
-    'loading',
-    doneInvoke('fetchData', 'persisted data')
-  );
+  const actorRef = createActor(
+    fetchMachine.provide({
+      actors: {
+        fetchData: createMachine({
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final'
+            }
+          },
+          output: 'persisted data'
+        }) as any
+      }
+    })
+  ).start();
+  actorRef.send({ type: 'FETCH' });
+
+  const persistedFetchState = actorRef.getPersistedSnapshot();
+
   it('should work with a component ', async () => {
     const { getByText, getByTestId } = render(UseMachine as any);
     const button = getByText('Fetch');
@@ -54,6 +75,7 @@ describe('useMachine composition function', () => {
     });
     await waitFor(() => getByText(/Success/));
     const dataEl = getByTestId('data');
+
     expect(dataEl.textContent).toBe('persisted data');
   });
 

@@ -1,11 +1,11 @@
 <template>
-  <button @click="send('TOGGLE')">
-    {{ state.value === 'inactive' ? 'Turn on' : 'Turn off' }}
+  <button @click="send({ type: 'TOGGLE' })">
+    {{ snapshot.value === 'inactive' ? 'Turn on' : 'Turn off' }}
   </button>
 </template>
 
 <script lang="ts">
-import { useMachine } from '../src';
+import { useMachine } from '../src/index.ts';
 import { createMachine } from 'xstate';
 import { defineComponent } from 'vue';
 
@@ -24,8 +24,8 @@ const toggleMachine = createMachine({
 
 export default defineComponent({
   setup() {
-    const { state, send } = useMachine(toggleMachine);
-    return { state, send };
+    const { snapshot, send } = useMachine(toggleMachine);
+    return { snapshot, send };
   }
 });
 </script>

@@ -2,21 +2,26 @@ import {
   assign,
   ContextFrom,
   createMachine,
-  EmittedFrom,
+  SnapshotFrom,
   EventFrom,
-  interpret,
-  MachineOptionsFrom,
+  createActor,
+  MachineImplementationsFrom,
   StateValueFrom,
-  TagsFrom
-} from '../src';
-import { createModel } from '../src/model';
+  ActorLogic,
+  ActorRefFrom,
+  TagsFrom,
+  Snapshot
+} from '../src/index.ts';
 import { TypegenMeta } from '../src/typegenTypes';
 
 describe('ContextFrom', () => {
   it('should return context of a machine', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         context: {} as { counter: number }
+      },
+      context: {
+        counter: 0
       }
     });
 
@@ -37,9 +42,12 @@ describe('ContextFrom', () => {
 
   it('should return context of a typegened machine', () => {
     const machine = createMachine({
-      tsTypes: {} as TypegenMeta,
-      schema: {
+      types: {
+        typegen: {} as TypegenMeta,
         context: {} as { counter: number }
+      },
+      context: {
+        counter: 0
       }
     });
 
@@ -62,7 +70,7 @@ describe('ContextFrom', () => {
 describe('EventFrom', () => {
   it('should return events for a machine', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -85,8 +93,8 @@ describe('EventFrom', () => {
 
   it('should return events for a typegened machine', () => {
     const machine = createMachine({
-      tsTypes: {} as TypegenMeta,
-      schema: {
+      types: {
+        typegen: {} as TypegenMeta,
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -109,7 +117,7 @@ describe('EventFrom', () => {
 
   it('should return events for an interpreter', () => {
     const machine = createMachine({
-      schema: {
+      types: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
           | { type: 'UPDATE_AGE'; value: number }
@@ -117,7 +125,7 @@ describe('EventFrom', () => {
       }
     });
 
-    const service = interpret(machine);
+    const service = createActor(machine);
 
     type InterpreterEvent = EventFrom<typeof service>;
 
@@ -131,216 +139,148 @@ describe('EventFrom', () => {
       type: 'UNKNOWN_EVENT'
     });
   });
-
-  it('should return events for createModel', () => {
-    const userModel = createModel(
-      {},
-      {
-        events: {
-          updateName: (value: string) => ({ value }),
-          updateAge: (value: number) => ({ value }),
-          anotherEvent: () => ({})
-        }
-      }
-    );
-
-    type UserModelEvent = EventFrom<typeof userModel>;
-
-    const acceptUserModelEvent = (_event: UserModelEvent) => {};
-
-    acceptUserModelEvent({ type: 'updateName', value: 'test' });
-    acceptUserModelEvent({ type: 'updateAge', value: 12 });
-    acceptUserModelEvent({ type: 'anotherEvent' });
-    acceptUserModelEvent({
-      // @ts-expect-error
-      type: 'eventThatDoesNotExist'
-    });
-  });
-
-  it('should narrow events down to the specified types', () => {
-    const userModel = createModel(
-      {},
-      {
-        events: {
-          updateName: (value: string) => ({ value }),
-          updateAge: (value: number) => ({ value }),
-          anotherEvent: () => ({})
-        }
-      }
-    );
-
-    type UserModelEventSubset = EventFrom<
-      typeof userModel,
-      'updateName' | 'updateAge'
-    >;
-
-    const acceptUserModelEventSubset = (
-      _userModelEventSubset: UserModelEventSubset
-    ) => {};
-
-    acceptUserModelEventSubset({ type: 'updateName', value: 'test' });
-    acceptUserModelEventSubset({ type: 'updateAge', value: 12 });
-    // @ts-expect-error
-    acceptUserModelEventSubset({ type: 'anotherEvent' });
-    // @ts-expect-error
-    acceptUserModelEventSubset({ type: 'eventThatDoesNotExist' });
-  });
-
-  it('should correctly extract events from events having union of strings as their `type`', () => {
-    const machine = createMachine({
-      schema: {
-        events: {} as { type: 'INC' | 'DEC' }
-      }
-    });
-
-    type MachineEvent = EventFrom<typeof machine, 'INC'>;
-
-    const acceptEvent = (_event: MachineEvent) => {};
-
-    acceptEvent({ type: 'INC' });
-  });
 });
 
-describe('MachineOptionsFrom', () => {
-  it('should return options for a typegen-less machine', () => {
+describe('MachineImplementationsFrom', () => {
+  it('should return implementations for a typegen-less machine', () => {
     const machine = createMachine({
       context: {
         count: 100
       },
-      schema: {
+      types: {
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
 
-    const acceptMachineOptions = (
-      _options: MachineOptionsFrom<typeof machine>
+    const acceptMachineImplementations = (
+      _options: MachineImplementationsFrom<typeof machine>
     ) => {};
 
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {
         foo: () => {}
       }
     });
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {
         foo: assign(() => ({}))
       }
     });
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {
-        foo: assign((ctx) => {
-          ((_accept: number) => {})(ctx.count);
+        foo: assign(({ context }) => {
+          ((_accept: number) => {})(context.count);
           return {};
         })
       }
     });
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {
-        foo: assign((_ctx, ev) => {
-          ((_accept: 'FOO' | 'BAR') => {})(ev.type);
+        foo: assign(({ event }) => {
+          ((_accept: 'FOO' | 'BAR') => {})(event.type);
           return {};
         })
       }
     });
     // @ts-expect-error
-    acceptMachineOptions(100);
+    acceptMachineImplementations(100);
   });
 
-  it('should return optional options for a typegen-based machine by default', () => {
+  it('should return optional implementations for a typegen-based machine by default', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'myAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
       };
     }
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
       context: {
         count: 100
       },
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
 
-    const acceptMachineOptions = (
-      _options: MachineOptionsFrom<typeof machine>
+    const acceptMachineImplementations = (
+      _options: MachineImplementationsFrom<typeof machine>
     ) => {};
 
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {
         // @ts-expect-error
         foo: () => {}
       }
     });
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {}
     });
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {
-        myAction: assign((ctx, ev) => {
-          ((_accept: number) => {})(ctx.count);
-          ((_accept: 'FOO') => {})(ev.type);
+        myAction: assign(({ context, event }) => {
+          ((_accept: number) => {})(context.count);
+          ((_accept: 'FOO') => {})(event.type);
           return {};
         })
       }
     });
     // @ts-expect-error
-    acceptMachineOptions(100);
+    acceptMachineImplementations(100);
   });
 
-  it('should return required options for a typegen-based machine with a flag', () => {
+  it('should return required implementations for a typegen-based machine with a flag', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'myAction';
         delays: never;
         guards: never;
-        services: never;
+        actors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
       };
     }
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
       context: {
         count: 100
       },
-      schema: {
+      types: {
+        typegen: {} as TypesMeta,
         events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
       }
     });
 
-    const acceptMachineOptions = (
-      _options: MachineOptionsFrom<typeof machine, true>
+    const acceptMachineImplementations = (
+      _options: MachineImplementationsFrom<typeof machine, true>
     ) => {};
 
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {
         // @ts-expect-error
         foo: () => {}
       }
     });
-    acceptMachineOptions({
+    acceptMachineImplementations({
       // @ts-expect-error
       actions: {}
     });
-    acceptMachineOptions({
+    acceptMachineImplementations({
       actions: {
-        myAction: assign((ctx, ev) => {
-          ((_accept: number) => {})(ctx.count);
-          ((_accept: 'FOO') => {})(ev.type);
+        myAction: assign(({ context, event }) => {
+          ((_accept: number) => {})(context.count);
+          ((_accept: 'FOO') => {})(event.type);
           return {};
         })
       }
     });
     // @ts-expect-error
-    acceptMachineOptions(100);
+    acceptMachineImplementations(100);
   });
 });
 
@@ -351,7 +291,9 @@ describe('StateValueFrom', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: {
+        typegen: {} as TypesMeta
+      }
     });
 
     function matches(_value: StateValueFrom<typeof machine>) {}
@@ -371,36 +313,19 @@ describe('StateValueFrom', () => {
   });
 });
 
-describe('EmittedFrom', () => {
+describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
-    const service = interpret(
+    const service = createActor(
       createMachine({
-        schema: {
+        types: {
           events: {} as { type: 'FOO' }
         }
       })
     );
 
-    function acceptState(_state: EmittedFrom<typeof service>) {}
+    function acceptState(_state: SnapshotFrom<typeof service>) {}
 
-    acceptState(service.initialState);
-    // @ts-expect-error
-    acceptState("isn't any");
-  });
-
-  it('should return state from a service created based on a model without any concrete events', () => {
-    const service = interpret(
-      createModel(
-        {},
-        {
-          // this empty obj is important for this test case
-        }
-      ).createMachine({})
-    );
-
-    function acceptState(_state: EmittedFrom<typeof service>) {}
-
-    acceptState(service.initialState);
+    acceptState(service.getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -408,9 +333,9 @@ describe('EmittedFrom', () => {
   it('should return state from a machine without context', () => {
     const machine = createMachine({});
 
-    function acceptState(_state: EmittedFrom<typeof machine>) {}
+    function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(machine.initialState);
+    acceptState(createActor(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -422,11 +347,31 @@ describe('EmittedFrom', () => {
       }
     });
 
-    function acceptState(_state: EmittedFrom<typeof machine>) {}
+    function acceptState(_state: SnapshotFrom<typeof machine>) {}
 
-    acceptState(machine.initialState);
+    acceptState(createActor(machine).getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
+  });
+});
+
+describe('ActorRefFrom', () => {
+  it('should return `ActorRef` based on actor logic', () => {
+    const logic: ActorLogic<Snapshot<undefined>, { type: 'TEST' }> = {
+      transition: (state) => state,
+      getInitialState: () => ({
+        status: 'active',
+        output: undefined,
+        error: undefined
+      }),
+      getPersistedSnapshot: (s) => s
+    };
+
+    function acceptActorRef(actorRef: ActorRefFrom<typeof logic>) {
+      actorRef.send({ type: 'TEST' });
+    }
+
+    acceptActorRef(createActor(logic).start());
   });
 });
 
@@ -436,7 +381,9 @@ describe('tags', () => {
       tags: 'a' | 'b' | 'c';
     }
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      types: {
+        typegen: {} as TypesMeta
+      }
     });
 
     type Tags = TagsFrom<typeof machine>;

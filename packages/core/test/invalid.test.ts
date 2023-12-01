@@ -1,58 +1,174 @@
-import { Machine } from '../src/index';
-
-const machine = Machine({
-  type: 'parallel',
-  states: {
-    A: {
-      initial: 'A1',
-      states: {
-        A1: {},
-        A2: {}
-      }
-    },
-    B: {
-      initial: 'B1',
-      states: {
-        B1: {},
-        B2: {}
-      }
-    }
-  }
-});
+import { createMachine } from '../src/index.ts';
 
 describe('invalid or resolved states', () => {
   it('should resolve a String state', () => {
-    expect(machine.transition('A', 'E').value).toEqual({ A: 'A1', B: 'B1' });
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
+    });
+    expect(
+      machine.transition(
+        machine.resolveState({ value: 'A' }),
+        { type: 'E' },
+        {} as any // TODO: figure out the simulation API
+      ).value
+    ).toEqual({
+      A: 'A1',
+      B: 'B1'
+    });
   });
 
   it('should resolve transitions from empty states', () => {
-    expect(machine.transition({ A: {}, B: {} }, 'E').value).toEqual({
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
+    });
+    expect(
+      machine.transition(
+        machine.resolveState({ value: { A: {}, B: {} } }),
+        { type: 'E' },
+        {} as any // TODO: figure out the simulation API
+      ).value
+    ).toEqual({
       A: 'A1',
       B: 'B1'
     });
   });
 
   it('should allow transitioning from valid states', () => {
-    machine.transition({ A: 'A1', B: 'B1' }, 'E');
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
+    });
+    machine.transition(
+      machine.resolveState({ value: { A: 'A1', B: 'B1' } }),
+      { type: 'E' },
+      {} as any // TODO: figure out the simulation API
+    );
   });
 
   it('should reject transitioning from bad state configs', () => {
-    expect(() => machine.transition({ A: 'A3', B: 'B3' }, 'E')).toThrow();
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
+    });
+    expect(() =>
+      machine.transition(
+        machine.resolveState({ value: { A: 'A3', B: 'B3' } }),
+        { type: 'E' },
+        {} as any // TODO: figure out the simulation API
+      )
+    ).toThrow();
   });
 
   it('should resolve transitioning from partially valid states', () => {
-    expect(machine.transition({ A: 'A1', B: {} }, 'E').value).toEqual({
-      A: 'A1',
-      B: 'B1'
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {},
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {}
+          }
+        }
+      }
     });
-  });
-
-  it("should resolve transitioning from regions that don't exist (remove region)", () => {
     expect(
-      machine.transition({ A: 'A1', B: 'B1', Z: 'Z1' }, 'E').value
+      machine.transition(
+        machine.resolveState({ value: { A: 'A1', B: {} } }),
+        { type: 'E' },
+        {} as any // TODO: figure out the simulation API
+      ).value
     ).toEqual({
       A: 'A1',
       B: 'B1'
     });
+  });
+});
+
+describe('invalid transition', () => {
+  it('should throw when attempting to create a machine with a sibling target on the root node', () => {
+    expect(() => {
+      createMachine({
+        id: 'direction',
+        initial: 'left',
+        states: {
+          left: {},
+          right: {}
+        },
+        on: {
+          LEFT_CLICK: 'left',
+          RIGHT_CLICK: 'right'
+        }
+      });
+    }).toThrowError(/invalid target/i);
   });
 });

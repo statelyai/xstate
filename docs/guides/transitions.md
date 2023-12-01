@@ -331,7 +331,7 @@ const gameService = interpret(gameMachine)
 // When 'AWARD_POINTS' is sent, a self-transition to 'PLAYING' occurs.
 // The transient transition to 'win' is taken because the 'didPlayerWin'
 // condition is satisfied.
-gameService.send('AWARD_POINTS');
+gameService.send({ type: 'AWARD_POINTS' });
 // => 'win'
 ```
 

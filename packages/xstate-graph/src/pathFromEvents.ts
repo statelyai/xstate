@@ -1,9 +1,15 @@
-import { EventObject } from 'xstate';
-import { isMachine } from 'xstate/lib/utils';
+import {
+  ActorScope,
+  ActorLogic,
+  ActorSystem,
+  AnyStateMachine,
+  EventObject,
+  Snapshot
+} from 'xstate';
 import { getAdjacencyMap } from './adjacency';
 import {
+  SerializedEvent,
   SerializedState,
-  SimpleBehavior,
   StatePath,
   Steps,
   TraversalOptions
@@ -11,34 +17,54 @@ import {
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
-  createDefaultBehaviorOptions
+  createDefaultLogicOptions
 } from './graph';
+import { alterPath } from './alterPath';
+import { createMockActorScope } from './actorScope';
+
+function isMachine(value: any): value is AnyStateMachine {
+  return !!value && '__xstatenode' in value;
+}
 
 export function getPathsFromEvents<
-  TState,
-  TEvent extends EventObject = EventObject
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TInput,
+  TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  behavior: SimpleBehavior<TState, TEvent>,
+  logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   events: TEvent[],
-  options?: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions<TState, TEvent>(
+  options?: TraversalOptions<TSnapshot, TEvent>
+): Array<StatePath<TSnapshot, TEvent>> {
+  const resolvedOptions = resolveTraversalOptions(
+    logic,
     {
       events,
       ...options
     },
-    isMachine(behavior)
-      ? createDefaultMachineOptions(behavior)
-      : createDefaultBehaviorOptions(behavior)
+    (isMachine(logic)
+      ? createDefaultMachineOptions(logic)
+      : createDefaultLogicOptions()) as TraversalOptions<TSnapshot, TEvent>
   );
-  const fromState = resolvedOptions.fromState ?? behavior.initialState;
+  const actorScope = createMockActorScope() as ActorScope<
+    TSnapshot,
+    TEvent,
+    TSystem
+  >;
+  const fromState =
+    resolvedOptions.fromState ??
+    logic.getInitialState(
+      actorScope,
+      // TODO: fix this
+      undefined as TInput
+    );
 
   const { serializeState, serializeEvent } = resolvedOptions;
 
-  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
+  const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
-  const stateMap = new Map<SerializedState, TState>();
-  const steps: Steps<TState, TEvent> = [];
+  const stateMap = new Map<SerializedState, TSnapshot>();
+  const steps: Steps<TSnapshot, TEvent> = [];
 
   const serializedFromState = serializeState(
     fromState,
@@ -55,7 +81,7 @@ export function getPathsFromEvents<
       event
     });
 
-    const eventSerial = serializeEvent(event);
+    const eventSerial = serializeEvent(event) as SerializedEvent;
     const { state: nextState, event: _nextEvent } =
       adjacency[stateSerial].transitions[eventSerial];
 
@@ -83,10 +109,10 @@ export function getPathsFromEvents<
   }
 
   return [
-    {
+    alterPath({
       state,
       steps,
       weight: steps.length
-    }
+    })
   ];
 }

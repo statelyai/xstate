@@ -1,6 +1,3 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
 import { useMachine } from '@xstate/react';
 import { tilesMachine } from './tilesMachine';
@@ -72,7 +69,7 @@ function App() {
 
   return (
     <div className="App">
-      <TileGrid image="https://source.unsplash.com/random/400x400">
+      <TileGrid image="https://source.unsplash.com/random/?city,night">
         {state.context.tiles.map((tile, index) => {
           const x = index % 4;
           const y = Math.floor(index / 4);

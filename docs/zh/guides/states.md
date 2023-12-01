@@ -248,19 +248,18 @@ const machine = createMachine({
 
 const inactiveState = machine.initialState;
 
-inactiveState.can('TOGGLE'); // true
-inactiveState.can('DO_SOMETHING'); // false
+inactiveState.can({ type: 'TOGGLE' }); // true
+inactiveState.can({ type: 'DO_SOMETHING' }); // false
 
-// 还接收完整的 event 对象：
 inactiveState.can({
   type: 'DO_SOMETHING',
   data: 42
 }); // false
 
-const activeState = machine.transition(inactiveState, 'TOGGLE');
+const activeState = machine.transition(inactiveState, { type: 'TOGGLE' });
 
-activeState.can('TOGGLE'); // false
-activeState.can('DO_SOMETHING'); // true, 因为一个 action 将被执行
+activeState.can({ type: 'TOGGLE' }); // false
+activeState.can({ type: 'DO_SOMETHING' }); // true, 因为一个 action 将被执行
 ```
 
 如果 [`state.changed`](#state-changed) 为 `true`，并且以下任何一项为 `true`，则状态被视为“changed”：

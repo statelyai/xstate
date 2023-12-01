@@ -64,7 +64,7 @@ export const toggleMachine = createMachine({
         }).start()
 </script>
 
-<button on:click={() => toggleService.send('TOGGLE')}>
+<button on:click={() => toggleService.send({ type: 'TOGGLE' })}>
     {current.matches('inactive') ? 'Off' : 'On'}
 </button>
 ```
@@ -81,7 +81,7 @@ The toggleService has a `.subscribe` function that is similar to Svelte stores, 
     const toggleService = interpret(toggleMachine).start();
 </script>
 
-<button on:click={() => toggleService.send('TOGGLE')}>
+<button on:click={() => toggleService.send({ type: 'TOGGLE' })}>
     {$toggleService.matches('inactive') ? 'Off' : 'On'}
 </button>
 ```

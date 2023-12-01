@@ -11,11 +11,11 @@ describe('@xstate/immer', () => {
 
     createMachine(
       {
-        tsTypes: {} as TypesMeta,
         context: {
           count: 0
         },
-        schema: {
+        types: {
+          typegen: {} as TypesMeta,
           context: {} as { count: number },
           events: {} as
             | {
@@ -29,10 +29,10 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          doSomething: assign((ctx, event) => {
+          doSomething: assign(({ context, event }) => {
             ((_accept: 'update') => {})(event.type);
             // no error
-            ctx.count += event.data.count;
+            context.count += event.data.count;
             // @ts-expect-error
             ((_accept: "test that this isn't any") => {})(event);
             // @ts-expect-error

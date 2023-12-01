@@ -1,11 +1,18 @@
-import { Machine, assign } from 'xstate';
+import { createMachine, assign, type ActorLogicFrom } from 'xstate';
 
 const context = {
-  data: undefined
+  data: undefined as string | undefined
 };
 
-export const fetchMachine = Machine<typeof context, any>({
+export const fetchMachine = createMachine({
   id: 'fetch',
+  types: {} as {
+    context: typeof context;
+    actors: {
+      src: 'fetchData';
+      logic: ActorLogicFrom<Promise<string>>;
+    };
+  },
   initial: 'idle',
   context,
   states: {
@@ -19,9 +26,9 @@ export const fetchMachine = Machine<typeof context, any>({
         onDone: {
           target: 'success',
           actions: assign({
-            data: (_, e) => e.data
+            data: ({ event }) => event.output
           }),
-          cond: (_, e) => e.data.length
+          guard: ({ event }) => !!event.output.length
         }
       }
     },

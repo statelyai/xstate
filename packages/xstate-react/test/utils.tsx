@@ -8,7 +8,7 @@ type SimplifiedRTLRender = (
   ...args: Parameters<typeof RTL.render>
 ) => ReturnType<typeof RTL.render>;
 
-const modeSuits = [
+const reactModes = [
   ['non-strict', React.Fragment],
   ['strict', React.StrictMode]
 ] as const;
@@ -16,11 +16,11 @@ const modeSuits = [
 export function describeEachReactMode(
   name: string,
   fn: (suiteCase: {
-    suiteKey: typeof modeSuits[number][0];
+    suiteKey: (typeof reactModes)[number][0];
     render: SimplifiedRTLRender;
   }) => void
 ) {
-  describe.each(modeSuits)(name, (suiteKey, Wrapper) => {
+  describe.each(reactModes)(name, (suiteKey, Wrapper) => {
     const render: SimplifiedRTLRender = (ui, ...rest) =>
       RTL.render(<Wrapper>{ui}</Wrapper>, ...rest);
 

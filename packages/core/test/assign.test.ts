@@ -1,5 +1,9 @@
-import { Machine, interpret, assign, sendParent, createMachine } from '../src';
-import { sendTo } from '../src/actions';
+import {
+  assign,
+  createActor,
+  createMachine,
+  enqueueActions
+} from '../src/index.ts';
 
 interface CounterContext {
   count: number;
@@ -7,216 +11,241 @@ interface CounterContext {
   maybe?: string;
 }
 
-const counterMachine = Machine<CounterContext>({
-  initial: 'counting',
-  context: { count: 0, foo: 'bar' },
-  states: {
-    counting: {
-      on: {
-        INC: [
-          {
-            target: 'counting',
-            actions: assign((ctx) => ({
-              count: ctx.count + 1
-            }))
-          }
-        ],
-        DEC: [
-          {
-            target: 'counting',
-            actions: [
-              assign({
-                count: (ctx) => ctx.count - 1
-              })
-            ]
-          }
-        ],
-        WIN_PROP: [
-          {
-            target: 'counting',
-            actions: [
-              assign({
-                count: () => 100,
-                foo: () => 'win'
-              })
-            ]
-          }
-        ],
-        WIN_STATIC: [
-          {
-            target: 'counting',
-            actions: [
-              assign({
-                count: 100,
-                foo: 'win'
-              })
-            ]
-          }
-        ],
-        WIN_MIX: [
-          {
-            target: 'counting',
-            actions: [
-              assign({
-                count: () => 100,
-                foo: 'win'
-              })
-            ]
-          }
-        ],
-        WIN: [
-          {
-            target: 'counting',
-            actions: [
-              assign(() => ({
-                count: 100,
-                foo: 'win'
+const createCounterMachine = (context: Partial<CounterContext> = {}) =>
+  createMachine({
+    types: {} as { context: CounterContext },
+    initial: 'counting',
+    context: { count: 0, foo: 'bar', ...context },
+    states: {
+      counting: {
+        on: {
+          INC: [
+            {
+              target: 'counting',
+              actions: assign(({ context }) => ({
+                count: context.count + 1
               }))
-            ]
-          }
-        ],
-        SET_MAYBE: [
-          {
-            actions: [
-              assign<CounterContext>({
-                maybe: 'defined'
-              })
-            ]
-          }
-        ]
+            }
+          ],
+          DEC: [
+            {
+              target: 'counting',
+              actions: [
+                assign({
+                  count: ({ context }) => context.count - 1
+                })
+              ]
+            }
+          ],
+          WIN_PROP: [
+            {
+              target: 'counting',
+              actions: [
+                assign({
+                  count: () => 100,
+                  foo: () => 'win'
+                })
+              ]
+            }
+          ],
+          WIN_STATIC: [
+            {
+              target: 'counting',
+              actions: [
+                assign({
+                  count: 100,
+                  foo: 'win'
+                })
+              ]
+            }
+          ],
+          WIN_MIX: [
+            {
+              target: 'counting',
+              actions: [
+                assign({
+                  count: () => 100,
+                  foo: 'win'
+                })
+              ]
+            }
+          ],
+          WIN: [
+            {
+              target: 'counting',
+              actions: [
+                assign(() => ({
+                  count: 100,
+                  foo: 'win'
+                }))
+              ]
+            }
+          ],
+          SET_MAYBE: [
+            {
+              actions: [
+                assign({
+                  maybe: 'defined'
+                })
+              ]
+            }
+          ]
+        }
       }
     }
-  }
-});
+  });
 
 describe('assign', () => {
   it('applies the assignment to the external state (property assignment)', () => {
-    const oneState = counterMachine.transition(
-      counterMachine.initialState,
-      'DEC'
-    );
+    const counterMachine = createCounterMachine();
+
+    const actorRef = createActor(counterMachine).start();
+    actorRef.send({
+      type: 'DEC'
+    });
+    const oneState = actorRef.getSnapshot();
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: -1, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, 'DEC');
+    actorRef.send({ type: 'DEC' });
+    const twoState = actorRef.getSnapshot();
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: -2, foo: 'bar' });
   });
 
   it('applies the assignment to the external state', () => {
-    const oneState = counterMachine.transition(
-      counterMachine.initialState,
-      'INC'
-    );
+    const counterMachine = createCounterMachine();
+
+    const actorRef = createActor(counterMachine).start();
+    actorRef.send({
+      type: 'INC'
+    });
+    const oneState = actorRef.getSnapshot();
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 1, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, 'INC');
+    actorRef.send({ type: 'INC' });
+    const twoState = actorRef.getSnapshot();
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 2, foo: 'bar' });
   });
 
   it('applies the assignment to multiple properties (property assignment)', () => {
-    const nextState = counterMachine.transition(
-      counterMachine.initialState,
-      'WIN_PROP'
-    );
+    const counterMachine = createCounterMachine();
+    const actorRef = createActor(counterMachine).start();
+    actorRef.send({
+      type: 'WIN_PROP'
+    });
 
-    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties (static)', () => {
-    const nextState = counterMachine.transition(
-      counterMachine.initialState,
-      'WIN_STATIC'
-    );
+    const counterMachine = createCounterMachine();
+    const actorRef = createActor(counterMachine).start();
+    actorRef.send({
+      type: 'WIN_STATIC'
+    });
 
-    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties (static + prop assignment)', () => {
-    const nextState = counterMachine.transition(
-      counterMachine.initialState,
-      'WIN_MIX'
-    );
+    const counterMachine = createCounterMachine();
+    const actorRef = createActor(counterMachine).start();
+    actorRef.send({
+      type: 'WIN_MIX'
+    });
 
-    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties', () => {
-    const nextState = counterMachine.transition(
-      counterMachine.initialState,
-      'WIN'
-    );
+    const counterMachine = createCounterMachine();
+    const actorRef = createActor(counterMachine).start();
+    actorRef.send({
+      type: 'WIN'
+    });
 
-    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
+    expect(actorRef.getSnapshot().context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to the explicit external state (property assignment)', () => {
-    const oneState = counterMachine.transition(
-      counterMachine.initialState,
-      'DEC',
-      { count: 50, foo: 'bar' }
-    );
+    const machine = createCounterMachine({ count: 50, foo: 'bar' });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'DEC' });
+    const oneState = actorRef.getSnapshot();
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 49, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, 'DEC');
+    actorRef.send({ type: 'DEC' });
+    const twoState = actorRef.getSnapshot();
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 48, foo: 'bar' });
 
-    const threeState = counterMachine.transition(twoState, 'DEC', {
-      count: 100,
-      foo: 'bar'
-    });
+    const machine2 = createCounterMachine({ count: 100, foo: 'bar' });
+
+    const actorRef2 = createActor(machine2).start();
+    actorRef2.send({ type: 'DEC' });
+    const threeState = actorRef2.getSnapshot();
 
     expect(threeState.value).toEqual('counting');
     expect(threeState.context).toEqual({ count: 99, foo: 'bar' });
   });
 
   it('applies the assignment to the explicit external state', () => {
-    const oneState = counterMachine.transition(
-      counterMachine.initialState,
-      'INC',
-      { count: 50, foo: 'bar' }
-    );
+    const machine = createCounterMachine({ count: 50, foo: 'bar' });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'INC' });
+    const oneState = actorRef.getSnapshot();
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 51, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, 'INC');
+    actorRef.send({ type: 'INC' });
+    const twoState = actorRef.getSnapshot();
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 52, foo: 'bar' });
 
-    const threeState = counterMachine.transition(twoState, 'INC', {
-      count: 102,
-      foo: 'bar'
-    });
+    const machine2 = createCounterMachine({ count: 102, foo: 'bar' });
+
+    const actorRef2 = createActor(machine2).start();
+    actorRef2.send({ type: 'INC' });
+    const threeState = actorRef2.getSnapshot();
 
     expect(threeState.value).toEqual('counting');
     expect(threeState.context).toEqual({ count: 103, foo: 'bar' });
   });
 
   it('should maintain state after unhandled event', () => {
-    const { initialState } = counterMachine;
+    const counterMachine = createCounterMachine();
+    const actorRef = createActor(counterMachine).start();
 
-    const nextState = counterMachine.transition(initialState, 'FAKE_EVENT');
+    actorRef.send({
+      type: 'FAKE_EVENT'
+    });
+    const nextState = actorRef.getSnapshot();
 
     expect(nextState.context).toBeDefined();
     expect(nextState.context).toEqual({ count: 0, foo: 'bar' });
   });
 
   it('sets undefined properties', () => {
-    const { initialState } = counterMachine;
+    const counterMachine = createCounterMachine();
+    const actorRef = createActor(counterMachine).start();
 
-    const nextState = counterMachine.transition(initialState, 'SET_MAYBE');
+    actorRef.send({
+      type: 'SET_MAYBE'
+    });
+
+    const nextState = actorRef.getSnapshot();
 
     expect(nextState.context.maybe).toBeDefined();
     expect(nextState.context).toEqual({
@@ -227,10 +256,11 @@ describe('assign', () => {
   });
 
   it('can assign from event', () => {
-    const machine = createMachine<
-      { count: number },
-      { type: 'INC'; value: number }
-    >({
+    const machine = createMachine({
+      types: {} as {
+        context: { count: number };
+        events: { type: 'INC'; value: number };
+      },
       initial: 'active',
       context: {
         count: 0
@@ -240,7 +270,7 @@ describe('assign', () => {
           on: {
             INC: {
               actions: assign({
-                count: (_, event) => event.value
+                count: ({ event }) => event.value
               })
             }
           }
@@ -248,147 +278,91 @@ describe('assign', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, { type: 'INC', value: 30 });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'INC', value: 30 });
 
-    expect(nextState.context.count).toEqual(30);
+    expect(actorRef.getSnapshot().context.count).toEqual(30);
   });
 });
 
 describe('assign meta', () => {
-  const machine = Machine<{ count: number }>({
-    id: 'assign',
-    initial: 'start',
-    context: { count: 0 },
-    states: {
-      start: {
-        entry: assign({
-          count: (_, __, { state }) => {
-            return state === undefined ? 1 : -1;
-          }
-        }),
-        meta: { test: 3 },
-        on: {
-          NEXT: {
-            target: 'two',
-            actions: assign({
-              count: (_, __, { state }) => {
-                return state ? state.meta['assign.start'].test : -1;
-              }
-            })
-          },
-          NEXT_FN: {
-            target: 'two',
-            actions: assign((_, __, { state }) => ({
-              count: state ? state.meta['assign.start'].test : -1
-            }))
-          },
-          NEXT_ASSIGNER: {
-            target: 'two',
-            actions: assign((_, __, { action }) => ({
-              count: action.assignment ? 5 : -1
-            }))
-          }
-        }
-      },
-      two: {}
-    }
-  });
-
-  it('should provide the state in regular transitions (prop assigner)', () => {
-    const { initialState } = machine;
-
-    const nextState = machine.transition(initialState, 'NEXT');
-
-    expect(nextState.context).toEqual({ count: 3 });
-  });
-
-  it('should provide the state in regular transitions (assigner)', () => {
-    const { initialState } = machine;
-
-    const nextState = machine.transition(initialState, 'NEXT_FN');
-
-    expect(nextState.context).toEqual({ count: 3 });
-  });
-
-  it('should provide the assign action', () => {
-    const { initialState } = machine;
-
-    const nextState = machine.transition(initialState, 'NEXT_ASSIGNER');
-
-    expect(nextState.context).toEqual({ count: 5 });
-  });
-
-  it('should not provide the state from initial state', () => {
-    const { initialState } = machine;
-
-    expect(initialState.context).toEqual({ count: 1 });
-  });
-
-  it('should provide meta._event to assigner', () => {
-    interface Ctx {
-      eventLog: Array<{ event: string; origin: string | undefined }>;
-    }
-
-    const assignEventLog = assign<Ctx>((ctx, event, meta) => ({
-      eventLog: ctx.eventLog.concat({
-        event: event.type,
-        origin: meta._event.origin
-      })
-    }));
-
-    const childMachine = Machine({
-      initial: 'bar',
-      states: {
-        bar: {}
-      },
-      on: {
-        PING: {
-          actions: [sendParent('PONG')]
-        }
-      }
-    });
-
-    const parentMachine = Machine<Ctx>({
-      initial: 'foo',
-      context: {
-        eventLog: []
-      },
-      states: {
-        foo: {
-          invoke: {
-            id: 'child',
-            src: childMachine
-          }
-        }
-      },
-      on: {
-        PING_CHILD: {
-          actions: [sendTo('child', 'PING'), assignEventLog]
+  it('should provide the parametrized action to the assigner', () => {
+    const machine = createMachine(
+      {
+        types: {} as {
+          actions: { type: 'inc'; params: { by: number } };
         },
-        '*': {
-          actions: [assignEventLog]
+        context: { count: 1 },
+        entry: {
+          type: 'inc',
+          params: { by: 10 }
+        }
+      },
+      {
+        actions: {
+          inc: assign(({ context }, params) => ({
+            count: context.count + params.by
+          }))
         }
       }
-    });
+    );
 
-    let state: any;
+    const actor = createActor(machine).start();
 
-    const service = interpret(parentMachine)
-      .onTransition((s) => {
-        state = s;
-      })
-      .start();
+    expect(actor.getSnapshot().context.count).toEqual(11);
+  });
 
-    service.send('PING_CHILD');
-    service.send('PING_CHILD');
+  it('should provide the action parameters to the partial assigner', () => {
+    const machine = createMachine(
+      {
+        types: {} as {
+          actions: { type: 'inc'; params: { by: number } };
+        },
+        context: { count: 1 },
+        entry: {
+          type: 'inc',
+          params: { by: 10 }
+        }
+      },
+      {
+        actions: {
+          inc: assign({
+            count: ({ context }, params) => context.count + params.by
+          })
+        }
+      }
+    );
 
-    expect(state.context).toEqual({
-      eventLog: [
-        { event: 'PING_CHILD', origin: undefined },
-        { event: 'PONG', origin: expect.stringMatching(/.+/) },
-        { event: 'PING_CHILD', origin: undefined },
-        { event: 'PONG', origin: expect.stringMatching(/.+/) }
-      ]
-    });
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().context.count).toEqual(11);
+  });
+
+  it('a parameterized action that resolves to assign() should be provided the params', (done) => {
+    const machine = createMachine(
+      {
+        on: {
+          EVENT: {
+            actions: {
+              type: 'inc',
+              params: { value: 5 }
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          inc: assign(({ context }, params) => {
+            expect(params).toEqual({ value: 5 });
+            done();
+            return context;
+          })
+        }
+      }
+    );
+
+    const service = createActor(machine).start();
+
+    service.send({ type: 'EVENT' });
   });
 });

@@ -1,26 +1,34 @@
-import { EventObject, AnyStateMachine, StateFrom, EventFrom } from 'xstate';
+import { AnyActorLogic, EventFromLogic } from 'xstate';
+import { getAdjacencyMap } from './adjacency';
+import { alterPath } from './alterPath';
+import { resolveTraversalOptions } from './graph';
 import {
   SerializedEvent,
   SerializedState,
-  SimpleBehavior,
   StatePath,
   StatePlanMap,
   TraversalOptions
 } from './types';
-import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
-import { getAdjacencyMap } from './adjacency';
-import { machineToBehavior } from './machineToBehavior';
+import { createMockActorScope } from './actorScope';
 
-export function getShortestPaths<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  options?: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
+export function getShortestPaths<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options?: TraversalOptions<
+    ReturnType<TLogic['transition']>,
+    EventFromLogic<TLogic>
+  >
+): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
+  type TInternalState = ReturnType<TLogic['transition']>;
+  type TEvent = EventFromLogic<TLogic>;
+
+  const resolvedOptions = resolveTraversalOptions(logic, options);
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
-  const fromState = resolvedOptions.fromState ?? behavior.initialState;
-  const adjacency = getAdjacencyMap(behavior, resolvedOptions);
+  const fromState =
+    resolvedOptions.fromState ??
+    logic.getInitialState(createMockActorScope(), undefined);
+  const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event
   const weightMap = new Map<
@@ -31,7 +39,7 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
       event: TEvent | undefined;
     }
   >();
-  const stateMap = new Map<SerializedState, TState>();
+  const stateMap = new Map<SerializedState, TInternalState>();
   const serializedFromState = serializeState(fromState, undefined, undefined);
   stateMap.set(serializedFromState, fromState);
 
@@ -82,20 +90,22 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
     unvisited.delete(serializedState);
   }
 
-  const statePlanMap: StatePlanMap<TState, TEvent> = {};
-  const paths: Array<StatePath<TState, TEvent>> = [];
+  const statePlanMap: StatePlanMap<TInternalState, TEvent> = {};
+  const paths: Array<StatePath<TInternalState, TEvent>> = [];
 
   weightMap.forEach(
     ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
       const state = stateMap.get(stateSerial)!;
+      const steps = !fromState
+        ? []
+        : statePlanMap[fromState].paths[0].steps.concat({
+            state: stateMap.get(fromState)!,
+            event: fromEvent!
+          });
+
       paths.push({
         state,
-        steps: !fromState
-          ? []
-          : statePlanMap[fromState].paths[0].steps.concat({
-              state: stateMap.get(fromState)!,
-              event: fromEvent!
-            }),
+        steps,
         weight
       });
       statePlanMap[stateSerial] = {
@@ -103,12 +113,7 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
         paths: [
           {
             state,
-            steps: !fromState
-              ? []
-              : statePlanMap[fromState].paths[0].steps.concat({
-                  state: stateMap.get(fromState)!,
-                  event: fromEvent!
-                }),
+            steps,
             weight
           }
         ]
@@ -117,20 +122,10 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   );
 
   if (resolvedOptions.toState) {
-    return paths.filter((path) => resolvedOptions.toState!(path.state));
+    return paths
+      .filter((path) => resolvedOptions.toState!(path.state))
+      .map(alterPath);
   }
 
-  return paths;
-}
-
-export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  const resolvedOptions = resolveTraversalOptions(
-    options,
-    createDefaultMachineOptions(machine, options)
-  );
-
-  return getShortestPaths(machineToBehavior(machine), resolvedOptions);
+  return paths.map(alterPath);
 }

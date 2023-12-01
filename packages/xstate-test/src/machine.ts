@@ -1,61 +1,112 @@
-import { SerializedState, serializeState, SimpleBehavior } from '@xstate/graph';
+import { SerializedState, serializeState } from '@xstate/graph';
 import {
   AnyEventObject,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   createMachine,
   EventFrom,
   EventObject,
-  StateFrom,
   TypegenConstraint,
-  TypegenDisabled
+  TypegenDisabled,
+  MachineContext,
+  StateValue,
+  SnapshotFrom,
+  MachineSnapshot,
+  __unsafe_getAllOwnEventDescriptors,
+  AnyActorRef
 } from 'xstate';
-import { TestModel } from './TestModel';
+import { TestModel } from './TestModel.ts';
 import {
   TestMachineConfig,
   TestMachineOptions,
   TestModelOptions
-} from './types';
-import { flatten, simpleStringify } from './utils';
-import { validateMachine } from './validateMachine';
+} from './types.ts';
+import { simpleStringify } from './utils.ts';
+import { validateMachine } from './validateMachine.ts';
 
-export async function testStateFromMeta(state: AnyState) {
-  for (const id of Object.keys(state.meta)) {
-    const stateNodeMeta = state.meta[id];
+export async function testStateFromMeta(snapshot: AnyMachineSnapshot) {
+  const meta = snapshot.getMeta();
+  for (const id of Object.keys(meta)) {
+    const stateNodeMeta = meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
-      await stateNodeMeta.test(state);
+      await stateNodeMeta.test(snapshot);
     }
   }
 }
 
 export function createTestMachine<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: TestMachineConfig<TContext, TEvent, TTypesMeta>,
   options?: TestMachineOptions<TContext, TEvent, TTypesMeta>
 ) {
-  return createMachine(config, options as any);
+  return createMachine(config as any, options as any);
+}
+
+function stateValuesEqual(
+  a: StateValue | undefined,
+  b: StateValue | undefined
+): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === undefined || b === undefined) {
+    return false;
+  }
+
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a === b;
+  }
+
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every((key) => stateValuesEqual(a[key], b[key]))
+  );
 }
 
 function serializeMachineTransition(
-  state: AnyState,
-  _event: AnyEventObject | undefined,
-  prevState: AnyState | undefined,
+  snapshot: MachineSnapshot<
+    MachineContext,
+    EventObject,
+    Record<string, AnyActorRef | undefined>,
+    StateValue,
+    string,
+    unknown
+  >,
+  event: AnyEventObject | undefined,
+  previousSnapshot:
+    | MachineSnapshot<
+        MachineContext,
+        EventObject,
+        Record<string, AnyActorRef | undefined>,
+        StateValue,
+        string,
+        unknown
+      >
+    | undefined,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
-  // Only consider the transition via the serialized event if there actually
-  // was a defined transition for the event
-  if (!state.event || state.transitions.length === 0) {
+  // TODO: the stateValuesEqual check here is very likely not exactly correct
+  // but I'm not sure what the correct check is and what this is trying to do
+  if (
+    !event ||
+    (previousSnapshot &&
+      stateValuesEqual(previousSnapshot.value, snapshot.value))
+  ) {
     return '';
   }
 
-  const prevStateString = prevState
-    ? ` from ${simpleStringify(prevState.value)}`
+  const prevStateString = previousSnapshot
+    ? ` from ${simpleStringify(previousSnapshot.value)}`
     : '';
 
-  return ` via ${serializeEvent(state.event)}${prevStateString}`;
+  return ` via ${serializeEvent(event)}${prevStateString}`;
 }
 
 /**
@@ -84,53 +135,56 @@ function serializeMachineTransition(
  */
 export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: Partial<TestModelOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
-): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
+  options?: Partial<
+    TestModelOptions<SnapshotFrom<TMachine>, EventFrom<TMachine>>
+  >
+): TestModel<SnapshotFrom<TMachine>, EventFrom<TMachine>, unknown> {
   validateMachine(machine);
 
-  const serializeEvent = options?.serializeEvent ?? simpleStringify;
+  const serializeEvent = (options?.serializeEvent ?? simpleStringify) as (
+    event: AnyEventObject
+  ) => string;
   const serializeTransition =
     options?.serializeTransition ?? serializeMachineTransition;
   const { events: getEvents, ...otherOptions } = options ?? {};
 
-  const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
-    machine as SimpleBehavior<any, any>,
-    {
-      serializeState: (state, event, prevState) => {
-        // Only consider the `state` if `serializeTransition()` is opted out (empty string)
-        return `${serializeState(state)}${serializeTransition(
-          state,
-          event,
-          prevState,
-          {
-            serializeEvent
+  const testModel = new TestModel<
+    SnapshotFrom<TMachine>,
+    EventFrom<TMachine>,
+    unknown
+  >(machine as any, {
+    serializeState: (state, event, prevState) => {
+      // Only consider the `state` if `serializeTransition()` is opted out (empty string)
+      return `${serializeState(state)}${serializeTransition(
+        state,
+        event,
+        prevState,
+        {
+          serializeEvent
+        }
+      )}` as SerializedState;
+    },
+    stateMatcher: (state, key) => {
+      return key.startsWith('#')
+        ? (state as any)._nodes.includes(machine.getStateNodeById(key))
+        : (state as any).matches(key);
+    },
+    events: (state) => {
+      const events =
+        typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
+
+      return __unsafe_getAllOwnEventDescriptors(state).flatMap(
+        (eventType: string) => {
+          if (events.some((e) => (e as EventObject).type === eventType)) {
+            return events.filter((e) => (e as EventObject).type === eventType);
           }
-        )}` as SerializedState;
-      },
-      stateMatcher: (state, key) => {
-        return key.startsWith('#')
-          ? state.configuration.includes(machine.getStateNodeById(key))
-          : state.matches(key);
-      },
-      events: (state) => {
-        const events =
-          typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
-        return flatten(
-          state.nextEvents.map((eventType) => {
-            // @ts-ignore
-            if (events.some((e) => e.type === eventType)) {
-              // @ts-ignore
-              return events.filter((e) => e.type === eventType);
-            }
-
-            return [{ type: eventType } as any]; // TODO: fix types
-          })
-        );
-      },
-      ...otherOptions
-    }
-  );
+          return [{ type: eventType } as any]; // TODO: fix types
+        }
+      );
+    },
+    ...otherOptions
+  });
 
   return testModel;
 }

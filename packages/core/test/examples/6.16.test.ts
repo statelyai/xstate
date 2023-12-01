@@ -1,8 +1,9 @@
-import { Machine, StateValue } from '../../src/index';
+import { stateIn } from '../../src/guards';
+import { createMachine, StateValue } from '../../src/index';
 import { testAll } from '../utils';
 
 describe('Example 6.16', () => {
-  const machine = Machine({
+  const machine = createMachine({
     type: 'parallel',
     states: {
       A: {
@@ -12,7 +13,7 @@ describe('Example 6.16', () => {
             on: {
               2: {
                 target: 'D',
-                in: 'B.E'
+                guard: stateIn('#E')
               }
             }
           },
@@ -22,7 +23,7 @@ describe('Example 6.16', () => {
       B: {
         initial: 'F',
         states: {
-          E: { on: { 5: 'G' } },
+          E: { id: 'E', on: { 5: 'G' } },
           F: { on: { 1: 'E' } },
           G: { on: { 3: 'F' } }
         }
@@ -31,17 +32,17 @@ describe('Example 6.16', () => {
   });
 
   const expected: Record<string, Record<string, StateValue | undefined>> = {
-    '{"A":"D", "B":"F"}': {
+    '{"A":"D","B":"F"}': {
       1: { A: 'C', B: 'E' },
       2: undefined,
       '1, 5, 3': { A: 'C', B: 'F' }
     },
-    '{"A":"C", "B":"E"}': {
+    '{"A":"C","B":"E"}': {
       1: undefined,
       2: { A: 'D', B: 'E' },
       5: { A: 'C', B: 'G' }
     },
-    '{"A":"C", "B":"G"}': {
+    '{"A":"C","B":"G"}': {
       1: undefined,
       2: undefined,
       3: { A: 'C', B: 'F' }

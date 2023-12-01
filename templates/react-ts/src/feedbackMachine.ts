@@ -1,30 +1,32 @@
-import { assign, createMachine } from 'xstate';
+import { assign, setup } from 'xstate';
 
-const schema = {
-  context: {} as { feedback: string },
-  events: {} as
-    | {
-        type: 'feedback.good';
-      }
-    | {
-        type: 'feedback.bad';
-      }
-    | {
-        type: 'feedback.update';
-        value: string;
-      }
-    | { type: 'submit' }
-    | {
-        type: 'close';
-      }
-    | { type: 'back' }
-    | { type: 'restart' }
-};
-
-export const feedbackMachine = createMachine({
+export const feedbackMachine = setup({
+  types: {
+    context: {} as { feedback: string },
+    events: {} as
+      | {
+          type: 'feedback.good';
+        }
+      | {
+          type: 'feedback.bad';
+        }
+      | {
+          type: 'feedback.update';
+          value: string;
+        }
+      | { type: 'submit' }
+      | {
+          type: 'close';
+        }
+      | { type: 'back' }
+      | { type: 'restart' }
+  },
+  guards: {
+    feedbackValid: ({ context }) => context.feedback.length > 0
+  }
+}).createMachine({
   id: 'feedback',
   initial: 'prompt',
-  schema,
   context: {
     feedback: ''
   },
@@ -39,12 +41,12 @@ export const feedbackMachine = createMachine({
       on: {
         'feedback.update': {
           actions: assign({
-            feedback: (_, event) => event.value
+            feedback: ({ event }) => event.value
           })
         },
         back: { target: 'prompt' },
         submit: {
-          cond: (ctx) => ctx.feedback.length > 0,
+          guard: 'feedbackValid',
           target: 'thanks'
         }
       }
@@ -57,6 +59,6 @@ export const feedbackMachine = createMachine({
     }
   },
   on: {
-    close: 'closed'
+    close: '.closed'
   }
 });

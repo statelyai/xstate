@@ -5,7 +5,12 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "ignore": ["@xstate/analytics", "@xstate/scxml"],
+  "ignore": [
+    "@xstate/immer",
+    "@xstate/inspect",
+    "@xstate/solid",
+    "@xstate/svelte"
+  ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true,
     "useCalculatedVersionForSnapshots": true

@@ -1,4 +1,4 @@
-import { deepClone } from '../src/deepClone';
+import { deepClone } from '../src/deepClone.ts';
 
 describe('Deep Clone', () => {
   it('should deep clone array of primitives', () => {
@@ -36,7 +36,15 @@ describe('Deep Clone', () => {
   });
 
   it('should not break on circular objects', () => {
-    const obj = {
+    type CircularObj = {
+      id: string;
+      values: {
+        item1: number;
+        item2: number;
+        circle: CircularObj | undefined;
+      };
+    };
+    const obj: CircularObj = {
       id: '1',
       values: { item1: 10, item2: 20, circle: undefined }
     };
@@ -45,7 +53,7 @@ describe('Deep Clone', () => {
     expect(newObj).not.toBe(obj);
     expect(newObj.values).not.toBe(obj.values);
     expect(newObj.values.circle).not.toBe(obj.values.circle);
-    expect(newObj.values.circle.values.circle).not.toBe(
+    expect(newObj.values.circle!.values.circle).not.toBe(
       obj.values.circle.values.circle
     );
     // Maintains circular reference in new clone

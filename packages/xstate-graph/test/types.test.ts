@@ -1,13 +1,15 @@
 import { createMachine } from 'xstate';
-import { getMachineShortestPaths } from '../src/shortestPaths';
+import { getShortestPaths } from '../src/index.ts';
 
 describe('types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
-    const machine = createMachine<unknown, { type: 'FOO' } | { type: 'BAR' }>(
-      {}
-    );
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      }
+    });
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       events: [
         {
           type: 'FOO'
@@ -17,11 +19,13 @@ describe('types', () => {
   });
 
   it('`getEvents` should be allowed to return a readonly array', () => {
-    const machine = createMachine<unknown, { type: 'FOO' } | { type: 'BAR' }>(
-      {}
-    );
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO' } | { type: 'BAR' };
+      }
+    });
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       events: [
         {
           type: 'FOO'
@@ -31,9 +35,13 @@ describe('types', () => {
   });
 
   it('`events` should allow known event', () => {
-    const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number };
+      }
+    });
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       events: [
         {
           type: 'FOO',
@@ -44,44 +52,49 @@ describe('types', () => {
   });
 
   it('`events` should not require all event types (array literal expression)', () => {
-    const machine = createMachine<
-      unknown,
-      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+      }
+    });
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       events: [{ type: 'FOO', value: 100 }]
     });
   });
 
   it('`events` should not require all event types (tuple)', () => {
-    const machine = createMachine<
-      unknown,
-      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+      }
+    });
 
     const events = [{ type: 'FOO', value: 100 }] as const;
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       events
     });
   });
 
   it('`events` should not require all event types (function)', () => {
-    const machine = createMachine<
-      unknown,
-      { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
-    >({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; value: number };
+      }
+    });
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       events: () => [{ type: 'FOO', value: 100 }] as const
     });
   });
 
   it('`events` should not allow unknown events', () => {
-    const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
+    const machine = createMachine({
+      types: { events: {} as { type: 'FOO'; value: number } }
+    });
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       events: [
         {
           // @ts-expect-error
@@ -93,12 +106,13 @@ describe('types', () => {
   });
 
   it('`events` should only allow props of a specific event', () => {
-    const machine = createMachine<
-      unknown,
-      { type: 'FOO'; value: number } | { type: 'BAR'; other: string }
-    >({});
+    const machine = createMachine({
+      types: {} as {
+        events: { type: 'FOO'; value: number } | { type: 'BAR'; other: string };
+      }
+    });
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       events: [
         {
           type: 'FOO',
@@ -112,7 +126,7 @@ describe('types', () => {
   it('`serializeEvent` should be allowed to return plain string', () => {
     const machine = createMachine({});
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       serializeEvent: () => ''
     });
   });
@@ -120,7 +134,7 @@ describe('types', () => {
   it('`serializeState` should be allowed to return plain string', () => {
     const machine = createMachine({});
 
-    getMachineShortestPaths(machine, {
+    getShortestPaths(machine, {
       serializeState: () => ''
     });
   });

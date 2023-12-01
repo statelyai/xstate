@@ -1,24 +1,29 @@
 import { createMachine, assign } from '../src/index';
 import * as machineSchema from '../src/machine.schema.json';
 
-import * as Ajv from 'ajv';
+import Ajv from 'ajv';
 
 const ajv = new Ajv();
 const validate = ajv.compile(machineSchema);
 
 describe('json', () => {
   it('should serialize the machine', () => {
-    const machine = createMachine<{ [key: string]: any }>({
+    interface Context {
+      [key: string]: any;
+    }
+
+    const machine = createMachine({
+      types: {} as { context: Context },
       initial: 'foo',
       version: '1.0.0',
       context: {
         number: 0,
         string: 'hello'
       },
-      invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
+      invoke: [{ id: 'invokeId', src: 'invokeSrc' }],
       states: {
         testActions: {
-          invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
+          invoke: [{ id: 'invokeId', src: 'invokeSrc' }],
           entry: [
             'stringActionType',
             {
@@ -34,11 +39,12 @@ describe('json', () => {
             function actionFunction() {
               return true;
             },
+            // TODO: investigate why this had to be casted to any to satisfy TS
             assign({
               number: 10,
               string: 'test',
               evalNumber: () => 42
-            }),
+            }) as any,
             assign((ctx) => ({
               ...ctx
             }))
@@ -46,7 +52,7 @@ describe('json', () => {
           on: {
             TO_FOO: {
               target: ['foo', 'bar'],
-              cond: (ctx) => !!ctx.string
+              guard: ({ context }) => !!context.string
             }
           },
           after: {
@@ -61,7 +67,7 @@ describe('json', () => {
         },
         testFinal: {
           type: 'final',
-          data: {
+          output: {
             something: 'else'
           }
         },
@@ -82,7 +88,8 @@ describe('json', () => {
             }
           }
         }
-      }
+      },
+      output: { result: 42 }
     });
 
     const json = JSON.parse(JSON.stringify(machine.definition));
@@ -113,6 +120,7 @@ describe('json', () => {
       initial: 'active',
       states: {
         active: {
+          id: 'active',
           invoke: {
             src: 'someSrc',
             onDone: 'foo',
@@ -133,41 +141,39 @@ describe('json', () => {
 
     const revivedMachine = createMachine(machineObject);
 
-    expect(revivedMachine.states.active.transitions).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "actions": Array [],
-          "cond": undefined,
-          "event": "done.invoke.(machine).active:invocation[0]",
-          "eventType": "done.invoke.(machine).active:invocation[0]",
-          "internal": false,
-          "source": "#(machine).active",
-          "target": Array [
-            "#(machine).foo",
-          ],
-          "toJSON": [Function],
-        },
-        Object {
-          "actions": Array [],
-          "cond": undefined,
-          "event": "error.platform.(machine).active:invocation[0]",
-          "eventType": "error.platform.(machine).active:invocation[0]",
-          "internal": false,
-          "source": "#(machine).active",
-          "target": Array [
-            "#(machine).bar",
-          ],
-          "toJSON": [Function],
-        },
-        Object {
-          "actions": Array [],
-          "cond": undefined,
-          "event": "EVENT",
+    expect([...revivedMachine.states.active.transitions.values()].flat())
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "actions": [],
           "eventType": "EVENT",
-          "internal": false,
-          "source": "#(machine).active",
-          "target": Array [
+          "guard": undefined,
+          "reenter": false,
+          "source": "#active",
+          "target": [
             "#(machine).foo",
+          ],
+          "toJSON": [Function],
+        },
+        {
+          "actions": [],
+          "eventType": "xstate.done.actor.0.active",
+          "guard": undefined,
+          "reenter": false,
+          "source": "#active",
+          "target": [
+            "#(machine).foo",
+          ],
+          "toJSON": [Function],
+        },
+        {
+          "actions": [],
+          "eventType": "xstate.error.actor.0.active",
+          "guard": undefined,
+          "reenter": false,
+          "source": "#active",
+          "target": [
+            "#(machine).bar",
           ],
           "toJSON": [Function],
         },
@@ -177,6 +183,10 @@ describe('json', () => {
     // 1. onDone
     // 2. onError
     // 3. EVENT
-    expect(revivedMachine.states.active.transitions.length).toBe(3);
+    expect(
+      [
+        ...revivedMachine.getStateNodeById('active').transitions.values()
+      ].flatMap((t) => t).length
+    ).toBe(3);
   });
 });

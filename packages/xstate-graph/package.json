@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "2.0.0-alpha.2",
+  "version": "2.0.0-beta.5",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -13,38 +13,37 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-test#readme",
   "license": "MIT",
-  "main": "lib/index.js",
-  "module": "es/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/xstate-graph.cjs.js",
+  "module": "dist/xstate-graph.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-graph.cjs.mjs",
+        "default": "./dist/xstate-graph.cjs.js"
+      },
+      "module": "./dist/xstate-graph.esm.js",
+      "import": "./dist/xstate-graph.cjs.mjs",
+      "default": "./dist/xstate-graph.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts",
-    "es/**/*.js",
-    "es/**/*.d.ts"
+    "dist"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
-    "build": "tsc && tsc --outDir es --module es2015",
-    "test": "jest",
-    "prepare": "npm run build"
-  },
+  "scripts": {},
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.38.3"
+    "xstate": "^5.0.0-beta.54"
   },
   "devDependencies": {
-    "jest": "^26.6.3",
-    "lerna-alias": "3.0.3-0",
-    "ts-jest": "^26.5.6",
-    "typescript": "^4.8.4",
-    "xstate": "*"
+    "xstate": "5.0.0-beta.54"
   },
   "dependencies": {}
 }

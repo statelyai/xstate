@@ -45,11 +45,7 @@ const lightMachine = createMachine({
 
 const { initialState } = lightMachine;
 
-let nextState = lightMachine.transition(initialState, 'TIMER'); // string event
-console.log(nextState.value);
-// => 'yellow'
-
-nextState = lightMachine.transition(nextState, { type: 'TIMER' }); // event object
+nextState = lightMachine.transition(nextState, { type: 'TIMER' });
 console.log(nextState.value);
 // => 'red'
 ```
@@ -108,7 +104,7 @@ const skipMachine = createMachine({
 });
 
 const { initialState } = skipMachine;
-const nextState = skipMachine.transition(initialState, 'CLICK');
+const nextState = skipMachine.transition(initialState, { type: 'CLICK' });
 
 console.log(nextState.value);
 // => 'three'

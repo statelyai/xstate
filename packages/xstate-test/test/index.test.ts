@@ -1,5 +1,5 @@
 import { assign, createMachine } from 'xstate';
-import { createTestModel } from '../src';
+import { createTestModel } from '../src/index.ts';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
 
@@ -13,7 +13,7 @@ describe('events', () => {
       | { type: 'SUBMIT'; value: string };
     const feedbackMachine = createTestMachine({
       id: 'feedback',
-      schema: {
+      types: {
         events: {} as Events
       },
       initial: 'question',
@@ -31,7 +31,7 @@ describe('events', () => {
             SUBMIT: [
               {
                 target: 'thanks',
-                cond: (_, e) => !!e.value.length
+                guard: ({ event }) => !!event.value.length
               },
               {
                 target: '.invalid'
@@ -88,10 +88,11 @@ describe('events', () => {
 
   it('should allow for dynamic generation of cases based on state', async () => {
     const values = [1, 2, 3];
-    const testMachine = createMachine<
-      { values: number[] },
-      { type: 'EVENT'; value: number }
-    >({
+    const testMachine = createMachine({
+      types: {} as {
+        context: { values: number[] };
+        events: { type: 'EVENT'; value: number };
+      },
       initial: 'a',
       context: {
         values // to be read by generator
@@ -100,9 +101,9 @@ describe('events', () => {
         a: {
           on: {
             EVENT: [
-              { cond: (_, e) => e.value === 1, target: 'b' },
-              { cond: (_, e) => e.value === 2, target: 'c' },
-              { cond: (_, e) => e.value === 3, target: 'd' }
+              { guard: ({ event }) => event.value === 1, target: 'b' },
+              { guard: ({ event }) => event.value === 2, target: 'c' },
+              { guard: ({ event }) => event.value === 3, target: 'd' }
             ]
           }
         },
@@ -116,7 +117,7 @@ describe('events', () => {
 
     const testModel = createTestModel(testMachine, {
       events: (state) =>
-        state.context.values.map((value) => ({ type: 'EVENT', value } as const))
+        state.context.values.map((value) => ({ type: 'EVENT', value }) as const)
     });
 
     const paths = testModel.getShortestPaths();
@@ -132,16 +133,16 @@ describe('events', () => {
     });
 
     expect(testedEvents).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "type": "EVENT",
           "value": 1,
         },
-        Object {
+        {
           "type": "EVENT",
           "value": 2,
         },
-        Object {
+        {
           "type": "EVENT",
           "value": 3,
         },
@@ -152,7 +153,8 @@ describe('events', () => {
 
 describe('state limiting', () => {
   it('should limit states with filter option', () => {
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
       initial: 'counting',
       context: { count: 0 },
       states: {
@@ -160,7 +162,7 @@ describe('state limiting', () => {
           on: {
             INC: {
               actions: assign({
-                count: (ctx) => ctx.count + 1
+                count: ({ context }) => context.count + 1
               })
             }
           }
@@ -182,14 +184,15 @@ describe('state limiting', () => {
 
 // https://github.com/statelyai/xstate/issues/1935
 it('prevents infinite recursion based on a provided limit', () => {
-  const machine = createMachine<{ count: number }>({
+  const machine = createMachine({
+    types: {} as { context: { count: number } },
     id: 'machine',
     context: {
       count: 0
     },
     on: {
       TOGGLE: {
-        actions: assign({ count: (ctx) => ctx.count + 1 })
+        actions: assign({ count: ({ context }) => context.count + 1 })
       }
     }
   });
@@ -402,7 +405,7 @@ describe('state tests', () => {
       }
     });
     expect(testedStateValues).toMatchInlineSnapshot(`
-      Array [
+      [
         "a",
         "b",
         "b.b1",

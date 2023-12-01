@@ -399,7 +399,7 @@ const raiseActionDemo = createMachine({
         RAISE: {
           target: 'middle',
           // immediately invoke the NEXT event for 'middle'
-          actions: raise('NEXT')
+          actions: raise({ type: 'NEXT' })
         }
       }
     },
@@ -586,7 +586,7 @@ const loggingMachine = createMachine({
   }
 });
 
-const endState = loggingMachine.transition('start', 'FINISH');
+const endState = loggingMachine.transition('start', { type: 'FINISH' });
 
 endState.actions;
 // [
