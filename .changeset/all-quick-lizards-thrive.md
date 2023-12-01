@@ -1,8 +1,7 @@
 ---
 'xstate': minor
-'@xstate/graph': minor
 '@xstate/react': minor
-'@xstate/test': minor
+'@xstate/svelte': minor
 '@xstate/vue': minor
 ---
 
