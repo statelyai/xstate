@@ -1133,7 +1133,7 @@ describe('actors', () => {
               'xstate.error.actor.test': {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data === errorMessage;
+                  return event.error === errorMessage;
                 }
               }
             }

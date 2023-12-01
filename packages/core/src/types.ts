@@ -1442,7 +1442,7 @@ export interface DoneActorEvent<TOutput = unknown> {
 
 export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
   type: `xstate.error.actor.${string}`;
-  data: TErrorData;
+  error: TErrorData;
 }
 
 export interface SnapshotEvent<

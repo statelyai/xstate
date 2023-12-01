@@ -50,9 +50,9 @@ export function createDoneActorEvent(
 
 export function createErrorActorEvent(
   id: string,
-  data?: unknown
+  error?: unknown
 ): ErrorActorEvent {
-  return { type: `xstate.error.actor.${id}`, data };
+  return { type: `xstate.error.actor.${id}`, error };
 }
 
 export function createInitEvent(input: unknown) {
