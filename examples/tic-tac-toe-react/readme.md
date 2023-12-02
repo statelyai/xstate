@@ -2,7 +2,7 @@
 
 This is an implementation of tic-tac-toe built with:
 
-- XState v5 beta
+- XState v5
 - React
 - TypeScript
 - Vite

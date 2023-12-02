@@ -2,7 +2,7 @@
 
 This is an implementation of a simple counter, built with:
 
-- XState v5 beta
+- XState v5
 - TypeScript
 - Vite
 

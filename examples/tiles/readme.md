@@ -2,7 +2,7 @@
 
 This is a simple tiles game, built with:
 
-- XState v5 beta
+- XState v5
 - React
 - TypeScript
 - Vite

@@ -2,7 +2,7 @@
 
 This is an implementation of [the 7GUIs counter](https://eugenkiss.github.io/7guis/tasks#counter) built with:
 
-- XState v5 beta
+- XState v5
 - React
 - TypeScript
 - Vite

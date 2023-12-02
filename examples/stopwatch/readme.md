@@ -2,7 +2,7 @@
 
 This is a simple stopwatch, built with:
 
-- XState v5 beta
+- XState v5
 - TypeScript
 - Vite
 

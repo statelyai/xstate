@@ -2,7 +2,7 @@
 
 This is a timer, built with:
 
-- XState v5 beta
+- XState v5
 - React
 - TypeScript
 - Vite
