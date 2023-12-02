@@ -6,4 +6,4 @@ This is a simple stopwatch, built with:
 - TypeScript
 - Vite
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/stopwatch)
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/stopwatch)

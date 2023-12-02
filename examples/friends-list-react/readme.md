@@ -7,4 +7,4 @@ This is a React list built with:
 - TypeScript
 - Vite
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/friends-list-react)
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/friends-list-react)

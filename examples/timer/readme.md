@@ -7,4 +7,4 @@ This is a timer, built with:
 - TypeScript
 - Vite
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/timer)
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/timer)

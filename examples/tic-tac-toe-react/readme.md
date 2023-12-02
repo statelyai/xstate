@@ -7,4 +7,4 @@ This is an implementation of tic-tac-toe built with:
 - TypeScript
 - Vite
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/tic-tac-toe-react)
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/tic-tac-toe-react)

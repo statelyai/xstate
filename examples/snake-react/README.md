@@ -7,6 +7,6 @@ This is an implementation of the game Snake built with:
 - TypeScript
 - Vite
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/snake-react)
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/snake-react)
 
 Adapted from https://github.com/josmithua/xsnake

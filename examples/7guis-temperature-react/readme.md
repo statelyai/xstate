@@ -7,4 +7,4 @@ This is an implementation of [the 7GUIs temperature converter](https://eugenkiss
 - TypeScript
 - Vite
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/7guis-temperature-react)
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/7guis-temperature-react)

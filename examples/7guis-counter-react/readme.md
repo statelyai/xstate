@@ -7,4 +7,4 @@ This is an implementation of [the 7GUIs counter](https://eugenkiss.github.io/7gu
 - TypeScript
 - Vite
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/7guis-counter-react)
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/7guis-counter-react)
