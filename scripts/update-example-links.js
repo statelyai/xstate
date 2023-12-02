@@ -12,7 +12,7 @@ const exampleDirs = files
 // For each readme.md file:
 exampleDirs.forEach((x) => {
   const exampleDir = path.join(examplesDir, x);
-  console.log(exampleDir);
+
   // readme.md or README.md
   let readmeFile = path.join(exampleDir, 'README.md');
   if (!fs.existsSync(readmeFile)) {
@@ -50,8 +50,6 @@ exampleDirs.forEach((x) => {
     '<!-- stackblitz -->',
     stackblitzLink
   );
-
-  console.log(updatedReadmeContents, readmeFile);
 
   // Write the updated contents back to the file
   fs.writeFileSync(readmeFile, updatedReadmeContents);
