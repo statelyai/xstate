@@ -1,5 +1,4 @@
 <p align="center">
-  <a href="https://stately.ai/docs">
   <br />
 
   <picture>
@@ -7,14 +6,10 @@
     <img alt="XState logotype" src="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-black-nobg.svg" width="200">
   </picture>
   <br />
-    <sub><strong>Actor-based state management & orchestration</strong></sub>
+    <strong>Actor-based state management & orchestration for complex app logic.</strong> <a href="https://stately.ai/docs">→ Documentation</a>
   <br />
   <br />
-  </a>
 </p>
-
-[![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
-<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 XState is a state management and orchestration solution for JavaScript and TypeScript apps. It has _zero_ dependencies, and is useful for frontend and backend application logic.
 
@@ -480,6 +475,8 @@ actor.send({ type: 'PREVIOUS' });
 ## Sponsors
 
 Special thanks to the sponsors who support this open-source project:
+
+<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 <a href="https://transloadit.com/?utm_source=xstate&utm_medium=referral&utm_campaign=sponsorship&utm_content=github">
   <picture>
