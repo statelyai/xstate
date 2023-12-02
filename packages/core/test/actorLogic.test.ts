@@ -1019,5 +1019,9 @@ describe('composable actor logic', () => {
     expect(logged).toEqual(['next', 'more']);
 
     expect(actor.getSnapshot().value).toBe('done');
+
+    expect(() => {
+      actor.getPersistedSnapshot();
+    }).not.toThrow();
   });
 });
