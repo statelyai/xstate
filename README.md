@@ -100,15 +100,19 @@ toggleActor.send({ type: 'TOGGLE' });
 // => logs 'inactive', { count: 1 }
 ```
 
-## Stately Studio
+## [Stately Studio](https://stately.ai)
 
-**[Visualize, simulate, inspect, and share your statecharts in XState Viz](https://stately.ai/viz)**
+- Visually create, edit, and collaborate on state machines
+- Export to many formats, including XState v5
+- Test path & documentation autogeneration
+- Deploy to Stately Sky
+- Generate & modify machines with Stately AI
 
-<a href="https://stately.ai/viz" title="XState Viz">
-  <img src="https://user-images.githubusercontent.com/1093738/131729181-5db835fc-77e7-4740-b03f-46bd0093baa1.png" alt="XState Viz" width="400" />
+<a href="stately.ai/registry/new?ref=github" title="Stately Studio">
+  <img src="https://github.com/statelyai/xstate/assets/1093738/74ed9cbc-b824-4ed7-a16d-f104947af8a7" alt="XState Viz" width="800" />
 </a>
 
-**[state.new](https://state.new)**
+**[state.new](https://stately.ai/registry/new?ref=github)**
 
 ## Why?
 
