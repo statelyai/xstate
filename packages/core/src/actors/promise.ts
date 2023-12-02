@@ -1,26 +1,27 @@
+import { XSTATE_STOP } from '../constants';
 import {
   ActorLogic,
   ActorRefFrom,
   ActorSystem,
   AnyActorSystem,
+  NonReducibleUnknown,
   Snapshot
 } from '../types';
-import { XSTATE_STOP } from '../constants';
 
 export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
 };
 
-const resolveEventType = '$$xstate.resolve';
-const rejectEventType = '$$xstate.reject';
+const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
+const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
 
 export type PromiseActorEvents<T> =
   | {
-      type: typeof resolveEventType;
+      type: typeof XSTATE_PROMISE_RESOLVE;
       data: T;
     }
   | {
-      type: typeof rejectEventType;
+      type: typeof XSTATE_PROMISE_REJECT;
       data: any;
     }
   | {
@@ -82,8 +83,7 @@ export type PromiseActorRef<TOutput> = ActorRefFrom<
  * // }
  * ```
  */
-export function fromPromise<TOutput, TInput = unknown>(
-  // TODO: add types
+export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
   promiseCreator: ({
     input,
     system
@@ -111,7 +111,7 @@ export function fromPromise<TOutput, TInput = unknown>(
       }
 
       switch (event.type) {
-        case resolveEventType: {
+        case XSTATE_PROMISE_RESOLVE: {
           const resolvedValue = (event as any).data;
           return {
             ...state,
@@ -120,7 +120,7 @@ export function fromPromise<TOutput, TInput = unknown>(
             input: undefined
           };
         }
-        case rejectEventType:
+        case XSTATE_PROMISE_REJECT:
           return {
             ...state,
             status: 'error',
@@ -153,17 +153,23 @@ export function fromPromise<TOutput, TInput = unknown>(
           if (self.getSnapshot().status !== 'active') {
             return;
           }
-          system._relay(self, self, { type: resolveEventType, data: response });
+          system._relay(self, self, {
+            type: XSTATE_PROMISE_RESOLVE,
+            data: response
+          });
         },
         (errorData) => {
           if (self.getSnapshot().status !== 'active') {
             return;
           }
-          system._relay(self, self, { type: rejectEventType, data: errorData });
+          system._relay(self, self, {
+            type: XSTATE_PROMISE_REJECT,
+            data: errorData
+          });
         }
       );
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,
@@ -171,8 +177,8 @@ export function fromPromise<TOutput, TInput = unknown>(
         input
       };
     },
-    getPersistedState: (state) => state,
-    restoreState: (state: any) => state
+    getPersistedSnapshot: (snapshot) => snapshot,
+    restoreSnapshot: (snapshot: any) => snapshot
   };
 
   return logic;

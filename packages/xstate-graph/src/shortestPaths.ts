@@ -27,7 +27,7 @@ export function getShortestPaths<TLogic extends AnyActorLogic>(
   ) => SerializedState;
   const fromState =
     resolvedOptions.fromState ??
-    logic.getInitialState(createMockActorScope(), undefined);
+    logic.getInitialSnapshot(createMockActorScope(), undefined);
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event

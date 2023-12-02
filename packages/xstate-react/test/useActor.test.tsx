@@ -80,7 +80,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   ).start();
   actorRef.send({ type: 'FETCH' });
 
-  const persistedSuccessFetchState = actorRef.getPersistedState();
+  const persistedSuccessFetchState = actorRef.getPersistedSnapshot();
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
@@ -98,7 +98,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         }
       }),
       {
-        state: persistedState
+        snapshot: persistedState
       }
     );
 
@@ -904,14 +904,14 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const actorRef = createActor(testMachine).start();
-    const persistedState = JSON.stringify(actorRef.getPersistedState());
+    const persistedState = JSON.stringify(actorRef.getPersistedSnapshot());
     actorRef.stop();
 
     let currentState: StateFrom<typeof testMachine>;
 
     const Test = () => {
       const [state, send] = useActor(testMachine, {
-        state: JSON.parse(persistedState)
+        snapshot: JSON.parse(persistedState)
       });
 
       currentState = state;

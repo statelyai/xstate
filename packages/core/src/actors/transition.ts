@@ -5,7 +5,8 @@ import {
   EventObject,
   ActorRefFrom,
   AnyActorSystem,
-  Snapshot
+  Snapshot,
+  NonReducibleUnknown
 } from '../types';
 
 export type TransitionSnapshot<TContext> = Snapshot<undefined> & {
@@ -15,7 +16,7 @@ export type TransitionSnapshot<TContext> = Snapshot<undefined> & {
 export type TransitionActorLogic<
   TContext,
   TEvent extends EventObject,
-  TInput
+  TInput extends NonReducibleUnknown
 > = ActorLogic<TransitionSnapshot<TContext>, TEvent, TInput, AnyActorSystem>;
 
 export type TransitionActorRef<
@@ -87,10 +88,10 @@ export function fromTransition<
   TContext,
   TEvent extends EventObject,
   TSystem extends ActorSystem<any>,
-  TInput
+  TInput extends NonReducibleUnknown
 >(
   transition: (
-    state: TContext,
+    snapshot: TContext,
     event: TEvent,
     actorScope: ActorScope<TransitionSnapshot<TContext>, TEvent, TSystem>
   ) => TContext,
@@ -106,13 +107,17 @@ export function fromTransition<
 ): TransitionActorLogic<TContext, TEvent, TInput> {
   return {
     config: transition,
-    transition: (state, event, actorScope) => {
+    transition: (snapshot, event, actorScope) => {
       return {
-        ...state,
-        context: transition(state.context, event as TEvent, actorScope as any)
+        ...snapshot,
+        context: transition(
+          snapshot.context,
+          event as TEvent,
+          actorScope as any
+        )
       };
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,
@@ -123,7 +128,7 @@ export function fromTransition<
             : initialContext
       };
     },
-    getPersistedState: (state) => state,
-    restoreState: (state: any) => state
+    getPersistedSnapshot: (snapshot) => snapshot,
+    restoreSnapshot: (snapshot: any) => snapshot
   };
 }
