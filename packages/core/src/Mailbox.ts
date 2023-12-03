@@ -24,22 +24,6 @@ export class Mailbox<T> {
     }
   }
 
-  // TODO: rethink this design
-  public prepend(event: T): void {
-    if (!this._current) {
-      this.enqueue(event);
-      return;
-    }
-
-    // we know that something is already queued up
-    // so the mailbox is already flushing or it's inactive
-    // therefore the only thing that we need to do is to reassign `this._current`
-    this._current = {
-      value: event,
-      next: this._current
-    };
-  }
-
   public enqueue(event: T): void {
     const enqueued = {
       value: event,
@@ -66,11 +50,7 @@ export class Mailbox<T> {
       // we assume here that this won't throw in a way that can affect this mailbox
       const consumed = this._current;
       this._process(consumed.value);
-      // something could have been prepended in the meantime
-      // so we need to be defensive here to avoid skipping over a prepended item
-      if (consumed === this._current) {
-        this._current = this._current.next;
-      }
+      this._current = consumed.next;
     }
     this._last = null;
   }

@@ -50,7 +50,7 @@ describe('delayed transitions', () => {
 
     expect([...transitions.keys()]).toMatchInlineSnapshot(`
       [
-        "xstate.after(1000)#light.green",
+        "xstate.after.1000.light.green",
       ]
     `);
   });
@@ -160,7 +160,7 @@ describe('delayed transitions', () => {
   });
 
   // TODO: figure out correct behavior for restoring delayed transitions
-  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedState`', (done) => {
+  it.skip('should execute an after transition after starting from a state resolved using `.getPersistedSnapshot`', (done) => {
     const machine = createMachine({
       id: 'machine',
       initial: 'a',
@@ -183,9 +183,9 @@ describe('delayed transitions', () => {
 
     const actorRef1 = createActor(machine).start();
     actorRef1.send({ type: 'next' });
-    const withAfterState = actorRef1.getPersistedState();
+    const withAfterState = actorRef1.getPersistedSnapshot();
 
-    const actorRef2 = createActor(machine, { state: withAfterState });
+    const actorRef2 = createActor(machine, { snapshot: withAfterState });
     actorRef2.subscribe({ complete: () => done() });
     actorRef2.start();
   });
@@ -213,10 +213,10 @@ describe('delayed transitions', () => {
 
     let service = createActor(createMyMachine()).start();
 
-    const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
+    const persistedSnapshot = JSON.parse(JSON.stringify(service.getSnapshot()));
 
     service = createActor(createMyMachine(), {
-      state: persistedState
+      snapshot: persistedSnapshot
     }).start();
 
     service.send({ type: 'NEXT' });

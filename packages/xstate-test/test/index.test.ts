@@ -117,7 +117,7 @@ describe('events', () => {
 
     const testModel = createTestModel(testMachine, {
       events: (state) =>
-        state.context.values.map((value) => ({ type: 'EVENT', value } as const))
+        state.context.values.map((value) => ({ type: 'EVENT', value }) as const)
     });
 
     const paths = testModel.getShortestPaths();

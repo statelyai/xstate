@@ -5,7 +5,8 @@ import {
   sendParent,
   sendTo,
   waitFor,
-  InspectionEvent
+  InspectionEvent,
+  isMachineSnapshot
 } from '../src';
 
 function simplifyEvent(inspectionEvent: InspectionEvent) {
@@ -13,7 +14,7 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
     return {
       type: inspectionEvent.type,
       sourceId: inspectionEvent.sourceRef?.sessionId,
-      targetId: inspectionEvent.targetRef.sessionId,
+      targetId: inspectionEvent.actorRef.sessionId,
       event: inspectionEvent.event
     };
   }
@@ -28,11 +29,9 @@ function simplifyEvent(inspectionEvent: InspectionEvent) {
     return {
       type: inspectionEvent.type,
       actorId: inspectionEvent.actorRef.sessionId,
-      snapshot:
-        typeof inspectionEvent.snapshot === 'object' &&
-        'value' in inspectionEvent.snapshot
-          ? { value: inspectionEvent.snapshot.value }
-          : inspectionEvent.snapshot,
+      snapshot: isMachineSnapshot(inspectionEvent.snapshot)
+        ? { value: inspectionEvent.snapshot.value }
+        : inspectionEvent.snapshot,
       event: inspectionEvent.event,
       status: inspectionEvent.snapshot.status
     };
@@ -320,7 +319,7 @@ describe('inspect', () => {
         {
           "event": {
             "data": 42,
-            "type": "$$xstate.resolve",
+            "type": "xstate.promise.resolve",
           },
           "sourceId": "x:3",
           "targetId": "x:3",
@@ -329,7 +328,7 @@ describe('inspect', () => {
         {
           "event": {
             "output": 42,
-            "type": "xstate.done.actor.(machine).loading:invocation[0]",
+            "type": "xstate.done.actor.0.(machine).loading",
           },
           "sourceId": "x:3",
           "targetId": "x:2",
@@ -379,7 +378,7 @@ describe('inspect', () => {
           "actorId": "x:2",
           "event": {
             "output": 42,
-            "type": "xstate.done.actor.(machine).loading:invocation[0]",
+            "type": "xstate.done.actor.0.(machine).loading",
           },
           "snapshot": {
             "value": "loaded",
@@ -391,7 +390,7 @@ describe('inspect', () => {
           "actorId": "x:3",
           "event": {
             "data": 42,
-            "type": "$$xstate.resolve",
+            "type": "xstate.promise.resolve",
           },
           "snapshot": {
             "error": undefined,

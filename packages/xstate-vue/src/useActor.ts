@@ -1,52 +1,48 @@
-import { ActorRef, EventObject, Snapshot, SnapshotFrom } from 'xstate';
-import { shallowRef, isRef, watch, Ref } from 'vue';
+import isDevelopment from '#is-development';
+import { Ref } from 'vue';
+import {
+  ActorOptions,
+  ActorRefFrom,
+  AnyActorLogic,
+  EventFrom,
+  Snapshot,
+  SnapshotFrom
+} from 'xstate';
+import { useActorRef } from './useActorRef.ts';
+import { useSelector } from './useSelector.ts';
 
-const noop = () => {
-  /* ... */
-};
-
-export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: TActor | Ref<TActor>
+export function useActor<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  options: ActorOptions<TLogic>
 ): {
-  state: Ref<SnapshotFrom<TActor>>;
-  send: TActor['send'];
+  snapshot: Ref<SnapshotFrom<TLogic>>;
+  send: (event: EventFrom<TLogic>) => void;
+  actorRef: ActorRefFrom<TLogic>;
 };
-export function useActor<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
->(
-  actorRef: ActorRef<TEvent, TSnapshot> | Ref<ActorRef<TEvent, TSnapshot>>
-): { state: Ref<TSnapshot>; send: (event: TEvent) => void };
 export function useActor(
-  actorRef:
-    | ActorRef<EventObject, Snapshot<unknown>>
-    | Ref<ActorRef<EventObject, Snapshot<unknown>>>
-): {
-  state: Ref<unknown>;
-  send: (event: EventObject) => void;
-} {
-  const actorRefRef = isRef(actorRef) ? actorRef : shallowRef(actorRef);
-  const state = shallowRef(actorRefRef.value.getSnapshot());
+  actorLogic: AnyActorLogic,
+  options: ActorOptions<AnyActorLogic> = {}
+) {
+  if (
+    isDevelopment &&
+    'send' in actorLogic &&
+    typeof actorLogic.send === 'function'
+  ) {
+    throw new Error(
+      `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
+    );
+  }
 
-  const send: typeof actorRefRef.value.send = (event) => {
-    actorRefRef.value.send(event);
+  function listener(nextSnapshot: Snapshot<unknown>) {
+    snapshot.value = nextSnapshot;
+  }
+
+  const actorRef = useActorRef(actorLogic, options, listener);
+  const snapshot = useSelector(actorRef, (s) => s);
+
+  return {
+    snapshot,
+    send: actorRef.send,
+    actorRef: actorRef
   };
-
-  watch(
-    actorRefRef,
-    (newActor, _, onCleanup) => {
-      state.value = newActor.getSnapshot();
-      const { unsubscribe } = newActor.subscribe({
-        next: (emitted) => (state.value = emitted),
-        error: noop,
-        complete: noop
-      });
-      onCleanup(() => unsubscribe());
-    },
-    {
-      immediate: true
-    }
-  );
-
-  return { state, send };
 }

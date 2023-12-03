@@ -1,5 +1,6 @@
 import { fromCallback } from '../src/actors/index.ts';
 import { createActor, createMachine, assign } from '../src/index.ts';
+import { setup } from '../src/setup.ts';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 
@@ -328,37 +329,28 @@ describe('invocations (activities)', () => {
       };
     });
 
-    const machine = createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'fooActor';
-            logic: typeof fooActor;
-          };
-        },
-        initial: 'a',
-        states: {
-          a: {
-            invoke: {
-              src: 'fooActor'
-            },
-            on: {
-              NEXT: 'b'
-            }
+    const machine = setup({
+      actors: {
+        fooActor
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: 'fooActor'
           },
-          b: {
-            invoke: {
-              src: 'fooActor'
-            }
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          invoke: {
+            src: 'fooActor'
           }
         }
-      },
-      {
-        actors: {
-          fooActor
-        }
       }
-    );
+    });
     const service = createActor(machine).start();
 
     service.send({ type: 'NEXT' });
@@ -381,35 +373,26 @@ describe('invocations (activities)', () => {
       };
     });
 
-    const machine = createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'fooActor';
-            logic: typeof fooActor;
-          };
-        },
-        initial: 'a',
-        states: {
-          a: {
-            invoke: {
-              src: 'fooActor'
-            },
-            on: {
-              NEXT: {
-                target: 'a',
-                reenter: true
-              }
+    const machine = setup({
+      actors: {
+        fooActor
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: 'fooActor'
+          },
+          on: {
+            NEXT: {
+              target: 'a',
+              reenter: true
             }
           }
         }
-      },
-      {
-        actors: {
-          fooActor
-        }
       }
-    );
+    });
     const service = createActor(machine).start();
 
     service.send({ type: 'NEXT' });

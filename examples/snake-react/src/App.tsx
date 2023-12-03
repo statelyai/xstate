@@ -135,6 +135,7 @@ function App() {
   const [current, send] = useActor(configuredSnakeMachine);
   const { gridSize, score, highScore } = current.context;
   const isGameOver = current.matches('Game Over');
+  console.log(current);
 
   useEffect(() => {
     function keyListener(event: KeyboardEvent) {

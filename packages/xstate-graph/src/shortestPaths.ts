@@ -9,7 +9,7 @@ import {
   StatePlanMap,
   TraversalOptions
 } from './types';
-import { createMockActorContext } from './actorContext';
+import { createMockActorScope } from './actorScope';
 
 export function getShortestPaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -27,7 +27,7 @@ export function getShortestPaths<TLogic extends AnyActorLogic>(
   ) => SerializedState;
   const fromState =
     resolvedOptions.fromState ??
-    logic.getInitialState(createMockActorContext(), undefined);
+    logic.getInitialSnapshot(createMockActorScope(), undefined);
   const adjacency = getAdjacencyMap(logic, resolvedOptions);
 
   // weight, state, event
