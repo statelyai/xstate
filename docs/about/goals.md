@@ -1,5 +1,11 @@
 # Goals
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 ## API Goals
 
 - Adherence to the [W3C SCXML Specification](https://www.w3.org/TR/scxml/) and David Harel's original statecharts formalism

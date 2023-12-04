@@ -1,10 +1,13 @@
 # Installation
 
-You can install XState from NPM or Yarn, or you can embed the `<script>` directly from a CDN.
+:::warning These XState v4 docs are no longer maintained
 
-:::tip Check out our new docs!
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
 🆕 Find more about [installing XState](https://stately.ai/docs/installation) in our new docs.
 :::
+
+You can install XState from NPM or Yarn, or you can embed the `<script>` directly from a CDN.
 
 ## Package Manager
 

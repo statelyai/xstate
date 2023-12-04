@@ -1,10 +1,13 @@
 # Glossary
 
-This glossary is a guide to the most common terms in statecharts and state machines.
+:::warning These XState v4 docs are no longer maintained
 
-:::tip Check out our new docs!
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
 🆕 Find more terms in our [all-new Stately and XState glossary](https://stately.ai/docs/glossary).
 :::
+
+This glossary is a guide to the most common terms in statecharts and state machines.
 
 ## State machines
 
