@@ -1,5 +1,11 @@
 # xstate
 
+## 5.0.1
+
+### Patch Changes
+
+- [#4551](https://github.com/statelyai/xstate/pull/4551) [`5041764b2`](https://github.com/statelyai/xstate/commit/5041764b2ca740bd0e355dd50f3c76e75ca55686) Thanks [@laurakalbag](https://github.com/laurakalbag)! - Flag that docs in this repo are deprecated in favour of docs at stately.ai/docs/xstate
+
 ## 5.0.0
 
 ### Major Changes
