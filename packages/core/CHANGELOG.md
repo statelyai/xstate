@@ -1,5 +1,11 @@
 # xstate
 
+## 5.0.2
+
+### Patch Changes
+
+- [#4552](https://github.com/statelyai/xstate/pull/4552) [`80b9afbae`](https://github.com/statelyai/xstate/commit/80b9afbaeb943cc1378c0c67631b207d402ab557) Thanks [@Andarist](https://github.com/Andarist)! - Fixed defining `actors` with `input` within `setup`.
+
 ## 5.0.1
 
 ### Patch Changes
