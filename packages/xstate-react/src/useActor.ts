@@ -1,14 +1,12 @@
 import isDevelopment from '#is-development';
-import { useCallback, useEffect } from 'react';
-import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import {
   ActorRefFrom,
   AnyActorLogic,
   ActorOptions,
   SnapshotFrom
 } from 'xstate';
-import { useIdleActorRef } from './useActorRef.ts';
-import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
+import { useActorRef } from './useActorRef.ts';
+import { useSelector } from './useSelector.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -25,33 +23,8 @@ export function useActor<TLogic extends AnyActorLogic>(
     );
   }
 
-  const actorRef = useIdleActorRef(logic, options as any);
+  const actorRef = useActorRef(logic, options as any);
+  const snapshot = useSelector(actorRef, (state) => state);
 
-  const getSnapshot = useCallback(() => {
-    return actorRef.getSnapshot();
-  }, [actorRef]);
-
-  const subscribe = useCallback(
-    (handleStoreChange) => {
-      const { unsubscribe } = actorRef.subscribe(handleStoreChange);
-      return unsubscribe;
-    },
-    [actorRef]
-  );
-
-  const actorSnapshot = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getSnapshot
-  );
-
-  useEffect(() => {
-    actorRef.start();
-
-    return () => {
-      stopRootWithRehydration(actorRef);
-    };
-  }, [actorRef]);
-
-  return [actorSnapshot, actorRef.send, actorRef] as any;
+  return [snapshot, actorRef.send, actorRef];
 }

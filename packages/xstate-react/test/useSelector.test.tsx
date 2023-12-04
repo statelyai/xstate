@@ -770,4 +770,35 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     expect(stateEl.textContent).toBe('42');
   });
+
+  it('should work with delays', () => {
+    jest.useFakeTimers();
+    const machine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          after: {
+            10: 'two'
+          }
+        },
+        two: {}
+      }
+    });
+
+    const App = () => {
+      const ref = useActorRef(machine);
+      const state = useSelector(ref, (s) => s);
+      return <>{state.value}</>;
+    };
+
+    const { container } = render(<App />);
+
+    expect(container.textContent).toBe('one');
+
+    act(() => {
+      jest.advanceTimersByTime(10);
+    });
+
+    expect(container.textContent).toBe('two');
+  });
 });

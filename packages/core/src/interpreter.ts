@@ -392,6 +392,9 @@ export class Actor<TLogic extends AnyActorLogic>
       // Do not restart the service if it is already started
       return this;
     }
+    if (this._processingStatus === ProcessingStatus.Stopped) {
+      this._initState(this.options?.snapshot);
+    }
 
     if (this._syncSnapshot) {
       this.subscribe({
