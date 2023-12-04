@@ -1,4 +1,4 @@
-import { AnyEventObject } from '.';
+import { AnyActorLogic, AnyEventObject, SnapshotFrom } from '.';
 
 export function assertEvent<
   TEvent extends AnyEventObject,
