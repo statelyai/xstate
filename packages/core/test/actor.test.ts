@@ -78,7 +78,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ActorRef<PingPongEvent, Snapshot<unknown>>;
+    server?: ActorRef<Snapshot<unknown>, PingPongEvent>;
   }
 
   const clientMachine = createMachine({
@@ -1133,7 +1133,7 @@ describe('actors', () => {
               'xstate.error.actor.test': {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data === errorMessage;
+                  return event.error === errorMessage;
                 }
               }
             }
@@ -1162,12 +1162,12 @@ describe('actors', () => {
 
           return state;
         },
-        getInitialState: () => ({
+        getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined
         }),
-        getPersistedState: (s) => s
+        getPersistedSnapshot: (s) => s
       };
 
       const pingMachine = createMachine({
@@ -1404,10 +1404,10 @@ describe('actors', () => {
     });
 
     const actor = createActor(machine).start();
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
 
     createActor(machine, {
-      state: persistedState
+      snapshot: persistedState
     }).start();
 
     // Will be 2 if the observable is resubscribed
@@ -1427,10 +1427,10 @@ describe('actors', () => {
     });
 
     const actor = createActor(machine).start();
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
 
     createActor(machine, {
-      state: persistedState
+      snapshot: persistedState
     }).start();
 
     // Will be 2 if the event observable is resubscribed

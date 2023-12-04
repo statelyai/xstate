@@ -6,7 +6,8 @@ import {
   ActorSystem,
   ActorRefFrom,
   Snapshot,
-  AnyActorRef
+  AnyActorRef,
+  NonReducibleUnknown
 } from '../types';
 import { XSTATE_STOP } from '../constants.ts';
 
@@ -26,12 +27,12 @@ export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
 
 export type CallbackActorLogic<
   TEvent extends EventObject,
-  TInput = unknown
+  TInput = NonReducibleUnknown
 > = ActorLogic<CallbackSnapshot<TInput>, TEvent, TInput, ActorSystem<any>>;
 
 export type CallbackActorRef<
   TEvent extends EventObject,
-  TInput = unknown
+  TInput = NonReducibleUnknown
 > = ActorRefFrom<CallbackActorLogic<TEvent, TInput>>;
 
 export type Receiver<TEvent extends EventObject> = (
@@ -43,7 +44,7 @@ export type Receiver<TEvent extends EventObject> = (
 export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
-  TInput = unknown
+  TInput = NonReducibleUnknown
 > = ({
   input,
   system,
@@ -132,7 +133,10 @@ export type InvokeCallback<
  * });
  * ```
  */
-export function fromCallback<TEvent extends EventObject, TInput = unknown>(
+export function fromCallback<
+  TEvent extends EventObject,
+  TInput = NonReducibleUnknown
+>(
   invokeCallback: InvokeCallback<TEvent, AnyEventObject, TInput>
 ): CallbackActorLogic<TEvent, TInput> {
   const logic: CallbackActorLogic<TEvent, TInput> = {
@@ -185,7 +189,7 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
 
       return state;
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,
@@ -193,8 +197,8 @@ export function fromCallback<TEvent extends EventObject, TInput = unknown>(
         input
       };
     },
-    getPersistedState: (state) => state,
-    restoreState: (state: any) => state
+    getPersistedSnapshot: (snapshot) => snapshot,
+    restoreSnapshot: (snapshot: any) => snapshot
   };
 
   return logic;

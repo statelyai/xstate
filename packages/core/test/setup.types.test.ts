@@ -771,6 +771,28 @@ describe('setup()', () => {
     });
   });
 
+  it(`should provide contextual parameters to input factory for an actor that doesn't specify any input`, () => {
+    setup({
+      types: {
+        context: {} as { count: number }
+      },
+      actors: {
+        child: fromPromise(() => Promise.resolve(1))
+      }
+    }).createMachine({
+      context: { count: 1 },
+      invoke: {
+        src: 'child',
+        input: ({ context }) => {
+          // @ts-expect-error
+          context.foo;
+
+          return undefined;
+        }
+      }
+    });
+  });
+
   it('should return the correct child type on the available snapshot when the child ID for the actor was configured', () => {
     const child = createMachine({
       types: {} as {

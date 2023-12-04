@@ -108,7 +108,6 @@ export interface UnifiedArg<
   context: TContext;
   event: TExpressionEvent;
   self: ActorRef<
-    TEvent,
     MachineSnapshot<
       TContext,
       TEvent,
@@ -116,7 +115,8 @@ export interface UnifiedArg<
       StateValue,
       string,
       unknown
-    >
+    >,
+    TEvent
   >;
   system: ActorSystem<any>;
 }
@@ -1443,7 +1443,7 @@ export interface DoneActorEvent<TOutput = unknown> {
 
 export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
   type: `xstate.error.actor.${string}`;
-  data: TErrorData;
+  error: TErrorData;
 }
 
 export interface SnapshotEvent<
@@ -1600,7 +1600,6 @@ export type Mapper<
   context: TContext;
   event: TExpressionEvent;
   self: ActorRef<
-    TEvent,
     MachineSnapshot<
       TContext,
       TEvent,
@@ -1608,7 +1607,8 @@ export type Mapper<
       StateValue,
       string,
       unknown
-    >
+    >,
+    TEvent
   >;
 }) => TResult;
 
@@ -1759,9 +1759,14 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Actions from machine actors will not be re-executed, because they are assumed to have been already executed.
    * However, invocations will be restarted, and spawned actors will be restored recursively.
    *
-   * Can be generated with {@link Actor.getPersistedState}.
+   * Can be generated with {@link Actor.getPersistedSnapshot}.
    *
    * @see https://stately.ai/docs/persistence
+   */
+  snapshot?: Snapshot<unknown>;
+
+  /**
+   * @deprecated Use `snapshot` instead.
    */
   state?: Snapshot<unknown>;
 
@@ -1907,8 +1912,8 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 }
 
 export interface ActorRef<
-  TEvent extends EventObject,
-  TSnapshot extends Snapshot<unknown>
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
 > extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
   /**
@@ -1921,7 +1926,7 @@ export interface ActorRef<
   send: (event: TEvent) => void;
   start: () => void;
   getSnapshot: () => TSnapshot;
-  getPersistedState: () => Snapshot<unknown>;
+  getPersistedSnapshot: () => Snapshot<unknown>;
   stop: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
@@ -1970,7 +1975,6 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TResolvedTypesMeta
     >
     ? ActorRef<
-        TEvent,
         MachineSnapshot<
           TContext,
           TEvent,
@@ -1981,7 +1985,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
             ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
             : TResolvedTypesMeta
-        >
+        >,
+        TEvent
       >
     : R extends Promise<infer U>
       ? ActorRefFrom<PromiseActorLogic<U>>
@@ -1991,7 +1996,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TInput,
             infer _TSystem
           >
-        ? ActorRef<TEvent, TSnapshot>
+        ? ActorRef<TSnapshot, TEvent>
         : never
   : never;
 
@@ -2080,7 +2085,7 @@ export interface ActorScope<
   TEvent extends EventObject,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
-  self: ActorRef<TEvent, TSnapshot>;
+  self: ActorRef<TSnapshot, TEvent>;
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
@@ -2124,7 +2129,7 @@ export type Snapshot<TOutput> =
 export interface ActorLogic<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput = unknown,
+  TInput = NonReducibleUnknown,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 > {
   /** The initial setup/configuration used to create the actor logic. */
@@ -2132,13 +2137,13 @@ export interface ActorLogic<
   /**
    * Transition function that processes the current state and an incoming message
    * to produce a new state.
-   * @param state - The current state.
+   * @param snapshot - The current state.
    * @param message - The incoming message.
    * @param ctx - The actor scope.
    * @returns The new state.
    */
   transition: (
-    state: TSnapshot,
+    snapshot: TSnapshot,
     message: TEvent,
     ctx: ActorScope<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
@@ -2148,34 +2153,40 @@ export interface ActorLogic<
    * @param input - The input for the initial state.
    * @returns The initial state.
    */
-  getInitialState: (
+  getInitialSnapshot: (
     actorScope: ActorScope<TSnapshot, TEvent, TSystem>,
     input: TInput
   ) => TSnapshot;
   /**
    * Called when Actor is created to restore the internal state of the actor given a persisted state.
-   * The persisted state can be created by `getPersistedState`.
+   * The persisted state can be created by `getPersistedSnapshot`.
    * @param persistedState - The persisted state to restore from.
    * @param actorScope - The actor scope.
    * @returns The restored state.
    */
-  restoreState?: (
+  restoreSnapshot?: (
     persistedState: Snapshot<unknown>,
     actorScope: ActorScope<TSnapshot, TEvent>
   ) => TSnapshot;
   /**
    * Called when the actor is started.
-   * @param state - The starting state.
+   * @param snapshot - The starting state.
    * @param actorScope - The actor scope.
    */
-  start?: (state: TSnapshot, actorScope: ActorScope<TSnapshot, TEvent>) => void;
+  start?: (
+    snapshot: TSnapshot,
+    actorScope: ActorScope<TSnapshot, TEvent>
+  ) => void;
   /**
    * Obtains the internal state of the actor in a representation which can be be persisted.
-   * The persisted state can be restored by `restoreState`.
-   * @param state - The current state.
+   * The persisted state can be restored by `restoreSnapshot`.
+   * @param snapshot - The current state.
    * @returns The a representation of the internal state to be persisted.
    */
-  getPersistedState: (state: TSnapshot, options?: unknown) => Snapshot<unknown>;
+  getPersistedSnapshot: (
+    snapshot: TSnapshot,
+    options?: unknown
+  ) => Snapshot<unknown>;
 }
 
 export type AnyActorLogic = ActorLogic<
@@ -2185,8 +2196,15 @@ export type AnyActorLogic = ActorLogic<
   any // system
 >;
 
+export type UnknownActorLogic = ActorLogic<
+  any, // this is invariant and it's hard to figure out a better default than `any`
+  EventObject,
+  NonReducibleUnknown,
+  ActorSystem<any>
+>;
+
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TSnapshot>
+  ? R extends ActorRef<infer TSnapshot, infer _>
     ? TSnapshot
     : R extends Actor<infer TLogic>
       ? SnapshotFrom<TLogic>
@@ -2227,7 +2245,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
           infer _TResolvedTypesMeta
         >
       ? TEvent
-      : R extends ActorRef<infer TEvent, infer _>
+      : R extends ActorRef<infer _, infer TEvent>
         ? TEvent
         : never
   : never;

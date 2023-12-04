@@ -397,7 +397,7 @@ describe('createActorContext', () => {
       const actorRef = SomeContext.useActorRef();
       const state = SomeContext.useSelector((state) => state);
 
-      persistedState = actorRef.getPersistedState();
+      persistedState = actorRef.getPersistedSnapshot();
 
       return (
         <div
@@ -413,7 +413,7 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeContext.Provider options={{ state: persistedState }}>
+        <SomeContext.Provider options={{ snapshot: persistedState }}>
           <Component />
         </SomeContext.Provider>
       );

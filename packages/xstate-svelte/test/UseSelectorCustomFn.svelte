@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createActor, createMachine, assign } from 'xstate';
-  import { useSelector } from '@xstate/svelte';
+  import { useActorRef, useSelector } from '@xstate/svelte';
 
   const machine = createMachine({
     types: {} as {
@@ -20,10 +20,10 @@
     }
   });
 
-  const service = createActor(machine).start();
+  const actorRef = useActorRef(machine);
 
   const name = useSelector(
-    service,
+    actorRef,
     (state) => state.context.name,
     (a, b) => a.toUpperCase() === b.toUpperCase()
   );
@@ -32,9 +32,9 @@
 <div data-testid="name">{$name}</div>
 <button
   data-testid="sendUpper"
-  on:click={() => service.send({ type: 'CHANGE', value: 'DAVID' })}
+  on:click={() => actorRef.send({ type: 'CHANGE', value: 'DAVID' })}
 />
 <button
   data-testid="sendOther"
-  on:click={() => service.send({ type: 'CHANGE', value: 'other' })}
+  on:click={() => actorRef.send({ type: 'CHANGE', value: 'other' })}
 />

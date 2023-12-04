@@ -16,6 +16,6 @@
   },
   "dependencies": {
     "mongodb": "^6.2.0",
-    "xstate": "beta"
+    "xstate": "^5.0.0"
   }
 }

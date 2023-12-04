@@ -13,6 +13,6 @@
     "vite": "^4.1.0"
   },
   "dependencies": {
-    "xstate": "beta"
+    "xstate": "^5.0.0"
   }
 }

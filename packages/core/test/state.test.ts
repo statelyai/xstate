@@ -488,10 +488,10 @@ describe('State', () => {
       });
 
       const actorRef = createActor(machine).start();
-      const persistedState = actorRef.getPersistedState();
+      const persistedState = actorRef.getPersistedSnapshot();
       actorRef.stop();
       const restoredSnapshot = createActor(machine, {
-        state: persistedState
+        snapshot: persistedState
       }).getSnapshot();
 
       expect(restoredSnapshot.hasTag('foo')).toBe(true);

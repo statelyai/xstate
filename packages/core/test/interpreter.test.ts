@@ -12,7 +12,6 @@ import {
   stopChild,
   log
 } from '../src/index.ts';
-import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
@@ -136,8 +135,8 @@ describe('interpreter', () => {
 
       actorRef.send({ type: 'TIMER' });
       called = false;
-      const persisted = actorRef.getPersistedState();
-      actorRef = createActor(machine, { state: persisted }).start();
+      const persisted = actorRef.getPersistedSnapshot();
+      actorRef = createActor(machine, { snapshot: persisted }).start();
 
       expect(called).toBe(false);
     });
@@ -161,9 +160,9 @@ describe('interpreter', () => {
       const actorRef = createActor(machine).start();
       called = false;
       expect(actorRef.getSnapshot().value).toEqual('b');
-      const persisted = actorRef.getPersistedState();
+      const persisted = actorRef.getPersistedSnapshot();
 
-      createActor(machine, { state: persisted }).start();
+      createActor(machine, { snapshot: persisted }).start();
 
       expect(called).toBe(false);
     });
@@ -590,11 +589,11 @@ describe('interpreter', () => {
       const actorRef = createActor(machine).start();
       actorRef.send({ type: 'TOGGLE' });
       actorRef.send({ type: 'SWITCH' });
-      const bState = actorRef.getPersistedState();
+      const bState = actorRef.getPersistedSnapshot();
       actorRef.stop();
       activityActive = false;
 
-      createActor(machine, { state: bState }).start();
+      createActor(machine, { snapshot: bState }).start();
 
       expect(activityActive).toBeTruthy();
     });
@@ -1054,7 +1053,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveState({ value: 'bar' })
+        snapshot: machine.resolveState({ value: 'bar' })
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1071,7 +1070,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveState({ value: 'bar' })
+        snapshot: machine.resolveState({ value: 'bar' })
       });
 
       expect(actor.getSnapshot().matches('bar')).toBeTruthy();
@@ -1094,7 +1093,7 @@ describe('interpreter', () => {
         }
       });
       const actor = createActor(machine, {
-        state: machine.resolveState({ value: 'foo' })
+        snapshot: machine.resolveState({ value: 'foo' })
       });
 
       expect(actor.getSnapshot().matches({ foo: 'one' })).toBeTruthy();
@@ -1324,7 +1323,7 @@ describe('interpreter', () => {
       let count: number;
       const intervalService = createActor(intervalMachine).start();
 
-      expect(isObservable(intervalService)).toBeTruthy();
+      expect(typeof intervalService.subscribe === 'function').toBeTruthy();
 
       intervalService.subscribe(
         (state) => (count = state.context.count),

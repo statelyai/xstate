@@ -1,5 +1,4 @@
 <p align="center">
-  <a href="https://stately.ai/docs">
   <br />
 
   <picture>
@@ -7,23 +6,16 @@
     <img alt="XState logotype" src="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-black-nobg.svg" width="200">
   </picture>
   <br />
-    <sub><strong>JavaScript state machines and statecharts</strong></sub>
+    <strong>Actor-based state management & orchestration for complex app logic.</strong> <a href="https://stately.ai/docs">→ Documentation</a>
   <br />
   <br />
-  </a>
 </p>
 
-[![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
-<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
-
-XState is a state management and orchestration solution for JavaScript and TypeScript apps.
+XState is a state management and orchestration solution for JavaScript and TypeScript apps. It has _zero_ dependencies, and is useful for frontend and backend application logic.
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
-### ✨ Create state machines visually → [state.new](https://state.new)
-
-> [!NOTE]
-> ℹ️ This is the branch for **XState v5 beta** and related packages. View the XState v4 branch [here](https://github.com/statelyai/xstate/tree/main).
+### ✨ Create state machines visually in Stately Studio → [state.new](https://state.new)
 
 ---
 
@@ -42,25 +34,22 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 | Package                                                                                       | Description                                                                  |
 | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | 🤖 `xstate`                                                                                   | Core finite state machine and statecharts library + interpreter              |
-| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/next/packages/xstate-graph)     | Graph traversal utilities for XState                                         |
-| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/next/packages/xstate-react)     | React hooks and utilities for using XState in React applications             |
-| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/next/packages/xstate-vue)         | Vue composition functions and utilities for using XState in Vue applications |
-| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/next/packages/xstate-svelte)   | Svelte utilities for using XState in Svelte applications                     |
-| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/next/packages/xstate-solid)     | Solid hooks and utilities for using XState in Solid applications             |
-| [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/next/packages/xstate-test)       | Model-Based-Testing utilities (using XState) for testing any software        |
-| [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/next/packages/xstate-inspect) | Inspection utilities for XState                                              |
+| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph)     | Graph traversal utilities for XState                                         |
+| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)     | React hooks and utilities for using XState in React applications             |
+| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)         | Vue composition functions and utilities for using XState in Vue applications |
+| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte)   | Svelte utilities for using XState in Svelte applications                     |
+| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)     | Solid hooks and utilities for using XState in Solid applications             |
+| [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test)       | Model-Based-Testing utilities (using XState) for testing any software        |
+| [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) | Inspection utilities for XState                                              |
 
 ## Templates
 
 Get started by forking one of these templates on CodeSandbox:
 
-- [XState Template](https://codesandbox.io/s/xstate-example-template-m4ckv) - no framework
-- [XState + TypeScript Template](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - no framework
-- [XState + React Template](https://codesandbox.io/s/xstate-react-template-3t2tg)
-- [XState + React + TypeScript Template](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
-- [XState + Vue Template](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
-- [XState + Vue 3 Template](https://codesandbox.io/s/xstate-vue-3-template-vrkk9)
-- [XState + Svelte Template](https://codesandbox.io/s/xstate-svelte-template-jflv1)
+| Template                                                                                                        |                          |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| [XState Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)       | TypeScript, no framework |
+| [XState + React Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts) | TypeScript, React        |
 
 ## Super quick start
 
@@ -68,7 +57,7 @@ Get started by forking one of these templates on CodeSandbox:
 npm install xstate
 ```
 
-```js
+```ts
 import { createMachine, createActor, assign } from 'xstate';
 
 // State machine
@@ -79,10 +68,16 @@ const toggleMachine = createMachine({
     count: 0
   },
   states: {
-    inactive: { on: { TOGGLE: 'active' } },
+    inactive: {
+      on: {
+        TOGGLE: { target: 'active' }
+      }
+    },
     active: {
       entry: assign({ count: ({ context }) => context.count + 1 }),
-      on: { TOGGLE: 'inactive' }
+      on: {
+        TOGGLE: { target: 'inactive' }
+      }
     }
   }
 });
@@ -100,27 +95,19 @@ toggleActor.send({ type: 'TOGGLE' });
 // => logs 'inactive', { count: 1 }
 ```
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+## [Stately Studio](https://stately.ai)
 
-- [Visualizer](#visualizer)
-- [Why?](#why)
-- [Finite State Machines](#finite-state-machines)
-- [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
-- [Parallel State Machines](#parallel-state-machines)
-- [History States](#history-states)
+- Visually create, edit, and collaborate on state machines
+- Export to many formats, including XState v5
+- Test path & documentation autogeneration
+- Deploy to Stately Sky
+- Generate & modify machines with Stately AI
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-## Visualizer
-
-**[Visualize, simulate, inspect, and share your statecharts in XState Viz](https://stately.ai/viz)**
-
-<a href="https://stately.ai/viz" title="XState Viz">
-  <img src="https://user-images.githubusercontent.com/1093738/131729181-5db835fc-77e7-4740-b03f-46bd0093baa1.png" alt="XState Viz" width="400" />
+<a href="stately.ai/registry/new?ref=github" title="Stately Studio">
+  <img src="https://github.com/statelyai/xstate/assets/1093738/74ed9cbc-b824-4ed7-a16d-f104947af8a7" alt="XState Viz" width="800" />
 </a>
 
-**[stately.ai/viz](https://stately.ai/viz)**
+**[state.new](https://stately.ai/registry/new?ref=github)**
 
 ## Why?
 
@@ -136,15 +123,14 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 
 ## Finite State Machines
 
-<a href="https://stately.ai/viz/2ac5915f-789a-493f-86d3-a8ec079773f4" title="Finite states">
-  <img src="https://user-images.githubusercontent.com/1093738/131727631-916d28a7-1a40-45ed-8636-c0c0fc1c3889.gif" alt="Finite states" width="400" />
-  <br />
-  <small>Open in Stately Viz</small>
-</a>
-<br />
+<table>
+<thead><tr><th>Code</th><th>Statechart</th></tr></thead>
+<tbody>
+<tr>
+<td>
 
 ```js
-import { createMachine } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -168,26 +154,57 @@ const lightMachine = createMachine({
   }
 });
 
-const currentState = 'green';
+const actor = createActor(lightMachine);
 
-const nextState = lightMachine.transition(currentState, {
-  type: 'TIMER'
-}).value;
+actor.subscribe((state) => {
+  console.log(state.value);
+});
 
-// => 'yellow'
+actor.start();
+// logs 'green'
+
+actor.send({ type: 'TIMER' });
+// logs 'yellow'
 ```
 
-## Hierarchical (Nested) State Machines
+<table>
+<thead><tr><th>Code</th><th>Statechart</th></tr></thead>
+<tbody>
+<tr>
+<td>
 
-<a href="https://stately.ai/viz/d3aeda4f-7f8e-44df-bdf9-dd3cdafb3312" title="Hierarchical states">
-  <img src="https://user-images.githubusercontent.com/1093738/131727794-86b63c76-5ee0-4d73-b84c-6992a1f0814e.gif" alt="Hierarchical states" width="400" />
+</td>
+<td>
+
+</td>
+</tr>
+</tbody>
+</table>
+
+</td>
+<td>
+
+<a href="https://stately.ai/registry/editor/fa443471-b416-4014-8e6f-12417863e4d4?mode=design&machineId=27e86036-f2f7-40f1-9d1e-66ce6e1accc0" title="Finite states">
+  <img src="https://github.com/statelyai/xstate/assets/1093738/36d4b6b5-e3d0-4c19-9f41-2e3425ceac88" alt="Finite states" width="400" />
   <br />
-  <small>Open in Stately Viz</small>
+  Open in Stately Studio
 </a>
 <br />
 
+</td>
+</tbody>
+</table>
+
+## Hierarchical (Nested) State Machines
+
+<table>
+<thead><tr><th>Code</th><th>Statechart</th></tr></thead>
+<tbody>
+<tr>
+<td>
+
 ```js
-import { createMachine } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -229,51 +246,49 @@ const lightMachine = createMachine({
   }
 });
 
-const currentState = 'yellow';
+const actor = createActor(lightMachine);
 
-const nextState = lightMachine.transition(currentState, {
-  type: 'TIMER'
-}).value;
-// => {
-//   red: 'walk'
-// }
+actor.subscribe((state) => {
+  console.log(state.value);
+});
 
-lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
-// => {
-//   red: 'wait'
-// }
+actor.start();
+// logs 'green'
+
+actor.send({ type: 'TIMER' });
+// logs 'yellow'
+
+actor.send({ type: 'TIMER' });
+// logs { red: 'walk' }
+
+actor.send({ type: 'PED_TIMER' });
+// logs { red: 'wait' }
 ```
 
-**Object notation for hierarchical states:**
-
-```js
-// ...
-const waitState = lightMachine.transition(
-  { red: 'walk' },
-  { type: 'PED_TIMER' }
-).value;
-
-// => { red: 'wait' }
-
-lightMachine.transition(waitState, { type: 'PED_TIMER' }).value;
-
-// => { red: 'stop' }
-
-lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value;
-
-// => 'green'
-```
+</td>
+<td>
+<a href="https://stately.ai/registry/editor/fa443471-b416-4014-8e6f-12417863e4d4?mode=design&machineId=30dffcdd-16c2-49e2-bfc6-a674057cb271" title="Hierarchical states">
+  <img src="https://github.com/statelyai/xstate/assets/1093738/32b0692b-1c29-4469-b5e3-03146e3ef249" alt="Hierarchical states" width="400" />
+  <br />
+  Open in Stately Studio
+</a>
+<br />
+</td>
+</tr>
+</tbody>
+</table>
 
 ## Parallel State Machines
 
-<a href="https://stately.ai/viz/9eb9c189-254d-4c87-827a-fab0c2f71508" title="Parallel states">
-  <img src="https://user-images.githubusercontent.com/1093738/131727915-23da4b4b-5e7e-46ea-9c56-5093e37e60e6.gif" alt="Parallel states" width="400" />
-  <br />
-  <small>Open in Stately Viz</small>
-</a>
-<br />
+<table>
+<thead><tr><th>Code</th><th>Statechart</th></tr></thead>
+<tbody>
+<tr>
+<td>
 
-```js
+```ts
+import { createMachine, createActor } from 'xstate';
+
 const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
@@ -315,58 +330,82 @@ const wordMachine = createMachine({
       initial: 'none',
       states: {
         none: {
-          on: { BULLETS: 'bullets', NUMBERS: 'numbers' }
+          on: {
+            BULLETS: 'bullets',
+            NUMBERS: 'numbers'
+          }
         },
         bullets: {
-          on: { NONE: 'none', NUMBERS: 'numbers' }
+          on: {
+            NONE: 'none',
+            NUMBERS: 'numbers'
+          }
         },
         numbers: {
-          on: { BULLETS: 'bullets', NONE: 'none' }
+          on: {
+            BULLETS: 'bullets',
+            NONE: 'none'
+          }
         }
       }
     }
   }
 });
 
-const boldState = wordMachine.transition('bold.off', {
-  type: 'TOGGLE_BOLD'
-}).value;
+const actor = createActor(wordMachine);
 
-// {
+actor.subscribe((state) => {
+  console.log(state.value);
+});
+
+actor.start();
+// logs {
+//   bold: 'off',
+//   italics: 'off',
+//   underline: 'off',
+//   list: 'none'
+// }
+
+actor.send({ type: 'TOGGLE_BOLD' });
+// logs {
 //   bold: 'on',
 //   italics: 'off',
 //   underline: 'off',
 //   list: 'none'
 // }
 
-const nextState = wordMachine.transition(
-  {
-    bold: 'off',
-    italics: 'off',
-    underline: 'on',
-    list: 'bullets'
-  },
-  { type: 'TOGGLE_ITALICS' }
-).value;
-
-// {
-//   bold: 'off',
+actor.send({ type: 'TOGGLE_ITALICS' });
+// logs {
+//   bold: 'on',
 //   italics: 'on',
-//   underline: 'on',
-//   list: 'bullets'
+//   underline: 'off',
+//   list: 'none'
 // }
 ```
 
+</td>
+<td>
+<a href="https://stately.ai/registry/editor/fa443471-b416-4014-8e6f-12417863e4d4?mode=design&machineId=980f50d8-e1ff-4441-8c8b-afe41c1610f2" title="Parallel states">
+  <img src="https://github.com/statelyai/xstate/assets/1093738/3b1989c0-f4a9-4653-baf2-4df3a40e91a6" alt="Parallel states" width="400" />
+  <br />
+  Open in Stately Studio
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+
 ## History States
 
-<a href="https://stately.ai/viz/33fd92e1-f9e6-49e6-bdeb-cef9e60195ec" title="History states">
-  <img src="https://user-images.githubusercontent.com/1093738/131728111-819cc824-9881-4ecf-948a-00c1162cd9e9.gif" alt="History state" width="400" />
-  <br />
-  <small>Open in Stately Viz</small>
-</a>
-<br />
+<table>
+<thead><tr><th>Code</th><th>Statechart</th></tr></thead>
+<tbody>
+<tr>
+<td>
 
 ```js
+import { createMachine, createActor } from 'xstate';
+
 const paymentMachine = createMachine({
   id: 'payment',
   initial: 'method',
@@ -374,8 +413,16 @@ const paymentMachine = createMachine({
     method: {
       initial: 'cash',
       states: {
-        cash: { on: { SWITCH_CHECK: 'check' } },
-        check: { on: { SWITCH_CASH: 'cash' } },
+        cash: {
+          on: {
+            SWITCH_CHECK: 'check'
+          }
+        },
+        check: {
+          on: {
+            SWITCH_CASH: 'cash'
+          }
+        },
         hist: { type: 'history' }
       },
       on: { NEXT: 'review' }
@@ -386,32 +433,50 @@ const paymentMachine = createMachine({
   }
 });
 
-const checkState = paymentMachine.transition('method.cash', {
-  type: 'SWITCH_CHECK'
+const actor = createActor(paymentMachine);
+
+actor.subscribe((state) => {
+  console.log(state.value);
 });
 
-// => State {
+actor.start();
+// logs {
+//   value: { method: 'cash' },
+// }
+
+actor.send({ type: 'SWITCH_CHECK' });
+// logs {
 //   value: { method: 'check' },
-//   history: State { ... }
 // }
 
-const reviewState = paymentMachine.transition(checkState, { type: 'NEXT' });
-
-// => State {
+actor.send({ type: 'NEXT' });
+// logs {
 //   value: 'review',
-//   history: State { ... }
 // }
 
-const previousState = paymentMachine.transition(reviewState, {
-  type: 'PREVIOUS'
-}).value;
-
-// => { method: 'check' }
+actor.send({ type: 'PREVIOUS' });
+// logs {
+//   value: { method: 'check' },
+// }
 ```
+
+</td>
+<td>
+<a href="https://stately.ai/registry/editor/fa443471-b416-4014-8e6f-12417863e4d4?mode=design&machineId=d1a9bb95-db97-4af3-b38b-71b005c643d3" title="History states">
+  <img src="https://github.com/statelyai/xstate/assets/1093738/1be5c495-d560-4660-94f2-5341efbf7128" alt="History state" width="400" />
+  <br />
+  Open in Stately Studio
+</a>
+</td>
+</tr>
+</tbody>
+</table>
 
 ## Sponsors
 
 Special thanks to the sponsors who support this open-source project:
+
+<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 <a href="https://transloadit.com/?utm_source=xstate&utm_medium=referral&utm_campaign=sponsorship&utm_content=github">
   <picture>
