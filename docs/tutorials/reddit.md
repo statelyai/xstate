@@ -1,5 +1,11 @@
 # Reddit API
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 _Adapted from the [Redux Docs: Advanced Tutorial](https://redux.js.org/advanced/advanced-tutorial)_
 
 Suppose we wanted to create an app that displays a selected subreddit's posts. The app should be able to:

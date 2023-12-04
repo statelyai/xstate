@@ -1,5 +1,11 @@
 # @xstate/react
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 The [@xstate/react package](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) contains utilities for using [XState](https://github.com/statelyai/xstate) with [React](https://github.com/facebook/react/).
 
 [[toc]]

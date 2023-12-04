@@ -1,6 +1,9 @@
 # Interpreting Machines
 
-:::tip Check out our new docs!
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
 🆕 Find more about [creating actors using XState](https://stately.ai/docs/actors#creating-actors) in our new docs.
 :::
 

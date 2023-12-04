@@ -1,10 +1,13 @@
 # Machines
 
-A state machine is a finite set of states that can transition to each other deterministically due to events. To learn more, read our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md).
+:::warning These XState v4 docs are no longer maintained
 
-:::tip Check out our new docs!
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
 🆕 Find more about [creating machines using XState](https://stately.ai/docs/machines#creating-a-state-machine) in our new docs.
 :::
+
+A state machine is a finite set of states that can transition to each other deterministically due to events. To learn more, read our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md).
 
 ## Configuration
 
