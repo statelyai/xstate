@@ -1027,4 +1027,34 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     expect(spy.mock.calls).toEqual([[42], [100]]);
   });
+
+  it('should work with delays', () => {
+    jest.useFakeTimers();
+    const machine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          after: {
+            10: 'two'
+          }
+        },
+        two: {}
+      }
+    });
+
+    const App = () => {
+      const [state] = useActor(machine);
+      return <>{state.value}</>;
+    };
+
+    const { container } = render(<App />);
+
+    expect(container.textContent).toBe('one');
+
+    act(() => {
+      jest.advanceTimersByTime(10);
+    });
+
+    expect(container.textContent).toBe('two');
+  });
 });
