@@ -11,15 +11,12 @@ import {
 export function createSpawn<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TInput,
-  TPersisted
->(
-  logic: ActorLogic<TSnapshot, TEvent, TInput, TPersisted>
-): ActorRef<TEvent, TSnapshot> {
+  TInput
+>(logic: ActorLogic<TSnapshot, TEvent, TInput>): ActorRef<TSnapshot, TEvent> {
   const actorRef = createActor(logic);
 
   if (!isServer) {
-    actorRef.start?.();
+    actorRef.start();
     onCleanup(() => actorRef!.stop?.());
   }
 

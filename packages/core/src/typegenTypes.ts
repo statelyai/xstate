@@ -41,12 +41,14 @@ export interface TypegenMeta extends TypegenEnabled {
   /**
    * A map for the internal events of the machine.
    *
+   * ```js
    * key: 'xstate.done.actor.myActor'
    * value: {
    *   type: 'xstate.done.actor.myActor';
    *   data: unknown;
    *   __tip: 'Declare the type in event types!';
    * }
+   * ```
    */
   internalEvents: {};
   /**
@@ -112,14 +114,14 @@ export type AreAllImplementationsAssumedToBeProvided<
 > = IsAny<TResolvedTypesMeta> extends true
   ? true
   : TResolvedTypesMeta extends TypegenEnabled
-  ? IsNever<
-      Values<{
-        [K in keyof TMissingImplementations]: TMissingImplementations[K];
-      }>
-    > extends true
-    ? true
-    : false
-  : true;
+    ? IsNever<
+        Values<{
+          [K in keyof TMissingImplementations]: TMissingImplementations[K];
+        }>
+      > extends true
+      ? true
+      : false
+    : true;
 
 export type MissingImplementationsError<
   TResolvedTypesMeta,
@@ -158,21 +160,21 @@ type GenerateActorEvents<
     // using never here allows typegen to inject internal events with "hints" that the actor type is missing
     never
   : // distribute over union
-  TActor extends any
-  ? {
-      type: // 1. if the actor has an id, use that
-      TActor['id'] extends string
-        ? `xstate.done.actor.${TActor['id']}`
-        : // 2. if the ids were inferred by typegen then use those
-        // this doesn't contain *all* possible event types since we can't track spawned actors today
-        // however, those xstate.done.actor events shouldn't exactly be usable by/surface to the user anyway
-        TActor['src'] extends keyof TInvokeSrcNameMap
-        ? `xstate.done.actor.${TInvokeSrcNameMap[TActor['src']] & string}`
-        : // 3. finally use the fallback type
-          `xstate.done.actor.${string}`;
-      output: OutputFrom<TActor['logic']>;
-    }
-  : never;
+    TActor extends any
+    ? {
+        type: // 1. if the actor has an id, use that
+        TActor['id'] extends string
+          ? `xstate.done.actor.${TActor['id']}`
+          : // 2. if the ids were inferred by typegen then use those
+            // this doesn't contain *all* possible event types since we can't track spawned actors today
+            // however, those xstate.done.actor events shouldn't exactly be usable by/surface to the user anyway
+            TActor['src'] extends keyof TInvokeSrcNameMap
+            ? `xstate.done.actor.${TInvokeSrcNameMap[TActor['src']] & string}`
+            : // 3. finally use the fallback type
+              `xstate.done.actor.${string}`;
+        output: OutputFrom<TActor['logic']>;
+      }
+    : never;
 
 // we don't even have to do that much here, technically, because `T & unknown` is equivalent to `T`
 // however, this doesn't display nicely in IDE tooltips, so let's fix this
@@ -267,6 +269,6 @@ export interface ResolveTypegenMeta<
   }[IsNever<TTypesMeta> extends true
     ? 'disabled'
     : TTypesMeta['@@xstate/typegen'] extends true
-    ? 'enabled'
-    : 'disabled'];
+      ? 'enabled'
+      : 'disabled'];
 }

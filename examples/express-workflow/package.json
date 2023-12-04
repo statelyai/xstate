@@ -1,0 +1,24 @@
+{
+  "name": "express-workflow",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/body-parser": "^1.19.5",
+    "body-parser": "^1.20.2",
+    "express": "^4.18.2",
+    "ts-node": "^10.9.1",
+    "xstate": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.9.0",
+    "typescript": "^5.2.2"
+  }
+}

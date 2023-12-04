@@ -111,10 +111,10 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       return originalSend(event);
     };
 
-    service.subscribe((state) => {
+    service.subscribe((snapshot) => {
       inspectService.send({
         type: 'service.state',
-        state: stringify(state),
+        state: stringify(snapshot),
         sessionId: service.sessionId
       });
     });

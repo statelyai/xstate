@@ -1,15 +1,13 @@
+import { fromCallback, fromPromise } from '../src/actors/index.ts';
+import { PromiseActorLogic } from '../src/actors/promise.ts';
+import { createMachine } from '../src/createMachine.ts';
 import {
-  ActorLogic,
   assign,
   createActor,
   MachineContext,
   StateMachine
 } from '../src/index.ts';
-import { fromPromise } from '../src/actors/index.ts';
-import { fromCallback } from '../src/actors/index.ts';
-import { createMachine } from '../src/Machine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
-import { PromiseActorLogic } from '../src/actors/promise.ts';
 
 describe('typegen types', () => {
   it('should not require implementations when creating machine using `createMachine`', () => {
@@ -126,44 +124,6 @@ describe('typegen types', () => {
             event.type === 'BAZ';
 
             return true;
-          }
-        }
-      }
-    );
-  });
-
-  it(`should limit event type provided to the actor's input factory`, () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: never;
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActors: {
-        myActor: 'FOO' | 'BAR';
-      };
-    }
-
-    createMachine(
-      {
-        context: { foo: 100 },
-        types: {
-          typegen: {} as TypesMeta,
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actors: {
-          myActor: {
-            src: fromPromise(() => Promise.resolve(42)),
-            input: ({ event }) => {
-              event.type === 'FOO';
-              event.type === 'BAR';
-              // @ts-expect-error
-              event.type === 'BAZ';
-              return null;
-            }
           }
         }
       }
@@ -293,6 +253,12 @@ describe('typegen types', () => {
   it('should allow valid string `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -313,6 +279,12 @@ describe('typegen types', () => {
   it('should allow valid object `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | { a: 'b' } | { a: 'c' };
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -330,6 +302,12 @@ describe('typegen types', () => {
   it('should not allow invalid string `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        delays: never;
+        guards: never;
+      };
     }
 
     const machine = createMachine({
@@ -344,13 +322,21 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches('d');
+    createActor(machine).getSnapshot().matches(
+      // @ts-expect-error
+      'd'
+    );
   });
 
   it('should not allow invalid object `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | { a: 'b' } | { a: 'c' };
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        delays: never;
+        guards: never;
+      };
     }
 
     const machine = createMachine({
@@ -362,13 +348,21 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches({ a: 'd' });
+    createActor(machine).getSnapshot().matches({
+      // @ts-expect-error
+      a: 'd'
+    });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
     interface TypesMeta extends TypegenMeta {
       tags: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -389,6 +383,12 @@ describe('typegen types', () => {
   it('should not allow an invalid tag with `hasTag`', () => {
     interface TypesMeta extends TypegenMeta {
       tags: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -403,8 +403,10 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().hasTag('d');
+    createActor(machine).getSnapshot().hasTag(
+      // @ts-expect-error
+      'd'
+    );
   });
 
   it('`withConfig` should require all missing implementations ', () => {
@@ -487,8 +489,7 @@ describe('typegen types', () => {
       }
     });
 
-    // TODO: rethink this; should probably be done as a linter rule instead
-    // @x-ts-expect-error
+    // @ts-expect-error
     createActor(machine);
   });
 
@@ -1035,6 +1036,12 @@ describe('typegen types', () => {
   it("shouldn't end up with `any` context after calling `state.matches`", () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -1059,7 +1066,13 @@ describe('typegen types', () => {
 
   it("shouldn't end up with `never` within a branch after two `state.matches` calls", () => {
     interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'a.b';
+      matchesStates: 'a' | 'a.b' | { a?: 'b' };
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -1076,7 +1089,7 @@ describe('typegen types', () => {
 
     const state = createActor(machine).getSnapshot();
 
-    if (state.matches('a') && state.matches('a.b')) {
+    if (state.matches('a') && state.matches({ a: 'b' })) {
       ((_accept: string) => {})(state.context.foo);
     }
   });
@@ -1091,6 +1104,7 @@ describe('typegen types', () => {
       machine: StateMachine<
         TContext,
         TEvent,
+        any,
         any,
         any,
         any,

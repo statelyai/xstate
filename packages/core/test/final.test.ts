@@ -2,7 +2,8 @@ import {
   createMachine,
   createActor,
   assign,
-  AnyActorRef
+  AnyActorRef,
+  sendParent
 } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
@@ -847,7 +848,7 @@ describe('final states', () => {
     const actorRef = createActor(machine).start();
     flushTracked();
 
-    // it's important to send an event here that results in a transition that computes new `state.configuration`
+    // it's important to send an event here that results in a transition that computes new `state._nodes`
     // and that could impact the order in which exit actions are called
     actorRef.send({ type: 'EV' });
 
@@ -898,7 +899,7 @@ describe('final states', () => {
 
     const actorRef = createActor(machine).start();
 
-    // it's important to send an event here that results in a transition as that computes new `state.configuration`
+    // it's important to send an event here that results in a transition as that computes new `state._nodes`
     // and that could impact the order in which exit actions are called
     actorRef.send({ type: 'EV1' });
     flushTracked();
@@ -953,7 +954,7 @@ describe('final states', () => {
     const flushTracked = trackEntries(machine);
 
     const actorRef = createActor(machine).start();
-    // it's important to send an event here that results in a transition as that computes new `state.configuration`
+    // it's important to send an event here that results in a transition as that computes new `state._nodes`
     // and that could impact the order in which exit actions are called
     actorRef.send({ type: 'EV1' });
     flushTracked();
@@ -1009,7 +1010,7 @@ describe('final states', () => {
 
     const actorRef = createActor(machine).start();
     flushTracked();
-    // it's important to send an event here that results in a transition as that computes new `state.configuration`
+    // it's important to send an event here that results in a transition as that computes new `state._nodes`
     // and that could impact the order in which exit actions are called
     actorRef.send({ type: 'EV' });
 
@@ -1026,5 +1027,218 @@ describe('final states', () => {
       'exit: a',
       'exit: __root__'
     ]);
+  });
+
+  it('should not complete a parallel root immediately when only some of its regions are in their final states (final state reached in a compound region)', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {
+              type: 'final'
+            }
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {
+              type: 'final'
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toBe('active');
+  });
+
+  it('should not complete a parallel root immediately when only some of its regions are in their final states (a direct final child state reached)', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        A: {
+          type: 'final'
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {},
+            B2: {
+              type: 'final'
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    expect(actorRef.getSnapshot().status).toBe('active');
+  });
+
+  it('should not resolve output of a final state if its parent is a parallel state', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      initial: 'A',
+      states: {
+        A: {
+          type: 'parallel',
+          states: {
+            B: {
+              type: 'final',
+              output: spy
+            },
+            C: {
+              initial: 'C1',
+              states: {
+                C1: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('should only call exit actions once when a child machine reaches its final state and sends an event to its parent that ends up stopping that child', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      initial: 'start',
+      exit: spy,
+      states: {
+        start: {
+          on: {
+            CANCEL: 'canceled'
+          }
+        },
+        canceled: {
+          type: 'final',
+          entry: sendParent({ type: 'CHILD_CANCELED' })
+        }
+      }
+    });
+    const parent = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            id: 'child',
+            src: child,
+            onDone: 'completed'
+          },
+          on: {
+            CHILD_CANCELED: 'canceled'
+          }
+        },
+        canceled: {},
+        completed: {}
+      }
+    });
+
+    const actorRef = createActor(parent).start();
+
+    actorRef.getSnapshot().children.child.send({
+      type: 'CANCEL'
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should deliver final outgoing events (from final entry action) to the parent before delivering the `xstate.done.actor.*` event', () => {
+    const child = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            CANCEL: 'canceled'
+          }
+        },
+        canceled: {
+          type: 'final',
+          entry: sendParent({ type: 'CHILD_CANCELED' })
+        }
+      }
+    });
+    const parent = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            id: 'child',
+            src: child,
+            onDone: 'completed'
+          },
+          on: {
+            CHILD_CANCELED: 'canceled'
+          }
+        },
+        canceled: {},
+        completed: {}
+      }
+    });
+
+    const actorRef = createActor(parent).start();
+
+    actorRef.getSnapshot().children.child.send({
+      type: 'CANCEL'
+    });
+
+    // if `xstate.done.actor.*` would be delivered first the value would be `completed`
+    expect(actorRef.getSnapshot().value).toBe('canceled');
+  });
+
+  it('should deliver final outgoing events (from root exit action) to the parent before delivering the `xstate.done.actor.*` event', () => {
+    const child = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            CANCEL: 'canceled'
+          }
+        },
+        canceled: {
+          type: 'final'
+        }
+      },
+      exit: sendParent({ type: 'CHILD_CANCELED' })
+    });
+    const parent = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            id: 'child',
+            src: child,
+            onDone: 'completed'
+          },
+          on: {
+            CHILD_CANCELED: 'canceled'
+          }
+        },
+        canceled: {},
+        completed: {}
+      }
+    });
+
+    const actorRef = createActor(parent).start();
+
+    actorRef.getSnapshot().children.child.send({
+      type: 'CANCEL'
+    });
+
+    // if `xstate.done.actor.*` would be delivered first the value would be `completed`
+    expect(actorRef.getSnapshot().value).toBe('canceled');
   });
 });

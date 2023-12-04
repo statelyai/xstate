@@ -3,7 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
 import { SimulatedClock } from '../src/SimulatedClock';
-import { AnyState, AnyStateMachine, createActor } from '../src/index.ts';
+import {
+  AnyMachineSnapshot,
+  AnyStateMachine,
+  createActor
+} from '../src/index.ts';
 import { toMachine, sanitizeStateId } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
@@ -295,7 +299,7 @@ const testGroups: Record<string, string[]> = {
     'test503.txml',
     'test504.txml',
     'test505.txml',
-    'test506.txml',
+    // 'test506.txml', // `reenter` semantics in v5 are different from SCXML type="internal"/"external" transitions, we respect `reenter` on all state types, not just on compound states
     // 'test509.txml', // Basic HTTP Event I/O processor not implemented
     // 'test510.txml', // Basic HTTP Event I/O processor not implemented
     // 'test518.txml', // Basic HTTP Event I/O processor not implemented
@@ -351,8 +355,8 @@ interface SCIONTest {
 
 async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    let nextState: AnyState;
-    let prevState: AnyState;
+    let nextState: AnyMachineSnapshot;
+    let prevState: AnyMachineSnapshot;
 
     const actor = createActor(machine, {
       logger: () => void 0
@@ -395,8 +399,8 @@ async function runTestToCompletion(
     clock: new SimulatedClock()
   });
 
-  let nextState: AnyState = service.getSnapshot();
-  let prevState: AnyState;
+  let nextState: AnyMachineSnapshot = service.getSnapshot();
+  let prevState: AnyMachineSnapshot;
   service.subscribe((state) => {
     prevState = nextState;
     nextState = state;
@@ -422,7 +426,7 @@ async function runTestToCompletion(
     }
     service.send({ type: event.name });
 
-    const stateIds = getStateNodes(machine.root, nextState).map(
+    const stateIds = getStateNodes(machine.root, nextState.value).map(
       (stateNode) => stateNode.id
     );
 

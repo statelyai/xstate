@@ -1,6 +1,6 @@
 import { of } from 'rxjs';
-import { AnyActorLogic, AnyActorRef, assign, createActor } from '../src';
-import { createMachine } from '../src/Machine';
+import { assign, createActor, spawnChild } from '../src';
+import { createMachine } from '../src/createMachine';
 import {
   fromCallback,
   fromObservable,
@@ -41,7 +41,7 @@ describe('input', () => {
     createActor(machine, { input: { greeting: 'hello' } }).start();
   });
 
-  it('should throw if input is expected but not provided', () => {
+  it('should error if input is expected but not provided', () => {
     const machine = createMachine({
       types: {} as {
         input: { greeting: string };
@@ -52,21 +52,9 @@ describe('input', () => {
       }
     });
 
-    expect(() => {
-      createActor(machine).start();
-    }).toThrowError(/Cannot read properties of undefined/);
-  });
+    const snapshot = createActor(machine).getSnapshot();
 
-  it('should not throw if input is not expected and not provided', () => {
-    const machine = createMachine({
-      context: () => {
-        return { count: 42 };
-      }
-    });
-
-    expect(() => {
-      createActor(machine).start();
-    }).not.toThrowError();
+    expect(snapshot.status).toBe('error');
   });
 
   it('should be a type error if input is not expected yet provided', () => {
@@ -265,175 +253,6 @@ describe('input', () => {
     expect(spy).toHaveBeenCalledWith(142);
   });
 
-  it('should provide input to the referenced actor defined together with static input', () => {
-    const spy = jest.fn();
-
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child'
-        }
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: 42
-          }
-        }
-      }
-    );
-
-    createActor(machine).start();
-
-    expect(spy).toHaveBeenCalledWith(42);
-  });
-
-  it('should provide input to the referenced actor defined together with dynamic input when invoking', () => {
-    const spy = jest.fn();
-
-    const machine = createMachine(
-      {
-        types: {} as {
-          context: {
-            count: number;
-          };
-          input: number;
-        },
-        context: ({ input }) => ({
-          count: input
-        }),
-        invoke: {
-          src: 'child'
-        }
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: ({ context }) => context.count + 100
-          }
-        }
-      }
-    );
-
-    createActor(machine, { input: 42 }).start();
-
-    expect(spy).toHaveBeenCalledWith(142);
-  });
-
-  it('should provide input to the referenced actor defined together with dynamic input when spawning', () => {
-    const spy = jest.fn();
-
-    const machine = createMachine(
-      {
-        types: {} as {
-          context: {
-            count: number;
-            childRef?: AnyActorRef;
-          };
-          input: number;
-          actors: {
-            src: 'child';
-            logic: AnyActorLogic;
-          };
-        },
-        context: ({ input }) => ({
-          count: input
-        }),
-        entry: assign(({ spawn }) => ({
-          childRef: spawn('child')
-        }))
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: ({ context }) => context.count + 100
-          }
-        }
-      }
-    );
-
-    createActor(machine, { input: 42 }).start();
-
-    expect(spy).toHaveBeenCalledWith(142);
-  });
-
-  it('should prioritize inline input over the one defined with referenced actor when invoking', () => {
-    const spy = jest.fn();
-
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child',
-          input: 100
-        }
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: 42
-          }
-        }
-      }
-    );
-
-    createActor(machine).start();
-
-    expect(spy).toHaveBeenCalledWith(100);
-  });
-
-  it('should prioritize inline input over the one defined with referenced actor when spawning', () => {
-    const spy = jest.fn();
-
-    const machine = createMachine(
-      {
-        entry: assign(({ spawn }) => ({
-          childRef: spawn('child', { input: 100 })
-        }))
-      },
-      {
-        actors: {
-          child: {
-            src: createMachine({
-              context: ({ input }) => {
-                spy(input);
-                return {};
-              }
-            }),
-            input: 42
-          }
-        }
-      }
-    );
-
-    createActor(machine).start();
-
-    expect(spy).toHaveBeenCalledWith(100);
-  });
-
   it('should call the input factory with self when invoking', () => {
     const spy = jest.fn();
 
@@ -454,16 +273,13 @@ describe('input', () => {
 
     const machine = createMachine(
       {
-        entry: assign(({ spawn }) => ({
-          childRef: spawn('child')
-        }))
+        entry: spawnChild('child', {
+          input: ({ self }: any) => spy(self)
+        })
       },
       {
         actors: {
-          child: {
-            src: createMachine({}),
-            input: ({ self }: any) => spy(self)
-          }
+          child: createMachine({})
         }
       }
     );

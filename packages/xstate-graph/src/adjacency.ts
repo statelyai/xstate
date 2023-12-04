@@ -1,5 +1,5 @@
 import {
-  ActorContext,
+  ActorScope,
   ActorLogic,
   ActorSystem,
   EventObject,
@@ -7,16 +7,15 @@ import {
 } from 'xstate';
 import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
-import { createMockActorContext } from './actorContext';
+import { createMockActorScope } from './actorScope';
 
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TPersisted = TSnapshot,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<TSnapshot, TEvent, TInput, TPersisted, TSystem>,
+  logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
   options: TraversalOptions<TSnapshot, TEvent>
 ): AdjacencyMap<TSnapshot, TEvent> {
   const { transition } = logic;
@@ -28,15 +27,15 @@ export function getAdjacencyMap<
     fromState: customFromState,
     stopCondition
   } = resolveTraversalOptions(logic, options);
-  const actorContext = createMockActorContext() as ActorContext<
+  const actorScope = createMockActorScope() as ActorScope<
     TSnapshot,
     TEvent,
     TSystem
   >;
   const fromState =
     customFromState ??
-    logic.getInitialState(
-      actorContext,
+    logic.getInitialSnapshot(
+      actorScope,
       // TODO: fix this
       undefined as TInput
     );
@@ -80,16 +79,20 @@ export function getAdjacencyMap<
       typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
-      const nextState = transition(state, nextEvent, actorContext);
+      const nextSnapshot = transition(state, nextEvent, actorScope);
 
-      if (!options.filter || options.filter(nextState, nextEvent)) {
+      if (!options.filter || options.filter(nextSnapshot, nextEvent)) {
         adj[serializedState].transitions[
           serializeEvent(nextEvent) as SerializedEvent
         ] = {
           event: nextEvent,
-          state: nextState
+          state: nextSnapshot
         };
-        queue.push({ nextState, event: nextEvent, prevState: state });
+        queue.push({
+          nextState: nextSnapshot,
+          event: nextEvent,
+          prevState: state
+        });
       }
     }
   }

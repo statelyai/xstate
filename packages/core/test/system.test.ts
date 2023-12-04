@@ -11,17 +11,20 @@ import {
   fromTransition,
   createActor,
   sendTo,
-  stop,
+  stopChild,
   Snapshot,
   EventObject,
-  ActorRefFrom
+  ActorRefFrom,
+  spawnChild,
+  AnyActorRef,
+  AnyStateMachine
 } from '../src/index.ts';
 
 describe('system', () => {
   it('should register an invoked actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
+        receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
       };
     }>;
 
@@ -63,7 +66,7 @@ describe('system', () => {
   it('should register a spawned actor', (done) => {
     type MySystem = ActorSystem<{
       actors: {
-        receiver: ActorRef<{ type: 'HELLO' }, Snapshot<unknown>>;
+        receiver: ActorRef<Snapshot<unknown>, { type: 'HELLO' }>;
       };
     }>;
 
@@ -71,7 +74,7 @@ describe('system', () => {
       types: {} as {
         context: {
           ref: CallbackActorRef<EventObject, unknown>;
-          machineRef?: ActorRefFrom<ReturnType<typeof createMachine>>;
+          machineRef?: ActorRefFrom<AnyStateMachine>;
         };
       },
       id: 'parent',
@@ -176,7 +179,7 @@ describe('system', () => {
       }),
       on: {
         toggle: {
-          actions: stop(({ context }) => context.ref)
+          actions: stopChild(({ context }) => context.ref)
         }
       }
     });
@@ -230,6 +233,45 @@ describe('system', () => {
         ],
       ]
     `);
+  });
+
+  it('should cleanup stopped actors', () => {
+    const machine = createMachine({
+      types: {
+        context: {} as {
+          ref: AnyActorRef;
+        }
+      },
+      context: ({ spawn }) => ({
+        ref: spawn(
+          fromPromise(() => Promise.resolve()),
+          {
+            systemId: 'test'
+          }
+        )
+      }),
+      on: {
+        stop: {
+          actions: stopChild(({ context }) => context.ref)
+        },
+        start: {
+          actions: spawnChild(
+            fromPromise(() => Promise.resolve()),
+            {
+              systemId: 'test'
+            }
+          )
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'stop' });
+
+    expect(() => {
+      actor.send({ type: 'start' });
+    }).not.toThrow();
   });
 
   it('should be accessible in inline custom actions', () => {
@@ -423,5 +465,74 @@ describe('system', () => {
     const actor = createActor(machine).start();
 
     expect(actor.system.get('test')).toBeDefined();
+  });
+
+  it('should gracefully handle re-registration of a `systemId` during a reentering transition', () => {
+    const spy = jest.fn();
+
+    let counter = 0;
+
+    const machine = createMachine({
+      initial: 'listening',
+      states: {
+        listening: {
+          invoke: {
+            systemId: 'listener',
+            src: fromCallback(({ receive }) => {
+              const localId = counter++;
+
+              receive((event) => {
+                spy(localId, event);
+              });
+
+              return () => {};
+            })
+          }
+        }
+      },
+      on: {
+        RESTART: {
+          target: '.listening'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'RESTART' });
+    actorRef.system.get('listener')!.send({ type: 'a' });
+
+    expect(spy.mock.calls).toEqual([
+      [
+        1,
+        {
+          type: 'a'
+        }
+      ]
+    ]);
+  });
+
+  it('should be able to send an event to an ancestor with a registered `systemId` from an initial entry action', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      entry: sendTo(({ system }) => system.get('myRoot'), {
+        type: 'EV'
+      })
+    });
+
+    const machine = createMachine({
+      invoke: {
+        src: child
+      },
+      on: {
+        EV: {
+          actions: spy
+        }
+      }
+    });
+    createActor(machine, { systemId: 'myRoot' }).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

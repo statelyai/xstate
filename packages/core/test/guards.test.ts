@@ -446,8 +446,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          custom: ({ context, event, guard }) => {
-            const { prop, compare, op } = guard.params;
+          custom: ({ context, event }, params) => {
+            const { prop, compare, op } = params;
             if (op === 'greaterThan') {
               return context[prop] + event.value > compare;
             }
@@ -471,7 +471,7 @@ describe('custom guards', () => {
     expect(failState.value).toEqual('inactive');
   });
 
-  it('should provide the guard in its object form even if it was configured as string', () => {
+  it('should provide the undefined params if a guard was configured using a string', () => {
     const spy = jest.fn();
 
     const machine = createMachine(
@@ -484,8 +484,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ guard }) => {
-            spy(guard);
+          myGuard: (_, params) => {
+            spy(params);
             return true;
           }
         }
@@ -495,9 +495,7 @@ describe('custom guards', () => {
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'FOO' });
 
-    expect(spy).toHaveBeenCalledWith({
-      type: 'myGuard'
-    });
+    expect(spy).toHaveBeenCalledWith(undefined);
   });
 
   it('should provide the guard with resolved params when they are dynamic', () => {
@@ -513,8 +511,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ guard }) => {
-            spy(guard);
+          myGuard: (_, params) => {
+            spy(params);
             return true;
           }
         }
@@ -525,10 +523,7 @@ describe('custom guards', () => {
     actorRef.send({ type: 'FOO' });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myGuard',
-      params: {
-        stuff: 100
-      }
+      stuff: 100
     });
   });
 
@@ -551,8 +546,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ guard }) => {
-            spy(guard);
+          myGuard: (_, params) => {
+            spy(params);
             return true;
           }
         }
@@ -563,10 +558,7 @@ describe('custom guards', () => {
     actorRef.send({ type: 'FOO' });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myGuard',
-      params: {
-        secret: 42
-      }
+      secret: 42
     });
   });
 
@@ -586,8 +578,8 @@ describe('custom guards', () => {
       },
       {
         guards: {
-          myGuard: ({ guard }) => {
-            spy(guard);
+          myGuard: (_, params) => {
+            spy(params);
             return true;
           }
         }
@@ -599,11 +591,214 @@ describe('custom guards', () => {
     actorRef.send({ type: 'FOO', secret: 77 });
 
     expect(spy).toHaveBeenCalledWith({
-      type: 'myGuard',
-      params: {
-        secret: 77
-      }
+      secret: 77
     });
+  });
+
+  it('should call a referenced `not` guard that embeds an inline function guard with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: {
+          counter: 0
+        },
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: not((_, params) => {
+            spy(params);
+            return true;
+          })
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call a string guard referenced by referenced `not` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: not('other')
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call an object guard referenced by referenced `not` with its own params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: not({
+            type: 'other',
+            params: 42
+          })
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(42);
+  });
+
+  it('should call an inline function guard embedded in referenced `and` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: () => true,
+          myGuard: and([
+            'other',
+            (_, params) => {
+              spy(params);
+              return true;
+            }
+          ])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call a string guard referenced by referenced `and` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: and(['other', (_, params) => true])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call an object guard referenced by referenced `and` with its own params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: and([
+            {
+              type: 'other',
+              params: 42
+            },
+            (_, params) => true
+          ])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(42);
   });
 });
 
@@ -891,8 +1086,8 @@ describe('not() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+          greaterThan10: (_, params) => {
+            return params.value > 10;
           }
         }
       }
@@ -1014,8 +1209,8 @@ describe('and() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+          greaterThan10: (_, params) => {
+            return params.value > 10;
           }
         }
       }
@@ -1142,8 +1337,8 @@ describe('or() guard', () => {
       },
       {
         guards: {
-          greaterThan10: ({ guard }) => {
-            return guard.params.value > 10;
+          greaterThan10: (_, params) => {
+            return params.value > 10;
           }
         }
       }

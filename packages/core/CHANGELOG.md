@@ -1,5 +1,2010 @@
 # xstate
 
+## 5.0.0
+
+### Major Changes
+
+- d3d6149c7: If context types are specified in the machine config, the `context` property will now be required:
+
+  ```ts
+  // ❌ TS error
+  createMachine({
+    types: {} as {
+      context: { count: number };
+    }
+    // Missing context property
+  });
+
+  // ✅ OK
+  createMachine({
+    types: {} as {
+      context: { count: number };
+    },
+    context: {
+      count: 0
+    }
+  });
+  ```
+
+- d3d6149c7: - The third argument of `machine.transition(state, event)` has been removed. The `context` should always be given as part of the `state`.
+
+  - There is a new method: `machine.microstep(snapshot, event)` which returns the resulting intermediate `MachineSnapshot` object that represents a single microstep being taken when transitioning from `snapshot` via the `event`. This is the `MachineSnapshot` that does not take into account transient transitions nor raised events, and is useful for debugging.
+  - The `state.events` property has been removed from the `State` object
+  - The `state.historyValue` property now more closely represents the original SCXML algorithm, and is a mapping of state node IDs to their historic descendent state nodes. This is used for resolving history states, and should be considered internal.
+  - The `stateNode.isTransient` property is removed from `StateNode`.
+  - The `.initial` property of a state node config object can now contain executable content (i.e., actions):
+
+  ```js
+  // ...
+  initial: {
+    target: 'someTarget',
+    actions: [/* initial actions */]
+  }
+  ```
+
+  - Assign actions (via `assign()`) will now be executed "in order", rather than automatically prioritized. They will be evaluated after previously defined actions are evaluated, and actions that read from `context` will have those intermediate values applied, rather than the final resolved value of all `assign()` actions taken, which was the previous behavior.
+
+  This shouldn't change the behavior for most state machines. To maintain the previous behavior, ensure that `assign()` actions are defined before any other actions.
+
+- d3d6149c7: An error will be thrown if an `initial` state key is not specified for compound state nodes. For example:
+
+  ```js
+  const lightMachine = createMachine({
+    id: 'light',
+    initial: 'green',
+    states: {
+      green: {},
+      yellow: {},
+      red: {
+        // Forgotten initial state:
+        // initial: 'walk',
+        states: {
+          walk: {},
+          wait: {}
+        }
+      }
+    }
+  });
+  ```
+
+  You will get the error:
+
+  ```
+  No initial state specified for state node "#light.red". Try adding { initial: "walk" } to the state config.
+  ```
+
+- d3d6149c7: IDs for delayed events are no longer derived from event types so this won't work automatically:
+
+  ```ts
+  entry: raise({ type: 'TIMER' }, { delay: 200 });
+  exit: cancel('TIMER');
+  ```
+
+  Please use explicit IDs:
+
+  ```ts
+  entry: raise({ type: 'TIMER' }, { delay: 200, id: 'myTimer' });
+  exit: cancel('myTimer');
+  ```
+
+- d3d6149c7: Removed `State#toStrings` method.
+- d3d6149c7: The machine's `context` is now restricted to an `Record<string, any>`. This was the most common usage, but now the typings prevent `context` from being anything but an object:
+
+  ```ts
+  const machine = createMachine({
+    // This will produce the TS error:
+    // "Type 'string' is not assignable to type 'object | undefined'"
+    context: 'some string'
+  });
+  ```
+
+  If `context` is `undefined`, it will now default to an empty object `{}`.
+
+- d3d6149c7: Actors are now always part of a "system", which is a collection of actors that can communicate with each other. Systems are implicitly created, and can be used to get and set references to any actor in the system via the `systemId` prop:
+
+  ```js
+  const machine = createMachine({
+    // ...
+    invoke: {
+      src: emailMachine,
+      // Registers `emailMachine` as `emailer` on the system
+      systemId: 'emailer'
+    }
+  });
+  ```
+
+  ```js
+  const machine = createMachine({
+    // ...
+    entry: assign({
+      emailer: (ctx, ev, { spawn }) =>
+        spawn(emailMachine, { systemId: 'emailer' })
+    })
+  });
+  ```
+
+  Any invoked/spawned actor that is part of a system will be able to reference that actor:
+
+  ```js
+  const anotherMachine = createMachine({
+    // ...
+    entry: sendTo(
+      (ctx, ev, { system }) => {
+        return system.get('emailer');
+      },
+      { type: 'SEND_EMAIL', subject: 'Hello', body: 'World' }
+    )
+  });
+  ```
+
+  Each top-level `createActor(...)` call creates a separate implicit system. In this example example, `actor1` and `actor2` are part of different systems and are unrelated:
+
+  ```js
+  // Implicit system
+  const actor1 = createActor(machine).start();
+
+  // Another implicit system
+  const actor2 = createActor(machine).start();
+  ```
+
+- d3d6149c7: `external` property on transitions has been renamed to `reenter`
+- d3d6149c7: The `interpreter.onStop(...)` method has been removed. Use an observer instead via `actorRef.subscribe({ complete() { ... } })` instead.
+- d3d6149c7: Removed `MachineSnapshot['nextEvents']`.
+- d3d6149c7: Renamed `machine.withConfig(...)` to `machine.provide(...)`.
+- d3d6149c7: Removed third parameter (context) from Machine's transition method. If you want to transition with a particular context value you should create appropriate `MachineSnapshot` using `machine.resolveState`. So instead of this - `machine.transition('green', { type: 'TIMER' }, { elapsed: 100 })`, you should do this - `machine.transition(machine.resolveState({ value: 'green', context: { elapsed: 100 } }), { type: 'TIMER' })`.
+- d3d6149c7: Sending a string event to `actorRef.send('some string')` will now throw a proper error message.
+- d3d6149c7: The `self` actor reference is now available in all action metas. This makes it easier to reference the "self" `ActorRef` so that actions such as `sendTo` can include it in the event payload:
+
+  ```ts
+  // Sender
+  actions: sendTo('somewhere', (ctx, ev, { self }) => ({
+    type: 'EVENT',
+    ref: self
+  })),
+
+  // ...
+
+  // Responder
+  actions: sendTo((ctx, ev) => ev.ref, ...)
+  ```
+
+- d3d6149c7: `isState`/`isStateConfig` were replaced by `isMachineSnapshot`. Similarly, `AnyState` type was deprecated and it's replaced by `AnyMachineSnapshot` type.
+- d3d6149c7: All actor snapshots now have a consistent, predictable shape containing these common properties:
+
+  - `status`: `'active' | 'done' | 'error' | 'stopped'`
+  - `output`: The output data of the actor when it has reached `status: 'done'`
+  - `error`: The error thrown by the actor when it has reached `status: 'error'`
+  - `context`: The context of the actor
+
+  This makes it easier to work with actors in a consistent way, and to inspect their snapshots.
+
+  ```ts
+  const promiseActor = fromPromise(async () => {
+    return 42;
+  });
+
+  // Previously number | undefined
+  // Now a snapshot object with { status, output, error, context }
+  const promiseActorSnapshot = promiseActor.getSnapshot();
+
+  if (promiseActorSnapshot.status === 'done') {
+    console.log(promiseActorSnapshot.output); // 42
+  }
+  ```
+
+- d3d6149c7: Restoring persisted state is now done by passing the state into the `snapshot: ...` property of the `createActor` options argument:
+
+  ```diff
+  -interpret(machine).start(state);
+  +createActor(machine, { snapshot }).start();
+  ```
+
+  The persisted snapshot is obtained from an actor by calling `actor.getPersistedSnapshot()`:
+
+  ```ts
+  const actor = createActor(machine).start();
+
+  const persistedSnapshot = actor.getPersistedSnapshot();
+
+  // ...
+
+  const restoredActor = createActor(machine, {
+    snapshot: persistedSnapshot
+  }).start();
+  ```
+
+- d3d6149c7: - The `execute` option for an interpreted service has been removed. If you don't want to execute actions, it's recommended that you don't hardcode implementation details into the base `machine` that will be interpreted, and extend the machine's `options.actions` instead. By default, the interpreter will execute all actions according to SCXML semantics (immediately upon transition).
+
+  - Dev tools integration has been simplified, and Redux dev tools support is no longer the default. It can be included from `xstate/devTools/redux`:
+
+  ```js
+  import { createActor } from 'xstate';
+  import { createReduxDevTools } from 'xstate/devTools/redux';
+
+  const service = createActor(someMachine, {
+    devTools: createReduxDevTools({
+      // Redux Dev Tools options
+    })
+  });
+  ```
+
+  By default, dev tools are attached to the global `window.__xstate__` object:
+
+  ```js
+  const service = createActor(someMachine, {
+    devTools: true // attaches via window.__xstate__.register(service)
+  });
+  ```
+
+  And creating your own custom dev tools adapter is a function that takes in the `actorRef`:
+
+  ```js
+  const myCustomDevTools = (actorRef) => {
+    console.log('Got a actorRef!');
+
+    actorRef.subscribe((state) => {
+      // ...
+    });
+  };
+
+  const actorRef = createActor(someMachine, {
+    devTools: myCustomDevTools
+  });
+  ```
+
+  - These handlers have been removed, as they are redundant and can all be accomplished with `.onTransition(...)` and/or `.subscribe(...)`:
+
+    - `actorRef.onEvent()`
+    - `actorRef.onSend()`
+    - `actorRef.onChange()`
+
+  - The `actorRef.send(...)` method no longer returns the next state. It is a `void` function (fire-and-forget).
+  - The `actorRef.sender(...)` method has been removed as redundant. Use `actorRef.send(...)` instead.
+
+- d3d6149c7: The output data on final states is now specified as `.output` instead of `.data`:
+
+  ```diff
+  const machine = createMachine({
+    // ...
+    states: {
+      // ...
+      success: {
+  -     data: { message: 'Success!' }
+  +     output: { message: 'Success!' }
+      }
+    }
+  })
+  ```
+
+- d3d6149c7: Support for getters as a transition target (instead of referencing state nodes by ID or relative key) has been removed.
+
+  The `Machine()` and `createMachine()` factory functions no longer support passing in `context` as a third argument.
+
+  The `context` property in the machine configuration no longer accepts a function for determining context (which was introduced in 4.7). This might change as the API becomes finalized.
+
+  The `activities` property was removed from `State` objects, as activities are now part of `invoke` declarations.
+
+  The state nodes will not show the machine's `version` on them - the `version` property is only available on the root machine node.
+
+- d3d6149c7: The `in: ...` property for transitions is removed and replaced with guards. It is recommended to use `stateIn()` and `not(stateIn())` guard creators instead:
+
+  ```diff
+  + import { stateIn } from 'xstate/guards';
+
+  // ...
+  on: {
+    SOME_EVENT: {
+      target: 'somewhere',
+  -   in: '#someState'
+  +   guard: stateIn('#someState')
+    }
+  }
+  // ...
+  ```
+
+- d3d6149c7: Removed `Actor['status']` from publicly available properties.
+- d3d6149c7: All builtin action creators (`assign`, `sendTo`, etc) are now returning _functions_. They exact shape of those is considered an implementation detail of XState and users are meant to only pass around the returned values.
+- d3d6149c7: Autoforwarding events is no longer supported and the `autoForward` property has been removed.
+
+  Instead of autoforwarding, events should be explicitly sent to actors:
+
+  ```diff
+  invoke: {
+    id: 'child',
+    src: 'someSrc',
+  - autoForward: true
+  },
+  // ...
+  on: {
+    // ...
+  + EVENT_TO_FORWARD: {
+  +   actions: sendTo('child', (_, event) => event)
+  + }
+  }
+  ```
+
+- d3d6149c7: The machine `.schema` property is now `.types`:
+
+  ```ts
+  const machine = createMachine({
+    // schema: { ... }
+    types: {} as {
+      context: { ... };
+      events: { ... };
+      // ...
+    }
+  });
+  ```
+
+  And the `.tsTypes` property is now `.types.typegen`:
+
+  ```ts
+  const machine = createMachine({
+    // tsTypes: { ... }
+    types: {} as {
+      typegen: {};
+      context: { ... };
+      events: { ... };
+      // ...
+    }
+  });
+  ```
+
+- d3d6149c7: Returning promises when creating a callback actor doesn't work anymore. Only cleanup functions can be returned now (or `undefined`).
+- d3d6149c7: There is now support for higher-level guards, which are guards that can compose other guards:
+
+  - `and([guard1, guard2, /* ... */])` returns `true` if _all_ guards evaluate to truthy, otherwise `false`
+  - `or([guard1, guard2, /* ... */])` returns `true` if _any_ guard evaluates to truthy, otherwise `false`
+  - `not(guard1)` returns `true` if a single guard evaluates to `false`, otherwise `true`
+
+  ```js
+  import { and, or, not } from 'xstate/guards';
+
+  const someMachine = createMachine({
+    // ...
+    on: {
+      EVENT: {
+        target: 'somewhere',
+        guard: and([
+          'stringGuard',
+          or([{ type: 'anotherGuard' }, not(() => false)])
+        ])
+      }
+    }
+  });
+  ```
+
+- d3d6149c7: The `.send(...)` method on `actorRef.send(...)` now requires the first argument (the event to send) to be an _object_; that is, either:
+
+  - an event object (e.g. `{ type: 'someEvent' }`)
+  - an SCXML event object.
+
+  The second argument (payload) is no longer supported, and should instead be included within the object:
+
+  ```diff
+  -actorRef.send('SOME_EVENT')
+  +actorRef.send({ type: 'SOME_EVENT' })
+
+  -actorRef.send('EVENT', { some: 'payload' })
+  +actorRef.send({ type: 'EVENT', some: 'payload' })
+  ```
+
+- d3d6149c7: Actions and guards that follow eventless transitions will now receive the event that triggered the transition instead of a "null" event (`{ type: '' }`), which no longer exists:
+
+  ```js
+  // ...
+  states: {
+    a: {
+      on: {
+        SOME_EVENT: 'b'
+      }
+    },
+    b: {
+      always: 'c'
+    },
+    c: {
+      entry: [({ event }) => {
+        // event.type is now "SOME_EVENT", not ""
+      }]
+    }
+  }
+  // ...
+  ```
+
+- d3d6149c7: You can now add a `systemId` to spawned actors to reference them anywhere in the system.
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    context: ({ spawn }) => ({
+      actorRef: spawn(
+        createMachine({
+          // ...
+        }),
+        { systemId: 'actorRef' }
+      )
+    })
+  });
+  ```
+
+- d3d6149c7: Reading the initial state from an actor via `actorRef.initialState` is removed. Use `actorRef.getSnapshot()` instead.
+- d3d6149c7: `machine.initialState` has been removed, you can use `machine.getInitialState(...)` instead
+- d3d6149c7: Target resolution improvements: targeting sibling nodes from the root is no longer valid, since the root node has no siblings:
+
+  ```diff
+  createMachine({
+    id: 'direction',
+    initial: 'left',
+    states: {
+      left: {},
+      right: {}
+    },
+    on: {
+  -   LEFT_CLICK: 'left',
+  +   LEFT_CLICK: '.left'
+    }
+  });
+  ```
+
+- d3d6149c7: The `createActor(...)` function now accepts `input` in the second argument, which passes input data in the `"xstate.init"` event:
+
+  ```js
+  const greetMachine = createMachine({
+    context: ({ input }) => ({
+      greeting: `Hello ${input.name}!`
+    }),
+    entry: (_, event) => {
+      event.type; // 'xstate.init'
+      event.input; // { name: 'David' }
+    }
+    // ...
+  });
+
+  const actor = createActor(greetMachine, {
+    // Pass input data to the machine
+    input: { name: 'David' }
+  }).start();
+  ```
+
+- d3d6149c7: Invoked actors can now be deeply persisted and restored. When the persisted state of an actor is obtained via `actorRef.getPersistedSnapshot()`, the states of all invoked actors are also persisted, if possible. This state can be restored by passing the persisted state into the `snapshot: ...` property of the `createActor` options argument:
+
+  ```diff
+  -createActor(machine).start(state);
+  +createActor(machine, { snapshot }).start();
+  ```
+
+- d3d6149c7: Atomic and parallel states should no longer be reentered when the transition target doesn't escape them. You can get the reentering behavior by configuring `reenter: true` for the transition.
+- d3d6149c7: Restored state will no longer contain actions, since they are assumed to have already been executed. Actions will not be replayed.
+
+  If you want to replay actions when restoring state, it is recommended to use an event sourcing approach.
+
+- d3d6149c7: The `in: '...'` transition property can now be replaced with `stateIn(...)` and `stateNotIn(...)` guards, imported from `xstate/guards`:
+
+  ```diff
+  import {
+    createMachine,
+  + stateIn
+  } from 'xstate/guards';
+
+  const machine = createMachine({
+    // ...
+    on: {
+      SOME_EVENT: {
+        target: 'anotherState',
+  -     in: '#someState',
+  +     cond: stateIn('#someState')
+      }
+    }
+  })
+  ```
+
+  The `stateIn(...)` and `stateNotIn(...)` guards also can be used the same way as `snapshot.matches(...)`:
+
+  ```js
+  // ...
+  SOME_EVENT: {
+    target: 'anotherState',
+    cond: stateNotIn({ red: 'stop' })
+  }
+  ```
+
+  ***
+
+  An error will now be thrown if the `assign(...)` action is executed when the `context` is `undefined`. Previously, there was only a warning.
+
+  Error events raised by the machine will be _thrown_ if there are no error listeners registered on an actor via `actorRef.subscribe({ error: () => {} })`.
+
+- d3d6149c7: Action/actor/delay/guard arguments are now consolidated into a single object argument. This is a breaking change for all of those things that are called with arguments.
+
+  ```diff
+  assign({
+  - count: (context, event) => {
+  + count: ({ context, event }) => {
+      return context.count + event.value;
+    }
+  })
+  ```
+
+- d3d6149c7: Eventless transitions must now be specified in the `always: { ... }` object and not in the `on: { ... }` object:
+
+  ```diff
+  someState: {
+    on: {
+      // Will no longer work
+  -   '': { target: 'anotherState' }
+    },
+  + always: { target: 'anotherState' }
+  }
+  ```
+
+- d3d6149c7: Removed the ability to pass a string value directly to `invoke`. To migrate you should use the object version of `invoke`:
+
+  ```diff
+  -invoke: 'myActor'
+  +invoke: { src: 'myActor' }
+  ```
+
+- d3d6149c7: `machine.transition(...)` and `machine.getInitialState(...)` require now an `actorScope` argument
+- d3d6149c7: All events automatically generated by XState will now be prefixed by `xstate.`. Naming scheme changed slightly as well, for example `done.invoke.*` events became `xstate.done.actor.*` events.
+- d3d6149c7: The `escalate()` action is removed. Just throw an error normally.
+- d3d6149c7: The `actor.onTransition(...)` method has been removed in favor of `.subscribe(...)`
+
+  ```diff
+   const actor = interpret(machine)
+  -  .onTransition(...)
+  -  .start();
+  +actor.subscribe(...);
+  +actor.start();
+  ```
+
+- d3d6149c7: Observing an actor via `actorRef.subscribe(...)` no longer immediately receives the current snapshot. Instead, the current snapshot can be read from `actorRef.getSnapshot()`, and observers will receive snapshots only when a transition in the actor occurs.
+
+  ```ts
+  const actorRef = createActor(machine);
+  actorRef.start();
+
+  // Late subscription; will not receive the current snapshot
+  actorRef.subscribe((state) => {
+    // Only called when the actor transitions
+    console.log(state);
+  });
+
+  // Instead, current snapshot can be read at any time
+  console.log(actorRef.getSnapshot());
+  ```
+
+- d3d6149c7: Actors can no longer be stopped directly by calling ~~`actor.stop()`~~. They can only be stopped from its parent internally (which might happen when you use `stop` action or automatically when a machine leaves the invoking state). The root actor can still be stopped since it has no parent.
+- d3d6149c7: The `matchState(...)` helper function is removed.
+- d3d6149c7: Parameterized actions now require a `params` property:
+
+  ```diff
+  // ...
+  entry: [
+    {
+      type: 'greet',
+  -   message: 'Hello'
+  +   params: { message: 'Hello' }
+    }
+  ]
+  // ...
+  ```
+
+- d3d6149c7: The history resolution algorithm has been refactored to closely match the SCXML algorithm, which changes the shape of `state.historyValue` to map history state node IDs to their most recently resolved target state nodes.
+- d3d6149c7: Custom action objects and guard objects are now expected to put extra parameters on the `params` property:
+
+  ```diff
+  actions: {
+    type: 'sendMessage',
+  - message: 'hello'
+  + params: {
+  +   message: 'hello'
+  + }
+  }
+  guard: {
+    type: 'exists',
+  - prop: 'user'
+  + params: {
+  +   prop: 'user'
+  + }
+  }
+  ```
+
+- d3d6149c7: The `strict: true` option for machine config has been removed.
+- d3d6149c7: Removed the ability to define delayed transitions using an array. Only object variant is supported now:
+
+  ```ts
+  createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        after: {
+          10000: 'b',
+          noon: 'c'
+        }
+      }
+      // ...
+    }
+  });
+  ```
+
+- d3d6149c7: Removed `State['transitions']`.
+- d3d6149c7: Removed the deprecated `send` action creator. Please use `sendTo` when sending events to other actors or `raise` when sending to itself.
+- d3d6149c7: The `createEmptyActor()` function has been added to make it easier to create actors that do nothing ("empty" actors). This is useful for testing, or for some integrations such as `useActor(actor)` in `@xstate/react` that require an actor:
+
+  ```jsx
+  import { createEmptyActor } from 'xstate';
+
+  const SomeComponent = (props) => {
+    // props.actor may be undefined
+    const [state, send] = useActor(props.actor ?? createEmptyActor());
+
+    // ...
+  };
+  ```
+
+- d3d6149c7: `machine.transition` no longer accepts state values. You have to resolve the state value to a `State` before passing it to `machine.transition`
+- d3d6149c7: Removed `deferEvents` from the actor options.
+- d3d6149c7: The `state.history` property has been removed. This does not affect the machine "history" mechanism.
+
+  Storing previous state should now be done explicitly:
+
+  ```js
+  let previousSnapshot;
+
+  const actorRef = createActor(someMachine);
+  actorRef.subscribe((snapshot) => {
+    // previousSnapshot represents the last snapshot here
+
+    // ...
+
+    // update the previous snapshot at the end
+    previousSnapshot = snapshot;
+  });
+  actorRef.start();
+  ```
+
+- d3d6149c7: All errors caught while executing the actor should now consistently include the error in its `snapshot.error` and should be reported to the closest `error` listener.
+- d3d6149c7: You can now import the following from `xstate`:
+
+  ```js
+  import {
+    // actions
+    // sendTo (removed)
+    pure,
+
+    // interpret helpers
+    waitFor,
+
+    // actor functions
+    fromPromise,
+    fromObservable,
+    fromCallback,
+    fromEventObservable,
+    fromTransition,
+
+    // guard functions
+    stateIn,
+    not,
+    and,
+    or
+  }
+  ```
+
+  The `send` action was removed from exports; use `sendTo(...)` or `raise(...)` instead.
+
+- d3d6149c7: BREAKING: The `cond` property in transition config objects has been renamed to `guard`. This unifies terminology for guarded transitions and guard predicates (previously called "cond", or "conditional", predicates):
+
+  ```diff
+  someState: {
+    on: {
+      EVENT: {
+        target: 'anotherState',
+  -     cond: 'isValid'
+  +     guard: 'isValid'
+      }
+    }
+  }
+  ```
+
+- d3d6149c7: The `Machine()` function has been removed. Use the `createMachine()` function instead.
+
+  ```diff
+  -import { Machine } from 'xstate';
+  +import { createMachine } from 'xstate';
+
+  -const machine = Machine({
+  +const machine = createMachine({
+    // ...
+  });
+  ```
+
+- d3d6149c7: The `interpreter.onError(...)` method has been removed. Use `interpreter.subscribe({ error(err) => { ... } })` instead.
+- d3d6149c7: Actions are no longer called with `state`
+- d3d6149c7: `spawn` is no longer importable from `xstate`. Instead you get it in `assign` like this:
+
+  ```js
+  assign((ctx, ev, { spawn }) => {
+    return {
+      ...ctx,
+      actorRef: spawn(promiseActor)
+    };
+  });
+  ```
+
+  In addition to that, you can now `spawn` actors defined in your implementations object, in the same way that you were already able to do that with `invoke`. To do that just reference the defined actor like this:
+
+  ```js
+  spawn('promiseActor');
+  ```
+
+- d3d6149c7: `State` class has been removed and replaced by `MachineSnapshot` object. They largely have the same properties and methods. On of the main noticeable results of this change is that you can no longer check `state instanceof State`.
+- d3d6149c7: Guard arguments are now consolidated into a single object argument. This is a breaking change for all guards that are called with arguments.
+
+  ```diff
+  - guard: (context, event) => {
+  + guard: ({ context, event }) => {
+    return context.count + event.value > 10;
+  }
+  ```
+
+- d3d6149c7: The `service.batch(events)` method is no longer available.
+- d3d6149c7: The `StateSchema` type has been removed from all generic type signatures.
+- d3d6149c7: Removed `State['_internalQueue']`.
+- d3d6149c7: `EmittedFrom` type helper has been renamed to `SnapshotFrom`.
+- d3d6149c7: The `fromReducer(...)` function is now called `fromTransition(...)`.
+- d3d6149c7: The `pure()` and `choose()` action creators have been removed, in favor of the more flexible `enqueueActions()` action creator:
+
+  ```ts
+  entry: [
+    // pure(() => {
+    //   return [
+    //     'action1',
+    //     'action2'
+    //   ]
+    // }),
+    enqueueActions(({ enqueue }) => {
+      enqueue('action1');
+      enqueue('action2');
+    })
+  ];
+  ```
+
+  ```ts
+  entry: [
+    // choose([
+    //   {
+    //     guard: 'someGuard',
+    //     actions: ['action1', 'action2']
+    //   }
+    // ]),
+    enqueueActions(({ enqueue, check }) => {
+      if (check('someGuard')) {
+        enqueue('action1');
+        enqueue('action2');
+      }
+    })
+  ];
+  ```
+
+- d3d6149c7: Changed behavior of `always` transitions. Previously they were always selected after selecting any transition (including the `always` transitions). Because of that it was relatively easy to create an infinite loop using them.
+
+  Now they are no longer selected if the preceeding transition doesn't change the state of a machine.
+
+- d3d6149c7: **Breaking:** The `state.children` property is now a mapping of invoked actor IDs to their `ActorRef` instances.
+
+  **Breaking:** The way that you interface with invoked/spawned actors is now through `ActorRef` instances. An `ActorRef` is an opaque reference to an `Actor`, which should be never referenced directly.
+
+  **Breaking:** The `origin` of an `SCXML.Event` is no longer a string, but an `ActorRef` instance.
+
+- d3d6149c7: The `services` option passed as the second argument to `createMachine(config, options)` is renamed to `actors`. Each value in `actors` should be a function that takes in `context` and `event` and returns a [behavior](TODO: link) for an actor. The provided behavior creators are:
+
+  - `fromMachine`
+  - `fromPromise`
+  - `fromCallback`
+  - `fromObservable`
+  - `fromEventObservable`
+
+  ```diff
+  import { createMachine } from 'xstate';
+  +import { fromPromise } from 'xstate/actors';
+
+  const machine = createMachine(
+    {
+      // ...
+      invoke: {
+        src: 'fetchFromAPI'
+      }
+    },
+    {
+  -   services: {
+  +   actors: {
+  -     fetchFromAPI: (context, event) => {
+  +     fetchFromAPI: (context, event) => fromPromise(() => {
+          // ... (return a promise)
+        })
+      }
+    }
+  );
+  ```
+
+- d3d6149c7: The error event (`type: 'xstate.error.*'`) now has the error data on the `event.error` instead of `event.data`:
+
+  ```diff
+  // ...
+  invoke: {
+    src: 'someSrc',
+    onError: {
+      actions: ({ event }) => {
+  -     event.data;
+  +     event.error;
+      }
+    }
+  }
+  ```
+
+- d3d6149c7: `_event` has been removed from all APIs and types. It was a wrapper structure containing the `event` that users were using directly.
+- d3d6149c7: Actor types can now be specified in the `.types` property of `createMachine`:
+
+  ```ts
+  const fetcher = fromPromise(() => fetchUser());
+
+  const machine = createMachine({
+    types: {} as {
+      actors: {
+        src: 'fetchData'; // src name (inline behaviors ideally inferred)
+        id: 'fetch1' | 'fetch2'; // possible ids (optional)
+        logic: typeof fetcher;
+      };
+    },
+    invoke: {
+      src: 'fetchData', // strongly typed
+      id: 'fetch2', // strongly typed
+      onDone: {
+        actions: ({ event }) => {
+          event.output; // strongly typed as { result: string }
+        }
+      },
+      input: { foo: 'hello' } // strongly typed
+    }
+  });
+  ```
+
+- d3d6149c7: `Interpreter['off']` method has been removed.
+- d3d6149c7: `.nextState` method has been removed from the `Interpreter`. `State#can` can be used to check if sending a particular event would lead to a state change.
+- d3d6149c7: Support for compound string state values has been dropped from Machine's transition method. It's no longer allowed to call transition like this - `machine.transition('a.b', { type: 'NEXT' })`, instead it's required to use "state value" representation like this - `machine.transition({ a: 'b' }, { type: 'NEXT' })`.
+- d3d6149c7: - Breaking: activities removed (can be invoked)
+
+  Since activities can be considered invoked services, they can be implemented as such. Activities are services that do not send any events back to the parent machine, nor do they receive any events, other than a "stop" signal when the parent changes to a state where the activity is no longer active. This is modeled the same way as a callback service is modeled.
+
+- d3d6149c7: Removed previously deprecated config properties: `onEntry`, `onExit`, `parallel` and `forward`.
+- d3d6149c7: The `state._sessionid` property has been removed. It should be obtained directly from the actor: `actor.sessionId`.
+- d3d6149c7: The `system` can now be accessed in all available actor logic creator functions:
+
+  ```ts
+  fromPromise(({ system }) => { ... });
+
+  fromTransition((state, event, { system }) => { ... });
+
+  fromObservable(({ system }) => { ... });
+
+  fromEventObservable(({ system }) => { ... });
+
+  fromCallback((sendBack, receive, { system }) => { ... });
+  ```
+
+- d3d6149c7: Typings for `Typestate` have been removed. The reason for this is that types for typestates needed to be manually specified, which is unsound because it is possible to specify _impossible_ typestates; i.e., typings for a state's `value` and `context` that are impossible to achieve.
+- d3d6149c7: The `actor.onDone(...)` method is removed. Use `actor.subscribe({ complete() {... } })` instead.
+
+  ```diff
+  - actor.onDone(() => { ... })
+  + actor.subscribe({
+  +  complete() {
+  +    // ...
+  +  }
+  +})
+  ```
+
+- d3d6149c7: The `createModel()` function has been removed in favor of relying on strong types in the machine configuration.
+- d3d6149c7: `sync` option has been removed from `invoke` and `spawn`.
+- d3d6149c7: Removed `State['event']`.
+- d3d6149c7: The final `output` of a state machine is now specified directly in the `output` property of the machine config:
+
+  ```ts
+  const machine = createMachine({
+    initial: 'started',
+    states: {
+      started: {
+        // ...
+      },
+      finished: {
+        type: 'final'
+        // moved to the top level
+        //
+        // output: {
+        //   status: 200
+        // }
+      }
+    },
+    // This will be the final output of the machine
+    // present on `snapshot.output` and in the done events received by the parent
+    // when the machine reaches the top-level final state ("finished")
+    output: {
+      status: 200
+    }
+  });
+  ```
+
+- d3d6149c7: Invoked/spawned actors are no longer available on `service.children` - they can only be accessed from `state.children`.
+- d3d6149c7: Removed `mapState` utility function.
+- d3d6149c7: The `interpret(...)` function has been deprecated and renamed to `createActor(...)`:
+
+  ```diff
+  -import { interpret } from 'xstate';
+  +import { createActor } from 'xstate';
+
+  -const actor = interpret(machine);
+  +const actor = createActor(machine);
+  ```
+
+- d3d6149c7: Prefix wildcard event descriptors are now supported. These are event descriptors ending with `".*"` which will match all events that start with the prefix (the partial event type before `".*"`):
+
+  ```js
+  // ...
+  on: {
+    'mouse.click': {/* ... */},
+    // Matches events such as:
+    // "pointer.move"
+    // "pointer.move.out"
+    // "pointer"
+    'pointer.*': {/* ... */}
+  }
+  // ...
+  ```
+
+  Note: wildcards are only valid as the entire event type (`"*"`) or at the end of an event type, preceded by a period (`".*"`):
+
+  - ✅ `"*"`
+  - ✅ `"event.*"`
+  - ✅ `"event.something.*"`
+  - ❌ ~`"event.*.something"`~
+  - ❌ ~`"event*"`~
+  - ❌ ~`"event*.some*thing"`~
+  - ❌ ~`"*.something"`~
+
+- d3d6149c7: The interface for guard objects has changed. Notably, all guard parameters should be placed in the `params` property of the guard object:
+
+  Example taken from [Custom Guards](https://xstate.js.org/docs/guides/guards.html#custom-guards):
+
+  ```diff
+  -cond: {
+  +guard: {
+  - name: 'searchValid', // `name` property no longer used
+    type: 'searchValid',
+  - minQueryLength: 3
+  + params: {
+  +   minQueryLength: 3
+  + }
+  }
+  ```
+
+- d3d6149c7: All transitions became internal by default. The style of the `target` pattern (`.child`, `sibling`, `#id`) has now no effect on the transition type.
+
+  Internal transitions don't reenter their source state when the target lies within it. You can still create external transitions (ones that reenter the source state under the mentioned circumstances) by explicitly setting `external: true` on the given transition.
+
+- d3d6149c7: `exit` actions of all states are no longer called when the machine gets stopped externally. Note that they are still called when the machine reaches its final state.
+- d3d6149c7: `Machine#transition` no longer handles invalid state values such as values containing non-existent state regions. If you rehydrate your machines and change machine's schema then you should migrate your data accordingly on your own.
+- d3d6149c7: Removed support for `service.send(type, payload)`. We are using `send` API at multiple places and this was the only one supporting this shape of parameters. Additionally, it had not strict TS types and using it was unsafe (type-wise).
+- d3d6149c7: Spawned actors that have a referenced source (not inline) can be deeply persisted and restored:
+
+  ```ts
+  const machine = createMachine({
+    context: ({ spawn }) => ({
+      // This will be persisted
+      ref: spawn('reducer', { id: 'child' })
+
+      // This cannot be persisted:
+      // ref: spawn(fromTransition((s) => s, { count: 42 }), { id: 'child' })
+    })
+  }).provide({
+    actors: {
+      reducer: fromTransition((s) => s, { count: 42 })
+    }
+  });
+  ```
+
+- d3d6149c7: Removed `State['actions']`. Actions are considered to be a side-effect of a transition, things that happen in the moment and are not meant to be persisted beyond that.
+
+### Minor Changes
+
+- d3d6149c7: `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+- d3d6149c7: Merge `sendBack` and `receive` with other properties of `fromCallback` logic creator.
+
+  ```ts
+  const callbackLogic = fromCallback(({ input, system, self, sendBack, receive }) => { ... });
+  ```
+
+- d3d6149c7: The `state` option of `createActor(...)` has been renamed to `snapshot`:
+
+  ```diff
+  createActor(machine, {
+  - state: someState
+  + snapshot: someState
+  })
+  ```
+
+  Likewise, the `.getPersistedState()` method has been renamed to `.getPersistedSnapshot()`:
+
+  ```diff
+  -actor.getPersistedState()
+  +actor.getPersistedSnapshot()
+  ```
+
+- d3d6149c7: `spawn` can now benefit from the actor types. Its arguments are strongly-typed based on them.
+- d3d6149c7: Significant improvements to error handling have been made:
+
+  - Actors will no longer crash when an error is thrown in an observer (`actor.subscribe(observer)`).
+  - Errors will be handled by observer's `.error()` handler:
+    ```ts
+    actor.subscribe({
+      error: (error) => {
+        // handle error
+      }
+    });
+    ```
+  - If an observer does not have an error handler, the error will be thrown in a clear stack so bug tracking services can collect it.
+
+- d3d6149c7: You can now `spawnChild(...)` actors directly outside of `assign(...)` action creators:
+
+  ```ts
+  import { createMachine, spawnChild } from 'xstate';
+
+  const listenerMachine = createMachine({
+    // ...
+  });
+
+  const parentMachine = createMachine({
+    // ...
+    on: {
+      'listener.create': {
+        entry: spawnChild(listenerMachine, { id: 'listener' })
+      }
+    }
+    // ...
+  });
+
+  const actor = createActor(parentMachine).start();
+
+  actor.send({ type: 'listener.create' });
+
+  actor.getSnapshot().children.listener; // ActorRefFrom<typeof listenerMachine>
+  ```
+
+- d3d6149c7: `onSnapshot` is now available for invoke configs. You can specify a transition there to be taken when a snapshot of an invoked actor gets updated. It works similarly to `onDone`/`onError`.
+- d3d6149c7: Partial event descriptors are now type-safe:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      events:
+        | { type: 'mouse.click.up'; direction: 'up' }
+        | { type: 'mouse.click.down'; direction: 'down' }
+        | { type: 'mouse.move' }
+        | { type: 'keypress' };
+    },
+    on: {
+      'mouse.click.*': {
+        actions: ({ event }) => {
+          event.type;
+          // 'mouse.click.up' | 'mouse.click.down'
+          event.direction;
+          // 'up' | 'down'
+        }
+      },
+      'mouse.*': {
+        actions: ({ event }) => {
+          event.type;
+          // 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
+        }
+      }
+    }
+  });
+  ```
+
+- d3d6149c7: `State.from`, `StateMachine#createState` and `StateMachine#resolveStateValue` were removed. They largely served the same purpose as `StateMachine#resolveState` and this is the method that is still available and can be used instead of them.
+- d3d6149c7: Params of `actions` and `guards` can now be resolved dynamically
+
+  ```ts
+  createMachine({
+    types: {} as {
+      actions:
+        | { type: 'greet'; params: { surname: string } }
+        | { type: 'poke' };
+    },
+    entry: {
+      type: 'greet',
+      params: ({ context }) => ({
+        surname: 'Doe'
+      })
+    }
+  });
+  ```
+
+- d3d6149c7: Children IDs in combination with `setup` can now be typed using `types.children`:
+
+  ```ts
+  const machine = setup({
+    types: {} as {
+      children: {
+        myId: 'actorKey';
+      };
+    },
+    actors: {
+      actorKey: child
+    }
+  }).createMachine({});
+
+  const actorRef = createActor(machine).start();
+
+  actorRef.getSnapshot().children.myId; // ActorRefFrom<typeof child> | undefined
+  ```
+
+- d3d6149c7: You can now specify guard types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      guards:
+        | {
+            type: 'isGreaterThan';
+            params: {
+              count: number;
+            };
+          }
+        | { type: 'plainGuard' };
+    }
+    // ...
+  });
+  ```
+
+- d3d6149c7: You can now define strict tags for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      tags: 'pending' | 'success' | 'error';
+    }
+    // ...
+  });
+  ```
+
+- d3d6149c7: The `state.configuration` property has been renamed to `state.nodes`.
+
+  ```diff
+  - state.configuration
+  + state.nodes
+  ```
+
+- d3d6149c7: The `onSnapshot: { ... }` transition object is now supported for invoked machines, observables, promises, and transition functions:
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    invoke: [
+      {
+        src: createMachine({ ... }),
+        onSnapshot: {
+          actions: (context, event) => {
+            event.snapshot; // machine state
+          }
+        }
+      },
+      {
+        src: fromObservable(() => ...),
+        onSnapshot: {
+          actions: (context, event) => {
+            event.snapshot; // observable value
+          }
+        }
+      },
+      {
+        src: fromTransition((state, event) => { ... }, /* ... */),
+        onSnapshot: {
+          actions: (context, event) => {
+            event.snapshot; // transition function return value
+          }
+        }
+      }
+    ]
+  });
+  ```
+
+- d3d6149c7: The `stop(...)` action creator is renamed to `stopChild(...)`, to make it clear that only child actors may be stopped from the parent actor.
+- d3d6149c7: Action parameters can now be directly accessed from the 2nd argument of the action implementation:
+
+  ```ts
+  const machine = createMachine(
+    {
+      // ...
+      entry: {
+        type: 'greet',
+        params: { message: 'hello' }
+      }
+    },
+    {
+      actions: {
+        greet: (_, params) => {
+          params.message; // 'hello'
+        }
+      }
+    }
+  );
+  ```
+
+- d3d6149c7: Input types can now be specified for machines:
+
+  ```ts
+  const emailMachine = createMachine({
+    types: {} as {
+      input: {
+        subject: string;
+        message: string;
+      };
+    },
+    context: ({ input }) => ({
+      // Strongly-typed input!
+      emailSubject: input.subject,
+      emailBody: input.message.trim()
+    })
+  });
+
+  const emailActor = interpret(emailMachine, {
+    input: {
+      // Strongly-typed input!
+      subject: 'Hello, world!',
+      message: 'This is a test.'
+    }
+  }).start();
+  ```
+
+- d3d6149c7: `xstate.done.state.*` events will now be generated recursively for all parallel states on the ancestors path.
+- d3d6149c7: Actor logic creators now have access to `self`:
+
+  ```ts
+  const promiseLogic = fromPromise(({ self }) => { ... });
+
+  const observableLogic = fromObservable(({ self }) => { ... });
+
+  const callbackLogic = fromCallback((sendBack, receive, { self }) => { ... });
+
+  const transitionLogic = fromTransition((state, event, { self }) => { ... }, ...);
+  ```
+
+- d3d6149c7: Guard parameters can now be directly accessed from the 2nd argument of the guard implementation:
+
+  ```ts
+  const machine = createMachine(
+    {
+      // ...
+      on: {
+        EVENT: {
+          guard: {
+            type: 'isGreaterThan',
+            params: { value: 10 }
+          }
+        }
+      }
+    },
+    {
+      guards: {
+        isGreaterThan: (_, params) => {
+          params.value; // 10
+        }
+      }
+    }
+  );
+  ```
+
+- d3d6149c7: You can now inspect actor system updates using the `inspect` option in `createActor(logic, { inspect })`. The types of **inspection events** you can observe include:
+
+  - `@xstate.actor` - An actor ref has been created in the system
+  - `@xstate.event` - An event was sent from a source actor ref to a target actor ref in the system
+  - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
+
+  ```ts
+  import { createMachine } from 'xstate';
+
+  const machine = createMachine({
+    // ...
+  });
+
+  const actor = createActor(machine, {
+    inspect: (inspectionEvent) => {
+      if (inspectionEvent.type === '@xstate.actor') {
+        console.log(inspectionEvent.actorRef);
+      }
+
+      if (inspectionEvent.type === '@xstate.event') {
+        console.log(inspectionEvent.sourceRef);
+        console.log(inspectionEvent.targetRef);
+        console.log(inspectionEvent.event);
+      }
+
+      if (inspectionEvent.type === '@xstate.snapshot') {
+        console.log(inspectionEvent.actorRef);
+        console.log(inspectionEvent.event);
+        console.log(inspectionEvent.snapshot);
+      }
+    }
+  });
+  ```
+
+- d3d6149c7: Added support for expressions to `cancel` action.
+- d3d6149c7: The new `enqueueActions(...)` action creator can now be used to enqueue actions to be executed. This is a helpful alternative to the `pure(...)` and `choose(...)` action creators.
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    entry: enqueueActions(({ context, event, enqueue, check }) => {
+      // assign action
+      enqueue.assign({
+        count: context.count + 1
+      });
+
+      // Conditional actions (replaces choose(...))
+      if (event.someOption) {
+        enqueue.sendTo('someActor', { type: 'blah', thing: context.thing });
+
+        // other actions
+        enqueue('namedAction');
+        // with params
+        enqueue({ type: 'greet', params: { message: 'hello' } });
+      } else {
+        // inline
+        enqueue(() => console.log('hello'));
+
+        // even built-in actions
+      }
+
+      // Use check(...) to conditionally enqueue actions based on a guard
+      if (check({ type: 'someGuard' })) {
+        // ...
+      }
+
+      // no return
+    })
+  });
+  ```
+
+- d3d6149c7: The default `timeout` for `waitFor(...)` is now `Infinity` instead of 10 seconds.
+- d3d6149c7: You can now specify action types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      actions: { type: 'greet'; params: { name: string } };
+    },
+    entry: [
+      {
+        type: 'greet',
+        params: {
+          name: 'David'
+        }
+      },
+      // @ts-expect-error
+      { type: 'greet' },
+      // @ts-expect-error
+      { type: 'unknownAction' }
+    ]
+    // ...
+  });
+  ```
+
+- d3d6149c7: The `state.meta` getter has been replaced with `state.getMeta()` methods:
+
+  ```diff
+  - state.meta
+  + state.getMeta()
+  ```
+
+- d3d6149c7: Output types can now be specified in the machine:
+
+  ```ts
+  const machine = createMachine({
+    types: {} as {
+      output: {
+        result: 'pass' | 'fail';
+        score: number;
+      };
+    }
+    // ...
+  });
+
+  const actor = createActor(machine);
+
+  // ...
+
+  const snapshot = actor.getSnapshot();
+
+  if (snapshot.output) {
+    snapshot.output.result;
+    // strongly typed as 'pass' | 'fail'
+    snapshot.output.score;
+    // strongly typed as number
+  }
+  ```
+
+- d3d6149c7: Added interop observable symbols to `ActorRef` so that actor refs are compatible with libraries like RxJS.
+- d3d6149c7: You can now use the `setup({ ... }).createMachine({ ... })` function to setup implementations for `actors`, `actions`, `guards`, and `delays` that will be used in the created machine:
+
+  ```ts
+  import { setup, createMachine } from 'xstate';
+
+  const fetchUser = fromPromise(async ({ input }) => {
+    const response = await fetch(`/user/${input.id}`);
+    const user = await response.json();
+    return user;
+  });
+
+  const machine = setup({
+    actors: {
+      fetchUser
+    },
+    actions: {
+      clearUser: assign({ user: undefined })
+    },
+    guards: {
+      isUserAdmin: (_, params) => params.user.role === 'admin'
+    }
+  }).createMachine({
+    // ...
+    invoke: {
+      // Strongly typed!
+      src: 'fetchUser',
+      input: ({ context }) => ({ id: context.userId }),
+      onDone: {
+        guard: {
+          type: 'isUserAdmin',
+          params: ({ context }) => ({ user: context.user })
+        },
+        target: 'success',
+        actions: assign({ user: ({ event }) => event.output })
+      },
+      onError: {
+        target: 'failure',
+        actions: 'clearUser'
+      }
+    }
+  });
+  ```
+
+- d3d6149c7: You can now specify delay types for machines:
+
+  ```ts
+  createMachine({
+    types: {} as {
+      delays: 'one second' | 'one minute';
+    }
+    // ...
+  });
+  ```
+
+- d3d6149c7: The event type of internal `after` events changed from `xstate.after(1000)#some.state.id` to `xstate.after.1000.some.state.id` for consistency.
+- d3d6149c7: pr: #4498
+  author: @Andarist
+  author: @davidkpiano
+
+  State values and `snapshot.matches()` argument are now strongly-typed when using the `setup` API.
+
+### Patch Changes
+
+- d3d6149c7: The `machine.options` property has been renamed to `machine.implementations`
+- d3d6149c7: Fixed an issue with inline actions not being correctly executed when there was an equally named action provided through the `implementations` argument.
+- d3d6149c7: Fixed a runtime crash related to machines with their root state's type being final (`createMachine({ type: 'final' })`).
+- d3d6149c7: Added support to `stateIn` guard for checking a combination of an ID and a path, eg. `stateIn('#b.B1')`.
+- d3d6149c7: Remove `State['changed']`. A new instance of `State` is being created if there are matching transitions for the received event. If there are no matching transitions then the current state is being returned.
+- d3d6149c7: Removed the ability to configure transitions using arrays:
+
+  ```ts
+  createMachine({
+    on: [{ event: 'FOO', target: '#id' }]
+    // ...
+  });
+  ```
+
+  Only regular object-based configs will be supported from now on:
+
+  ```ts
+  createMachine({
+    on: {
+      FOO: '#id'
+    }
+    // ...
+  });
+  ```
+
+- d3d6149c7: Fixed an issue with actors not being reinstantiated correctly when an actor with the same ID was first stopped and then invoked/spawned again in the same microstep.
+
+## 5.0.0-beta.54
+
+### Major Changes
+
+- [#4535](https://github.com/statelyai/xstate/pull/4535) [`6a9fa1f11`](https://github.com/statelyai/xstate/commit/6a9fa1f11864e42a986822f407a136a92ae6567c) Thanks [@Andarist](https://github.com/Andarist)! - The `escalate()` action is removed. Just throw an error normally.
+
+- [#4539](https://github.com/statelyai/xstate/pull/4539) [`a2a377f47`](https://github.com/statelyai/xstate/commit/a2a377f47ac8832dc099bab61281e4a0b6005542) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The error event (`type: 'xstate.error.*'`) now has the error data on the `event.error` instead of `event.data`:
+
+  ```diff
+  // ...
+  invoke: {
+    src: 'someSrc',
+    onError: {
+      actions: ({ event }) => {
+  -     event.data;
+  +     event.error;
+      }
+    }
+  }
+  ```
+
+## 5.0.0-beta.53
+
+### Minor Changes
+
+- [#4533](https://github.com/statelyai/xstate/pull/4533) [`2495aa21d`](https://github.com/statelyai/xstate/commit/2495aa21d87f63d8aa543135a53420ee6cc97d51) Thanks [@Andarist](https://github.com/Andarist)! - The `state` option of `createActor(...)` has been renamed to `snapshot`:
+
+  ```diff
+  createActor(machine, {
+  - state: someState
+  + snapshot: someState
+  })
+  ```
+
+  Likewise, the `.getPersistedState()` method has been renamed to `.getPersistedSnapshot()`:
+
+  ```diff
+  -actor.getPersistedState()
+  +actor.getPersistedSnapshot()
+  ```
+
+## 5.0.0-beta.52
+
+### Major Changes
+
+- [#4531](https://github.com/statelyai/xstate/pull/4531) [`a5b198340`](https://github.com/statelyai/xstate/commit/a5b198340ea6225e21177852816c95fb054c21c7) Thanks [@Andarist](https://github.com/Andarist)! - The order of type parameters in `ActorRef` has been changed from from `ActorRef<TEvent, TSnapshot>` to `ActorRef<TSnapshot, TEvent>` for consistency with other types.
+
+- [#4529](https://github.com/statelyai/xstate/pull/4529) [`43843ea26`](https://github.com/statelyai/xstate/commit/43843ea260e38c487fbbb9b56df291ded0d2c5a0) Thanks [@Andarist](https://github.com/Andarist)! - The `pure()` and `choose()` action creators have been removed, in favor of the more flexible `enqueueActions()` action creator:
+
+  ```ts
+  entry: [
+    // pure(() => {
+    //   return [
+    //     'action1',
+    //     'action2'
+    //   ]
+    // }),
+    enqueueActions(({ enqueue }) => {
+      enqueue('action1');
+      enqueue('action2');
+    })
+  ];
+  ```
+
+  ```ts
+  entry: [
+    // choose([
+    //   {
+    //     guard: 'someGuard',
+    //     actions: ['action1', 'action2']
+    //   }
+    // ]),
+    enqueueActions(({ enqueue, check }) => {
+      if (check('someGuard')) {
+        enqueue('action1');
+        enqueue('action2');
+      }
+    })
+  ];
+  ```
+
+### Minor Changes
+
+- [#4521](https://github.com/statelyai/xstate/pull/4521) [`355e89627`](https://github.com/statelyai/xstate/commit/355e896278ed05ded56afa2b66fbbed75d8d1c71) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The event type of internal `after` events changed from `xstate.after(1000)#some.state.id` to `xstate.after.1000.some.state.id` for consistency.
+
+## 5.0.0-beta.51
+
+### Minor Changes
+
+- [#4429](https://github.com/statelyai/xstate/pull/4429) [`7bcc62cbc`](https://github.com/statelyai/xstate/commit/7bcc62cbcc29e9247c3fc442a59e693cb5eeb078) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The new `enqueueActions(...)` action creator can now be used to enqueue actions to be executed. This is a helpful alternative to the `pure(...)` and `choose(...)` action creators.
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    entry: enqueueActions(({ context, event, enqueue, check }) => {
+      // assign action
+      enqueue.assign({
+        count: context.count + 1
+      });
+
+      // Conditional actions (replaces choose(...))
+      if (event.someOption) {
+        enqueue.sendTo('someActor', { type: 'blah', thing: context.thing });
+
+        // other actions
+        enqueue('namedAction');
+        // with params
+        enqueue({ type: 'greet', params: { message: 'hello' } });
+      } else {
+        // inline
+        enqueue(() => console.log('hello'));
+
+        // even built-in actions
+      }
+
+      // Use check(...) to conditionally enqueue actions based on a guard
+      if (check({ type: 'someGuard' })) {
+        // ...
+      }
+
+      // no return
+    })
+  });
+  ```
+
+## 5.0.0-beta.50
+
+### Major Changes
+
+- [#4492](https://github.com/statelyai/xstate/pull/4492) [`63d923857`](https://github.com/statelyai/xstate/commit/63d923857592437dc174518ba02e061082f629cf) Thanks [@Andarist](https://github.com/Andarist)! - All errors caught while executing the actor should now consistently include the error in its `snapshot.error` and should be reported to the closest `error` listener.
+
+### Patch Changes
+
+- [#4523](https://github.com/statelyai/xstate/pull/4523) [`e21e3f959`](https://github.com/statelyai/xstate/commit/e21e3f959971efbe1add5646a0adef04cf913524) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with contextual parameters in input factories of input-less actors
+
+## 5.0.0-beta.49
+
+### Minor Changes
+
+- [#4509](https://github.com/statelyai/xstate/pull/4509) [`560415283`](https://github.com/statelyai/xstate/commit/5604152835f099bbdfbe8d1734e7afbe93c50d72) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Refactor callback logic to not send self-event
+
+- [#4498](https://github.com/statelyai/xstate/pull/4498) [`02e14f6`](https://github.com/statelyai/xstate/commit/02e14f66cfff88003a99902a91335aba8fc10801) Thanks [@Andarist](https://github.com/Andarist), [@davidkpiano](https://github.com/davidkpiano)! - State values and `snapshot.matches()` argument are now strongly-typed when using the `setup` API.
+
+### Patch Changes
+
+- [#4516](https://github.com/statelyai/xstate/pull/4516) [`daf532b2f`](https://github.com/statelyai/xstate/commit/daf532b2f2ec634ec9d7c0afe25bdf1b7adb54fd) Thanks [@Andarist](https://github.com/Andarist)! - Export all TS snapshot types to fix type portability errors that could be reported when generating declaration files for files depending on `xstate`.
+
+## 5.0.0-beta.48
+
+### Patch Changes
+
+- [#4499](https://github.com/statelyai/xstate/pull/4499) [`c9908b7fb`](https://github.com/statelyai/xstate/commit/c9908b7fbc393999122388f5bf437511fe5cfadc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed the `TActor` type passed down by `setup` in absence of provided actors.
+
+## 5.0.0-beta.47
+
+### Minor Changes
+
+- [#4488](https://github.com/statelyai/xstate/pull/4488) [`9ca3c3dcf`](https://github.com/statelyai/xstate/commit/9ca3c3dcf25aba67aab5b6390766c273e9eba766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `spawn(...)` action creator has been renamed to `spawnChild(...)` to avoid confusion.
+
+  ```ts
+  import { spawnChild, assign } from 'xstate';
+
+  const childMachine = createMachine({
+    on: {
+      someEvent: {
+        actions: [
+          // spawnChild(...) instead of spawn(...)
+          spawnChild('someSrc'),
+
+          // spawn() is used inside of assign()
+          assign({
+            anotherRef: ({ spawn }) => spawn('anotherSrc')
+          })
+        ]
+      }
+    }
+  });
+  ```
+
+- [#4488](https://github.com/statelyai/xstate/pull/4488) [`9ca3c3dcf`](https://github.com/statelyai/xstate/commit/9ca3c3dcf25aba67aab5b6390766c273e9eba766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `stop(...)` action creator is renamed to `stopChild(...)`, to make it clear that only child actors may be stopped from the parent actor.
+
+## 5.0.0-beta.46
+
+### Major Changes
+
+- [#4478](https://github.com/statelyai/xstate/pull/4478) [`384f0ffc7`](https://github.com/statelyai/xstate/commit/384f0ffc712a36846d97b58195eeaa71edbc67f5) Thanks [@Andarist](https://github.com/Andarist)! - Removed `MachineSnapshot['nextEvents']`.
+
+### Minor Changes
+
+- [#4480](https://github.com/statelyai/xstate/pull/4480) [`3e610a1f3`](https://github.com/statelyai/xstate/commit/3e610a1f3b2a56e58fd1f68fe41f5f7beed31fd8) Thanks [@Andarist](https://github.com/Andarist)! - Children IDs in combination with `setup` can now be typed using `types.children`:
+
+  ```ts
+  const machine = setup({
+    types: {} as {
+      children: {
+        myId: 'actorKey';
+      };
+    },
+    actors: {
+      actorKey: child
+    }
+  }).createMachine({});
+
+  const actorRef = createActor(machine).start();
+
+  actorRef.getSnapshot().children.myId; // ActorRefFrom<typeof child> | undefined
+  ```
+
+### Patch Changes
+
+- [#4491](https://github.com/statelyai/xstate/pull/4491) [`c0025c3ce`](https://github.com/statelyai/xstate/commit/c0025c3ceb9a18c7588dc303f71b3de9378258a5) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with actors deep in the tree failing to rehydrate.
+
+## 5.0.0-beta.45
+
+### Minor Changes
+
+- [#4467](https://github.com/statelyai/xstate/pull/4467) [`3c71e537d`](https://github.com/statelyai/xstate/commit/3c71e537db724eee19ab857a9723f82e2ac5d8ca) Thanks [@Andarist](https://github.com/Andarist)! - The `state.configuration` property has been renamed to `state.nodes`.
+
+  ```diff
+  - state.configuration
+  + state.nodes
+  ```
+
+- [#4467](https://github.com/statelyai/xstate/pull/4467) [`3c71e537d`](https://github.com/statelyai/xstate/commit/3c71e537db724eee19ab857a9723f82e2ac5d8ca) Thanks [@Andarist](https://github.com/Andarist)! - The `state.meta` getter has been replaced with `state.getMeta()` methods:
+
+  ```diff
+  - state.meta
+  + state.getMeta()
+  ```
+
+- [#4353](https://github.com/statelyai/xstate/pull/4353) [`a3a11c84e`](https://github.com/statelyai/xstate/commit/a3a11c84e30c86afd63e47c77a46a61d926291d1) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now use the `setup({ ... }).createMachine({ ... })` function to setup implementations for `actors`, `actions`, `guards`, and `delays` that will be used in the created machine:
+
+  ```ts
+  import { setup, createMachine } from 'xstate';
+
+  const fetchUser = fromPromise(async ({ input }) => {
+    const response = await fetch(`/user/${input.id}`);
+    const user = await response.json();
+    return user;
+  });
+
+  const machine = setup({
+    actors: {
+      fetchUser
+    },
+    actions: {
+      clearUser: assign({ user: undefined })
+    },
+    guards: {
+      isUserAdmin: (_, params) => params.user.role === 'admin'
+    }
+  }).createMachine({
+    // ...
+    invoke: {
+      // Strongly typed!
+      src: 'fetchUser',
+      input: ({ context }) => ({ id: context.userId }),
+      onDone: {
+        guard: {
+          type: 'isUserAdmin',
+          params: ({ context }) => ({ user: context.user })
+        },
+        target: 'success',
+        actions: assign({ user: ({ event }) => event.output })
+      },
+      onError: {
+        target: 'failure',
+        actions: 'clearUser'
+      }
+    }
+  });
+  ```
+
+### Patch Changes
+
+- [#4476](https://github.com/statelyai/xstate/pull/4476) [`6777c328d`](https://github.com/statelyai/xstate/commit/6777c328dfcad0a6bd113ca9f2a201344911356e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `onSnapshot` not working after rehydration.
+
+## 5.0.0-beta.44
+
+### Major Changes
+
+- [#4448](https://github.com/statelyai/xstate/pull/4448) [`9c4353020`](https://github.com/statelyai/xstate/commit/9c435302042be8090e78dc75fe4a9288a64dbb11) Thanks [@Andarist](https://github.com/Andarist)! - `isState`/`isStateConfig` were replaced by `isMachineSnapshot`. Similarly, `AnyState` type was deprecated and it's replaced by `AnyMachineSnapshot` type.
+
+### Patch Changes
+
+- [#4463](https://github.com/statelyai/xstate/pull/4463) [`178deadac`](https://github.com/statelyai/xstate/commit/178deadac5dc29c1b7a749936622456d98294fa5) Thanks [@Andarist](https://github.com/Andarist)! - `invoke` and `spawn` will now require `input` to be provided if the used actor requires it.
+
+- [#4464](https://github.com/statelyai/xstate/pull/4464) [`5278a9895`](https://github.com/statelyai/xstate/commit/5278a989573bc8a78bd89f5950654be6b1eaad49) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to target actors registered with `systemId` from within initial actions.
+
+## 5.0.0-beta.43
+
+### Major Changes
+
+- [#4451](https://github.com/statelyai/xstate/pull/4451) [`21f18b54b`](https://github.com/statelyai/xstate/commit/21f18b54b6badec8a34e3349d2bf360e0648abf4) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to configure `input` within the implementations object. You no longer can do this:
+
+  ```ts
+  createMachine(
+    {
+      invoke: {
+        src: 'child'
+      }
+    },
+    {
+      actors: {
+        child: {
+          src: childMachine,
+          input: 'foo'
+        }
+      }
+    }
+  );
+  ```
+
+  The `input` can only be provided within the config of the machine.
+
+## 5.0.0-beta.42
+
+### Major Changes
+
+- [#4438](https://github.com/statelyai/xstate/pull/4438) [`7bbf41d7d`](https://github.com/statelyai/xstate/commit/7bbf41d7d17257d2b2a2675494f68cbae8dc19fd) Thanks [@Andarist](https://github.com/Andarist)! - Removed `State#toStrings` method.
+
+- [#4443](https://github.com/statelyai/xstate/pull/4443) [`18862e53c`](https://github.com/statelyai/xstate/commit/18862e53cc24c38db6e21f5aecac501942db1d9d) Thanks [@Andarist](https://github.com/Andarist)! - `State` class has been removed and replaced by `MachineSnapshot` object. They largely have the same properties and methods. On of the main noticeable results of this change is that you can no longer check `state instanceof State`.
+
+- [#4444](https://github.com/statelyai/xstate/pull/4444) [`d6e41a923`](https://github.com/statelyai/xstate/commit/d6e41a923bfaa9e39fdd60d4bbee661bd048dfaf) Thanks [@Andarist](https://github.com/Andarist)! - Removed `mapState` utility function.
+
+### Minor Changes
+
+- [#4440](https://github.com/statelyai/xstate/pull/4440) [`10d95393a`](https://github.com/statelyai/xstate/commit/10d95393a3bfdfab31a9670ae56751e7557a4a17) Thanks [@Andarist](https://github.com/Andarist)! - `State.from`, `StateMachine#createState` and `StateMachine#resolveStateValue` were removed. They largely served the same purpose as `StateMachine#resolveState` and this is the method that is still available and can be used instead of them.
+
+## 5.0.0-beta.41
+
+### Major Changes
+
+- [#4423](https://github.com/statelyai/xstate/pull/4423) [`8fb984494`](https://github.com/statelyai/xstate/commit/8fb98449471a67ad4231c2ce18d88d511b1112f8) Thanks [@Andarist](https://github.com/Andarist)! - Removed `Interpreter['status']` from publicly available properties.
+
+### Minor Changes
+
+- [#4435](https://github.com/statelyai/xstate/pull/4435) [`37d879335`](https://github.com/statelyai/xstate/commit/37d879335c3c9ad1c28533bef4768ed0411fa0e8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The default `timeout` for `waitFor(...)` is now `Infinity` instead of 10 seconds.
+
+## 5.0.0-beta.40
+
+### Minor Changes
+
+- [#4414](https://github.com/statelyai/xstate/pull/4414) [`26fbc6c85`](https://github.com/statelyai/xstate/commit/26fbc6c8598f8621ce0ba510390f536e41d773d7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - All inspector events (snapshot, event, actor) now have a common `actorRef` property. This makes it easier to discern which inspection event is for which actor:
+
+  ```ts
+  const actor = createActor(someMachine, {
+    inspect: (event) => {
+      // Was previously a type error
+      if (event.actorRef === actor) {
+        // This event is for the root actor
+      }
+
+      if (event.type === '@xstate.event') {
+        // previously event.targetRef
+        event.actorRef;
+      }
+    }
+  });
+  ```
+
+  In the `'xstate.event'` event, the `actorRef` property is now the target actor (recipient of the event). Previously, this was the `event.targetRef` property (which is now removed).
+
+### Patch Changes
+
+- [#4425](https://github.com/statelyai/xstate/pull/4425) [`74baddc1b`](https://github.com/statelyai/xstate/commit/74baddc1b3881d9143f01c02e10c741d1d4cfef4) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with persisting children that got rehydrated.
+
+## 5.0.0-beta.39
+
+### Minor Changes
+
+- [#4407](https://github.com/statelyai/xstate/pull/4407) [`c46a80015`](https://github.com/statelyai/xstate/commit/c46a80015a2332c39cb34dbbe2d32d13beeb9c45) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Internal: changed the actor context type from `ActorContext` to `ActorScope` to mitigate confusion.
+
+### Patch Changes
+
+- [#4404](https://github.com/statelyai/xstate/pull/4404) [`a91fdea06`](https://github.com/statelyai/xstate/commit/a91fdea0686ccef459b0f99ebc614903f38cbe30) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused non-active children to be rehydrated.
+
+- [#4368](https://github.com/statelyai/xstate/pull/4368) [`5393e82df`](https://github.com/statelyai/xstate/commit/5393e82df1445c29920f477bf2855d5a387317ed) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with parallel regions sometimes not being correctly reentered when taking transitions targeting other parallel regions.
+
+## 5.0.0-beta.38
+
+### Minor Changes
+
+- [#4329](https://github.com/statelyai/xstate/pull/4329) [`41f5a7dc5`](https://github.com/statelyai/xstate/commit/41f5a7dc59a2cd946dff937664de2fa14780b007) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now `spawn(...)` actors directly outside of `assign(...)` action creators:
+
+  ```ts
+  import { createMachine, spawn } from 'xstate';
+
+  const listenerMachine = createMachine({
+    // ...
+  });
+
+  const parentMachine = createMachine({
+    // ...
+    on: {
+      'listener.create': {
+        entry: spawn(listenerMachine, { id: 'listener' })
+      }
+    }
+    // ...
+  });
+
+  const actor = createActor(parentMachine).start();
+
+  actor.send({ type: 'listener.create' });
+
+  actor.getSnapshot().children.listener; // ActorRefFrom<typeof listenerMachine>
+  ```
+
+- [#4257](https://github.com/statelyai/xstate/pull/4257) [`531a63482`](https://github.com/statelyai/xstate/commit/531a634827c0a7a88f5c2720109e953d203e077a) Thanks [@Andarist](https://github.com/Andarist)! - Action parameters can now be directly accessed from the 2nd argument of the action implementation:
+
+  ```ts
+  const machine = createMachine(
+    {
+      // ...
+      entry: {
+        type: 'greet',
+        params: { message: 'hello' }
+      }
+    },
+    {
+      actions: {
+        greet: (_, params) => {
+          params.message; // 'hello'
+        }
+      }
+    }
+  );
+  ```
+
+- [#4257](https://github.com/statelyai/xstate/pull/4257) [`531a63482`](https://github.com/statelyai/xstate/commit/531a634827c0a7a88f5c2720109e953d203e077a) Thanks [@Andarist](https://github.com/Andarist)! - Guard parameters can now be directly accessed from the 2nd argument of the guard implementation:
+
+  ```ts
+  const machine = createMachine(
+    {
+      // ...
+      on: {
+        EVENT: {
+          guard: {
+            type: 'isGreaterThan',
+            params: { value: 10 }
+          }
+        }
+      }
+    },
+    {
+      guards: {
+        isGreaterThan: (_, params) => {
+          params.value; // 10
+        }
+      }
+    }
+  );
+  ```
+
+### Patch Changes
+
+- [#4405](https://github.com/statelyai/xstate/pull/4405) [`a01169eb2`](https://github.com/statelyai/xstate/commit/a01169eb20db30724e7fb086d7b59837525ec406) Thanks [@Andarist](https://github.com/Andarist)! - Fixed crash on a `systemId` synchronous re-registration attempt that could happen, for example, when dealing with reentering transitions.
+
+- [#4401](https://github.com/statelyai/xstate/pull/4401) [`eea74c594`](https://github.com/statelyai/xstate/commit/eea74c5943e9b2157934d260b793e06169099b41) Thanks [@Andarist](https://github.com/Andarist)! - Fixed the issue with stopped state machines not updating their snapshots with that information.
+
+- [#4403](https://github.com/statelyai/xstate/pull/4403) [`3f84bba72`](https://github.com/statelyai/xstate/commit/3f84bba72145a98d0dbdf10630371351851f2346) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with rehydrated actors not registering themselves in the system.
+
+## 5.0.0-beta.37
+
+### Major Changes
+
+- [#4234](https://github.com/statelyai/xstate/pull/4234) [`57814f46d`](https://github.com/statelyai/xstate/commit/57814f46dec425973d52e4b630752ee4824fd9a9) Thanks [@Andarist](https://github.com/Andarist)! - Atomic and parallel states should no longer be reentered when the transition target doesn't escape them. You can get the reentering behavior by configuring `reenter: true` for the transition.
+
+### Patch Changes
+
+- [#4387](https://github.com/statelyai/xstate/pull/4387) [`0be0ef015`](https://github.com/statelyai/xstate/commit/0be0ef015425c8ad46e1afb8c39d3679786b1b10) Thanks [@Andarist](https://github.com/Andarist)! - Added support to `stateIn` guard for checking a combination of an ID and a path, eg. `stateIn('#b.B1')`.
+
+- [#4384](https://github.com/statelyai/xstate/pull/4384) [`e0bbe3397`](https://github.com/statelyai/xstate/commit/e0bbe339752980f7b84670faf6ca80529885c838) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused parallel states with direct final children to be completed without all regions being in their final states.
+
+## 4.38.3
+
+### Patch Changes
+
+- [#4380](https://github.com/statelyai/xstate/pull/4380) [`e9e065822`](https://github.com/statelyai/xstate/commit/e9e06582215abedf118cf2165e635eccb8e44251) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `exit` actions sometimes being called twice when a machine reaches its final state and leads its parent to stopping it at the same time.
+
 ## 5.0.0-beta.36
 
 ### Major Changes
@@ -541,6 +2546,16 @@
 
   ```ts
   const callbackLogic = fromCallback(({ input, system, self, sendBack, receive }) => { ... });
+  ```
+
+## 4.38.2
+
+### Patch Changes
+
+- [#4159](https://github.com/statelyai/xstate/pull/4159) [`8bfbb8531`](https://github.com/statelyai/xstate/commit/8bfbb85316d305dc33b00b6e6170652fa248b20b) Thanks [@Andarist](https://github.com/Andarist)! - The `cancel` action was added to the main export:
+
+  ```ts
+  import { cancel } from 'xstate';
   ```
 
 ## 5.0.0-beta.19

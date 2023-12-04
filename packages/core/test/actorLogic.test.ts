@@ -105,11 +105,11 @@ describe('promise logic (fromPromise)', () => {
     const actor = createActor(promiseLogic);
     actor.start();
 
-    const resolvedPersistedState = actor.getPersistedState();
+    const resolvedPersistedState = actor.getPersistedSnapshot();
     actor.stop();
 
     const restoredActor = createActor(promiseLogic, {
-      state: resolvedPersistedState
+      snapshot: resolvedPersistedState
     }).start();
 
     setTimeout(() => {
@@ -130,7 +130,7 @@ describe('promise logic (fromPromise)', () => {
     actor.start();
 
     setTimeout(() => {
-      const resolvedPersistedState = actor.getPersistedState();
+      const resolvedPersistedState = actor.getPersistedSnapshot();
 
       expect(resolvedPersistedState).toMatchInlineSnapshot(`
         {
@@ -142,7 +142,7 @@ describe('promise logic (fromPromise)', () => {
       `);
 
       const restoredActor = createActor(promiseLogic, {
-        state: resolvedPersistedState
+        snapshot: resolvedPersistedState
       }).start();
       expect(restoredActor.getSnapshot().output).toBe(42);
       done();
@@ -160,7 +160,7 @@ describe('promise logic (fromPromise)', () => {
 
     await new Promise((res) => setTimeout(res, 5));
 
-    const resolvedPersistedState = actor.getPersistedState();
+    const resolvedPersistedState = actor.getPersistedSnapshot();
     expect(resolvedPersistedState).toMatchInlineSnapshot(`
       {
         "error": undefined,
@@ -172,7 +172,7 @@ describe('promise logic (fromPromise)', () => {
     expect(createdPromises).toBe(1);
 
     const restoredActor = createActor(promiseLogic, {
-      state: resolvedPersistedState
+      snapshot: resolvedPersistedState
     }).start();
 
     expect(restoredActor.getSnapshot().output).toBe(1);
@@ -185,13 +185,13 @@ describe('promise logic (fromPromise)', () => {
       createdPromises++;
       return Promise.reject(createdPromises);
     });
-    const actor = createActor(promiseLogic);
-    actor.subscribe({ error: function preventUnhandledErrorListener() {} });
-    actor.start();
+    const actorRef = createActor(promiseLogic);
+    actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
+    actorRef.start();
 
     await new Promise((res) => setTimeout(res, 5));
 
-    const rejectedPersistedState = actor.getPersistedState();
+    const rejectedPersistedState = actorRef.getPersistedSnapshot();
     expect(rejectedPersistedState).toMatchInlineSnapshot(`
       {
         "error": 1,
@@ -202,9 +202,11 @@ describe('promise logic (fromPromise)', () => {
     `);
     expect(createdPromises).toBe(1);
 
-    createActor(promiseLogic, {
-      state: rejectedPersistedState
-    }).start();
+    const actorRef2 = createActor(promiseLogic, {
+      snapshot: rejectedPersistedState
+    });
+    actorRef2.subscribe({ error: function preventUnhandledErrorListener() {} });
+    actorRef2.start();
 
     expect(createdPromises).toBe(1);
   });
@@ -270,9 +272,9 @@ describe('transition function logic (fromTransition)', () => {
     );
     const actor = createActor(logic).start();
     actor.send({ type: 'activate' });
-    const persistedState = actor.getPersistedState();
+    const persistedSnapshot = actor.getPersistedSnapshot();
 
-    expect(persistedState).toEqual({
+    expect(persistedSnapshot).toEqual({
       status: 'active',
       output: undefined,
       error: undefined,
@@ -281,7 +283,7 @@ describe('transition function logic (fromTransition)', () => {
       }
     });
 
-    const restoredActor = createActor(logic, { state: persistedState });
+    const restoredActor = createActor(logic, { snapshot: persistedSnapshot });
 
     restoredActor.start();
 
@@ -347,19 +349,24 @@ describe('observable logic (fromObservable)', () => {
     expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('should reject (observer .error)', (done) => {
-    const actor = createActor(fromObservable(() => throwError(() => 'Error')));
+  it('should reject (observer .error)', () => {
+    const actor = createActor(
+      fromObservable(() => throwError(() => 'Observable error.'))
+    );
     const spy = jest.fn();
 
     actor.subscribe({
-      next: (snapshot) => spy(snapshot.error),
-      error: () => {
-        done();
-      }
+      error: spy
     });
 
     actor.start();
-    expect(spy).toHaveBeenCalledWith('Error');
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          "Observable error.",
+        ],
+      ]
+    `);
   });
 
   it('should complete (observer .complete)', () => {
@@ -535,13 +542,13 @@ describe('callback logic (fromCallback)', () => {
       data: 13
     });
 
-    const state = actor.getPersistedState();
+    const snapshot = actor.getPersistedSnapshot();
 
     actor.stop();
 
     spy.mockClear();
 
-    const restoredActor = createActor(machine, { state });
+    const restoredActor = createActor(machine, { snapshot });
 
     restoredActor.start();
 
@@ -596,9 +603,9 @@ describe('machine logic', () => {
 
     await waitFor(actor, (s) => s.matches('success'));
 
-    const persistedState = actor.getPersistedState()!;
+    const persistedState = actor.getPersistedSnapshot()!;
 
-    expect(persistedState.children.a.state).toMatchInlineSnapshot(`
+    expect((persistedState as any).children.a.snapshot).toMatchInlineSnapshot(`
       {
         "error": undefined,
         "input": undefined,
@@ -607,7 +614,7 @@ describe('machine logic', () => {
       }
     `);
 
-    expect(persistedState.children.b.state).toEqual(
+    expect((persistedState as any).children.b.snapshot).toEqual(
       expect.objectContaining({
         context: {
           count: 55
@@ -615,7 +622,7 @@ describe('machine logic', () => {
         value: 'start',
         children: {
           reducer: expect.objectContaining({
-            state: {
+            snapshot: {
               status: 'active'
             }
           })
@@ -678,9 +685,9 @@ describe('machine logic', () => {
     actor.send({ type: 'NEXT' });
     // child is at 'b'
 
-    const persistedState = actor.getPersistedState()!;
+    const persistedSnapshot = actor.getPersistedSnapshot()!;
     const newActor = createActor(parentMachine, {
-      state: persistedState
+      snapshot: persistedSnapshot
     }).start();
     const newSnapshot = newActor.getSnapshot();
 
@@ -704,7 +711,7 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(actor.getPersistedState()).toEqual(
+    expect(actor.getPersistedSnapshot()).toEqual(
       expect.objectContaining({
         value: 'idle'
       })
@@ -724,7 +731,9 @@ describe('machine logic', () => {
 
     const actor = createActor(machine);
 
-    expect(actor.getPersistedState()?.children['child'].state).toEqual(
+    expect(
+      (actor.getPersistedSnapshot() as any).children['child'].snapshot
+    ).toEqual(
       expect.objectContaining({
         value: 'inner'
       })
@@ -772,11 +781,13 @@ describe('machine logic', () => {
       value: 'value'
     });
 
-    const persisted = actor.getPersistedState();
+    const persisted: any = actor.getPersistedSnapshot();
 
-    delete persisted?.children['child'];
+    delete persisted.children['child'];
 
-    const rehydratedActor = createActor(machine, { state: persisted }).start();
+    const rehydratedActor = createActor(machine, {
+      snapshot: persisted
+    }).start();
 
     expect(rehydratedActor.getSnapshot().children.child).toBe(undefined);
   });
@@ -805,12 +816,14 @@ describe('machine logic', () => {
 
     const actor = createActor(machine).start();
 
-    const persistedState = actor.getPersistedState()!;
+    const persistedSnapshot = actor.getPersistedSnapshot()!;
 
-    expect(persistedState.children.child.state.context).toEqual({ count: 42 });
+    expect((persistedSnapshot as any).children.child.snapshot.context).toEqual({
+      count: 42
+    });
 
     const newActor = createActor(machine, {
-      state: persistedState
+      snapshot: persistedSnapshot
     }).start();
 
     const snapshot = newActor.getSnapshot();
@@ -832,7 +845,7 @@ describe('machine logic', () => {
     const actorRef = createActor(machine).start();
 
     expect(() =>
-      actorRef.getPersistedState()
+      actorRef.getPersistedSnapshot()
     ).toThrowErrorMatchingInlineSnapshot(
       `"An inline child actor cannot be persisted."`
     );
@@ -857,10 +870,10 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state, event, actorCtx) => {
+        transition: (state, event, actorScope) => {
           logs.push(event.type);
 
-          return actorLogic.transition(state, event, actorCtx);
+          return actorLogic.transition(state, event, actorScope);
         }
       };
     }
@@ -895,8 +908,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
           logs.push(s.output);
 
           return s;
@@ -919,8 +932,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
           logs.push(s.context);
 
           return s;
@@ -946,8 +959,8 @@ describe('composable actor logic', () => {
     function withLogs<T extends AnyActorLogic>(actorLogic: T): T {
       return {
         ...actorLogic,
-        transition: (state: Snapshot<unknown>, event, actorCtx) => {
-          const s = actorLogic.transition(state, event, actorCtx);
+        transition: (state: Snapshot<unknown>, event, actorScope) => {
+          const s = actorLogic.transition(state, event, actorScope);
 
           if (s.status === 'active') {
             logs.push(s.context);
