@@ -4,7 +4,6 @@ import { GuardPredicate } from './guards';
 import { ResolveTypegenMeta, TypegenDisabled } from './typegenTypes';
 import {
   ActionFunction,
-  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   Cast,
@@ -35,22 +34,26 @@ type ToParameterizedObject<
   };
 }>;
 
-type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
+type DefaultToUnknownActorLogic<
+  TActors extends Record<string, UnknownActorLogic>
+> =
   // if `keyof TActors` is `never` then it means that both `children` and `actors` were not supplied
   // `never` comes from the default type of the `TChildrenMap` type parameter
   // in such a case we "replace" `TActors` with a more traditional~ constraint
   // one that doesn't depend on `Values<TChildrenMap>`
-  IsNever<keyof TActors> extends true ? Record<string, AnyActorLogic> : TActors;
+  IsNever<keyof TActors> extends true
+    ? Record<string, UnknownActorLogic>
+    : TActors;
 
 // at the moment we allow extra actors - ones that are not specified by `children`
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>,
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
   TResolvedActors extends Record<
     string,
-    AnyActorLogic
-  > = DefaultToAnyActors<TActors>
+    UnknownActorLogic
+  > = DefaultToUnknownActorLogic<TActors>
 > = Values<{
   [K in keyof TResolvedActors & string]: {
     src: K;
@@ -118,7 +121,9 @@ export function setup<
   delays
 }: {
   types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
-  actors?: TActors;
+  actors?: {
+    [K in keyof TActors]: TActors[K];
+  };
   actions?: {
     [K in keyof TActions]: ActionFunction<
       TContext,
