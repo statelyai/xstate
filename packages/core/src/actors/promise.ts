@@ -15,19 +15,6 @@ export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
 const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
 const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
 
-export type PromiseActorEvents<T> =
-  | {
-      type: typeof XSTATE_PROMISE_RESOLVE;
-      data: T;
-    }
-  | {
-      type: typeof XSTATE_PROMISE_REJECT;
-      data: any;
-    }
-  | {
-      type: typeof XSTATE_STOP;
-    };
-
 export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
@@ -102,7 +89,6 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
     self: PromiseActorRef<TOutput>;
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
-  // TODO: add event types
   const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {

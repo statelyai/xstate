@@ -771,6 +771,230 @@ describe('setup()', () => {
     });
   });
 
+  it('should allow an actor with input to be provided', () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        )
+      }
+    });
+  });
+
+  it(`should reject static wrong input when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        )
+      }
+    }).createMachine({
+      // @ts-expect-error
+      invoke: {
+        src: 'fetchUser',
+        input: 4157
+      }
+    });
+  });
+
+  it(`should allow static correct input when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        )
+      }
+    }).createMachine({
+      invoke: {
+        src: 'fetchUser',
+        input: {
+          userId: '4nd4r157'
+        }
+      }
+    });
+  });
+
+  it(`should allow static input that is a subtype of the expected one when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        child: fromPromise(({}: { input: number | string }) =>
+          Promise.resolve('foo')
+        )
+      }
+    }).createMachine({
+      invoke: {
+        src: 'child',
+        input: 42
+      }
+    });
+  });
+
+  it(`should reject static input that is a supertype of the expected one when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        )
+      }
+    }).createMachine({
+      // @ts-expect-error
+      invoke: {
+        src: 'fetchUser',
+        input:
+          Math.random() > 0.5
+            ? {
+                userId: '4nd4r157'
+              }
+            : 42
+      }
+    });
+  });
+
+  it(`should reject dynamic wrong input when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        )
+      }
+    }).createMachine({
+      // @ts-expect-error
+      invoke: {
+        src: 'fetchUser',
+        input: () => 42
+      }
+    });
+  });
+
+  it(`should allow dynamic correct input when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        )
+      }
+    }).createMachine({
+      invoke: {
+        src: 'fetchUser',
+        input: () => ({
+          userId: '4nd4r157'
+        })
+      }
+    });
+  });
+
+  it(`should reject dynamic input that is a supertype of the expected one when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        )
+      }
+    }).createMachine({
+      // @ts-expect-error
+      invoke: {
+        src: 'fetchUser',
+        input: () =>
+          Math.random() > 0.5
+            ? {
+                userId: '4nd4r157'
+              }
+            : 42
+      }
+    });
+  });
+
+  it(`should allow dynamic input that is a subtype of the expected one when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        child: fromPromise(({}: { input: number | string }) =>
+          Promise.resolve('foo')
+        )
+      }
+    }).createMachine({
+      invoke: {
+        src: 'child',
+        input: () => 'hello'
+      }
+    });
+  });
+
+  it(`should reject a valid input of a different provided actor when invoking a provided actor`, () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        ),
+        rollADie: fromPromise(async ({ input }: { input: number }) =>
+          Math.min(Math.random(), input)
+        )
+      }
+    }).createMachine({
+      invoke: {
+        src: 'fetchUser',
+        // @ts-expect-error
+        input: 0.31
+      }
+    });
+  });
+
+  it(`should require input to be specified when it is required by the invoked actor`, () => {
+    setup({
+      actors: {
+        fetchUser: fromPromise(
+          async ({ input }: { input: { userId: string } }) => ({
+            id: input.userId,
+            name: 'Andarist'
+          })
+        )
+      }
+    }).createMachine({
+      // @ts-expect-error
+      invoke: {
+        src: 'fetchUser'
+      }
+    });
+  });
+
+  it(`should not require input when it's optional in the invoked actor`, () => {
+    setup({
+      actors: {
+        rollADie: fromPromise(
+          async ({ input }: { input: number | undefined }) =>
+            input ? Math.min(Math.random(), input) : Math.random()
+        )
+      }
+    }).createMachine({
+      invoke: {
+        src: 'rollADie'
+      }
+    });
+  });
+
   it(`should provide contextual parameters to input factory for an actor that doesn't specify any input`, () => {
     setup({
       types: {
