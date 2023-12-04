@@ -86,9 +86,10 @@ function executeRaise(
 ) {
   if (typeof params.delay === 'number') {
     actorScope.system.scheduler.schedule({
-      ...params,
+      event: params.event,
+      delay: params.delay,
       source: actorScope.self,
-      target: params.to ?? actorScope.self,
+      target: actorScope.self,
       id: params.id ?? Math.random().toString()
     });
     return;
