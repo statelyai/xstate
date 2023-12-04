@@ -1,4 +1,4 @@
-import { PersistedMachineState, interpret } from 'xstate';
+import { Snapshot, createActor } from 'xstate';
 import { promises as fs } from 'fs';
 import { UpDownMaschine } from './machines';
 import { createActors, delay } from './actors';
@@ -6,7 +6,7 @@ import { createActors, delay } from './actors';
 const FILENAME = './historyStates.json';
 const PROVISION_TIMEOUT = 30000;
 
-let historyStates: PersistedMachineState<any>[] = [];
+let historyStates: Snapshot<any>[] = [];
 async function updateHistory(state: any) {
   try {
     historyStates = JSON.parse(await fs.readFile(FILENAME, 'utf8'));
@@ -32,13 +32,13 @@ async function provisionFactory(actors: any, retry = false) {
     console.log(restoredState);
   }
 
-  const upDown = interpret(UpDownMaschine.provide({ actors }), {
+  const upDown = createActor(UpDownMaschine.provide({ actors }), {
     state: restoredState
   });
   upDown.subscribe({
     next(state) {
       console.log('---next', state.value);
-      const persistedState = upDown.getPersistedState();
+      const persistedState = upDown.getPersistedSnapshot();
 
       updateHistory(persistedState);
     },
