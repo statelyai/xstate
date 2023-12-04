@@ -1,4 +1,3 @@
-import { sleep } from '@xstate-repo/jest-utils';
 import { interval, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { forwardTo, raise, sendTo } from '../src/actions.ts';
@@ -12,17 +11,19 @@ import {
 } from '../src/actors/index.ts';
 import {
   ActorLogic,
-  ActorRef,
   ActorScope,
   EventObject,
-  Snapshot,
   SpecialTargets,
   StateValue,
   assign,
-  createActor,
   createMachine,
-  sendParent
+  createActor,
+  sendParent,
+  EventFrom,
+  Snapshot,
+  ActorRef
 } from '../src/index.ts';
+import { sleep } from '@xstate-repo/jest-utils';
 
 const user = { name: 'David' };
 
@@ -49,42 +50,49 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = createMachine({
-      id: 'parent',
-      types: {} as {
-        context: { count: number };
-        actors: {
-          src: 'child';
-          id: 'someService';
-          logic: typeof childMachine;
-        };
-      },
-      context: { count: 0 },
-      initial: 'start',
-      states: {
-        start: {
-          invoke: {
-            src: 'child',
-            id: 'someService'
-          },
-          always: {
-            target: 'stop',
-            guard: ({ context }) => context.count === -3
-          },
-          on: {
-            DEC: {
-              actions: assign({ count: ({ context }) => context.count - 1 })
-            },
-            FORWARD_DEC: {
-              actions: sendTo('someService', { type: 'FORWARD_DEC' })
-            }
-          }
+    const someParentMachine = createMachine(
+      {
+        id: 'parent',
+        types: {} as {
+          context: { count: number };
+          actors: {
+            src: 'child';
+            id: 'someService';
+            logic: typeof childMachine;
+          };
         },
-        stop: {
-          type: 'final'
+        context: { count: 0 },
+        initial: 'start',
+        states: {
+          start: {
+            invoke: {
+              src: 'child',
+              id: 'someService'
+            },
+            always: {
+              target: 'stop',
+              guard: ({ context }) => context.count === -3
+            },
+            on: {
+              DEC: {
+                actions: assign({ count: ({ context }) => context.count - 1 })
+              },
+              FORWARD_DEC: {
+                actions: sendTo('someService', { type: 'FORWARD_DEC' })
+              }
+            }
+          },
+          stop: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          child: childMachine
         }
       }
-    });
+    );
 
     const actorRef = createActor(someParentMachine).start();
     actorRef.send({ type: 'FORWARD_DEC' });
