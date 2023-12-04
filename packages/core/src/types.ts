@@ -14,7 +14,7 @@ import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import { Spawner } from './spawn.ts';
 import { AssignArgs } from './actions/assign.ts';
 import { InspectionEvent } from './system.js';
-import { Clock, Scheduler } from './scheduler.ts';
+import { Clock, ScheduledEvent, Scheduler } from './scheduler.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -2352,6 +2352,9 @@ export interface ActorSystem<T extends ActorSystemInfo> {
     event: AnyEventObject
   ) => void;
   scheduler: Scheduler;
+  getSnapshot: () => {
+    scheduledEvents: Record<string, ScheduledEvent>;
+  };
 }
 
 export type AnyActorSystem = ActorSystem<any>;

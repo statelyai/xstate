@@ -11,7 +11,10 @@ import {
 let idCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
-  options?: { clock?: Clock }
+  options?: {
+    clock?: Clock;
+    snapshot?: ReturnType<ActorSystem<T>['getSnapshot']>;
+  }
 ): ActorSystem<T> {
   const children = new Map<string, AnyActorRef>();
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
@@ -67,7 +70,12 @@ export function createSystem<T extends ActorSystemInfo>(
 
       target._send(event);
     },
-    scheduler: null as any
+    scheduler: null as any,
+    getSnapshot: () => {
+      return {
+        scheduledEvents: { ...system.scheduler.events }
+      };
+    }
   };
 
   system.scheduler = createScheduler(options?.clock, system);

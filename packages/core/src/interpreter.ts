@@ -401,6 +401,12 @@ export class Actor<TLogic extends AnyActorLogic>
       });
     }
 
+    if (this._snapshot._system?.scheduledEvents) {
+      Object.values(this._snapshot._system.scheduledEvents).forEach((event) => {
+        this.system.scheduler.schedule(event);
+      });
+    }
+
     this.system._register(this.sessionId, this);
     if (this._systemId) {
       this.system._set(this._systemId, this);
@@ -675,6 +681,17 @@ export class Actor<TLogic extends AnyActorLogic>
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
   public getSnapshot(): SnapshotFrom<TLogic> {
+    // Root logic for persisting scheduled events (hacky)
+    if (!this._parent) {
+      const systemSnapshot = this.system.getSnapshot();
+      // @ts-ignore
+      this._snapshot._system = {
+        scheduledEvents: {
+          ...systemSnapshot.scheduledEvents
+        }
+      };
+    }
+
     return this._snapshot;
   }
 }

@@ -1,6 +1,6 @@
 import { AnyActorRef, AnyActorSystem, EventObject } from '.';
 
-interface ScheduledEvent {
+export interface ScheduledEvent {
   id: string;
   event: EventObject;
   startedAt: number; // timestamp
@@ -82,7 +82,8 @@ export function createScheduler(
             clock.clearTimeout(timeout);
           }
           delete timerMap[id];
-          delete scheduledEvents[id];
+          // TODO: this mutation is causing problems with our hacky scheduler restoration approach
+          // delete scheduledEvents[id];
         }
       }
     }
