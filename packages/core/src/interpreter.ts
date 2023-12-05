@@ -144,8 +144,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.system =
       parent?.system ??
       createSystem(this, {
-        clock,
-        snapshot: (options as any)?.snapshot?.['xstate.system']
+        clock
       });
 
     if (inspect && !parent) {
@@ -660,13 +659,6 @@ export class Actor<TLogic extends AnyActorLogic>
   public getPersistedSnapshot(): Snapshot<unknown>;
   public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
     const persisted = this.logic.getPersistedSnapshot(this._snapshot, options);
-    if (!this._parent) {
-      const rootPersistedSnapshot = {
-        ...persisted,
-        'xstate.system': this.system.getPersistedSnapshot()
-      };
-      return rootPersistedSnapshot;
-    }
     return persisted;
   }
 

@@ -138,9 +138,6 @@ describe('promise logic (fromPromise)', () => {
           "input": undefined,
           "output": 42,
           "status": "done",
-          "xstate.system": {
-            "scheduler": {},
-          },
         }
       `);
 
@@ -170,9 +167,6 @@ describe('promise logic (fromPromise)', () => {
         "input": undefined,
         "output": 1,
         "status": "done",
-        "xstate.system": {
-          "scheduler": {},
-        },
       }
     `);
     expect(createdPromises).toBe(1);
@@ -204,9 +198,6 @@ describe('promise logic (fromPromise)', () => {
         "input": undefined,
         "output": undefined,
         "status": "error",
-        "xstate.system": {
-          "scheduler": {},
-        },
       }
     `);
     expect(createdPromises).toBe(1);
@@ -289,9 +280,6 @@ describe('transition function logic (fromTransition)', () => {
       error: undefined,
       context: {
         enabled: 'on'
-      },
-      'xstate.system': {
-        scheduler: {}
       }
     });
 
