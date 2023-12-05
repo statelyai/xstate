@@ -1,17 +1,43 @@
 import {
-  Clock,
-  ScheduledEvent,
-  Scheduler,
-  createScheduler
-} from './scheduler.ts';
-import {
   AnyEventObject,
   ActorSystemInfo,
   AnyActorRef,
   Observer,
   Snapshot,
-  HomomorphicOmit
+  HomomorphicOmit,
+  EventObject
 } from './types.ts';
+
+export interface ScheduledEvent {
+  id: string;
+  event: EventObject;
+  startedAt: number; // timestamp
+  delay: number;
+  source: AnyActorRef;
+  target: AnyActorRef;
+}
+
+export interface Clock {
+  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
+  clearTimeout(id: any): void;
+}
+
+export interface Scheduler {
+  events: { [id: string]: ScheduledEvent };
+  schedule(
+    source: AnyActorRef,
+    data: {
+      id: string | undefined;
+      event: EventObject;
+      delay: number;
+      to?: AnyActorRef;
+    }
+  ): void;
+  cancel(id: string): void;
+  cancelAll(actorRef: AnyActorRef): void;
+  // getPersistedSnapshot(): Record<string, ScheduledEvent>;
+  // start(): void;
+}
 
 export interface ActorSystem<T extends ActorSystemInfo> {
   /**
@@ -67,6 +93,8 @@ export function createSystem<T extends ActorSystemInfo>(
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const observers = new Set<Observer<InspectionEvent>>();
+  const timerMap: { [id: string]: number } = {};
+  const clock = options.clock;
 
   const system: ActorSystem<T> = {
     _bookId: () => `x:${idCounter++}`,
@@ -117,22 +145,59 @@ export function createSystem<T extends ActorSystemInfo>(
 
       target._send(event);
     },
-    scheduler: null!,
+    scheduler: {
+      events: (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
+      schedule: (source, data) => {
+        // TODO: `id` has to be separated from `data.id` completely
+        // `data.id` is supposed to be unique within an actor, `id` is supposed to be unique globally
+        const id = data.id ?? Math.random().toString(36).slice(2);
+        const scheduledEvent: ScheduledEvent = {
+          ...data,
+          id,
+          source,
+          target: data.to || source,
+          startedAt: Date.now()
+        };
+        system.scheduler.events[id] = scheduledEvent;
+
+        const timeout = clock.setTimeout(() => {
+          const target = data.to || source;
+          // TODO: explain this hack, it should also happen sooner, not within this timeout
+          system.scheduler.events[id].target = target;
+          delete system.scheduler.events[id];
+          system._relay(source, target, data.event);
+        }, data.delay);
+
+        timerMap[id] = timeout;
+      },
+      cancel: (id: string) => {
+        const timeout = timerMap[id];
+        if (timeout !== undefined) {
+          clock.clearTimeout(timeout);
+        }
+        delete timerMap[id];
+        delete system.scheduler.events[id];
+      },
+      cancelAll: (actorRef) => {
+        for (const id in system.scheduler.events) {
+          if (system.scheduler.events[id].source === actorRef) {
+            system.scheduler.cancel(id);
+          }
+        }
+      }
+    },
     getPersistedSnapshot: () => {
       return {
-        scheduler: system.scheduler.getPersistedSnapshot()
+        scheduler: { ...system.scheduler.events }
       };
     },
     start: () => {
-      system.scheduler.start();
+      for (const id in system.scheduler.events) {
+        const scheduledEvent = system.scheduler.events[id];
+        system.scheduler.schedule(scheduledEvent.source, scheduledEvent);
+      }
     }
   };
-
-  system.scheduler = createScheduler(
-    options?.clock,
-    system,
-    options?.snapshot && (options.snapshot as any).scheduler
-  );
 
   return system;
 }
