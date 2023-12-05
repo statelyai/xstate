@@ -84,12 +84,12 @@ export type MaybeLazy<T> = T | Lazy<T>;
 /**
  * The full definition of an event, with a string `type`.
  */
-export interface EventObject {
+export type EventObject = {
   /**
    * The type of event that is sent.
    */
   type: string;
-}
+};
 
 export interface AnyEventObject extends EventObject {
   [key: string]: any;
@@ -129,7 +129,7 @@ export interface ActionArgs<
   TEvent extends EventObject
 > extends UnifiedArg<TContext, TExpressionEvent, TEvent> {}
 
-export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
+export type InputFrom<T> = T extends StateMachine<
   infer _TContext,
   infer _TEvent,
   infer _TChildren,
@@ -153,7 +153,7 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
     ? TInput
     : never;
 
-export type OutputFrom<T extends AnyActorLogic> = T extends ActorLogic<
+export type OutputFrom<T> = T extends ActorLogic<
   infer TSnapshot,
   infer _TEvent,
   infer _TInput,
@@ -1362,7 +1362,7 @@ export type MachineConfig<
 
 export interface ProvidedActor {
   src: string;
-  logic: AnyActorLogic;
+  logic: UnknownActorLogic;
   id?: string;
 }
 
@@ -2127,9 +2127,9 @@ export type Snapshot<TOutput> =
  * @template TSystem - The type of the actor system.
  */
 export interface ActorLogic<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TInput = NonReducibleUnknown,
+  in out TSnapshot extends Snapshot<unknown>, // it's invariant because it's also part of `ActorScope["self"]["getSnapshot"]`
+  in out TEvent extends EventObject, // it's invariant because it's also part of `ActorScope["self"]["send"]`
+  in TInput = NonReducibleUnknown,
   TSystem extends AnyActorSystem = AnyActorSystem
 > {
   /** The initial setup/configuration used to create the actor logic. */
@@ -2139,13 +2139,13 @@ export interface ActorLogic<
    * to produce a new state.
    * @param snapshot - The current state.
    * @param message - The incoming message.
-   * @param ctx - The actor scope.
+   * @param actorScope - The actor scope.
    * @returns The new state.
    */
   transition: (
     snapshot: TSnapshot,
     message: TEvent,
-    ctx: ActorScope<TSnapshot, TEvent, TSystem>
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
   /**
    * Called to provide the initial state of the actor.
@@ -2196,12 +2196,7 @@ export type AnyActorLogic = ActorLogic<
   any // system
 >;
 
-export type UnknownActorLogic = ActorLogic<
-  any, // this is invariant and it's hard to figure out a better default than `any`
-  EventObject,
-  NonReducibleUnknown,
-  AnyActorSystem
->;
+export type UnknownActorLogic = ActorLogic<any, any, never, AnyActorSystem>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer TSnapshot, infer _>

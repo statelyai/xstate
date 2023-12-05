@@ -1,5 +1,11 @@
 # Usage with Ember
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 The most straightforward way of using XState with Ember.js is through the [ember-statecharts](https://ember-statecharts.com)-addon.
 You can also write a custom integration layer yourself if you want to.
 

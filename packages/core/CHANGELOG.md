@@ -1,5 +1,17 @@
 # xstate
 
+## 5.0.2
+
+### Patch Changes
+
+- [#4552](https://github.com/statelyai/xstate/pull/4552) [`80b9afbae`](https://github.com/statelyai/xstate/commit/80b9afbaeb943cc1378c0c67631b207d402ab557) Thanks [@Andarist](https://github.com/Andarist)! - Fixed defining `actors` with `input` within `setup`.
+
+## 5.0.1
+
+### Patch Changes
+
+- [#4551](https://github.com/statelyai/xstate/pull/4551) [`5041764b2`](https://github.com/statelyai/xstate/commit/5041764b2ca740bd0e355dd50f3c76e75ca55686) Thanks [@laurakalbag](https://github.com/laurakalbag)! - Flag that docs in this repo are deprecated in favour of docs at stately.ai/docs/xstate
+
 ## 5.0.0
 
 ### Major Changes

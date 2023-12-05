@@ -46,10 +46,11 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 Get started by forking one of these templates on CodeSandbox:
 
-| Template                                                                                                        |                          |
-| --------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| [XState Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)       | TypeScript, no framework |
-| [XState + React Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts) | TypeScript, React        |
+| Template                                                                                                           |                          |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| [🤖 XState Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)       | TypeScript, no framework |
+| [⚛️ XState + React Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts) | TypeScript, React        |
+| [💚 XState + Vue Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vue-ts)     | TypeScript, Vue          |
 
 ## Super quick start
 

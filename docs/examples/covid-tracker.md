@@ -1,5 +1,11 @@
 # Covid Tracker
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 This example shows a current statistics about COVID-19 pandemic filtered by countries using XState and React. It contains:
 
 - `covidMachine` - handles country selection, including a "sub-state" responsible for fetching the list of all countries across the globe

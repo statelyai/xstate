@@ -289,12 +289,7 @@ describe('spawning promises', () => {
   it('should be able to spawn a referenced promise', (done) => {
     const promiseMachine = setup({
       actors: {
-        somePromise: fromPromise(
-          () =>
-            new Promise<string>((res) => {
-              res('response');
-            })
-        )
+        somePromise: fromPromise(() => Promise.resolve('response'))
       }
     }).createMachine({
       types: {} as {
