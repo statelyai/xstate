@@ -70,10 +70,10 @@ export function createScheduler(
 
       const timeout = clock.setTimeout(() => {
         const target = data.to || source;
-        // TODO: explain this hack
+        // TODO: explain this hack, it should also happen sooner, not within this timeout
         scheduledEvents[id].target = target;
-        system._relay(source, target, data.event);
         delete scheduledEvents[id];
+        system._relay(source, target, data.event);
       }, data.delay);
 
       timerMap[id] = timeout;
