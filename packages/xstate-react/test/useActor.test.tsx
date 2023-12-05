@@ -1,7 +1,8 @@
-import { BehaviorSubject } from 'rxjs';
 import { act, fireEvent, screen } from '@testing-library/react';
+import { sleep } from '@xstate-repo/jest-utils';
 import * as React from 'react';
 import { useState } from 'react';
+import { BehaviorSubject } from 'rxjs';
 import {
   Actor,
   ActorLogicFrom,
@@ -1028,8 +1029,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     expect(spy.mock.calls).toEqual([[42], [100]]);
   });
 
-  it('should work with delays', () => {
-    jest.useFakeTimers();
+  it('should execute a delayed transition of the initial state', async () => {
     const machine = createMachine({
       initial: 'one',
       states: {
@@ -1051,8 +1051,8 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
     expect(container.textContent).toBe('one');
 
-    act(() => {
-      jest.advanceTimersByTime(10);
+    await act(async () => {
+      await sleep(10);
     });
 
     expect(container.textContent).toBe('two');

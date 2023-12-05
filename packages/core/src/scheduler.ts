@@ -46,12 +46,10 @@ export function createScheduler(
   system: AnyActorSystem,
   snapshot: unknown
 ): Scheduler {
-  const scheduledEvents: { [id: string]: ScheduledEvent } =
-    (snapshot as any) ?? {};
   const timerMap: { [id: string]: number } = {};
 
   const scheduler: Scheduler = {
-    events: scheduledEvents,
+    events: (snapshot as any) ?? {},
     schedule: (
       source: AnyActorRef,
       data: {
@@ -71,13 +69,13 @@ export function createScheduler(
         target: data.to || source,
         startedAt: Date.now()
       };
-      scheduledEvents[id] = scheduledEvent;
+      scheduler.events[id] = scheduledEvent;
 
       const timeout = clock.setTimeout(() => {
         const target = data.to || source;
         // TODO: explain this hack, it should also happen sooner, not within this timeout
-        scheduledEvents[id].target = target;
-        delete scheduledEvents[id];
+        scheduler.events[id].target = target;
+        delete scheduler.events[id];
         system._relay(source, target, data.event);
       }, data.delay);
 
@@ -89,24 +87,24 @@ export function createScheduler(
         clock.clearTimeout(timeout);
       }
       delete timerMap[id];
-      delete scheduledEvents[id];
+      delete scheduler.events[id];
     },
     /**
      * Called when the actorRef is unregistered
      */
     cancelAll: (actorRef) => {
-      for (const id in scheduledEvents) {
-        if (scheduledEvents[id].source === actorRef) {
+      for (const id in scheduler.events) {
+        if (scheduler.events[id].source === actorRef) {
           scheduler.cancel(id);
         }
       }
     },
     getPersistedSnapshot: () => {
-      return { ...scheduledEvents };
+      return { ...scheduler.events };
     },
     start: () => {
-      for (const id in scheduledEvents) {
-        const scheduledEvent = scheduledEvents[id];
+      for (const id in scheduler.events) {
+        const scheduledEvent = scheduler.events[id];
         scheduler.schedule(scheduledEvent.source, scheduledEvent);
       }
     }
