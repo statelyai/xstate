@@ -1,19 +1,66 @@
-import { Clock, createScheduler } from './scheduler.ts';
+import {
+  Clock,
+  ScheduledEvent,
+  Scheduler,
+  createScheduler
+} from './scheduler.ts';
 import {
   AnyEventObject,
-  ActorSystem,
   ActorSystemInfo,
   AnyActorRef,
   Observer,
-  Snapshot
+  Snapshot,
+  HomomorphicOmit
 } from './types.ts';
+
+export interface ActorSystem<T extends ActorSystemInfo> {
+  /**
+   * @internal
+   */
+  _bookId: () => string;
+  /**
+   * @internal
+   */
+  _register: (sessionId: string, actorRef: AnyActorRef) => string;
+  /**
+   * @internal
+   */
+  _unregister: (actorRef: AnyActorRef) => void;
+  /**
+   * @internal
+   */
+  _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
+  inspect: (observer: Observer<InspectionEvent>) => void;
+  /**
+   * @internal
+   */
+  _sendInspectionEvent: (
+    event: HomomorphicOmit<InspectionEvent, 'rootId'>
+  ) => void;
+  /**
+   * @internal
+   */
+  _relay: (
+    source: AnyActorRef | undefined,
+    target: AnyActorRef,
+    event: AnyEventObject
+  ) => void;
+  scheduler: Scheduler;
+  getPersistedSnapshot: () => {
+    scheduler: Record<string, ScheduledEvent>;
+  };
+  start: () => void;
+}
+
+export type AnyActorSystem = ActorSystem<any>;
 
 let idCounter = 0;
 export function createSystem<T extends ActorSystemInfo>(
   rootActor: AnyActorRef,
-  options?: {
-    clock?: Clock;
-    snapshot?: ReturnType<ActorSystem<T>['getSnapshot']>;
+  options: {
+    clock: Clock;
+    snapshot?: unknown;
   }
 ): ActorSystem<T> {
   const children = new Map<string, AnyActorRef>();
@@ -71,14 +118,21 @@ export function createSystem<T extends ActorSystemInfo>(
       target._send(event);
     },
     scheduler: null!,
-    getSnapshot: () => {
+    getPersistedSnapshot: () => {
       return {
-        scheduledEvents: { ...system.scheduler.events }
+        scheduler: system.scheduler.getPersistedSnapshot()
       };
+    },
+    start: () => {
+      system.scheduler.start();
     }
   };
 
-  system.scheduler = createScheduler(options?.clock, system);
+  system.scheduler = createScheduler(
+    options?.clock,
+    system,
+    options?.snapshot && (options.snapshot as any).scheduler
+  );
 
   return system;
 }

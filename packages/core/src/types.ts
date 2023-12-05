@@ -1,20 +1,20 @@
-import type { StateNode } from './StateNode.ts';
 import type { MachineSnapshot } from './State.ts';
-import type { Actor, ProcessingStatus } from './interpreter.ts';
 import type { StateMachine } from './StateMachine.ts';
-import {
-  TypegenDisabled,
-  ResolveTypegenMeta,
-  TypegenConstraint,
-  MarkAllImplementationsAsProvided,
-  AreAllImplementationsAssumedToBeProvided
-} from './typegenTypes.ts';
+import type { StateNode } from './StateNode.ts';
+import { AssignArgs } from './actions/assign.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
+import type { Actor, ProcessingStatus } from './interpreter.ts';
+import { Clock } from './scheduler.ts';
 import { Spawner } from './spawn.ts';
-import { AssignArgs } from './actions/assign.ts';
-import { InspectionEvent } from './system.js';
-import { Clock, ScheduledEvent, Scheduler } from './scheduler.ts';
+import { AnyActorSystem, InspectionEvent } from './system.js';
+import {
+  AreAllImplementationsAssumedToBeProvided,
+  MarkAllImplementationsAsProvided,
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -118,7 +118,7 @@ export interface UnifiedArg<
     >,
     TEvent
   >;
-  system: ActorSystem<any>;
+  system: AnyActorSystem;
 }
 
 export type MachineContext = Record<string, any>;
@@ -1931,7 +1931,7 @@ export interface ActorRef<
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
-  system?: ActorSystem<any>;
+  system?: AnyActorSystem;
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
@@ -2034,7 +2034,7 @@ export type InterpreterFrom<
         >,
         TEvent,
         TInput,
-        ActorSystem<any>
+        AnyActorSystem
       >
     >
   : never;
@@ -2083,7 +2083,7 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
 export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TSystem extends ActorSystem<any> = ActorSystem<any>
+  TSystem extends AnyActorSystem = AnyActorSystem
 > {
   self: ActorRef<TSnapshot, TEvent>;
   id: string;
@@ -2130,7 +2130,7 @@ export interface ActorLogic<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput = NonReducibleUnknown,
-  TSystem extends ActorSystem<any> = ActorSystem<any>
+  TSystem extends AnyActorSystem = AnyActorSystem
 > {
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
@@ -2200,7 +2200,7 @@ export type UnknownActorLogic = ActorLogic<
   any, // this is invariant and it's hard to figure out a better default than `any`
   EventObject,
   NonReducibleUnknown,
-  ActorSystem<any>
+  AnyActorSystem
 >;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
@@ -2317,47 +2317,6 @@ export type TagsFrom<TMachine extends AnyStateMachine> = Parameters<
 export interface ActorSystemInfo {
   actors: Record<string, AnyActorRef>;
 }
-
-export interface ActorSystem<T extends ActorSystemInfo> {
-  /**
-   * @internal
-   */
-  _bookId: () => string;
-  /**
-   * @internal
-   */
-  _register: (sessionId: string, actorRef: AnyActorRef) => string;
-  /**
-   * @internal
-   */
-  _unregister: (actorRef: AnyActorRef) => void;
-  /**
-   * @internal
-   */
-  _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
-  get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  inspect: (observer: Observer<InspectionEvent>) => void;
-  /**
-   * @internal
-   */
-  _sendInspectionEvent: (
-    event: HomomorphicOmit<InspectionEvent, 'rootId'>
-  ) => void;
-  /**
-   * @internal
-   */
-  _relay: (
-    source: AnyActorRef | undefined,
-    target: AnyActorRef,
-    event: AnyEventObject
-  ) => void;
-  scheduler: Scheduler;
-  getSnapshot: () => {
-    scheduledEvents: Record<string, ScheduledEvent>;
-  };
-}
-
-export type AnyActorSystem = ActorSystem<any>;
 
 export type RequiredActorOptions<TActor extends ProvidedActor> =
   | (undefined extends TActor['id'] ? never : 'id')

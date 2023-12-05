@@ -1,12 +1,11 @@
-import { XSTATE_STOP } from '../constants';
+import { XSTATE_STOP } from '../constants.ts';
+import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
-  ActorSystem,
-  AnyActorSystem,
   NonReducibleUnknown,
   Snapshot
-} from '../types';
+} from '../types.ts';
 
 export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
@@ -32,7 +31,7 @@ export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
   TInput, // input
-  ActorSystem<any>
+  AnyActorSystem
 >;
 
 export type PromiseActorRef<TOutput> = ActorRefFrom<

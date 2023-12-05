@@ -2,23 +2,23 @@ import { of } from 'rxjs';
 import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
 import {
   ActorRef,
-  ActorSystem,
+  ActorRefFrom,
+  AnyActorRef,
+  AnyStateMachine,
+  EventObject,
+  Snapshot,
   assign,
+  createActor,
   createMachine,
   fromEventObservable,
   fromObservable,
   fromPromise,
   fromTransition,
-  createActor,
   sendTo,
-  stopChild,
-  Snapshot,
-  EventObject,
-  ActorRefFrom,
   spawnChild,
-  AnyActorRef,
-  AnyStateMachine
+  stopChild
 } from '../src/index.ts';
+import { ActorSystem } from '../src/system.ts';
 
 describe('system', () => {
   it('should register an invoked actor', (done) => {

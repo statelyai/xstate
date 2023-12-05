@@ -1,4 +1,5 @@
-import { AnyActorRef, AnyActorSystem, EventObject } from '.';
+import { AnyActorRef, EventObject } from '.';
+import { AnyActorSystem } from './system';
 
 export interface ScheduledEvent {
   id: string;
@@ -27,6 +28,8 @@ export interface Scheduler {
   ): void;
   cancel(id: string): void;
   cancelAll(actorRef: AnyActorRef): void;
+  getPersistedSnapshot(): Record<string, ScheduledEvent>;
+  start(): void;
 }
 
 const defaultClock: Clock = {
@@ -39,10 +42,12 @@ const defaultClock: Clock = {
 };
 
 export function createScheduler(
-  clock: Clock = defaultClock,
-  system: AnyActorSystem
+  clock: Clock,
+  system: AnyActorSystem,
+  snapshot: unknown
 ): Scheduler {
-  const scheduledEvents: { [id: string]: ScheduledEvent } = {};
+  const scheduledEvents: { [id: string]: ScheduledEvent } =
+    (snapshot as any) ?? {};
   const timerMap: { [id: string]: number } = {};
 
   const scheduler: Scheduler = {
@@ -94,6 +99,15 @@ export function createScheduler(
         if (scheduledEvents[id].source === actorRef) {
           scheduler.cancel(id);
         }
+      }
+    },
+    getPersistedSnapshot: () => {
+      return { ...scheduledEvents };
+    },
+    start: () => {
+      for (const id in scheduledEvents) {
+        const scheduledEvent = scheduledEvents[id];
+        scheduler.schedule(scheduledEvent.source, scheduledEvent);
       }
     }
   };

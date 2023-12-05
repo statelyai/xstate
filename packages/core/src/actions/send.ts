@@ -129,7 +129,6 @@ function retryResolveSendTo(
     delay: number | undefined;
   }
 ) {
-  debugger;
   if (typeof params.to === 'string') {
     params.to = snapshot.children[params.to];
   }

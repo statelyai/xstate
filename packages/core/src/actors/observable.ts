@@ -1,13 +1,13 @@
 import { XSTATE_STOP } from '../constants';
+import { AnyActorSystem } from '../system.ts';
 import {
-  Subscribable,
   ActorLogic,
-  EventObject,
-  Subscription,
-  AnyActorSystem,
   ActorRefFrom,
+  EventObject,
+  NonReducibleUnknown,
   Snapshot,
-  NonReducibleUnknown
+  Subscribable,
+  Subscription
 } from '../types';
 
 const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';

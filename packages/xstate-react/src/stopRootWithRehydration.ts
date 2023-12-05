@@ -27,7 +27,11 @@ export function stopRootWithRehydration(actorRef: AnyActorRef) {
     // as each subscription should have its own cleanup logic and that should be called each such reconnect
     (ref as any).observers = new Set();
   });
+  const persistedDelayedEvents = { ...actorRef.system!.scheduler.events };
+
   actorRef.stop();
+
+  actorRef.system!.scheduler.events = persistedDelayedEvents;
   persistedSnapshots.forEach(([ref, snapshot]) => {
     (ref as any)._processingStatus = 0;
     (ref as any)._snapshot = snapshot;

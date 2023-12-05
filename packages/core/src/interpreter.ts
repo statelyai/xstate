@@ -1,40 +1,38 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
+import { XSTATE_STOP } from './constants.ts';
+import { devToolsAdapter } from './dev/index.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
   createInitEvent
 } from './eventUtils.ts';
-import { XSTATE_STOP } from './constants.ts';
-import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
+import { Clock } from './scheduler.ts';
 import { symbolObservable } from './symbolObservable.ts';
-import { createSystem } from './system.ts';
+import { AnyActorSystem, createSystem } from './system.ts';
 import {
   AreAllImplementationsAssumedToBeProvided,
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
   ActorScope,
-  ActorSystem,
   AnyActorLogic,
   AnyStateMachine,
-  EventFromLogic,
-  SnapshotFrom,
-  AnyActorRef,
   DoneActorEvent,
-  Snapshot
+  EventFromLogic,
+  Snapshot,
+  SnapshotFrom
 } from './types.ts';
 import {
+  ActorOptions,
   ActorRef,
   EventObject,
   InteropSubscribable,
-  ActorOptions,
   Observer,
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
-import { Clock } from './scheduler.ts';
 
 export const $$ACTOR_TYPE = 1;
 
@@ -121,7 +119,7 @@ export class Actor<TLogic extends AnyActorLogic>
   /**
    * The system to which this actor belongs.
    */
-  public system: ActorSystem<any>;
+  public system: AnyActorSystem;
   private _doneEvent?: DoneActorEvent;
 
   public src: string | AnyActorLogic;
@@ -144,7 +142,12 @@ export class Actor<TLogic extends AnyActorLogic>
     const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
       resolvedOptions;
 
-    this.system = parent?.system ?? createSystem(this, { clock });
+    this.system =
+      parent?.system ??
+      createSystem(this, {
+        clock,
+        snapshot: (options as any)?.snapshot?.['xstate.system']
+      });
 
     if (inspect && !parent) {
       // Always inspect at the system-level
@@ -401,12 +404,6 @@ export class Actor<TLogic extends AnyActorLogic>
       });
     }
 
-    // if (this._snapshot._system?.scheduledEvents) {
-    //   Object.values(this._snapshot._system.scheduledEvents).forEach((event) => {
-    //     this.system.scheduler.schedule(event);
-    //   });
-    // }
-
     this.system._register(this.sessionId, this);
     if (this._systemId) {
       this.system._set(this._systemId, this);
@@ -438,6 +435,10 @@ export class Actor<TLogic extends AnyActorLogic>
       case 'error':
         this._error((this._snapshot as any).error);
         return this;
+    }
+
+    if (!this._parent) {
+      this.system.start();
     }
 
     if (this.logic.start) {
@@ -663,7 +664,7 @@ export class Actor<TLogic extends AnyActorLogic>
     if (!this._parent) {
       const rootPersistedSnapshot = {
         ...persisted,
-        'xstate.system': this.system.getSnapshot()
+        'xstate.system': this.system.getPersistedSnapshot()
       };
       return rootPersistedSnapshot;
     }
