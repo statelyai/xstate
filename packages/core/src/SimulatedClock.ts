@@ -73,6 +73,8 @@ export class SimulatedClock implements SimulatedClock {
         timeout.fn.call(null);
       }
     }
+
+    this._flushing = false;
   }
   public increment(ms: number): void {
     this._now += ms;
