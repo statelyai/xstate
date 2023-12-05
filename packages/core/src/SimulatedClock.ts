@@ -1,4 +1,4 @@
-import { Clock } from './scheduler.ts';
+import { Clock } from './system.ts';
 
 export interface SimulatedClock extends Clock {
   start(speed: number): void;

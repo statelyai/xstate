@@ -5,9 +5,8 @@ import { AssignArgs } from './actions/assign.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import type { Actor, ProcessingStatus } from './interpreter.ts';
-import { Clock } from './scheduler.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, InspectionEvent } from './system.js';
+import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
 import {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,

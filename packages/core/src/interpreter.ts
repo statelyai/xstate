@@ -8,9 +8,8 @@ import {
   createInitEvent
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
-import { Clock } from './scheduler.ts';
 import { symbolObservable } from './symbolObservable.ts';
-import { AnyActorSystem, createSystem } from './system.ts';
+import { AnyActorSystem, Clock, createSystem } from './system.ts';
 import {
   AreAllImplementationsAssumedToBeProvided,
   MissingImplementationsError
