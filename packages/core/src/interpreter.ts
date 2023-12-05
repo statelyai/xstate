@@ -401,11 +401,11 @@ export class Actor<TLogic extends AnyActorLogic>
       });
     }
 
-    if (this._snapshot._system?.scheduledEvents) {
-      Object.values(this._snapshot._system.scheduledEvents).forEach((event) => {
-        this.system.scheduler.schedule(event);
-      });
-    }
+    // if (this._snapshot._system?.scheduledEvents) {
+    //   Object.values(this._snapshot._system.scheduledEvents).forEach((event) => {
+    //     this.system.scheduler.schedule(event);
+    //   });
+    // }
 
     this.system._register(this.sessionId, this);
     if (this._systemId) {

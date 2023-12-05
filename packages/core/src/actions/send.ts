@@ -1,12 +1,12 @@
 import isDevelopment from '#is-development';
+import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActorRef,
-  AnyActorScope,
   AnyActorRef,
+  AnyActorScope,
   AnyEventObject,
-  AnyActor,
   AnyMachineSnapshot,
   Cast,
   DelayExpr,
@@ -14,15 +14,13 @@ import {
   EventObject,
   InferEvent,
   MachineContext,
+  NoInfer,
+  ParameterizedObject,
   SendExpr,
   SendToActionOptions,
-  SendToActionParams,
   SpecialTargets,
-  UnifiedArg,
-  ParameterizedObject,
-  NoInfer
+  UnifiedArg
 } from '../types.ts';
-import { XSTATE_ERROR } from '../constants.ts';
 
 function resolveSendTo(
   actorScope: AnyActorScope,
@@ -131,6 +129,7 @@ function retryResolveSendTo(
     delay: number | undefined;
   }
 ) {
+  debugger;
   if (typeof params.to === 'string') {
     params.to = snapshot.children[params.to];
   }
@@ -139,19 +138,17 @@ function retryResolveSendTo(
 function executeSendTo(
   actorScope: AnyActorScope,
   params: {
-    to: AnyActorRef | string;
+    to: AnyActorRef;
     event: EventObject;
     id: string | undefined;
     delay: number | undefined;
   }
 ) {
   if (typeof params.delay === 'number') {
-    actorScope.system.scheduler.schedule({
-      ...params,
-      source: actorScope.self,
-      target: params.to ?? actorScope.self,
-      id: params.id ?? Math.random().toString()
-    });
+    actorScope.system.scheduler.schedule(
+      actorScope.self,
+      params as typeof params & { delay: number }
+    );
     return;
   }
 

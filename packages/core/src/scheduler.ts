@@ -16,13 +16,15 @@ export interface Clock {
 
 export interface Scheduler {
   events: { [id: string]: ScheduledEvent };
-  schedule(data: {
-    id: string;
-    event: EventObject;
-    delay: number;
-    source: AnyActorRef;
-    target: AnyActorRef;
-  }): void;
+  schedule(
+    source: AnyActorRef,
+    data: {
+      id: string | undefined;
+      event: EventObject;
+      delay: number;
+      to?: AnyActorRef;
+    }
+  ): void;
   cancel(id: string): void;
   cancelAll(actorRef: AnyActorRef): void;
 }
@@ -45,25 +47,36 @@ export function createScheduler(
 
   const scheduler: Scheduler = {
     events: scheduledEvents,
-    schedule: (data: {
-      id: string;
-      event: EventObject;
-      delay: number;
-      source: AnyActorRef;
-      target: AnyActorRef;
-    }) => {
+    schedule: (
+      source: AnyActorRef,
+      data: {
+        id: string | undefined;
+        event: EventObject;
+        delay: number;
+        to: AnyActorRef;
+      }
+    ) => {
+      // TODO: `id` has to be separated from `data.id` completely
+      // `data.id` is supposed to be unique within an actor, `id` is supposed to be unique globally
+      const id = data.id ?? Math.random().toString(36).slice(2);
       const scheduledEvent: ScheduledEvent = {
         ...data,
+        id,
+        source,
+        target: data.to || source,
         startedAt: Date.now()
       };
-      scheduledEvents[data.id] = scheduledEvent;
+      scheduledEvents[id] = scheduledEvent;
 
       const timeout = clock.setTimeout(() => {
-        system._relay(data.source, data.target, data.event);
-        delete scheduledEvents[data.id];
+        const target = data.to || source;
+        // TODO: explain this hack
+        scheduledEvents[id].target = target;
+        system._relay(source, target, data.event);
+        delete scheduledEvents[id];
       }, data.delay);
 
-      timerMap[data.id] = timeout;
+      timerMap[id] = timeout;
     },
     cancel: (id: string) => {
       const timeout = timerMap[id];
