@@ -42,36 +42,6 @@ export function useIdleActorRef(
   return actorRef;
 }
 
-export function useActorRef0<TLogic extends AnyActorLogic>(
-  machine: TLogic,
-  options: ActorOptions<TLogic> = {},
-  observerOrListener?:
-    | Observer<SnapshotFrom<TLogic>>
-    | ((value: SnapshotFrom<TLogic>) => void)
-): ActorRefFrom<TLogic> {
-  const actorRef = useIdleActorRef(machine, options);
-
-  useEffect(() => {
-    if (!observerOrListener) {
-      return;
-    }
-    let sub = actorRef.subscribe(toObserver(observerOrListener));
-    return () => {
-      sub.unsubscribe();
-    };
-  }, [observerOrListener]);
-
-  useEffect(() => {
-    actorRef.start();
-
-    return () => {
-      stopRootWithRehydration(actorRef);
-    };
-  }, [actorRef]);
-
-  return actorRef as any;
-}
-
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   options: ActorOptions<TLogic> = {},
