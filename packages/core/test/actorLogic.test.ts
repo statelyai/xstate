@@ -289,6 +289,9 @@ describe('transition function logic (fromTransition)', () => {
       error: undefined,
       context: {
         enabled: 'on'
+      },
+      'xstate.system': {
+        scheduledEvents: {}
       }
     });
 
