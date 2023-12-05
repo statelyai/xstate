@@ -11,7 +11,6 @@ import {
   SnapshotFrom
 } from 'xstate';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
-import { stopRootWithRehydration } from './stopRootWithRehydration';
 
 export function useIdleActorRef(
   logic: AnyActorLogic,
@@ -96,12 +95,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      // old actor ref! (closure)
-      // actorRef.observers.clear();
-      // actorRef.stop();
-      // actorRef._processingStatus = 0;
-      // actorRef._snapshot = snapshot;
-      stopRootWithRehydration(actorRef);
+      actorRef.stop();
     };
   }, [actorRef]);
 

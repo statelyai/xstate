@@ -98,7 +98,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     const { rerender } = render(<App value={1} />);
 
-    expect(actual).toEqual(suiteKey === 'strict' ? [1, 1] : [1]);
+    expect(actual).toEqual(suiteKey === 'strict' ? [1] : [1]);
 
     actual.length = 0;
     rerender(<App value={42} />);
@@ -383,7 +383,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
         if (actor.getSnapshot().status === 'active') {
           actor.send({ type: 'FINISH' });
         }
-      }, []);
+      }, [actor]);
 
       return null;
     };
@@ -443,7 +443,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
         if (actor.getSnapshot().status === 'active') {
           actor.send({ type: 'FINISH' });
         }
-      }, []);
+      }, [actor]);
 
       return null;
     };

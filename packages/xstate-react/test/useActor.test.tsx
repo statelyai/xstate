@@ -803,7 +803,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       // BEFORE the service is ready.
       React.useLayoutEffect(() => {
         send({ type: 'FINISH' });
-      }, []);
+      }, [send]);
 
       return null;
     };

@@ -8,6 +8,10 @@ import {
 import { useActorRef } from './useActorRef.ts';
 import { useSelector } from './useSelector.ts';
 
+function identity<T>(value: T) {
+  return value;
+}
+
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options: ActorOptions<TLogic> = {}
@@ -24,7 +28,7 @@ export function useActor<TLogic extends AnyActorLogic>(
   }
 
   const actorRef = useActorRef(logic, options as any);
-  const snapshot = useSelector(actorRef, (state) => state);
+  const snapshot = useSelector(actorRef, identity);
 
-  return [snapshot, actorRef.send, actorRef];
+  return [snapshot, actorRef.send.bind(actorRef), actorRef];
 }
