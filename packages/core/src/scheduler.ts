@@ -27,21 +27,23 @@ export interface Scheduler {
   cancelAll(actorRef: AnyActorRef): void;
 }
 
-export function createScheduler(
-  clock: Clock = {
-    setTimeout: (fn, ms) => {
-      return setTimeout(fn, ms);
-    },
-    clearTimeout: (id) => {
-      return clearTimeout(id);
-    }
+const defaultClock: Clock = {
+  setTimeout: (fn, ms) => {
+    return setTimeout(fn, ms);
   },
+  clearTimeout: (id) => {
+    return clearTimeout(id);
+  }
+};
+
+export function createScheduler(
+  clock: Clock = defaultClock,
   system: AnyActorSystem
 ): Scheduler {
   const scheduledEvents: { [id: string]: ScheduledEvent } = {};
   const timerMap: { [id: string]: number } = {};
 
-  return {
+  const scheduler: Scheduler = {
     events: scheduledEvents,
     schedule: (data: {
       id: string;
@@ -77,15 +79,10 @@ export function createScheduler(
     cancelAll: (actorRef) => {
       for (const id in scheduledEvents) {
         if (scheduledEvents[id].source === actorRef) {
-          const timeout = timerMap[id];
-          if (timeout !== undefined) {
-            clock.clearTimeout(timeout);
-          }
-          delete timerMap[id];
-          // TODO: this mutation is causing problems with our hacky scheduler restoration approach
-          // delete scheduledEvents[id];
+          scheduler.cancel(id);
         }
       }
     }
   };
+  return scheduler;
 }

@@ -70,7 +70,7 @@ export function createSystem<T extends ActorSystemInfo>(
 
       target._send(event);
     },
-    scheduler: null as any,
+    scheduler: null!,
     getSnapshot: () => {
       return {
         scheduledEvents: { ...system.scheduler.events }

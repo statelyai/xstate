@@ -138,6 +138,9 @@ describe('promise logic (fromPromise)', () => {
           "input": undefined,
           "output": 42,
           "status": "done",
+          "xstate.system": {
+            "scheduledEvents": {},
+          },
         }
       `);
 
@@ -167,6 +170,9 @@ describe('promise logic (fromPromise)', () => {
         "input": undefined,
         "output": 1,
         "status": "done",
+        "xstate.system": {
+          "scheduledEvents": {},
+        },
       }
     `);
     expect(createdPromises).toBe(1);
@@ -198,6 +204,9 @@ describe('promise logic (fromPromise)', () => {
         "input": undefined,
         "output": undefined,
         "status": "error",
+        "xstate.system": {
+          "scheduledEvents": {},
+        },
       }
     `);
     expect(createdPromises).toBe(1);

@@ -659,7 +659,15 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public getPersistedSnapshot(): Snapshot<unknown>;
   public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
-    return this.logic.getPersistedSnapshot(this._snapshot, options);
+    const persisted = this.logic.getPersistedSnapshot(this._snapshot, options);
+    if (!this._parent) {
+      const rootPersistedSnapshot = {
+        ...persisted,
+        'xstate.system': this.system.getSnapshot()
+      };
+      return rootPersistedSnapshot;
+    }
+    return persisted;
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
@@ -681,17 +689,6 @@ export class Actor<TLogic extends AnyActorLogic>
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
   public getSnapshot(): SnapshotFrom<TLogic> {
-    // Root logic for persisting scheduled events (hacky)
-    if (!this._parent) {
-      const systemSnapshot = this.system.getSnapshot();
-      // @ts-ignore
-      this._snapshot._system = {
-        scheduledEvents: {
-          ...systemSnapshot.scheduledEvents
-        }
-      };
-    }
-
     return this._snapshot;
   }
 }
