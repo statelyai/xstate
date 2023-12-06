@@ -143,19 +143,20 @@ function executeSendTo(
     delay: number | undefined;
   }
 ) {
-  if (typeof params.delay === 'number') {
-    actorScope.system.scheduler.schedule(
-      actorScope.self,
-      params as typeof params & { delay: number }
-    );
-    return;
-  }
-
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorScope.defer(() => {
-    const { to, event } = params;
-    actorScope?.system._relay(
+    const { to, event, delay } = params;
+    if (typeof delay === 'number') {
+      actorScope.system.scheduler.schedule(
+        actorScope.self,
+        to,
+        event,
+        params as typeof params & { delay: number }
+      );
+      return;
+    }
+    actorScope.system._relay(
       actorScope.self,
       // at this point, in a deferred task, it should already be mutated by retryResolveSendTo
       // if it initially started as a string
