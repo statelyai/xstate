@@ -25,11 +25,11 @@ export interface Clock {
 export interface Scheduler {
   schedule(
     source: AnyActorRef,
+    target: AnyActorRef,
+    event: EventObject,
     data: {
       id: string | undefined;
-      event: EventObject;
       delay: number;
-      to?: AnyActorRef;
     }
   ): void;
   cancel(source: AnyActorRef, id: string): void;
@@ -122,7 +122,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const clock = options.clock;
 
   const scheduler: Scheduler = {
-    schedule: (source, data) => {
+    schedule: (source, target, event, data) => {
       // TODO: `id` has to be separated from `data.id` completely
       // `data.id` is supposed to be unique within an actor, `id` is supposed to be unique globally
       const id = data.id ?? Math.random().toString(36).slice(2);
@@ -130,21 +130,16 @@ export function createSystem<T extends ActorSystemInfo>(
         ...data,
         id,
         source,
-        target: data.to || source,
+        target,
+        event,
         startedAt: Date.now()
       };
       const scheduledEventId = createScheduledEventId(source, id);
       system._snapshot._scheduledEvents[scheduledEventId] = scheduledEvent;
 
       const timeout = clock.setTimeout(() => {
-        if (!system._snapshot._scheduledEvents[scheduledEventId]) {
-          return;
-        }
-        const target = data.to || source;
-        // TODO: explain this hack, it should also happen sooner, not within this timeout
-        system._snapshot._scheduledEvents[scheduledEventId].target = target;
         delete system._snapshot._scheduledEvents[scheduledEventId];
-        system._relay(source, target, data.event);
+        system._relay(source, target, event);
       }, data.delay);
 
       timerMap[scheduledEventId] = timeout;
@@ -240,7 +235,8 @@ export function createSystem<T extends ActorSystemInfo>(
       for (const id in system._snapshot._scheduledEvents) {
         const scheduledEvent =
           system._snapshot._scheduledEvents[id as ScheduledEventId];
-        scheduler.schedule(scheduledEvent.source, scheduledEvent);
+        const { source, target, event } = scheduledEvent;
+        scheduler.schedule(source, target, event, scheduledEvent);
       }
     }
   };

@@ -34,7 +34,9 @@ function resolveCancel(
 }
 
 function executeCancel(actorScope: AnyActorScope, resolvedSendId: string) {
-  actorScope.system.scheduler.cancel(actorScope.self, resolvedSendId);
+  actorScope.defer(() => {
+    actorScope.system.scheduler.cancel(actorScope.self, resolvedSendId);
+  });
 }
 
 export interface CancelAction<

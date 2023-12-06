@@ -85,10 +85,15 @@ function executeRaise(
   }
 ) {
   if (typeof params.delay === 'number') {
-    actorScope.system.scheduler.schedule(
-      actorScope.self,
-      params as typeof params & { delay: number }
-    );
+    actorScope.defer(() => {
+      const self = actorScope.self;
+      actorScope.system.scheduler.schedule(
+        self,
+        self,
+        params.event,
+        params as typeof params & { delay: number }
+      );
+    });
     return;
   }
 }
