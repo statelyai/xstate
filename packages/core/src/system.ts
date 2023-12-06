@@ -53,7 +53,7 @@ function createScheduledEventId(
   actorRef: AnyActorRef,
   id: string
 ): ScheduledEventId {
-  return `${getSystemPath(actorRef)}.${id}` as ScheduledEventId;
+  return `${actorRef.sessionId}.${id}` as ScheduledEventId;
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
