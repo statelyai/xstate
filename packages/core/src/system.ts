@@ -27,16 +27,14 @@ export interface Scheduler {
     source: AnyActorRef,
     target: AnyActorRef,
     event: EventObject,
-    data: {
-      id: string | undefined;
-      delay: number;
-    }
+    delay: number,
+    id: string | undefined
   ): void;
   cancel(source: AnyActorRef, id: string): void;
   cancelAll(actorRef: AnyActorRef): void;
 }
 
-export type ScheduledEventId = string & { __scheduledEventId: never };
+type ScheduledEventId = string & { __scheduledEventId: never };
 
 function getSystemPath(actorRef: AnyActorRef): string {
   let systemPath = actorRef.id;
@@ -122,51 +120,50 @@ export function createSystem<T extends ActorSystemInfo>(
   const clock = options.clock;
 
   const scheduler: Scheduler = {
-    schedule: (source, target, event, data) => {
-      // TODO: `id` has to be separated from `data.id` completely
-      // `data.id` is supposed to be unique within an actor, `id` is supposed to be unique globally
-      const id = data.id ?? Math.random().toString(36).slice(2);
+    schedule: (
+      source,
+      target,
+      event,
+      delay,
+      id = Math.random().toString(36).slice(2)
+    ) => {
       const scheduledEvent: ScheduledEvent = {
-        ...data,
-        id,
         source,
         target,
         event,
+        delay,
+        id,
         startedAt: Date.now()
       };
       const scheduledEventId = createScheduledEventId(source, id);
       system._snapshot._scheduledEvents[scheduledEventId] = scheduledEvent;
 
       const timeout = clock.setTimeout(() => {
+        delete timerMap[scheduledEventId];
         delete system._snapshot._scheduledEvents[scheduledEventId];
+        
         system._relay(source, target, event);
-      }, data.delay);
+      }, delay);
 
       timerMap[scheduledEventId] = timeout;
     },
     cancel: (source, id: string) => {
       const scheduledEventId = createScheduledEventId(source, id);
       const timeout = timerMap[scheduledEventId];
-      if (timeout !== undefined) {
-        clock.clearTimeout(timeout);
-      }
+
       delete timerMap[scheduledEventId];
       delete system._snapshot._scheduledEvents[scheduledEventId];
+
+      clock.clearTimeout(timeout);
     },
     cancelAll: (actorRef) => {
-      for (const id in system._snapshot._scheduledEvents) {
-        const scheduledEventId = id as ScheduledEventId;
-        if (
-          system._snapshot._scheduledEvents[scheduledEventId].source ===
-          actorRef
-        ) {
-          // scheduler.cancel(actorRef, id);
-          const timeout = timerMap[scheduledEventId];
-          if (timeout !== undefined) {
-            clock.clearTimeout(timeout);
-          }
-          delete timerMap[scheduledEventId];
-          delete system._snapshot._scheduledEvents[scheduledEventId];
+      for (const scheduledEventId in system._snapshot._scheduledEvents) {
+        const scheduledEvent =
+          system._snapshot._scheduledEvents[
+            scheduledEventId as ScheduledEventId
+          ];
+        if (scheduledEvent.source === actorRef) {
+          scheduler.cancel(actorRef, scheduledEvent.id);
         }
       }
     }
@@ -232,11 +229,12 @@ export function createSystem<T extends ActorSystemInfo>(
       };
     },
     start: () => {
-      for (const id in system._snapshot._scheduledEvents) {
-        const scheduledEvent =
-          system._snapshot._scheduledEvents[id as ScheduledEventId];
-        const { source, target, event } = scheduledEvent;
-        scheduler.schedule(source, target, event, scheduledEvent);
+      const scheduledEvets = system._snapshot._scheduledEvents;
+      system._snapshot._scheduledEvents = {};
+      for (const scheduledId in scheduledEvets) {
+        const { source, target, event, delay, id } =
+          scheduledEvets[scheduledId as ScheduledEventId];
+        scheduler.schedule(source, target, event, delay, id);
       }
     }
   };
