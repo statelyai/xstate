@@ -99,6 +99,47 @@ export function createSystem<T extends ActorSystemInfo>(
   const timerMap: { [id: string]: number } = {};
   const clock = options.clock;
 
+  const scheduler: Scheduler = {
+    schedule: (source, data) => {
+      // TODO: `id` has to be separated from `data.id` completely
+      // `data.id` is supposed to be unique within an actor, `id` is supposed to be unique globally
+      const id = data.id ?? Math.random().toString(36).slice(2);
+      const scheduledEvent: ScheduledEvent = {
+        ...data,
+        id,
+        source,
+        target: data.to || source,
+        startedAt: Date.now()
+      };
+      system._snapshot._scheduledEvents[id] = scheduledEvent;
+
+      const timeout = clock.setTimeout(() => {
+        const target = data.to || source;
+        // TODO: explain this hack, it should also happen sooner, not within this timeout
+        system._snapshot._scheduledEvents[id].target = target;
+        delete system._snapshot._scheduledEvents[id];
+        system._relay(source, target, data.event);
+      }, data.delay);
+
+      timerMap[id] = timeout;
+    },
+    cancel: (id: string) => {
+      const timeout = timerMap[id];
+      if (timeout !== undefined) {
+        clock.clearTimeout(timeout);
+      }
+      delete timerMap[id];
+      delete system._snapshot._scheduledEvents[id];
+    },
+    cancelAll: (actorRef) => {
+      for (const id in system._snapshot._scheduledEvents) {
+        if (system._snapshot._scheduledEvents[id].source === actorRef) {
+          scheduler.cancel(id);
+        }
+      }
+    }
+  };
+
   const system: ActorSystem<T> = {
     _snapshot: {
       _scheduledEvents:
@@ -152,46 +193,7 @@ export function createSystem<T extends ActorSystemInfo>(
 
       target._send(event);
     },
-    scheduler: {
-      schedule: (source, data) => {
-        // TODO: `id` has to be separated from `data.id` completely
-        // `data.id` is supposed to be unique within an actor, `id` is supposed to be unique globally
-        const id = data.id ?? Math.random().toString(36).slice(2);
-        const scheduledEvent: ScheduledEvent = {
-          ...data,
-          id,
-          source,
-          target: data.to || source,
-          startedAt: Date.now()
-        };
-        system._snapshot._scheduledEvents[id] = scheduledEvent;
-
-        const timeout = clock.setTimeout(() => {
-          const target = data.to || source;
-          // TODO: explain this hack, it should also happen sooner, not within this timeout
-          system._snapshot._scheduledEvents[id].target = target;
-          delete system._snapshot._scheduledEvents[id];
-          system._relay(source, target, data.event);
-        }, data.delay);
-
-        timerMap[id] = timeout;
-      },
-      cancel: (id: string) => {
-        const timeout = timerMap[id];
-        if (timeout !== undefined) {
-          clock.clearTimeout(timeout);
-        }
-        delete timerMap[id];
-        delete system._snapshot._scheduledEvents[id];
-      },
-      cancelAll: (actorRef) => {
-        for (const id in system._snapshot._scheduledEvents) {
-          if (system._snapshot._scheduledEvents[id].source === actorRef) {
-            system.scheduler.cancel(id);
-          }
-        }
-      }
-    },
+    scheduler,
     getSnapshot: () => {
       return {
         _scheduledEvents: { ...system._snapshot._scheduledEvents }
@@ -200,7 +202,7 @@ export function createSystem<T extends ActorSystemInfo>(
     start: () => {
       for (const id in system._snapshot._scheduledEvents) {
         const scheduledEvent = system._snapshot._scheduledEvents[id];
-        system.scheduler.schedule(scheduledEvent.source, scheduledEvent);
+        scheduler.schedule(scheduledEvent.source, scheduledEvent);
       }
     }
   };
