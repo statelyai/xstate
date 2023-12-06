@@ -1023,5 +1023,12 @@ describe('composable actor logic', () => {
     expect(() => {
       actor.getPersistedSnapshot();
     }).not.toThrow();
+
+    expect(actor.getPersistedSnapshot()).toEqual(
+      expect.objectContaining({
+        status: 'active',
+        value: 'done'
+      })
+    );
   });
 });
