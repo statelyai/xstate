@@ -1,13 +1,12 @@
+import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorScope,
-  ActorSystem,
-  EventObject,
   ActorRefFrom,
-  AnyActorSystem,
-  Snapshot,
-  NonReducibleUnknown
-} from '../types';
+  ActorScope,
+  EventObject,
+  NonReducibleUnknown,
+  Snapshot
+} from '../types.ts';
 
 export type TransitionSnapshot<TContext> = Snapshot<undefined> & {
   context: TContext;
@@ -87,7 +86,7 @@ export type TransitionActorRef<
 export function fromTransition<
   TContext,
   TEvent extends EventObject,
-  TSystem extends ActorSystem<any>,
+  TSystem extends AnyActorSystem,
   TInput extends NonReducibleUnknown
 >(
   transition: (

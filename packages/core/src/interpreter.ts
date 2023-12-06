@@ -1,35 +1,33 @@
 import isDevelopment from '#is-development';
 import { Mailbox } from './Mailbox.ts';
+import { XSTATE_STOP } from './constants.ts';
+import { devToolsAdapter } from './dev/index.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
   createInitEvent
 } from './eventUtils.ts';
-import { XSTATE_STOP } from './constants.ts';
-import { devToolsAdapter } from './dev/index.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
-import { createSystem } from './system.ts';
+import { AnyActorSystem, Clock, createSystem } from './system.ts';
 import {
   AreAllImplementationsAssumedToBeProvided,
   MissingImplementationsError
 } from './typegenTypes.ts';
 import type {
   ActorScope,
-  ActorSystem,
   AnyActorLogic,
   AnyStateMachine,
-  EventFromLogic,
-  SnapshotFrom,
-  AnyActorRef,
   DoneActorEvent,
-  Snapshot
+  EventFromLogic,
+  Snapshot,
+  SnapshotFrom
 } from './types.ts';
 import {
+  ActorOptions,
   ActorRef,
   EventObject,
   InteropSubscribable,
-  ActorOptions,
   Observer,
   Subscription
 } from './types.ts';
@@ -47,11 +45,6 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 
 export type Listener = () => void;
 export type ErrorListener = (error: any) => void;
-
-export interface Clock {
-  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
-  clearTimeout(id: any): void;
-}
 
 // those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
 export enum ProcessingStatus {
@@ -98,8 +91,6 @@ export class Actor<TLogic extends AnyActorLogic>
     this._process.bind(this)
   );
 
-  private delayedEventsMap: Record<string, unknown> = {};
-
   private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
   private logger: (...args: any[]) => void;
 
@@ -127,7 +118,7 @@ export class Actor<TLogic extends AnyActorLogic>
   /**
    * The system to which this actor belongs.
    */
-  public system: ActorSystem<any>;
+  public system: AnyActorSystem;
   private _doneEvent?: DoneActorEvent;
 
   public src: string | AnyActorLogic;
@@ -150,7 +141,11 @@ export class Actor<TLogic extends AnyActorLogic>
     const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
       resolvedOptions;
 
-    this.system = parent?.system ?? createSystem(this);
+    this.system = parent
+      ? parent.system
+      : createSystem(this, {
+          clock
+        });
 
     if (inspect && !parent) {
       // Always inspect at the system-level
@@ -440,6 +435,10 @@ export class Actor<TLogic extends AnyActorLogic>
         return this;
     }
 
+    if (!this._parent) {
+      this.system.start();
+    }
+
     if (this.logic.start) {
       try {
         this.logic.start(this._snapshot, this._actorScope);
@@ -580,9 +579,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     // Cancel all delayed events
-    for (const key of Object.keys(this.delayedEventsMap)) {
-      this.clock.clearTimeout(this.delayedEventsMap[key]);
-    }
+    this.system.scheduler.cancelAll(this);
 
     // TODO: mailbox.reset
     this.mailbox.clear();
@@ -629,40 +626,6 @@ export class Actor<TLogic extends AnyActorLogic>
       );
     }
     this.system._relay(undefined, this, event);
-  }
-
-  /**
-   * TODO: figure out a way to do this within the machine
-   * @internal
-   */
-  public delaySend(params: {
-    event: EventObject;
-    id: string | undefined;
-    delay: number;
-    to?: AnyActorRef;
-  }): void {
-    const { event, id, delay } = params;
-    const timerId = this.clock.setTimeout(() => {
-      this.system._relay(
-        this,
-        params.to ?? this,
-        event as EventFromLogic<TLogic>
-      );
-    }, delay);
-
-    // TODO: consider the rehydration story here
-    if (id) {
-      this.delayedEventsMap[id] = timerId;
-    }
-  }
-
-  /**
-   * TODO: figure out a way to do this within the machine
-   * @internal
-   */
-  public cancel(sendId: string | number): void {
-    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
-    delete this.delayedEventsMap[sendId];
   }
 
   private attachDevTools(): void {

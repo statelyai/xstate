@@ -1339,20 +1339,18 @@ describe('interpreter', () => {
       let count = 0;
       const intervalService = createActor(intervalMachine).start();
 
-      expect(() => {
-        const state$ = from(intervalService);
+      const state$ = from(intervalService);
 
-        state$.subscribe({
-          next: () => {
-            count += 1;
-          },
-          error: undefined,
-          complete: () => {
-            expect(count).toEqual(5);
-            done();
-          }
-        });
-      }).not.toThrow();
+      state$.subscribe({
+        next: () => {
+          count += 1;
+        },
+        error: undefined,
+        complete: () => {
+          expect(count).toEqual(5);
+          done();
+        }
+      });
     });
 
     it('should be unsubscribable', (done) => {
