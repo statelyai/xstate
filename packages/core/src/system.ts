@@ -32,8 +32,30 @@ export interface Scheduler {
       to?: AnyActorRef;
     }
   ): void;
-  cancel(id: string): void;
+  cancel(source: AnyActorRef, id: string): void;
   cancelAll(actorRef: AnyActorRef): void;
+}
+
+export type ScheduledEventId = string & { __scheduledEventId: never };
+
+function getSystemPath(actorRef: AnyActorRef): string {
+  let systemPath = actorRef.id;
+
+  let ancestor = actorRef._parent;
+
+  while (ancestor) {
+    systemPath = ancestor.id + '.' + systemPath;
+    ancestor = ancestor._parent;
+  }
+
+  return systemPath;
+}
+
+function createScheduledEventId(
+  actorRef: AnyActorRef,
+  id: string
+): ScheduledEventId {
+  return `${getSystemPath(actorRef)}.${id}` as ScheduledEventId;
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
@@ -77,7 +99,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
    * @internal
    */
   _snapshot: {
-    _scheduledEvents: Record<string, ScheduledEvent>;
+    _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
   };
   start: () => void;
 }
@@ -96,7 +118,7 @@ export function createSystem<T extends ActorSystemInfo>(
   const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
   const observers = new Set<Observer<InspectionEvent>>();
-  const timerMap: { [id: string]: number } = {};
+  const timerMap: { [id: ScheduledEventId]: number } = {};
   const clock = options.clock;
 
   const scheduler: Scheduler = {
@@ -111,30 +133,45 @@ export function createSystem<T extends ActorSystemInfo>(
         target: data.to || source,
         startedAt: Date.now()
       };
-      system._snapshot._scheduledEvents[id] = scheduledEvent;
+      const scheduledEventId = createScheduledEventId(source, id);
+      system._snapshot._scheduledEvents[scheduledEventId] = scheduledEvent;
 
       const timeout = clock.setTimeout(() => {
+        if (!system._snapshot._scheduledEvents[scheduledEventId]) {
+          return;
+        }
         const target = data.to || source;
         // TODO: explain this hack, it should also happen sooner, not within this timeout
-        system._snapshot._scheduledEvents[id].target = target;
-        delete system._snapshot._scheduledEvents[id];
+        system._snapshot._scheduledEvents[scheduledEventId].target = target;
+        delete system._snapshot._scheduledEvents[scheduledEventId];
         system._relay(source, target, data.event);
       }, data.delay);
 
-      timerMap[id] = timeout;
+      timerMap[scheduledEventId] = timeout;
     },
-    cancel: (id: string) => {
-      const timeout = timerMap[id];
+    cancel: (source, id: string) => {
+      const scheduledEventId = createScheduledEventId(source, id);
+      const timeout = timerMap[scheduledEventId];
       if (timeout !== undefined) {
         clock.clearTimeout(timeout);
       }
-      delete timerMap[id];
-      delete system._snapshot._scheduledEvents[id];
+      delete timerMap[scheduledEventId];
+      delete system._snapshot._scheduledEvents[scheduledEventId];
     },
     cancelAll: (actorRef) => {
       for (const id in system._snapshot._scheduledEvents) {
-        if (system._snapshot._scheduledEvents[id].source === actorRef) {
-          scheduler.cancel(id);
+        const scheduledEventId = id as ScheduledEventId;
+        if (
+          system._snapshot._scheduledEvents[scheduledEventId].source ===
+          actorRef
+        ) {
+          // scheduler.cancel(actorRef, id);
+          const timeout = timerMap[scheduledEventId];
+          if (timeout !== undefined) {
+            clock.clearTimeout(timeout);
+          }
+          delete timerMap[scheduledEventId];
+          delete system._snapshot._scheduledEvents[scheduledEventId];
         }
       }
     }
@@ -201,7 +238,8 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     start: () => {
       for (const id in system._snapshot._scheduledEvents) {
-        const scheduledEvent = system._snapshot._scheduledEvents[id];
+        const scheduledEvent =
+          system._snapshot._scheduledEvents[id as ScheduledEventId];
         scheduler.schedule(scheduledEvent.source, scheduledEvent);
       }
     }
