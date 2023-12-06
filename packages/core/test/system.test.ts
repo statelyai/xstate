@@ -281,7 +281,7 @@ describe('system', () => {
         systemId: 'test'
       },
       entry: ({ system }) => {
-        expect(system!.get('test')).toBeDefined();
+        expect(system.get('test')).toBeDefined();
       }
     });
 
@@ -300,7 +300,7 @@ describe('system', () => {
       {
         actions: {
           myAction: ({ system }) => {
-            expect(system!.get('test')).toBeDefined();
+            expect(system.get('test')).toBeDefined();
           }
         }
       }
@@ -319,7 +319,7 @@ describe('system', () => {
       states: {
         a: {
           entry: assign(({ system }) => {
-            expect(system!.get('test')).toBeDefined();
+            expect(system.get('test')).toBeDefined();
           })
         }
       }
@@ -339,8 +339,8 @@ describe('system', () => {
         a: {
           entry: sendTo(
             ({ system }) => {
-              expect(system!.get('test')).toBeDefined();
-              return system!.get('test');
+              expect(system.get('test')).toBeDefined();
+              return system.get('test');
             },
             { type: 'FOO' }
           )

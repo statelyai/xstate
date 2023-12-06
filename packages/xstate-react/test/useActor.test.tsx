@@ -987,7 +987,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [_state, _send, actor] = useActor(m);
 
       React.useEffect(() => {
-        actor.system!.get('child')!.send({ type: 'PING' });
+        actor.system.get('child')!.send({ type: 'PING' });
       });
 
       return null;

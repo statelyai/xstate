@@ -18,7 +18,7 @@ export function stopRootWithRehydration(actorRef: AnyActorRef) {
   // we do it to avoid setState in useEffect when the effect gets "reconnected"
   // this currently only happens in Strict Effects but it simulates the Offscreen aka Activity API
   // it also just allows us to end up with a somewhat more predictable behavior for the users
-  const systemSnapshot = actorRef.system!.getSnapshot();
+  const systemSnapshot = actorRef.system.getSnapshot();
   const persistedSnapshots: Array<[AnyActorRef, Snapshot<unknown>]> = [];
   forEachActor(actorRef, (ref) => {
     persistedSnapshots.push([ref, ref.getSnapshot()]);
@@ -31,7 +31,7 @@ export function stopRootWithRehydration(actorRef: AnyActorRef) {
 
   actorRef.stop();
 
-  actorRef.system!._snapshot = systemSnapshot;
+  (actorRef.system as any)._snapshot = systemSnapshot;
   persistedSnapshots.forEach(([ref, snapshot]) => {
     (ref as any)._processingStatus = 0;
     (ref as any)._snapshot = snapshot;

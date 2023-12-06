@@ -141,11 +141,11 @@ export class Actor<TLogic extends AnyActorLogic>
     const { clock, logger, parent, syncSnapshot, id, systemId, inspect } =
       resolvedOptions;
 
-    this.system =
-      parent?.system ??
-      createSystem(this, {
-        clock
-      });
+    this.system = parent
+      ? parent.system
+      : createSystem(this, {
+          clock
+        });
 
     if (inspect && !parent) {
       // Always inspect at the system-level
@@ -658,8 +658,7 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public getPersistedSnapshot(): Snapshot<unknown>;
   public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
-    const persisted = this.logic.getPersistedSnapshot(this._snapshot, options);
-    return persisted;
+    return this.logic.getPersistedSnapshot(this._snapshot, options);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
