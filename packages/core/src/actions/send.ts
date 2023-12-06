@@ -146,13 +146,14 @@ function executeSendTo(
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorScope.defer(() => {
-    const { to, event, delay } = params;
+    const { to, event, delay, id } = params;
     if (typeof delay === 'number') {
       actorScope.system.scheduler.schedule(
         actorScope.self,
         to,
         event,
-        params as typeof params & { delay: number }
+        delay,
+        id
       );
       return;
     }
