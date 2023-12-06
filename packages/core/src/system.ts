@@ -36,19 +36,6 @@ export interface Scheduler {
 
 type ScheduledEventId = string & { __scheduledEventId: never };
 
-function getSystemPath(actorRef: AnyActorRef): string {
-  let systemPath = actorRef.id;
-
-  let ancestor = actorRef._parent;
-
-  while (ancestor) {
-    systemPath = ancestor.id + '.' + systemPath;
-    ancestor = ancestor._parent;
-  }
-
-  return systemPath;
-}
-
 function createScheduledEventId(
   actorRef: AnyActorRef,
   id: string
@@ -141,7 +128,7 @@ export function createSystem<T extends ActorSystemInfo>(
       const timeout = clock.setTimeout(() => {
         delete timerMap[scheduledEventId];
         delete system._snapshot._scheduledEvents[scheduledEventId];
-        
+
         system._relay(source, target, event);
       }, delay);
 
