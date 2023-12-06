@@ -984,7 +984,7 @@ describe('composable actor logic', () => {
     });
   });
 
-  it('higher-level logic should work', () => {
+  it('higher-level logic wrapping a machine should be able to persist a snapshot', () => {
     const logged: any[] = [];
     function withLogging<T extends ActorLogic<any, any>>(actorLogic: T) {
       const enhancedLogic: T = {
