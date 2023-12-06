@@ -29,28 +29,65 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
-## Packages
-
-| Package                                                                                       | Description                                                                  |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| 🤖 `xstate`                                                                                   | Core finite state machine and statecharts library + interpreter              |
-| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph)     | Graph traversal utilities for XState                                         |
-| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)     | React hooks and utilities for using XState in React applications             |
-| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)         | Vue composition functions and utilities for using XState in Vue applications |
-| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte)   | Svelte utilities for using XState in Svelte applications                     |
-| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)     | Solid hooks and utilities for using XState in Solid applications             |
-| [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test)       | Model-Based-Testing utilities (using XState) for testing any software        |
-| [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) | Inspection utilities for XState                                              |
-
 ## Templates
 
 Get started by forking one of these templates on CodeSandbox:
 
-| Template                                                                                                           |                          |
-| ------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| [🤖 XState Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)       | TypeScript, no framework |
-| [⚛️ XState + React Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts) | TypeScript, React        |
-| [💚 XState + Vue Template](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vue-ts)     | TypeScript, Vue          |
+<table>
+<thead>
+<tr><th>Template</th><th></th></tr>
+</thead>
+<tbody>
+<tr>
+<td>
+
+[🤖 XState Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vanilla-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+
+</td>
+<td>
+
+- XState v5
+- TypeScript
+- _No framework_
+
+</td>
+</tr>
+<tr>
+<td>
+
+[⚛️ XState + React Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/react-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+
+</td>
+<td>
+
+- [React](https://react.dev/)
+- XState v5
+- TypeScript
+
+</td>
+</tr>
+<tr>
+<td>
+
+[💚 XState + Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vue-ts)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vue-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+
+</td>
+<td>
+
+- [Vue](https://vuejs.org/)
+- XState v5
+- TypeScript
+
+</td>
+</tr>
+</tbody>
+</table>
 
 ## Super quick start
 
@@ -121,6 +158,19 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 - [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/statelyai/xstate/discussions))
+
+## Packages
+
+| Package                                                                                       | Description                                                                  |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 🤖 `xstate`                                                                                   | Core finite state machine and statecharts library + interpreter              |
+| [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph)     | Graph traversal utilities for XState                                         |
+| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)     | React hooks and utilities for using XState in React applications             |
+| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)         | Vue composition functions and utilities for using XState in Vue applications |
+| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte)   | Svelte utilities for using XState in Svelte applications                     |
+| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)     | Solid hooks and utilities for using XState in Solid applications             |
+| [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test)       | Model-Based-Testing utilities (using XState) for testing any software        |
+| [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) | Inspection utilities for XState                                              |
 
 ## Finite State Machines
 
