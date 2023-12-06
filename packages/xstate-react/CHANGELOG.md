@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.1
+
+### Patch Changes
+
+- [#4497](https://github.com/statelyai/xstate/pull/4497) [`d7f220225`](https://github.com/statelyai/xstate/commit/d7f220225c34808a96383099e1f9bfd3abd13962) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix an issue where `after` transitions do not work in React strict mode. Delayed events (including from `after` transitions) should now work as expected in all React modes.
+
 ## 4.0.0
 
 ### Major Changes

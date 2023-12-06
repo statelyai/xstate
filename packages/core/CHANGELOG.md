@@ -1,5 +1,15 @@
 # xstate
 
+## 5.1.0
+
+### Minor Changes
+
+- [#4497](https://github.com/statelyai/xstate/pull/4497) [`d7f220225`](https://github.com/statelyai/xstate/commit/d7f220225c34808a96383099e1f9bfd3abd13962) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Internal: abstract the scheduler for delayed events so that it is handled centrally by the `system`.
+
+### Patch Changes
+
+- [#4513](https://github.com/statelyai/xstate/pull/4513) [`80818017b`](https://github.com/statelyai/xstate/commit/80818017b23e4b6c8e40d0e64854f69ffc9f7307) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix higher-level logic for state machine logic
+
 ## 5.0.2
 
 ### Patch Changes
