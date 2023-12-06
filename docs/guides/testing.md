@@ -1,12 +1,15 @@
 # Testing Machines
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [testing using XState](https://stately.ai/docs/testing) in our new docs.
+:::
+
 In general, testing state machines and statecharts should be done by testing the _overall behavior_ of the machine; that is:
 
 > Given a **current state**, when some **sequence of events** occurs, the system under test should be in **a certain state** and/or exhibit a specific **output**.
-
-:::tip Check out our new docs!
-🆕 Find more about [model-based testing using XState](https://stately.ai/docs/xstate-v4/xstate/model-based-testing/intro) in our new docs.
-:::
 
 This follows [behavior-driven development (BDD)](https://en.wikipedia.org/wiki/Behavior-driven_development) and [black-box testing](https://en.wikipedia.org/wiki/Black-box_testing) strategies. The internal workings of a machine should not be directly tested; rather, the observed behavior should be tested instead. This makes testing machines closer to integration or end-to-end (E2E) tests than unit tests.
 

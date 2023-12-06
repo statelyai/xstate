@@ -1,10 +1,13 @@
 # Parallel State Nodes
 
-In statecharts, you can declare a state as a **parallel state**. This means that all its child states will run _at the same time_. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#parallel-states).
+:::warning These XState v4 docs are no longer maintained
 
-:::tip Check out our new docs!
-🆕 Find more about [parallel states in XState](https://stately.ai/docs/parallel-states) as well as a [no-code introduction to parallel states](https://stately.ai/docs/state-machines-and-statecharts#parallel-states).
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [parallel states in XState](https://stately.ai/docs/parallel-states) as well as a [no-code introduction to parallel states](https://stately.ai/docs/editor-states-and-transitions#parallel-states).
 :::
+
+In statecharts, you can declare a state as a **parallel state**. This means that all its child states will run _at the same time_. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#parallel-states).
 
 ## API
 

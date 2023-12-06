@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "3.0.0-beta.6",
+  "version": "3.0.0",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -23,11 +23,22 @@
         "import": "./dist/xstate-vue.cjs.mjs",
         "default": "./dist/xstate-vue.cjs.js"
       },
+      "development": {
+        "module": "./dist/xstate-vue.development.esm.js",
+        "import": "./dist/xstate-vue.development.cjs.mjs",
+        "default": "./dist/xstate-vue.development.cjs.js"
+      },
       "module": "./dist/xstate-vue.esm.js",
       "import": "./dist/xstate-vue.cjs.mjs",
       "default": "./dist/xstate-vue.cjs.js"
     },
     "./package.json": "./package.json"
+  },
+  "imports": {
+    "#is-development": {
+      "development": "./src/true.ts",
+      "default": "./src/false.ts"
+    }
   },
   "sideEffects": false,
   "files": [
@@ -43,7 +54,7 @@
   },
   "peerDependencies": {
     "vue": "^3.0.0",
-    "xstate": "^5.0.0-beta.47"
+    "xstate": "^5.0.2"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -55,6 +66,6 @@
     "@testing-library/vue": "^6.6.1",
     "@vue/compiler-sfc": "^3.0.11",
     "vue": "^3.0.11",
-    "xstate": "5.0.0-beta.47"
+    "xstate": "5.0.2"
   }
 }

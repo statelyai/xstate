@@ -83,7 +83,7 @@ describe('useMachine hook', () => {
   ).start();
   actorRef.send({ type: 'FETCH' });
 
-  const persistedFetchState = actorRef.getPersistedState();
+  const persistedFetchState = actorRef.getPersistedSnapshot();
 
   const Fetcher = (props: {
     onFetch: () => Promise<any>;
@@ -99,7 +99,7 @@ describe('useMachine hook', () => {
       actors: {
         fetchData: fromPromise(mergedProps.onFetch)
       },
-      state: mergedProps.persistedState
+      snapshot: mergedProps.persistedState
     });
 
     return (
@@ -1582,12 +1582,12 @@ describe('useMachine (strict mode)', () => {
       });
 
       const actorRef = createActor(testMachine).start();
-      const persistedState = JSON.stringify(actorRef.getPersistedState());
+      const persistedState = JSON.stringify(actorRef.getPersistedSnapshot());
       actorRef.stop();
 
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
-          state: JSON.parse(persistedState)
+          snapshot: JSON.parse(persistedState)
         });
 
         return (

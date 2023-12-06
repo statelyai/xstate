@@ -111,12 +111,7 @@ export function createSpawner(
       if (actorRef._processingStatus === ProcessingStatus.Stopped) {
         return;
       }
-      try {
-        actorRef.start?.();
-      } catch (err) {
-        actorScope.self.send(createErrorActorEvent(actorRef.id, err));
-        return;
-      }
+      actorRef.start();
     });
     return actorRef;
   };

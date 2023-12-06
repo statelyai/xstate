@@ -1,5 +1,11 @@
 # Showcase
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 There are many developers and teams using XState [in the wild](https://github.com/statelyai/xstate/issues/255), to help control various aspects of their applications, in the frontend and backend, and in many different frameworks (or even without a framework!):
 
 - [Nhost](https://nhost.io) uses XState to manage the authentication state and transitions of their [Vanilla, React and Vue libraries](https://github.com/nhost/nhost). Nhost is an Open Source Firebase Alternative with GraphQL.
@@ -18,5 +24,6 @@ There are many developers and teams using XState [in the wild](https://github.co
 - "We're now using xstate to power a couple of the more complicated interactions at my place in our Behavior Insights Engine at [Maritz](https://www.maritz.com/).
 - At [Cypress](https://cypress.io) we chose XState to manage state for our open source [Real World App](https://github.com/cypress-io/cypress-realworld-app). The app is a payment application used to demonstrate real-world usage of Cypress testing methods, patterns, and workflows. [The machines](https://github.com/cypress-io/cypress-realworld-app/tree/develop/src/machines) are used for several different types of scenarios present in modern, responsive web applications.
 - "We use XState at the backend in projects to control entity state" (https://www.linkedin.com/in/haltentech-team)
+- [Sunflower Land](https://sunflower-land.com/), a decentralized and community driven MetaVerse style game, uses XState to control and manage the user and session using a State Machine approach. ([see here](https://github.com/sunflower-land/sunflower-land))
 - "I used XState to create an (open source) version of the classic Tower of Hanoi puzzle game. Two state machines are used, one for screen interaction logic and the other for game interaction logic. Also includes automated test generation with model based testing tools." [Tower of Hanoi app](https://towerofhanoi.app)
 - "XState completely changed how I think about programming complex logic for fullstack applications - all core logic for streaming summaries on [YouTube Summarized](https://www.youtubesummarized.com) is now encapsulated in XState machines both on the frontend and backend. The visual editor makes it easy to spot edge cases and error states that should be handled, resulting in a very robust and stable system."

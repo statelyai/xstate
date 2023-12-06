@@ -83,23 +83,23 @@ type UnknownInlineGuard = Guard<
 interface BuiltinGuard {
   (): boolean;
   check: (
-    state: AnyMachineSnapshot,
+    snapshot: AnyMachineSnapshot,
     guardArgs: GuardArgs<any, any>,
     params: unknown
   ) => boolean;
 }
 
 function checkStateIn(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   _: GuardArgs<any, any>,
   { stateValue }: { stateValue: StateValue }
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
-    const target = state.machine.getStateNodeById(stateValue);
-    return state._nodes.some((sn) => sn === target);
+    const target = snapshot.machine.getStateNodeById(stateValue);
+    return snapshot._nodes.some((sn) => sn === target);
   }
 
-  return state.matches(stateValue);
+  return snapshot.matches(stateValue);
 }
 
 export function stateIn<
@@ -131,11 +131,11 @@ export function stateIn<
 }
 
 function checkNot(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
-  return !evaluateGuard(guards[0], context, event, state);
+  return !evaluateGuard(guards[0], context, event, snapshot);
 }
 
 export function not<
@@ -164,11 +164,13 @@ export function not<
 }
 
 function checkAnd(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
-  return guards.every((guard) => evaluateGuard(guard, context, event, state));
+  return guards.every((guard) =>
+    evaluateGuard(guard, context, event, snapshot)
+  );
 }
 
 export function and<
@@ -206,11 +208,11 @@ export function and<
 }
 
 function checkOr(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   { context, event }: GuardArgs<any, any>,
   { guards }: { guards: readonly UnknownGuard[] }
 ) {
-  return guards.some((guard) => evaluateGuard(guard, context, event, state));
+  return guards.some((guard) => evaluateGuard(guard, context, event, snapshot));
 }
 
 export function or<
@@ -255,9 +257,9 @@ export function evaluateGuard<
   guard: UnknownGuard | UnknownInlineGuard,
   context: TContext,
   event: TExpressionEvent,
-  state: AnyMachineSnapshot
+  snapshot: AnyMachineSnapshot
 ): boolean {
-  const { machine } = state;
+  const { machine } = snapshot;
   const isInline = typeof guard === 'function';
 
   const resolved = isInline
@@ -275,7 +277,7 @@ export function evaluateGuard<
   }
 
   if (typeof resolved !== 'function') {
-    return evaluateGuard(resolved!, context, event, state);
+    return evaluateGuard(resolved!, context, event, snapshot);
   }
 
   const guardArgs = {
@@ -302,7 +304,7 @@ export function evaluateGuard<
   const builtinGuard = resolved as unknown as BuiltinGuard;
 
   return builtinGuard.check(
-    state,
+    snapshot,
     guardArgs,
     resolved // this holds all params
   );
