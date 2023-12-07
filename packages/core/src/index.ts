@@ -30,7 +30,8 @@ export type {
   InspectedActorEvent,
   InspectedEventEvent,
   InspectedSnapshotEvent,
-  InspectionEvent
+  InspectionEvent,
+  ActorSystem
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export { and, not, or, stateIn } from './guards.ts';

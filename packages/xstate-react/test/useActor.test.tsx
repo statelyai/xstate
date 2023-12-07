@@ -1,7 +1,8 @@
-import { BehaviorSubject } from 'rxjs';
 import { act, fireEvent, screen } from '@testing-library/react';
+import { sleep } from '@xstate-repo/jest-utils';
 import * as React from 'react';
 import { useState } from 'react';
+import { BehaviorSubject } from 'rxjs';
 import {
   Actor,
   ActorLogicFrom,
@@ -986,7 +987,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [_state, _send, actor] = useActor(m);
 
       React.useEffect(() => {
-        actor.system!.get('child')!.send({ type: 'PING' });
+        actor.system.get('child')!.send({ type: 'PING' });
       });
 
       return null;
@@ -1026,5 +1027,34 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     subject.next(100);
 
     expect(spy.mock.calls).toEqual([[42], [100]]);
+  });
+
+  it('should execute a delayed transition of the initial state', async () => {
+    const machine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          after: {
+            10: 'two'
+          }
+        },
+        two: {}
+      }
+    });
+
+    const App = () => {
+      const [state] = useActor(machine);
+      return <>{state.value}</>;
+    };
+
+    const { container } = render(<App />);
+
+    expect(container.textContent).toBe('one');
+
+    await act(async () => {
+      await sleep(10);
+    });
+
+    expect(container.textContent).toBe('two');
   });
 });
