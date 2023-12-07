@@ -96,4 +96,47 @@ describe('toPromise', () => {
       expect(err).toEqual(new Error('oh noes'));
     }
   });
+
+  it('should immediately resolve for a done actor', async () => {
+    const machine = createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final'
+        }
+      },
+      output: {
+        count: 100
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().status).toBe('done');
+    expect(actor.getSnapshot().output).toEqual({ count: 100 });
+
+    const output = await toPromise(actor);
+
+    expect(output).toEqual({ count: 100 });
+  });
+
+  it('should immediately reject for an actor that had an error', async () => {
+    expect.assertions(3);
+    const machine = createMachine({
+      entry: () => {
+        throw new Error('oh noes');
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().status).toBe('error');
+    expect(actor.getSnapshot().error).toEqual(new Error('oh noes'));
+
+    try {
+      await toPromise(actor);
+    } catch (err) {
+      expect(err).toEqual(new Error('oh noes'));
+    }
+  });
 });
