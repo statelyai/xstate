@@ -67,4 +67,33 @@ describe('toPromise', () => {
 
     expect(data).toEqual({ count: 42 });
   });
+
+  it('should handle errors', async () => {
+    const machine = createMachine({
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            REJECT: {
+              actions: () => {
+                throw new Error('oh noes');
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    setTimeout(() => {
+      actor.send({ type: 'REJECT' });
+    });
+
+    try {
+      await toPromise(actor);
+    } catch (err) {
+      expect(err).toEqual(new Error('oh noes'));
+    }
+  });
 });
