@@ -1,5 +1,38 @@
 # xstate
 
+## 5.2.0
+
+### Minor Changes
+
+- [#4198](https://github.com/statelyai/xstate/pull/4198) [`ca58904ad`](https://github.com/statelyai/xstate/commit/ca58904ade8047ac9969838d2932b31846ac479c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Introduce `toPromise(actor)`, which creates a promise from an `actor` that resolves with the actor snapshot's `output` when done, or rejects with the actor snapshot's `error` when it fails.
+
+  ```ts
+  import { createMachine, createActor, toPromise } from 'xstate';
+
+  const machine = createMachine({
+    // ...
+    states: {
+      // ...
+      done: { type: 'final', output: 42 }
+    }
+  });
+
+  const actor = createActor(machine);
+
+  actor.start();
+
+  const output = await toPromise(actor);
+
+  console.log(output);
+  // => 42
+  ```
+
+### Patch Changes
+
+- [#4568](https://github.com/statelyai/xstate/pull/4568) [`a5c55fae2`](https://github.com/statelyai/xstate/commit/a5c55fae213119f83ccb4813c1cb7f028190086c) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `spawn` within `assign` not returning a narrowed down `ActorRef` type on TypeScrip 5.0
+
+- [#4570](https://github.com/statelyai/xstate/pull/4570) [`c11127336`](https://github.com/statelyai/xstate/commit/c111273365361f68ddb12938baf2ffaddf79e423) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused a `complete` listener to be called instead of the `error` one when the actor was subscribed after being stopped.
+
 ## 5.1.0
 
 ### Minor Changes
