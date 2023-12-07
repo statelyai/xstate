@@ -25,12 +25,7 @@ import { AnyActorRef, OutputFrom } from './types.ts';
 export function toPromise<T extends AnyActorRef>(
   actor: T
 ): Promise<OutputFrom<T>> {
-  // TODO: this is typed as `any`
   const currentSnapshot = actor.getSnapshot();
-
-  if (currentSnapshot.status === 'done') {
-    return Promise.resolve(currentSnapshot.output);
-  }
 
   if (currentSnapshot.status === 'error') {
     return Promise.reject(currentSnapshot.error);
