@@ -485,6 +485,52 @@ describe('useMachine hook', () => {
     expect(countEl.textContent).toEqual('1');
   });
 
+  it('useMachine array with odd number of items should be replaceable', () => {
+    const machine = createMachine({
+      types: {},
+      initial: 'active',
+      context: {
+        numbersList: [1, 2, 3, 4, 5]
+      },
+      states: {
+        active: {
+          on: {
+            REPLACE_ALL: {
+              actions: [
+                assign({
+                  numbersList: [4, 3, 2, 1, 0]
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+
+      onMount(() => {
+        expect(state.context.numbersList).toEqual([1, 2, 3, 4, 5]);
+        send({ type: 'REPLACE_ALL' });
+        expect(state.context.numbersList).toEqual([4, 3, 2, 1, 0]);
+      });
+
+      return (
+        <div data-testid="numbers-list">
+          {state.context.numbersList.join('')}
+        </div>
+      );
+    };
+
+    render(() => <App />);
+
+    const numbersListEl = screen.getByTestId('numbers-list');
+
+    // Effect should only trigger once for the COUNT events:
+    expect(numbersListEl.textContent).toEqual('43210');
+  });
+
   it('useMachine state should only trigger effect of directly tracked value', () => {
     const counterMachine2 = createMachine({
       types: {} as {

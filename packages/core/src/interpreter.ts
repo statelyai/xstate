@@ -365,10 +365,27 @@ export class Actor<TLogic extends AnyActorLogic>
     if (this._processingStatus !== ProcessingStatus.Stopped) {
       this.observers.add(observer);
     } else {
-      try {
-        observer.complete?.();
-      } catch (err) {
-        reportUnhandledError(err);
+      switch ((this._snapshot as any).status) {
+        case 'done':
+          try {
+            observer.complete?.();
+          } catch (err) {
+            reportUnhandledError(err);
+          }
+          break;
+        case 'error': {
+          const err = (this._snapshot as any).error;
+          if (!observer.error) {
+            reportUnhandledError(err);
+          } else {
+            try {
+              observer.error(err);
+            } catch (err) {
+              reportUnhandledError(err);
+            }
+          }
+          break;
+        }
       }
     }
 

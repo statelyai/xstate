@@ -1469,6 +1469,53 @@ describe('spawner in assign', () => {
       })
     });
   });
+
+  it(`should return a concrete actor ref type based on the used string reference`, () => {
+    const child = createMachine({
+      types: {} as {
+        context: {
+          counter: number;
+        };
+      },
+      context: {
+        counter: 100
+      }
+    });
+
+    const otherChild = createMachine({
+      types: {} as {
+        context: {
+          title: string;
+        };
+      },
+      context: {
+        title: 'The Answer'
+      }
+    });
+
+    createMachine({
+      types: {} as {
+        context: {
+          myChild?: ActorRefFrom<typeof child>;
+        };
+        actors:
+          | {
+              src: 'child';
+              logic: typeof child;
+            }
+          | {
+              src: 'other';
+              logic: typeof otherChild;
+            };
+      },
+      context: {},
+      entry: assign({
+        myChild: ({ spawn }) => {
+          return spawn('child');
+        }
+      })
+    });
+  });
 });
 
 describe('invoke', () => {
