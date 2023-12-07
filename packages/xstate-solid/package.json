@@ -30,7 +30,6 @@
     },
     "./package.json": "./package.json"
   },
-  "types": "lib/index.d.ts",
   "files": [
     "dist"
   ],
@@ -38,12 +37,7 @@
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
-    "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
-    "test": "jest",
-    "prepare": "npm run build"
-  },
+  "scripts": {},
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },

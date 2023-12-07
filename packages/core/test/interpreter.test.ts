@@ -1849,3 +1849,56 @@ it('should not process events sent directly to own actor ref before initial entr
     'EV transition'
   ]);
 });
+
+it('should not notify the completion observer for an active logic when it gets subscribed before starting', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({});
+  createActor(machine).subscribe({ complete: spy });
+
+  expect(spy).not.toHaveBeenCalled();
+});
+
+it('should not notify the completion observer for an errored logic when it gets subscribed after it errors', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: () => {
+      throw new Error('error');
+    }
+  });
+  const actorRef = createActor(machine);
+  actorRef.subscribe({ error: () => {} });
+  actorRef.start();
+
+  actorRef.subscribe({
+    complete: spy
+  });
+
+  expect(spy).not.toHaveBeenCalled();
+});
+
+it('should notify the error observer for an errored logic when it gets subscribed after it errors', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: () => {
+      throw new Error('error');
+    }
+  });
+  const actorRef = createActor(machine);
+  actorRef.subscribe({ error: () => {} });
+  actorRef.start();
+
+  actorRef.subscribe({
+    error: spy
+  });
+
+  expect(spy).toMatchMockCallsInlineSnapshot(`
+    [
+      [
+        [Error: error],
+      ],
+    ]
+  `);
+});

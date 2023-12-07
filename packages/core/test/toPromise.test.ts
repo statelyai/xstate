@@ -121,7 +121,6 @@ describe('toPromise', () => {
   });
 
   it('should immediately reject for an actor that had an error', async () => {
-    expect.assertions(3);
     const machine = createMachine({
       entry: () => {
         throw new Error('oh noes');
@@ -133,10 +132,6 @@ describe('toPromise', () => {
     expect(actor.getSnapshot().status).toBe('error');
     expect(actor.getSnapshot().error).toEqual(new Error('oh noes'));
 
-    try {
-      await toPromise(actor);
-    } catch (err) {
-      expect(err).toEqual(new Error('oh noes'));
-    }
+    await expect(toPromise(actor)).rejects.toEqual(new Error('oh noes'));
   });
 });
