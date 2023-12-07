@@ -1,4 +1,4 @@
-import { Actor, AnyActorRef, OutputFrom } from '.';
+import { AnyActorRef, OutputFrom } from './types.ts';
 
 /**
  * Returns a promise that resolves to the `output` of the actor when it is done.
@@ -24,20 +24,13 @@ import { Actor, AnyActorRef, OutputFrom } from '.';
  */
 export function toPromise<T extends AnyActorRef>(
   actor: T
-): Promise<T extends Actor<infer TLogic> ? OutputFrom<TLogic> : unknown> {
+): Promise<OutputFrom<T>> {
   return new Promise((resolve, reject) => {
     actor.subscribe({
       complete: () => {
-        resolve(
-          actor.getSnapshot().output
-          // actor.getOutput()! as T extends Actor<infer TLogic>
-          //   ? OutputFrom<TLogic>
-          //   : unknown
-        );
+        resolve(actor.getSnapshot().output);
       },
-      error: (err) => {
-        reject(err);
-      }
+      error: reject
     });
   });
 }

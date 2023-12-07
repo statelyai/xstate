@@ -159,7 +159,9 @@ export type OutputFrom<T> = T extends ActorLogic<
   infer _TSystem
 >
   ? (TSnapshot & { status: 'done' })['output']
-  : never;
+  : T extends ActorRef<infer TSnapshot, infer _TEvent>
+    ? (TSnapshot & { status: 'done' })['output']
+    : never;
 
 export type ActionFunction<
   TContext extends MachineContext,
