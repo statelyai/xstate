@@ -1,10 +1,4 @@
-import {
-  ActorRef,
-  createActor,
-  createMachine,
-  fromPromise,
-  toPromise
-} from '../src';
+import { createActor, createMachine, fromPromise, toPromise } from '../src';
 
 describe('toPromise', () => {
   it('should be awaitable', async () => {
@@ -14,7 +8,7 @@ describe('toPromise', () => {
 
     const result = await toPromise(promiseActor);
 
-    ((_accept: number) => {})(result);
+    result satisfies number;
 
     expect(result).toEqual(42);
   });
@@ -46,7 +40,7 @@ describe('toPromise', () => {
 
     const data = await toPromise(actor);
 
-    ((_accept: { count: number }) => {})(data);
+    data satisfies { count: number };
 
     expect(data).toEqual({ count: 42 });
   });
@@ -69,7 +63,7 @@ describe('toPromise', () => {
 
     const data = await toPromise(actor);
 
-    ((_accept: { count: number }) => {})(data);
+    data satisfies { count: number };
 
     expect(data).toEqual({ count: 42 });
   });
