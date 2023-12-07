@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
-import { createMachine } from 'xstate';
+import { createMachine, fromTransition } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { createService } from '../src/index.ts';
+import { createSolidActor, useActor } from '../src/index.ts';
 import { createEffect } from 'solid-js';
 
 describe('createService', () => {
@@ -19,7 +19,7 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = createSolidActor(machine);
 
       createEffect(() => {
         service.subscribe((state) => {
@@ -59,7 +59,7 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = createSolidActor(machine);
 
       createEffect(() => {
         service.subscribe((state) => {
@@ -83,5 +83,37 @@ describe('createService', () => {
     const button = screen.getByTestId('button');
 
     fireEvent.click(button);
+  });
+});
+
+describe("usage with core's fromTransition", () => {
+  it('should be able to spawn an actor from actor logic', () => {
+    const reducer = (state: number, event: { type: 'INC' }): number => {
+      if (event.type === 'INC') {
+        return state + 1;
+      }
+
+      return state;
+    };
+
+    const Test = () => {
+      const actorRef = createSolidActor(fromTransition(reducer, 0));
+      const [snapshot, send] = useActor(() => actorRef);
+
+      return (
+        <button data-testid="count" onclick={() => send({ type: 'INC' })}>
+          {snapshot().context}
+        </button>
+      );
+    };
+
+    render(() => <Test />);
+    const button = screen.getByTestId('count');
+
+    expect(button.textContent).toEqual('0');
+
+    fireEvent.click(button);
+
+    expect(button.textContent).toEqual('1');
   });
 });

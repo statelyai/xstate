@@ -95,12 +95,14 @@ describe('useMachine hook', () => {
       },
       props
     );
-    const [current, send] = useMachine(fetchMachine, {
-      actors: {
-        fetchData: fromPromise(mergedProps.onFetch)
-      },
-      snapshot: mergedProps.persistedState
-    });
+    const [current, send] = useMachine(
+      fetchMachine.provide({
+        actors: {
+          fetchData: fromPromise(mergedProps.onFetch)
+        }
+      }),
+      { snapshot: mergedProps.persistedState }
+    );
 
     return (
       <Switch fallback={null}>
@@ -313,11 +315,13 @@ describe('useMachine hook', () => {
         done();
       };
 
-      const [, send] = useMachine(toggleMachine, {
-        actions: {
-          doAction
-        }
-      });
+      const [, send] = useMachine(
+        toggleMachine.provide({
+          actions: {
+            doAction
+          }
+        })
+      );
 
       return (
         <div>
@@ -1142,11 +1146,13 @@ describe('useMachine hook', () => {
     });
 
     const App = (props: { isAwesome: boolean }) => {
-      const [state, send] = useMachine(machine, {
-        guards: {
-          isAwesome: () => props.isAwesome
-        }
-      });
+      const [state, send] = useMachine(
+        machine.provide({
+          guards: {
+            isAwesome: () => props.isAwesome
+          }
+        })
+      );
       return (
         <div>
           <div data-testid="result">{state.value.toString()}</div>
@@ -1270,11 +1276,13 @@ describe('useMachine hook', () => {
     });
     const [isAwesome, setIsAwesome] = createSignal(false);
     const App = () => {
-      const [state, send] = useMachine(machine, {
-        guards: {
-          isAwesome: () => isAwesome()
-        }
-      });
+      const [state, send] = useMachine(
+        machine.provide({
+          guards: {
+            isAwesome: () => isAwesome()
+          }
+        })
+      );
       return (
         <div>
           <div data-testid="result">{state.value.toString()}</div>

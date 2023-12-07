@@ -7,7 +7,6 @@ import {
   ActorRef,
   ActorRefFrom,
   createActor,
-  Snapshot,
   fromTransition
 } from 'xstate';
 import { fireEvent, screen, render, waitFor } from 'solid-testing-library';
