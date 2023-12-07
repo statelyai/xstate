@@ -37,13 +37,21 @@ type SpawnOptions<
     >
   : never;
 
+// it's likely-ish that `(TActor & { src: TSrc })['logic']` would be faster
+// but it's only possible to do it since https://github.com/microsoft/TypeScript/pull/53098 (TS 5.1)
+// and we strive to support TS 5.0 whenever possible
+type GetConcreteLogic<
+  TActor extends ProvidedActor,
+  TSrc extends TActor['src']
+> = Extract<TActor, { src: TSrc }>['logic'];
+
 export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
   TActor['src']
 > extends true
   ? <TSrc extends TActor['src']>(
       logic: TSrc,
       ...[options = {} as any]: SpawnOptions<TActor, TSrc>
-    ) => ActorRefFrom<(TActor & { src: TSrc })['logic']>
+    ) => ActorRefFrom<GetConcreteLogic<TActor, TSrc>>
   : // TODO: do not accept machines without all implementations
     <TLogic extends AnyActorLogic | string>(
       src: TLogic,
