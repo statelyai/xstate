@@ -556,6 +556,26 @@ describe('callback logic (fromCallback)', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(13);
   });
+
+  it.only('should', (done) => {
+    const cb = fromCallback(({ emit }) => {
+      setTimeout(() => {
+        emit('foo');
+      }, 10);
+    });
+
+    const actor = createActor(cb);
+
+    actor.subscribe((s) => {
+      if (s.context === 'foo') {
+        done();
+      }
+
+      console.log(s);
+    });
+
+    actor.start();
+  });
 });
 
 describe('machine logic', () => {

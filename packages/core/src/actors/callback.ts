@@ -73,6 +73,10 @@ export type InvokeCallback<
    * the listener is then called whenever events are received by the callback actor
    */
   receive: Receiver<TEvent>;
+  /**
+   * Emit
+   */
+  emit: (snapshot: any) => void;
 }) => (() => void) | void;
 
 /**
@@ -165,6 +169,9 @@ export function fromCallback<
         receive: (listener) => {
           callbackState.receivers ??= new Set();
           callbackState.receivers.add(listener);
+        },
+        emit: (context: any) => {
+          self.send({ type: 'xstate.callback.emit', context });
         }
       });
     },
@@ -172,6 +179,14 @@ export function fromCallback<
       const callbackState: CallbackInstanceState<TEvent> = instanceStates.get(
         actorScope.self
       )!;
+
+      if (event.type === 'xstate.callback.emit') {
+        return {
+          ...state,
+          context: event.context,
+          error: undefined
+        };
+      }
 
       if (event.type === XSTATE_STOP) {
         state = {

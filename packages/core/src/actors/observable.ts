@@ -90,7 +90,7 @@ export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
   // TODO: add event types
   const logic: ObservableActorLogic<TContext, TInput> = {
     config: observableCreator,
-    transition: (snapshot, event, { self, id, defer, system }) => {
+    transition: (snapshot, event) => {
       if (snapshot.status !== 'active') {
         return snapshot;
       }
