@@ -1,5 +1,11 @@
 # xstate
 
+## 5.2.1
+
+### Patch Changes
+
+- [#4576](https://github.com/statelyai/xstate/pull/4576) [`677fb35b7`](https://github.com/statelyai/xstate/commit/677fb35b759bade51bd587037fb5edf6e6c066fd) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Update README.md
+
 ## 5.2.0
 
 ### Minor Changes
