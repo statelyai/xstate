@@ -557,7 +557,7 @@ describe('callback logic (fromCallback)', () => {
     expect(spy).toHaveBeenCalledWith(13);
   });
 
-  it.only('should', (done) => {
+  it('can emit snapshot context values', (done) => {
     const cb = fromCallback(({ emit }) => {
       setTimeout(() => {
         emit('foo');

@@ -10,6 +10,8 @@ import {
   Snapshot
 } from '../types';
 
+const XSTATE_CALLBACK_EMIT = 'xstate.callback.emit';
+
 interface CallbackInstanceState<TEvent extends EventObject> {
   receivers: Set<(e: TEvent) => void> | undefined;
   dispose: (() => void) | void;
@@ -19,6 +21,11 @@ const instanceStates = /* #__PURE__ */ new WeakMap<
   AnyActorRef,
   CallbackInstanceState<any>
 >();
+
+interface CallbackEmitEvent<TContext> {
+  type: typeof XSTATE_CALLBACK_EMIT;
+  context: TContext;
+}
 
 export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
   input: TInput;
@@ -171,7 +178,11 @@ export function fromCallback<
           callbackState.receivers.add(listener);
         },
         emit: (context: any) => {
-          self.send({ type: 'xstate.callback.emit', context });
+          const emitEvent: CallbackEmitEvent<any> = {
+            type: XSTATE_CALLBACK_EMIT,
+            context
+          };
+          self.send(emitEvent as any);
         }
       });
     },
@@ -180,10 +191,10 @@ export function fromCallback<
         actorScope.self
       )!;
 
-      if (event.type === 'xstate.callback.emit') {
+      if (event.type === XSTATE_CALLBACK_EMIT) {
         return {
           ...state,
-          context: event.context,
+          context: (event as unknown as CallbackEmitEvent<any>).context,
           error: undefined
         };
       }

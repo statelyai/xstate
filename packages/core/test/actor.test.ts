@@ -422,6 +422,46 @@ describe('spawning callbacks', () => {
 
     expect(spy).not.toHaveBeenCalled();
   });
+
+  it('should receive snapshots from callbacks that emit snapshot context', (done) => {
+    const machine = createMachine({
+      invoke: {
+        src: fromCallback(({ emit }) => {
+          setTimeout(() => {
+            emit('something');
+          }, 10);
+        }),
+        onSnapshot: {
+          actions: ({ event }) => {
+            if (event.snapshot.context === 'something') {
+              done();
+            }
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+  });
+
+  it('should receive snapshots from callbacks that immediately emit', (done) => {
+    const machine = createMachine({
+      invoke: {
+        src: fromCallback(({ emit }) => {
+          emit('something');
+        }),
+        onSnapshot: {
+          actions: ({ event }) => {
+            if (event.snapshot.context === 'something') {
+              done();
+            }
+          }
+        }
+      }
+    });
+
+    createActor(machine).start();
+  });
 });
 
 describe('spawning observables', () => {
