@@ -179,6 +179,44 @@ describe('rehydration', () => {
     expect(rehydratedActor.getSnapshot().value).toBe('c');
   });
 
+  it('should be able to restart and subscribe to a stopped rehydrated child', async () => {
+    const spy = jest.fn();
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: fromPromise(() => Promise.resolve(11)),
+            onDone: 'b'
+          },
+          on: {
+            NEXT: 'c'
+          }
+        },
+        b: {},
+        c: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.stop();
+    const persistedState = actor.getPersistedSnapshot();
+    console.info('persistedState', persistedState.status, persistedState)
+    const rehydratedActor = createActor(machine, {
+      snapshot: persistedState
+    }).start();
+
+    rehydratedActor.subscribe((snap) => spy())
+
+    rehydratedActor.send({
+      type: 'NEXT'
+    })
+    
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(rehydratedActor.getSnapshot().value).toBe('c');
+  });
+
+
   it('a rehydrated active child should be registered in the system', () => {
     const machine = createMachine(
       {
