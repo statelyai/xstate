@@ -321,7 +321,7 @@ describe('interpreter', () => {
               { type: 'FINISH' },
               {
                 delay: ({ context, event }) => {
-                  assertEvent(event, 'ACTIVATE');
+                  assertEvent(event, ['ACTIVATE']);
                   return context.initialDelay + event.wait;
                 }
               }
