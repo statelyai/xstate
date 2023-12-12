@@ -1,3 +1,5 @@
+import { createActor } from '.';
+import { MachineSnapshot } from './State';
 import { StateMachine } from './StateMachine';
 import { createMachine } from './createMachine';
 import { GuardPredicate } from './guards';
@@ -15,6 +17,7 @@ import {
   MachineContext,
   NonReducibleUnknown,
   ParameterizedObject,
+  Prop,
   SetupTypes,
   StateSchema,
   ToChildren,
@@ -200,7 +203,31 @@ export function setup<
       TDelay,
       TTag
     >
-  >;
+  > & {
+    _config: TConfig;
+    matches: <TSV extends keyof TConfig['states']>(
+      snapshot: MachineSnapshot<
+        TContext,
+        TEvent,
+        any,
+        ToStateValue<TConfig>,
+        TTag,
+        TOutput,
+        ResolveTypegenMeta<
+          TypegenDisabled,
+          TEvent,
+          ToProvidedActor<TChildrenMap, TActors>,
+          ToParameterizedObject<TActions>,
+          ToParameterizedObject<TGuards>,
+          TDelay,
+          TTag
+        >
+      >,
+      val: TSV
+    ) => snapshot is typeof snapshot & {
+      context: AssertedFrom<Prop<TConfig['states'][TSV], 'invariant'>>;
+    };
+  };
 } {
   return {
     createMachine: (config) =>
@@ -211,4 +238,35 @@ export function setup<
         delays
       })
   };
+}
+
+type AssertedFrom<T> = T extends (a: any) => a is infer V ? V : never;
+
+const machine = setup({
+  types: {
+    context: {} as { user: null | { id: string } }
+  }
+}).createMachine({
+  initial: 'loading',
+  context: { user: null },
+  states: {
+    loading: {
+      invariant: (context): context is { user: null } => context.user === null
+    },
+    success: {
+      invariant: (ctx): ctx is { user: { id: string } } => !!ctx.user?.id
+    }
+  }
+});
+
+const actor = createActor(machine);
+
+const state = actor.getSnapshot();
+
+if (machine.matches(state, 'loading')) {
+  state.context.user;
+  //            ^?
+} else if (machine.matches(state, 'success')) {
+  state.context.user;
+  //            ^?
 }

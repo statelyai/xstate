@@ -735,6 +735,7 @@ export interface StateNodeConfig<
   TTag extends string,
   TOutput
 > {
+  invariant?: (context: TContext) => unknown;
   /**
    * The initial state transition.
    */
