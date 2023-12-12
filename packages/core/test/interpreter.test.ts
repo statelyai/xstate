@@ -1328,20 +1328,18 @@ describe('interpreter', () => {
       let count = 0;
       const intervalService = createActor(intervalMachine).start();
 
-      expect(() => {
-        const state$ = from(intervalService);
+      const state$ = from(intervalService);
 
-        state$.subscribe({
-          next: () => {
-            count += 1;
-          },
-          error: undefined,
-          complete: () => {
-            expect(count).toEqual(5);
-            done();
-          }
-        });
-      }).not.toThrow();
+      state$.subscribe({
+        next: () => {
+          count += 1;
+        },
+        error: undefined,
+        complete: () => {
+          expect(count).toEqual(5);
+          done();
+        }
+      });
     });
 
     it('should be unsubscribable', (done) => {
@@ -1839,4 +1837,57 @@ it('should not process events sent directly to own actor ref before initial entr
     'initial nested entry',
     'EV transition'
   ]);
+});
+
+it('should not notify the completion observer for an active logic when it gets subscribed before starting', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({});
+  createActor(machine).subscribe({ complete: spy });
+
+  expect(spy).not.toHaveBeenCalled();
+});
+
+it('should not notify the completion observer for an errored logic when it gets subscribed after it errors', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: () => {
+      throw new Error('error');
+    }
+  });
+  const actorRef = createActor(machine);
+  actorRef.subscribe({ error: () => {} });
+  actorRef.start();
+
+  actorRef.subscribe({
+    complete: spy
+  });
+
+  expect(spy).not.toHaveBeenCalled();
+});
+
+it('should notify the error observer for an errored logic when it gets subscribed after it errors', () => {
+  const spy = jest.fn();
+
+  const machine = createMachine({
+    entry: () => {
+      throw new Error('error');
+    }
+  });
+  const actorRef = createActor(machine);
+  actorRef.subscribe({ error: () => {} });
+  actorRef.start();
+
+  actorRef.subscribe({
+    error: spy
+  });
+
+  expect(spy).toMatchMockCallsInlineSnapshot(`
+    [
+      [
+        [Error: error],
+      ],
+    ]
+  `);
 });

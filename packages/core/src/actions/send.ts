@@ -1,12 +1,12 @@
 import isDevelopment from '#is-development';
+import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActorRef,
-  AnyActorScope,
   AnyActorRef,
+  AnyActorScope,
   AnyEventObject,
-  AnyActor,
   AnyMachineSnapshot,
   Cast,
   DelayExpr,
@@ -14,15 +14,13 @@ import {
   EventObject,
   InferEvent,
   MachineContext,
+  NoInfer,
+  ParameterizedObject,
   SendExpr,
   SendToActionOptions,
-  SendToActionParams,
   SpecialTargets,
-  UnifiedArg,
-  ParameterizedObject,
-  NoInfer
+  UnifiedArg
 } from '../types.ts';
-import { XSTATE_ERROR } from '../constants.ts';
 
 function resolveSendTo(
   actorScope: AnyActorScope,
@@ -145,20 +143,25 @@ function executeSendTo(
     delay: number | undefined;
   }
 ) {
-  if (typeof params.delay === 'number') {
-    (actorScope.self as AnyActor).delaySend(
-      params as typeof params & { delay: number }
-    );
-    return;
-  }
-
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorScope.defer(() => {
-    const { to, event } = params;
-    actorScope?.system._relay(
+    const { to, event, delay, id } = params;
+    if (typeof delay === 'number') {
+      actorScope.system.scheduler.schedule(
+        actorScope.self,
+        to,
+        event,
+        delay,
+        id
+      );
+      return;
+    }
+    actorScope.system._relay(
       actorScope.self,
-      to,
+      // at this point, in a deferred task, it should already be mutated by retryResolveSendTo
+      // if it initially started as a string
+      to as Exclude<typeof to, string>,
       event.type === XSTATE_ERROR
         ? createErrorActorEvent(actorScope.self.id, (event as any).data)
         : event

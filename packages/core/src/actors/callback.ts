@@ -1,15 +1,14 @@
+import { XSTATE_STOP } from '../constants.ts';
+import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  EventObject,
-  AnyActorSystem,
-  AnyEventObject,
-  ActorSystem,
   ActorRefFrom,
-  Snapshot,
   AnyActorRef,
-  NonReducibleUnknown
+  AnyEventObject,
+  EventObject,
+  NonReducibleUnknown,
+  Snapshot
 } from '../types';
-import { XSTATE_STOP } from '../constants.ts';
 
 interface CallbackInstanceState<TEvent extends EventObject> {
   receivers: Set<(e: TEvent) => void> | undefined;
@@ -28,7 +27,7 @@ export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
 export type CallbackActorLogic<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown
-> = ActorLogic<CallbackSnapshot<TInput>, TEvent, TInput, ActorSystem<any>>;
+> = ActorLogic<CallbackSnapshot<TInput>, TEvent, TInput, AnyActorSystem>;
 
 export type CallbackActorRef<
   TEvent extends EventObject,

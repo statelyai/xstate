@@ -1,5 +1,11 @@
 # @xstate/solid
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 The [@xstate/solid package](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid) contains utilities for using [XState](https://github.com/statelyai/xstate) with [SolidJS](https://github.com/solidjs/solid).
 
 [[toc]]

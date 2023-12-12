@@ -1,19 +1,19 @@
-import type { StateNode } from './StateNode.ts';
 import type { MachineSnapshot } from './State.ts';
-import type { Clock, Actor, ProcessingStatus } from './interpreter.ts';
 import type { StateMachine } from './StateMachine.ts';
-import {
-  TypegenDisabled,
-  ResolveTypegenMeta,
-  TypegenConstraint,
-  MarkAllImplementationsAsProvided,
-  AreAllImplementationsAssumedToBeProvided
-} from './typegenTypes.ts';
+import type { StateNode } from './StateNode.ts';
+import { AssignArgs } from './actions/assign.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
+import type { Actor, ProcessingStatus } from './interpreter.ts';
 import { Spawner } from './spawn.ts';
-import { AssignArgs } from './actions/assign.ts';
-import { InspectionEvent } from './system.js';
+import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
+import {
+  AreAllImplementationsAssumedToBeProvided,
+  MarkAllImplementationsAsProvided,
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -83,12 +83,12 @@ export type MaybeLazy<T> = T | Lazy<T>;
 /**
  * The full definition of an event, with a string `type`.
  */
-export interface EventObject {
+export type EventObject = {
   /**
    * The type of event that is sent.
    */
   type: string;
-}
+};
 
 export interface AnyEventObject extends EventObject {
   [key: string]: any;
@@ -117,7 +117,7 @@ export interface UnifiedArg<
     >,
     TEvent
   >;
-  system: ActorSystem<any>;
+  system: AnyActorSystem;
 }
 
 export type MachineContext = Record<string, any>;
@@ -128,7 +128,7 @@ export interface ActionArgs<
   TEvent extends EventObject
 > extends UnifiedArg<TContext, TExpressionEvent, TEvent> {}
 
-export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
+export type InputFrom<T> = T extends StateMachine<
   infer _TContext,
   infer _TEvent,
   infer _TChildren,
@@ -152,14 +152,16 @@ export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
     ? TInput
     : never;
 
-export type OutputFrom<T extends AnyActorLogic> = T extends ActorLogic<
+export type OutputFrom<T> = T extends ActorLogic<
   infer TSnapshot,
   infer _TEvent,
   infer _TInput,
   infer _TSystem
 >
   ? (TSnapshot & { status: 'done' })['output']
-  : never;
+  : T extends ActorRef<infer TSnapshot, infer _TEvent>
+    ? (TSnapshot & { status: 'done' })['output']
+    : never;
 
 export type ActionFunction<
   TContext extends MachineContext,
@@ -1361,7 +1363,7 @@ export type MachineConfig<
 
 export interface ProvidedActor {
   src: string;
-  logic: AnyActorLogic;
+  logic: UnknownActorLogic;
   id?: string;
 }
 
@@ -1930,7 +1932,7 @@ export interface ActorRef<
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
-  system?: ActorSystem<any>;
+  system: AnyActorSystem;
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
@@ -2033,7 +2035,7 @@ export type InterpreterFrom<
         >,
         TEvent,
         TInput,
-        ActorSystem<any>
+        AnyActorSystem
       >
     >
   : never;
@@ -2082,7 +2084,7 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
 export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TSystem extends ActorSystem<any> = ActorSystem<any>
+  TSystem extends AnyActorSystem = AnyActorSystem
 > {
   self: ActorRef<TSnapshot, TEvent>;
   id: string;
@@ -2126,10 +2128,10 @@ export type Snapshot<TOutput> =
  * @template TSystem - The type of the actor system.
  */
 export interface ActorLogic<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TInput = NonReducibleUnknown,
-  TSystem extends ActorSystem<any> = ActorSystem<any>
+  in out TSnapshot extends Snapshot<unknown>, // it's invariant because it's also part of `ActorScope["self"]["getSnapshot"]`
+  in out TEvent extends EventObject, // it's invariant because it's also part of `ActorScope["self"]["send"]`
+  in TInput = NonReducibleUnknown,
+  TSystem extends AnyActorSystem = AnyActorSystem
 > {
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
@@ -2138,13 +2140,13 @@ export interface ActorLogic<
    * to produce a new state.
    * @param snapshot - The current state.
    * @param message - The incoming message.
-   * @param ctx - The actor scope.
+   * @param actorScope - The actor scope.
    * @returns The new state.
    */
   transition: (
     snapshot: TSnapshot,
     message: TEvent,
-    ctx: ActorScope<TSnapshot, TEvent, TSystem>
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem>
   ) => TSnapshot;
   /**
    * Called to provide the initial state of the actor.
@@ -2195,12 +2197,7 @@ export type AnyActorLogic = ActorLogic<
   any // system
 >;
 
-export type UnknownActorLogic = ActorLogic<
-  any, // this is invariant and it's hard to figure out a better default than `any`
-  EventObject,
-  NonReducibleUnknown,
-  ActorSystem<any>
->;
+export type UnknownActorLogic = ActorLogic<any, any, never, AnyActorSystem>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer TSnapshot, infer _>
@@ -2316,43 +2313,6 @@ export type TagsFrom<TMachine extends AnyStateMachine> = Parameters<
 export interface ActorSystemInfo {
   actors: Record<string, AnyActorRef>;
 }
-
-export interface ActorSystem<T extends ActorSystemInfo> {
-  /**
-   * @internal
-   */
-  _bookId: () => string;
-  /**
-   * @internal
-   */
-  _register: (sessionId: string, actorRef: AnyActorRef) => string;
-  /**
-   * @internal
-   */
-  _unregister: (actorRef: AnyActorRef) => void;
-  /**
-   * @internal
-   */
-  _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
-  get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
-  inspect: (observer: Observer<InspectionEvent>) => void;
-  /**
-   * @internal
-   */
-  _sendInspectionEvent: (
-    event: HomomorphicOmit<InspectionEvent, 'rootId'>
-  ) => void;
-  /**
-   * @internal
-   */
-  _relay: (
-    source: AnyActorRef | undefined,
-    target: AnyActorRef,
-    event: AnyEventObject
-  ) => void;
-}
-
-export type AnyActorSystem = ActorSystem<any>;
 
 export type RequiredActorOptions<TActor extends ProvidedActor> =
   | (undefined extends TActor['id'] ? never : 'id')

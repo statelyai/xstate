@@ -1,3 +1,4 @@
+import { sleep } from '@xstate-repo/jest-utils';
 import {
   cancel,
   enqueueActions,
@@ -3235,6 +3236,33 @@ describe('raise', () => {
     expect(actor.getSnapshot().value).toBe('b');
   });
 
+  it('should error if given a string', () => {
+    const machine = createMachine({
+      entry: raise(
+        // @ts-ignore
+        'a string'
+      )
+    });
+
+    const errorSpy = jest.fn();
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({
+      error: errorSpy
+    });
+    actorRef.start();
+
+    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          [Error: Only event objects may be used with raise; use raise({ type: "a string" }) instead],
+        ],
+      ]
+    `);
+  });
+});
+
+describe('cancel', () => {
   it('should be possible to cancel a raised delayed event', () => {
     const machine = createMachine({
       initial: 'a',
@@ -3263,29 +3291,100 @@ describe('raise', () => {
     }, 10);
   });
 
-  it('should error if given a string', () => {
+  it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it first', async () => {
+    const fooSpy = jest.fn();
+    const barSpy = jest.fn();
+
     const machine = createMachine({
-      entry: raise(
-        // @ts-ignore
-        'a string'
-      )
+      invoke: [
+        {
+          id: 'foo',
+          src: createMachine({
+            id: 'foo',
+            entry: raise({ type: 'event' }, { id: 'sameId', delay: 100 }),
+            on: {
+              event: { actions: fooSpy },
+              cancel: { actions: cancel('sameId') }
+            }
+          })
+        },
+        {
+          id: 'bar',
+          src: createMachine({
+            id: 'bar',
+            entry: raise({ type: 'event' }, { id: 'sameId', delay: 100 }),
+            on: {
+              event: { actions: barSpy }
+            }
+          })
+        }
+      ],
+      on: {
+        cancelFoo: {
+          actions: sendTo('foo', { type: 'cancel' })
+        }
+      }
     });
+    const actor = createActor(machine).start();
 
-    const errorSpy = jest.fn();
+    await sleep(50);
 
-    const actorRef = createActor(machine);
-    actorRef.subscribe({
-      error: errorSpy
+    // This will cause the foo actor to cancel its 'sameId' delayed event
+    // This should NOT cancel the 'sameId' delayed event in the other actor
+    actor.send({ type: 'cancelFoo' });
+
+    await sleep(55);
+
+    expect(fooSpy).not.toHaveBeenCalled();
+    expect(barSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should cancel only the delayed event in the machine that scheduled it when canceling the event with the same ID in the machine that sent it second', async () => {
+    const fooSpy = jest.fn();
+    const barSpy = jest.fn();
+
+    const machine = createMachine({
+      invoke: [
+        {
+          id: 'foo',
+          src: createMachine({
+            id: 'foo',
+            entry: raise({ type: 'event' }, { id: 'sameId', delay: 100 }),
+            on: {
+              event: { actions: fooSpy }
+            }
+          })
+        },
+        {
+          id: 'bar',
+          src: createMachine({
+            id: 'bar',
+            entry: raise({ type: 'event' }, { id: 'sameId', delay: 100 }),
+            on: {
+              event: { actions: barSpy },
+              cancel: { actions: cancel('sameId') }
+            }
+          })
+        }
+      ],
+      on: {
+        cancelBar: {
+          actions: sendTo('bar', { type: 'cancel' })
+        }
+      }
     });
-    actorRef.start();
+    const actor = createActor(machine).start();
 
-    expect(errorSpy).toMatchMockCallsInlineSnapshot(`
-      [
-        [
-          [Error: Only event objects may be used with raise; use raise({ type: "a string" }) instead],
-        ],
-      ]
-    `);
+    await sleep(50);
+
+    // This will cause the bar actor to cancel its 'sameId' delayed event
+    // This should NOT cancel the 'sameId' delayed event in the other actor
+    actor.send({ type: 'cancelBar' });
+
+    await sleep(55);
+
+    expect(fooSpy).toHaveBeenCalledTimes(1);
+    expect(barSpy).not.toHaveBeenCalled();
   });
 });
 

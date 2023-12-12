@@ -1128,6 +1128,46 @@ describe('not() guard', () => {
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
+
+  it('should evaluate dynamic params of the referenced guard', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: not({
+              type: 'myGuard',
+              // TODO: fix contextual typing here
+              params: ({ event }: any) => ({ secret: event.secret })
+            }),
+            actions: () => {}
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: (_, params) => {
+            spy(params);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EV', secret: 42 });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          {
+            "secret": 42,
+          },
+        ],
+      ]
+    `);
+  });
 });
 
 describe('and() guard', () => {
@@ -1254,6 +1294,49 @@ describe('and() guard', () => {
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+  });
+
+  it('should evaluate dynamic params of the referenced guard', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: and([
+              {
+                type: 'myGuard',
+                // TODO: fix contextual typing here
+                params: ({ event }: any) => ({ secret: event.secret })
+              },
+              () => true
+            ]),
+            actions: () => {}
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: (_, params) => {
+            spy(params);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EV', secret: 42 });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          {
+            "secret": 42,
+          },
+        ],
+      ]
+    `);
   });
 });
 
@@ -1382,5 +1465,48 @@ describe('or() guard', () => {
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+  });
+
+  it('should evaluate dynamic params of the referenced guard', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: or([
+              {
+                type: 'myGuard',
+                // TODO: fix contextual typing here
+                params: ({ event }: any) => ({ secret: event.secret })
+              },
+              () => true
+            ]),
+            actions: () => {}
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: (_, params) => {
+            spy(params);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EV', secret: 42 });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          {
+            "secret": 42,
+          },
+        ],
+      ]
+    `);
   });
 });

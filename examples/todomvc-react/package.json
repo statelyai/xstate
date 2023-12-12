@@ -1,12 +1,12 @@
 {
   "name": "todomvc-react",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build"
   },
   "dependencies": {
-    "@xstate/react": "beta",
+    "@xstate/react": "^4.0.0",
     "classnames": "^2.3.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",

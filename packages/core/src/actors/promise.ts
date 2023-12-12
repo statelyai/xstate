@@ -1,12 +1,11 @@
-import { XSTATE_STOP } from '../constants';
+import { XSTATE_STOP } from '../constants.ts';
+import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
   ActorRefFrom,
-  ActorSystem,
-  AnyActorSystem,
   NonReducibleUnknown,
   Snapshot
-} from '../types';
+} from '../types.ts';
 
 export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
@@ -15,24 +14,11 @@ export type PromiseSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
 const XSTATE_PROMISE_RESOLVE = 'xstate.promise.resolve';
 const XSTATE_PROMISE_REJECT = 'xstate.promise.reject';
 
-export type PromiseActorEvents<T> =
-  | {
-      type: typeof XSTATE_PROMISE_RESOLVE;
-      data: T;
-    }
-  | {
-      type: typeof XSTATE_PROMISE_REJECT;
-      data: any;
-    }
-  | {
-      type: typeof XSTATE_STOP;
-    };
-
 export type PromiseActorLogic<TOutput, TInput = unknown> = ActorLogic<
   PromiseSnapshot<TOutput, TInput>,
   { type: string; [k: string]: unknown },
   TInput, // input
-  ActorSystem<any>
+  AnyActorSystem
 >;
 
 export type PromiseActorRef<TOutput> = ActorRefFrom<
@@ -102,7 +88,6 @@ export function fromPromise<TOutput, TInput = NonReducibleUnknown>(
     self: PromiseActorRef<TOutput>;
   }) => PromiseLike<TOutput>
 ): PromiseActorLogic<TOutput, TInput> {
-  // TODO: add event types
   const logic: PromiseActorLogic<TOutput, TInput> = {
     config: promiseCreator,
     transition: (state, event) => {

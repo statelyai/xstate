@@ -1,5 +1,66 @@
 # xstate
 
+## 5.2.1
+
+### Patch Changes
+
+- [#4576](https://github.com/statelyai/xstate/pull/4576) [`677fb35b7`](https://github.com/statelyai/xstate/commit/677fb35b759bade51bd587037fb5edf6e6c066fd) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Update README.md
+
+## 5.2.0
+
+### Minor Changes
+
+- [#4198](https://github.com/statelyai/xstate/pull/4198) [`ca58904ad`](https://github.com/statelyai/xstate/commit/ca58904ade8047ac9969838d2932b31846ac479c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Introduce `toPromise(actor)`, which creates a promise from an `actor` that resolves with the actor snapshot's `output` when done, or rejects with the actor snapshot's `error` when it fails.
+
+  ```ts
+  import { createMachine, createActor, toPromise } from 'xstate';
+
+  const machine = createMachine({
+    // ...
+    states: {
+      // ...
+      done: { type: 'final', output: 42 }
+    }
+  });
+
+  const actor = createActor(machine);
+
+  actor.start();
+
+  const output = await toPromise(actor);
+
+  console.log(output);
+  // => 42
+  ```
+
+### Patch Changes
+
+- [#4568](https://github.com/statelyai/xstate/pull/4568) [`a5c55fae2`](https://github.com/statelyai/xstate/commit/a5c55fae213119f83ccb4813c1cb7f028190086c) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `spawn` within `assign` not returning a narrowed down `ActorRef` type on TypeScrip 5.0
+
+- [#4570](https://github.com/statelyai/xstate/pull/4570) [`c11127336`](https://github.com/statelyai/xstate/commit/c111273365361f68ddb12938baf2ffaddf79e423) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused a `complete` listener to be called instead of the `error` one when the actor was subscribed after being stopped.
+
+## 5.1.0
+
+### Minor Changes
+
+- [#4497](https://github.com/statelyai/xstate/pull/4497) [`d7f220225`](https://github.com/statelyai/xstate/commit/d7f220225c34808a96383099e1f9bfd3abd13962) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Internal: abstract the scheduler for delayed events so that it is handled centrally by the `system`.
+
+### Patch Changes
+
+- [#4513](https://github.com/statelyai/xstate/pull/4513) [`80818017b`](https://github.com/statelyai/xstate/commit/80818017b23e4b6c8e40d0e64854f69ffc9f7307) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix higher-level logic for state machine logic
+
+## 5.0.2
+
+### Patch Changes
+
+- [#4552](https://github.com/statelyai/xstate/pull/4552) [`80b9afbae`](https://github.com/statelyai/xstate/commit/80b9afbaeb943cc1378c0c67631b207d402ab557) Thanks [@Andarist](https://github.com/Andarist)! - Fixed defining `actors` with `input` within `setup`.
+
+## 5.0.1
+
+### Patch Changes
+
+- [#4551](https://github.com/statelyai/xstate/pull/4551) [`5041764b2`](https://github.com/statelyai/xstate/commit/5041764b2ca740bd0e355dd50f3c76e75ca55686) Thanks [@laurakalbag](https://github.com/laurakalbag)! - Flag that docs in this repo are deprecated in favour of docs at stately.ai/docs/xstate
+
 ## 5.0.0
 
 ### Major Changes
