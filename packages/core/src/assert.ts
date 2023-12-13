@@ -1,5 +1,5 @@
 import { AnyEventObject } from '.';
-import { toArray } from './utils';
+import { toArray } from './utils.ts';
 
 /**
  * Asserts that the given event object is of the specified type or types.
