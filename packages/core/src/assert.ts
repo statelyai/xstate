@@ -23,7 +23,7 @@ import { toArray } from './utils';
   ```
  */
 export function assertEvent<
-  TEvent extends AnyEventObject,
+  TEvent extends EventObject,
   TSpecificType extends TEvent['type']
 >(
   eventObject: TEvent,
