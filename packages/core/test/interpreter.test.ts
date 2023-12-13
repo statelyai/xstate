@@ -16,6 +16,7 @@ import { interval, from } from 'rxjs';
 import { fromObservable } from '../src/actors/observable';
 import { PromiseActorLogic, fromPromise } from '../src/actors/promise';
 import { fromCallback } from '../src/actors/callback';
+import { assertEvent } from '../src/assert.ts';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -246,15 +247,7 @@ describe('interpreter', () => {
               { type: 'FINISH' },
               {
                 delay: ({ context, event }) =>
-                  context.initialDelay +
-                  ('wait' in event
-                    ? (
-                        event as Extract<
-                          DelayExpMachineEvents,
-                          { type: 'ACTIVATE' }
-                        >
-                      ).wait
-                    : 0)
+                  context.initialDelay + ('wait' in event ? event.wait : 0)
               }
             ),
             on: {
@@ -327,14 +320,10 @@ describe('interpreter', () => {
             entry: raise(
               { type: 'FINISH' },
               {
-                delay: ({ context, event }) =>
-                  context.initialDelay +
-                  (
-                    event as Extract<
-                      DelayExpMachineEvents,
-                      { type: 'ACTIVATE' }
-                    >
-                  ).wait
+                delay: ({ context, event }) => {
+                  assertEvent(event, 'ACTIVATE');
+                  return context.initialDelay + event.wait;
+                }
               }
             ),
             on: {
@@ -423,7 +412,7 @@ describe('interpreter', () => {
               return context.delay + 50;
             },
             delayA: ({ context }) => context.delay,
-            delayD: ({ context, event }) => context.delay + (event as any).value
+            delayD: ({ context, event }) => context.delay + event.value
           }
         }
       );

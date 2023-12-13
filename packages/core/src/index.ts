@@ -36,6 +36,7 @@ export {
   StateNode,
   type Interpreter
 };
+export { assertEvent } from './assert.ts';
 
 declare global {
   interface SymbolConstructor {
