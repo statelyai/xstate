@@ -1,5 +1,33 @@
 # xstate
 
+## 5.3.0
+
+### Minor Changes
+
+- [#4547](https://github.com/statelyai/xstate/pull/4547) [`8e8d2ba38`](https://github.com/statelyai/xstate/commit/8e8d2ba38e80dd2457285002559bc63261a08618) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `assertEvent(...)` to help provide strong typings for events that can't be easily inferred, such as events in `entry` and `exit` actions, or in `invoke.input`.
+
+  The `assertEvent(event, 'someType')` function will _throw_ if the event is not the expected type. This ensures that the `event` is guaranteed to have that type, and assumes that the event object has the expected payload (naturally enforced by TypeScript).
+
+  ```ts
+  // ...
+  entry: ({ event }) => {
+    assertEvent(event, 'greet');
+    // event is { type: 'greet'; message: string }
+
+    assertEvent(event, ['greet', 'notify']);
+    // event is { type: 'greet'; message: string }
+    // or { type: 'notify'; message: string; level: 'info' | 'error' }
+  },
+  exit: ({ event }) => {
+    assertEvent(event, 'doNothing');
+    // event is { type: 'doNothing' }
+  }
+  ```
+
+### Patch Changes
+
+- [#4586](https://github.com/statelyai/xstate/pull/4586) [`97f1cbd5f`](https://github.com/statelyai/xstate/commit/97f1cbd5f3a0c4abc75d498e27b7465f18e23448) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with ancestors of the default history target that lie outside of the transition domain being incorrectly entered.
+
 ## 5.2.1
 
 ### Patch Changes
