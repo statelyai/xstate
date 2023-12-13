@@ -1,4 +1,4 @@
-import { EventObject } from '.';
+import { EventObject } from './types.ts';
 import { toArray } from './utils.ts';
 
 /**
@@ -9,6 +9,11 @@ import { toArray } from './utils.ts';
   ```ts
   // ...
   entry: ({ event }) => {
+    assertEvent(event, 'doNothing');
+    // event is { type: 'doNothing' }
+  },
+  // ...
+  exit: ({ event }) => {
     assertEvent(event, 'greet');
     // event is { type: 'greet'; message: string }
 
@@ -16,10 +21,6 @@ import { toArray } from './utils.ts';
     // event is { type: 'greet'; message: string }
     // or { type: 'notify'; message: string; level: 'info' | 'error' }
   },
-  exit: ({ event }) => {
-    assertEvent(event, 'doNothing');
-    // event is { type: 'doNothing' }
-  }
   ```
  */
 export function assertEvent<

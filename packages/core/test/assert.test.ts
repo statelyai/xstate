@@ -1,5 +1,4 @@
-import { createActor, createMachine } from '../src';
-import { assertEvent } from '../src/assert';
+import { createActor, createMachine, assertEvent } from '../src';
 
 describe('assertion helpers', () => {
   it('assertEvent asserts the correct event type', (done) => {
