@@ -1,5 +1,5 @@
 ---
-'xstate': patch
+'xstate': minor
 ---
 
 Add `assertEvent(...)` to help provide strong typings for events that can't be easily inferred, such as events in `entry` and `exit` actions, or in `invoke.input`.
