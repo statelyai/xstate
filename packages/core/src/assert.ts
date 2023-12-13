@@ -25,19 +25,19 @@ import { toArray } from './utils.ts';
  */
 export function assertEvent<
   TEvent extends EventObject,
-  TSpecificType extends TEvent['type']
+  TAssertedType extends TEvent['type']
 >(
-  eventObject: TEvent,
-  type: TSpecificType | TSpecificType[]
-): asserts eventObject is TEvent & { type: TSpecificType } {
+  event: TEvent,
+  type: TAssertedType | TAssertedType[]
+): asserts event is TEvent & { type: TAssertedType } {
   const types = toArray(type);
-  if (!types.includes(eventObject.type as any)) {
+  if (!types.includes(event.type as any)) {
     const typesText =
       types.length === 1
         ? `type "${types[0]}"`
         : `one of types "${types.join('", "')}"`;
     throw new Error(
-      `Expected event ${JSON.stringify(eventObject)} to have ${typesText}`
+      `Expected event ${JSON.stringify(event)} to have ${typesText}`
     );
   }
 }
