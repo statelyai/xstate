@@ -1,4 +1,4 @@
-import { AnyEventObject } from '.';
+import { EventObject } from '.';
 import { toArray } from './utils.ts';
 
 /**
