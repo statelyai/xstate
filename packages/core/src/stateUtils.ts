@@ -1294,7 +1294,7 @@ function addDescendantStatesToEnter<
       for (const s of historyDefaultTransition.target) {
         addProperAncestorStatesToEnter(
           s,
-          stateNode,
+          stateNode.parent!,
           statesToEnter,
           historyValue,
           statesForDefaultEntry

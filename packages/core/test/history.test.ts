@@ -1,4 +1,11 @@
-import { createActor, createMachine, fromCallback } from '../src/index';
+import {
+  assign,
+  createActor,
+  createMachine,
+  fromCallback,
+  fromPromise
+} from '../src/index';
+import { trackEntries } from './utils';
 
 describe('history states', () => {
   it('should go to the most recently visited state (explicit shallow history type)', () => {
@@ -527,6 +534,92 @@ describe('history states', () => {
     actorRef.send({ type: 'PING' });
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not enter ancestors of the entered history state that lie outside of the transition domain when entering the default history configuration', () => {
+    const machine = createMachine({
+      initial: 'closed',
+      states: {
+        closed: {
+          on: {
+            'BUTTON.CLICK': 'open.hist'
+          }
+        },
+        open: {
+          on: {
+            'BUTTON.CLICK': 'closed'
+          },
+          initial: 'first',
+          states: {
+            hist: { type: 'history' },
+            first: {},
+            second: {}
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actorRef = createActor(machine).start();
+    flushTracked();
+
+    actorRef.send({ type: 'BUTTON.CLICK' });
+    expect(flushTracked()).toEqual([
+      'exit: closed',
+      'enter: open',
+      'enter: open.first'
+    ]);
+  });
+
+  it('should not enter ancestors of the entered history state that lie outside of the transition domain when retoring the stored history configuration', () => {
+    const machine = createMachine({
+      initial: 'closed',
+      states: {
+        closed: {
+          id: 'closed',
+          on: {
+            'BUTTON.CLICK': 'open.hist'
+          }
+        },
+        open: {
+          on: {
+            'BUTTON.CLICK': 'closed'
+          },
+          initial: 'first',
+          states: {
+            hist: { type: 'history' },
+            first: {
+              on: {
+                NEXT: 'second'
+              }
+            },
+            second: {
+              on: {
+                CLOSE: '#closed'
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'BUTTON.CLICK' });
+    actorRef.send({ type: 'NEXT' });
+    actorRef.send({ type: 'CLOSE' });
+
+    flushTracked();
+
+    actorRef.send({ type: 'BUTTON.CLICK' });
+    expect(flushTracked()).toEqual([
+      'exit: closed',
+      'enter: open',
+      'enter: open.second'
+    ]);
   });
 });
 
