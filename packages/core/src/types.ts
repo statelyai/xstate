@@ -725,6 +725,14 @@ export type InvokeConfig<
 
 export type AnyInvokeConfig = InvokeConfig<any, any, any, any, any, any>;
 
+type AllEvents<TEvent extends EventObject> =
+  | TEvent
+  | DoneStateEvent
+  | DoneActorEvent
+  | ErrorActorEvent
+  | AfterEvent
+  | InitEvent;
+
 export interface StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -788,7 +796,7 @@ export interface StateNodeConfig<
    */
   entry?: Actions<
     TContext,
-    TEvent,
+    AllEvents<TEvent>,
     TEvent,
     undefined,
     TActor,
@@ -801,7 +809,7 @@ export interface StateNodeConfig<
    */
   exit?: Actions<
     TContext,
-    TEvent,
+    AllEvents<TEvent>,
     TEvent,
     undefined,
     TActor,
@@ -839,7 +847,7 @@ export interface StateNodeConfig<
    */
   always?: TransitionConfigOrTarget<
     TContext,
-    TEvent,
+    AllEvents<TEvent>,
     TEvent,
     TActor,
     TAction,
@@ -1445,6 +1453,15 @@ export interface DoneActorEvent<TOutput = unknown> {
 export interface ErrorActorEvent<TErrorData = unknown> extends EventObject {
   type: `xstate.error.actor.${string}`;
   error: TErrorData;
+}
+
+export interface AfterEvent extends EventObject {
+  type: `xstate.after.${string}.${string}`;
+}
+
+export interface InitEvent<TInput = unknown> extends EventObject {
+  type: `xstate.init`;
+  input: TInput;
 }
 
 export interface SnapshotEvent<

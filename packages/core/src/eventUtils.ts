@@ -1,5 +1,11 @@
 import { XSTATE_INIT } from './constants.ts';
-import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
+import {
+  AfterEvent,
+  DoneActorEvent,
+  DoneStateEvent,
+  ErrorActorEvent,
+  InitEvent
+} from './types.ts';
 
 /**
  * Returns an event that represents an implicit event that
@@ -8,8 +14,11 @@ import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
  * @param delayRef The delay in milliseconds
  * @param id The state node ID where this event is handled
  */
-export function createAfterEvent(delayRef: number | string, id: string) {
-  return { type: `xstate.after.${delayRef}.${id}` } as const;
+export function createAfterEvent(
+  delayRef: number | string,
+  id: string
+): AfterEvent {
+  return { type: `xstate.after.${delayRef}.${id}` };
 }
 
 /**
@@ -55,6 +64,6 @@ export function createErrorActorEvent(
   return { type: `xstate.error.actor.${id}`, error };
 }
 
-export function createInitEvent(input: unknown) {
-  return { type: XSTATE_INIT, input } as const;
+export function createInitEvent(input: unknown): InitEvent {
+  return { type: XSTATE_INIT, input };
 }
