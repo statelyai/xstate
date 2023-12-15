@@ -15,6 +15,14 @@ import {
   TypegenDisabled
 } from './typegenTypes.ts';
 
+declare const functionBrand: unique symbol;
+type NotAFunction<T> = T & { [functionBrand]?: never };
+declare global {
+  interface Function {
+    [functionBrand]?: true;
+  }
+}
+
 export type Identity<T> = { [K in keyof T]: T[K] };
 
 export type HomomorphicPick<T, K extends keyof any> = {
@@ -674,7 +682,9 @@ export type InvokeConfig<
 
       input?:
         | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
-        | NonReducibleUnknown;
+        | null
+        | undefined
+        | NotAFunction<{}>;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */
