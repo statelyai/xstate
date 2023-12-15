@@ -15,6 +15,8 @@ import {
   TypegenDisabled
 } from './typegenTypes.ts';
 
+type Primitive = string | number | boolean | symbol | bigint | null | undefined;
+
 declare const functionBrand: unique symbol;
 type NotAFunction<T> = T & { [functionBrand]?: never };
 declare global {
@@ -682,8 +684,7 @@ export type InvokeConfig<
 
       input?:
         | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
-        | null
-        | undefined
+        | Primitive
         | NotAFunction<{ [k: PropertyKey]: unknown }>;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
