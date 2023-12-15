@@ -685,7 +685,8 @@ export type InvokeConfig<
       input?:
         | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
         | Primitive
-        | NotAFunction<{ [k: PropertyKey]: unknown }>;
+        | NotAFunction<{ [k: PropertyKey]: unknown }>
+        | NotAFunction<object>;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */
