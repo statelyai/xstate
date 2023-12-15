@@ -1,5 +1,11 @@
 # @xstate/vue
 
+## 3.0.1
+
+### Patch Changes
+
+- [#4591](https://github.com/statelyai/xstate/pull/4591) [`f8cc116d3`](https://github.com/statelyai/xstate/commit/f8cc116d31ead0ffd39db8bbd1b5122702b229a0) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actor `options` are now optional in `useActor`.
+
 ## 3.0.0
 
 ### Major Changes
