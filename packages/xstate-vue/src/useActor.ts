@@ -13,7 +13,7 @@ import { useSelector } from './useSelector.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
-  options: ActorOptions<TLogic>
+  options?: ActorOptions<TLogic>
 ): {
   snapshot: Ref<SnapshotFrom<TLogic>>;
   send: (event: EventFrom<TLogic>) => void;
