@@ -12,7 +12,7 @@ type RestParams<TMachine extends AnyStateMachine> =
     ? [options: ActorOptions<TMachine>]
     : [options?: ActorOptions<TMachine>];
 
-/** @deprecated */
+/** @alias useActor */
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
