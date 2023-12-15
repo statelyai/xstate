@@ -38,6 +38,7 @@ Get started by forking one of these templates on CodeSandbox:
 <tr><th>Template</th><th></th></tr>
 </thead>
 <tbody>
+
 <tr>
 <td>
 
@@ -54,6 +55,7 @@ Get started by forking one of these templates on CodeSandbox:
 
 </td>
 </tr>
+
 <tr>
 <td>
 
@@ -70,6 +72,7 @@ Get started by forking one of these templates on CodeSandbox:
 
 </td>
 </tr>
+
 <tr>
 <td>
 
@@ -86,6 +89,24 @@ Get started by forking one of these templates on CodeSandbox:
 
 </td>
 </tr>
+
+<tr>
+<td>
+
+[🧡 XState + Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/svelte-ts)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/svelte-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+
+</td>
+<td>
+
+- [Svelte](https://svelte.dev/)
+- XState v5
+- TypeScript
+
+</td>
+</tr>
+
 </tbody>
 </table>
 
@@ -155,9 +176,6 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 
 - [Statecharts - A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
-- [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
-- [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/statelyai/xstate/discussions))
 
 ## Packages
 
