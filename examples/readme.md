@@ -6,10 +6,10 @@
 pnpm create vite@latest my-example-react --template react-ts
 ```
 
-2. Install `xstate@beta` and the library-specific beta (e.g. `@xstate/react@beta`):
+2. Install `xstate` and the library-specific beta (e.g. `@xstate/react`):
 
 ```bash
-pnpm i xstate@beta @xstate/react@beta
+pnpm i xstate @xstate/react
 ```
 
 3. Add your XState-powered demo code ✨
