@@ -204,7 +204,8 @@ export function createSystem<T extends ActorSystemInfo>(
         type: '@xstate.event',
         sourceRef: source,
         actorRef: target,
-        event
+        event,
+        sessionId: target.sessionId
       });
 
       target._send(event);
@@ -237,6 +238,10 @@ export interface BaseInspectionEventProperties {
    * - For actor events, this is the `actorRef` of the registered actor.
    */
   actorRef: AnyActorRef;
+  /**
+   * The session ID for the actorRef.
+   */
+  sessionId: string;
 }
 
 export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
