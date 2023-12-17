@@ -43,7 +43,7 @@ body:
     validations:
       required: true
   - type: input
-    id: version
+    id: reproduction
     attributes:
       label: Reproduction
       description: |
