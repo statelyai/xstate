@@ -90,7 +90,7 @@ interface MachineSnapshotBase<
   snapshot.value; // => 'yellow'
 
   // nested state nodes
-  state.value; // => { red: 'wait' }
+  snapshot.value; // => { red: 'wait' }
   ```
    */
   value: TStateValue;
