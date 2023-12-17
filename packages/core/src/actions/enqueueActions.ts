@@ -79,7 +79,7 @@ interface ActionEnqueuer<
 }
 
 function resolveEnqueueActions(
-  _: AnyActorScope,
+  actorScope: AnyActorScope,
   snapshot: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   _actionParams: ParameterizedObject['params'] | undefined,
@@ -90,7 +90,8 @@ function resolveEnqueueActions(
       context,
       event,
       enqueue,
-      check
+      check,
+      self
     }: {
       context: MachineContext;
       event: EventObject;
@@ -111,6 +112,7 @@ function resolveEnqueueActions(
           ParameterizedObject
         >
       ) => boolean;
+      self: AnyActorRef;
     }) => void;
   }
 ) {
@@ -144,7 +146,8 @@ function resolveEnqueueActions(
     event: args.event,
     enqueue,
     check: (guard) =>
-      evaluateGuard(guard, snapshot.context, args.event, snapshot)
+      evaluateGuard(guard, snapshot.context, args.event, snapshot),
+    self: actorScope.self
   });
 
   return [snapshot, undefined, actions];
@@ -180,7 +183,8 @@ export function enqueueActions<
     context,
     event,
     check,
-    enqueue
+    enqueue,
+    self
   }: {
     context: TContext;
     event: TExpressionEvent;
@@ -196,6 +200,7 @@ export function enqueueActions<
       TGuard,
       TDelay
     >;
+    self: AnyActorRef;
   }) => void
 ): EnqueueActionsAction<
   TContext,
@@ -217,7 +222,6 @@ export function enqueueActions<
 
   enqueueActions.type = 'xstate.enqueueActions';
   enqueueActions.collect = collect;
-
   enqueueActions.resolve = resolveEnqueueActions;
 
   return enqueueActions;
