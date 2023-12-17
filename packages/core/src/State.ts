@@ -95,7 +95,7 @@ interface MachineSnapshotBase<
    */
   value: TStateValue;
   /**
-   * The current status of this state.
+   * The current status of this snapshot.
    */
   status: 'active' | 'done' | 'error' | 'stopped';
   error: unknown;
