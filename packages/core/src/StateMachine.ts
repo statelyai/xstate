@@ -20,12 +20,7 @@ import {
   transitionNode,
   getInitialStateNodes
 } from './stateUtils.ts';
-import type {
-  AreAllImplementationsAssumedToBeProvided,
-  MarkAllImplementationsAsProvided,
-  ResolveTypegenMeta,
-  TypegenDisabled
-} from './typegenTypes.ts';
+import type { ResolveTypegenMeta, TypegenDisabled } from './typegenTypes.ts';
 import type {
   ActorScope,
   ActorLogic,
@@ -198,9 +193,7 @@ export class StateMachine<
     TTag,
     TInput,
     TOutput,
-    AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-      ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-      : TResolvedTypesMeta
+    TResolvedTypesMeta
   > {
     const { actions, guards, actors, delays } = this.implementations;
 

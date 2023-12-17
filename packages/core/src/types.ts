@@ -8,8 +8,6 @@ import type { Actor, ProcessingStatus } from './interpreter.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
 import {
-  AreAllImplementationsAssumedToBeProvided,
-  MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
   TypegenConstraint,
   TypegenDisabled
@@ -1983,9 +1981,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TStateValue,
           TTag,
           TOutput,
-          AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-            ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-            : TResolvedTypesMeta
+          TResolvedTypesMeta
         >,
         TEvent
       >

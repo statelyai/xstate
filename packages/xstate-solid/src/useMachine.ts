@@ -1,5 +1,10 @@
-import type { AnyStateMachine, Actor, Prop, SnapshotFrom } from 'xstate';
-import type { RestParams } from './types.ts';
+import type {
+  AnyStateMachine,
+  Actor,
+  Prop,
+  SnapshotFrom,
+  ActorOptions
+} from 'xstate';
 import { createService } from './createService.ts';
 import { onCleanup, onMount } from 'solid-js';
 import { createImmutable } from './createImmutable.ts';
@@ -11,7 +16,7 @@ type UseMachineReturn<
 
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  ...[options = {}]: RestParams<TMachine>
+  options?: ActorOptions<TMachine>
 ): UseMachineReturn<TMachine> {
   const service = createService(machine, options);
 

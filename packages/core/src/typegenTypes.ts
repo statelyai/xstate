@@ -104,40 +104,6 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
 
 export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
-// if combined union of all missing implementation types is never then everything has been provided
-export type AreAllImplementationsAssumedToBeProvided<
-  TResolvedTypesMeta,
-  TMissingImplementations = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'missingImplementations'
-  >
-> = IsAny<TResolvedTypesMeta> extends true
-  ? true
-  : TResolvedTypesMeta extends TypegenEnabled
-    ? IsNever<
-        Values<{
-          [K in keyof TMissingImplementations]: TMissingImplementations[K];
-        }>
-      > extends true
-      ? true
-      : false
-    : true;
-
-export type MissingImplementationsError<
-  TResolvedTypesMeta,
-  TMissingImplementations = Prop<
-    Prop<TResolvedTypesMeta, 'resolved'>,
-    'missingImplementations'
-  >
-> = Compute<
-  [
-    'Some implementations missing',
-    Values<{
-      [K in keyof TMissingImplementations]: TMissingImplementations[K];
-    }>
-  ]
->;
-
 interface AllImplementationsProvided {
   missingImplementations: {
     actions: never;
@@ -145,11 +111,6 @@ interface AllImplementationsProvided {
     delays: never;
     guards: never;
   };
-}
-
-export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
-  '@@xstate/typegen': Prop<TResolvedTypesMeta, '@@xstate/typegen'>;
-  resolved: Prop<TResolvedTypesMeta, 'resolved'> & AllImplementationsProvided;
 }
 
 type GenerateActorEvents<
