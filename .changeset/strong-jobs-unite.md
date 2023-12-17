@@ -2,11 +2,11 @@
 'xstate': patch
 ---
 
-Update the argument object of `enqueueActions(...)` to include a `self` property:
+Update the argument object of `enqueueActions(...)` to include the `self` and `system` properties:
 
 ```ts
 // ...
-entry: enqueueActions(({ self }) => {
+entry: enqueueActions(({ self, system }) => {
   // ...
 });
 ```
