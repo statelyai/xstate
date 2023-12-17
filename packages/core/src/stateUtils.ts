@@ -1655,7 +1655,7 @@ export function macrostep(
       snapshot,
       actorScope,
       nextEvent,
-      false,
+      false, // isInitial
       internalQueue
     );
     states.push(nextSnapshot);

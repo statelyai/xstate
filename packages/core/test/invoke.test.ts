@@ -19,7 +19,6 @@ import {
   createMachine,
   createActor,
   sendParent,
-  EventFrom,
   Snapshot,
   ActorRef
 } from '../src/index.ts';

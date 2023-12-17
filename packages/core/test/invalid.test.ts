@@ -1,4 +1,4 @@
-import { createMachine } from '../src/index.ts';
+import { createMachine, getNextSnapshot } from '../src/index.ts';
 
 describe('invalid or resolved states', () => {
   it('should resolve a String state', () => {
@@ -22,11 +22,9 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      machine.transition(
-        machine.resolveState({ value: 'A' }),
-        { type: 'E' },
-        {} as any // TODO: figure out the simulation API
-      ).value
+      getNextSnapshot(machine, machine.resolveState({ value: 'A' }), {
+        type: 'E'
+      }).value
     ).toEqual({
       A: 'A1',
       B: 'B1'
@@ -54,10 +52,10 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      machine.transition(
+      getNextSnapshot(
+        machine,
         machine.resolveState({ value: { A: {}, B: {} } }),
-        { type: 'E' },
-        {} as any // TODO: figure out the simulation API
+        { type: 'E' }
       ).value
     ).toEqual({
       A: 'A1',
@@ -85,10 +83,10 @@ describe('invalid or resolved states', () => {
         }
       }
     });
-    machine.transition(
+    getNextSnapshot(
+      machine,
       machine.resolveState({ value: { A: 'A1', B: 'B1' } }),
-      { type: 'E' },
-      {} as any // TODO: figure out the simulation API
+      { type: 'E' }
     );
   });
 
@@ -113,10 +111,10 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(() =>
-      machine.transition(
+      getNextSnapshot(
+        machine,
         machine.resolveState({ value: { A: 'A3', B: 'B3' } }),
-        { type: 'E' },
-        {} as any // TODO: figure out the simulation API
+        { type: 'E' }
       )
     ).toThrow();
   });
@@ -142,10 +140,10 @@ describe('invalid or resolved states', () => {
       }
     });
     expect(
-      machine.transition(
+      getNextSnapshot(
+        machine,
         machine.resolveState({ value: { A: 'A1', B: {} } }),
-        { type: 'E' },
-        {} as any // TODO: figure out the simulation API
+        { type: 'E' }
       ).value
     ).toEqual({
       A: 'A1',
