@@ -9,7 +9,8 @@ import {
   EventObject,
   MachineContext,
   ParameterizedObject,
-  ProvidedActor
+  ProvidedActor,
+  UnifiedArg
 } from '../types.ts';
 import { assign } from './assign.ts';
 import { cancel } from './cancel.ts';
@@ -86,34 +87,15 @@ function resolveEnqueueActions(
   {
     collect
   }: {
-    collect: ({
-      context,
-      event,
-      enqueue,
-      check,
-      self
-    }: {
-      context: MachineContext;
-      event: EventObject;
-      enqueue: ActionEnqueuer<
-        MachineContext,
-        EventObject,
-        EventObject,
-        ProvidedActor,
-        ParameterizedObject,
-        ParameterizedObject,
-        string
-      >;
-      check: (
-        guard: Guard<
-          MachineContext,
-          EventObject,
-          undefined,
-          ParameterizedObject
-        >
-      ) => boolean;
-      self: AnyActorRef;
-    }) => void;
+    collect: CollectActions<
+      MachineContext,
+      EventObject,
+      EventObject,
+      ProvidedActor,
+      ParameterizedObject,
+      ParameterizedObject,
+      string
+    >;
   }
 ) {
   const actions: any[] = [];
@@ -147,7 +129,8 @@ function resolveEnqueueActions(
     enqueue,
     check: (guard) =>
       evaluateGuard(guard, snapshot.context, args.event, snapshot),
-    self: actorScope.self
+    self: actorScope.self,
+    system: actorScope.system
   });
 
   return [snapshot, undefined, actions];
@@ -170,6 +153,53 @@ export interface EnqueueActionsAction<
   _out_TDelay?: TDelay;
 }
 
+interface CollectActionsArg<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+> extends UnifiedArg<TContext, TExpressionEvent, TEvent> {
+  check: (
+    guard: Guard<TContext, TExpressionEvent, undefined, TGuard>
+  ) => boolean;
+  enqueue: ActionEnqueuer<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay
+  >;
+}
+
+type CollectActions<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActor extends ProvidedActor,
+  TAction extends ParameterizedObject,
+  TGuard extends ParameterizedObject,
+  TDelay extends string
+> = ({
+  context,
+  event,
+  check,
+  enqueue,
+  self
+}: CollectActionsArg<
+  TContext,
+  TExpressionEvent,
+  TEvent,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay
+>) => void;
+
 export function enqueueActions<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -179,29 +209,15 @@ export function enqueueActions<
   TGuard extends ParameterizedObject = ParameterizedObject,
   TDelay extends string = string
 >(
-  collect: ({
-    context,
-    event,
-    check,
-    enqueue,
-    self
-  }: {
-    context: TContext;
-    event: TExpressionEvent;
-    check: (
-      guard: Guard<TContext, TExpressionEvent, undefined, TGuard>
-    ) => boolean;
-    enqueue: ActionEnqueuer<
-      TContext,
-      TExpressionEvent,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay
-    >;
-    self: AnyActorRef;
-  }) => void
+  collect: CollectActions<
+    TContext,
+    TExpressionEvent,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay
+  >
 ): EnqueueActionsAction<
   TContext,
   TExpressionEvent,
