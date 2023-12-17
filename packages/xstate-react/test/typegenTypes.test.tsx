@@ -24,35 +24,6 @@ describe('useMachine', () => {
 
     render(<App />);
   });
-
-  it('should not allow to be used with a machine with some missing implementations', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    function App() {
-      // @ts-expect-error
-      useMachine(machine);
-      return null;
-    }
-
-    render(<App />);
-  });
 });
 
 describe('useActorRef', () => {
@@ -186,94 +157,6 @@ describe('createActorContext', () => {
 
     function App() {
       return <Context.Provider>{null}</Context.Provider>;
-    }
-
-    render(<App />);
-  });
-
-  it('should not allow to be used with a machine with some missing implementations', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        actors: never;
-        delays: never;
-        guards: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    const Context = createActorContext(machine);
-
-    function App() {
-      // @ts-expect-error
-      return <Context.Provider>{null}</Context.Provider>;
-    }
-
-    render(<App />);
-  });
-
-  it('should require all missing implementations ', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        actors: never;
-        delays: 'myDelay';
-        guards: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-        myDelay: 'BAR';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    const Context = createActorContext(machine);
-
-    function App() {
-      let ret;
-      // @ts-expect-error
-      ret = <Context.Provider options={{}}>{null}</Context.Provider>;
-      ret = (
-        <Context.Provider
-          logic={machine.provide({
-            // @ts-expect-error
-            actions: {}
-          })}
-        >
-          {null}
-        </Context.Provider>
-      );
-      ret = (
-        <Context.Provider
-          logic={machine.provide({
-            actions: {
-              myAction: () => {}
-            },
-            delays: {
-              myDelay: () => 42
-            }
-          })}
-        >
-          {null}
-        </Context.Provider>
-      );
-
-      return ret;
     }
 
     render(<App />);

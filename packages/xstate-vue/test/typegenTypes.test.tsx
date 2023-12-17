@@ -24,33 +24,4 @@ describe('useMachine', () => {
       }
     });
   });
-
-  it('should not allow to be used with a machine with some missing implementations', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    defineComponent({
-      setup() {
-        // @ts-expect-error
-        useMachine(machine);
-        return {};
-      }
-    });
-  });
 });

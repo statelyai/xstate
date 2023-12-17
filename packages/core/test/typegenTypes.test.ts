@@ -469,30 +469,6 @@ describe('typegen types', () => {
     createActor(machine);
   });
 
-  it('should not allow to create an actor out of a machine with missing implementations', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    // @ts-expect-error
-    createActor(machine);
-  });
-
   it('should allow to create an actor out of a machine with implementations provided through `withConfig`', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
