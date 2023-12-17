@@ -54,6 +54,9 @@ interface MachineSnapshotBase<
   TOutput,
   TResolvedTypesMeta = TypegenDisabled
 > {
+  /**
+   * The state machine that produced this state snapshot.
+   */
   machine: StateMachine<
     TContext,
     TEvent,
@@ -68,8 +71,32 @@ interface MachineSnapshotBase<
     TOutput,
     TResolvedTypesMeta
   >;
+  /**
+   * The tags of the active state nodes that represent the current state value.
+   */
   tags: Set<string>;
+  /**
+   * The current state value.
+   *
+   * This represents the active state nodes in the state machine.
+   * - For atomic state nodes, it is a string. 
+   * - For compound parent state nodes, it is an object where:
+   *   - The key is the parent state node's key
+   *   - The value is the current state value of the active child state node(s)
+   * 
+   * @example
+  ```ts
+  // single-level state node
+  state.value; // => 'yellow'
+
+  // nested state nodes
+  state.value; // => { red: 'wait' }
+  ```
+   */
   value: TStateValue;
+  /**
+   * The current status of this state.
+   */
   status: 'active' | 'done' | 'error' | 'stopped';
   error: unknown;
   context: TContext;
@@ -85,8 +112,8 @@ interface MachineSnapshotBase<
   children: TChildren;
 
   /**
-   * Whether the current state value is a subset of the given parent state value.
-   * @param testValue
+   * Whether the current state value is a subset of the given partial state value.
+   * @param partialStateValue
    */
   matches: (
     this: MachineSnapshot<
@@ -98,7 +125,7 @@ interface MachineSnapshotBase<
       TOutput,
       TResolvedTypesMeta
     >,
-    testValue: ToTestStateValue<TStateValue>
+    partialStateValue: ToTestStateValue<TStateValue>
   ) => boolean;
 
   /**
