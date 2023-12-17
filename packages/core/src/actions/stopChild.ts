@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
-import { ProcessingStatus } from '../interpreter.ts';
+import { ProcessingStatus } from '../createActor.ts';
 import {
   ActionArgs,
   ActorRef,

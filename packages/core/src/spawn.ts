@@ -1,5 +1,5 @@
 import { createErrorActorEvent } from './eventUtils.ts';
-import { ProcessingStatus, createActor } from './interpreter.ts';
+import { ProcessingStatus, createActor } from './createActor.ts';
 import {
   ActorRefFrom,
   AnyActorScope,

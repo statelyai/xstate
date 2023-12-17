@@ -4,7 +4,7 @@ import type { StateNode } from './StateNode.ts';
 import { AssignArgs } from './actions/assign.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
-import type { Actor, ProcessingStatus } from './interpreter.ts';
+import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
 import {

@@ -49,7 +49,7 @@ import type {
   EventDescriptor
 } from './types.ts';
 import { resolveReferencedActor } from './utils.ts';
-import { $$ACTOR_TYPE, createActor } from './interpreter.ts';
+import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import isDevelopment from '#is-development';
 
 export const STATE_IDENTIFIER = '#';

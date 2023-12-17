@@ -14,7 +14,6 @@ import { AnyActorSystem, Clock, createSystem } from './system.ts';
 import type {
   ActorScope,
   AnyActorLogic,
-  AnyStateMachine,
   DoneActorEvent,
   EventFromLogic,
   Snapshot,
