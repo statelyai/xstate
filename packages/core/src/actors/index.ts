@@ -1,4 +1,4 @@
-import { createActor } from '../interpreter.ts';
+import { createActor } from '../createActor.ts';
 import type { ActorRef, AnyEventObject, Snapshot } from '../types.ts';
 import { fromTransition } from './transition.ts';
 export {

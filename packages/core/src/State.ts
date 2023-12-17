@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { $$ACTOR_TYPE } from './interpreter.ts';
+import { $$ACTOR_TYPE } from './createActor.ts';
 import type { StateNode } from './StateNode.ts';
 import type { StateMachine } from './StateMachine.ts';
 import { getStateValue } from './stateUtils.ts';
