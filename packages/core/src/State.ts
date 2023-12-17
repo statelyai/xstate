@@ -87,7 +87,7 @@ interface MachineSnapshotBase<
    * @example
   ```ts
   // single-level state node
-  state.value; // => 'yellow'
+  snapshot.value; // => 'yellow'
 
   // nested state nodes
   state.value; // => { red: 'wait' }
