@@ -61,7 +61,7 @@ function resolveSpawn(
     actorRef = createActor(logic, {
       id: resolvedId,
       src,
-      parent: actorScope?.self,
+      parent: actorScope.self,
       syncSnapshot,
       systemId,
       input:
@@ -69,7 +69,7 @@ function resolveSpawn(
           ? input({
               context: snapshot.context,
               event: actionArgs.event,
-              self: actorScope?.self
+              self: actorScope.self
             })
           : input
     });

@@ -555,7 +555,7 @@ export class StateMachine<
 
       const actorRef = createActor(logic, {
         id: actorId,
-        parent: _actorScope?.self,
+        parent: _actorScope.self,
         syncSnapshot: actorData.syncSnapshot,
         snapshot: childState,
         src,

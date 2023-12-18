@@ -1505,8 +1505,8 @@ function resolveActionsAndContextWorker(
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
-      self: actorScope?.self,
-      system: actorScope?.system
+      self: actorScope.self,
+      system: actorScope.system
     };
 
     const actionParams =
@@ -1519,10 +1519,10 @@ function resolveActionsAndContextWorker(
           : undefined;
 
     if (!('resolve' in resolvedAction)) {
-      if (actorScope?.self._processingStatus === ProcessingStatus.Running) {
+      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
         resolvedAction(actionArgs, actionParams);
       } else {
-        actorScope?.defer(() => {
+        actorScope.defer(() => {
           resolvedAction(actionArgs, actionParams);
         });
       }
@@ -1546,12 +1546,10 @@ function resolveActionsAndContextWorker(
     }
 
     if ('execute' in builtinAction) {
-      if (actorScope?.self._processingStatus === ProcessingStatus.Running) {
+      if (actorScope.self._processingStatus === ProcessingStatus.Running) {
         builtinAction.execute(actorScope!, params);
       } else {
-        actorScope?.defer(
-          builtinAction.execute.bind(null, actorScope!, params)
-        );
+        actorScope.defer(builtinAction.execute.bind(null, actorScope!, params));
       }
     }
 
