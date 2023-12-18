@@ -98,7 +98,9 @@ export class Actor<TLogic extends AnyActorLogic>
   public _processingStatus: ProcessingStatus = ProcessingStatus.NotStarted;
 
   // Actor Ref
+  /** @internal */
   public _parent?: ActorRef<any, any>;
+  /** @internal */
   public _syncSnapshot?: boolean;
   public ref: ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>;
   // TODO: add typings for system
@@ -678,6 +680,9 @@ export class Actor<TLogic extends AnyActorLogic>
     return this.logic.getPersistedSnapshot(this._snapshot, options);
   }
 
+  /**
+   * @internal
+   */
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
     return this;
   }
