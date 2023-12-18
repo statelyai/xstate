@@ -1,10 +1,39 @@
 import { createEmptyActor } from './actors/index.ts';
 import {
+  ActorRefFrom,
+  ActorScope,
   AnyActorLogic,
   AnyActorScope,
   EventFromLogic,
+  InputFrom,
   SnapshotFrom
 } from './types.ts';
+
+/** @internal */
+export function createInertActorScope<T extends AnyActorLogic>(
+  _actorLogic: T
+): AnyActorScope {
+  const self = createEmptyActor() as ActorRefFrom<T>;
+  const inertActorScope: ActorScope<SnapshotFrom<T>, EventFromLogic<T>, any> = {
+    self,
+    defer: () => {},
+    id: '',
+    logger: () => {},
+    sessionId: '',
+    stopChild: () => {},
+    system: (self as any).system // TODO: fix types?
+  };
+
+  return inertActorScope;
+}
+
+export function getInitialSnapshot<T extends AnyActorLogic>(
+  actorLogic: T,
+  input: InputFrom<T>
+): SnapshotFrom<T> {
+  const actorScope = createInertActorScope(actorLogic);
+  return actorLogic.getInitialSnapshot(actorScope, input);
+}
 
 /**
  * Determines the next snapshot for the given `actorLogic` based on
@@ -37,20 +66,9 @@ import {
  */
 export function getNextSnapshot<T extends AnyActorLogic>(
   actorLogic: T,
-  snapshot: SnapshotFrom<T> | undefined,
+  snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
 ): any {
-  const self = createEmptyActor();
-  const inertActorScope: AnyActorScope = {
-    self,
-    defer: () => {},
-    id: '',
-    logger: () => {},
-    sessionId: '',
-    stopChild: () => {},
-    system: self.system
-  };
-  const resolvedSnapshot =
-    snapshot ?? actorLogic.getInitialSnapshot(inertActorScope, null as any);
-  return actorLogic.transition(resolvedSnapshot, event, inertActorScope);
+  const inertActorScope = createInertActorScope(actorLogic);
+  return actorLogic.transition(snapshot, event, inertActorScope);
 }

@@ -1,5 +1,6 @@
 import { fromCallback, createActor, getNextSnapshot } from '../src/index.ts';
 import { createMachine } from '../src/createMachine.ts';
+import { getInitialSnapshot } from '../src/getNextSnapshot.ts';
 
 describe('deterministic machine', () => {
   const lightMachine = createMachine({
@@ -140,14 +141,16 @@ describe('deterministic machine', () => {
     });
 
     it('should use the machine.initialState when an undefined state is given', () => {
+      const init = getInitialSnapshot(lightMachine, undefined);
       expect(
-        getNextSnapshot(lightMachine, undefined, { type: 'TIMER' }).value
+        getNextSnapshot(lightMachine, init, { type: 'TIMER' }).value
       ).toEqual('yellow');
     });
 
     it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
+      const init = getInitialSnapshot(lightMachine, undefined);
       expect(
-        getNextSnapshot(lightMachine, undefined, { type: 'TIMER' }).value
+        getNextSnapshot(lightMachine, init, { type: 'TIMER' }).value
       ).toEqual('yellow');
     });
   });
@@ -244,7 +247,8 @@ describe('deterministic machine', () => {
     });
 
     it('should return the same state if no transition occurs', () => {
-      const initialState = getNextSnapshot(lightMachine, undefined, {
+      const init = getInitialSnapshot(lightMachine, undefined);
+      const initialState = getNextSnapshot(lightMachine, init, {
         type: 'NOTHING'
       });
       const nextState = getNextSnapshot(lightMachine, initialState, {
@@ -279,9 +283,10 @@ describe('deterministic machine', () => {
     );
 
     it('should work with substate nodes that have the same key', () => {
-      expect(
-        getNextSnapshot(machine, undefined, { type: 'NEXT' }).value
-      ).toEqual('test');
+      const init = getInitialSnapshot(machine, undefined);
+      expect(getNextSnapshot(machine, init, { type: 'NEXT' }).value).toEqual(
+        'test'
+      );
     });
   });
 

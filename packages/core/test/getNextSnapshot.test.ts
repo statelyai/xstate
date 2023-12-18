@@ -4,6 +4,7 @@ import {
   fromTransition,
   getNextSnapshot
 } from '../src';
+import { getInitialSnapshot } from '../src/getNextSnapshot';
 
 describe('getNextSnapshot', () => {
   it('should calculate the next snapshot for transition logic', () => {
@@ -18,7 +19,8 @@ describe('getNextSnapshot', () => {
       { count: 0 }
     );
 
-    const s1 = getNextSnapshot(logic, undefined, { type: 'next' });
+    const init = getInitialSnapshot(logic, undefined);
+    const s1 = getNextSnapshot(logic, init, { type: 'next' });
     expect(s1.context.count).toEqual(1);
     const s2 = getNextSnapshot(logic, s1, { type: 'next' });
     expect(s2.context.count).toEqual(2);
@@ -41,7 +43,8 @@ describe('getNextSnapshot', () => {
       }
     });
 
-    const s1 = getNextSnapshot(machine, undefined, { type: 'NEXT' });
+    const init = getInitialSnapshot(machine, undefined);
+    const s1 = getNextSnapshot(machine, init, { type: 'NEXT' });
 
     expect(s1.value).toEqual('b');
 
@@ -67,7 +70,8 @@ describe('getNextSnapshot', () => {
       }
     });
 
-    const nextSnapshot = getNextSnapshot(machine, undefined, { type: 'event' });
+    const init = getInitialSnapshot(machine, undefined);
+    const nextSnapshot = getNextSnapshot(machine, init, { type: 'event' });
 
     expect(fn).not.toHaveBeenCalled();
     expect(nextSnapshot.value).toEqual('b');
