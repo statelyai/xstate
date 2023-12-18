@@ -292,9 +292,9 @@ type Target<
     ) => string | ActorRef<any, any>);
 
 /**
- * Forwards (sends) an event to a specified service.
+ * Forwards (sends) an event to the `target` actor.
  *
- * @param target The target service to forward the event to.
+ * @param target The target actor to forward the event to.
  * @param options Options to pass into the send action creator.
  */
 export function forwardTo<

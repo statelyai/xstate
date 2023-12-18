@@ -64,6 +64,43 @@ type ToStateValue<TTestValue extends string | TestValue> =
         }
       : never);
 
+/**
+ * Creates a state machine (statechart) with the given configuration.
+ *
+ * The state machine represents the pure logic of a state machine actor.
+ * 
+ * @example
+  ```ts
+  import { createMachine } from 'xstate';
+
+  const lightMachine = createMachine({
+    id: 'light',
+    initial: 'green',
+    states: {
+      green: {
+        on: {
+          TIMER: { target: 'yellow' }
+        }
+      },
+      yellow: {
+        on: {
+          TIMER: { target: 'red' }
+        }
+      },
+      red: {
+        on: {
+          TIMER: { target: 'green' }
+        }
+      }
+    }
+  });
+
+  const lightActor = createActor(lightMachine);
+  lightActor.start();
+
+  lightActor.send({ type: 'TIMER' });
+  ```
+ */
 export function createMachine<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
@@ -91,6 +128,10 @@ export function createMachine<
     TOutput,
     TTypesMeta
   >,
+  /**
+   * @internal
+   * @deprecated Use `setup({ ... })` or `machine.provide({ ... })` instead
+   */
   implementations?: InternalMachineImplementations<
     TContext,
     ResolveTypegenMeta<
