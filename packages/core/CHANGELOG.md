@@ -1,5 +1,18 @@
 # xstate
 
+## 5.3.1
+
+### Patch Changes
+
+- [#4597](https://github.com/statelyai/xstate/pull/4597) [`ae0b05f11`](https://github.com/statelyai/xstate/commit/ae0b05f11f1f1048e4f3ce8ae18aa2710e3e0272) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Update the argument object of `enqueueActions(...)` to include the `self` and `system` properties:
+
+  ```ts
+  // ...
+  entry: enqueueActions(({ self, system }) => {
+    // ...
+  });
+  ```
+
 ## 5.3.0
 
 ### Minor Changes
