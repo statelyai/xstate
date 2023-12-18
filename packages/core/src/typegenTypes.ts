@@ -101,6 +101,14 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
 
 export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
+/**
+ * @deprecated Always resolves to `true`
+ */
+export type AreAllImplementationsAssumedToBeProvided<
+  _TResolvedTypesMeta,
+  _TMissingImplementations
+> = true;
+
 interface AllImplementationsProvided {
   missingImplementations: {
     actions: never;
