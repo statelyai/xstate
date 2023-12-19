@@ -1720,7 +1720,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   clock?: Clock;
   /**
-   * Specifies the logger to be used for log(...) actions. Defaults to the native console.log method.
+   * Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
   /**
@@ -1736,14 +1736,12 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    */
   id?: string;
   /**
-   * If `true`, states and events will be logged to Redux DevTools.
-   *
-   * Default: `false`
+   * @deprecated Use `inspect` instead.
    */
-  devTools?: boolean | DevToolsAdapter; // TODO: add enhancer options
+  devTools?: never;
 
   /**
-   * The system ID to register this actor under
+   * The system ID to register this actor under.
    */
   systemId?: string;
   /**
@@ -1772,7 +1770,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   state?: Snapshot<unknown>;
 
   /**
-   * The source definition.
+   * The source actor logic.
    */
   src?: string | AnyActorLogic;
 
