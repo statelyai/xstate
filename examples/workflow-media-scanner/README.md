@@ -19,37 +19,46 @@ This project convers how to implement the following with XState:
 
 - Initializing a XState machine as an actor
 
-  > index.ts
+  ```ts
+  // index.ts
 
-  ```typescript
+  // ...
+
   const mediaScannerActor = createActor(mediaScannerMachine);
   ```
 
 - Injecting context information into the actor on initialization
 
-  ````typescript
+  ```ts
+  // index.ts
+
+  // ...
+
   const mediaScannerActor = createActor(mediaScannerMachine, {
-      input: {
+    input: {
       basePath: 'YOUR BASE PATH HERE',
       destinationPath: 'YOUR DESTINATION PATH HERE'
-      }
-  });    ```
-
-  ````
+    }
+  });
+  ```
 
 - Sending events to the XState actor
 
-  > index.ts
+  ```ts
+  // index.ts
 
-  ```typescript
+  // ...
+
   mediaScannerActor.send({ type: 'START_SCAN' });
   ```
 
 - Subscribing to a running actor for state change and context information
 
-  > index.ts
+  ```ts
+  // index.ts
 
-  ```typescript
+  // ...
+
   mediaScannerActor.subscribe((state) => {
     console.log({
       state: state.value,
@@ -63,48 +72,51 @@ This project convers how to implement the following with XState:
 
   > mediaScannerMachine.ts
 
-  ```typescript
-      invoke: {
-      id: 'checkFilePermissions',
-      input: ({ context: { directoriesToCheck } }) => ({
+  ```ts
+  invoke: {
+    id: 'checkFilePermissions',
+    input: ({ context: { directoriesToCheck } }) => ({
       directoriesToCheck
-      }),
-      src: fromPromise(
-      async ({ input: { directoriesToCheck } }) =>
-          await checkFilePermissions(directoriesToCheck)
-      ),
-      onDone: [
+    }),
+    src: fromPromise(async ({ input: { directoriesToCheck } }) =>
+      await checkFilePermissions(directoriesToCheck)
+    ),
+    onDone: [
       {
-          target: 'EvaluatingFiles',
-          actions: assign(({ event }) => {
+        target: 'EvaluatingFiles',
+        actions: assign(({ event }) => {
           return {
-              dirsToEvaluate: event.output['dirsToEvaluate'],
-              dirsToReport: event.output['dirsToReport']
+            dirsToEvaluate: event.output['dirsToEvaluate'],
+            dirsToReport: event.output['dirsToReport']
           };
-          })
+        })
       }
-      ],
-      onError: [
+    ],
+    onError: [
       {
-          target: 'ReportingErrors',
-          actions: assign(({ event }) => {
+        target: 'ReportingErrors',
+        actions: assign(({ event }) => {
           return {
-              dirsToReport: event.error['dirsToReport']
+            dirsToReport: event.error['dirsToReport']
           };
-          })
+        })
       }
-      ]
+    ]
   }
   ```
 
 - Batching results and assigning multiple properties to the actor's context
+
   > fileHandlers.ts
-  ```typescript
+
+  ```ts
   ...
    return { dirsToEvaluate, dirsToReport };
   ```
+
   > mediaScannerMachine.ts
-  ```typescript
+
+  ```ts
   actions: assign(({ event }) => {
     return {
       dirsToEvaluate: event.output['dirsToEvaluate'],
