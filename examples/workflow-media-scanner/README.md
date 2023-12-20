@@ -1,18 +1,10 @@
-# Welcome to the world's most niche Media Scanner!
+# Workflow Example: Scanning and spliting Media
 
-## What?
+This is a small example of a back-end workflow that uses a state machine to execute long running tasks. This project crawls a directory full of movies and separates out videos over 1080p for potential processing down the line.
 
-It's a small project that crawls a directory full of movies and separates out the 4K content. (well, specifically, content over 1080p). **This project is not intended for production use. Just a script I wrote out of laziness.**
+> **NOTE:This project is not intended for production use.**
 
-## Why?
-
-I have a lot of media files in my personal library, and I'm learning about the best ways to encode, host, and serve these files. As time has gone by, I realized that when transcoding media, different settings should be used for 4K content than should be used for 1080p content. And it's difficult to run a batch job over all the files and dynamically change settings, so here we are, with the need to have 2 movie locations, 1 for 4K content and 1 for everything else
-
-## Really? Is that it?
-
-Well, no. See I work at [Stately](https://stately.ai/) an awesome company centered around building deterministic flows. This was a great excuse to build one of those flows and dogfood our own product. So you're welcome.
-
-## How to use?
+## Prerequisites
 
 This project requires `ffprobe`, a binary that ships alongside `ffmpeg`, which is the golden standard for media file manipulation.
 
@@ -20,3 +12,103 @@ This project requires `ffprobe`, a binary that ships alongside `ffmpeg`, which i
 - Clone this repo and run `yarn` (or use your package manager of choice) in a terminal at the project's root.
 - Update the `basePath` and `destinationPath` in the `mediaScannerMachine.ts` file with your own paths.
 - Run the project with `yarn start` in the terminal
+
+## XState concepts involved
+
+This project convers how to implement the following with XState:
+
+- Initializing a XState machine as an actor
+
+  > index.ts
+
+  ```typescript
+  const mediaScannerActor = createActor(mediaScannerMachine);
+  ```
+
+- Injecting context information into the actor on initialization
+
+  ````typescript
+  const mediaScannerActor = createActor(mediaScannerMachine, {
+      input: {
+      basePath: 'YOUR BASE PATH HERE',
+      destinationPath: 'YOUR DESTINATION PATH HERE'
+      }
+  });    ```
+
+  ````
+
+- Sending events to the XState actor
+
+  > index.ts
+
+  ```typescript
+  mediaScannerActor.send({ type: 'START_SCAN' });
+  ```
+
+- Subscribing to a running actor for state change and context information
+
+  > index.ts
+
+  ```typescript
+  mediaScannerActor.subscribe((state) => {
+    console.log({
+      state: state.value,
+      error: state.error,
+      context: state.context
+    });
+  });
+  ```
+
+- Invoking services and capturing results
+
+  > mediaScannerMachine.ts
+
+  ```typescript
+      invoke: {
+      id: 'checkFilePermissions',
+      input: ({ context: { directoriesToCheck } }) => ({
+      directoriesToCheck
+      }),
+      src: fromPromise(
+      async ({ input: { directoriesToCheck } }) =>
+          await checkFilePermissions(directoriesToCheck)
+      ),
+      onDone: [
+      {
+          target: 'EvaluatingFiles',
+          actions: assign(({ event }) => {
+          return {
+              dirsToEvaluate: event.output['dirsToEvaluate'],
+              dirsToReport: event.output['dirsToReport']
+          };
+          })
+      }
+      ],
+      onError: [
+      {
+          target: 'ReportingErrors',
+          actions: assign(({ event }) => {
+          return {
+              dirsToReport: event.error['dirsToReport']
+          };
+          })
+      }
+      ]
+  }
+  ```
+
+- Batching results and assigning multiple properties to the actor's context
+  > fileHandlers.ts
+  ```typescript
+  ...
+   return { dirsToEvaluate, dirsToReport };
+  ```
+  > mediaScannerMachine.ts
+  ```typescript
+  actions: assign(({ event }) => {
+    return {
+      dirsToEvaluate: event.output['dirsToEvaluate'],
+      dirsToReport: event.output['dirsToReport']
+    };
+  });
+  ```

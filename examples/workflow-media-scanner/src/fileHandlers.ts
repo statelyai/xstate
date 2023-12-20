@@ -2,7 +2,6 @@ import * as fs from 'fs/promises';
 import * as fsExtra from 'fs-extra';
 import path, { dirname, resolve } from 'path';
 import probe from 'node-ffprobe';
-import mv from 'mv';
 import winston from 'winston';
 
 const logger = winston.createLogger({
