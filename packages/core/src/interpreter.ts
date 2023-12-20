@@ -513,7 +513,6 @@ export class Actor<TLogic extends AnyActorLogic>
     this.update(nextState, event);
     if (event.type === XSTATE_STOP) {
       this._stopProcedure();
-      this._complete();
     }
   }
 
