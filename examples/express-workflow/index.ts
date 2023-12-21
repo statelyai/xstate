@@ -44,7 +44,7 @@ app.post("/workflows/:workflowId", (req, res) => {
   }
 
   const event = req.body;
-  const actor = createActor(machine, snapshot).start();
+  const actor = createActor(machine, { snapshot }).start();
 
   actor.send(event);
 
