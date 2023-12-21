@@ -1,5 +1,5 @@
-import { createActor } from 'xstate';
-import bodyParser from 'body-parser';
+import { createActor } from "xstate";
+import bodyParser from "body-parser";
 
 function generateActorId() {
   return Math.random().toString(36).substring(2, 8);
@@ -7,8 +7,8 @@ function generateActorId() {
 
 const persistedStates: Record<string, unknown> = {};
 
-import express from 'express';
-import { machine } from './machine';
+import express from "express";
+import { machine } from "./machine";
 
 const app = express();
 
@@ -19,12 +19,12 @@ app.use(bodyParser.json());
 // - Starts the actor
 // - Persists the actor state
 // - Returns the actor ID in the response
-app.post('/workflows', (req, res) => {
+app.post("/workflows", (req, res) => {
   const workflowId = generateActorId(); // generate a unique ID
   const actor = createActor(machine).start();
 
   // @ts-ignore
-  persistedStates[workflowId] = actor.getPersistedState();
+  persistedStates[workflowId] = actor.getPersistedSnapshot();
 
   res.send({ workflowId });
 });
@@ -35,21 +35,21 @@ app.post('/workflows', (req, res) => {
 // - Sends the event from the request body to the actor
 // - Persists the updated state
 // - Returns the updated state in the response
-app.post('/workflows/:workflowId', (req, res) => {
+app.post("/workflows/:workflowId", (req, res) => {
   const { workflowId } = req.params;
   const snapshot = persistedStates[workflowId];
 
   if (!snapshot) {
-    return res.status(404).send('Actor not found');
+    return res.status(404).send("Actor not found");
   }
 
   const event = req.body;
-  const actor = createActor(machine, { state: snapshot }).start();
+  const actor = createActor(machine, snapshot).start();
 
   actor.send(event);
 
   // @ts-ignore
-  persistedStates[workflowId] = actor.getPersistedState();
+  persistedStates[workflowId] = actor.getPersistedSnapshot();
 
   actor.stop();
 
@@ -60,18 +60,18 @@ app.post('/workflows/:workflowId', (req, res) => {
 // - Gets the actor ID from request params
 // - Gets the persisted state for that actor
 // - Returns the persisted state in the response
-app.get('/workflows/:workflowId', (req, res) => {
+app.get("/workflows/:workflowId", (req, res) => {
   const { workflowId } = req.params;
   const persistedState = persistedStates[workflowId];
 
   if (!persistedState) {
-    return res.status(404).send('Actor not found');
+    return res.status(404).send("Actor not found");
   }
 
   res.json(persistedState);
 });
 
-app.get('/', (_, res) => {
+app.get("/", (_, res) => {
   res.send(`
     <html>
       <body style="font-family: sans-serif;">
@@ -88,5 +88,5 @@ app.get('/', (_, res) => {
 });
 
 app.listen(4242, () => {
-  console.log('Server listening on port 4242');
+  console.log("Server listening on port 4242");
 });
