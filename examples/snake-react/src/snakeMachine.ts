@@ -43,7 +43,7 @@ export function createInitialContext(): SnakeMachineContext {
 }
 
 export const snakeMachine = createMachine({
-  /** @xstate-layout N4IgpgJg5mDOIC5QGUB2BDA1mAsugxgBYCWqYAdAHJgDuABAOLoC2YAxAIIBKXA8gOoB9ANIBRAJoBtAAwBdRKAAOAe1jEALsWWoFIAB6IAjNIBM08gBYAnAA4bANisBWG1YsB2exYA0IAJ6I9u7kTlZhnob29oZOJu7uAL4JvmhYuAQkZOQ4ygBupFCcPAIiEjLySCAqapraugYIhiZm5K7Rtu5O0u4eNr4BCAC09k7knhZ2AMyT0oY2pk1JKRjYeESkFDn5qIXoADY06H6w5brVGlo6lQ2GFk4W5CM2LoaTVkEWk-b9iJ8hTe4rE17F93A4nEsQKlVhkNtk8gU2PtDsdJIYKkpVBc6tcjBYgpZ3MY7FZJsZpNIfP5ECZJg8rCYmrMbGS6R4TJDoel1lktojkUcTiYMVUsbUrqAbk5DMEQdNpHZrF5nj8EJMTFZyNInGSFUS7mS7pyVtzMpsETs2HpYOp0OoKOgAGb2gBOAAp5gBKNhctZm+HbKCnSrncX1RBhSbkOaGGLuUyObomVXNB7SsEmVwWEweKxg41pP1wpisOi8XJgF1sSiiIQMDg4UTBzE1S7hxqp8jTQxWSkyvO01UWWNdmw9UlOewKzMcyGoZQQOC6X2wshnMVt3EIME2UfTGYTGwGpyqwa3KNfQ-xqbxxLJKEmotZaj0EtgdetnGSxAs+x7+WHseqquCEYRgW40hvDqEL3iuPLmoGH7YhK+hGGYf7DhMYJAoCk6qk4wRAnEzwsjqkFAgWMLweQb5lhWLpIWGW4xG85BmJMR6UvicROCe1IIBY1jRpMnTggRCojBYSRJEAA */
+  /** @xstate-layout N4IgpgJg5mDOIC5QGUB2BDA1mAsugxgBYCWqYAdAHJgDuABAOLoC2YAxAIIBKXA8gOoB9ANIBRAJoBtAAwBdRKAAOAe1jEALsWWoFIAB6IAzAHYAbOUOmAnGcMBGACwAmaQA4nrgDQgAnojtW5lYOVlauVgCstqYeDgC+cd5oWLgEJGTkOMoAbqRQnDwCIhIy8kggKmqa2roGCAFOFlYmMXZOUabSbt5+CBFOjYZd0sbSTqaGEaYRhglJGNh4RKQUWbmo+egANjToPrClupUaWjrldREOruSOhsFODv3N0nY9iP2Dw6Pjk9OziSBkos0itMjk8mxtrt9pI7GUlKoTjVzu9OuRIqYHI9pA4uv03ghjO0bsNrIZXHYIu5jHNAQtUssMmsIVC9gcnPCKojqmdQBdDI0iUTTMZjI5THYBQSKRESV0HDEHG07jSAUCGelVuCNmw9LB1Oh1BR0AAzI0AJwAFK5pABKNjqpaasHrKCHcrHHm1IyuYwkiYtX1RQwOAkfCxfMYTKYzWmOkEZJisOi8bJgc1sSiiIQMDg4UTuhFVU7ehCdAl2CnkFzDCJ2MX9HFx+lO0HMnUABQ4AFVkAW5EduSWUX1feRwrjXAqTJSnASHkFjAKG3ZpOSrhFmylW4mWGA6B30ABXWCQNhcUTIbv5wtc4vIvmIMzScgfNwN6SRK4EpXXF4OYwQlMaY3AA0wEgBVBlAgOBdHjRkwEHe9eX0fw518NDyGGLpgJA6QJRsLdgQQqhaEYPckKRFC6kcBxyBFDxXGAywbQmYxpSsejhjaJxDEsMxHCIjU221KBKK9EdLDscdXFcCJLmAiIrDXUwCRDa4hmGZpfWnKwhJ3Cgk33VN03E4dH3qGYLFMX1KxsB4lRDAllNlVcul4tzwhs-SE0MvcD2PU8IDMh9UMJNx0VXexrCpStjCsCtZKaX1OhmVwhniCCgA */
   id: 'SnakeMachine',
   types: {
     context: {} as SnakeMachineContext,
@@ -86,7 +86,9 @@ export const snakeMachine = createMachine({
         ARROW_KEY: {
           actions: 'save dir',
           target: '#SnakeMachine.Moving'
-        }
+        },
+
+        PAUSE: "Game Paused"
       }
     },
 
@@ -97,6 +99,12 @@ export const snakeMachine = createMachine({
           description: 'triggered by pressing the "r" key',
           target: '#SnakeMachine.New Game'
         }
+      }
+    },
+
+    "Game Paused": {
+      on: {
+        RESUME: "Moving"
       }
     }
   }
