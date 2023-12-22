@@ -20,6 +20,7 @@ const context = {
 
 export const ticTacToeMachine = createMachine(
   {
+    /** @xstate-layout N4IgpgJg5mDOIC5QBcCWBjAKgQywezADoBbXAC1QDswACAClPQuoEpCAHAG2wE8qoAxAAUAMgEEAmgG0ADAF1Eodnlio0eSopAAPRAFYALAEZCAZgBMemTIBse8wYAcBvQE4ANCB6JHrwm9dAwIMZU1c9Uz0AXyjPNCxcTAIScipaBlTWDm4+SkFsTgB3XlhZBSQQZVV1TQrdBBsZT28EIyNHf1Mui1dbIxsbAHZzGLiMHHwiRmZ06bS2Ll5+AQLinlKjcqUVNVQNLXrzQY7hq1C9X1MjQaNmxAMbc38g1xsjPQ-rD9GQeImkqaZWZAthQbDEMAAeQAbmAAE4CABKAFEAMrIzBlLRVXb7Or6N6EczWayPcyOGyOQx3BDmSyEIwvG6mXyDG4xWIgSh4CBwLR-RLJObUejCsAsbE7GoHRBGcw0tqEF7K5WmH4CyYpJhpUUg7JLPKS6p7WqgeqmQZ6QgGclGCyOQahQbGGwKmSDQiDbpXVx0my9Izq8aCwHakUZMPiwhgiEw+FG3GmnSIQauE4k84yX3mSI0o4e5V6L2OcxDVxBhKasW6yOg8FQ2FwwiFKjUOEJ6X4hDOGyejORLN03NeRCmIbPILO92MxyhCv-IVAmszOuxxuECBw7CFDsmmXdh59kkD7PDloXK0BYK9FlzjlAA */
     initial: 'playing',
     types: {} as {
       context: typeof context;
