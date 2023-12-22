@@ -881,6 +881,41 @@ describe('spawnChild action', () => {
     });
   });
 
+  it(`should reject dynamic wrong id`, () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+          id: 'a' | 'b';
+        };
+      },
+      entry: spawnChild('child', {
+        // @ts-expect-error
+        id: () => 'c'
+      })
+    });
+  });
+
+  it(`should allow dynamic correct id`, () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+          id: 'a' | 'b';
+        };
+      },
+      entry: spawnChild('child', {
+        id: () => 'b'
+      })
+    });
+  });
+
   it(`should reject static wrong input`, () => {
     const child = fromPromise(({}: { input: number }) =>
       Promise.resolve('foo')
@@ -1663,6 +1698,43 @@ describe('invoke', () => {
       // @ts-expect-error
       invoke: {
         src: child2
+      }
+    });
+  });
+
+  it(`should reject dynamic wrong id`, () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+          id: 'a' | 'b';
+        };
+      },
+      // @ts-expect-error
+      invoke: {
+        src: 'child',
+        id: () => 'c' as const
+      }
+    });
+  });
+
+  it(`should allow dynamic correct id`, () => {
+    const child = fromPromise(() => Promise.resolve('foo'));
+
+    createMachine({
+      types: {} as {
+        actors: {
+          src: 'child';
+          logic: typeof child;
+          id: 'a' | 'b';
+        };
+      },
+      invoke: {
+        src: 'child',
+        id: () => 'b' as const
       }
     });
   });

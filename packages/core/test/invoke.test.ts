@@ -3353,6 +3353,35 @@ describe('invoke', () => {
     await sleep(3);
     expect(actorRef.getSnapshot().status).toBe('done');
   });
+
+  it('should handle a dynamic id', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      on: {
+        FOO: {
+          actions: spy
+        }
+      }
+    });
+
+    const machine = createMachine({
+      context: {
+        childId: 'myChild'
+      },
+      invoke: {
+        src: child,
+        id: ({ context }) => context.childId
+      },
+      entry: sendTo('myChild', {
+        type: 'FOO'
+      })
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('invoke input', () => {

@@ -2,11 +2,12 @@ import type { MachineSnapshot } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import { AssignArgs } from './actions/assign.ts';
+import { ResolvableActorId } from './actions/spawnChild.ts';
 import { PromiseActorLogic } from './actors/promise.ts';
 import { Guard, GuardPredicate, UnknownGuard } from './guards.ts';
 import type { Actor, ProcessingStatus } from './interpreter.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
+import { AnyActorSystem, Clock, InspectionEvent } from './system.js';
 import {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
@@ -592,7 +593,7 @@ type DistributeActors<
          * The unique identifier for the invoked machine. If not specified, this
          * will be the machine's own `id`, or the URL (from `src`).
          */
-        id?: TSpecificActor['id'];
+        id?: ResolvableActorId<TContext, TEvent, TEvent, TSpecificActor['id']>;
 
         // TODO: currently we do not enforce required inputs here
         // in a sense, we shouldn't - they could be provided within the `implementations` object
@@ -664,7 +665,7 @@ export type InvokeConfig<
        * The unique identifier for the invoked machine. If not specified, this
        * will be the machine's own `id`, or the URL (from `src`).
        */
-      id?: string;
+      id?: ResolvableActorId<TContext, TEvent, TEvent, string>;
 
       systemId?: string;
       /**

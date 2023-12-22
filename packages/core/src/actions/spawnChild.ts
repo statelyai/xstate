@@ -1,29 +1,27 @@
 import isDevelopment from '#is-development';
 import { cloneMachineSnapshot } from '../State.ts';
-import { createErrorActorEvent } from '../eventUtils.ts';
 import { ProcessingStatus, createActor } from '../interpreter.ts';
 import {
   ActionArgs,
-  AnyActorScope,
-  AnyActorRef,
-  AnyActor,
-  AnyMachineSnapshot,
-  EventObject,
-  MachineContext,
-  ParameterizedObject,
   AnyActorLogic,
-  ProvidedActor,
-  IsLiteralString,
-  InputFrom,
-  UnifiedArg,
-  Mapper,
-  RequiredActorOptions,
+  AnyActorRef,
+  AnyActorScope,
+  AnyMachineSnapshot,
   ConditionalRequired,
-  IsNotNever
+  EventObject,
+  InputFrom,
+  IsLiteralString,
+  IsNotNever,
+  MachineContext,
+  Mapper,
+  ParameterizedObject,
+  ProvidedActor,
+  RequiredActorOptions,
+  UnifiedArg
 } from '../types.ts';
 import { resolveReferencedActor } from '../utils.ts';
 
-type ResolvableActorId<
+export type ResolvableActorId<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
   TEvent extends EventObject,
