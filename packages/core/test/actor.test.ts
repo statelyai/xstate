@@ -1691,4 +1691,40 @@ describe('actors', () => {
 
     expect(actual).toEqual(['stop 1', 'start 2']);
   });
+
+  it('should be possible to pass `self` as input to a child machine from within the context factory', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      types: {} as {
+        context: {
+          parent: AnyActorRef;
+        };
+        input: {
+          parent: AnyActorRef;
+        };
+      },
+      context: ({ input }) => ({
+        parent: input.parent
+      }),
+      entry: sendTo(({ context }) => context.parent, { type: 'GREET' })
+    });
+
+    const machine = createMachine({
+      context: ({ spawn, self }) => {
+        return {
+          childRef: spawn(child, { input: { parent: self } })
+        };
+      },
+      on: {
+        GREET: {
+          actions: spy
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
 });
