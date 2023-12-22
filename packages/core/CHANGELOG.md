@@ -1,5 +1,23 @@
 # xstate
 
+## 5.4.0
+
+### Minor Changes
+
+- [#4616](https://github.com/statelyai/xstate/pull/4616) [`e8c0b15b2`](https://github.com/statelyai/xstate/commit/e8c0b15b2ed385b233c75d79def2a7e9fe99a597) Thanks [@Andarist](https://github.com/Andarist)! - `context` factories receive `self` now so you can immediately pass that as part of the input to spawned actors.
+
+  ```ts
+  setup({
+    /* ... */
+  }).createMachine({
+    context: ({ spawn, self }) => {
+      return {
+        childRef: spawn('child', { input: { parent: self } })
+      };
+    }
+  });
+  ```
+
 ## 5.3.1
 
 ### Patch Changes
