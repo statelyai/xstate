@@ -2,6 +2,7 @@ import { ActorRefFrom, createMachine, assign, stop } from 'xstate';
 import { friendMachine } from './friend.machine';
 
 export const friendsMachine = createMachine({
+  /** @xstate-layout N4IgpgJg5mDOIC5QDMBOBLMA7CsDEAcgKIDqA+gGIBKAkkQQCIB0AwgBICCBA4kQNoAGALqJQABwD2sdABd0ErKJAAPRACYBapgDYAHAHYALAE4ja7foCsl-boA0IAJ6IBAX1cO0mHPmp1GAMpMHAwMgiJIIJLScgpKqggaWnpGpobmVjb2TogAjLkCTJbGJcbappYC2oYAzLnunhjYuHh+9MxURACyAPIAavzCStGy8oqRCUk6BiZmFta2Ds6J5Uz6pca5+gI7ljU1hu4eIFgSEHBKXs3wkSOx46AJAksuR65AA */
   types: {} as {
     context: {
       newFriendName: string;
