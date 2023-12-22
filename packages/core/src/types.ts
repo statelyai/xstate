@@ -713,7 +713,7 @@ export type InvokeConfig<
         | SingleOrArray<
             TransitionConfigOrTarget<
               TContext,
-              SnapshotEvent,
+              SnapshotEvent<any>,
               TEvent,
               TActor,
               TAction,
@@ -1342,18 +1342,6 @@ export type MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  types?: MachineTypes<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TTypesMeta
-  >;
   // TODO: make it conditionally required
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
 }) &
@@ -1364,7 +1352,7 @@ export type MachineConfig<
 export interface ProvidedActor {
   src: string;
   logic: UnknownActorLogic;
-  id?: string;
+  id: string | undefined;
 }
 
 export interface SetupTypes<
@@ -1386,7 +1374,11 @@ export interface SetupTypes<
 export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
+  TActor extends {
+    src: string;
+    logic: UnknownActorLogic;
+    id?: string | undefined;
+  },
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
