@@ -9,6 +9,7 @@ type CounterEvent = {
 };
 
 export const counterMachine = createMachine({
+  /** @xstate-layout N4IgpgJg5mDOIC5QGMD2BXAdgFzAJwGIBJAOQGEAlAUQFkqSAVAbQAYBdRUAB1VgEtsfVJk4gAHogCMAFgCcAOgDskgExzZi6SpYqAzADYArABoQAT0QsAvjdOZUEOKLRZceUT36DhoiQhamFv42NkA */
   types: {} as {
     context: CounterContext;
     events: CounterEvent;
