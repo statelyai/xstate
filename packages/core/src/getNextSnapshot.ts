@@ -1,7 +1,5 @@
-import { createEmptyActor } from './actors/index.ts';
 import { createActor } from './interpreter.ts';
 import {
-  ActorRefFrom,
   ActorScope,
   AnyActorLogic,
   AnyActorScope,
@@ -22,7 +20,7 @@ export function createInertActorScope<T extends AnyActorLogic>(
     logger: () => {},
     sessionId: '',
     stopChild: () => {},
-    system: (self as any).system // TODO: fix types?
+    system: self.system
   };
 
   return inertActorScope;
