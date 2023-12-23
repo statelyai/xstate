@@ -1,4 +1,5 @@
 import { createEmptyActor } from './actors/index.ts';
+import { createActor } from './interpreter.ts';
 import {
   ActorRefFrom,
   ActorScope,
@@ -11,9 +12,9 @@ import {
 
 /** @internal */
 export function createInertActorScope<T extends AnyActorLogic>(
-  _actorLogic: T
+  actorLogic: T
 ): AnyActorScope {
-  const self = createEmptyActor() as ActorRefFrom<T>;
+  const self = createActor(actorLogic as AnyActorLogic);
   const inertActorScope: ActorScope<SnapshotFrom<T>, EventFromLogic<T>, any> = {
     self,
     defer: () => {},
