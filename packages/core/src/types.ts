@@ -1300,14 +1300,34 @@ export type MachineImplementations<
 type InitialContext<
   TContext extends MachineContext,
   TActor extends ProvidedActor,
-  TInput
-> = TContext | ContextFactory<TContext, TActor, TInput>;
+  TInput,
+  TEvent extends EventObject
+> = TContext | ContextFactory<TContext, TActor, TInput, TEvent>;
 
 export type ContextFactory<
   TContext extends MachineContext,
   TActor extends ProvidedActor,
-  TInput
-> = ({ spawn, input }: { spawn: Spawner<TActor>; input: TInput }) => TContext;
+  TInput,
+  TEvent extends EventObject = EventObject
+> = ({
+  spawn,
+  input,
+  self
+}: {
+  spawn: Spawner<TActor>;
+  input: TInput;
+  self: ActorRef<
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      Record<string, AnyActorRef | undefined>, // TODO: this should be replaced with `TChildren`
+      StateValue,
+      string,
+      unknown
+    >,
+    TEvent
+  >;
+}) => TContext;
 
 export type MachineConfig<
   TContext extends MachineContext,
@@ -1356,8 +1376,8 @@ export type MachineConfig<
   output?: Mapper<TContext, DoneStateEvent, TOutput, TEvent> | TOutput;
 }) &
   (MachineContext extends TContext
-    ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput> }
-    : { context: InitialContext<LowInfer<TContext>, TActor, TInput> });
+    ? { context?: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> }
+    : { context: InitialContext<LowInfer<TContext>, TActor, TInput, TEvent> });
 
 export interface ProvidedActor {
   src: string;

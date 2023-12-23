@@ -693,6 +693,11 @@ export class Actor<TLogic extends AnyActorLogic>
    * @see {@link Actor.getPersistedSnapshot} to persist the internal state of an actor (which is more than just a snapshot).
    */
   public getSnapshot(): SnapshotFrom<TLogic> {
+    if (isDevelopment && !this._snapshot) {
+      throw new Error(
+        `Snapshot can't be read while the actor initializes itself`
+      );
+    }
     return this._snapshot;
   }
 }

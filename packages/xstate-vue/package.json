@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -54,7 +54,7 @@
   },
   "peerDependencies": {
     "vue": "^3.0.0",
-    "xstate": "^5.3.0"
+    "xstate": "^5.4.0"
   },
   "peerDependenciesMeta": {
     "xstate": {
@@ -66,6 +66,6 @@
     "@testing-library/vue": "^6.6.1",
     "@vue/compiler-sfc": "^3.0.11",
     "vue": "^3.0.11",
-    "xstate": "5.3.0"
+    "xstate": "5.4.0"
   }
 }

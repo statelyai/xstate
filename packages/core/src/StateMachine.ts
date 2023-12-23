@@ -320,8 +320,8 @@ export class StateMachine<
     );
 
     if (typeof context === 'function') {
-      const assignment = ({ spawn, event }: any) =>
-        context({ spawn, input: event.input });
+      const assignment = ({ spawn, event, self }: any) =>
+        context({ spawn, input: event.input, self });
       return resolveActionsAndContext(
         preInitial,
         initEvent,

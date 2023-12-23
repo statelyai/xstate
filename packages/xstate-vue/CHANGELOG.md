@@ -1,5 +1,11 @@
 # @xstate/vue
 
+## 3.0.2
+
+### Patch Changes
+
+- [#4604](https://github.com/statelyai/xstate/pull/4604) [`3ad929eb4`](https://github.com/statelyai/xstate/commit/3ad929eb4a26eed0723aa80a7e4da68331ef9b23) Thanks [@tkofh](https://github.com/tkofh)! - The `useActor` hook now correctly types it's `send` function when passed an `ActorLogic`.
+
 ## 3.0.1
 
 ### Patch Changes
