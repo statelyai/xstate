@@ -1414,18 +1414,37 @@ describe('interpreter', () => {
       expect(completeCb).toHaveBeenCalledTimes(1);
     });
 
-    it('should not call complete() once the actor is stopped', () => {
+    it('should not call complete() once the actor is stopped', (done) => {
       const spy = jest.fn();
 
       const actorRef = createActor(createMachine({})).start();
 
       actorRef.subscribe({
-        complete: spy
+        complete: spy,
+        next: (s) => {
+          if (s.status === 'stopped') {
+            done();
+          }
+        }
       });
 
       actorRef.stop();
 
       expect(spy).toHaveBeenCalledTimes(0);
+    });
+
+    it('stopping an actor can be observed via snapshot.status', (done) => {
+      const actorRef = createActor(createMachine({})).start();
+
+      actorRef.subscribe({
+        next: (s) => {
+          if (s.status === 'stopped') {
+            done();
+          }
+        }
+      });
+
+      actorRef.stop();
     });
   });
 

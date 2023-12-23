@@ -247,15 +247,19 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     }
 
+    const notifyObservers = () => {
+      for (const observer of this.observers) {
+        try {
+          observer.next?.(snapshot);
+        } catch (err) {
+          reportUnhandledError(err);
+        }
+      }
+    };
+
     switch ((this._snapshot as any).status) {
       case 'active':
-        for (const observer of this.observers) {
-          try {
-            observer.next?.(snapshot);
-          } catch (err) {
-            reportUnhandledError(err);
-          }
-        }
+        notifyObservers();
         break;
       case 'done':
         // next observers are meant to be notified about done snapshots
@@ -264,13 +268,7 @@ export class Actor<TLogic extends AnyActorLogic>
         // it's more ergonomic for XState to treat a done snapshot as a "next" value
         // and the completion event as something that is separate,
         // something that merely follows emitting that done snapshot
-        for (const observer of this.observers) {
-          try {
-            observer.next?.(snapshot);
-          } catch (err) {
-            reportUnhandledError(err);
-          }
-        }
+        notifyObservers();
 
         this._stopProcedure();
         this._complete();
@@ -285,6 +283,9 @@ export class Actor<TLogic extends AnyActorLogic>
         break;
       case 'error':
         this._error((this._snapshot as any).error);
+        break;
+      case 'stopped':
+        notifyObservers();
         break;
     }
     this.system._sendInspectionEvent({
@@ -516,18 +517,24 @@ export class Actor<TLogic extends AnyActorLogic>
     }
   }
 
-  private _stop(): this {
+  private _stop(): void {
     if (this._processingStatus === ProcessingStatus.Stopped) {
-      return this;
+      return;
     }
     this.mailbox.clear();
     if (this._processingStatus === ProcessingStatus.NotStarted) {
       this._processingStatus = ProcessingStatus.Stopped;
-      return this;
+      return;
     }
     this.mailbox.enqueue({ type: XSTATE_STOP } as any);
-
-    return this;
+    this._processingStatus = ProcessingStatus.Stopped;
+    // this.update(
+    //   {
+    //     ...(this._snapshot as any),
+    //     status: 'stopped'
+    //   },
+    //   { event: 'xstate.stop' } as any
+    // );
   }
 
   /**
@@ -537,7 +544,8 @@ export class Actor<TLogic extends AnyActorLogic>
     if (this._parent) {
       throw new Error('A non-root actor cannot be stopped directly.');
     }
-    return this._stop();
+    this._stop();
+    return this;
   }
   private _complete(): void {
     for (const observer of this.observers) {
