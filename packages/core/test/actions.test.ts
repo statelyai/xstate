@@ -2807,6 +2807,16 @@ describe('enqueueActions', () => {
       ]
     `);
   });
+  it('should provide self', () => {
+    expect.assertions(1);
+    const machine = createMachine({
+      entry: enqueueActions(({ self }) => {
+        expect(self.send).toBeDefined();
+      })
+    });
+
+    createActor(machine).start();
+  });
 });
 
 describe('sendParent', () => {

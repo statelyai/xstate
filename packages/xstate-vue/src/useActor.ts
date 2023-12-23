@@ -4,7 +4,6 @@ import {
   ActorOptions,
   ActorRefFrom,
   AnyActorLogic,
-  EventFrom,
   Snapshot,
   SnapshotFrom
 } from 'xstate';
@@ -16,7 +15,7 @@ export function useActor<TLogic extends AnyActorLogic>(
   options?: ActorOptions<TLogic>
 ): {
   snapshot: Ref<SnapshotFrom<TLogic>>;
-  send: (event: EventFrom<TLogic>) => void;
+  send: (event: ActorRefFrom<TLogic>['send']) => void;
   actorRef: ActorRefFrom<TLogic>;
 };
 export function useActor(

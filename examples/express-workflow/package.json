@@ -13,6 +13,7 @@
     "@types/body-parser": "^1.19.5",
     "body-parser": "^1.20.2",
     "express": "^4.18.2",
+    "prettier": "^3.1.1",
     "ts-node": "^10.9.1",
     "xstate": "^5.0.0"
   },
