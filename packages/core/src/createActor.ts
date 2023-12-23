@@ -732,11 +732,8 @@ export class Actor<TLogic extends AnyActorLogic>
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: ActorOptions<TLogic>
-): Actor<TLogic>;
-export function createActor(logic: any, options?: ActorOptions<any>): any {
-  const actor = new Actor(logic, options);
-
-  return actor;
+): Actor<TLogic> {
+  return new Actor(logic, options);
 }
 
 /**

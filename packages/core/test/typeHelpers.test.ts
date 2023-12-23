@@ -1,16 +1,16 @@
 import {
-  assign,
-  ContextFrom,
-  createMachine,
-  SnapshotFrom,
-  EventFrom,
-  createActor,
-  MachineImplementationsFrom,
-  StateValueFrom,
   ActorLogic,
   ActorRefFrom,
+  ContextFrom,
+  EventFrom,
+  MachineImplementationsFrom,
+  Snapshot,
+  SnapshotFrom,
+  StateValueFrom,
   TagsFrom,
-  Snapshot
+  assign,
+  createActor,
+  createMachine
 } from '../src/index.ts';
 import { TypegenMeta } from '../src/typegenTypes';
 
