@@ -5,4 +5,4 @@
 'xstate': patch
 ---
 
-Typegen types have been mostly removed internally.
+Typegen-based types for detecting missing implementations have been removed internally.
