@@ -10,14 +10,10 @@ import {
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
-import {
-  AreAllImplementationsAssumedToBeProvided,
-  MissingImplementationsError
-} from './typegenTypes.ts';
+
 import type {
   ActorScope,
   AnyActorLogic,
-  AnyStateMachine,
   DoneActorEvent,
   EventFromLogic,
   Snapshot,
@@ -739,19 +735,10 @@ export class Actor<TLogic extends AnyActorLogic>
  * @param options - Actor options
  */
 export function createActor<TLogic extends AnyActorLogic>(
-  logic: TLogic extends AnyStateMachine
-    ? AreAllImplementationsAssumedToBeProvided<
-        TLogic['__TResolvedTypesMeta']
-      > extends true
-      ? TLogic
-      : MissingImplementationsError<TLogic['__TResolvedTypesMeta']>
-    : TLogic,
+  logic: TLogic,
   options?: ActorOptions<TLogic>
-): Actor<TLogic>;
-export function createActor(logic: any, options?: ActorOptions<any>): any {
-  const interpreter = new Actor(logic, options);
-
-  return interpreter;
+): Actor<TLogic> {
+  return new Actor(logic, options);
 }
 
 /**
