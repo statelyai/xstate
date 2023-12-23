@@ -1414,20 +1414,37 @@ describe('interpreter', () => {
       expect(completeCb).toHaveBeenCalledTimes(1);
     });
 
-    it('should call complete() once the interpreter is stopped', () => {
-      const completeCb = jest.fn();
+    it('should not call complete() once the actor is stopped', (done) => {
+      const spy = jest.fn();
 
-      const service = createActor(createMachine({})).start();
+      const actorRef = createActor(createMachine({})).start();
 
-      service.subscribe({
-        complete: () => {
-          completeCb();
+      actorRef.subscribe({
+        complete: spy,
+        next: (s) => {
+          if (s.status === 'stopped') {
+            done();
+          }
         }
       });
 
-      service.stop();
+      actorRef.stop();
 
-      expect(completeCb).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(0);
+    });
+
+    it('stopping an actor can be observed via snapshot.status', (done) => {
+      const actorRef = createActor(createMachine({})).start();
+
+      actorRef.subscribe({
+        next: (s) => {
+          if (s.status === 'stopped') {
+            done();
+          }
+        }
+      });
+
+      actorRef.stop();
     });
   });
 
