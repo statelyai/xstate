@@ -8,6 +8,7 @@ import {
 import { CommonModule } from '@angular/common';
 
 import { toggleMachine } from './toggleMachine';
+// import { injectActor } from './injectActor';
 import { injectActor } from '@xstate/angular';
 
 @Component({
