@@ -3,7 +3,7 @@ import { assign, createMachine, fromPromise, interpret } from 'xstate';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#send-cloudevent-on-workflow-completion-example
 export const workflow = createMachine(
   {
-    /** @xstate-layout N4IgpgJg5mDOIC5SzAOwgYwDYHsCuEYAbmgC46oAOATjkQJaz0UB0ACrQ0xQPLWHVYAZVIBDUmADEECmBb1URHAGs5KdNnyESqclU6Nmqdge6o+A4WIkIFSjOKMBtAAwBdV28ShKOJqSNvEAAPRABmAA4WAE4ANhdosIB2AFYAGhAAT3Cw6JYwlIBGFNiAJhSAXyqM1BxCeCQQdUxcAmIyCho6Qwog339AxtCEAFo8l1yXMvSsxELS6qa0Fq123U7TIxNuswswQRFxMD6-egDeocR4jOyEaJdF5s02nT0uri2AUXQTgYvQYaFZIxCIAFmSM1u0RSSRisQiqSqVSAA */
+    /** @xstate-layout N4IgpgJg5mDOIC5SzAOwgYwDYHsCuEYAbmgC46oAOATjkQJaz0UB0ACrQ0xQPLWHVYAZVIBDUmADEECmBb1URHAGs5KdNnyESqclU6Nmqdge6o+A4WIkIFSjOKMBtAAwBdV28ShKOJqSNvEAAPRABmAA4WAE4ANhdosIB2AFYAGhAAT3Cw6JYwlIBGFNiAJhSAXyqM1BxCeCQQdUxcAmIyCho6Qwog339AxtCEAFo8l1yXMvSsxBHC0qSWFMTU6qa0Fq123U7TIxNuswswQRFxMD6-egDeocR4jOyEaJd15s02nT0urgOAUXQVwGd1Aw0KyRiEQALMkZs9oiklnEImsqhUgA */
     id: 'sendcloudeventonprovision',
     types: {} as {
       context: {
