@@ -1,26 +1,25 @@
-import {
+import { createActor } from 'xstate';
+import type {
   ActorOptions,
   ActorRefFrom,
   AnyActorLogic,
-  SnapshotFrom,
-  createActor
+  SnapshotFrom
 } from 'xstate';
 import {
   DestroyRef,
   Injector,
-  assertInInjectionContext,
   inject,
   runInInjectionContext,
   signal,
-  effect
+  Signal
 } from '@angular/core';
 
 interface injectActorOptions {
   injector?: Injector;
 }
 
-interface ActorWrapper<TLogic extends AnyActorLogic> {
-  snapshot: SnapshotFrom<TLogic>;
+interface InjectedActor<TLogic extends AnyActorLogic> {
+  snapshot: Signal<SnapshotFrom<TLogic>>;
   send: ActorRefFrom<TLogic>['send'];
   ref: ActorRefFrom<TLogic>;
 }
@@ -29,22 +28,23 @@ export function injectActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: ActorOptions<TLogic>,
   injectOptions?: injectActorOptions
-): ActorWrapper<TLogic> {
-  // assertInInjectionContext(injectActor);
+): InjectedActor<TLogic> {
   const injector = injectOptions?.injector ?? inject(Injector);
   const destroyRef = injector.get(DestroyRef);
   // I'm afraid I stepped into this: https://github.com/angular/angular/issues/34478
   return runInInjectionContext(injector, () => {
     const actorInstance = createActor(logic as any, options).start();
 
+    const snapshot = signal(actorInstance.getSnapshot());
     const result = {
-      snapshot: actorInstance.getSnapshot(),
+      snapshot,
       send: actorInstance.send,
       ref: actorInstance
     } as any;
 
-    const subscription = actorInstance.subscribe((snapshot) => {
-      result.snapshot = snapshot;
+    const subscription = actorInstance.subscribe((currentSnapshot) => {
+      // result.snapshot = snapshot;
+      snapshot.set(currentSnapshot);
     });
 
     destroyRef.onDestroy(() => {
@@ -55,5 +55,3 @@ export function injectActor<TLogic extends AnyActorLogic>(
     return result;
   });
 }
-// #actorA = injectActor(logicA)
-// #actorB = injectActor(logicB)
