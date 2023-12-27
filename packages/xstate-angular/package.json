@@ -1,0 +1,81 @@
+{
+  "name": "@xstate/angular",
+  "version": "0.1.0",
+  "description": "XState tools for Angular",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "angular",
+    "inject"
+  ],
+  "author": "Tomasz Ducin <tomasz.ducin@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-angular#readme",
+  "license": "MIT",
+  "main": "dist/xstate-angular.cjs.js",
+  "module": "dist/xstate-angular.esm.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-angular.cjs.mjs",
+        "default": "./dist/xstate-angular.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-angular.development.esm.js",
+        "import": "./dist/xstate-angular.development.cjs.mjs",
+        "default": "./dist/xstate-angular.development.cjs.js"
+      },
+      "module": "./dist/xstate-angular.esm.js",
+      "import": "./dist/xstate-angular.cjs.mjs",
+      "default": "./dist/xstate-angular.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#is-development": {
+      "development": "./src/true.ts",
+      "default": "./src/false.ts"
+    }
+  },
+  "types": "dist/xstate-angular.cjs.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "scripts": {},
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "@angular/common": "^17.0.0",
+    "@angular/compiler": "^17.0.0",
+    "@angular/compiler-cli": "^17.0.0",
+    "@angular/core": "^17.0.0",
+    "@angular/platform-browser": "^17.0.0",
+    "@angular/platform-browser-dynamic": "^17.0.0",
+    "xstate": "^5.3.0"
+  },
+  "peerDependenciesMeta": {
+    "xstate": {
+      "optional": true
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@angular/common": "^17.0.0",
+    "@angular/compiler": "^17.0.0",
+    "@angular/compiler-cli": "^17.0.0",
+    "@angular/core": "^17.0.0",
+    "@angular/platform-browser": "^17.0.0",
+    "@angular/platform-browser-dynamic": "^17.0.0",
+    "xstate": "^5.3.0"
+  }
+}

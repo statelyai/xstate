@@ -25,7 +25,7 @@ const Tile: React.FC<{
 };
 
 export default function App() {
-  const [state, send] = useMachine(ticTacToeMachine);
+  const [state, send, ref] = useMachine(ticTacToeMachine);
 
   return (
     <div className="game">
