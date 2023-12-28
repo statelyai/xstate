@@ -249,9 +249,11 @@ describe('promise logic (fromPromise)', () => {
 
     const actor = createActor(promiseLogic).start();
 
-    await waitFor(actor, (s) => s !== undefined);
+    await waitFor(actor, (s) => s.status === 'done');
 
-    expect(actor.getPersistedState()!.steps).toMatchInlineSnapshot(`
+    const persistedSnapshot = actor.getPersistedSnapshot()!;
+
+    expect(persistedSnapshot.steps).toMatchInlineSnapshot(`
       {
         "first": [
           1,
@@ -268,7 +270,7 @@ describe('promise logic (fromPromise)', () => {
       }
     `);
 
-    expect(actor.getSnapshot()).toBe(6);
+    expect(actor.getSnapshot().output).toBe(6);
   });
 
   it('should persist the result of a step', async () => {
@@ -305,7 +307,7 @@ describe('promise logic (fromPromise)', () => {
     await new Promise((res) => setTimeout(res, 15));
 
     expect(timesCalled).toBe(1);
-    expect(actor.getPersistedState()!.steps).toMatchInlineSnapshot(`
+    expect(actor.getPersistedSnapshot()!.steps).toMatchInlineSnapshot(`
       {
         "someStep": [
           1,
@@ -314,7 +316,7 @@ describe('promise logic (fromPromise)', () => {
       }
     `);
 
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
     actor.stop();
 
     // Restoring the actor
@@ -329,7 +331,7 @@ describe('promise logic (fromPromise)', () => {
     // The first promise shouldn't be called again
     expect(timesCalled).toBe(1);
 
-    expect(restoredActor.getPersistedState()!.steps).toMatchInlineSnapshot(`
+    expect(restoredActor.getPersistedSnapshot()!.steps).toMatchInlineSnapshot(`
       {
         "someStep": [
           1,
@@ -342,7 +344,7 @@ describe('promise logic (fromPromise)', () => {
       }
     `);
 
-    expect(restoredActor.getSnapshot()).toBe('foobarresolved');
+    expect(restoredActor.getSnapshot().output).toBe('foobarresolved');
   });
 });
 
