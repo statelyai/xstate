@@ -1,4 +1,4 @@
-import { ActorRefFrom, AnyStateMachine, ActorOptions, StateFrom } from 'xstate';
+import { Actor, ActorOptions, AnyStateMachine, StateFrom } from 'xstate';
 import { useActor } from './useActor.ts';
 
 /**
@@ -7,10 +7,6 @@ import { useActor } from './useActor.ts';
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options: ActorOptions<TMachine> = {}
-): [
-  StateFrom<TMachine>,
-  ActorRefFrom<TMachine>['send'],
-  ActorRefFrom<TMachine>
-] {
-  return useActor(machine as any, options as any) as any;
+): [StateFrom<TMachine>, Actor<TMachine>['send'], Actor<TMachine>] {
+  return useActor(machine, options);
 }
