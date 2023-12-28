@@ -1,7 +1,7 @@
 import React from 'react';
 import './App.css';
 import { useMachine } from '@xstate/react';
-import { temperatureMachine } from './temperature.machine';
+import { temperatureMachine } from './temperatureMachine';
 
 function App() {
   const [state, send] = useMachine(temperatureMachine);

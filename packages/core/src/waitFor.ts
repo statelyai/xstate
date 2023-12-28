@@ -6,13 +6,13 @@ interface WaitForOptions {
    * How long to wait before rejecting, if no emitted
    * state satisfies the predicate.
    *
-   * @default 10_000 (10 seconds)
+   * @defaultValue 10_000 (10 seconds)
    */
   timeout: number;
 }
 
 const defaultWaitForOptions: WaitForOptions = {
-  timeout: 10_000 // 10 seconds
+  timeout: Infinity // much more than 10 seconds
 };
 
 /**

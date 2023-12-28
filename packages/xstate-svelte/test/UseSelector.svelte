@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createActor, createMachine, assign } from 'xstate';
-  import { useSelector } from '../src/index.ts';
+  import { useActorRef, useSelector } from '@xstate/svelte';
 
   const machine = createMachine({
     initial: 'idle',
@@ -30,23 +30,24 @@
     }
   });
 
-  const service = createActor(machine).start();
+  const actorRef = useActorRef(machine);
 
-  const state = useSelector(service, (state) => state);
-  const count = useSelector(service, (state) => state.context.count);
+  const snapshot = useSelector(actorRef, (s) => s);
+  const count = useSelector(actorRef, (s) => s.context.count);
 
   let withSelector = 0;
   $: $count && withSelector++;
   let withoutSelector = 0;
-  $: $state.context.count && withoutSelector++;
+  $: $snapshot.context.count && withoutSelector++;
 </script>
 
-<button data-testid="count" on:click={() => service.send({ type: 'INCREMENT' })}
-  >Increment count</button
+<button
+  data-testid="count"
+  on:click={() => actorRef.send({ type: 'INCREMENT' })}>Increment count</button
 >
 <button
   data-testid="another"
-  on:click={() => service.send({ type: 'INCREMENT_ANOTHER' })}
+  on:click={() => actorRef.send({ type: 'INCREMENT_ANOTHER' })}
   >Increment another count</button
 >
 

@@ -3,7 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
 import { SimulatedClock } from '../src/SimulatedClock';
-import { AnyState, AnyStateMachine, createActor } from '../src/index.ts';
+import {
+  AnyMachineSnapshot,
+  AnyStateMachine,
+  createActor
+} from '../src/index.ts';
 import { toMachine, sanitizeStateId } from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
@@ -28,14 +32,14 @@ const testGroups: Record<string, string[]> = {
   ],
   assign: [
     // 'assign_invalid', // this has a syntax error on purpose, so it's not included
-    'assign_obj_literal'
+    // 'assign_obj_literal' // deep initial states are not supported
   ],
   'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
   basic: ['basic0', 'basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   data: [
     // 'data_invalid',
-    'data_obj_literal'
+    // 'data_obj_literal' // deep initial states are not supported
   ],
   'default-initial-state': ['initial1', 'initial2'],
   delayedSend: ['send1', 'send2', 'send3'],
@@ -61,7 +65,7 @@ const testGroups: Record<string, string[]> = {
   'if-else': ['test0'],
   in: ['TestInPredicate'],
   'internal-transitions': ['test0', 'test1'],
-  misc: ['deep-initial'],
+  // misc: ['deep-initial'], // deep initial states are not supported
   'more-parallel': [
     'test0',
     'test1',
@@ -125,7 +129,7 @@ const testGroups: Record<string, string[]> = {
     // 'test0',
     // 'test1'
   ],
-  // 'send-data': ['send1'], // <content> conversion not implementd
+  // 'send-data': ['send1'], // <content> conversion not implemented
   // 'send-idlocation': ['test0'],
   // 'send-internal': ['test0'],
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
@@ -244,14 +248,14 @@ const testGroups: Record<string, string[]> = {
     // 'test352.txml', // _event.origintype not implemented yet
     // 'test354.txml', // conversion of namelist not implemented yet
     'test355.txml',
-    'test364.txml',
+    // 'test364.txml', // deep initial states are not supported
     'test372.txml',
     'test375.txml',
     // 'test376.txml', // executable blocks not implemented
     'test377.txml',
     // 'test378.txml', // executable blocks not implemented
     'test387.txml',
-    'test388.txml',
+    // 'test388.txml', // deep initial states are not supported
     'test396.txml',
     'test399.txml',
     // 'test401.txml', // this assign to "non-existent" location in the datamodel, this is not exactly allowed in SCXML, but we don't disallow it - since u can assign to just any property on the `context` itself
@@ -295,7 +299,7 @@ const testGroups: Record<string, string[]> = {
     'test503.txml',
     'test504.txml',
     'test505.txml',
-    'test506.txml',
+    // 'test506.txml', // `reenter` semantics in v5 are different from SCXML type="internal"/"external" transitions, we respect `reenter` on all state types, not just on compound states
     // 'test509.txml', // Basic HTTP Event I/O processor not implemented
     // 'test510.txml', // Basic HTTP Event I/O processor not implemented
     // 'test518.txml', // Basic HTTP Event I/O processor not implemented
@@ -324,8 +328,8 @@ const testGroups: Record<string, string[]> = {
     // 'test562.txml', // test that processor creates space normalized string in _event.data when receiving anything other than KVPs or XML in an event
     // 'test567.txml', // Basic HTTP Event I/O processor not implemented
     // 'test569.txml', // _ioprocessors not yet available for expressions
-    'test570.txml',
-    'test576.txml'
+    'test570.txml'
+    // 'test576.txml' // multiple initial states are not supported
     // 'test577.txml', // Basic HTTP Event I/O processor not implemented
     // 'test578.txml', // conversion of <content> in <send> not implemented yet
     // 'test579.txml' // executable content in history states not implemented yet
@@ -351,8 +355,8 @@ interface SCIONTest {
 
 async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    let nextState: AnyState;
-    let prevState: AnyState;
+    let nextState: AnyMachineSnapshot;
+    let prevState: AnyMachineSnapshot;
 
     const actor = createActor(machine, {
       logger: () => void 0
@@ -395,8 +399,8 @@ async function runTestToCompletion(
     clock: new SimulatedClock()
   });
 
-  let nextState: AnyState = service.getSnapshot();
-  let prevState: AnyState;
+  let nextState: AnyMachineSnapshot = service.getSnapshot();
+  let prevState: AnyMachineSnapshot;
   service.subscribe((state) => {
     prevState = nextState;
     nextState = state;
@@ -422,7 +426,7 @@ async function runTestToCompletion(
     }
     service.send({ type: event.name });
 
-    const stateIds = getStateNodes(machine.root, nextState).map(
+    const stateIds = getStateNodes(machine.root, nextState.value).map(
       (stateNode) => stateNode.id
     );
 
@@ -433,7 +437,7 @@ async function runTestToCompletion(
 describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'test194.txml'
+    // 'test175.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 

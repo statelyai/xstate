@@ -1,7 +1,10 @@
 # Events
 
-:::tip Check out our new docs!
-🆕 Find more about [events in XState](https://stately.ai/docs/xstate/basics/what-is-a-statechart#transitions-and-events) as well as a [no-code introduction to events and transitions featuring puppies](https://stately.ai/docs/xstate/basics/what-is-a-statechart#transitions-and-events).
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [events in XState](https://stately.ai/docs/transitions) as well as a [no-code introduction to events and transitions featuring puppies](https://stately.ai/docs/editor-states-and-transitions#transitions-and-events).
 :::
 
 An event is what causes a state machine to [transition](./transitions.md) from its current [state](./states.md) to its next state. To learn more, read [the events section in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).

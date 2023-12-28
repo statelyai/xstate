@@ -1,33 +1,53 @@
 import isDevelopment from '#is-development';
-import { cloneState } from '../State.ts';
 import {
   ActionArgs,
-  AnyActorContext,
+  AnyActorScope,
   AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   DelayExpr,
   EventObject,
   MachineContext,
   NoInfer,
   RaiseActionOptions,
-  SendExpr
+  SendExpr,
+  ParameterizedObject,
+  AnyEventObject
 } from '../types.ts';
 
-function resolve(
-  _: AnyActorContext,
-  state: AnyState,
-  args: ActionArgs<any, any>,
+function resolveRaise(
+  _: AnyActorScope,
+  snapshot: AnyMachineSnapshot,
+  args: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     event: eventOrExpr,
     id,
     delay
   }: {
-    event: EventObject | SendExpr<MachineContext, EventObject, EventObject>;
+    event:
+      | EventObject
+      | SendExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject['params'] | undefined,
+          EventObject,
+          EventObject
+        >;
     id: string | undefined;
-    delay: string | number | DelayExpr<MachineContext, EventObject> | undefined;
-  }
+    delay:
+      | string
+      | number
+      | DelayExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject['params'] | undefined,
+          EventObject
+        >
+      | undefined;
+  },
+  { internalQueue }: { internalQueue: AnyEventObject[] }
 ) {
-  const delaysMap = state.machine.implementations.delays;
+  const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
@@ -35,40 +55,55 @@ function resolve(
     );
   }
   const resolvedEvent =
-    typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
+    typeof eventOrExpr === 'function'
+      ? eventOrExpr(args, actionParams)
+      : eventOrExpr;
 
   let resolvedDelay: number | undefined;
   if (typeof delay === 'string') {
     const configDelay = delaysMap && delaysMap[delay];
     resolvedDelay =
-      typeof configDelay === 'function' ? configDelay(args) : configDelay;
+      typeof configDelay === 'function'
+        ? configDelay(args, actionParams)
+        : configDelay;
   } else {
-    resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
+    resolvedDelay =
+      typeof delay === 'function' ? delay(args, actionParams) : delay;
   }
-  return [
-    typeof resolvedDelay !== 'number'
-      ? cloneState(state, {
-          _internalQueue: state._internalQueue.concat(resolvedEvent)
-        })
-      : state,
-    { event: resolvedEvent, id, delay: resolvedDelay }
-  ];
+  if (typeof resolvedDelay !== 'number') {
+    internalQueue.push(resolvedEvent);
+  }
+  return [snapshot, { event: resolvedEvent, id, delay: resolvedDelay }];
 }
 
-function execute(
-  actorContext: AnyActorContext,
+function executeRaise(
+  actorScope: AnyActorScope,
   params: {
     event: EventObject;
     id: string | undefined;
     delay: number | undefined;
   }
 ) {
-  if (typeof params.delay === 'number') {
-    (actorContext.self as AnyActor).delaySend(
-      params as typeof params & { delay: number }
-    );
+  const { event, delay, id } = params;
+  if (typeof delay === 'number') {
+    actorScope.defer(() => {
+      const self = actorScope.self;
+      actorScope.system.scheduler.schedule(self, self, event, delay, id);
+    });
     return;
   }
+}
+
+export interface RaiseAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TEvent extends EventObject,
+  TDelay extends string
+> {
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  _out_TEvent?: TEvent;
+  _out_TDelay?: TDelay;
 }
 
 /**
@@ -77,18 +112,30 @@ function execute(
  *
  * @param eventType The event to raise.
  */
-
 export function raise<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject = TExpressionEvent
+  TEvent extends EventObject = TExpressionEvent,
+  TParams extends ParameterizedObject['params'] | undefined =
+    | ParameterizedObject['params']
+    | undefined,
+  TDelay extends string = string
 >(
   eventOrExpr:
     | NoInfer<TEvent>
-    | SendExpr<TContext, TExpressionEvent, NoInfer<TEvent>>,
-  options?: RaiseActionOptions<TContext, TExpressionEvent>
-) {
-  function raise(_: ActionArgs<TContext, TExpressionEvent>) {
+    | SendExpr<TContext, TExpressionEvent, TParams, NoInfer<TEvent>, TEvent>,
+  options?: RaiseActionOptions<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    NoInfer<TEvent>,
+    NoInfer<TDelay>
+  >
+): RaiseAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
+  function raise(
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
@@ -99,11 +146,8 @@ export function raise<
   raise.id = options?.id;
   raise.delay = options?.delay;
 
-  raise.resolve = resolve;
-  raise.execute = execute;
+  raise.resolve = resolveRaise;
+  raise.execute = executeRaise;
 
-  return raise as {
-    (args: ActionArgs<TContext, TExpressionEvent>): void;
-    _out_TEvent?: TEvent;
-  };
+  return raise;
 }

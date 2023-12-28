@@ -1,5 +1,13 @@
 # Actions
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find our [actions in XState explainer](https://stately.ai/docs/actions/) in our new docs, along with a [no-code introduction to actions in statecharts and the Stately Studio](https://stately.ai/docs/actions#entry-and-exit-actions).
+
+:::
+
 ::: warning
 <Badge text="4.33+" />
 
@@ -28,10 +36,6 @@ Actions are fire-and-forget [effects](./effects.md). They can be declared in thr
 - transition actions are executed when a transition is taken
 
 To learn more, read about [actions in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
-
-:::tip Check out our new docs!
-🆕 Find our [actions in XState explainer](https://stately.ai/docs/xstate/actions/) in our new docs, along with a [no-code introduction to actions in statecharts and the Stately Studio](https://stately.ai/docs/actions-and-actors/entry-and-exit-actions).
-:::
 
 ## API
 

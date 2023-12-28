@@ -1,7 +1,10 @@
 # Final states
 
-:::tip Check out our new docs!
-🆕 Find more about [final states in XState](https://stately.ai/docs/xstate/states/final-states) as well as a [no-code introduction to final states](https://stately.ai/docs/states/final-states).
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [final states in XState](https://stately.ai/docs/final-states) as well as a [no-code introduction to final states](https://stately.ai/docs/editor-states-and-transitions#final-states).
 :::
 
 In statecharts, you can declare a state as a **final state**. The final state indicates that its parent state is “done”. To learn more, read the [final state section in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#final-state).

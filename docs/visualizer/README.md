@@ -5,6 +5,12 @@ styleGuideVersion: 0
 
 # Visualizer
 
+:::warning These XState v4 docs are no longer maintained
+
+[Stately Studio](https://stately.ai) is now the best way to visualize your state machines. And XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+:::
+
 The [XState Visualizer](https://stately.ai/viz) is a tool for creating and inspecting statecharts to visualize the state of your applications.
 
 As a visual tool, the Visualizer helps developers get an overview of their application logic, as well as making it easy to share and with designers, project managers and the rest of the team.

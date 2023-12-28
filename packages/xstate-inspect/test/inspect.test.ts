@@ -93,11 +93,11 @@ describe('@xstate/inspect', () => {
     expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
       [
         {
-          "id": "x:0",
+          "id": "x:1",
           "machine": "{"id":"whatever","key":"whatever","type":"compound","initial":{"target":["#whatever.active"],"source":"#whatever","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"whatever.active","key":"active","type":"atomic","initial":{"target":[],"source":"#whatever.active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
           "parent": undefined,
-          "sessionId": "x:0",
-          "state": "{"value":"active","done":false,"context":{"cycle":"[Circular]"},"historyValue":{},"children":{},"tags":[]}",
+          "sessionId": "x:1",
+          "state": "{"status":"active","context":{"cycle":"[Circular]"},"value":"active","children":{},"historyValue":{},"tags":[]}",
           "type": "service.register",
         },
       ]
@@ -143,12 +143,12 @@ describe('@xstate/inspect', () => {
       [
         {
           "event": "{"type":"CIRCULAR","value":{"cycle":"[Circular]"}}",
-          "sessionId": "x:0",
+          "sessionId": "x:3",
           "type": "service.event",
         },
         {
-          "sessionId": "x:0",
-          "state": "{"value":"active","done":false,"context":{},"historyValue":{},"children":{},"tags":[]}",
+          "sessionId": "x:3",
+          "state": "{"status":"active","context":{},"value":"active","children":{},"historyValue":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -201,21 +201,21 @@ describe('@xstate/inspect', () => {
     expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
       [
         {
-          "id": "x:0",
+          "id": "x:5",
           "machine": "{"id":"(machine)","key":"(machine)","type":"compound","initial":{"target":["#(machine).active"],"source":"#(machine)","actions":[],"eventType":null},"history":false,"states":{"active":{"id":"(machine).active","key":"active","type":"atomic","initial":{"target":[],"source":"#(machine).active","actions":[],"eventType":null},"history":false,"states":{},"on":{},"transitions":[],"entry":[],"exit":[],"order":1,"invoke":[],"tags":[]}},"on":{},"transitions":[],"entry":[],"exit":[],"order":-1,"invoke":[],"tags":[]}",
           "parent": undefined,
-          "sessionId": "x:0",
-          "state": "{"value":"active","done":false,"context":{"map":"map","deep":{"map":"map"}},"historyValue":{},"children":{},"tags":[]}",
+          "sessionId": "x:5",
+          "state": "{"status":"active","context":{"map":"map","deep":{"map":"map"}},"value":"active","children":{},"historyValue":{},"tags":[]}",
           "type": "service.register",
         },
         {
           "event": "{"type":"TEST","serialized":"map","deep":{"serialized":"map"}}",
-          "sessionId": "x:0",
+          "sessionId": "x:5",
           "type": "service.event",
         },
         {
-          "sessionId": "x:0",
-          "state": "{"value":"active","done":false,"context":{"map":"map","deep":{"map":"map"}},"historyValue":{},"children":{},"tags":[]}",
+          "sessionId": "x:5",
+          "state": "{"status":"active","context":{"map":"map","deep":{"map":"map"}},"value":"active","children":{},"historyValue":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -319,12 +319,12 @@ describe('@xstate/inspect', () => {
       [
         {
           "event": "{"type":"EV","value":{"unsafe":"[unsafe]"}}",
-          "sessionId": "x:0",
+          "sessionId": "x:7",
           "type": "service.event",
         },
         {
-          "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"children":{},"tags":[]}",
+          "sessionId": "x:7",
+          "state": "{"status":"active","context":{"value":{"unsafe":"[unsafe]"}},"value":{},"children":{},"historyValue":{},"tags":[]}",
           "type": "service.state",
         },
       ]
@@ -341,12 +341,12 @@ describe('@xstate/inspect', () => {
       [
         {
           "event": "{"type":"UNKNOWN"}",
-          "sessionId": "x:0",
+          "sessionId": "x:7",
           "type": "service.event",
         },
         {
-          "sessionId": "x:0",
-          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"children":{},"tags":[]}",
+          "sessionId": "x:7",
+          "state": "{"status":"active","context":{"value":{"unsafe":"[unsafe]"}},"value":{},"children":{},"historyValue":{},"tags":[]}",
           "type": "service.state",
         },
       ]

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "3.0.0-beta.4",
+  "version": "3.0.3",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -18,19 +18,15 @@
   "main": "dist/xstate-vue.cjs.js",
   "module": "dist/xstate-vue.esm.js",
   "exports": {
-    "./fsm": {
-      "types": {
-        "import": "./fsm/dist/xstate-vue-fsm.cjs.mjs",
-        "default": "./fsm/dist/xstate-vue-fsm.cjs.js"
-      },
-      "module": "./fsm/dist/xstate-vue-fsm.esm.js",
-      "import": "./fsm/dist/xstate-vue-fsm.cjs.mjs",
-      "default": "./fsm/dist/xstate-vue-fsm.cjs.js"
-    },
     ".": {
       "types": {
         "import": "./dist/xstate-vue.cjs.mjs",
         "default": "./dist/xstate-vue.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-vue.development.esm.js",
+        "import": "./dist/xstate-vue.development.cjs.mjs",
+        "default": "./dist/xstate-vue.development.cjs.js"
       },
       "module": "./dist/xstate-vue.esm.js",
       "import": "./dist/xstate-vue.cjs.mjs",
@@ -38,10 +34,15 @@
     },
     "./package.json": "./package.json"
   },
+  "imports": {
+    "#is-development": {
+      "development": "./src/true.ts",
+      "default": "./src/false.ts"
+    }
+  },
   "sideEffects": false,
   "files": [
-    "dist",
-    "fsm"
+    "dist"
   ],
   "repository": {
     "type": "git",
@@ -52,30 +53,19 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^3.0.0-beta.3",
     "vue": "^3.0.0",
-    "xstate": "^5.0.0-beta.21"
+    "xstate": "^5.4.1"
   },
   "peerDependenciesMeta": {
-    "@xstate/fsm": {
-      "optional": true
-    },
     "xstate": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/vue": "^6.6.1",
     "@vue/compiler-sfc": "^3.0.11",
-    "@xstate/fsm": "3.0.0-beta.3",
     "vue": "^3.0.11",
-    "xstate": "5.0.0-beta.21"
-  },
-  "preconstruct": {
-    "entrypoints": [
-      "./index.ts",
-      "./fsm.ts"
-    ]
+    "xstate": "5.4.1"
   }
 }

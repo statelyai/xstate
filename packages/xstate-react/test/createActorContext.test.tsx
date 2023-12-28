@@ -1,4 +1,4 @@
-import { createMachine, assign, fromPromise, PersistedStateFrom } from 'xstate';
+import { createMachine, assign, fromPromise, Snapshot } from 'xstate';
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
 
@@ -309,7 +309,7 @@ describe('createActorContext', () => {
     const Component = () => {
       const value = PromiseContext.useSelector((data) => data);
 
-      return <div data-testid="value">{value}</div>;
+      return <div data-testid="value">{value.output}</div>;
     };
 
     const App = () => {
@@ -391,14 +391,13 @@ describe('createActorContext', () => {
       }
     });
     const SomeContext = createActorContext(machine);
-    let persistedState: PersistedStateFrom<typeof machine> | undefined =
-      undefined;
+    let persistedState: Snapshot<unknown> | undefined = undefined;
 
     const Component = () => {
       const actorRef = SomeContext.useActorRef();
       const state = SomeContext.useSelector((state) => state);
 
-      persistedState = actorRef.getPersistedState?.();
+      persistedState = actorRef.getPersistedSnapshot();
 
       return (
         <div
@@ -414,7 +413,7 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeContext.Provider options={{ state: persistedState }}>
+        <SomeContext.Provider options={{ snapshot: persistedState }}>
           <Component />
         </SomeContext.Provider>
       );
@@ -447,7 +446,7 @@ describe('createActorContext', () => {
         types: {} as {
           context: { doubled: number };
         },
-        context: ({ input }) => ({
+        context: ({ input }: { input: number }) => ({
           doubled: input * 2
         })
       })

@@ -1,5 +1,11 @@
 # `@xstate/inspect`
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 The [@xstate/inspect package](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) contains inspection tools for XState.
 
 - [XState (Vanilla)](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
@@ -124,8 +130,8 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
   {
     type: 'service.event';
     event: SCXML.Event<any>;
-    sessionId: string
-  };
+    sessionId: string;
+  }
   ```
 
 To listen to events from an inspected source, create a receiver with the appropriate `create*Receiver(...)` function; for example:

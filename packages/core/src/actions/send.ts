@@ -1,30 +1,32 @@
 import isDevelopment from '#is-development';
-import { constantPrefixes, error } from '../actions.ts';
+import { XSTATE_ERROR } from '../constants.ts';
+import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActorRef,
-  AnyActorContext,
   AnyActorRef,
+  AnyActorScope,
   AnyEventObject,
-  AnyActor,
-  AnyState,
+  AnyMachineSnapshot,
   Cast,
   DelayExpr,
   EventFrom,
   EventObject,
   InferEvent,
   MachineContext,
+  NoInfer,
+  ParameterizedObject,
   SendExpr,
   SendToActionOptions,
-  SendToActionParams,
   SpecialTargets,
   UnifiedArg
 } from '../types.ts';
 
-function resolve(
-  actorContext: AnyActorContext,
-  state: AnyState,
-  args: ActionArgs<any, any>,
+function resolveSendTo(
+  actorScope: AnyActorScope,
+  snapshot: AnyMachineSnapshot,
+  args: ActionArgs<any, any, any>,
+  actionParams: ParameterizedObject['params'] | undefined,
   {
     to,
     event: eventOrExpr,
@@ -35,14 +37,33 @@ function resolve(
       | AnyActorRef
       | string
       | ((
-          args: UnifiedArg<MachineContext, EventObject>
+          args: UnifiedArg<MachineContext, EventObject, EventObject>,
+          params: ParameterizedObject['params'] | undefined
         ) => AnyActorRef | string);
-    event: EventObject | SendExpr<MachineContext, EventObject, EventObject>;
+    event:
+      | EventObject
+      | SendExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject['params'] | undefined,
+          EventObject,
+          EventObject
+        >;
     id: string | undefined;
-    delay: string | number | DelayExpr<MachineContext, EventObject> | undefined;
-  }
+    delay:
+      | string
+      | number
+      | DelayExpr<
+          MachineContext,
+          EventObject,
+          ParameterizedObject['params'] | undefined,
+          EventObject
+        >
+      | undefined;
+  },
+  extra: { deferredActorIds: string[] | undefined }
 ) {
-  const delaysMap = state.machine.implementations.delays;
+  const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
@@ -50,48 +71,57 @@ function resolve(
     );
   }
   const resolvedEvent =
-    typeof eventOrExpr === 'function' ? eventOrExpr(args) : eventOrExpr;
+    typeof eventOrExpr === 'function'
+      ? eventOrExpr(args, actionParams)
+      : eventOrExpr;
 
   let resolvedDelay: number | undefined;
   if (typeof delay === 'string') {
     const configDelay = delaysMap && delaysMap[delay];
     resolvedDelay =
-      typeof configDelay === 'function' ? configDelay(args) : configDelay;
+      typeof configDelay === 'function'
+        ? configDelay(args, actionParams)
+        : configDelay;
   } else {
-    resolvedDelay = typeof delay === 'function' ? delay(args) : delay;
+    resolvedDelay =
+      typeof delay === 'function' ? delay(args, actionParams) : delay;
   }
 
-  const resolvedTarget = typeof to === 'function' ? to(args) : to;
-  let targetActorRef: AnyActorRef | undefined;
+  const resolvedTarget = typeof to === 'function' ? to(args, actionParams) : to;
+  let targetActorRef: AnyActorRef | string | undefined;
 
   if (typeof resolvedTarget === 'string') {
     if (resolvedTarget === SpecialTargets.Parent) {
-      targetActorRef = actorContext?.self._parent;
+      targetActorRef = actorScope?.self._parent;
     } else if (resolvedTarget === SpecialTargets.Internal) {
-      targetActorRef = actorContext?.self;
+      targetActorRef = actorScope?.self;
     } else if (resolvedTarget.startsWith('#_')) {
       // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
       // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
-      targetActorRef = state.children[resolvedTarget.slice(2)];
+      targetActorRef = snapshot.children[resolvedTarget.slice(2)];
     } else {
-      targetActorRef = state.children[resolvedTarget];
+      targetActorRef = extra.deferredActorIds?.includes(resolvedTarget)
+        ? resolvedTarget
+        : snapshot.children[resolvedTarget];
     }
     if (!targetActorRef) {
       throw new Error(
-        `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
+        `Unable to send event to actor '${resolvedTarget}' from machine '${snapshot.machine.id}'.`
       );
     }
   } else {
-    targetActorRef = resolvedTarget || actorContext?.self;
+    targetActorRef = resolvedTarget || actorScope?.self;
   }
 
   return [
-    state,
+    snapshot,
     { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
   ];
 }
-function execute(
-  actorContext: AnyActorContext,
+
+function retryResolveSendTo(
+  _: AnyActorScope,
+  snapshot: AnyMachineSnapshot,
   params: {
     to: AnyActorRef;
     event: EventObject;
@@ -99,25 +129,55 @@ function execute(
     delay: number | undefined;
   }
 ) {
-  if (typeof params.delay === 'number') {
-    (actorContext.self as AnyActor).delaySend(
-      params as typeof params & { delay: number }
-    );
-    return;
+  if (typeof params.to === 'string') {
+    params.to = snapshot.children[params.to];
   }
+}
 
-  const { to, event } = params;
-
-  actorContext.defer(() => {
-    to.send(
-      event.type === constantPrefixes.error
-        ? {
-            type: `${error(actorContext.self.id)}`,
-            data: (event as any).data
-          }
+function executeSendTo(
+  actorScope: AnyActorScope,
+  params: {
+    to: AnyActorRef;
+    event: EventObject;
+    id: string | undefined;
+    delay: number | undefined;
+  }
+) {
+  // this forms an outgoing events queue
+  // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
+  actorScope.defer(() => {
+    const { to, event, delay, id } = params;
+    if (typeof delay === 'number') {
+      actorScope.system.scheduler.schedule(
+        actorScope.self,
+        to,
+        event,
+        delay,
+        id
+      );
+      return;
+    }
+    actorScope.system._relay(
+      actorScope.self,
+      // at this point, in a deferred task, it should already be mutated by retryResolveSendTo
+      // if it initially started as a string
+      to as Exclude<typeof to, string>,
+      event.type === XSTATE_ERROR
+        ? createErrorActorEvent(actorScope.self.id, (event as any).data)
         : event
     );
   });
+}
+
+export interface SendToAction<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TEvent extends EventObject,
+  TDelay extends string
+> {
+  (args: ActionArgs<TContext, TExpressionEvent, TEvent>, params: TParams): void;
+  _out_TDelay?: TDelay;
 }
 
 /**
@@ -132,36 +192,53 @@ function execute(
 export function sendTo<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TTargetActor extends AnyActorRef,
   TEvent extends EventObject,
-  TActor extends AnyActorRef
+  TDelay extends string
 >(
   to:
-    | TActor
+    | TTargetActor
     | string
-    | ((args: UnifiedArg<TContext, TExpressionEvent>) => TActor | string),
+    | ((
+        args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+        params: TParams
+      ) => TTargetActor | string),
   eventOrExpr:
-    | EventFrom<TActor>
+    | EventFrom<TTargetActor>
     | SendExpr<
         TContext,
         TExpressionEvent,
-        InferEvent<Cast<EventFrom<TActor>, EventObject>>
+        TParams,
+        InferEvent<Cast<EventFrom<TTargetActor>, EventObject>>,
+        TEvent
       >,
-  options?: SendToActionOptions<TContext, TExpressionEvent>
-) {
-  function sendTo(_: ActionArgs<TContext, TExpressionEvent>) {
+  options?: SendToActionOptions<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    NoInfer<TEvent>,
+    NoInfer<TDelay>
+  >
+): SendToAction<TContext, TExpressionEvent, TParams, TEvent, TDelay> {
+  function sendTo(
+    args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+    params: TParams
+  ) {
     if (isDevelopment) {
       throw new Error(`This isn't supposed to be called`);
     }
   }
 
-  sendTo.type = 'xstate.sendTo';
+  sendTo.type = 'xsnapshot.sendTo';
   sendTo.to = to;
   sendTo.event = eventOrExpr;
   sendTo.id = options?.id;
   sendTo.delay = options?.delay;
 
-  sendTo.resolve = resolve;
-  sendTo.execute = execute;
+  sendTo.resolve = resolveSendTo;
+  sendTo.retryResolve = retryResolveSendTo;
+  sendTo.execute = executeSendTo;
 
   return sendTo;
 }
@@ -175,23 +252,44 @@ export function sendTo<
 export function sendParent<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
-  TEvent extends EventObject,
-  TSentEvent extends EventObject = AnyEventObject
+  TParams extends ParameterizedObject['params'] | undefined,
+  TSentEvent extends EventObject = AnyEventObject,
+  TEvent extends EventObject = AnyEventObject,
+  TDelay extends string = string
 >(
-  event: TSentEvent | SendExpr<TContext, TExpressionEvent, TSentEvent>,
-  options?: SendToActionOptions<TContext, TExpressionEvent>
+  event:
+    | TSentEvent
+    | SendExpr<TContext, TExpressionEvent, TParams, TSentEvent, TEvent>,
+  options?: SendToActionOptions<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    TEvent,
+    TDelay
+  >
 ) {
-  return sendTo<TContext, TExpressionEvent, TEvent, AnyActorRef>(
-    SpecialTargets.Parent,
-    event,
-    options
-  );
+  return sendTo<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    AnyActorRef,
+    TEvent,
+    TDelay
+  >(SpecialTargets.Parent, event, options as any);
 }
 
-type Target<TContext extends MachineContext, TEvent extends EventObject> =
+type Target<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TEvent extends EventObject
+> =
   | string
   | ActorRef<any, any>
-  | ((args: UnifiedArg<TContext, TEvent>) => string | ActorRef<any, any>);
+  | ((
+      args: ActionArgs<TContext, TExpressionEvent, TEvent>,
+      params: TParams
+    ) => string | ActorRef<any, any>);
 
 /**
  * Forwards (sends) an event to a specified service.
@@ -201,10 +299,19 @@ type Target<TContext extends MachineContext, TEvent extends EventObject> =
  */
 export function forwardTo<
   TContext extends MachineContext,
-  TExpressionEvent extends EventObject
+  TExpressionEvent extends EventObject,
+  TParams extends ParameterizedObject['params'] | undefined,
+  TEvent extends EventObject,
+  TDelay extends string
 >(
-  target: Target<TContext, TExpressionEvent>,
-  options?: SendToActionOptions<TContext, TExpressionEvent>
+  target: Target<TContext, TExpressionEvent, TParams, TEvent>,
+  options?: SendToActionOptions<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    TEvent,
+    TDelay
+  >
 ) {
   if (isDevelopment && (!target || typeof target === 'function')) {
     const originalTarget = target;
@@ -221,35 +328,12 @@ export function forwardTo<
       return resolvedTarget;
     };
   }
-  return sendTo<TContext, TExpressionEvent, EventObject, AnyActorRef>(
-    target,
-    ({ event }: any) => event,
-    options
-  );
-}
-
-/**
- * Escalates an error by sending it as an event to this machine's parent.
- *
- * @param errorData The error data to send, or the expression function that
- * takes in the `context`, `event`, and `meta`, and returns the error data to send.
- * @param options Options to pass into the send action creator.
- */
-export function escalate<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TErrorData = any
->(
-  errorData:
-    | TErrorData
-    | ((args: UnifiedArg<TContext, TExpressionEvent>) => TErrorData),
-  options?: SendToActionParams<TContext, TExpressionEvent>
-) {
-  return sendParent<TContext, TExpressionEvent, EventObject>((arg) => {
-    return {
-      type: constantPrefixes.error,
-      data:
-        typeof errorData === 'function' ? (errorData as any)(arg) : errorData
-    };
-  }, options);
+  return sendTo<
+    TContext,
+    TExpressionEvent,
+    TParams,
+    AnyActorRef,
+    TEvent,
+    TDelay
+  >(target, ({ event }: any) => event, options);
 }

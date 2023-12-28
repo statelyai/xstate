@@ -1,10 +1,9 @@
 import { WebSocketServer } from 'ws';
-import { ActorRef, EventObject, createActor, Actor } from 'xstate';
-import { toActorRef } from 'xstate/actors';
-import { createInspectMachine, InspectMachineEvent } from './inspectMachine.ts';
+import { Actor, EventFromLogic, EventObject, createActor } from 'xstate';
+import { XStateDevInterface } from 'xstate/dev';
+import { InspectMachineEvent, createInspectMachine } from './inspectMachine.ts';
 import { Inspector, Replacer } from './types.ts';
 import { stringify } from './utils.ts';
-import { XStateDevInterface } from 'xstate/dev';
 
 const services = new Set<Actor<any>>();
 const serviceMap = new Map<string, Actor<any>>();
@@ -54,7 +53,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   const inspectService = createActor(
     createInspectMachine(devTools, options)
   ).start();
-  let client: ActorRef<any, undefined> = toActorRef({
+  let client = {
     name: '@@xstate/ws-client',
     send: (event: any) => {
       server.clients.forEach((wsClient) => {
@@ -65,9 +64,8 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     },
     subscribe: () => {
       return { unsubscribe: () => void 0 };
-    },
-    getSnapshot: () => undefined
-  });
+    }
+  };
 
   server.on('connection', function connection(wsClient) {
     wsClient.on('message', function incoming(data, isBinary) {
@@ -113,10 +111,10 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       return originalSend(event);
     };
 
-    service.subscribe((state) => {
+    service.subscribe((snapshot) => {
       inspectService.send({
         type: 'service.state',
-        state: stringify(state),
+        state: stringify(snapshot),
         sessionId: service.sessionId
       });
     });
@@ -131,22 +129,19 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     });
   });
 
-  const inspector: Inspector = toActorRef({
+  const inspector: Inspector = {
     name: '@@xstate/inspector',
     send: (event: InspectMachineEvent) => {
       inspectService.send(event);
-    },
-    subscribe: () => {
-      return {
-        unsubscribe: () => void 0
-      };
     },
     disconnect: () => {
       server.close();
       inspectService.stop();
     },
-    getSnapshot: () => undefined
-  });
+    subscribe: () => ({
+      unsubscribe: () => {}
+    })
+  };
 
   server.on('close', () => {
     inspectService.stop();

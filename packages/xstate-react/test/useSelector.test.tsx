@@ -3,12 +3,15 @@ import * as React from 'react';
 import {
   ActorRef,
   ActorRefFrom,
-  AnyState,
+  AnyMachineSnapshot,
   assign,
   createMachine,
   fromTransition,
   createActor,
-  StateFrom
+  StateFrom,
+  Snapshot,
+  TransitionSnapshot,
+  AnyEventObject
 } from 'xstate';
 import {
   shallowEqual,
@@ -27,7 +30,8 @@ afterEach(() => {
 
 describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('only rerenders for selected values', () => {
-    const machine = createMachine<{ count: number; other: number }>({
+    const machine = createMachine({
+      types: {} as { context: { count: number; other: number } },
       initial: 'active',
       context: {
         other: 0,
@@ -91,7 +95,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with a custom comparison function', () => {
-    const machine = createMachine<{ name: string }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { name: string };
+        events: { type: 'CHANGE'; value: string };
+      },
       initial: 'active',
       context: {
         name: 'david'
@@ -151,7 +159,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with the shallowEqual comparison function', () => {
-    const machine = createMachine<{ user: { name: string } }>({
+    const machine = createMachine({
+      types: {} as { context: { user: { name: string } } },
       initial: 'active',
       context: {
         user: { name: 'david' }
@@ -275,7 +284,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with selecting values from initially spawned actors', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },
@@ -330,14 +340,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should immediately render snapshot of initially spawned custom actor', () => {
     const createCustomActor = (latestValue: string) =>
-      createActor({
-        transition: (s) => s,
-        subscribe: () => {
-          return { unsubscribe: () => {} };
-        },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue
-      });
+      createActor(fromTransition((s) => s, latestValue));
 
     const parentMachine = createMachine({
       types: {
@@ -358,7 +361,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       const value = useSelector(actor, identitySelector);
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container } = render(<App />);
@@ -366,7 +369,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should rerender with a new value when the selector changes', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },
@@ -410,7 +414,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should use a fresh selector for subscription updates after selector change', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
+      types: {} as { context: { count: number } },
       context: {
         count: 0
       },
@@ -469,24 +474,17 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should render snapshot value when actor doesn't emit anything", () => {
-    const createCustomActor = (latestValue: string) =>
-      createActor({
-        transition: (s) => s,
-        subscribe: () => {
-          return { unsubscribe: () => {} };
-        },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue
-      });
+    const createCustomLogic = (latestValue: string) =>
+      fromTransition((s) => s, latestValue);
 
     const parentMachine = createMachine({
       types: {
         context: {} as {
-          childActor: ReturnType<typeof createActor>;
+          childActor: ActorRefFrom<typeof createCustomLogic>;
         }
       },
-      context: () => ({
-        childActor: createCustomActor('foo')
+      context: ({ spawn }) => ({
+        childActor: spawn(createCustomLogic('foo'))
       })
     });
 
@@ -498,7 +496,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
       const value = useSelector(actor, identitySelector);
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container } = render(<App />);
@@ -507,14 +505,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should render snapshot state when actor changes', () => {
     const createCustomActor = (latestValue: string) =>
-      createActor({
-        transition: (s) => s,
-        subscribe: () => {
-          return { unsubscribe: () => {} };
-        },
-        getSnapshot: () => latestValue,
-        getInitialState: () => latestValue
-      });
+      createActor(fromTransition((s) => s, latestValue));
 
     const actor1 = createCustomActor('foo');
     const actor2 = createCustomActor('bar');
@@ -527,7 +518,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         identitySelector
       );
 
-      return <>{value}</>;
+      return <>{value.context}</>;
     };
 
     const { container, rerender } = render(<App prop="first" />);
@@ -538,14 +529,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
-    const actor = createActor({
-      transition: (s) => s,
-      subscribe: () => {
-        return { unsubscribe: () => {} };
-      },
-      getSnapshot: () => undefined,
-      getInitialState: () => undefined
-    });
+    const actor = createActor(fromTransition((s) => s, undefined));
+    actor.subscribe = () => ({ unsubscribe: () => {} });
 
     const App = ({ selector }: { selector: any }) => {
       const [, forceRerender] = React.useState(0);
@@ -575,7 +560,8 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('should only rerender once when the selected value changes', () => {
     const selector = (state: any) => state.context.foo;
 
-    const machine = createMachine<{ foo: number }, { type: 'INC' }>({
+    const machine = createMachine({
+      types: {} as { context: { foo: number }; events: { type: 'INC' } },
       context: {
         foo: 0
       },
@@ -619,7 +605,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const snapshots: AnyState[] = [];
+    const snapshots: AnyMachineSnapshot[] = [];
 
     function App() {
       const service = useActorRef(machine);
@@ -672,7 +658,10 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    const machine = createMachine<{ ref: ActorRefFrom<typeof childMachine> }>({
+    const machine = createMachine({
+      types: {} as {
+        context: { ref: ActorRefFrom<typeof childMachine> };
+      },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -732,20 +721,28 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should work with a null actor', () => {
     const Child = (props: {
-      actor: ActorRef<any, { count: number }> | undefined;
+      actor: ActorRef<TransitionSnapshot<{ count: number }>, any> | undefined;
     }) => {
-      const state = useSelector(props.actor ?? createEmptyActor(), (s) => s);
+      const state = useSelector<
+        ActorRef<
+          Snapshot<undefined> & { context?: { count: number } },
+          AnyEventObject
+        >,
+        Snapshot<undefined> & { context?: { count: number } }
+      >(props.actor ?? createEmptyActor(), (s) => s);
 
       // @ts-expect-error
-      ((_accept: { count: number }) => {})(state);
-      ((_accept: { count: number } | undefined) => {})(state);
+      ((_accept: { count: number }) => {})(state.context);
+      ((_accept: { count: number } | undefined) => {})(state.context);
 
-      return <div data-testid="state">{state?.count ?? 'undefined'}</div>;
+      return (
+        <div data-testid="state">{state.context?.count ?? 'undefined'}</div>
+      );
     };
 
     const App = () => {
       const [actor, setActor] =
-        React.useState<ActorRef<any, { count: number }>>();
+        React.useState<ActorRef<TransitionSnapshot<{ count: number }>, any>>();
 
       return (
         <>

@@ -1,7 +1,10 @@
 # Hierarchical state nodes
 
-:::tip Check out our new docs!
-🆕 Find more about [parent and child states in XState](https://stately.ai/docs/xstate/states/parent-and-child-states) as well as a [no-code introduction to parent states](https://stately.ai/docs/states/parent-states).
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [parent and child states in XState](https://stately.ai/docs/parent-states) as well as a [no-code introduction to parent states](https://stately.ai/docs/editor-states-and-transitions#parent-and-child-states).
 :::
 
 In statecharts, states can be nested _within other states_. These nested states are called **compound states**. To learn more, read the [compound states section in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#compound-states).

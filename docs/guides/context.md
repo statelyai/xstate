@@ -2,8 +2,11 @@
 
 [:rocket: Quick Reference](#quick-reference)
 
-:::tip Check out our new docs!
-🆕 Find more about [context in XState](https://stately.ai/docs/xstate/actions/context) in our new docs.
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [context in XState](https://stately.ai/docs/context) in our new docs.
 :::
 
 While _finite_ states are well-defined in finite state machines and statecharts, state that represents _quantitative data_ (e.g., arbitrary strings, numbers, objects, etc.) that can be potentially infinite is represented as [extended state](https://en.wikipedia.org/wiki/UML_state_machine#Extended_states) instead. This makes statecharts much more useful for real-life applications.

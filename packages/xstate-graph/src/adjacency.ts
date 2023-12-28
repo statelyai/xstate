@@ -1,17 +1,23 @@
-import { ActorLogic, ActorSystem, EventObject } from 'xstate';
+import {
+  ActorScope,
+  ActorLogic,
+  ActorSystem,
+  EventObject,
+  Snapshot
+} from 'xstate';
 import { SerializedEvent, SerializedState, TraversalOptions } from './types';
 import { AdjacencyMap, resolveTraversalOptions } from './graph';
+import { createMockActorScope } from './actorScope';
 
 export function getAdjacencyMap<
+  TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  TSnapshot,
-  TInternalState = TSnapshot,
-  TPersisted = TInternalState,
+  TInput,
   TSystem extends ActorSystem<any> = ActorSystem<any>
 >(
-  logic: ActorLogic<TEvent, TSnapshot, TInternalState, TPersisted, TSystem>,
-  options: TraversalOptions<TInternalState, TEvent>
-): AdjacencyMap<TInternalState, TEvent> {
+  logic: ActorLogic<TSnapshot, TEvent, TInput, TSystem>,
+  options: TraversalOptions<TSnapshot, TEvent>
+): AdjacencyMap<TSnapshot, TEvent> {
   const { transition } = logic;
   const {
     serializeEvent,
@@ -20,19 +26,28 @@ export function getAdjacencyMap<
     traversalLimit: limit,
     fromState: customFromState,
     stopCondition
-  } = resolveTraversalOptions(options);
-  const actorContext = { self: {} } as any; // TODO: figure out the simulation API
+  } = resolveTraversalOptions(logic, options);
+  const actorScope = createMockActorScope() as ActorScope<
+    TSnapshot,
+    TEvent,
+    TSystem
+  >;
   const fromState =
-    customFromState ?? logic.getInitialState(actorContext, undefined);
-  const adj: AdjacencyMap<TInternalState, TEvent> = {};
+    customFromState ??
+    logic.getInitialSnapshot(
+      actorScope,
+      // TODO: fix this
+      undefined as TInput
+    );
+  const adj: AdjacencyMap<TSnapshot, TEvent> = {};
 
   let iterations = 0;
   const queue: Array<{
-    nextState: TInternalState;
+    nextState: TSnapshot;
     event: TEvent | undefined;
-    prevState: TInternalState | undefined;
+    prevState: TSnapshot | undefined;
   }> = [{ nextState: fromState, event: undefined, prevState: undefined }];
-  const stateMap = new Map<SerializedState, TInternalState>();
+  const stateMap = new Map<SerializedState, TSnapshot>();
 
   while (queue.length) {
     const { nextState: state, event, prevState } = queue.shift()!;
@@ -64,16 +79,20 @@ export function getAdjacencyMap<
       typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
-      const nextState = transition(state, nextEvent, actorContext);
+      const nextSnapshot = transition(state, nextEvent, actorScope);
 
-      if (!options.filter || options.filter(nextState, nextEvent)) {
+      if (!options.filter || options.filter(nextSnapshot, nextEvent)) {
         adj[serializedState].transitions[
           serializeEvent(nextEvent) as SerializedEvent
         ] = {
           event: nextEvent,
-          state: nextState
+          state: nextSnapshot
         };
-        queue.push({ nextState, event: nextEvent, prevState: state });
+        queue.push({
+          nextState: nextSnapshot,
+          event: nextEvent,
+          prevState: state
+        });
       }
     }
   }

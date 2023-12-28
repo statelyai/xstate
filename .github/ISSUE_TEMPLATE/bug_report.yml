@@ -4,9 +4,20 @@ title: "Bug: "
 labels: [bug, triage]
 body:
   - type: markdown
+    id: intro
     attributes:
       value: |
         Report an issue with XState or XState tooling within this repo.
+  - type: dropdown
+    id: version
+    attributes:
+      label: XState version
+      description: Which version of the core XState library are you using?
+      options:
+        - XState version 5
+        - XState version 4
+    validations:
+      required: true
   - type: textarea
     id: description
     attributes:
@@ -32,24 +43,26 @@ body:
     validations:
       required: true
   - type: input
-    id: version
+    id: reproduction
     attributes:
       label: Reproduction
       description: |
-        Please provide a reproducible example. You can use one of the following templates:
+        Please provide a reproducible example. You can use [Stately Studio](https://stately.ai/editor) or one of the following templates:
 
-        - [CodeSandbox template (JavaScript)](https://codesandbox.io/s/xstate-example-template-m4ckv)
-        - [CodeSandbox template (TypeScript)](https://codesandbox.io/s/xstate-typescript-template-s9kz8)
-        - ⚛︎ [CodeSandbox template (React)](https://codesandbox.io/s/xstate-react-template-3t2tg)
-        - ⚛︎ [CodeSandbox template (React + TypeScript)](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
-        - 💚 [CodeSandbox template (Vue + Composition API)](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
-        - [XState Visualizer](https://stately.ai/viz/)
+        - [XState Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)
+        - [XState Template (StackBlitz)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vanilla-ts)
+        - [XState React Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts)
+        - [XState React Template (StackBlitz)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/react-ts)
+        - [XState Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vue-ts)
+        - [XState Vue Template (StackBlitz)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vue-ts)
+        - [XState Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/svelte-ts)
+        - [XState Svelte Template (StackBlitz)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/svelte-ts)
     validations:
       required: true
   - type: textarea
     id: additional
     attributes:
       label: Additional context
-      description: Add any other context about the problem here (e.g., XState version)
+      description: Add any other context about the problem here (e.g. specific XState version)
     validations:
       required: false

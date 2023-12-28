@@ -1,22 +1,24 @@
 # Usage with Stencil
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 [Stencil](https://stenciljs.com/) web components work very well with XState.
 
 ### `src/helpers/toggle-machine.ts`
 
 ```js
-import { createMachine } from "@xstate/fsm";
+import { createMachine } from 'xstate';
 
-export const toggleMachine = createMachine<
-  undefined,
-  { type: "toggle" },
-  { value: "active" | "inactive"; context: undefined }
->({
-  id: "toggle",
-  initial: "active",
+export const toggleMachine = createMachine({
+  id: 'toggle',
+  initial: 'active',
   states: {
-    inactive: { on: { toggle: "active" } },
-    active: { on: { toggle: "inactive" } }
+    inactive: { on: { toggle: 'active' } },
+    active: { on: { toggle: 'inactive' } }
   }
 });
 ```
@@ -27,11 +29,11 @@ Add a `state` property to your component, decorated with `@State` so that it tri
 
 On `componentWillLoad`, interpret the `toggleMachine` and listen for state transitions.
 
-After a transition has occured, the `state` property is set to the machine's new state, triggering a re-render.
+After a transition has occurred, the `state` property is set to the machine's new state, triggering a re-render.
 
 ```js
 import { Component, h, State } from "@stencil/core";
-import { interpret } from "@xstate/fsm";
+import { interpret } from "xstate";
 import { toggleMachine } from "../helpers/toggle-machine";
 
 @Component({
@@ -42,7 +44,7 @@ import { toggleMachine } from "../helpers/toggle-machine";
 export class Toggle {
   private _service = interpret(toggleMachine);
 
-  @State() state = toggleMachine.initialState;
+  @State() state = this._service.getSnapshot();
 
   componentWillLoad() {
     this._service.subscribe(state => {

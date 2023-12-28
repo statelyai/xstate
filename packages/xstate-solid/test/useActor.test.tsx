@@ -6,7 +6,9 @@ import {
   assign,
   ActorRef,
   ActorRefFrom,
-  createActor
+  createActor,
+  Snapshot,
+  fromTransition
 } from 'xstate';
 import { fireEvent, screen, render, waitFor } from 'solid-testing-library';
 import {
@@ -22,11 +24,7 @@ import {
 import { createStore, reconcile } from 'solid-js/store';
 
 const createSimpleActor = <T extends unknown>(value: T) =>
-  createActor({
-    transition: (s) => s,
-    getSnapshot: () => value,
-    getInitialState: () => value
-  });
+  createActor(fromTransition((s) => s, value));
 
 describe('useActor', () => {
   it('initial invoked actor should be immediately available', (done) => {
@@ -170,9 +168,12 @@ describe('useActor', () => {
   });
 
   it('should only trigger effects once for nested context values', () => {
-    const childMachine = createMachine<{
-      item: { count: number; total: number };
-    }>({
+    const childMachine = createMachine({
+      types: {} as {
+        context: {
+          item: { count: number; total: number };
+        };
+      },
       id: 'childMachine',
       initial: 'active',
       context: {
@@ -210,9 +211,12 @@ describe('useActor', () => {
         }
       }
     });
-    const machine = createMachine<{
-      actorRef?: ActorRefFrom<typeof childMachine>;
-    }>({
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef?: ActorRefFrom<typeof childMachine>;
+        };
+      },
       initial: 'active',
       context: {
         actorRef: undefined
@@ -295,7 +299,8 @@ describe('useActor', () => {
       actorRef?: ActorRefFrom<typeof childMachine>;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine({
+      types: {} as { context: Ctx },
       initial: 'active',
       context: {
         actorRef: undefined
@@ -327,71 +332,6 @@ describe('useActor', () => {
     };
 
     render(() => <Test />);
-  });
-
-  it('should be reactive to toStrings method calls', () => {
-    const machine = createMachine({
-      initial: 'green',
-      states: {
-        green: {
-          on: {
-            TRANSITION: 'yellow'
-          }
-        },
-        yellow: {
-          on: {
-            TRANSITION: 'red'
-          }
-        },
-        red: {
-          on: {
-            TRANSITION: 'green'
-          }
-        }
-      }
-    });
-
-    const App = () => {
-      const service = createActor(machine).start();
-      const [state, send] = useActor(service);
-      const [toStrings, setToStrings] = createSignal(state().toStrings());
-      createEffect(
-        on(
-          () => state().value,
-          () => {
-            setToStrings(state().toStrings());
-          }
-        )
-      );
-      return (
-        <div>
-          <button
-            data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
-          />
-          <div data-testid="to-strings">{JSON.stringify(toStrings())}</div>
-        </div>
-      );
-    };
-
-    render(() => <App />);
-    const toStringsEl = screen.getByTestId('to-strings');
-    const transitionBtn = screen.getByTestId('transition-button');
-
-    // Green
-    expect(toStringsEl.textContent).toEqual('["green"]');
-    transitionBtn.click();
-
-    // Yellow
-    expect(toStringsEl.textContent).toEqual('["yellow"]');
-    transitionBtn.click();
-
-    // Red
-    expect(toStringsEl.textContent).toEqual('["red"]');
-    transitionBtn.click();
-
-    // Green
-    expect(toStringsEl.textContent).toEqual('["green"]');
   });
 
   it('should be reactive to toJSON method calls', () => {
@@ -434,7 +374,7 @@ describe('useActor', () => {
             data-testid="transition-button"
             onclick={() => send({ type: 'TRANSITION' })}
           />
-          <div data-testid="to-json">{toJson().value.toString()}</div>
+          <div data-testid="to-json">{(toJson() as any).value.toString()}</div>
         </div>
       );
     };
@@ -592,9 +532,12 @@ describe('useActor', () => {
         }
       }
     });
-    const machine = createMachine<{
-      actorRef?: ActorRefFrom<typeof childMachine>;
-    }>({
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef?: ActorRefFrom<typeof childMachine>;
+        };
+      },
       initial: 'active',
       context: {
         actorRef: undefined
@@ -638,16 +581,12 @@ describe('useActor', () => {
   });
 
   it('should provide value from `actor.getSnapshot()` immediately', () => {
-    const simpleActor = createActor({
-      transition: (s) => s,
-      getSnapshot: () => 42,
-      getInitialState: () => 42
-    });
+    const simpleActor = createActor(fromTransition((s) => s, 42));
 
     const Test = () => {
       const [state] = useActor(simpleActor);
 
-      return <div data-testid="state">{state()}</div>;
+      return <div data-testid="state">{state().context}</div>;
     };
 
     render(() => <Test />);
@@ -664,7 +603,7 @@ describe('useActor', () => {
 
       return (
         <div>
-          <div data-testid="state">{state()}</div>
+          <div data-testid="state">{state().context}</div>
           <button
             data-testid="button"
             onclick={() => setActor(createSimpleActor(100))}
@@ -692,7 +631,7 @@ describe('useActor', () => {
 
       return (
         <div>
-          <div data-testid="state">{state().getFullYear()}</div>
+          <div data-testid="state">{state().context.getFullYear()}</div>
           <button
             data-testid="button"
             onclick={() => setActor(createSimpleActor(new Date('2022-08-21')))}
@@ -718,7 +657,7 @@ describe('useActor', () => {
       const [change, setChange] = createSignal(0);
 
       createEffect(() => {
-        if (state()[0]) {
+        if (state().context[0]) {
           setChange((val) => val + 1);
         }
       });
@@ -726,8 +665,8 @@ describe('useActor', () => {
       return (
         <div>
           <div data-testid="change">{change()}</div>
-          <div data-testid="state">{state()[1]}</div>
-          <div data-testid="state-2">{state()[3]}</div>
+          <div data-testid="state">{state().context[1]}</div>
+          <div data-testid="state-2">{state().context[3]}</div>
           <button
             data-testid="button"
             onclick={() => setActor(createSimpleActor(['1', '3', '5', '8']))}
@@ -760,7 +699,7 @@ describe('useActor', () => {
       const [change, setChange] = createSignal(0);
 
       createEffect(() => {
-        if (state()[0]) {
+        if (state().context[0]) {
           setChange((val) => val + 1);
         }
       });
@@ -768,8 +707,8 @@ describe('useActor', () => {
       return (
         <div>
           <div data-testid="change">{change()}</div>
-          <div data-testid="state">{state()[1]}</div>
-          <div data-testid="state-2">{state()[3]}</div>
+          <div data-testid="state">{state().context[1]}</div>
+          <div data-testid="state-2">{state().context[3]}</div>
           <button
             data-testid="button"
             onclick={() => setActor(createSimpleActor(['1', '2']))}
@@ -795,7 +734,8 @@ describe('useActor', () => {
   });
 
   it('should properly handle array updates', () => {
-    const numberListMachine = createMachine<{ numbers: number[] }>({
+    const numberListMachine = createMachine({
+      types: {} as { context: { numbers: number[] } },
       context: {
         numbers: [1, 2, 3, 4, 5, 6]
       },
@@ -873,10 +813,11 @@ describe('useActor', () => {
       { id: '1', value: 10 },
       { id: '2', value: 20 }
     ];
-    const actorMachine = createMachine<
-      { arr: Array<{ id: string; value: number }> },
-      { type: 'CHANGE'; index: number; value: number }
-    >({
+    const actorMachine = createMachine({
+      types: {} as {
+        context: { arr: Array<{ id: string; value: number }> };
+        events: { type: 'CHANGE'; index: number; value: number };
+      },
       context: {
         arr
       },
@@ -997,7 +938,7 @@ describe('useActor', () => {
       const [signalChange, setSignalChange] = createSignal(0);
 
       createEffect(() => {
-        if (state().get('prop1')) {
+        if (state().context.get('prop1')) {
           setActorChange((val) => val + 1);
         }
       });
@@ -1013,7 +954,7 @@ describe('useActor', () => {
           <div data-testid="actor-change">{actorChange()}</div>
           <div data-testid="signal-change">{signalChange()}</div>
           <div data-testid="actor-state">{signal().get('prop2')}</div>
-          <div data-testid="signal-state">{state().get('prop2')}</div>
+          <div data-testid="signal-state">{state().context.get('prop2')}</div>
           <button
             data-testid="button"
             onclick={() => {
@@ -1063,7 +1004,7 @@ describe('useActor', () => {
       const [signalChange, setSignalChange] = createSignal(0);
 
       createEffect(() => {
-        if (state().value.get('prop1')) {
+        if (state().context.value.get('prop1')) {
           setActorChange((val) => val + 1);
         }
       });
@@ -1079,7 +1020,9 @@ describe('useActor', () => {
           <div data-testid="actor-change">{actorChange()}</div>
           <div data-testid="signal-change">{signalChange()}</div>
           <div data-testid="actor-state">{signal.value.get('prop2')}</div>
-          <div data-testid="signal-state">{state().value.get('prop2')}</div>
+          <div data-testid="signal-state">
+            {state().context.value.get('prop2')}
+          </div>
           <button
             data-testid="change-button"
             onclick={() => {
@@ -1161,11 +1104,12 @@ describe('useActor', () => {
   });
 
   it('should also work with services', () => {
-    const counterMachine = createMachine<
-      { count: number },
-      { type: 'INC' } | { type: 'SOMETHING' }
-    >(
+    const counterMachine = createMachine(
       {
+        types: {} as {
+          context: { count: number };
+          events: { type: 'INC' } | { type: 'SOMETHING' };
+        },
         id: 'counter',
         initial: 'active',
         context: { count: 0 },
@@ -1236,7 +1180,10 @@ describe('useActor', () => {
       counter: number;
     }
 
-    const machine = createMachine<MachineContext>({
+    const machine = createMachine({
+      types: {} as {
+        context: MachineContext;
+      },
       context: {
         counter: 0
       },
@@ -1289,7 +1236,8 @@ describe('useActor', () => {
   });
 
   it('actor should be updated when it changes shallow', () => {
-    const counterMachine = createMachine<{ count: number }>({
+    const counterMachine = createMachine({
+      types: {} as { context: { count: number } },
       id: 'counter',
       initial: 'active',
       context: { count: 0 },
@@ -1348,9 +1296,12 @@ describe('useActor', () => {
   });
 
   it('actor should be updated when it changes deep', () => {
-    const counterMachine2 = createMachine<{
-      subCount: { subCount1: { subCount2: { count: number } } };
-    }>({
+    const counterMachine2 = createMachine({
+      types: {} as {
+        context: {
+          subCount: { subCount1: { subCount2: { count: number } } };
+        };
+      },
       id: 'counter',
       initial: 'active',
       context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
@@ -1423,9 +1374,12 @@ describe('useActor', () => {
   });
 
   it('actor should only trigger effect of directly tracked value', () => {
-    const counterMachine2 = createMachine<{
-      subCount: { subCount1: { subCount2: { count: number } } };
-    }>({
+    const counterMachine2 = createMachine({
+      types: {} as {
+        context: {
+          subCount: { subCount1: { subCount2: { count: number } } };
+        };
+      },
       id: 'counter',
       initial: 'active',
       context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
@@ -1498,7 +1452,11 @@ describe('useActor', () => {
     interface Context {
       latestValue: { value: number };
     }
-    const machine = createMachine<Context, { type: 'INC' }>({
+    const machine = createMachine({
+      types: {} as {
+        context: Context;
+        events: { type: 'INC' };
+      },
       initial: 'initial',
       context: {
         latestValue
@@ -1586,7 +1544,8 @@ describe('useActor', () => {
       }
     });
 
-    const machine = createMachine<{ ref: ActorRef<any> }>({
+    const machine = createMachine({
+      types: {} as { context: { ref: ActorRef<any, any> } },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
