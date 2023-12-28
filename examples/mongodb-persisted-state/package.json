@@ -9,13 +9,13 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2",
-    "vite": "^4.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vite": "^4.5.1",
     "vite-node": "^0.31.4"
   },
   "dependencies": {
-    "mongodb": "^6.2.0",
-    "xstate": "^5.0.0"
+    "mongodb": "^6.3.0",
+    "xstate": "^5.4.1"
   }
 }
