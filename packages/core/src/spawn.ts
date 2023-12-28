@@ -58,7 +58,7 @@ export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
       options?: {
         id?: string;
         systemId?: string;
-        input?: unknown;
+        input?: InputFrom<TLogic>;
         syncSnapshot?: boolean;
       }
     ) => TLogic extends string ? AnyActorRef : ActorRefFrom<TLogic>;
