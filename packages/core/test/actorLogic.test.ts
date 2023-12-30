@@ -314,6 +314,25 @@ describe('transition function logic (fromTransition)', () => {
 
     actor.send({ type: 'a' });
   });
+
+  it('handles input', () => {
+    expect.assertions(1);
+    const logic = fromTransition(
+      (state) => {
+        expect(state).toBe(42);
+        return state;
+      },
+      ({ input }: { input: number }) => input
+    );
+
+    const actor = createActor(logic, {
+      input: 42
+    });
+    actor.subscribe((snapshot) => {
+      expect(snapshot.context).toBe(42);
+    });
+    actor.start();
+  });
 });
 
 describe('observable logic (fromObservable)', () => {
