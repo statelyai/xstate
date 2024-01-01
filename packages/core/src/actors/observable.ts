@@ -1,21 +1,32 @@
 import { XSTATE_STOP } from '../constants';
+import { AnyActorSystem } from '../system.ts';
 import {
-  Subscribable,
   ActorLogic,
-  EventObject,
-  Subscription,
-  AnyActorSystem,
   ActorRefFrom,
-  Snapshot
+  EventObject,
+  NonReducibleUnknown,
+  Snapshot,
+  Subscribable,
+  Subscription
 } from '../types';
 
-export type ObservableSnapshot<TContext, TInput> = Snapshot<undefined> & {
+const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';
+const XSTATE_OBSERVABLE_ERROR = 'xstate.observable.error';
+const XSTATE_OBSERVABLE_COMPLETE = 'xstate.observable.complete';
+
+export type ObservableSnapshot<
+  TContext,
+  TInput extends NonReducibleUnknown
+> = Snapshot<undefined> & {
   context: TContext | undefined;
   input: TInput | undefined;
   _subscription: Subscription | undefined;
 };
 
-export type ObservableActorLogic<TContext, TInput> = ActorLogic<
+export type ObservableActorLogic<
+  TContext,
+  TInput extends NonReducibleUnknown
+> = ActorLogic<
   ObservableSnapshot<TContext, TInput>,
   { type: string; [k: string]: unknown },
   TInput,
@@ -26,7 +37,47 @@ export type ObservableActorRef<TContext> = ActorRefFrom<
   ObservableActorLogic<TContext, any>
 >;
 
-export function fromObservable<TContext, TInput>(
+/**
+ * Observable actor logic is described by an observable stream of values. Actors created from observable logic (“observable actors”) can:
+ *
+ * - Emit snapshots of the observable’s emitted value
+ *
+ * The observable’s emitted value is used as its observable actor’s `context`.
+ *
+ * Sending events to observable actors will have no effect.
+ *
+ * @param observableCreator A function that creates an observable. It receives one argument, an object with the following properties:
+ * - `input` - Data that was provided to the observable actor
+ * - `self` - The parent actor
+ * - `system` - The actor system to which the observable actor belongs
+ *
+ * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
+ *
+ * @example
+ * ```ts
+ * import { fromObservable, createActor } from 'xstate'
+ * import { interval } from 'rxjs';
+ *
+ * const logic = fromObservable((obj) => interval(1000));
+ *
+ * const actor = createActor(logic);
+ *
+ * actor.subscribe((snapshot) => {
+ *   console.log(snapshot.context);
+ * });
+ *
+ * actor.start();
+ * // At every second:
+ * // Logs 0
+ * // Logs 1
+ * // Logs 2
+ * // ...
+ * ```
+ *
+ * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
+ * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
+ */
+export function fromObservable<TContext, TInput extends NonReducibleUnknown>(
   observableCreator: ({
     input,
     system
@@ -36,10 +87,6 @@ export function fromObservable<TContext, TInput>(
     self: ObservableActorRef<TContext>;
   }) => Subscribable<TContext>
 ): ObservableActorLogic<TContext, TInput> {
-  const nextEventType = '$$xstate.next';
-  const errorEventType = '$$xstate.error';
-  const completeEventType = '$$xstate.complete';
-
   // TODO: add event types
   const logic: ObservableActorLogic<TContext, TInput> = {
     config: observableCreator,
@@ -49,14 +96,14 @@ export function fromObservable<TContext, TInput>(
       }
 
       switch (event.type) {
-        case nextEventType: {
+        case XSTATE_OBSERVABLE_NEXT: {
           const newSnapshot = {
             ...snapshot,
             context: event.data as TContext
           };
           return newSnapshot;
         }
-        case errorEventType:
+        case XSTATE_OBSERVABLE_ERROR:
           return {
             ...snapshot,
             status: 'error',
@@ -64,7 +111,7 @@ export function fromObservable<TContext, TInput>(
             input: undefined,
             _subscription: undefined
           };
-        case completeEventType:
+        case XSTATE_OBSERVABLE_COMPLETE:
           return {
             ...snapshot,
             status: 'done',
@@ -83,7 +130,7 @@ export function fromObservable<TContext, TInput>(
           return snapshot;
       }
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,
@@ -104,18 +151,24 @@ export function fromObservable<TContext, TInput>(
         self
       }).subscribe({
         next: (value) => {
-          system._relay(self, self, { type: nextEventType, data: value });
+          system._relay(self, self, {
+            type: XSTATE_OBSERVABLE_NEXT,
+            data: value
+          });
         },
         error: (err) => {
-          system._relay(self, self, { type: errorEventType, data: err });
+          system._relay(self, self, {
+            type: XSTATE_OBSERVABLE_ERROR,
+            data: err
+          });
         },
         complete: () => {
-          system._relay(self, self, { type: completeEventType });
+          system._relay(self, self, { type: XSTATE_OBSERVABLE_COMPLETE });
         }
       });
     },
-    getPersistedState: ({ _subscription, ...state }) => state,
-    restoreState: (state) => ({
+    getPersistedSnapshot: ({ _subscription, ...state }) => state,
+    restoreSnapshot: (state) => ({
       ...(state as any),
       _subscription: undefined
     })
@@ -125,15 +178,53 @@ export function fromObservable<TContext, TInput>(
 }
 
 /**
- * Creates event observable logic that listens to an observable
- * that delivers event objects.
+ * Creates event observable logic that listens to an observable that delivers event objects.
  *
+ * Event observable actor logic is described by an observable stream of {@link https://stately.ai/docs/transitions#event-objects | event objects}. Actors created from event observable logic (“event observable actors”) can:
  *
- * @param lazyObservable A function that creates an observable
- * @returns Event observable logic
+ * - Implicitly send events to its parent actor
+ * - Emit snapshots of its emitted event objects
+ *
+ * Sending events to event observable actors will have no effect.
+ *
+ * @param lazyObservable A function that creates an observable that delivers event objects. It receives one argument, an object with the following properties:
+ *
+ * - `input` - Data that was provided to the event observable actor
+ * - `self` - The parent actor
+ * - `system` - The actor system to which the event observable actor belongs.
+ *
+ * It should return a {@link Subscribable}, which is compatible with an RxJS Observable, although RxJS is not required to create them.
+ *
+ * @example
+ * ```ts
+ * import {
+ *   fromEventObservable,
+ *   Subscribable,
+ *   EventObject,
+ *   createMachine,
+ *   createActor
+ * } from 'xstate';
+ * import { fromEvent } from 'rxjs';
+ *
+ * const mouseClickLogic = fromEventObservable(() =>
+ *   fromEvent(document.body, 'click') as Subscribable<EventObject>
+ * );
+ *
+ * const canvasMachine = createMachine({
+ *   invoke: {
+ *     // Will send mouse `click` events to the canvas actor
+ *     src: mouseClickLogic,
+ *   }
+ * });
+ *
+ * const canvasActor = createActor(canvasMachine);
+ * canvasActor.start();
+ * ```
  */
-
-export function fromEventObservable<T extends EventObject, TInput>(
+export function fromEventObservable<
+  T extends EventObject,
+  TInput extends NonReducibleUnknown
+>(
   lazyObservable: ({
     input,
     system
@@ -143,9 +234,6 @@ export function fromEventObservable<T extends EventObject, TInput>(
     self: ObservableActorRef<T>;
   }) => Subscribable<T>
 ): ObservableActorLogic<T, TInput> {
-  const errorEventType = '$$xstate.error';
-  const completeEventType = '$$xstate.complete';
-
   // TODO: event types
   const logic: ObservableActorLogic<T, TInput> = {
     config: lazyObservable,
@@ -155,7 +243,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
       }
 
       switch (event.type) {
-        case errorEventType:
+        case XSTATE_OBSERVABLE_ERROR:
           return {
             ...state,
             status: 'error',
@@ -163,7 +251,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
             input: undefined,
             _subscription: undefined
           };
-        case completeEventType:
+        case XSTATE_OBSERVABLE_COMPLETE:
           return {
             ...state,
             status: 'done',
@@ -182,7 +270,7 @@ export function fromEventObservable<T extends EventObject, TInput>(
           return state;
       }
     },
-    getInitialState: (_, input) => {
+    getInitialSnapshot: (_, input) => {
       return {
         status: 'active',
         output: undefined,
@@ -209,16 +297,19 @@ export function fromEventObservable<T extends EventObject, TInput>(
           }
         },
         error: (err) => {
-          system._relay(self, self, { type: errorEventType, data: err });
+          system._relay(self, self, {
+            type: XSTATE_OBSERVABLE_ERROR,
+            data: err
+          });
         },
         complete: () => {
-          system._relay(self, self, { type: completeEventType });
+          system._relay(self, self, { type: XSTATE_OBSERVABLE_COMPLETE });
         }
       });
     },
-    getPersistedState: ({ _subscription, ...state }) => state,
-    restoreState: (state: any) => ({
-      ...state,
+    getPersistedSnapshot: ({ _subscription, ...snapshot }) => snapshot,
+    restoreSnapshot: (snapshot: any) => ({
+      ...snapshot,
       _subscription: undefined
     })
   };

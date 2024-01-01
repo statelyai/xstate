@@ -715,12 +715,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     render(<App />);
 
-    expect(spy).not.toBeCalled();
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('should work with an optional actor', () => {
     const Child = (props: {
-      actor: ActorRef<any, TransitionSnapshot<{ count: number }>> | undefined;
+      actor: ActorRef<TransitionSnapshot<{ count: number }>, any> | undefined;
     }) => {
       const state = useSelector(props.actor, (s) => s);
 
@@ -735,7 +735,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
     const App = () => {
       const [actor, setActor] =
-        React.useState<ActorRef<any, TransitionSnapshot<{ count: number }>>>();
+        React.useState<ActorRef<TransitionSnapshot<{ count: number }>, any>>();
 
       return (
         <>

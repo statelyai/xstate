@@ -1,0 +1,7 @@
+{
+  "title": "XState",
+  "description": "Official Stately.ai template for XState v5, TypeScript",
+  "iconUrl": "https://raw.githubusercontent.com/statelyai/public-assets/main/logos/logomark-white.png",
+  "tags": ["xstate", "state", "typescript"],
+  "published": true
+}

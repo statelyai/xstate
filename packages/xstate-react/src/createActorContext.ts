@@ -6,40 +6,9 @@ import {
   AnyStateMachine,
   SnapshotFrom,
   ActorOptions,
-  AreAllImplementationsAssumedToBeProvided,
-  MarkAllImplementationsAsProvided,
   StateMachine,
   AnyActorLogic
 } from 'xstate';
-
-type ToMachinesWithProvidedImplementations<TMachine extends AnyStateMachine> =
-  TMachine extends StateMachine<
-    infer TContext,
-    infer TEvent,
-    infer TActor,
-    infer TAction,
-    infer TGuard,
-    infer TDelay,
-    infer TTag,
-    infer TInput,
-    infer TOutput,
-    infer TResolvedTypesMeta
-  >
-    ? StateMachine<
-        TContext,
-        TEvent,
-        TActor,
-        TAction,
-        TGuard,
-        TDelay,
-        TTag,
-        TInput,
-        TOutput,
-        AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-          ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-          : TResolvedTypesMeta
-      >
-    : never;
 
 export function createActorContext<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
@@ -50,26 +19,15 @@ export function createActorContext<TLogic extends AnyActorLogic>(
     compare?: (a: T, b: T) => boolean
   ) => T;
   useActorRef: () => ActorRefFrom<TLogic>;
-  Provider: (
-    props: {
-      children: React.ReactNode;
-      options?: ActorOptions<TLogic>;
-      /**
-       * @deprecated Use `logic` instead.
-       */
-      machine?: never;
-    } & (TLogic extends AnyStateMachine
-      ? AreAllImplementationsAssumedToBeProvided<
-          TLogic['__TResolvedTypesMeta']
-        > extends true
-        ? {
-            logic?: TLogic;
-          }
-        : {
-            logic: ToMachinesWithProvidedImplementations<TLogic>;
-          }
-      : { logic?: TLogic })
-  ) => React.ReactElement<any, any>;
+  Provider: (props: {
+    children: React.ReactNode;
+    options?: ActorOptions<TLogic>;
+    /**
+     * @deprecated Use `logic` instead.
+     */
+    machine?: never;
+    logic?: TLogic;
+  }) => React.ReactElement<any, any>;
 } {
   const ReactContext = React.createContext<ActorRefFrom<TLogic> | null>(null);
 

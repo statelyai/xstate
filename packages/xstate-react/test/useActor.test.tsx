@@ -1,6 +1,8 @@
 import { act, fireEvent, screen } from '@testing-library/react';
+import { sleep } from '@xstate-repo/jest-utils';
 import * as React from 'react';
 import { useState } from 'react';
+import { BehaviorSubject } from 'rxjs';
 import {
   Actor,
   ActorLogicFrom,
@@ -13,7 +15,7 @@ import {
   createMachine,
   raise
 } from 'xstate';
-import { fromCallback, fromPromise } from 'xstate/actors';
+import { fromCallback, fromObservable, fromPromise } from 'xstate/actors';
 import { useActor, useSelector } from '../src/index.ts';
 import { describeEachReactMode } from './utils.tsx';
 
@@ -79,7 +81,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
   ).start();
   actorRef.send({ type: 'FETCH' });
 
-  const persistedSuccessFetchState = actorRef.getPersistedState();
+  const persistedSuccessFetchState = actorRef.getPersistedSnapshot();
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
@@ -97,7 +99,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
         }
       }),
       {
-        state: persistedState
+        snapshot: persistedState
       }
     );
 
@@ -903,14 +905,14 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     });
 
     const actorRef = createActor(testMachine).start();
-    const persistedState = JSON.stringify(actorRef.getPersistedState());
+    const persistedState = JSON.stringify(actorRef.getPersistedSnapshot());
     actorRef.stop();
 
     let currentState: StateFrom<typeof testMachine>;
 
     const Test = () => {
       const [state, send] = useActor(testMachine, {
-        state: JSON.parse(persistedState)
+        snapshot: JSON.parse(persistedState)
       });
 
       currentState = state;
@@ -985,7 +987,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
       const [_state, _send, actor] = useActor(m);
 
       React.useEffect(() => {
-        actor.system!.get('child')!.send({ type: 'PING' });
+        actor.system.get('child')!.send({ type: 'PING' });
       });
 
       return null;
@@ -994,5 +996,65 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     render(<App />);
 
     expect(spy).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
+  });
+
+  it('should work with `onSnapshot`', () => {
+    const subject = new BehaviorSubject(0);
+
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      invoke: [
+        {
+          src: fromObservable(() => subject),
+          onSnapshot: {
+            actions: [({ event }) => spy((event.snapshot as any).context)]
+          }
+        }
+      ]
+    });
+
+    const App = () => {
+      useActor(machine);
+      return null;
+    };
+
+    render(<App />);
+
+    spy.mockClear();
+
+    subject.next(42);
+    subject.next(100);
+
+    expect(spy.mock.calls).toEqual([[42], [100]]);
+  });
+
+  it('should execute a delayed transition of the initial state', async () => {
+    const machine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          after: {
+            10: 'two'
+          }
+        },
+        two: {}
+      }
+    });
+
+    const App = () => {
+      const [state] = useActor(machine);
+      return <>{state.value}</>;
+    };
+
+    const { container } = render(<App />);
+
+    expect(container.textContent).toBe('one');
+
+    await act(async () => {
+      await sleep(10);
+    });
+
+    expect(container.textContent).toBe('two');
   });
 });

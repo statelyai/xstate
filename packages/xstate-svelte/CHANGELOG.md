@@ -1,5 +1,40 @@
 # @xstate/svelte
 
+## 3.0.2
+
+### Patch Changes
+
+- [#4600](https://github.com/statelyai/xstate/pull/4600) [`1f2ccb97c`](https://github.com/statelyai/xstate/commit/1f2ccb97ca00ff2d2ec1c9996f8205dbe656602b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Typegen-based types for detecting missing implementations have been removed internally.
+
+## 3.0.1
+
+### Patch Changes
+
+- [#4591](https://github.com/statelyai/xstate/pull/4591) [`f8cc116d3`](https://github.com/statelyai/xstate/commit/f8cc116d31ead0ffd39db8bbd1b5122702b229a0) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Marked `useMachine` as aliased, not deprecated.
+
+## 3.0.0
+
+### Major Changes
+
+- [#4507](https://github.com/statelyai/xstate/pull/4507) [`9ea542c34`](https://github.com/statelyai/xstate/commit/9ea542c346f7028ca77ae56ce1fe285372fa4cab) Thanks [@Andarist](https://github.com/Andarist)! - The `useMachine(machine)` hook now returns `{ snapshot, send, actorRef }` instead of `{ state, send, service }`:
+
+  ```diff
+  const {
+  - state,
+  + snapshot,
+    send,
+  - service
+  + actorRef
+  } = useMachine(machine);
+  ```
+
+- [#4265](https://github.com/statelyai/xstate/pull/4265) [`1153b3f9a`](https://github.com/statelyai/xstate/commit/1153b3f9a95b4d76ff5408be8bd03a66f884b9cb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - FSM-related functions have been removed.
+
+### Minor Changes
+
+- [#3727](https://github.com/statelyai/xstate/pull/3727) [`5fb3c683d`](https://github.com/statelyai/xstate/commit/5fb3c683d9a9bdc06637b3a13a5b575059aebadd) Thanks [@Andarist](https://github.com/Andarist)! - `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+- [#4507](https://github.com/statelyai/xstate/pull/4507) [`9ea542c34`](https://github.com/statelyai/xstate/commit/9ea542c346f7028ca77ae56ce1fe285372fa4cab) Thanks [@Andarist](https://github.com/Andarist)! - The `useActorRef(logic)` and `useActor(logic)` hooks have been added.
+
 ## 2.1.0
 
 ### Minor Changes

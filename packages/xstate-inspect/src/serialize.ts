@@ -21,12 +21,12 @@ export function selectivelyStringify<T extends object>(
 }
 
 export function stringifyState(
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   replacer?: Replacer
 ): string {
-  const { machine, configuration, tags, meta, ...stateToStringify } = state;
+  const { machine, _nodes: nodes, tags, ...snapshotToStringify } = snapshot;
   return selectivelyStringify(
-    { ...stateToStringify, tags: Array.from(tags) },
+    { ...snapshotToStringify, tags: Array.from(tags) },
     ['context'],
     replacer
   );

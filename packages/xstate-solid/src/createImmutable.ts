@@ -53,8 +53,9 @@ const updateStore = <Path extends unknown[]>(
       const largestSize = Math.max(next.length, prev.length);
 
       // Diff array
-      for (let start = 0, end = largestSize - 1; start < end; start++, end--) {
+      for (let start = 0, end = largestSize - 1; start <= end; start++, end--) {
         diff(next[start], prev[start], [...path, start] as Path);
+        if (start === end) break;
         diff(next[end], prev[end], [...path, end] as Path);
       }
 

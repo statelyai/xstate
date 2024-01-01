@@ -34,7 +34,7 @@ export function getAdjacencyMap<
   >;
   const fromState =
     customFromState ??
-    logic.getInitialState(
+    logic.getInitialSnapshot(
       actorScope,
       // TODO: fix this
       undefined as TInput
@@ -79,16 +79,20 @@ export function getAdjacencyMap<
       typeof getEvents === 'function' ? getEvents(state) : getEvents;
 
     for (const nextEvent of events) {
-      const nextState = transition(state, nextEvent, actorScope);
+      const nextSnapshot = transition(state, nextEvent, actorScope);
 
-      if (!options.filter || options.filter(nextState, nextEvent)) {
+      if (!options.filter || options.filter(nextSnapshot, nextEvent)) {
         adj[serializedState].transitions[
           serializeEvent(nextEvent) as SerializedEvent
         ] = {
           event: nextEvent,
-          state: nextState
+          state: nextSnapshot
         };
-        queue.push({ nextState, event: nextEvent, prevState: state });
+        queue.push({
+          nextState: nextSnapshot,
+          event: nextEvent,
+          prevState: state
+        });
       }
     }
   }

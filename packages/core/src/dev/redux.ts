@@ -13,10 +13,10 @@ export const createReduxDevTools = (
         {
           name: service.id,
           autoPause: true,
-          stateSanitizer: (state: AnyMachineSnapshot): object => {
+          stateSanitizer: (snapshot: AnyMachineSnapshot): object => {
             return {
-              value: state.value,
-              context: state.context
+              value: snapshot.value,
+              context: snapshot.context
             };
           },
           ...options,

@@ -1,4 +1,4 @@
-import { createMachine, fromCallback } from 'xstate';
+import { createMachine, fromCallback, or } from 'xstate';
 
 type Dir = 'Up' | 'Left' | 'Down' | 'Right';
 type Point = { x: number; y: number };
@@ -58,7 +58,7 @@ export const snakeMachine = createMachine({
       on: {
         ARROW_KEY: {
           actions: 'save dir',
-          target: '#SnakeMachine.Moving'
+          target: 'Moving'
         }
       }
     },
@@ -79,12 +79,8 @@ export const snakeMachine = createMachine({
           actions: ['grow snake', 'increase score', 'show new apple']
         },
         {
-          guard: 'hit wall',
-          target: '#SnakeMachine.Game Over'
-        },
-        {
-          guard: 'hit tail',
-          target: '#SnakeMachine.Game Over'
+          guard: or(['hit tail', 'hit wall']),
+          target: 'Game Over'
         }
       ],
       on: {
@@ -93,7 +89,7 @@ export const snakeMachine = createMachine({
         },
         ARROW_KEY: {
           actions: 'save dir',
-          target: '#SnakeMachine.Moving'
+          target: 'Moving'
         }
       }
     },
@@ -102,7 +98,7 @@ export const snakeMachine = createMachine({
         NEW_GAME: {
           actions: 'reset',
           description: 'triggered by pressing the "r" key',
-          target: '#SnakeMachine.New Game'
+          target: 'New Game'
         }
       }
     }

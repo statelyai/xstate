@@ -755,7 +755,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('should execute actions of the initial transition of a parallel region when entering the initial state configuration of a machine', () => {
+  it('should execute actions of the initial transition of a parallel region when entering the initial state nodes of a machine', () => {
     const spy = jest.fn();
 
     const machine = createMachine({
@@ -919,7 +919,7 @@ describe('parallel states', () => {
       });
     });
 
-    it('should not overlap resolved state configuration in state resolution', () => {
+    it('should not overlap resolved state nodes in state resolution', () => {
       const machine = createMachine({
         id: 'pipeline',
         type: 'parallel',

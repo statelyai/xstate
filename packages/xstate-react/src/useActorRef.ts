@@ -3,21 +3,17 @@ import {
   AnyActorLogic,
   AnyActor,
   AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
-  InternalMachineImplementations,
   createActor,
   ActorRefFrom,
   ActorOptions,
   Observer,
-  StateFrom,
   toObserver,
-  SnapshotFrom,
-  TODO
+  SnapshotFrom
 } from 'xstate';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { stopRootWithRehydration } from './stopRootWithRehydration';
 
-export function useIdleActor(
+export function useIdleActorRef(
   logic: AnyActorLogic,
   options: Partial<ActorOptions<AnyActorLogic>>
 ): AnyActor {
@@ -29,7 +25,7 @@ export function useIdleActor(
   if (logic.config !== currentConfig) {
     const newActorRef = createActor(logic, {
       ...options,
-      state: (actorRef.getPersistedState as any)({
+      snapshot: (actorRef.getPersistedSnapshot as any)({
         __unsafeAllowInlineActors: true
       })
     });
@@ -54,7 +50,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     | Observer<SnapshotFrom<TLogic>>
     | ((value: SnapshotFrom<TLogic>) => void)
 ): ActorRefFrom<TLogic> {
-  const actorRef = useIdleActor(machine, options);
+  const actorRef = useIdleActorRef(machine, options);
 
   useEffect(() => {
     if (!observerOrListener) {

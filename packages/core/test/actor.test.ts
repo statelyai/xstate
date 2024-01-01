@@ -27,12 +27,10 @@ import {
   createActor,
   createMachine,
   waitFor,
-  stop
+  stopChild
 } from '../src/index.ts';
-
-function sleep(ms: number) {
-  return new Promise((res) => setTimeout(res, ms));
-}
+import { setup } from '../src/setup.ts';
+import { sleep } from '@xstate-repo/jest-utils';
 
 describe('spawning machines', () => {
   const context = {
@@ -80,7 +78,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ActorRef<PingPongEvent, Snapshot<unknown>>;
+    server?: ActorRef<Snapshot<unknown>, PingPongEvent>;
   }
 
   const clientMachine = createMachine({
@@ -166,9 +164,7 @@ describe('spawning machines', () => {
         SET_COMPLETE: {
           actions: sendTo(
             ({ context, event }) => {
-              return context.todoRefs[
-                (event as Extract<TodoEvent, { type: 'SET_COMPLETE' }>).id
-              ];
+              return context.todoRefs[event.id];
             },
             { type: 'SET_COMPLETE' }
           )
@@ -289,49 +285,37 @@ describe('spawning promises', () => {
   });
 
   it('should be able to spawn a referenced promise', (done) => {
-    const promiseMachine = createMachine(
-      {
-        types: {} as {
-          context: { promiseRef?: PromiseActorRef<string> };
-          actors: {
-            src: 'somePromise';
-            logic: PromiseActorLogic<string>;
-          };
-        },
-        id: 'promise',
-        initial: 'idle',
-        context: {
-          promiseRef: undefined
-        },
-        states: {
-          idle: {
-            entry: assign({
-              promiseRef: ({ spawn }) =>
-                spawn('somePromise', { id: 'my-promise' })
-            }),
-            on: {
-              'xstate.done.actor.my-promise': {
-                target: 'success',
-                guard: ({ event }) => event.output === 'response'
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const promiseMachine = setup({
+      actors: {
+        somePromise: fromPromise(() => Promise.resolve('response'))
+      }
+    }).createMachine({
+      types: {} as {
+        context: { promiseRef?: PromiseActorRef<string> };
       },
-      {
-        actors: {
-          somePromise: fromPromise(
-            () =>
-              new Promise((res) => {
-                res('response');
-              })
-          )
+      id: 'promise',
+      initial: 'idle',
+      context: {
+        promiseRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            promiseRef: ({ spawn }) =>
+              spawn('somePromise', { id: 'my-promise' })
+          }),
+          on: {
+            'xstate.done.actor.my-promise': {
+              target: 'success',
+              guard: ({ event }) => event.output === 'response'
+            }
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const promiseService = createActor(promiseMachine);
     promiseService.subscribe({
@@ -397,6 +381,44 @@ describe('spawning callbacks', () => {
 
     callbackService.start();
     callbackService.send({ type: 'START_CB' });
+  });
+
+  it('should not deliver events sent to the parent after the callback actor gets stopped', () => {
+    const spy = jest.fn();
+
+    let sendToParent: () => void;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: fromCallback(({ sendBack }) => {
+              sendToParent = () =>
+                sendBack({
+                  type: 'FROM_CALLBACK'
+                });
+            })
+          },
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      },
+      on: {
+        FROM_CALLBACK: {
+          actions: spy
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    sendToParent!();
+
+    expect(spy).not.toHaveBeenCalled();
   });
 });
 
@@ -1104,7 +1126,7 @@ describe('actors', () => {
               'xstate.error.actor.test': {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data === errorMessage;
+                  return event.error === errorMessage;
                 }
               }
             }
@@ -1133,12 +1155,12 @@ describe('actors', () => {
 
           return state;
         },
-        getInitialState: () => ({
+        getInitialSnapshot: () => ({
           status: 'active',
           output: undefined,
           error: undefined
         }),
-        getPersistedState: (s) => s
+        getPersistedSnapshot: (s) => s
       };
 
       const pingMachine = createMachine({
@@ -1283,7 +1305,7 @@ describe('actors', () => {
 
   it('should not crash on child promise-like sync completion during self-initialization', () => {
     const promiseLogic = fromPromise(
-      () => ({ then: (fn: any) => fn(null) } as any)
+      () => ({ then: (fn: any) => fn(null) }) as any
     );
     const parentMachine = createMachine({
       types: {} as {
@@ -1375,10 +1397,10 @@ describe('actors', () => {
     });
 
     const actor = createActor(machine).start();
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
 
     createActor(machine, {
-      state: persistedState
+      snapshot: persistedState
     }).start();
 
     // Will be 2 if the observable is resubscribed
@@ -1398,10 +1420,10 @@ describe('actors', () => {
     });
 
     const actor = createActor(machine).start();
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
 
     createActor(machine, {
-      state: persistedState
+      snapshot: persistedState
     }).start();
 
     // Will be 2 if the event observable is resubscribed
@@ -1439,7 +1461,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(({ context }) => {
+                stopChild(({ context }) => {
                   return context.actorRef;
                 }),
                 assign({
@@ -1506,7 +1528,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(({ context }) => context.actorRef),
+                stopChild(({ context }) => context.actorRef),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1571,7 +1593,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop('my_name'),
+                stopChild('my_name'),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1636,7 +1658,7 @@ describe('actors', () => {
           on: {
             update: {
               actions: [
-                stop(() => 'my_name'),
+                stopChild(() => 'my_name'),
                 assign({
                   actorRef: ({ spawn }) => {
                     const localId = ++invokeCounter;
@@ -1668,5 +1690,41 @@ describe('actors', () => {
     });
 
     expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be possible to pass `self` as input to a child machine from within the context factory', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      types: {} as {
+        context: {
+          parent: AnyActorRef;
+        };
+        input: {
+          parent: AnyActorRef;
+        };
+      },
+      context: ({ input }) => ({
+        parent: input.parent
+      }),
+      entry: sendTo(({ context }) => context.parent, { type: 'GREET' })
+    });
+
+    const machine = createMachine({
+      context: ({ spawn, self }) => {
+        return {
+          childRef: spawn(child, { input: { parent: self } })
+        };
+      },
+      on: {
+        GREET: {
+          actions: spy
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

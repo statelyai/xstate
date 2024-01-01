@@ -29,7 +29,7 @@ export function Todos() {
     todosActorRef.subscribe(() => {
       localStorage.setItem(
         'todos',
-        JSON.stringify(todosActorRef.getPersistedState?.())
+        JSON.stringify(todosActorRef.getPersistedSnapshot?.())
       );
     });
   }, [todosActorRef]);

@@ -594,6 +594,212 @@ describe('custom guards', () => {
       secret: 77
     });
   });
+
+  it('should call a referenced `not` guard that embeds an inline function guard with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        context: {
+          counter: 0
+        },
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: not((_, params) => {
+            spy(params);
+            return true;
+          })
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call a string guard referenced by referenced `not` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: not('other')
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call an object guard referenced by referenced `not` with its own params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: not({
+            type: 'other',
+            params: 42
+          })
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(42);
+  });
+
+  it('should call an inline function guard embedded in referenced `and` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: () => true,
+          myGuard: and([
+            'other',
+            (_, params) => {
+              spy(params);
+              return true;
+            }
+          ])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call a string guard referenced by referenced `and` with undefined params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: and(['other', (_, params) => true])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call an object guard referenced by referenced `and` with its own params', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          FOO: {
+            guard: {
+              type: 'myGuard',
+              params: 'foo'
+            }
+          }
+        }
+      },
+      {
+        guards: {
+          other: (_, params) => {
+            spy(params);
+            return true;
+          },
+          myGuard: and([
+            {
+              type: 'other',
+              params: 42
+            },
+            (_, params) => true
+          ])
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+
+    actorRef.send({ type: 'FOO' });
+
+    expect(spy).toHaveBeenCalledWith(42);
+  });
 });
 
 describe('referencing guards', () => {
@@ -922,6 +1128,46 @@ describe('not() guard', () => {
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
   });
+
+  it('should evaluate dynamic params of the referenced guard', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: not({
+              type: 'myGuard',
+              // TODO: fix contextual typing here
+              params: ({ event }: any) => ({ secret: event.secret })
+            }),
+            actions: () => {}
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: (_, params) => {
+            spy(params);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EV', secret: 42 });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          {
+            "secret": 42,
+          },
+        ],
+      ]
+    `);
+  });
 });
 
 describe('and() guard', () => {
@@ -1048,6 +1294,49 @@ describe('and() guard', () => {
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+  });
+
+  it('should evaluate dynamic params of the referenced guard', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: and([
+              {
+                type: 'myGuard',
+                // TODO: fix contextual typing here
+                params: ({ event }: any) => ({ secret: event.secret })
+              },
+              () => true
+            ]),
+            actions: () => {}
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: (_, params) => {
+            spy(params);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EV', secret: 42 });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          {
+            "secret": 42,
+          },
+        ],
+      ]
+    `);
   });
 });
 
@@ -1176,5 +1465,48 @@ describe('or() guard', () => {
     actorRef.send({ type: 'EVENT' });
 
     expect(actorRef.getSnapshot().matches('b')).toBeTruthy();
+  });
+
+  it('should evaluate dynamic params of the referenced guard', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            guard: or([
+              {
+                type: 'myGuard',
+                // TODO: fix contextual typing here
+                params: ({ event }: any) => ({ secret: event.secret })
+              },
+              () => true
+            ]),
+            actions: () => {}
+          }
+        }
+      },
+      {
+        guards: {
+          myGuard: (_, params) => {
+            spy(params);
+            return true;
+          }
+        }
+      }
+    );
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'EV', secret: 42 });
+
+    expect(spy).toMatchMockCallsInlineSnapshot(`
+      [
+        [
+          {
+            "secret": 42,
+          },
+        ],
+      ]
+    `);
   });
 });

@@ -740,7 +740,10 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
           <button
             type="button"
             onClick={() => {
-              Object.values(actorRef.getSnapshot().children)[0].send({
+              const child: any = Object.values(
+                actorRef.getSnapshot().children
+              )[0];
+              child.send({
                 type: 'EV'
               });
             }}
@@ -810,5 +813,22 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     expect(spy1).toHaveBeenCalledTimes(1);
     expect(spy2).not.toHaveBeenCalled();
+  });
+
+  it('should execute an initial entry action once', () => {
+    const spy = jest.fn();
+
+    const machine = createMachine({
+      entry: spy
+    });
+
+    const Test = () => {
+      useActorRef(machine);
+      return null;
+    };
+
+    render(<Test />);
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

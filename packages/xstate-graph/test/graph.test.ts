@@ -32,14 +32,14 @@ function getPathSnapshot(path: StatePath<Snapshot<unknown>, any>): {
     state: isMachineSnapshot(path.state)
       ? path.state.value
       : 'context' in path.state
-      ? path.state.context
-      : path.state,
+        ? path.state.context
+        : path.state,
     steps: path.steps.map((step) => ({
       state: isMachineSnapshot(step.state)
         ? step.state.value
         : 'context' in step.state
-        ? step.state.context
-        : step.state,
+          ? step.state.context
+          : step.state,
       eventType: step.event.type
     }))
   };
@@ -215,7 +215,7 @@ describe('@xstate/graph', () => {
       expect(
         shortestPaths.find((path) =>
           path.state.matches(
-            lightMachine.getInitialState(createMockActorScope()).value
+            lightMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
@@ -374,28 +374,28 @@ describe('@xstate/graph', () => {
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(createMockActorScope()).value
+            lightMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )
       ).toBeDefined();
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(createMockActorScope()).value
+            lightMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(createMockActorScope()).value
+            equivMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )!
       ).toBeDefined();
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(createMockActorScope()).value
+            equivMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);

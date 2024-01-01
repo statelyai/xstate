@@ -1,5 +1,5 @@
 import { createErrorActorEvent } from './eventUtils.ts';
-import { ProcessingStatus, createActor } from './interpreter.ts';
+import { ProcessingStatus, createActor } from './createActor.ts';
 import {
   ActorRefFrom,
   AnyActorScope,
@@ -37,13 +37,21 @@ type SpawnOptions<
     >
   : never;
 
+// it's likely-ish that `(TActor & { src: TSrc })['logic']` would be faster
+// but it's only possible to do it since https://github.com/microsoft/TypeScript/pull/53098 (TS 5.1)
+// and we strive to support TS 5.0 whenever possible
+type GetConcreteLogic<
+  TActor extends ProvidedActor,
+  TSrc extends TActor['src']
+> = Extract<TActor, { src: TSrc }>['logic'];
+
 export type Spawner<TActor extends ProvidedActor> = IsLiteralString<
   TActor['src']
 > extends true
   ? <TSrc extends TActor['src']>(
       logic: TSrc,
       ...[options = {} as any]: SpawnOptions<TActor, TSrc>
-    ) => ActorRefFrom<(TActor & { src: TSrc })['logic']>
+    ) => ActorRefFrom<GetConcreteLogic<TActor, TSrc>>
   : // TODO: do not accept machines without all implementations
     <TLogic extends AnyActorLogic | string>(
       src: TLogic,
@@ -75,6 +83,7 @@ export function createSpawner(
       const actorRef = createActor(logic, {
         id: options.id,
         parent: actorScope.self,
+        syncSnapshot: options.syncSnapshot,
         input:
           typeof input === 'function'
             ? input({
@@ -86,45 +95,19 @@ export function createSpawner(
         src,
         systemId
       }) as any;
+
       spawnedChildren[actorRef.id] = actorRef;
 
-      if (options.syncSnapshot) {
-        actorRef.subscribe({
-          next: (snapshot: Snapshot<unknown>) => {
-            if (snapshot.status === 'active') {
-              actorScope.self.send({
-                type: `xstate.snapshot.${actorRef.id}`,
-                snapshot
-              });
-            }
-          },
-          error: () => {}
-        });
-      }
       return actorRef;
     } else {
       const actorRef = createActor(src, {
         id: options.id,
         parent: actorScope.self,
+        syncSnapshot: options.syncSnapshot,
         input: options.input,
         src,
         systemId
       });
-
-      if (options.syncSnapshot) {
-        actorRef.subscribe({
-          next: (snapshot: Snapshot<unknown>) => {
-            if (snapshot.status === 'active') {
-              actorScope.self.send({
-                type: `xstate.snapshot.${actorRef.id}`,
-                snapshot,
-                id: actorRef.id
-              });
-            }
-          },
-          error: () => {}
-        });
-      }
 
       return actorRef;
     }
@@ -136,12 +119,7 @@ export function createSpawner(
       if (actorRef._processingStatus === ProcessingStatus.Stopped) {
         return;
       }
-      try {
-        actorRef.start?.();
-      } catch (err) {
-        actorScope.self.send(createErrorActorEvent(actorRef.id, err));
-        return;
-      }
+      actorRef.start();
     });
     return actorRef;
   };

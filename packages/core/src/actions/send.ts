@@ -1,12 +1,12 @@
 import isDevelopment from '#is-development';
+import { XSTATE_ERROR } from '../constants.ts';
 import { createErrorActorEvent } from '../eventUtils.ts';
 import {
   ActionArgs,
   ActorRef,
-  AnyActorScope,
   AnyActorRef,
+  AnyActorScope,
   AnyEventObject,
-  AnyActor,
   AnyMachineSnapshot,
   Cast,
   DelayExpr,
@@ -14,19 +14,17 @@ import {
   EventObject,
   InferEvent,
   MachineContext,
+  NoInfer,
+  ParameterizedObject,
   SendExpr,
   SendToActionOptions,
-  SendToActionParams,
   SpecialTargets,
-  UnifiedArg,
-  ParameterizedObject,
-  NoInfer
+  UnifiedArg
 } from '../types.ts';
-import { XSTATE_ERROR } from '../constants.ts';
 
 function resolveSendTo(
   actorScope: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   args: ActionArgs<any, any, any>,
   actionParams: ParameterizedObject['params'] | undefined,
   {
@@ -65,7 +63,7 @@ function resolveSendTo(
   },
   extra: { deferredActorIds: string[] | undefined }
 ) {
-  const delaysMap = state.machine.implementations.delays;
+  const delaysMap = snapshot.machine.implementations.delays;
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
@@ -100,15 +98,15 @@ function resolveSendTo(
     } else if (resolvedTarget.startsWith('#_')) {
       // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
       // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
-      targetActorRef = state.children[resolvedTarget.slice(2)];
+      targetActorRef = snapshot.children[resolvedTarget.slice(2)];
     } else {
       targetActorRef = extra.deferredActorIds?.includes(resolvedTarget)
         ? resolvedTarget
-        : state.children[resolvedTarget];
+        : snapshot.children[resolvedTarget];
     }
     if (!targetActorRef) {
       throw new Error(
-        `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
+        `Unable to send event to actor '${resolvedTarget}' from machine '${snapshot.machine.id}'.`
       );
     }
   } else {
@@ -116,14 +114,14 @@ function resolveSendTo(
   }
 
   return [
-    state,
+    snapshot,
     { to: targetActorRef, event: resolvedEvent, id, delay: resolvedDelay }
   ];
 }
 
 function retryResolveSendTo(
   _: AnyActorScope,
-  state: AnyMachineSnapshot,
+  snapshot: AnyMachineSnapshot,
   params: {
     to: AnyActorRef;
     event: EventObject;
@@ -132,7 +130,7 @@ function retryResolveSendTo(
   }
 ) {
   if (typeof params.to === 'string') {
-    params.to = state.children[params.to];
+    params.to = snapshot.children[params.to];
   }
 }
 
@@ -145,20 +143,25 @@ function executeSendTo(
     delay: number | undefined;
   }
 ) {
-  if (typeof params.delay === 'number') {
-    (actorScope.self as AnyActor).delaySend(
-      params as typeof params & { delay: number }
-    );
-    return;
-  }
-
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorScope.defer(() => {
-    const { to, event } = params;
-    actorScope?.system._relay(
+    const { to, event, delay, id } = params;
+    if (typeof delay === 'number') {
+      actorScope.system.scheduler.schedule(
+        actorScope.self,
+        to,
+        event,
+        delay,
+        id
+      );
+      return;
+    }
+    actorScope.system._relay(
       actorScope.self,
-      to,
+      // at this point, in a deferred task, it should already be mutated by retryResolveSendTo
+      // if it initially started as a string
+      to as Exclude<typeof to, string>,
       event.type === XSTATE_ERROR
         ? createErrorActorEvent(actorScope.self.id, (event as any).data)
         : event
@@ -227,7 +230,7 @@ export function sendTo<
     }
   }
 
-  sendTo.type = 'xstate.sendTo';
+  sendTo.type = 'xsnapshot.sendTo';
   sendTo.to = to;
   sendTo.event = eventOrExpr;
   sendTo.id = options?.id;
@@ -333,42 +336,4 @@ export function forwardTo<
     TEvent,
     TDelay
   >(target, ({ event }: any) => event, options);
-}
-
-/**
- * Escalates an error by sending it as an event to this machine's parent.
- *
- * @param errorData The error data to send, or the expression function that
- * takes in the `context`, `event`, and `meta`, and returns the error data to send.
- * @param options Options to pass into the send action creator.
- */
-export function escalate<
-  TContext extends MachineContext,
-  TExpressionEvent extends EventObject,
-  TParams extends ParameterizedObject['params'] | undefined,
-  TErrorData = any,
-  TEvent extends EventObject = AnyEventObject
->(
-  errorData:
-    | TErrorData
-    | ((args: UnifiedArg<TContext, TExpressionEvent, TEvent>) => TErrorData),
-  options?: SendToActionParams<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    EventObject,
-    TEvent,
-    string
-  >
-) {
-  return sendParent<TContext, TExpressionEvent, TParams, EventObject, TEvent>(
-    (arg) => {
-      return {
-        type: XSTATE_ERROR,
-        data:
-          typeof errorData === 'function' ? (errorData as any)(arg) : errorData
-      };
-    },
-    options
-  );
 }

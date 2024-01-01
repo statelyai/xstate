@@ -83,7 +83,7 @@ describe('useMachine hook', () => {
   ).start();
   actorRef.send({ type: 'FETCH' });
 
-  const persistedFetchState = actorRef.getPersistedState();
+  const persistedFetchState = actorRef.getPersistedSnapshot();
 
   const Fetcher = (props: {
     onFetch: () => Promise<any>;
@@ -95,12 +95,16 @@ describe('useMachine hook', () => {
       },
       props
     );
-    const [current, send] = useMachine(fetchMachine, {
-      actors: {
-        fetchData: fromPromise(mergedProps.onFetch)
-      },
-      state: mergedProps.persistedState
-    });
+    const [current, send] = useMachine(
+      fetchMachine.provide({
+        actors: {
+          fetchData: fromPromise(mergedProps.onFetch)
+        }
+      }),
+      {
+        snapshot: mergedProps.persistedState
+      }
+    );
 
     return (
       <Switch fallback={null}>
@@ -313,11 +317,13 @@ describe('useMachine hook', () => {
         done();
       };
 
-      const [, send] = useMachine(toggleMachine, {
-        actions: {
-          doAction
-        }
-      });
+      const [, send] = useMachine(
+        toggleMachine.provide({
+          actions: {
+            doAction
+          }
+        })
+      );
 
       return (
         <div>
@@ -483,6 +489,52 @@ describe('useMachine hook', () => {
 
     // Effect should only trigger once for the COUNT events:
     expect(countEl.textContent).toEqual('1');
+  });
+
+  it('useMachine array with odd number of items should be replaceable', () => {
+    const machine = createMachine({
+      types: {},
+      initial: 'active',
+      context: {
+        numbersList: [1, 2, 3, 4, 5]
+      },
+      states: {
+        active: {
+          on: {
+            REPLACE_ALL: {
+              actions: [
+                assign({
+                  numbersList: [4, 3, 2, 1, 0]
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+
+      onMount(() => {
+        expect(state.context.numbersList).toEqual([1, 2, 3, 4, 5]);
+        send({ type: 'REPLACE_ALL' });
+        expect(state.context.numbersList).toEqual([4, 3, 2, 1, 0]);
+      });
+
+      return (
+        <div data-testid="numbers-list">
+          {state.context.numbersList.join('')}
+        </div>
+      );
+    };
+
+    render(() => <App />);
+
+    const numbersListEl = screen.getByTestId('numbers-list');
+
+    // Effect should only trigger once for the COUNT events:
+    expect(numbersListEl.textContent).toEqual('43210');
   });
 
   it('useMachine state should only trigger effect of directly tracked value', () => {
@@ -652,65 +704,6 @@ describe('useMachine hook', () => {
     render(() => <App />);
 
     expect(count).toEqual(1);
-  });
-
-  it('nextEvents should be defined and reactive', () => {
-    const machine = createMachine({
-      initial: 'green',
-      states: {
-        green: {
-          on: {
-            TRANSITION: 'yellow'
-          }
-        },
-        yellow: {
-          on: {
-            TRANSITION: 'red',
-            BACK_TRANSITION: 'green'
-          }
-        },
-        red: {
-          on: {
-            TRANSITION: 'green'
-          }
-        }
-      }
-    });
-
-    const App = () => {
-      const [state, send] = useMachine(machine);
-
-      return (
-        <div>
-          <button
-            data-testid="transition-button"
-            onclick={() => send({ type: 'TRANSITION' })}
-          />
-          <ul>
-            <For each={state.nextEvents} fallback={<li>Empty / undefined</li>}>
-              {(event, i) => <li data-testid={`event-${i()}`}>{event}</li>}
-            </For>
-          </ul>
-        </div>
-      );
-    };
-
-    render(() => <App />);
-    const transitionBtn = screen.getByTestId('transition-button');
-
-    // Green
-    expect(screen.getByTestId('event-0')).toBeTruthy();
-    expect(screen.queryByTestId('event-1')).not.toBeTruthy();
-    transitionBtn.click();
-
-    // Yellow
-    expect(screen.getByTestId('event-0')).toBeTruthy();
-    expect(screen.getByTestId('event-1')).toBeTruthy();
-    transitionBtn.click();
-
-    // Red
-    expect(screen.getByTestId('event-0')).toBeTruthy();
-    expect(screen.queryByTestId('event-1')).not.toBeTruthy();
   });
 
   it('should be reactive to toJSON method calls', () => {
@@ -1155,11 +1148,13 @@ describe('useMachine hook', () => {
     });
 
     const App = (props: { isAwesome: boolean }) => {
-      const [state, send] = useMachine(machine, {
-        guards: {
-          isAwesome: () => props.isAwesome
-        }
-      });
+      const [state, send] = useMachine(
+        machine.provide({
+          guards: {
+            isAwesome: () => props.isAwesome
+          }
+        })
+      );
       return (
         <div>
           <div data-testid="result">{state.value.toString()}</div>
@@ -1283,11 +1278,13 @@ describe('useMachine hook', () => {
     });
     const [isAwesome, setIsAwesome] = createSignal(false);
     const App = () => {
-      const [state, send] = useMachine(machine, {
-        guards: {
-          isAwesome: () => isAwesome()
-        }
-      });
+      const [state, send] = useMachine(
+        machine.provide({
+          guards: {
+            isAwesome: () => isAwesome()
+          }
+        })
+      );
       return (
         <div>
           <div data-testid="result">{state.value.toString()}</div>
@@ -1641,12 +1638,12 @@ describe('useMachine (strict mode)', () => {
       });
 
       const actorRef = createActor(testMachine).start();
-      const persistedState = JSON.stringify(actorRef.getPersistedState());
+      const persistedState = JSON.stringify(actorRef.getPersistedSnapshot());
       actorRef.stop();
 
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
-          state: JSON.parse(persistedState)
+          snapshot: JSON.parse(persistedState)
         });
 
         return (
