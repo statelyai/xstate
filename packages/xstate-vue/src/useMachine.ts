@@ -3,9 +3,7 @@ import {
   ActorOptions,
   ActorRefFrom,
   AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
   EventFrom,
-  MissingImplementationsError,
   SnapshotFrom
 } from 'xstate';
 import { useActor } from './useActor.ts';
@@ -14,11 +12,7 @@ import { useActor } from './useActor.ts';
  * @alias useActor
  */
 export function useMachine<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
+  machine: TMachine,
   options: ActorOptions<TMachine> = {}
 ): {
   snapshot: Ref<SnapshotFrom<TMachine>>;

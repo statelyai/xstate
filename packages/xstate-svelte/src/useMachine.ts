@@ -1,21 +1,10 @@
-import {
-  AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
-  ActorOptions
-} from 'xstate';
+import { AnyStateMachine, ActorOptions } from 'xstate';
 import { useActor } from './useActor';
-
-type RestParams<TMachine extends AnyStateMachine> =
-  AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends false
-    ? [options: ActorOptions<TMachine>]
-    : [options?: ActorOptions<TMachine>];
 
 /** @alias useActor */
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  ...[options = {}]: RestParams<TMachine>
+  options?: ActorOptions<TMachine>
 ) {
   return useActor(machine, options);
 }

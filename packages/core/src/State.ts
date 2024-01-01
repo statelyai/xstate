@@ -52,7 +52,7 @@ interface MachineSnapshotBase<
   TStateValue extends StateValue,
   TTag extends string,
   TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  _TUnusedButLeftForCompatReasons = never
 > {
   /**
    * The state machine that produced this state snapshot.
@@ -68,8 +68,7 @@ interface MachineSnapshotBase<
     TStateValue,
     TTag,
     unknown,
-    TOutput,
-    TResolvedTypesMeta
+    TOutput
   >;
   /**
    * The tags of the active state nodes that represent the current state value.
@@ -122,8 +121,7 @@ interface MachineSnapshotBase<
       TChildren,
       TStateValue,
       TTag,
-      TOutput,
-      TResolvedTypesMeta
+      TOutput
     >,
     partialStateValue: ToTestStateValue<TStateValue>
   ) => boolean;
@@ -139,8 +137,7 @@ interface MachineSnapshotBase<
       TChildren,
       TStateValue,
       TTag,
-      TOutput,
-      TResolvedTypesMeta
+      TOutput
     >,
     tag: TTag
   ) => boolean;
@@ -160,8 +157,7 @@ interface MachineSnapshotBase<
       TChildren,
       TStateValue,
       TTag,
-      TOutput,
-      TResolvedTypesMeta
+      TOutput
     >,
     event: TEvent
   ) => boolean;
@@ -173,8 +169,7 @@ interface MachineSnapshotBase<
       TChildren,
       TStateValue,
       TTag,
-      TOutput,
-      TResolvedTypesMeta
+      TOutput
     >
   ) => Record<string, any>;
 
@@ -185,8 +180,7 @@ interface MachineSnapshotBase<
       TChildren,
       TStateValue,
       TTag,
-      TOutput,
-      TResolvedTypesMeta
+      TOutput
     >
   ) => unknown;
 }
@@ -197,16 +191,14 @@ interface ActiveMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  TOutput
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
     TChildren,
     TStateValue,
     TTag,
-    TOutput,
-    TResolvedTypesMeta
+    TOutput
   > {
   status: 'active';
   output: undefined;
@@ -219,16 +211,14 @@ interface DoneMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  TOutput
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
     TChildren,
     TStateValue,
     TTag,
-    TOutput,
-    TResolvedTypesMeta
+    TOutput
   > {
   status: 'done';
   output: TOutput;
@@ -241,16 +231,14 @@ interface ErrorMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  TOutput
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
     TChildren,
     TStateValue,
     TTag,
-    TOutput,
-    TResolvedTypesMeta
+    TOutput
   > {
   status: 'error';
   output: undefined;
@@ -263,16 +251,14 @@ interface StoppedMachineSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  TOutput
 > extends MachineSnapshotBase<
     TContext,
     TEvent,
     TChildren,
     TStateValue,
     TTag,
-    TOutput,
-    TResolvedTypesMeta
+    TOutput
   > {
   status: 'stopped';
   output: undefined;
@@ -286,7 +272,7 @@ export type MachineSnapshot<
   TStateValue extends StateValue,
   TTag extends string,
   TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  _TUnusedButLeftForCompatReasons = never
 > =
   | ActiveMachineSnapshot<
       TContext,
@@ -294,26 +280,16 @@ export type MachineSnapshot<
       TChildren,
       TStateValue,
       TTag,
-      TOutput,
-      TResolvedTypesMeta
+      TOutput
     >
-  | DoneMachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput,
-      TResolvedTypesMeta
-    >
+  | DoneMachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>
   | ErrorMachineSnapshot<
       TContext,
       TEvent,
       TChildren,
       TStateValue,
       TTag,
-      TOutput,
-      TResolvedTypesMeta
+      TOutput
     >
   | StoppedMachineSnapshot<
       TContext,
@@ -321,8 +297,7 @@ export type MachineSnapshot<
       TChildren,
       TStateValue,
       TTag,
-      TOutput,
-      TResolvedTypesMeta
+      TOutput
     >;
 
 const machineSnapshotMatches = function matches(
@@ -390,20 +365,11 @@ export function createMachineSnapshot<
   TEvent extends EventObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
-  TTag extends string,
-  TResolvedTypesMeta = TypegenDisabled
+  TTag extends string
 >(
   config: StateConfig<TContext, TEvent>,
   machine: AnyStateMachine
-): MachineSnapshot<
-  TContext,
-  TEvent,
-  TChildren,
-  TStateValue,
-  TTag,
-  undefined,
-  TResolvedTypesMeta
-> {
+): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, undefined> {
   return {
     status: config.status as never,
     output: config.output,
@@ -439,8 +405,7 @@ export function getPersistedSnapshot<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TStateValue extends StateValue,
   TTag extends string,
-  TOutput,
-  TResolvedTypesMeta = TypegenDisabled
+  TOutput
 >(
   snapshot: MachineSnapshot<
     TContext,
@@ -448,8 +413,7 @@ export function getPersistedSnapshot<
     TChildren,
     TStateValue,
     TTag,
-    TOutput,
-    TResolvedTypesMeta
+    TOutput
   >,
   options?: unknown
 ): Snapshot<unknown> {

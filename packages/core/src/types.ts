@@ -8,8 +8,6 @@ import type { Actor, ProcessingStatus } from './createActor.ts';
 import { Spawner } from './spawn.ts';
 import { AnyActorSystem, InspectionEvent, Clock } from './system.js';
 import {
-  AreAllImplementationsAssumedToBeProvided,
-  MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
   TypegenConstraint,
   TypegenDisabled
@@ -1970,6 +1968,7 @@ export type ActorLogicFrom<T> = ReturnTypeOrValue<T> extends infer R
       any,
       any,
       any,
+      any,
       any
     >
     ? R
@@ -1991,7 +1990,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TTag,
       infer _TInput,
       infer TOutput,
-      infer TResolvedTypesMeta
+      infer _TResolvedTypesMeta
     >
     ? ActorRef<
         MachineSnapshot<
@@ -2000,10 +1999,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TChildren,
           TStateValue,
           TTag,
-          TOutput,
-          AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-            ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-            : TResolvedTypesMeta
+          TOutput
         >,
         TEvent
       >
@@ -2038,7 +2034,7 @@ export type InterpreterFrom<
   infer TTag,
   infer TInput,
   infer TOutput,
-  infer TResolvedTypesMeta
+  infer _TResolvedTypesMeta
 >
   ? Actor<
       ActorLogic<
@@ -2048,8 +2044,7 @@ export type InterpreterFrom<
           TChildren,
           TStateValue,
           TTag,
-          TOutput,
-          TResolvedTypesMeta
+          TOutput
         >,
         TEvent,
         TInput,
@@ -2091,6 +2086,7 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   any, // action
   any, // guard
   any, // delay
+  any, // state value
   any, // tag
   any, // input
   any, // output
@@ -2254,9 +2250,9 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
           infer _TContext,
           infer TEvent,
           infer _TChildren,
+          infer _TStateValue,
           infer _TTag,
-          infer _TOutput,
-          infer _TResolvedTypesMeta
+          infer _TOutput
         >
       ? TEvent
       : R extends ActorRef<infer _, infer TEvent>
@@ -2283,16 +2279,16 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _TTag,
       infer _TInput,
       infer _TOutput,
-      infer _TTypesMeta
+      infer _TResolvedTypesMeta
     >
     ? TContext
     : R extends MachineSnapshot<
           infer TContext,
           infer _TEvent,
           infer _TChildren,
+          infer _TStateValue,
           infer _TTag,
-          infer _TOutput,
-          infer _TResolvedTypesMeta
+          infer _TOutput
         >
       ? TContext
       : R extends Actor<infer TActorLogic>
@@ -2307,7 +2303,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TTag,
             infer _TInput,
             infer _TOutput,
-            infer _TTypesMeta
+            infer _TResolvedTypesMeta
           >
           ? TContext
           : never
