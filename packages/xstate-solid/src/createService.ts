@@ -1,18 +1,18 @@
-import type { Actor, ActorOptions, AnyStateMachine } from 'xstate';
-import { createActor } from 'xstate';
 import { onCleanup } from 'solid-js';
 import { isServer } from 'solid-js/web';
+import type { Actor, ActorOptions, AnyStateMachine } from 'xstate';
+import { createActor } from 'xstate';
 
 export function createService<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: ActorOptions<TMachine>
 ): Actor<TMachine> {
-  const service = createActor(machine, options);
+  const actorRef = createActor(machine, options);
 
   if (!isServer) {
-    service.start();
-    onCleanup(() => service.stop());
+    actorRef.start();
+    onCleanup(() => actorRef.stop());
   }
 
-  return service as unknown as Actor<TMachine>;
+  return actorRef;
 }

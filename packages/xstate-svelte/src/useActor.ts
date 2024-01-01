@@ -1,11 +1,10 @@
 import { Readable, readable } from 'svelte/store';
 import {
+  Actor,
   ActorOptions,
   AnyActorLogic,
-  ActorRefFrom,
   EventFrom,
-  SnapshotFrom,
-  AnyActorRef
+  SnapshotFrom
 } from 'xstate';
 import { useActorRef } from './useActorRef';
 
@@ -15,9 +14,9 @@ export function useActor<TLogic extends AnyActorLogic>(
 ): {
   snapshot: Readable<SnapshotFrom<TLogic>>;
   send: (event: EventFrom<TLogic>) => void;
-  actorRef: ActorRefFrom<TLogic>;
+  actorRef: Actor<TLogic>;
 } {
-  const actorRef = useActorRef(logic, options) as AnyActorRef;
+  const actorRef = useActorRef(logic, options);
 
   let currentSnapshot = actorRef.getSnapshot();
 
@@ -30,5 +29,5 @@ export function useActor<TLogic extends AnyActorLogic>(
     }).unsubscribe;
   });
 
-  return { snapshot, send: actorRef.send, actorRef } as any;
+  return { snapshot, send: actorRef.send, actorRef };
 }
