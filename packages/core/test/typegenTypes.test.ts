@@ -1,31 +1,15 @@
+import { fromCallback, fromPromise } from '../src/actors/index.ts';
+import { PromiseActorLogic } from '../src/actors/promise.ts';
+import { createMachine } from '../src/createMachine.ts';
 import {
-  ActorLogic,
   assign,
   createActor,
   MachineContext,
   StateMachine
 } from '../src/index.ts';
-import { fromPromise } from '../src/actors/index.ts';
-import { fromCallback } from '../src/actors/index.ts';
-import { createMachine } from '../src/createMachine.ts';
 import { TypegenMeta } from '../src/typegenTypes.ts';
-import { PromiseActorLogic } from '../src/actors/promise.ts';
 
 describe('typegen types', () => {
-  it('should not require implementations when creating machine using `createMachine`', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'fooAction';
-        delays: 'barDelay';
-        guards: 'bazGuard';
-        actors: 'qwertyActor';
-      };
-    }
-    createMachine({
-      types: { typegen: {} as TypesMeta }
-    });
-  });
-
   it('should limit event type provided to an action', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
@@ -255,6 +239,12 @@ describe('typegen types', () => {
   it('should allow valid string `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -275,6 +265,12 @@ describe('typegen types', () => {
   it('should allow valid object `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | { a: 'b' } | { a: 'c' };
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -292,6 +288,12 @@ describe('typegen types', () => {
   it('should not allow invalid string `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        delays: never;
+        guards: never;
+      };
     }
 
     const machine = createMachine({
@@ -306,13 +308,21 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches('d');
+    createActor(machine).getSnapshot().matches(
+      // @ts-expect-error
+      'd'
+    );
   });
 
   it('should not allow invalid object `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | { a: 'b' } | { a: 'c' };
+      missingImplementations: {
+        actions: never;
+        actors: never;
+        delays: never;
+        guards: never;
+      };
     }
 
     const machine = createMachine({
@@ -324,13 +334,21 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().matches({ a: 'd' });
+    createActor(machine).getSnapshot().matches({
+      // @ts-expect-error
+      a: 'd'
+    });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
     interface TypesMeta extends TypegenMeta {
       tags: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -351,6 +369,12 @@ describe('typegen types', () => {
   it('should not allow an invalid tag with `hasTag`', () => {
     interface TypesMeta extends TypegenMeta {
       tags: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -365,187 +389,10 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
-    createActor(machine).getSnapshot().hasTag('d');
-  });
-
-  it('`withConfig` should require all missing implementations ', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: 'myDelay';
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-        myDelay: 'BAR';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    // @ts-expect-error
-    machine.provide({});
-    machine.provide({
+    createActor(machine).getSnapshot().hasTag(
       // @ts-expect-error
-      actions: {}
-    });
-    // @ts-expect-error
-    machine.provide({
-      actions: {
-        myAction: () => {}
-      }
-    });
-    machine.provide({
-      actions: {
-        myAction: () => {}
-      },
-      delays: {
-        myDelay: () => 42
-      }
-    });
-  });
-
-  it('should allow to create an actor out of a machine without any missing implementations', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: never;
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-    }
-
-    const machine = createMachine({
-      types: { typegen: {} as TypesMeta }
-    });
-
-    createActor(machine);
-  });
-
-  it('should not allow to create an actor out of a machine with missing implementations', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    // TODO: rethink this; should probably be done as a linter rule instead
-    // @x-ts-expect-error
-    createActor(machine);
-  });
-
-  it('should allow to create an actor out of a machine with implementations provided through `withConfig`', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-      };
-    }
-
-    const machine = createMachine({
-      types: {
-        typegen: {} as TypesMeta,
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
-
-    createActor(
-      machine.provide({
-        actions: {
-          myAction: () => {}
-        }
-      })
+      'd'
     );
-  });
-
-  it('should not require all implementations when creating machine', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'fooAction';
-        delays: 'barDelay';
-        guards: 'bazGuard';
-        actors: 'qwertyActor';
-      };
-      eventsCausingActions: { fooAction: 'FOO' };
-      eventsCausingDelays: { barDelay: 'BAR' };
-      eventsCausingGuards: { bazGuard: 'BAR' };
-      eventsCausingActors: { qwertyActor: 'BAR' };
-    }
-
-    createMachine(
-      {
-        types: {
-          typegen: {} as TypesMeta,
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        actions: {
-          fooAction: () => {}
-        }
-      }
-    );
-  });
-
-  it('should allow to override already provided implementation using `withConfig`', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'fooAction';
-        delays: never;
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: { fooAction: 'FOO' };
-      eventsCausingDelays: { barDelay: 'BAR' };
-    }
-
-    const machine = createMachine(
-      {
-        types: {
-          typegen: {} as TypesMeta,
-          events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-        }
-      },
-      {
-        delays: {
-          barDelay: () => 42
-        }
-      }
-    );
-
-    machine.provide({
-      actions: {
-        fooAction: () => {}
-      },
-      delays: {
-        barDelay: () => 100
-      }
-    });
   });
 
   it('should include init event in the provided parameter type if necessary', () => {
@@ -997,6 +844,12 @@ describe('typegen types', () => {
   it("shouldn't end up with `any` context after calling `state.matches`", () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -1021,7 +874,13 @@ describe('typegen types', () => {
 
   it("shouldn't end up with `never` within a branch after two `state.matches` calls", () => {
     interface TypesMeta extends TypegenMeta {
-      matchesStates: 'a' | 'a.b';
+      matchesStates: 'a' | 'a.b' | { a?: 'b' };
+      missingImplementations: {
+        actions: never;
+        delays: never;
+        guards: never;
+        actors: never;
+      };
     }
 
     const machine = createMachine({
@@ -1038,7 +897,7 @@ describe('typegen types', () => {
 
     const state = createActor(machine).getSnapshot();
 
-    if (state.matches('a') && state.matches('a.b')) {
+    if (state.matches('a') && state.matches({ a: 'b' })) {
       ((_accept: string) => {})(state.context.foo);
     }
   });

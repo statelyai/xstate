@@ -1,5 +1,11 @@
 # Resources
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 Below is an incomplete collection of many resources for learning and applying XState in real-world applications. Check out the [Awesome XState](https://github.com/darrylhebbes/awesome_xstate) collection on GitHub for even more resources!
 
 ![Stately member](/docs/stately.png) - Resource from a Stately member

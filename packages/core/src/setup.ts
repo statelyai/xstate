@@ -4,10 +4,10 @@ import { GuardPredicate } from './guards';
 import { ResolveTypegenMeta, TypegenDisabled } from './typegenTypes';
 import {
   ActionFunction,
-  AnyActorLogic,
   AnyActorRef,
   AnyEventObject,
   Cast,
+  ConditionalRequired,
   DelayConfig,
   Invert,
   IsNever,
@@ -16,7 +16,9 @@ import {
   NonReducibleUnknown,
   ParameterizedObject,
   SetupTypes,
+  StateSchema,
   ToChildren,
+  UnknownActorLogic,
   Values
 } from './types';
 
@@ -32,22 +34,30 @@ type ToParameterizedObject<
   };
 }>;
 
-type DefaultToAnyActors<TActors extends Record<string, AnyActorLogic>> =
+type DefaultToUnknownActorLogic<
+  TActors extends Record<string, UnknownActorLogic>
+> =
   // if `keyof TActors` is `never` then it means that both `children` and `actors` were not supplied
   // `never` comes from the default type of the `TChildrenMap` type parameter
   // in such a case we "replace" `TActors` with a more traditional~ constraint
   // one that doesn't depend on `Values<TChildrenMap>`
-  IsNever<keyof TActors> extends true ? Record<string, AnyActorLogic> : TActors;
+  IsNever<keyof TActors> extends true
+    ? Record<string, UnknownActorLogic>
+    : TActors;
 
 // at the moment we allow extra actors - ones that are not specified by `children`
 // this could be reconsidered in the future
 type ToProvidedActor<
   TChildrenMap extends Record<string, string>,
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
+  TResolvedActors extends Record<
+    string,
+    UnknownActorLogic
+  > = DefaultToUnknownActorLogic<TActors>
 > = Values<{
-  [K in keyof DefaultToAnyActors<TActors> & string]: {
+  [K in keyof TResolvedActors & string]: {
     src: K;
-    logic: TActors[K];
+    logic: TResolvedActors[K];
     id: IsNever<TChildrenMap> extends true
       ? string | undefined
       : K extends keyof Invert<TChildrenMap>
@@ -56,10 +66,47 @@ type ToProvidedActor<
   };
 }>;
 
+type _GroupStateKeys<
+  T extends StateSchema,
+  S extends keyof T['states']
+> = S extends any
+  ? T['states'][S] extends { type: 'history' }
+    ? [never, never]
+    : T extends { type: 'parallel' }
+      ? [S, never]
+      : 'states' extends keyof T['states'][S]
+        ? [S, never]
+        : [never, S]
+  : never;
+
+type GroupStateKeys<T extends StateSchema, S extends keyof T['states']> = {
+  nonLeaf: _GroupStateKeys<T, S & string>[0];
+  leaf: _GroupStateKeys<T, S & string>[1];
+};
+
+type ToStateValue<T extends StateSchema> = T extends {
+  states: Record<infer S, any>;
+}
+  ? IsNever<S> extends true
+    ? {}
+    :
+        | GroupStateKeys<T, S>['leaf']
+        | (IsNever<GroupStateKeys<T, S>['nonLeaf']> extends false
+            ? ConditionalRequired<
+                {
+                  [K in GroupStateKeys<T, S>['nonLeaf']]?: ToStateValue<
+                    T['states'][K]
+                  >;
+                },
+                T extends { type: 'parallel' } ? true : false
+              >
+            : never)
+  : {};
+
 export function setup<
   TContext extends MachineContext,
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
-  TActors extends Record<Values<TChildrenMap>, AnyActorLogic>,
+  TActors extends Record<Values<TChildrenMap>, UnknownActorLogic>,
   TActions extends Record<string, ParameterizedObject['params'] | undefined>,
   TGuards extends Record<string, ParameterizedObject['params'] | undefined>,
   TDelay extends string,
@@ -74,7 +121,9 @@ export function setup<
   delays
 }: {
   types?: SetupTypes<TContext, TEvent, TChildrenMap, TTag, TInput, TOutput>;
-  actors?: TActors;
+  actors?: {
+    [K in keyof TActors]: TActors[K];
+  };
   actions?: {
     [K in keyof TActions]: ActionFunction<
       TContext,
@@ -138,6 +187,7 @@ export function setup<
     ToParameterizedObject<TActions>,
     ToParameterizedObject<TGuards>,
     TDelay,
+    ToStateValue<TConfig>,
     TTag,
     TInput,
     TOutput,

@@ -215,7 +215,7 @@ describe('@xstate/graph', () => {
       expect(
         shortestPaths.find((path) =>
           path.state.matches(
-            lightMachine.getInitialState(createMockActorScope()).value
+            lightMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
@@ -374,28 +374,28 @@ describe('@xstate/graph', () => {
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(createMockActorScope()).value
+            lightMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )
       ).toBeDefined();
       expect(
         getSimplePaths(lightMachine).find((p) =>
           p.state.matches(
-            lightMachine.getInitialState(createMockActorScope()).value
+            lightMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(createMockActorScope()).value
+            equivMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )!
       ).toBeDefined();
       expect(
         getSimplePaths(equivMachine).find((p) =>
           p.state.matches(
-            equivMachine.getInitialState(createMockActorScope()).value
+            equivMachine.getInitialSnapshot(createMockActorScope()).value
           )
         )!.steps
       ).toHaveLength(1);

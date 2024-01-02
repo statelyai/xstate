@@ -21,15 +21,15 @@ import {
   TestMachineOptions,
   TestModelOptions
 } from './types.ts';
-import { flatten, simpleStringify } from './utils.ts';
+import { simpleStringify } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
 
-export async function testStateFromMeta(state: AnyMachineSnapshot) {
-  const meta = state.getMeta();
+export async function testStateFromMeta(snapshot: AnyMachineSnapshot) {
+  const meta = snapshot.getMeta();
   for (const id of Object.keys(meta)) {
     const stateNodeMeta = meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
-      await stateNodeMeta.test(state);
+      await stateNodeMeta.test(snapshot);
     }
   }
 }
@@ -71,19 +71,21 @@ function stateValuesEqual(
 }
 
 function serializeMachineTransition(
-  state: MachineSnapshot<
+  snapshot: MachineSnapshot<
     MachineContext,
     EventObject,
     Record<string, AnyActorRef | undefined>,
+    StateValue,
     string,
     unknown
   >,
   event: AnyEventObject | undefined,
-  prevState:
+  previousSnapshot:
     | MachineSnapshot<
         MachineContext,
         EventObject,
         Record<string, AnyActorRef | undefined>,
+        StateValue,
         string,
         unknown
       >
@@ -92,12 +94,16 @@ function serializeMachineTransition(
 ): string {
   // TODO: the stateValuesEqual check here is very likely not exactly correct
   // but I'm not sure what the correct check is and what this is trying to do
-  if (!event || (prevState && stateValuesEqual(prevState.value, state.value))) {
+  if (
+    !event ||
+    (previousSnapshot &&
+      stateValuesEqual(previousSnapshot.value, snapshot.value))
+  ) {
     return '';
   }
 
-  const prevStateString = prevState
-    ? ` from ${simpleStringify(prevState.value)}`
+  const prevStateString = previousSnapshot
+    ? ` from ${simpleStringify(previousSnapshot.value)}`
     : '';
 
   return ` via ${serializeEvent(event)}${prevStateString}`;
@@ -167,14 +173,14 @@ export function createTestModel<TMachine extends AnyStateMachine>(
       const events =
         typeof getEvents === 'function' ? getEvents(state) : getEvents ?? [];
 
-      return flatten(
-        __unsafe_getAllOwnEventDescriptors(state).map((eventType: string) => {
+      return __unsafe_getAllOwnEventDescriptors(state).flatMap(
+        (eventType: string) => {
           if (events.some((e) => (e as EventObject).type === eventType)) {
             return events.filter((e) => (e as EventObject).type === eventType);
           }
 
           return [{ type: eventType } as any]; // TODO: fix types
-        })
+        }
       );
     },
     ...otherOptions
