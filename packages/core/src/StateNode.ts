@@ -369,7 +369,7 @@ export class StateNode<
   }
 
   public next(
-    snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any>,
+    snapshot: MachineSnapshot<TContext, TEvent, any, any, any, any, any>,
     event: TEvent
   ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventType = event.type;

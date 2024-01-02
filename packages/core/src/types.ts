@@ -111,6 +111,7 @@ export interface UnifiedArg<
       Record<string, AnyActorRef | undefined>, // TODO: this should be replaced with `TChildren`
       StateValue,
       string,
+      unknown,
       unknown
     >,
     TEvent
@@ -1324,6 +1325,7 @@ export type ContextFactory<
       Record<string, AnyActorRef | undefined>, // TODO: this should be replaced with `TChildren`
       StateValue,
       string,
+      unknown,
       unknown
     >,
     TEvent
@@ -1626,6 +1628,7 @@ export type Mapper<
       Record<string, AnyActorRef>, // TODO: this should be replaced with `TChildren`
       StateValue,
       string,
+      unknown,
       unknown
     >,
     TEvent
@@ -1994,6 +1997,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TTag,
       infer _TInput,
       infer TOutput,
+      infer TConfig,
       infer _TResolvedTypesMeta
     >
     ? ActorRef<
@@ -2003,7 +2007,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
           TChildren,
           TStateValue,
           TTag,
-          TOutput
+          TOutput,
+          TConfig
         >,
         TEvent
       >
@@ -2038,6 +2043,7 @@ export type InterpreterFrom<
   infer TTag,
   infer TInput,
   infer TOutput,
+  infer TConfig,
   infer _TResolvedTypesMeta
 >
   ? Actor<
@@ -2048,7 +2054,8 @@ export type InterpreterFrom<
           TChildren,
           TStateValue,
           TTag,
-          TOutput
+          TOutput,
+          TConfig
         >,
         TEvent,
         TInput,
@@ -2247,6 +2254,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer _TTag,
       infer _TInput,
       infer _TOutput,
+      infer _TConfig,
       infer _TResolvedTypesMeta
     >
     ? TEvent
@@ -2256,7 +2264,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
           infer _TChildren,
           infer _TStateValue,
           infer _TTag,
-          infer _TOutput
+          infer _TOutput,
+          infer _TConfig
         >
       ? TEvent
       : R extends ActorRef<infer _, infer TEvent>
@@ -2292,7 +2301,8 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
           infer _TChildren,
           infer _TStateValue,
           infer _TTag,
-          infer _TOutput
+          infer _TOutput,
+          infer _TConfig
         >
       ? TContext
       : R extends Actor<infer TActorLogic>

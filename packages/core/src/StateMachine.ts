@@ -78,7 +78,15 @@ export class StateMachine<
   >
 > implements
     ActorLogic<
-      MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TConfig
+      >,
       TEvent,
       TInput,
       AnyActorSystem
@@ -208,7 +216,15 @@ export class StateMachine<
     } & (Equals<TContext, MachineContext> extends false
       ? { context: unknown }
       : {})
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TConfig
+  > {
     const resolvedStateValue = resolveStateValue(this.root, config.value);
     const nodeSet = getAllStateNodes(
       getStateNodes(this.root, resolvedStateValue)
@@ -233,7 +249,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TConfig
     >;
   }
 
@@ -251,11 +268,20 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TConfig
     >,
     event: TEvent,
     actorScope: ActorScope<typeof snapshot, TEvent>
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TConfig
+  > {
     return macrostep(snapshot, event, actorScope).snapshot as typeof snapshot;
   }
 
@@ -273,12 +299,21 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TConfig
     >,
     event: TEvent,
     actorScope: AnyActorScope
   ): Array<
-    MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>
+    MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput,
+      TConfig
+    >
   > {
     return macrostep(snapshot, event, actorScope)
       .microstates as (typeof snapshot)[];
@@ -291,7 +326,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TConfig
     >,
     event: TEvent
   ): Array<TransitionDefinition<TContext, TEvent>> {
@@ -306,7 +342,15 @@ export class StateMachine<
     actorScope: AnyActorScope,
     initEvent: any,
     internalQueue: AnyEventObject[]
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TConfig
+  > {
     const { context } = this.config;
 
     const preInitial = createMachineSnapshot(
@@ -340,11 +384,27 @@ export class StateMachine<
    */
   public getInitialSnapshot(
     actorScope: ActorScope<
-      MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TConfig
+      >,
       TEvent
     >,
     input?: TInput
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TConfig
+  > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this.getPreInitialState(
@@ -387,7 +447,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TConfig
     >
   ): void {
     Object.values(snapshot.children as Record<string, AnyActorRef>).forEach(
@@ -430,7 +491,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TConfig
     >,
     options?: unknown
   ) {
@@ -440,10 +502,26 @@ export class StateMachine<
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     _actorScope: ActorScope<
-      MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>,
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TConfig
+      >,
       TEvent
     >
-  ): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput> {
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TConfig
+  > {
     const children: Record<string, AnyActorRef> = {};
     const snapshotChildren: Record<
       string,
@@ -495,7 +573,8 @@ export class StateMachine<
       TChildren,
       TStateValue,
       TTag,
-      TOutput
+      TOutput,
+      TConfig
     >;
 
     let seen = new Set();
