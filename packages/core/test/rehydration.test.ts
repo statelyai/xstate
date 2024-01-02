@@ -124,7 +124,7 @@ describe('rehydration', () => {
       expect(actual).toEqual([]);
     });
 
-    it('should handle incompatible state value (shallow)', () => {
+    it('should error on incompatible state value (shallow)', () => {
       const machine = createMachine({
         initial: 'valid',
         states: {
