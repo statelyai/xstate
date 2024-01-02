@@ -1,7 +1,6 @@
 import { Element as XMLElement, xml2js } from 'xml-js';
 import { assign } from './actions/assign.ts';
 import { cancel } from './actions/cancel.ts';
-import { choose } from './actions/choose.ts';
 import { log } from './actions/log.ts';
 import { raise } from './actions/raise.ts';
 import { sendTo } from './actions/send.ts';
@@ -11,16 +10,16 @@ import {
   ActionFunction,
   MachineContext,
   SpecialTargets,
-  createMachine
+  createMachine,
+  enqueueActions
 } from './index.ts';
 import {
   AnyStateMachine,
   AnyStateNode,
-  ChooseBranch,
+  AnyStateNodeConfig,
   DelayExpr,
   EventObject,
-  SendExpr,
-  StateNodeConfig
+  SendExpr
 } from './types.ts';
 import { mapValues } from './utils.ts';
 
@@ -132,7 +131,8 @@ const evaluateExecutableContent = <
   context: TContext,
   event: TEvent,
   _meta: any,
-  body: string
+  body: string,
+  ...extraArgs: any[]
 ) => {
   const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
     .filter(Boolean)
@@ -147,7 +147,7 @@ with (context) {
 }
   `;
 
-  const fn = new Function(...args, fnBody);
+  const fn = new Function(...args, ...extraArgs, fnBody);
 
   return fn(context, { name: event.type, data: event });
 };
@@ -173,11 +173,13 @@ function createGuard<
   };
 }
 
-function mapAction(element: XMLElement): ActionFunction<any, any, any> {
+function mapAction(
+  element: XMLElement
+): ActionFunction<any, any, any, any, any, any, any, any> {
   switch (element.name) {
     case 'raise': {
       return raise({
-        type: element.attributes!.event!
+        type: element.attributes!.event as string
       });
     }
     case 'assign': {
@@ -206,10 +208,18 @@ return ${element.attributes!.sendidexpr};
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: EventObject | SendExpr<MachineContext, EventObject>;
+      let convertedEvent:
+        | EventObject
+        | SendExpr<
+            MachineContext,
+            EventObject,
+            undefined,
+            EventObject,
+            EventObject
+          >;
       let convertedDelay:
         | number
-        | DelayExpr<MachineContext, EventObject>
+        | DelayExpr<MachineContext, EventObject, undefined, EventObject>
         | undefined;
 
       const params =
@@ -275,9 +285,12 @@ return ${element.attributes!.expr};
       );
     }
     case 'if': {
-      const branches: Array<ChooseBranch<MachineContext, EventObject>> = [];
+      const branches: Array<{
+        guard?: (...args: any) => any;
+        actions: any[];
+      }> = [];
 
-      let current: ChooseBranch<MachineContext, EventObject> = {
+      let current: (typeof branches)[number] = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };
@@ -306,7 +319,15 @@ return ${element.attributes!.expr};
       }
 
       branches.push(current);
-      return choose(branches);
+
+      return enqueueActions(({ context, event, enqueue, check, ...meta }) => {
+        for (const branch of branches) {
+          if (!branch.guard || check(branch.guard)) {
+            branch.actions.forEach(enqueue);
+            break;
+          }
+        }
+      });
     }
     default:
       throw new Error(
@@ -315,8 +336,10 @@ return ${element.attributes!.expr};
   }
 }
 
-function mapActions(elements: XMLElement[]): ActionFunction<any, any, any>[] {
-  const mapped: ActionFunction<any, any, any>[] = [];
+function mapActions(
+  elements: XMLElement[]
+): ActionFunction<any, any, any, any, any, any, any, any>[] {
+  const mapped: ActionFunction<any, any, any, any, any, any, any, any>[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {
@@ -331,10 +354,7 @@ function mapActions(elements: XMLElement[]): ActionFunction<any, any, any>[] {
 
 type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
 
-function toConfig(
-  nodeJson: XMLElement,
-  id: string
-): StateNodeConfig<any, any, any, any> {
+function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   const { elements } = nodeJson;
@@ -410,7 +430,7 @@ function toConfig(
     const always: any[] = [];
     const on: Record<string, any> = [];
 
-    transitionElements.map((value) => {
+    transitionElements.forEach((value) => {
       const events = ((getAttribute(value, 'event') as string) || '').split(
         /\s+/
       );
@@ -456,6 +476,11 @@ function toConfig(
         if (eventType === NULL_EVENT) {
           always.push(transitionConfig);
         } else {
+          if (/^done\.state(\.|$)/.test(eventType)) {
+            eventType = `xstate.${eventType}`;
+          } else if (/^done\.invoke(\.|$)/.test(eventType)) {
+            eventType = eventType.replace(/^done\.invoke/, 'xstate.done.actor');
+          }
           let existing = on[eventType];
           if (!existing) {
             existing = [];
@@ -498,13 +523,19 @@ function toConfig(
       };
     });
 
+    const resolvedInitial = initial && String(initial).split(' ');
+
+    if (resolvedInitial && resolvedInitial.length > 1) {
+      throw new Error(
+        `Multiple initial states are not supported ("${String(initial)}").`
+      );
+    }
+
     return {
       id: sanitizeStateId(id),
-      ...(initial
+      ...(resolvedInitial
         ? {
-            initial: String(initial)
-              .split(' ')
-              .map((id) => `#${sanitizeStateId(id)}`)
+            initial: sanitizeStateId(resolvedInitial[0])
           }
         : undefined),
       ...(parallel ? { type: 'parallel' } : undefined),
@@ -537,22 +568,25 @@ function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
   const context = dataModelEl
     ? dataModelEl
         .elements!.filter((element) => element.name === 'data')
-        .reduce((acc, element) => {
-          const { src, expr, id } = element.attributes!;
-          if (src) {
-            throw new Error(
-              "Conversion of `src` attribute on datamodel's <data> elements is not supported."
-            );
-          }
+        .reduce(
+          (acc, element) => {
+            const { src, expr, id } = element.attributes!;
+            if (src) {
+              throw new Error(
+                "Conversion of `src` attribute on datamodel's <data> elements is not supported."
+              );
+            }
 
-          if (expr === '_sessionid') {
-            acc[id!] = undefined;
-          } else {
-            acc[id!] = eval(`(${expr})`);
-          }
+            if (expr === '_sessionid') {
+              acc[id!] = undefined;
+            } else {
+              acc[id!] = eval(`(${expr})`);
+            }
 
-          return acc;
-        }, {} as Record<string, unknown>)
+            return acc;
+          },
+          {} as Record<string, unknown>
+        )
     : undefined;
 
   const machine = createMachine({

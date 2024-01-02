@@ -88,10 +88,11 @@ describe('events', () => {
 
   it('should allow for dynamic generation of cases based on state', async () => {
     const values = [1, 2, 3];
-    const testMachine = createMachine<
-      { values: number[] },
-      { type: 'EVENT'; value: number }
-    >({
+    const testMachine = createMachine({
+      types: {} as {
+        context: { values: number[] };
+        events: { type: 'EVENT'; value: number };
+      },
       initial: 'a',
       context: {
         values // to be read by generator
@@ -116,7 +117,7 @@ describe('events', () => {
 
     const testModel = createTestModel(testMachine, {
       events: (state) =>
-        state.context.values.map((value) => ({ type: 'EVENT', value } as const))
+        state.context.values.map((value) => ({ type: 'EVENT', value }) as const)
     });
 
     const paths = testModel.getShortestPaths();
@@ -152,7 +153,8 @@ describe('events', () => {
 
 describe('state limiting', () => {
   it('should limit states with filter option', () => {
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine({
+      types: {} as { context: { count: number } },
       initial: 'counting',
       context: { count: 0 },
       states: {
@@ -182,7 +184,8 @@ describe('state limiting', () => {
 
 // https://github.com/statelyai/xstate/issues/1935
 it('prevents infinite recursion based on a provided limit', () => {
-  const machine = createMachine<{ count: number }>({
+  const machine = createMachine({
+    types: {} as { context: { count: number } },
     id: 'machine',
     context: {
       count: 0

@@ -1,7 +1,10 @@
 # Interpreting Machines
 
-:::tip Check out our new docs!
-🆕 Find more about [interpreting machines using XState](https://stately.ai/docs/xstate/running-machines/intro#interpret) in our new docs.
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [creating actors using XState](https://stately.ai/docs/actors#creating-actors) in our new docs.
 :::
 
 While a state machine/statechart with a pure `.transition()` function is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:

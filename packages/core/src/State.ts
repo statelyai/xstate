@@ -1,220 +1,119 @@
 import isDevelopment from '#is-development';
-import { STATE_DELIMITER } from './constants.ts';
-import { memo } from './memo.ts';
+import { $$ACTOR_TYPE } from './createActor.ts';
 import type { StateNode } from './StateNode.ts';
-import {
-  getConfiguration,
-  getStateNodes,
-  getStateValue
-} from './stateUtils.ts';
-import { TypegenDisabled, TypegenEnabled } from './typegenTypes.ts';
+import type { StateMachine } from './StateMachine.ts';
+import { getStateValue } from './stateUtils.ts';
+import { TypegenDisabled } from './typegenTypes.ts';
 import type {
   ProvidedActor,
-  ActorRefFrom,
-  AnyState,
+  AnyMachineSnapshot,
   AnyStateMachine,
   EventObject,
   HistoryValue,
   MachineContext,
-  PersistedMachineState,
-  Prop,
   StateConfig,
   StateValue,
-  TODO,
   AnyActorRef,
-  Compute
+  Snapshot,
+  ParameterizedObject,
+  IsNever
 } from './types.ts';
-import { flatten, matchesState } from './utils.ts';
+import { matchesState } from './utils.ts';
 
-type ComputeConcreteChildren<TActor extends ProvidedActor> = {
-  [A in TActor as 'id' extends keyof A
-    ? A['id'] & string
-    : never]?: ActorRefFrom<A['logic']>;
-};
+type ToTestStateValue<TStateValue extends StateValue> =
+  TStateValue extends string
+    ? TStateValue
+    : IsNever<keyof TStateValue> extends true
+      ? never
+      :
+          | keyof TStateValue
+          | {
+              [K in keyof TStateValue]?: ToTestStateValue<
+                NonNullable<TStateValue[K]>
+              >;
+            };
 
-type ComputeChildren<TActor extends ProvidedActor> =
-  // only proceed further if all configured `src`s are literal strings
-  string extends TActor['src']
-    ? // TODO: replace with UnknownActorRef~
-      // TODO: consider adding `| undefined` here
-      Record<string, AnyActorRef>
-    : Compute<
-        ComputeConcreteChildren<TActor> &
-          // check if all actors have IDs
-          (undefined extends TActor['id']
-            ? // if they don't we need to create an index signature containing all possible actor types
-              {
-                [id: string]: TActor extends any
-                  ? ActorRefFrom<TActor['logic']> | undefined
-                  : never;
-              }
-            : {})
-      >;
-
-export function isStateConfig<
+export function isMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: any): state is StateConfig<TContext, TEvent> {
-  if (typeof state !== 'object' || state === null) {
-    return false;
-  }
-
-  return 'value' in state;
+>(value: unknown): value is AnyMachineSnapshot {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'machine' in value &&
+    'value' in value
+  );
 }
 
-/**
- * @deprecated Use `isStateConfig(object)` or `state instanceof State` instead.
- */
-export const isState = isStateConfig;
-export class State<
+interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TResolvedTypesMeta = TypegenDisabled
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TOutput,
+  _TUnusedButLeftForCompatReasons = never
 > {
-  public tags: Set<string>;
+  machine: StateMachine<
+    TContext,
+    TEvent,
+    TChildren,
+    ProvidedActor,
+    ParameterizedObject,
+    ParameterizedObject,
+    string,
+    TStateValue,
+    TTag,
+    unknown,
+    TOutput
+  >;
+  tags: Set<string>;
+  value: TStateValue;
+  status: 'active' | 'done' | 'error' | 'stopped';
+  error: unknown;
+  context: TContext;
 
-  public value: StateValue;
-  /**
-   * Indicates whether the state is a final state.
-   */
-  public done: boolean;
-  /**
-   * The done data of the top-level finite state.
-   */
-  public output: any; // TODO: add an explicit type for `output`
-  public error: unknown;
-  public context: TContext;
-  public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
-  public _internalQueue: Array<TEvent>;
+  historyValue: Readonly<HistoryValue<TContext, TEvent>>;
   /**
    * The enabled state nodes representative of the state value.
    */
-  public configuration: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<StateNode<TContext, TEvent>>;
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  public children: ComputeChildren<TActor>;
-
-  /**
-   * Creates a new State instance for the given `stateValue` and `context`.
-   * @param stateValue
-   * @param context
-   */
-  public static from<
-    TContext extends MachineContext,
-    TEvent extends EventObject = EventObject
-  >(
-    stateValue: State<TContext, TEvent, TODO, any> | StateValue,
-    context: TContext = {} as TContext,
-    machine: AnyStateMachine
-  ): State<TContext, TEvent, TODO, any> {
-    if (stateValue instanceof State) {
-      if (stateValue.context !== context) {
-        return new State<TContext, TEvent, TODO, any>(
-          {
-            value: stateValue.value,
-            context,
-            meta: {},
-            configuration: [], // TODO: fix,
-            children: {}
-          },
-          machine
-        );
-      }
-
-      return stateValue;
-    }
-
-    const configuration = getConfiguration(
-      getStateNodes(machine.root, stateValue)
-    );
-
-    return new State<TContext, TEvent, TODO, any>(
-      {
-        value: stateValue,
-        context,
-        meta: undefined,
-        configuration: Array.from(configuration),
-        children: {}
-      },
-      machine
-    );
-  }
-
-  /**
-   * Creates a new `State` instance that represents the current state of a running machine.
-   *
-   * @param config
-   */
-  constructor(
-    config: StateConfig<TContext, TEvent>,
-    public machine: AnyStateMachine
-  ) {
-    this.context = config.context;
-    this._internalQueue = config._internalQueue ?? [];
-    this.historyValue = config.historyValue || {};
-    this.matches = this.matches.bind(this);
-    this.toStrings = this.toStrings.bind(this);
-    this.configuration =
-      config.configuration ??
-      Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
-    this.children = config.children as any;
-
-    this.value = getStateValue(machine.root, this.configuration);
-    this.tags = new Set(flatten(this.configuration.map((sn) => sn.tags)));
-    this.done = config.done ?? false;
-    this.output = config.output;
-    this.error = config.error;
-  }
-
-  /**
-   * Returns an array of all the string leaf state node paths.
-   * @param stateValue
-   * @param delimiter The character(s) that separate each subpath in the string state node path.
-   */
-  public toStrings(stateValue: StateValue = this.value): string[] {
-    if (typeof stateValue === 'string') {
-      return [stateValue];
-    }
-    const valueKeys = Object.keys(stateValue);
-
-    return valueKeys.concat(
-      ...valueKeys.map((key) =>
-        this.toStrings(stateValue[key]).map((s) => key + STATE_DELIMITER + s)
-      )
-    );
-  }
-
-  public toJSON() {
-    const { configuration, tags, machine, ...jsonValues } = this;
-
-    return { ...jsonValues, tags: Array.from(tags), meta: this.meta };
-  }
+  children: TChildren;
 
   /**
    * Whether the current state value is a subset of the given parent state value.
-   * @param parentStateValue
+   * @param testValue
    */
-  public matches<
-    TSV extends TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
-      : StateValue
-  >(parentStateValue: TSV): boolean {
-    return matchesState(parentStateValue as any, this.value);
-  }
+  matches: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput
+    >,
+    testValue: ToTestStateValue<TStateValue>
+  ) => boolean;
 
   /**
-   * Whether the current state configuration has a state node with the specified `tag`.
+   * Whether the current state nodes has a state node with the specified `tag`.
    * @param tag
    */
-  public hasTag(
-    tag: TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
-      : string
-  ): boolean {
-    return this.tags.has(tag as string);
-  }
+  hasTag: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput
+    >,
+    tag: TTag
+  ) => boolean;
 
   /**
    * Determines whether sending the `event` will cause a non-forbidden transition
@@ -224,69 +123,338 @@ export class State<
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
-  public can(event: TEvent): boolean {
-    if (isDevelopment && !this.machine) {
-      console.warn(
-        `state.can(...) used outside of a machine-created State object; this will always return false.`
-      );
-    }
+  can: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput
+    >,
+    event: TEvent
+  ) => boolean;
 
-    const transitionData = this.machine.getTransitionData(this, event);
+  getMeta: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput
+    >
+  ) => Record<string, any>;
 
-    return (
-      !!transitionData?.length &&
-      // Check that at least one transition is not forbidden
-      transitionData.some((t) => t.target !== undefined || t.actions.length)
+  toJSON: (
+    this: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput
+    >
+  ) => unknown;
+}
+
+interface ActiveMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TOutput
+> extends MachineSnapshotBase<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput
+  > {
+  status: 'active';
+  output: undefined;
+  error: undefined;
+}
+
+interface DoneMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TOutput
+> extends MachineSnapshotBase<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput
+  > {
+  status: 'done';
+  output: TOutput;
+  error: undefined;
+}
+
+interface ErrorMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TOutput
+> extends MachineSnapshotBase<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput
+  > {
+  status: 'error';
+  output: undefined;
+  error: unknown;
+}
+
+interface StoppedMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TOutput
+> extends MachineSnapshotBase<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput
+  > {
+  status: 'stopped';
+  output: undefined;
+  error: undefined;
+}
+
+export type MachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TOutput,
+  _TUnusedButLeftForCompatReasons = never
+> =
+  | ActiveMachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput
+    >
+  | DoneMachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, TOutput>
+  | ErrorMachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput
+    >
+  | StoppedMachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput
+    >;
+
+const machineSnapshotMatches = function matches(
+  this: AnyMachineSnapshot,
+  testValue: StateValue
+) {
+  return matchesState(testValue, this.value);
+};
+
+const machineSnapshotHasTag = function hasTag(
+  this: AnyMachineSnapshot,
+  tag: string
+) {
+  return this.tags.has(tag);
+};
+
+const machineSnapshotCan = function can(
+  this: AnyMachineSnapshot,
+  event: EventObject
+) {
+  if (isDevelopment && !this.machine) {
+    console.warn(
+      `state.can(...) used outside of a machine-created State object; this will always return false.`
     );
   }
 
-  /**
-   * The next events that will cause a transition from the current state.
-   */
-  public get nextEvents(): Array<TEvent['type']> {
-    return memo(this, 'nextEvents', () => {
-      return [
-        ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
-      ];
-    });
-  }
+  const transitionData = this.machine.getTransitionData(this, event);
 
-  public get meta(): Record<string, any> {
-    return this.configuration.reduce((acc, stateNode) => {
+  return (
+    !!transitionData?.length &&
+    // Check that at least one transition is not forbidden
+    transitionData.some((t) => t.target !== undefined || t.actions.length)
+  );
+};
+
+const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
+  const {
+    _nodes: nodes,
+    tags,
+    machine,
+    getMeta,
+    toJSON,
+    can,
+    hasTag,
+    matches,
+    ...jsonValues
+  } = this;
+  return { ...jsonValues, tags: Array.from(tags) };
+};
+
+const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
+  return this._nodes.reduce(
+    (acc, stateNode) => {
       if (stateNode.meta !== undefined) {
         acc[stateNode.id] = stateNode.meta;
       }
       return acc;
-    }, {} as Record<string, any>);
-  }
+    },
+    {} as Record<string, any>
+  );
+};
+
+export function createMachineSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string
+>(
+  config: StateConfig<TContext, TEvent>,
+  machine: AnyStateMachine
+): MachineSnapshot<TContext, TEvent, TChildren, TStateValue, TTag, undefined> {
+  return {
+    status: config.status as never,
+    output: config.output,
+    error: config.error,
+    machine,
+    context: config.context,
+    _nodes: config._nodes,
+    value: getStateValue(machine.root, config._nodes) as never,
+    tags: new Set(config._nodes.flatMap((sn) => sn.tags)),
+    children: config.children as any,
+    historyValue: config.historyValue || {},
+    matches: machineSnapshotMatches as never,
+    hasTag: machineSnapshotHasTag,
+    can: machineSnapshotCan,
+    getMeta: machineSnapshotGetMeta,
+    toJSON: machineSnapshotToJSON
+  };
 }
 
-export function cloneState<TState extends AnyState>(
-  state: TState,
+export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
+  snapshot: TState,
   config: Partial<StateConfig<any, any>> = {}
 ): TState {
-  return new State(
-    { ...state, ...config } as StateConfig<any, any>,
-    state.machine
+  return createMachineSnapshot(
+    { ...snapshot, ...config } as StateConfig<any, any>,
+    snapshot.machine
   ) as TState;
 }
 
-export function getPersistedState<TState extends AnyState>(
-  state: TState
-): PersistedMachineState<TState> {
-  const { configuration, tags, machine, children, ...jsonValues } = state;
+export function getPersistedSnapshot<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TOutput
+>(
+  snapshot: MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput
+  >,
+  options?: unknown
+): Snapshot<unknown> {
+  const {
+    _nodes: nodes,
+    tags,
+    machine,
+    children,
+    context,
+    can,
+    hasTag,
+    matches,
+    getMeta,
+    toJSON,
+    ...jsonValues
+  } = snapshot;
 
-  const childrenJson: Partial<PersistedMachineState<any>['children']> = {};
+  const childrenJson: Record<string, unknown> = {};
 
   for (const id in children) {
-    childrenJson[id] = {
-      state: children[id].getPersistedState?.(),
-      src: children[id].src
+    const child = children[id] as any;
+    if (
+      isDevelopment &&
+      typeof child.src !== 'string' &&
+      (!options || !('__unsafeAllowInlineActors' in (options as object)))
+    ) {
+      throw new Error('An inline child actor cannot be persisted.');
+    }
+    childrenJson[id as keyof typeof childrenJson] = {
+      snapshot: child.getPersistedSnapshot(options),
+      src: child.src,
+      systemId: child._systemId,
+      syncSnapshot: child._syncSnapshot
     };
   }
 
-  return {
+  const persisted = {
     ...jsonValues,
+    context: persistContext(context) as any,
     children: childrenJson
-  } as PersistedMachineState<TState>;
+  };
+
+  return persisted;
+}
+
+function persistContext(contextPart: Record<string, unknown>) {
+  let copy: typeof contextPart | undefined;
+  for (const key in contextPart) {
+    const value = contextPart[key];
+    if (value && typeof value === 'object') {
+      if ('sessionId' in value && 'send' in value && 'ref' in value) {
+        copy ??= Array.isArray(contextPart)
+          ? (contextPart.slice() as typeof contextPart)
+          : { ...contextPart };
+        copy[key] = {
+          xstate$$type: $$ACTOR_TYPE,
+          id: (value as any as AnyActorRef).id
+        };
+      } else {
+        const result = persistContext(value as typeof contextPart);
+        if (result !== value) {
+          copy ??= Array.isArray(contextPart)
+            ? (contextPart.slice() as typeof contextPart)
+            : { ...contextPart };
+          copy[key] = result;
+        }
+      }
+    }
+  }
+  return copy ?? contextPart;
 }

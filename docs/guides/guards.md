@@ -1,7 +1,10 @@
 # Guarded Transitions
 
-:::tip Check out our new docs!
-🆕 Find more about [guards in XState](https://stately.ai/docs/xstate/transitions-and-choices/guards) as well as a [no-code introduction to guards](https://stately.ai/docs/transitions-and-events/guards).
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find more about [guards in XState](https://stately.ai/docs/guards) as well as a [no-code introduction to guards](https://stately.ai/docs/editor-states-and-transitions#add-guards).
 :::
 
 Many times, you'll want a transition between states to only take place if certain conditions on the state (finite or extended) or the event are met. For instance, let's say you're creating a machine for a search form, and you only want search to be allowed if:

@@ -3,9 +3,10 @@ import {
   assign,
   createMachine,
   createActor,
-  sendTo
+  sendTo,
+  waitFor
 } from '../src/index.ts';
-import { raise, sendParent, stop } from '../src/actions.ts';
+import { raise, sendParent, stopChild } from '../src/actions.ts';
 import { fromCallback } from '../src/actors/index.ts';
 import { fromPromise } from '../src/actors/index.ts';
 
@@ -250,294 +251,7 @@ describe('predictableExec', () => {
     expect(calledWith).toBe(1);
   });
 
-  it('should be able to restart a spawned actor within a single macrostep', () => {
-    const actual: string[] = [];
-    let invokeCounter = 0;
-
-    const machine = createMachine({
-      initial: 'active',
-      context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-
-        return {
-          actorRef: spawn(
-            fromCallback(() => {
-              actual.push(`start ${localId}`);
-              return () => {
-                actual.push(`stop ${localId}`);
-              };
-            }),
-            { id: 'callback-1' }
-          )
-        };
-      },
-      states: {
-        active: {
-          on: {
-            update: {
-              actions: [
-                stop(({ context }) => {
-                  return context.actorRef;
-                }),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
-
-                    return spawn(
-                      fromCallback(() => {
-                        actual.push(`start ${localId}`);
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      }),
-                      { id: 'callback-2' }
-                    );
-                  }
-                })
-              ]
-            }
-          }
-        }
-      }
-    });
-
-    const service = createActor(machine).start();
-
-    actual.length = 0;
-
-    service.send({
-      type: 'update'
-    });
-
-    expect(actual).toEqual(['stop 1', 'start 2']);
-  });
-
-  it('should be able to restart a named spawned actor within a single macrostep when stopping by ref', () => {
-    const actual: string[] = [];
-    let invokeCounter = 0;
-
-    const machine = createMachine({
-      initial: 'active',
-      context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-
-        return {
-          actorRef: spawn(
-            fromCallback(() => {
-              actual.push(`start ${localId}`);
-              return () => {
-                actual.push(`stop ${localId}`);
-              };
-            }),
-            { id: 'my_name' }
-          )
-        };
-      },
-      states: {
-        active: {
-          on: {
-            update: {
-              actions: [
-                stop(({ context }) => context.actorRef),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
-
-                    return spawn(
-                      fromCallback(() => {
-                        actual.push(`start ${localId}`);
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      }),
-                      { id: 'my_name' }
-                    );
-                  }
-                })
-              ]
-            }
-          }
-        }
-      }
-    });
-
-    const service = createActor(machine).start();
-
-    actual.length = 0;
-
-    service.send({
-      type: 'update'
-    });
-
-    expect(actual).toEqual(['stop 1', 'start 2']);
-  });
-
-  it('should be able to restart a named spawned actor within a single macrostep when stopping by static name', () => {
-    const actual: string[] = [];
-    let invokeCounter = 0;
-
-    const machine = createMachine({
-      initial: 'active',
-      context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-
-        return {
-          actorRef: spawn(
-            fromCallback(() => {
-              actual.push(`start ${localId}`);
-              return () => {
-                actual.push(`stop ${localId}`);
-              };
-            }),
-            { id: 'my_name' }
-          )
-        };
-      },
-      states: {
-        active: {
-          on: {
-            update: {
-              actions: [
-                stop('my_name'),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
-
-                    return spawn(
-                      fromCallback(() => {
-                        actual.push(`start ${localId}`);
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      }),
-                      { id: 'my_name' }
-                    );
-                  }
-                })
-              ]
-            }
-          }
-        }
-      }
-    });
-
-    const service = createActor(machine).start();
-
-    actual.length = 0;
-
-    service.send({
-      type: 'update'
-    });
-
-    expect(actual).toEqual(['stop 1', 'start 2']);
-  });
-
-  it('should be able to restart a named spawned actor within a single macrostep when stopping by resolved name', () => {
-    const actual: string[] = [];
-    let invokeCounter = 0;
-
-    const machine = createMachine({
-      initial: 'active',
-      context: ({ spawn }) => {
-        const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
-
-        return {
-          actorRef: spawn(
-            fromCallback(() => {
-              return () => {
-                actual.push(`stop ${localId}`);
-              };
-            }),
-            { id: 'my_name' }
-          )
-        };
-      },
-      states: {
-        active: {
-          on: {
-            update: {
-              actions: [
-                stop(() => 'my_name'),
-                assign({
-                  actorRef: ({ spawn }) => {
-                    const localId = ++invokeCounter;
-
-                    return spawn(
-                      fromCallback(() => {
-                        actual.push(`start ${localId}`);
-                        return () => {
-                          actual.push(`stop ${localId}`);
-                        };
-                      }),
-                      { id: 'my_name' }
-                    );
-                  }
-                })
-              ]
-            }
-          }
-        }
-      }
-    });
-
-    const service = createActor(machine).start();
-
-    actual.length = 0;
-
-    service.send({
-      type: 'update'
-    });
-
-    expect(actual).toEqual(['stop 1', 'start 2']);
-  });
-
-  it('should be able to restart an invoke when reentering the invoking state', () => {
-    const actual: string[] = [];
-    let invokeCounter = 0;
-
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: { ACTIVATE: 'active' }
-        },
-        active: {
-          invoke: {
-            src: fromCallback(() => {
-              const localId = ++invokeCounter;
-              actual.push(`start ${localId}`);
-              return () => {
-                actual.push(`stop ${localId}`);
-              };
-            })
-          },
-          on: {
-            REENTER: {
-              target: 'active',
-              reenter: true
-            }
-          }
-        }
-      }
-    });
-
-    const service = createActor(machine).start();
-
-    service.send({
-      type: 'ACTIVATE'
-    });
-
-    actual.length = 0;
-
-    service.send({
-      type: 'REENTER'
-    });
-
-    expect(actual).toEqual(['stop 1', 'start 2']);
-  });
-
-  it('initial actions should receive context updated only by preceeding assign actions', () => {
+  it('initial actions should receive context updated only by preceding assign actions', () => {
     const actual: number[] = [];
 
     const machine = createMachine({
@@ -651,18 +365,7 @@ describe('predictableExec', () => {
     expect(service.getSnapshot().value).toBe('done');
   });
 
-  // TODO: if we allow this by flipping [...invokes, ...entry] to [...entry, ...invokes]
-  // then we end up with a different problem, we no longer have the ability to target the invoked actor with entry send:
-  //
-  // invoke: { id: 'a', src: actor },
-  // entry: send('EVENT', { to: 'a' })
-  //
-  // this seems to be even a worse problem. It's likely that we will have to remove this test case and document it as a breaking change.
-  // in v4 we are actually deferring sends till the end of the entry block:
-  // https://github.com/statelyai/xstate/blob/aad4991b4eb04faf979a0c8a027a5bcf861f34b3/packages/core/src/actions.ts#L703-L704
-  //
-  // should this be implemented in v5 as well?
-  it.skip('should create invoke based on context updated by entry actions of the same state', () => {
+  it('should create invoke based on context updated by entry actions of the same state', (done) => {
     const machine = createMachine({
       context: {
         updated: false
@@ -679,6 +382,7 @@ describe('predictableExec', () => {
           invoke: {
             src: fromPromise(({ input }) => {
               expect(input.updated).toBe(true);
+              done();
               return Promise.resolve();
             }),
             input: ({ context }: any) => ({
@@ -689,8 +393,8 @@ describe('predictableExec', () => {
       }
     });
 
-    const service = createActor(machine).start();
-    service.send({ type: 'NEXT' });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
   });
 
   it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
@@ -711,11 +415,14 @@ describe('predictableExec', () => {
           entry: sendTo('myChild', { type: 'KNOCK_KNOCK' }),
           invoke: {
             id: 'myChild',
-            src: fromCallback(({ receive }) => {
-              receive((event) => {
-                received = event;
-              });
-              return () => {};
+            src: createMachine({
+              on: {
+                '*': {
+                  actions: ({ event }) => {
+                    received = event;
+                  }
+                }
+              }
             })
           }
         }

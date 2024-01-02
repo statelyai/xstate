@@ -1,28 +1,12 @@
-import {
-  ActorRefFrom,
-  AnyStateMachine,
-  AreAllImplementationsAssumedToBeProvided,
-  ActorOptions,
-  MissingImplementationsError,
-  StateFrom
-} from 'xstate';
+import { Actor, ActorOptions, AnyStateMachine, StateFrom } from 'xstate';
 import { useActor } from './useActor.ts';
 
 /**
- *
- * @deprecated Use `useActor(...)` instead.
+ * @alias useActor
  */
 export function useMachine<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : MissingImplementationsError<TMachine['__TResolvedTypesMeta']>,
+  machine: TMachine,
   options: ActorOptions<TMachine> = {}
-): [
-  StateFrom<TMachine>,
-  ActorRefFrom<TMachine>['send'],
-  ActorRefFrom<TMachine>
-] {
-  return useActor(machine as any, options as any) as any;
+): [StateFrom<TMachine>, Actor<TMachine>['send'], Actor<TMachine>] {
+  return useActor(machine, options);
 }

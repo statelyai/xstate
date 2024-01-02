@@ -1,4 +1,4 @@
-import { AnyState, AnyStateMachine } from 'xstate';
+import { AnyMachineSnapshot, AnyStateMachine } from 'xstate';
 import { Replacer } from './types.ts';
 import { stringify } from './utils.ts';
 
@@ -20,11 +20,13 @@ export function selectivelyStringify<T extends object>(
   });
 }
 
-export function stringifyState(state: AnyState, replacer?: Replacer): string {
-  const { machine, configuration, _internalQueue, tags, ...stateToStringify } =
-    state;
+export function stringifyState(
+  snapshot: AnyMachineSnapshot,
+  replacer?: Replacer
+): string {
+  const { machine, _nodes: nodes, tags, ...snapshotToStringify } = snapshot;
   return selectivelyStringify(
-    { ...stateToStringify, tags: Array.from(tags) },
+    { ...snapshotToStringify, tags: Array.from(tags) },
     ['context'],
     replacer
   );

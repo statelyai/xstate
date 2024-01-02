@@ -1,5 +1,11 @@
 # @xstate/react
 
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5) and [check out the XState v5 docs](https://stately.ai/docs/xstate).
+
+:::
+
 The [@xstate/react package](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) contains utilities for using [XState](https://github.com/statelyai/xstate) with [React](https://github.com/facebook/react/).
 
 [[toc]]
@@ -19,14 +25,6 @@ npm i xstate @xstate/react
 ```
 
 By using the global variable `XStateReact`
-
-or
-
-```html
-<script src="https://unpkg.com/@xstate/react/dist/xstate-react-fsm.umd.min.js"></script>
-```
-
-By using the global variable `XStateReactFSM`
 
 2. Import the `useMachine` hook:
 
@@ -340,86 +338,6 @@ const App = () => {
   const count = useSelector(service, selectCount);
 
   // ...
-};
-```
-
-### `useMachine(machine, options?)` with `@xstate/fsm`
-
-A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
-
-This special `useMachine` hook is imported from `@xstate/react/fsm`
-
-**Arguments**
-
-- `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
-- `options` - An optional `options` object.
-
-**Returns** a tuple of `[state, send, service]`:
-
-- `state` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
-- `send` - A function that sends events to the running service.
-- `service` - The created `@xstate/fsm` service.
-
-**Example**
-
-```js
-import { useEffect } from 'react';
-import { useMachine } from '@xstate/react/fsm';
-import { createMachine } from '@xstate/fsm';
-
-const context = {
-  data: undefined
-};
-const fetchMachine = createMachine({
-  id: 'fetch',
-  initial: 'idle',
-  context,
-  states: {
-    idle: {
-      on: { FETCH: 'loading' }
-    },
-    loading: {
-      entry: ['load'],
-      on: {
-        RESOLVE: {
-          target: 'success',
-          actions: assign({
-            data: (context, event) => event.data
-          })
-        }
-      }
-    },
-    success: {}
-  }
-});
-
-const Fetcher = ({
-  onFetch = () => new Promise((res) => res('some data'))
-}) => {
-  const [state, send] = useMachine(fetchMachine, {
-    actions: {
-      load: () => {
-        onFetch().then((res) => {
-          send({ type: 'RESOLVE', data: res });
-        });
-      }
-    }
-  });
-
-  switch (state.value) {
-    case 'idle':
-      return <button onClick={(_) => send('FETCH')}>Fetch</button>;
-    case 'loading':
-      return <div>Loading...</div>;
-    case 'success':
-      return (
-        <div>
-          Success! Data: <div data-testid="data">{state.context.data}</div>
-        </div>
-      );
-    default:
-      return null;
-  }
 };
 ```
 

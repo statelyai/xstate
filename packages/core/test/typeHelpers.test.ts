@@ -1,15 +1,16 @@
 import {
-  assign,
-  ContextFrom,
-  createMachine,
-  SnapshotFrom,
-  EventFrom,
-  createActor,
-  MachineImplementationsFrom,
-  StateValueFrom,
   ActorLogic,
   ActorRefFrom,
-  TagsFrom
+  ContextFrom,
+  EventFrom,
+  MachineImplementationsFrom,
+  Snapshot,
+  SnapshotFrom,
+  StateValueFrom,
+  TagsFrom,
+  assign,
+  createActor,
+  createMachine
 } from '../src/index.ts';
 import { TypegenMeta } from '../src/typegenTypes';
 
@@ -356,9 +357,14 @@ describe('SnapshotFrom', () => {
 
 describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on actor logic', () => {
-    const logic: ActorLogic<{ type: 'TEST' }> = {
-      transition: () => {},
-      getInitialState: () => undefined
+    const logic: ActorLogic<Snapshot<undefined>, { type: 'TEST' }> = {
+      transition: (state) => state,
+      getInitialSnapshot: () => ({
+        status: 'active',
+        output: undefined,
+        error: undefined
+      }),
+      getPersistedSnapshot: (s) => s
     };
 
     function acceptActorRef(actorRef: ActorRefFrom<typeof logic>) {

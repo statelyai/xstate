@@ -1,31 +1,40 @@
-import {
-  createActor,
-  createMachine,
-  ActorRef,
-  ActorRefFrom,
-  EventObject,
-  ActorLogic,
-  Subscribable,
-  Observer,
-  AnyActorRef
-} from '../src/index.ts';
-import { sendParent, doneInvoke, forwardTo, error } from '../src/actions.ts';
-import { raise } from '../src/actions/raise';
-import { assign } from '../src/actions/assign';
-import { sendTo } from '../src/actions/send';
 import { EMPTY, interval, of } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { forwardTo, sendParent } from '../src/actions.ts';
+import { assign } from '../src/actions/assign';
+import { raise } from '../src/actions/raise';
+import { sendTo } from '../src/actions/send';
+import { CallbackActorRef, fromCallback } from '../src/actors/callback.ts';
+import {
+  fromEventObservable,
+  fromObservable
+} from '../src/actors/observable.ts';
+import {
+  PromiseActorLogic,
+  PromiseActorRef,
+  fromPromise
+} from '../src/actors/promise.ts';
 import { fromTransition } from '../src/actors/transition.ts';
 import {
-  fromObservable,
-  fromEventObservable
-} from '../src/actors/observable.ts';
-import { fromPromise } from '../src/actors/promise.ts';
-import { fromCallback } from '../src/actors/callback.ts';
-import { map } from 'rxjs/operators';
+  ActorLogic,
+  ActorRef,
+  ActorRefFrom,
+  AnyActorRef,
+  EventObject,
+  Observer,
+  Snapshot,
+  Subscribable,
+  createActor,
+  createMachine,
+  waitFor,
+  stopChild
+} from '../src/index.ts';
+import { setup } from '../src/setup.ts';
+import { sleep } from '@xstate-repo/jest-utils';
 
 describe('spawning machines', () => {
   const context = {
-    todoRefs: {} as Record<string, ActorRef<any>>
+    todoRefs: {} as Record<string, ActorRef<any, any>>
   };
 
   type TodoEvent =
@@ -69,10 +78,11 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ActorRef<PingPongEvent>;
+    server?: ActorRef<Snapshot<unknown>, PingPongEvent>;
   }
 
-  const clientMachine = createMachine<ClientContext, PingPongEvent>({
+  const clientMachine = createMachine({
+    types: {} as { context: ClientContext; events: PingPongEvent },
     id: 'client',
     initial: 'init',
     context: {
@@ -124,7 +134,11 @@ describe('spawning machines', () => {
       }
     });
 
-    const todosMachine = createMachine<typeof context, TodoEvent>({
+    const todosMachine = createMachine({
+      types: {} as {
+        context: typeof context;
+        events: TodoEvent;
+      },
       id: 'todos',
       context,
       initial: 'active',
@@ -150,9 +164,7 @@ describe('spawning machines', () => {
         SET_COMPLETE: {
           actions: sendTo(
             ({ context, event }) => {
-              return context.todoRefs[
-                (event as Extract<TodoEvent, { type: 'SET_COMPLETE' }>).id
-              ];
+              return context.todoRefs[event.id];
             },
             { type: 'SET_COMPLETE' }
           )
@@ -219,9 +231,14 @@ describe('spawning machines', () => {
   });
 });
 
+const aaa = 'dadasda';
+
 describe('spawning promises', () => {
   it('should be able to spawn a promise', (done) => {
-    const promiseMachine = createMachine<{ promiseRef?: ActorRef<any> }>({
+    const promiseMachine = createMachine({
+      types: {} as {
+        context: { promiseRef?: PromiseActorRef<string> };
+      },
       id: 'promise',
       initial: 'idle',
       context: {
@@ -245,7 +262,7 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            [doneInvoke('my-promise')]: {
+            'xstate.done.actor.my-promise': {
               target: 'success',
               guard: ({ event }) => event.output === 'response'
             }
@@ -268,42 +285,37 @@ describe('spawning promises', () => {
   });
 
   it('should be able to spawn a referenced promise', (done) => {
-    const promiseMachine = createMachine<{ promiseRef?: ActorRef<any> }>(
-      {
-        id: 'promise',
-        initial: 'idle',
-        context: {
-          promiseRef: undefined
-        },
-        states: {
-          idle: {
-            entry: assign({
-              promiseRef: ({ spawn }) =>
-                spawn('somePromise', { id: 'my-promise' })
-            }),
-            on: {
-              [doneInvoke('my-promise')]: {
-                target: 'success',
-                guard: ({ event }) => event.output === 'response'
-              }
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
+    const promiseMachine = setup({
+      actors: {
+        somePromise: fromPromise(() => Promise.resolve('response'))
+      }
+    }).createMachine({
+      types: {} as {
+        context: { promiseRef?: PromiseActorRef<string> };
       },
-      {
-        actors: {
-          somePromise: fromPromise(
-            () =>
-              new Promise((res) => {
-                res('response');
-              })
-          )
+      id: 'promise',
+      initial: 'idle',
+      context: {
+        promiseRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            promiseRef: ({ spawn }) =>
+              spawn('somePromise', { id: 'my-promise' })
+          }),
+          on: {
+            'xstate.done.actor.my-promise': {
+              target: 'success',
+              guard: ({ event }) => event.output === 'response'
+            }
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const promiseService = createActor(promiseMachine);
     promiseService.subscribe({
@@ -318,7 +330,12 @@ describe('spawning promises', () => {
 
 describe('spawning callbacks', () => {
   it('should be able to spawn an actor from a callback', (done) => {
-    const callbackMachine = createMachine<{ callbackRef?: ActorRef<any> }>({
+    const callbackMachine = createMachine({
+      types: {} as {
+        context: {
+          callbackRef?: CallbackActorRef<{ type: 'START' }>;
+        };
+      },
       id: 'callback',
       initial: 'idle',
       context: {
@@ -329,7 +346,7 @@ describe('spawning callbacks', () => {
           entry: assign({
             callbackRef: ({ spawn }) =>
               spawn(
-                fromCallback(({ sendBack, receive }) => {
+                fromCallback<{ type: 'START' }>(({ sendBack, receive }) => {
                   receive((event) => {
                     if (event.type === 'START') {
                       setTimeout(() => {
@@ -365,6 +382,44 @@ describe('spawning callbacks', () => {
     callbackService.start();
     callbackService.send({ type: 'START_CB' });
   });
+
+  it('should not deliver events sent to the parent after the callback actor gets stopped', () => {
+    const spy = jest.fn();
+
+    let sendToParent: () => void;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: fromCallback(({ sendBack }) => {
+              sendToParent = () =>
+                sendBack({
+                  type: 'FROM_CALLBACK'
+                });
+            })
+          },
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      },
+      on: {
+        FROM_CALLBACK: {
+          actions: spy
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'NEXT' });
+
+    sendToParent!();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
 });
 
 describe('spawning observables', () => {
@@ -380,7 +435,10 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(observableLogic, { id: 'int' });
+              const ref = spawn(observableLogic, {
+                id: 'int',
+                syncSnapshot: true
+              });
 
               return ref;
             }
@@ -388,7 +446,7 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: ({ event }) => event.data === 5
+              guard: ({ event }) => event.snapshot.context === 5
             }
           }
         },
@@ -419,12 +477,13 @@ describe('spawning observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: ({ spawn }) => spawn('interval', { id: 'int' })
+              observableRef: ({ spawn }) =>
+                spawn('interval', { id: 'int', syncSnapshot: true })
             }),
             on: {
               'xstate.snapshot.int': {
                 target: 'success',
-                guard: ({ event }) => event.data === 5
+                guard: ({ event }) => event.snapshot.context === 5
               }
             }
           },
@@ -462,7 +521,10 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: ({ spawn }) => {
-              const ref = spawn(observableLogic, { id: 'int' });
+              const ref = spawn(observableLogic, {
+                id: 'int',
+                syncSnapshot: true
+              });
 
               return ref;
             }
@@ -472,7 +534,8 @@ describe('spawning observables', () => {
               target: 'success',
               guard: ({ context, event }) => {
                 return (
-                  event.data === 1 && context.observableRef.getSnapshot() === 1
+                  event.snapshot.context === 1 &&
+                  context.observableRef.getSnapshot().context === 1
                 );
               }
             }
@@ -492,6 +555,118 @@ describe('spawning observables', () => {
     });
 
     observableService.start();
+  });
+
+  it('should notify direct child listeners with final snapshot before it gets stopped', async () => {
+    const intervalActor = fromObservable(() => interval(10));
+
+    const parentMachine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'interval';
+            id: 'childActor';
+            logic: typeof intervalActor;
+          };
+        },
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'childActor',
+              src: 'interval',
+              onSnapshot: {
+                target: 'success',
+                guard: ({ event }) => {
+                  return event.snapshot.context === 3;
+                }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          interval: intervalActor
+        }
+      }
+    );
+
+    const actorRef = createActor(parentMachine);
+    actorRef.start();
+
+    await waitFor(actorRef, (state) => state.matches('active'));
+
+    const spy = jest.fn();
+
+    actorRef.getSnapshot().children.childActor!.subscribe((data) => {
+      spy(data.context);
+    });
+
+    await waitFor(actorRef, (state) => state.status !== 'active');
+
+    expect(spy).toHaveBeenCalledWith(3);
+  });
+
+  it('should not notify direct child listeners after it gets stopped', async () => {
+    const intervalActor = fromObservable(() => interval(10));
+
+    const parentMachine = createMachine(
+      {
+        types: {} as {
+          actors: {
+            src: 'interval';
+            id: 'childActor';
+            logic: typeof intervalActor;
+          };
+        },
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'childActor',
+              src: 'interval',
+              onSnapshot: {
+                target: 'success',
+                guard: ({ event }) => {
+                  return event.snapshot.context === 3;
+                }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          interval: intervalActor
+        }
+      }
+    );
+
+    const actorRef = createActor(parentMachine);
+    actorRef.start();
+
+    await waitFor(actorRef, (state) => state.matches('active'));
+
+    const spy = jest.fn();
+
+    actorRef.getSnapshot().children.childActor!.subscribe((data) => {
+      spy(data);
+    });
+
+    await waitFor(actorRef, (state) => state.status !== 'active');
+    spy.mockClear();
+
+    // wait for potential next event from the interval actor
+    await sleep(15);
+
+    expect(spy).not.toHaveBeenCalled();
   });
 });
 
@@ -605,9 +780,10 @@ describe('communicating with spawned actors', () => {
 
     const existingService = createActor(existingMachine).start();
 
-    const parentMachine = createMachine<{
-      existingRef?: ActorRef<any>;
-    }>({
+    const parentMachine = createMachine({
+      types: {} as {
+        context: { existingRef?: typeof existingService };
+      },
       initial: 'pending',
       context: {
         existingRef: undefined
@@ -648,82 +824,14 @@ describe('communicating with spawned actors', () => {
 
     parentService.start();
   });
-
-  it.skip('should be able to name existing actors', (done) => {
-    const existingMachine = createMachine({
-      types: {
-        events: {} as {
-          type: 'ACTIVATE';
-          origin: AnyActorRef;
-        }
-      },
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: { ACTIVATE: 'active' }
-        },
-        active: {
-          entry: sendTo(({ event }) => event.origin, { type: 'EXISTING.DONE' })
-        }
-      }
-    });
-
-    const existingService = createActor(existingMachine).start();
-
-    const parentMachine = createMachine<{
-      existingRef: ActorRef<any> | undefined;
-    }>({
-      initial: 'pending',
-      context: {
-        existingRef: undefined
-      },
-      states: {
-        pending: {
-          entry: assign({
-            // TODO: fix (spawn existing service)
-            // @ts-ignore
-            existingRef: () => spawn(existingService, 'existing')
-          }),
-          on: {
-            'EXISTING.DONE': 'success'
-          },
-          after: {
-            100: {
-              actions: sendTo(
-                ({ context }) => context.existingRef!,
-                ({ self }) => ({
-                  type: 'ACTIVATE',
-                  origin: self
-                })
-              )
-            }
-          }
-        },
-        success: {
-          type: 'final'
-        }
-      }
-    });
-
-    const parentService = createActor(parentMachine);
-    parentService.subscribe({
-      complete: () => {
-        done();
-      }
-    });
-
-    parentService.start();
-  });
 });
 
 describe('actors', () => {
   it('should only spawn actors defined on initial state once', () => {
     let count = 0;
 
-    const startMachine = createMachine<{
-      items: number[];
-      refs: any[];
-    }>({
+    const startMachine = createMachine({
+      types: {} as { context: { items: number[]; refs: any[] } },
       id: 'start',
       initial: 'start',
       context: {
@@ -753,19 +861,20 @@ describe('actors', () => {
     actor.start();
   });
 
-  it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
+  it('should spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
     let spawnCounter = 0;
 
     interface TestContext {
-      promise?: ActorRefFrom<Promise<string>>;
+      promise?: ActorRefFrom<PromiseActorLogic<string>>;
     }
 
-    const child = createMachine<TestContext>({
+    const child = createMachine({
+      types: {} as { context: TestContext },
       initial: 'bar',
       context: {},
       states: {
         bar: {
-          entry: assign<TestContext>({
+          entry: assign({
             promise: ({ spawn }) => {
               return spawn(
                 fromPromise(() => {
@@ -807,7 +916,8 @@ describe('actors', () => {
       }
     });
 
-    const testMachine = createMachine<{ ref: ActorRef<any> }>({
+    const testMachine = createMachine({
+      types: {} as { context: { ref?: ActorRefFrom<typeof anotherMachine> } },
       initial: 'testing',
       context: ({ spawn }) => {
         spawnCalled++;
@@ -834,7 +944,8 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = createMachine<{ ref?: ActorRef<any> }>({
+    const nullActorMachine = createMachine({
+      types: {} as { context: { ref?: PromiseActorRef<number> } },
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -911,9 +1022,10 @@ describe('actors', () => {
         return count;
       }, 0);
 
-      const countMachine = createMachine<{
-        count: ActorRefFrom<typeof countLogic> | undefined;
-      }>({
+      const countMachine = createMachine({
+        types: {} as {
+          context: { count: ActorRefFrom<typeof countLogic> | undefined };
+        },
         context: {
           count: undefined
         },
@@ -929,7 +1041,7 @@ describe('actors', () => {
 
       const countService = createActor(countMachine);
       countService.subscribe((state) => {
-        if (state.context.count?.getSnapshot() === 2) {
+        if (state.context.count?.getSnapshot().context === 2) {
           done();
         }
       });
@@ -937,12 +1049,19 @@ describe('actors', () => {
 
       countService.send({ type: 'INC' });
       countService.send({ type: 'INC' });
+
+      expect(
+        countService.getSnapshot().context.count?.getSnapshot().context
+      ).toBe(2);
     });
 
     it('should work with a promise logic (fulfill)', (done) => {
-      const countMachine = createMachine<{
-        count: ActorRefFrom<Promise<number>> | undefined;
-      }>({
+      const countMachine = createMachine({
+        types: {} as {
+          context: {
+            count: ActorRefFrom<PromiseActorLogic<number>> | undefined;
+          };
+        },
         context: {
           count: undefined
         },
@@ -962,7 +1081,7 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              'done.invoke.test': {
+              'xstate.done.actor.test': {
                 target: 'success',
                 guard: ({ event }) => event.output === 42
               }
@@ -985,9 +1104,10 @@ describe('actors', () => {
 
     it('should work with a promise logic (reject)', (done) => {
       const errorMessage = 'An error occurred';
-      const countMachine = createMachine<{
-        count: ActorRefFrom<Promise<number>>;
-      }>({
+      const countMachine = createMachine({
+        types: {} as {
+          context: { count: ActorRefFrom<PromiseActorLogic<number>> };
+        },
         context: ({ spawn }) => ({
           count: spawn(
             fromPromise(
@@ -1003,10 +1123,10 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              [error('test')]: {
+              'xstate.error.actor.test': {
                 target: 'success',
                 guard: ({ event }) => {
-                  return event.data === errorMessage;
+                  return event.error === errorMessage;
                 }
               }
             }
@@ -1027,20 +1147,26 @@ describe('actors', () => {
     });
 
     it('actor logic should have reference to the parent', (done) => {
-      const pongLogic: ActorLogic<EventObject, undefined> = {
-        transition: (_state, event, { self }) => {
+      const pongLogic: ActorLogic<Snapshot<undefined>, EventObject> = {
+        transition: (state, event, { self }) => {
           if (event.type === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
 
-          return undefined;
+          return state;
         },
-        getInitialState: () => undefined
+        getInitialSnapshot: () => ({
+          status: 'active',
+          output: undefined,
+          error: undefined
+        }),
+        getPersistedSnapshot: (s) => s
       };
 
-      const pingMachine = createMachine<{
-        ponger: ActorRefFrom<typeof pongLogic> | undefined;
-      }>({
+      const pingMachine = createMachine({
+        types: {} as {
+          context: { ponger: ActorRefFrom<typeof pongLogic> | undefined };
+        },
         initial: 'waiting',
         context: {
           ponger: undefined
@@ -1076,7 +1202,8 @@ describe('actors', () => {
   });
 
   it('should be able to spawn callback actors in (lazy) initial context', (done) => {
-    const machine = createMachine<{ ref: ActorRef<any> }>({
+    const machine = createMachine({
+      types: {} as { context: { ref: CallbackActorRef<EventObject> } },
       context: ({ spawn }) => ({
         ref: spawn(
           fromCallback(({ sendBack }) => {
@@ -1109,7 +1236,8 @@ describe('actors', () => {
       entry: sendParent({ type: 'TEST' })
     });
 
-    const machine = createMachine<{ ref: ActorRef<any> }>({
+    const machine = createMachine({
+      types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
@@ -1151,10 +1279,11 @@ describe('actors', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine> | null;
-    }>(
+    const parentMachine = createMachine(
       {
+        types: {} as {
+          context: { child: ActorRefFrom<typeof childMachine> | null };
+        },
         context: {
           child: null
         },
@@ -1175,15 +1304,18 @@ describe('actors', () => {
   });
 
   it('should not crash on child promise-like sync completion during self-initialization', () => {
-    const parentMachine = createMachine<{
-      child: ActorRef<never, any> | null;
-    }>({
+    const promiseLogic = fromPromise(
+      () => ({ then: (fn: any) => fn(null) }) as any
+    );
+    const parentMachine = createMachine({
+      types: {} as {
+        context: { child: ActorRefFrom<typeof promiseLogic> | null };
+      },
       context: {
         child: null
       },
       entry: assign({
-        child: ({ spawn }) =>
-          spawn(fromPromise(() => ({ then: (fn: any) => fn(null) } as any)))
+        child: ({ spawn }) => spawn(promiseLogic)
       })
     });
     const service = createActor(parentMachine);
@@ -1201,14 +1333,17 @@ describe('actors', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRef<never, any> | null;
-    }>({
+    const emptyObservableLogic = fromObservable(createEmptyObservable);
+
+    const parentMachine = createMachine({
+      types: {} as {
+        context: { child: ActorRefFrom<typeof emptyObservableLogic> | null };
+      },
       context: {
         child: null
       },
       entry: assign({
-        child: ({ spawn }) => spawn(fromObservable(createEmptyObservable))
+        child: ({ spawn }) => spawn(emptyObservableLogic)
       })
     });
     const service = createActor(parentMachine);
@@ -1236,7 +1371,7 @@ describe('actors', () => {
       states: {
         init: {
           on: {
-            'done.invoke.myactor': 'done'
+            'xstate.done.actor.myactor': 'done'
           }
         },
         done: {}
@@ -1262,10 +1397,10 @@ describe('actors', () => {
     });
 
     const actor = createActor(machine).start();
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
 
     createActor(machine, {
-      state: persistedState
+      snapshot: persistedState
     }).start();
 
     // Will be 2 if the observable is resubscribed
@@ -1285,13 +1420,311 @@ describe('actors', () => {
     });
 
     const actor = createActor(machine).start();
-    const persistedState = actor.getPersistedState();
+    const persistedState = actor.getPersistedSnapshot();
 
     createActor(machine, {
-      state: persistedState
+      snapshot: persistedState
     }).start();
 
     // Will be 2 if the event observable is resubscribed
     expect(subscriptionCount).toBe(1);
+  });
+
+  it('should be able to restart a spawned actor within a single macrostep', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef: CallbackActorRef<EventObject>;
+        };
+      },
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'callback-1' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stopChild(({ context }) => {
+                  return context.actorRef;
+                }),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'callback-2' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by a ref', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef: CallbackActorRef<EventObject>;
+        };
+      },
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stopChild(({ context }) => context.actorRef),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by static name', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef: CallbackActorRef<EventObject>;
+        };
+      },
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              actual.push(`start ${localId}`);
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stopChild('my_name'),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by resolved name', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine({
+      types: {} as {
+        context: {
+          actorRef: CallbackActorRef<EventObject>;
+        };
+      },
+      initial: 'active',
+      context: ({ spawn }) => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(
+            fromCallback(() => {
+              return () => {
+                actual.push(`stop ${localId}`);
+              };
+            }),
+            { id: 'my_name' }
+          )
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stopChild(() => 'my_name'),
+                assign({
+                  actorRef: ({ spawn }) => {
+                    const localId = ++invokeCounter;
+
+                    return spawn(
+                      fromCallback(() => {
+                        actual.push(`start ${localId}`);
+                        return () => {
+                          actual.push(`stop ${localId}`);
+                        };
+                      }),
+                      { id: 'my_name' }
+                    );
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = createActor(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  it('should be possible to pass `self` as input to a child machine from within the context factory', () => {
+    const spy = jest.fn();
+
+    const child = createMachine({
+      types: {} as {
+        context: {
+          parent: AnyActorRef;
+        };
+        input: {
+          parent: AnyActorRef;
+        };
+      },
+      context: ({ input }) => ({
+        parent: input.parent
+      }),
+      entry: sendTo(({ context }) => context.parent, { type: 'GREET' })
+    });
+
+    const machine = createMachine({
+      context: ({ spawn, self }) => {
+        return {
+          childRef: spawn(child, { input: { parent: self } })
+        };
+      },
+      on: {
+        GREET: {
+          actions: spy
+        }
+      }
+    });
+
+    createActor(machine).start();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

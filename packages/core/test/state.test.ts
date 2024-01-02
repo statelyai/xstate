@@ -106,150 +106,15 @@ const exampleMachine = createMachine({
 });
 
 describe('State', () => {
-  describe('.nextEvents', () => {
-    it('returns the next possible events for the current state', () => {
-      const actorRef = createActor(exampleMachine);
-
-      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual(
-        [
-          'EXTERNAL',
-          'INTERNAL',
-          'MACHINE_EVENT',
-          'TO_FINAL',
-          'TO_THREE',
-          'TO_TWO',
-          'TO_TWO_MAYBE'
-        ].sort()
-      );
-
-      actorRef.start();
-      actorRef.send({
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual([
-        'DEEP_EVENT',
-        'FOO_EVENT',
-        'MACHINE_EVENT'
-      ]);
-
-      const actorRef2 = createActor(exampleMachine).start();
-      actorRef2.send({ type: 'TO_THREE' });
-
-      expect(actorRef2.getSnapshot().nextEvents.sort()).toEqual([
-        'MACHINE_EVENT',
-        'P31',
-        'P32',
-        'THREE_EVENT'
-      ]);
-    });
-
-    it('returns events when transitioned from StateValue', () => {
-      const actorRef = createActor(exampleMachine).start();
-
-      actorRef.send({
-        type: 'TO_THREE'
-      });
-      actorRef.send({ type: 'TO_THREE' });
-
-      expect(actorRef.getSnapshot().nextEvents.sort()).toEqual([
-        'MACHINE_EVENT',
-        'P31',
-        'P32',
-        'THREE_EVENT'
-      ]);
-    });
-
-    it('returns no next events if there are none', () => {
-      const noEventsMachine = createMachine({
-        id: 'no-events',
-        initial: 'idle',
-        states: {
-          idle: {
-            on: {}
-          }
-        }
-      });
-
-      expect(createActor(noEventsMachine).getSnapshot().nextEvents).toEqual([]);
-    });
-  });
-
-  describe('machine.createState()', () => {
-    it('should be able to create a state from a JSON config', () => {
-      const initialState = createActor(exampleMachine).getSnapshot();
-      const jsonInitialState = JSON.parse(JSON.stringify(initialState));
-
-      const stateFromConfig = exampleMachine.createState(jsonInitialState);
-
-      const actorRef = createActor(exampleMachine, {
-        state: stateFromConfig
-      }).start();
-
-      actorRef.send({
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(actorRef.getSnapshot().value).toEqual({
-        two: { deep: 'foo' }
-      });
-    });
-
-    it('should preserve state.nextEvents using machine.resolveState', () => {
-      const actorRef = createActor(exampleMachine);
-      const initialState = actorRef.getSnapshot();
-      const { nextEvents } = initialState;
-      const jsonInitialState = JSON.parse(JSON.stringify(initialState));
-
-      const stateFromConfig = exampleMachine.createState(jsonInitialState);
-
-      expect(
-        exampleMachine.resolveState(stateFromConfig).nextEvents.sort()
-      ).toEqual(nextEvents.sort());
-    });
-  });
-
-  describe('State.prototype.matches', () => {
-    it('should keep reference to state instance after destructuring', () => {
-      const { matches } = createActor(exampleMachine).getSnapshot();
-
-      expect(matches('one')).toBe(true);
-    });
-  });
-
-  describe('State.prototype.toStrings', () => {
-    it('should return all state paths as strings', () => {
-      const actorRef = createActor(exampleMachine).start();
-      actorRef.send({
-        type: 'TO_TWO',
-        foo: 'test'
-      });
-
-      expect(actorRef.getSnapshot().toStrings()).toEqual([
-        'two',
-        'two.deep',
-        'two.deep.foo'
-      ]);
-    });
-
-    it('should keep reference to state instance after destructuring', () => {
-      expect(createActor(exampleMachine).getSnapshot().toStrings()).toEqual([
-        'one'
-      ]);
-    });
-  });
-
-  describe('.done', () => {
+  describe('status', () => {
     it('should show that a machine has not reached its final state', () => {
-      expect(createActor(exampleMachine).getSnapshot().done).toBe(false);
+      expect(createActor(exampleMachine).getSnapshot().status).not.toBe('done');
     });
 
     it('should show that a machine has reached its final state', () => {
       const actorRef = createActor(exampleMachine).start();
       actorRef.send({ type: 'TO_FINAL' });
-      expect(actorRef.getSnapshot().done).toBe(true);
+      expect(actorRef.getSnapshot().status).toBe('done');
     });
   });
 
@@ -623,11 +488,23 @@ describe('State', () => {
       });
 
       const actorRef = createActor(machine).start();
-      const persistedState = JSON.stringify(actorRef.getPersistedState());
+      const persistedState = actorRef.getPersistedSnapshot();
       actorRef.stop();
-      const restoredState = machine.createState(JSON.parse(persistedState));
+      const restoredSnapshot = createActor(machine, {
+        snapshot: persistedState
+      }).getSnapshot();
 
-      expect(restoredState.hasTag('foo')).toBe(true);
+      expect(restoredSnapshot.hasTag('foo')).toBe(true);
+    });
+  });
+
+  describe('.status', () => {
+    it("should be 'stopped' after a running actor gets stopped", () => {
+      const snapshot = createActor(createMachine({}))
+        .start()
+        .stop()
+        .getSnapshot();
+      expect(snapshot.status).toBe('stopped');
     });
   });
 });

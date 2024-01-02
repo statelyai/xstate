@@ -6,13 +6,10 @@
   "access": "public",
   "baseBranch": "main",
   "ignore": [
-    "@xstate/analytics",
-    "@xstate/graph",
     "@xstate/immer",
+    "@xstate/graph",
     "@xstate/inspect",
-    "@xstate/scxml",
     "@xstate/solid",
-    "@xstate/svelte",
     "@xstate/test"
   ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {

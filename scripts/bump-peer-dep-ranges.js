@@ -47,7 +47,7 @@ const pkgChanges = new Map(
     })
 );
 
-for (const peerPkg of ['xstate', '@xstate/fsm']) {
+for (const peerPkg of ['xstate']) {
   const peerPkgChange = pkgChanges.get(peerPkg);
   if (!peerPkgChange || !peerPkgChange.versionChanged) {
     continue;
@@ -58,9 +58,8 @@ for (const peerPkg of ['xstate', '@xstate/fsm']) {
       continue;
     }
     const pkgJsonCopy = { ...dependentPkg.packageJson };
-    pkgJsonCopy.peerDependencies[
-      peerPkg
-    ] = `^${peerPkgChange.packageJson.version}`;
+    pkgJsonCopy.peerDependencies[peerPkg] =
+      `^${peerPkgChange.packageJson.version}`;
     fs.writeFileSync(
       path.join(dependentPkg.dir, 'package.json'),
       JSON.stringify(pkgJsonCopy, null, 2) + '\n'

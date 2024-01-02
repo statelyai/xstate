@@ -1,9 +1,13 @@
 import { getShortestPaths, getSimplePaths } from '@xstate/graph';
-import { EventObject } from 'xstate';
+import { EventObject, Snapshot } from 'xstate';
 import { PathGenerator } from './types.ts';
 
 export const createShortestPathsGen =
-  <TState, TEvent extends EventObject>(): PathGenerator<TState, TEvent> =>
+  <
+    TSnapshot extends Snapshot<unknown>,
+    TEvent extends EventObject,
+    TInput
+  >(): PathGenerator<TSnapshot, TEvent, TInput> =>
   (logic, defaultOptions) => {
     const paths = getShortestPaths(logic, defaultOptions);
 
@@ -11,7 +15,11 @@ export const createShortestPathsGen =
   };
 
 export const createSimplePathsGen =
-  <TState, TEvent extends EventObject>(): PathGenerator<TState, TEvent> =>
+  <
+    TSnapshot extends Snapshot<unknown>,
+    TEvent extends EventObject,
+    TInput
+  >(): PathGenerator<TSnapshot, TEvent, TInput> =>
   (logic, defaultOptions) => {
     const paths = getSimplePaths(logic, defaultOptions);
 

@@ -1,5 +1,4 @@
 import { createActor, createMachine, assign } from '../src/index.ts';
-import { State } from '../src/State.ts';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -96,62 +95,61 @@ describe('machine', () => {
   });
 
   describe('machine.provide', () => {
-    it('should override guards and actions', () => {
+    it('should override an action', () => {
+      const originalEntry = jest.fn();
+      const overridenEntry = jest.fn();
+
       const machine = createMachine(
         {
-          initial: 'foo',
-          context: {
-            foo: 'bar'
-          },
-          states: {
-            foo: {
-              entry: 'entryAction',
-              on: {
-                EVENT: {
-                  target: 'bar',
-                  guard: 'someCondition'
-                }
-              }
-            },
-            bar: {}
-          }
+          entry: 'entryAction'
         },
         {
           actions: {
-            entryAction: () => {
-              throw new Error('original entry');
-            }
-          },
-          guards: {
-            someCondition: () => false
+            entryAction: originalEntry
           }
         }
       );
-      let shouldThrow = true;
       const differentMachine = machine.provide({
         actions: {
-          entryAction: () => {
-            if (shouldThrow) {
-              throw new Error('new entry');
+          entryAction: overridenEntry
+        }
+      });
+
+      createActor(differentMachine).start();
+
+      expect(originalEntry).toHaveBeenCalledTimes(0);
+      expect(overridenEntry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should override a guard', () => {
+      const originalGuard = jest.fn().mockImplementation(() => true);
+      const overridenGuard = jest.fn().mockImplementation(() => true);
+
+      const machine = createMachine(
+        {
+          on: {
+            EVENT: {
+              guard: 'someCondition',
+              actions: () => {}
             }
           }
         },
-        guards: { someCondition: () => true }
+        {
+          guards: {
+            someCondition: originalGuard
+          }
+        }
+      );
+
+      const differentMachine = machine.provide({
+        guards: { someCondition: overridenGuard }
       });
 
-      expect(createActor(differentMachine).getSnapshot().context).toEqual({
-        foo: 'bar'
-      });
-
-      expect(() => {
-        createActor(differentMachine).start();
-      }).toThrowErrorMatchingInlineSnapshot(`"new entry"`);
-
-      shouldThrow = false;
       const actorRef = createActor(differentMachine).start();
       actorRef.send({ type: 'EVENT' });
 
-      expect(actorRef.getSnapshot().value).toEqual('bar');
+      expect(originalGuard).toHaveBeenCalledTimes(0);
+      expect(overridenGuard).toHaveBeenCalledTimes(1);
     });
 
     it('should not override context if not defined', () => {
@@ -197,7 +195,8 @@ describe('machine', () => {
     });
 
     it('should lazily create context for all interpreter instances created from the same machine template created by `provide`', () => {
-      const machine = createMachine<{ foo: { prop: string } }>({
+      const machine = createMachine({
+        types: {} as { context: { foo: { prop: string } } },
         context: () => ({
           foo: { prop: 'baz' }
         })
@@ -241,7 +240,7 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.resolveState()', () => {
+  describe('machine.resolveStateValue()', () => {
     const resolveMachine = createMachine({
       id: 'resolve',
       initial: 'foo',
@@ -282,43 +281,14 @@ describe('machine', () => {
     });
 
     it('should resolve the state value', () => {
-      const tempState = State.from('foo', undefined, resolveMachine);
-
-      const resolvedState = resolveMachine.resolveState(tempState);
+      const resolvedState = resolveMachine.resolveState({ value: 'foo' });
 
       expect(resolvedState.value).toEqual({
         foo: { one: { a: 'aa', b: 'bb' } }
       });
     });
 
-    it('should resolve the state configuration (implicit via events)', () => {
-      const tempState = State.from('foo', undefined, resolveMachine);
-
-      const resolvedState = resolveMachine.resolveState(tempState);
-
-      expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
-    });
-
-    it('should resolve .done', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: { NEXT: 'bar' }
-          },
-          bar: {
-            type: 'final'
-          }
-        }
-      });
-      const tempState = State.from('bar', undefined, machine);
-
-      const resolvedState = machine.resolveState(tempState);
-
-      expect(resolvedState.done).toBe(true);
-    });
-
-    it('should resolve from a state config object', () => {
+    it('should resolve `status: done`', () => {
       const machine = createMachine({
         initial: 'foo',
         states: {
@@ -331,40 +301,9 @@ describe('machine', () => {
         }
       });
 
-      const actorRef = createActor(machine).start();
-      actorRef.send({ type: 'NEXT' });
-      const barState = actorRef.getSnapshot();
+      const resolvedState = machine.resolveState({ value: 'bar' });
 
-      const jsonBarState = JSON.parse(JSON.stringify(barState));
-
-      expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
-    });
-
-    it('should terminate on a resolved final state', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            on: { NEXT: 'bar' }
-          },
-          bar: {
-            type: 'final'
-          }
-        }
-      });
-
-      const actorRef = createActor(machine).start();
-      actorRef.send({ type: 'NEXT' });
-      const persistedState = actorRef.getPersistedState();
-
-      const spy = jest.fn();
-      const actorRef2 = createActor(machine, { state: persistedState });
-      actorRef2.subscribe({
-        complete: spy
-      });
-
-      actorRef2.start();
-      expect(spy).toHaveBeenCalled();
+      expect(resolvedState.status).toBe('done');
     });
   });
 
@@ -434,7 +373,8 @@ describe('machine', () => {
 
   describe('combinatorial machines', () => {
     it('should support combinatorial machines (single-state)', () => {
-      const testMachine = createMachine<{ value: number }>({
+      const testMachine = createMachine({
+        types: {} as { context: { value: number } },
         context: { value: 42 },
         on: {
           INC: {

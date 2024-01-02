@@ -1,7 +1,10 @@
 # Actors <Badge text="4.6+"/>
 
-:::tip Check out our new docs!
-🆕 Find our [actors in XState explainer](https://stately.ai/docs/xstate/actors/intro) in our new docs, along with a [no-code introduction to actors in statecharts and the Stately Studio](https://stately.ai/docs/actions-and-actors/actors).
+:::warning These XState v4 docs are no longer maintained
+
+XState v5 is out now! [Read more about XState v5](https://stately.ai/blog/2023-12-01-xstate-v5)
+
+🆕 Find our [actors in XState explainer](https://stately.ai/docs/actors) in our new docs, along with a [no-code introduction to actors in statecharts and the Stately Studio](https://stately.ai/docs/editor-actions-and-actors#add-invoked-actors).
 :::
 
 [:rocket: Quick Reference](#quick-reference)
@@ -104,6 +107,7 @@ const todosMachine = createMachine({
 ```
 
 If you do not provide a `name` argument to `spawn(...)`, a unique name will be automatically generated. This name will be nondeterministic :warning:.
+A _named actor_ is easier to be referenced in other API calls, see [Sending Events to Actors](#sending-events-to-actors).
 
 ::: tip
 Treat `const actorRef = spawn(someMachine)` as just a normal value in `context`. You can place this `actorRef` anywhere within `context`, based on your logic requirements. As long as it's within an assignment function in `assign(...)`, it will be scoped to the service from where it was spawned.
@@ -168,7 +172,7 @@ const machine = createMachine({
 ::: tip
 If you provide an unique `name` argument to `spawn(...)`, you can reference it in the target expression:
 
-```js
+```js {4, 10}
 const loginMachine = createMachine({
   // ...
   entry: assign({
@@ -206,7 +210,7 @@ const someMachine = createMachine({
 
 ## Spawning Promises
 
-Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'done.invoke.<ID>'` action with the promise response as the `data` property in the payload:
+Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'xstate.done.actor.<ID>'` action with the promise response as the `data` property in the payload:
 
 ```js {11}
 // Returns a promise
@@ -224,7 +228,7 @@ const fetchData = (query) => {
 ```
 
 ::: warning
-It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling) and have more predictable behavior.
+It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling upon state change) and have more predictable behavior.
 :::
 
 ## Spawning Callbacks

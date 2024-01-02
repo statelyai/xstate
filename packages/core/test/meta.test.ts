@@ -77,20 +77,20 @@ describe('state meta data', () => {
     actorRef.send({ type: 'TIMER' });
     const yellowState = actorRef.getSnapshot();
 
-    expect(yellowState.meta).toEqual({
+    expect(yellowState.getMeta()).toEqual({
       'light.yellow': {
         yellowData: 'yellow data'
       }
     });
-    expect('light.green' in yellowState.meta).toBeFalsy();
-    expect('light' in yellowState.meta).toBeFalsy();
+    expect('light.green' in yellowState.getMeta()).toBeFalsy();
+    expect('light' in yellowState.getMeta()).toBeFalsy();
   });
 
   it('states should aggregate meta data (deep)', () => {
     const actorRef = createActor(lightMachine).start();
     actorRef.send({ type: 'TIMER' });
     actorRef.send({ type: 'TIMER' });
-    expect(actorRef.getSnapshot().meta).toEqual({
+    expect(actorRef.getSnapshot().getMeta()).toEqual({
       'light.red': {
         redData: {
           nested: {
@@ -125,11 +125,11 @@ describe('state meta data', () => {
     });
 
     const actor = createActor(machine, {
-      state: machine.resolveStateValue('second')
+      snapshot: machine.resolveState({ value: 'second' })
     });
     actor.start();
 
-    expect(actor.getSnapshot().meta).toEqual({
+    expect(actor.getSnapshot().getMeta()).toEqual({
       'test.second': {
         name: 'second state'
       }

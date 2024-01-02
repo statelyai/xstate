@@ -1,27 +1,26 @@
 import isDevelopment from '#is-development';
 import { useCallback, useEffect } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
-import {
-  ActorRefFrom,
-  AnyActorLogic,
-  ActorOptions,
-  ActorStatus,
-  SnapshotFrom
-} from 'xstate';
-import { useIdleInterpreter } from './useActorRef.ts';
-import { isActorRef } from 'xstate/actors';
+import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
+import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
+import { useIdleActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options: ActorOptions<TLogic> = {}
-): [SnapshotFrom<TLogic>, ActorRefFrom<TLogic>['send'], ActorRefFrom<TLogic>] {
-  if (isDevelopment && isActorRef(logic)) {
+): [SnapshotFrom<TLogic>, Actor<TLogic>['send'], Actor<TLogic>] {
+  if (
+    isDevelopment &&
+    !!logic &&
+    'send' in logic &&
+    typeof logic.send === 'function'
+  ) {
     throw new Error(
       `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
     );
   }
 
-  const actorRef = useIdleInterpreter(logic, options as any);
+  const actorRef = useIdleActorRef(logic, options);
 
   const getSnapshot = useCallback(() => {
     return actorRef.getSnapshot();
@@ -45,11 +44,9 @@ export function useActor<TLogic extends AnyActorLogic>(
     actorRef.start();
 
     return () => {
-      actorRef.stop();
-      actorRef.status = ActorStatus.NotStarted;
-      (actorRef as any)._initState();
+      stopRootWithRehydration(actorRef);
     };
   }, [actorRef]);
 
-  return [actorSnapshot, actorRef.send, actorRef] as any;
+  return [actorSnapshot, actorRef.send, actorRef];
 }
