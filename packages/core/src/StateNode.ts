@@ -128,6 +128,7 @@ export class StateNode<
     any, // tag
     any, // input
     any, // output
+    any, // config
     any // typegen
   >;
   /**

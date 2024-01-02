@@ -77,9 +77,9 @@ describe('createActorContext', () => {
           logic={machine.provide({
             actions: {
               fooAction: assign(({ event }) => {
-                ((_accept: 'FOO') => {})(event.type);
+                event.type satisfies 'FOO' | 'BAR';
                 // @ts-expect-error
-                ((_accept: "test that this isn't any") => {})(event.type);
+                event.type satisfies 'FOOD' | 'BEAR';
               })
             }
           })}

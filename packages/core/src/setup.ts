@@ -191,6 +191,7 @@ export function setup<
     TTag,
     TInput,
     TOutput,
+    TConfig,
     ResolveTypegenMeta<
       TypegenDisabled,
       TEvent,

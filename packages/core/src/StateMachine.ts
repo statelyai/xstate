@@ -66,6 +66,7 @@ export class StateMachine<
   TTag extends string,
   TInput,
   TOutput,
+  TConfig,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,

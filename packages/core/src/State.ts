@@ -65,7 +65,8 @@ interface MachineSnapshotBase<
     TStateValue,
     TTag,
     unknown,
-    TOutput
+    TOutput,
+    unknown // TConfig
   >;
   tags: Set<string>;
   value: TStateValue;

@@ -959,6 +959,7 @@ export type AnyStateMachine = StateMachine<
   any, // tag
   any, // input
   any, // output
+  any, // config
   any // typegen
 >;
 
@@ -1707,15 +1708,16 @@ export interface StateConfig<
   machine?: StateMachine<
     TContext,
     TEvent,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any
+    any, // TChildren
+    any, // TActor
+    any, // TAction
+    any, // TGuard
+    any, // TDelay
+    any, // TStateValue
+    any, // TTag
+    any, // TInput
+    any, // TOutput
+    any // TConfig
   >;
 }
 
@@ -2305,6 +2307,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
             infer _TTag,
             infer _TInput,
             infer _TOutput,
+            infer _TConfig,
             infer _TResolvedTypesMeta
           >
           ? TContext
