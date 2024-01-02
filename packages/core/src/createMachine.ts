@@ -129,9 +129,11 @@ export function createMachine<
     string,
   TInput,
   TOutput,
+  unknown, // TConfig
   ResolveTypegenMeta<TTypesMeta, TEvent, TActor, TAction, TGuard, TDelay, TTag>
 > {
   return new StateMachine<
+    any,
     any,
     any,
     any,
